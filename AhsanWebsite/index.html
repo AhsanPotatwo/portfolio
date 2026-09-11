@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ahsan — Full Stack Developer</title>
+  <meta name="description"
+    content="Ahsan — Manchester-based full stack developer. BSc Computer Science. Web development, cross-platform apps and interactive game design.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=Fira+Mono:wght@400&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+
+  <a class="skip-link" href="#home">Skip to content</a>
+
+  <!-- ============ NAV ============ -->
+  <header class="site-header" id="header">
+    <div class="container nav-inner">
+      <a class="brand" href="#home">[Ahsan]</a>
+
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="nav" id="primaryNav" aria-label="Primary">
+        <a href="#home" class="nav-link is-active">Home</a>
+        <a href="#about" class="nav-link">About</a>
+        <a href="#skills" class="nav-link">Skills</a>
+        <a href="#projects" class="nav-link">Projects</a>
+        <a href="#contact" class="nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="home">
+      <div class="container">
+        <p class="hero-greeting">Hello! I am...</p>
+        <h1 class="hero-name">Ahsan</h1>
+        <p class="hero-role">Full Stack Developer</p>
+
+        <div class="hero-rule" aria-hidden="true"></div>
+
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#" download>My resume</a>
+          <a class="btn btn-ghost" href="#about">About me</a>
+        </div>
+
+        <div class="connect">
+          <span class="connect-label">Connect with me:</span>
+          <ul class="socials">
+            <li>
+              <a class="social" href="https://www.linkedin.com/" target="_blank" rel="noopener" aria-label="LinkedIn">
+                <span class="icon-linkedin" aria-hidden="true">
+                  <img class="li-dot" src="assets/linkedin-dot.svg" alt="">
+                  <img class="li-stem" src="assets/linkedin-stem.svg" alt="">
+                  <img class="li-n" src="assets/linkedin-n.svg" alt="">
+                </span>
+              </a>
+            </li>
+            <li>
+              <a class="social" href="https://github.com/" target="_blank" rel="noopener" aria-label="GitHub">
+                <img class="icon-github" src="assets/github.svg" alt="" aria-hidden="true">
+              </a>
+            </li>
+            <li>
+              <a class="social" href="mailto:hello@example.com" aria-label="Email">
+                <img class="icon-email" src="assets/email.svg" alt="" aria-hidden="true">
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="about" id="about">
+      <div class="container">
+        <div class="about-panel">
+          <div class="about-card">
+            <div class="avatar">
+              <img class="avatar-ring" src="assets/avatar-ring.svg" alt="" aria-hidden="true">
+              <span class="avatar-note">(Profile pic here)</span>
+            </div>
+
+            <dl class="specs">
+              <div class="spec-row">
+                <dt>User:</dt>
+                <dd class="v-name">Ahsan</dd>
+              </div>
+              <div class="spec-row">
+                <dt>Role:</dt>
+                <dd class="v-role">Full stack developer</dd>
+              </div>
+              <div class="spec-row">
+                <dt>Location:</dt>
+                <dd class="v-loc">Manchester, UK</dd>
+              </div>
+              <div class="spec-row">
+                <dt>Status:</dt>
+                <dd><span class="badge-open">open</span></dd>
+              </div>
+            </dl>
+          </div>
+
+          <div class="about-copy">
+            <h2>About me</h2>
+            <p>I'm Ahsan, a Manchester-based full stack developer with a BSc in Computer Science and a background
+              spanning web development, cross-platform applications, and interactive game design. I've delivered
+              tailored work across professional and freelance environments, and I write across multiple languages and
+              frameworks because I believe adaptability is what separates good developers from great ones. I'm driven by
+              curiosity and building things that are both creatively compelling and engaging. I'm always working on
+              something new.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SKILLS & EXPERIENCE ============ -->
+    <section class="skills" id="skills">
+      <div class="container">
+        <h2 class="section-title">Skills &amp; Experience</h2>
+
+        <div class="skills-grid">
+
+          <!-- Left: skill groups -->
+          <div class="skill-groups">
+
+            <h3 class="group-title">Frontend</h3>
+            <ul class="tiles">
+              <li class="tile">
+                <img class="glyph" src="assets/javascript.svg" alt="" aria-hidden="true">
+                <span>Javascript</span>
+              </li>
+              <li class="tile">
+                <img class="glyph" src="assets/html.svg" alt="" aria-hidden="true">
+                <span>HTML</span>
+              </li>
+              <li class="tile">
+                <img class="glyph" src="assets/css.svg" alt="" aria-hidden="true">
+                <span>CSS</span>
+              </li>
+              <li class="tile">
+                <span class="plate plate-react">
+                  <img class="leaf leaf-react" src="assets/react.png" alt="" aria-hidden="true">
+                </span>
+                <span>React</span>
+              </li>
+              <li class="tile">
+                <span class="plate plate-p5">
+                  <img class="leaf leaf-p5" src="assets/p5js.svg" alt="" aria-hidden="true">
+                </span>
+                <span>p5.js</span>
+              </li>
+              <li class="tile">
+                <span class="plate plate-ts">
+                  <img class="leaf leaf-ts" src="assets/typescript.svg" alt="" aria-hidden="true">
+                </span>
+                <span>Typescript</span>
+              </li>
+            </ul>
+
+            <h3 class="group-title">Backend</h3>
+            <ul class="tiles">
+              <li class="tile">
+                <img class="glyph" src="assets/nodejs.svg" alt="" aria-hidden="true">
+                <span>Node.js</span>
+              </li>
+              <li class="tile">
+                <span class="glyph composite" aria-hidden="true">
+                  <img class="layer base" src="assets/php.svg" alt="">
+                  <img class="layer php-a" src="assets/php-a.svg" alt="">
+                  <img class="layer php-b" src="assets/php-b.svg" alt="">
+                  <img class="layer php-c" src="assets/php-c.svg" alt="">
+                  <img class="layer php-d" src="assets/php-d.svg" alt="">
+                  <img class="layer php-e" src="assets/php-e.svg" alt="">
+                  <img class="layer php-f" src="assets/php-f.svg" alt="">
+                </span>
+                <span>PHP</span>
+              </li>
+              <li class="tile">
+                <span class="glyph composite plate-dotnet" aria-hidden="true">
+                  <img class="layer dotnet-ring" src="assets/dotnet-ring.svg" alt="">
+                  <img class="layer dotnet-mark" src="assets/dotnet-mark.svg" alt="">
+                </span>
+                <span>.NET</span>
+              </li>
+            </ul>
+
+            <h3 class="group-title">Tools &amp; Workflow</h3>
+            <ul class="tiles">
+              <li class="tile">
+                <span class="glyph composite" aria-hidden="true">
+                  <img class="layer base" src="assets/figma.svg" alt="">
+                  <img class="layer fig-5" src="assets/figma-5.svg" alt="">
+                  <img class="layer fig-4" src="assets/figma-4.svg" alt="">
+                  <img class="layer fig-3" src="assets/figma-3.svg" alt="">
+                  <img class="layer fig-2" src="assets/figma-2.svg" alt="">
+                  <img class="layer fig-1" src="assets/figma-1.svg" alt="">
+                </span>
+                <span>Figma</span>
+              </li>
+              <li class="tile">
+                <img class="glyph" src="assets/vscode-full.svg" alt="" aria-hidden="true">
+                <span>VSCode</span>
+              </li>
+              <li class="tile">
+                <img class="glyph" src="assets/git.svg" alt="" aria-hidden="true">
+                <span>Git</span>
+              </li>
+            </ul>
+
+            <h3 class="group-title">Languages</h3>
+            <ul class="tiles">
+              <li class="tile">
+                <img class="glyph" src="assets/python.svg" alt="" aria-hidden="true">
+                <span>Python</span>
+              </li>
+              <li class="tile">
+                <img class="glyph" src="assets/java.svg" alt="" aria-hidden="true">
+                <span>Java</span>
+              </li>
+              <li class="tile">
+                <span class="glyph composite" aria-hidden="true">
+                  <img class="layer base" src="assets/csharp.svg" alt="">
+                  <img class="layer cs-mark" src="assets/csharp-mark.svg" alt="">
+                </span>
+                <span>C#</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Right: timeline -->
+          <div class="timeline-col">
+            <h3 class="timeline-heading">Experience</h3>
+
+            <ol class="timeline">
+              <li class="tl-item">
+                <img class="tl-dot" src="assets/timeline-dot.svg" alt="" aria-hidden="true">
+                <h4 class="tl-title">Full stack developer</h4>
+                <p class="tl-meta">Global PPC LTD &nbsp;| Feb 2025 - Oct 2025</p>
+                <ul class="tl-points">
+                  <li>Developed responsive, high-performance web interfaces using p5.js, .NET and PHP, reducing page
+                    load times by ~40% across 3 client projects</li>
+                  <li>Designed and integrated REST APIs to enable real-time data sync between front-end and back-end
+                    systems</li>
+                  <li>Translated design concepts into production-ready UIs, collaborating closely with designers and
+                    back-end developers to ensure seamless functionality</li>
+                  <li>Optimized front-end performance and code quality, contributing to testing, deployment, and on-time
+                    delivery of all assigned features</li>
+                  <li>Praised for technical proficiency, quick learning, and proactive problem-solving in a fast-paced
+                    remote team environment</li>
+                </ul>
+              </li>
+
+              <li class="tl-item">
+                <img class="tl-dot" src="assets/timeline-dot.svg" alt="" aria-hidden="true">
+                <h4 class="tl-title tl-title-sm">Web development freelance</h4>
+                <p class="tl-meta">Jun 2025 - Present</p>
+                <ul class="tl-points">
+                  <li>Delivered 4 responsive client websites (HTML/CSS/JS) in under 2 weeks</li>
+                  <li>Achieved 100% on-time delivery across 4 concurrent client projects</li>
+                  <li>Managed full project lifecycle: requirements, design, deployment</li>
+                </ul>
+              </li>
+            </ol>
+
+            <h3 class="timeline-heading">Education</h3>
+
+            <ol class="timeline">
+              <li class="tl-item">
+                <img class="tl-dot" src="assets/timeline-dot.svg" alt="" aria-hidden="true">
+                <h4 class="tl-title tl-title-md">Bsc in Computer Science</h4>
+                <p class="tl-meta tl-meta-sm">Manchester Metropolitan University &nbsp;| 2022 - 2025</p>
+                <ul class="tl-points tl-points-lg">
+                  <li>Graduated with 2:1 (Upper second)</li>
+                </ul>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ PROJECTS ============ -->
+    <section class="projects" id="projects">
+      <div class="container">
+        <h2 class="section-title">My projects</h2>
+        <ul class="project-grid">
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+          <li class="project-card">Coming soon...</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ CONTACT ============ -->
+    <section class="contact" id="contact">
+      <div class="container contact-inner">
+        <h2 class="section-title">Get in touch</h2>
+        <p class="contact-copy">Open to full stack roles and freelance work.</p>
+        <a class="btn btn-primary" href="mailto:hello@example.com">Email me</a>
+
+        <ul class="socials socials-footer">
+          <li>
+            <a class="social" href="https://www.linkedin.com/" target="_blank" rel="noopener" aria-label="LinkedIn">
+              <span class="icon-linkedin" aria-hidden="true">
+                <img class="li-dot" src="assets/linkedin-dot.svg" alt="">
+                <img class="li-stem" src="assets/linkedin-stem.svg" alt="">
+                <img class="li-n" src="assets/linkedin-n.svg" alt="">
+              </span>
+            </a>
+          </li>
+          <li>
+            <a class="social" href="https://github.com/" target="_blank" rel="noopener" aria-label="GitHub">
+              <img class="icon-github" src="assets/github.svg" alt="" aria-hidden="true">
+            </a>
+          </li>
+          <li>
+            <a class="social" href="mailto:hello@example.com" aria-label="Email">
+              <img class="icon-email" src="assets/email.svg" alt="" aria-hidden="true">
+            </a>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>© <span id="year">2026</span> Ahsan — Full Stack Developer</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+
+</html>
