@@ -216,6 +216,8 @@ a{ color:inherit; text-decoration:none; }
   width:233px; height:233px;
   margin:0 auto clamp(40px,6vw,86px);
   display:grid; place-items:center;
+  border-radius:50%;
+  overflow:hidden; /* clips the photo to the circle so scale/position tweaks below never spill past the ring */
 }
 .avatar-ring{ position:absolute; inset:0; width:100%; height:100%; }
 .avatar-photo{
@@ -225,6 +227,8 @@ a{ color:inherit; text-decoration:none; }
   height:100%;
   border-radius:50%;
   object-fit:cover;
+  object-position: center -30%; /* TWEAK ME: left-right% top-bottom% crop point. Raise the 2nd number to move the photo DOWN in the frame, lower it to move UP */
+  transform: scale(1.3); /* TWEAK ME: zoom level. 1 = no zoom, 1.1 = 10% zoomed in, etc */
 }
 .specs{
   margin-top:auto;
