@@ -459,8 +459,33 @@ a{ color:inherit; text-decoration:none; }
 }
 
 /* ============ REVEAL ============ */
-.reveal{ opacity:0; transform:translateY(18px); transition:opacity .5s ease, transform .5s ease; }
+/* re-triggers every time a section crosses into/out of view (see main.js), so the motion
+   is a little more pronounced than a one-shot intro would need — enough to read as a
+   deliberate flourish on every pass without feeling like it's fighting the scroll */
+.reveal{ opacity:0; transform:translateY(26px) scale(.98); transition:opacity .55s ease, transform .55s ease; }
 .reveal.is-visible{ opacity:1; transform:none; }
+
+/* cascade: once a section's outer .reveal fires, its direct children (headings, paragraphs,
+   list items…) fade/rise in one after another instead of all at once, so the text itself
+   reads as animating rather than the whole block just appearing. Scoped to a dedicated
+   .reveal-cascade class (added only to text-only containers in main.js) rather than every
+   .reveal, because it sets the `transition` shorthand — applying it to containers whose
+   children already define their own hover transition (.project-card, .btn) would silently
+   replace those instead of combining with them. */
+.reveal-cascade > *{
+  opacity:0; transform:translateY(20px);
+  transition:opacity .55s cubic-bezier(.22,.61,.36,1), transform .55s cubic-bezier(.22,.61,.36,1);
+}
+.reveal-cascade.is-visible > *{ opacity:1; transform:none; }
+.reveal-cascade.is-visible > *:nth-child(1){ transition-delay:0s; }
+.reveal-cascade.is-visible > *:nth-child(2){ transition-delay:.08s; }
+.reveal-cascade.is-visible > *:nth-child(3){ transition-delay:.16s; }
+.reveal-cascade.is-visible > *:nth-child(4){ transition-delay:.24s; }
+.reveal-cascade.is-visible > *:nth-child(5){ transition-delay:.32s; }
+.reveal-cascade.is-visible > *:nth-child(6){ transition-delay:.4s; }
+.reveal-cascade.is-visible > *:nth-child(7){ transition-delay:.48s; }
+.reveal-cascade.is-visible > *:nth-child(8){ transition-delay:.56s; }
+.reveal-cascade.is-visible > *:nth-child(n+9){ transition-delay:.6s; }
 
 /* ============ RESPONSIVE ============ */
 @media (max-width:1200px){

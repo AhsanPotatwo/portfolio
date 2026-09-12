@@ -40,20 +40,21 @@
     sections.forEach(function (section) { spy.observe(section); });
   }
 
-  /* ---- one gentle reveal per section ---- */
+  /* ---- reveal on scroll, re-triggering every time a section enters/leaves view ---- */
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!reduced && 'IntersectionObserver' in window) {
-    var targets = document.querySelectorAll('.about-panel, .skill-groups, .timeline-col, .project-grid, .contact-inner');
-    var revealer = new IntersectionObserver(function (entries, observer) {
+    var targets = document.querySelectorAll('.about-panel, .skill-groups, .timeline-col, .project-grid, .contact-inner, .skills .section-title, .projects .section-title');
+    var revealer = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add('is-visible');
-        observer.unobserve(entry.target);
+        entry.target.classList.toggle('is-visible', entry.isIntersecting);
       });
     }, { threshold: 0.08 });
 
+    var cascadeSelector = '.about-panel, .skill-groups, .timeline-col';
+
     targets.forEach(function (el) {
       el.classList.add('reveal');
+      if (el.matches(cascadeSelector)) el.classList.add('reveal-cascade');
       revealer.observe(el);
     });
   }
