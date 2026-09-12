@@ -329,25 +329,27 @@ a{ color:inherit; text-decoration:none; }
 .composite .base{ inset:0; width:100%; height:100%; }
 .composite .layer img{ width:100%; height:100%; }
 
-/* PHP */
-.php-a{ top:38.91%; right:60.58%; bottom:30.5%; left:10.28%; transform:scaleY(-1); }
-.php-b{ top:38.31%; right:59.98%; bottom:29.9%; left:9.67%;  transform:scaleY(-1); }
-.php-c{ top:31.1%;  right:36.27%; bottom:38.31%; left:37.52%; transform:scaleY(-1); }
-.php-d{ top:30.5%;  right:35.67%; bottom:37.71%; left:36.91%; transform:scaleY(-1); }
-.php-e{ top:38.91%; right:10.64%; bottom:30.5%; left:60.22%; transform:scaleY(-1); }
-.php-f{ top:38.31%; right:10.04%; bottom:29.9%; left:59.61%; transform:scaleY(-1); }
+/* PHP — each layer's width/height is added (matching 100% - left% - right%, 100% - top% - bottom%)
+   so the letter pieces scale down with the icon on mobile instead of staying fixed at their
+   desktop pixel size and drifting out of place, same underlying issue as the C# mark above */
+.php-a{ top:38.91%; right:60.58%; bottom:30.5%; left:10.28%; width:29.14%; height:30.59%; transform:scaleY(-1); }
+.php-b{ top:38.31%; right:59.98%; bottom:29.9%; left:9.67%;  width:30.35%; height:31.79%; transform:scaleY(-1); }
+.php-c{ top:31.1%;  right:36.27%; bottom:38.31%; left:37.52%; width:26.21%; height:30.59%; transform:scaleY(-1); }
+.php-d{ top:30.5%;  right:35.67%; bottom:37.71%; left:36.91%; width:27.42%; height:31.79%; transform:scaleY(-1); }
+.php-e{ top:38.91%; right:10.64%; bottom:30.5%; left:60.22%; width:29.14%; height:30.59%; transform:scaleY(-1); }
+.php-f{ top:38.31%; right:10.04%; bottom:29.9%; left:59.61%; width:30.35%; height:31.79%; transform:scaleY(-1); }
 
 /* .NET */
 .plate-dotnet{ background:#623697; border-radius:15px; }
 .dotnet-ring{ left:1.18%; top:0; width:97.65%; height:97.65%; }
 .dotnet-mark{ inset:0; width:100%; height:100%; }
 
-/* Figma */
-.fig-5{ top:59.67%; right:49.17%; bottom:19.5%;  left:30%; }
-.fig-4{ top:38.83%; right:49.17%; bottom:40.33%; left:30%; }
-.fig-3{ top:18%;    right:49.17%; bottom:61.17%; left:30%; }
-.fig-2{ top:18%;    right:28.33%; bottom:61.17%; left:50.83%; }
-.fig-1{ top:38.83%; right:28.33%; bottom:40.33%; left:50.83%; }
+/* Figma — same fix as PHP/C# above: explicit width/height so the 5 pieces scale with the icon */
+.fig-5{ top:59.67%; right:49.17%; bottom:19.5%;  left:30%;    width:20.83%; height:20.83%; }
+.fig-4{ top:38.83%; right:49.17%; bottom:40.33%; left:30%;    width:20.83%; height:20.84%; }
+.fig-3{ top:18%;    right:49.17%; bottom:61.17%; left:30%;    width:20.83%; height:20.83%; }
+.fig-2{ top:18%;    right:28.33%; bottom:61.17%; left:50.83%; width:20.84%; height:20.83%; }
+.fig-1{ top:38.83%; right:28.33%; bottom:40.33%; left:50.83%; width:20.84%; height:20.84%; }
 
 /* VS Code */
 .vs-top{    top:15.5%;  right:15.32%; bottom:32.08%; left:15.28%; }
@@ -358,7 +360,10 @@ a{ color:inherit; text-decoration:none; }
 .vs-overlay{ top:15.5%; right:15.36%; bottom:15.5%; left:15.28%; opacity:.25; mix-blend-mode:overlay; }
 
 /* C# */
-.cs-mark{ top:19.5%; right:15%; bottom:19.4%; left:20%; }
+.cs-mark{
+  top:19.5%; right:15%; bottom:19.4%; left:20%;
+  width:65%; height:61.1%; /* the mark's SVG file has a fixed pixel size baked in for the desktop glyph size, so without an explicit width/height here it won't shrink with the icon on mobile — these match the inset percentages above exactly (100 - left - right, 100 - top - bottom) */
+}
 
 /* ---- timeline ---- */
 .timeline-heading{
