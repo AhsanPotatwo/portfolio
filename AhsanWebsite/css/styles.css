@@ -381,7 +381,7 @@ a{ color:inherit; text-decoration:none; }
 .tl-item::before{
   content:"";
   position:absolute;
-  left:24px; top:52px; bottom:-38px;
+  left:22.5px; top:48px; bottom:-38px; /* left centers the 5px line under the 50px dot (25 - 2.5); top overlaps 2px into the dot's ring so they read as one continuous shape instead of leaving a gap */
   width:5px; border-radius:3px;
   background:linear-gradient(180deg,var(--purple-accent),rgba(102,70,156,0));
 }
@@ -510,7 +510,7 @@ a{ color:inherit; text-decoration:none; }
   .tiles{ column-gap:clamp(18px,6vw,40px); row-gap:34px; }
   .tl-item{ padding-left:64px; }
   .tl-dot{ width:40px; height:40px; }
-  .tl-item::before{ left:18px; top:44px; }
+  .tl-item::before{ left:17.5px; top:38px; } /* re-centered/overlapped for the smaller 40px mobile dot, same reasoning as the desktop rule above */
   .project-grid{ grid-template-columns:minmax(0,400px); gap:24px; }
   .project-card{ height:120px; }
 }
