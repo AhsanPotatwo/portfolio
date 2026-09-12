@@ -210,6 +210,7 @@ a{ color:inherit; text-decoration:none; }
   padding:55px clamp(24px,3vw,48px);
   min-height:586px;
   display:flex; flex-direction:column;
+  box-shadow: 0 20px 30px rgba(0,0,0,.35); /* TWEAK ME: drop shadow — values are x-offset y-offset blur-radius color. Increase blur/y-offset for a softer, further "lifted" look; raise the alpha (last number in rgba) for a darker, stronger shadow */
 }
 .avatar{
   position:relative;
