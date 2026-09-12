@@ -329,9 +329,7 @@ a{ color:inherit; text-decoration:none; }
 .composite .base{ inset:0; width:100%; height:100%; }
 .composite .layer img{ width:100%; height:100%; }
 
-/* PHP — each layer's width/height is added (matching 100% - left% - right%, 100% - top% - bottom%)
-   so the letter pieces scale down with the icon on mobile instead of staying fixed at their
-   desktop pixel size and drifting out of place, same underlying issue as the C# mark above */
+/* PHP */
 .php-a{ top:38.91%; right:60.58%; bottom:30.5%; left:10.28%; width:29.14%; height:30.59%; transform:scaleY(-1); }
 .php-b{ top:38.31%; right:59.98%; bottom:29.9%; left:9.67%;  width:30.35%; height:31.79%; transform:scaleY(-1); }
 .php-c{ top:31.1%;  right:36.27%; bottom:38.31%; left:37.52%; width:26.21%; height:30.59%; transform:scaleY(-1); }
@@ -341,10 +339,10 @@ a{ color:inherit; text-decoration:none; }
 
 /* .NET */
 .plate-dotnet{ background:#623697; border-radius:15px; }
-.dotnet-ring{ left:1.18%; top:0; width:97.65%; height:97.65%; }
+.plate-dotnet::before{ content:""; position:absolute; inset:2%; border-radius:50%; background:#fff; } /* TWEAK ME: lower % = bigger circle, but keep enough margin that it doesn't peek past the mark's silhouette into the corners */
 .dotnet-mark{ inset:0; width:100%; height:100%; }
 
-/* Figma — same fix as PHP/C# above: explicit width/height so the 5 pieces scale with the icon */
+/* Figma */
 .fig-5{ top:59.67%; right:49.17%; bottom:19.5%;  left:30%;    width:20.83%; height:20.83%; }
 .fig-4{ top:38.83%; right:49.17%; bottom:40.33%; left:30%;    width:20.83%; height:20.84%; }
 .fig-3{ top:18%;    right:49.17%; bottom:61.17%; left:30%;    width:20.83%; height:20.83%; }
