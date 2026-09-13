@@ -123,7 +123,95 @@ a{ color:inherit; text-decoration:none; }
 .nav-toggle[aria-expanded="true"] span:nth-child(3){ transform:translateY(-10px) rotate(-45deg); }
 
 /* ============ HERO ============ */
-.hero{ padding:clamp(60px,10vw,153px) 0 clamp(60px,8vw,120px); }
+.hero{ position:relative; z-index:0; padding:clamp(60px,10vw,153px) 0 clamp(60px,8vw,120px); }
+.hero-fx{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  z-index:-1;
+  pointer-events:none;
+}
+
+/* soft drifting gradient aura — fills the empty space beside the hero text with color and
+   gentle movement, sitting behind everything (including the particle canvas) */
+.hero-aura{
+  position:absolute; z-index:-2;
+  top:50%; right:-8%;
+  width:min(50vw,680px); height:min(50vw,680px);
+  transform:translateY(-50%);
+  background:radial-gradient(circle at 35% 35%, rgba(109,18,179,.55), rgba(102,83,139,.25) 45%, transparent 72%);
+  filter:blur(60px);
+  border-radius:50%;
+  pointer-events:none;
+  animation:heroAuraDrift 16s ease-in-out infinite;
+}
+@keyframes heroAuraDrift{
+  0%,100%{ transform:translate(0,-50%) scale(1); }
+  50%{ transform:translate(-26px,calc(-50% - 22px)) scale(1.07); }
+}
+
+/* floating "code card" — the flashy centerpiece: a glassy editor-style panel with a
+   typewriter effect (see main.js) and a slow rotating gradient glow behind it. The tilt
+   (rotateX/rotateY) is applied by JS to .hero-card-inner, kept separate from this element
+   so it doesn't fight with the translateY(-50%) used to vertically center the card. */
+.hero-card{
+  position:absolute; z-index:1;
+  top:50%; right:clamp(20px,6vw,90px);
+  width:min(32vw,420px);
+  transform:translateY(-50%);
+  pointer-events:none;
+}
+.hero-card-inner{
+  position:relative;
+  transition:transform .2s ease-out;
+  will-change:transform;
+}
+.hero-card-glow{
+  position:absolute; inset:-2px;
+  border-radius:18px;
+  background:conic-gradient(from 0deg, var(--grad-to), var(--purple-line), var(--grad-from), var(--grad-to));
+  filter:blur(10px);
+  opacity:.55;
+  animation:heroCardSpin 8s linear infinite;
+}
+@keyframes heroCardSpin{ to{ transform:rotate(360deg); } }
+.hero-card-body{
+  position:relative;
+  background:rgba(30,28,33,.82);
+  backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  padding:18px 20px 22px;
+  box-shadow:0 25px 60px rgba(0,0,0,.45);
+}
+.hero-card-bar{ display:flex; align-items:center; gap:7px; margin-bottom:14px; }
+.hero-card-dot{ width:11px; height:11px; border-radius:50%; }
+.hero-card-dot-r{ background:#ff5f57; }
+.hero-card-dot-y{ background:#febc2e; }
+.hero-card-dot-g{ background:#28c840; }
+.hero-card-file{ margin-left:6px; font-family:var(--font-mono); font-size:13px; color:var(--muted); }
+.hero-card-code{
+  margin:0;
+  font-family:var(--font-mono);
+  font-size:clamp(13px,1.05vw,15px);
+  line-height:1.7;
+  color:var(--term-val);
+  white-space:pre-wrap;
+  min-height:9.5em; /* reserves space so the card doesn't resize as the typewriter fills it in */
+}
+.hero-card-code .hc-key{ color:var(--term-role); }
+.hero-card-code .hc-prop{ color:var(--term-key); }
+.hero-card-code .hc-str{ color:var(--open); }
+.hero-card-caret{
+  display:inline-block; width:.5em;
+  background:var(--text);
+  animation:heroCaretBlink 1s step-end infinite;
+}
+@keyframes heroCaretBlink{ 50%{ opacity:0; } }
+
+@media (max-width:1150px){
+  .hero-aura, .hero-card{ display:none; } /* not enough clear space beside the hero text below this width to show them without crowding */
+}
+
 .hero-greeting{
   font-size:clamp(26px,4vw,48px);
   font-weight:500;
@@ -503,6 +591,7 @@ a{ color:inherit; text-decoration:none; }
 }
 
 @media (max-width:820px){
+  .hero-fx{ display:none; } /* the constellation effect fills the empty space beside the hero text on desktop; on narrow screens that space doesn't exist, so skip the extra work */
   .nav-toggle{ display:flex; }
   .nav{
     position:absolute; top:100%;
@@ -547,4 +636,5 @@ a{ color:inherit; text-decoration:none; }
   html{ scroll-behavior:auto; }
   *{ transition-duration:.01ms !important; animation-duration:.01ms !important; }
   .reveal{ opacity:1; transform:none; }
+  .hero-aura, .hero-card-glow, .hero-card-caret{ animation:none; }
 }
