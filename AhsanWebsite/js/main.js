@@ -59,56 +59,67 @@
     });
   }
 
-  /* ---- hero constellation effect: fills the empty space beside the hero text on desktop
-     with a network of drifting nodes that connect with faint lines, and glow/link to the
-     cursor when it's nearby. Skipped entirely on mobile (matches the CSS breakpoint that
-     hides the canvas, since there's no spare space there) and under reduced-motion. ---- */
-  var heroCanvas = document.getElementById('heroFx');
-  if (heroCanvas && !reduced && window.matchMedia('(min-width:821px)').matches) {
-    var ctx = heroCanvas.getContext('2d');
-    var heroSection = heroCanvas.closest('.hero');
-    var fxWidth = 0, fxHeight = 0, dpr = 1;
+  /* ---- shared particle-field engine: a small network of drifting nodes connected by faint
+     lines. Used two ways below: a denser, mouse-reactive version confined to the hero (the
+     "constellation" effect), and a very sparse, non-interactive, fixed-to-viewport version
+     that runs behind the whole site so it never feels empty. Both stay off entirely under
+     prefers-reduced-motion, pause while their canvas isn't visible/the tab isn't active, and
+     are aria-hidden + pointer-events:none so they never reach assistive tech or intercept
+     clicks — decoration only. */
+  function makeParticleField(opts) {
+    var canvas = opts.canvas;
+    if (!canvas) return;
+
+    var ctx = canvas.getContext('2d');
+    var width = 0, height = 0, dpr = 1;
     var particles = [];
     var mouse = { x: 0, y: 0, active: false };
-    var linkDist = 140;
-    var mouseDist = 180;
+    var linkDist = opts.linkDist;
+    var mouseDist = opts.mouseDist || 0;
     var running = false;
     var rafId = null;
 
-    function nearMouse(p) {
-      return mouse.active && Math.hypot(p.x - mouse.x, p.y - mouse.y) < mouseDist;
+    function getSize() {
+      return opts.fixed
+        ? { w: window.innerWidth, h: window.innerHeight }
+        : { w: opts.sizeEl.clientWidth, h: opts.sizeEl.clientHeight };
     }
 
-    function resizeFx() {
+    function nearMouse(p) {
+      return opts.interactive && mouse.active && Math.hypot(p.x - mouse.x, p.y - mouse.y) < mouseDist;
+    }
+
+    function resize() {
+      var size = getSize();
       dpr = window.devicePixelRatio || 1;
-      fxWidth = heroSection.clientWidth;
-      fxHeight = heroSection.clientHeight;
-      heroCanvas.width = fxWidth * dpr;
-      heroCanvas.height = fxHeight * dpr;
+      width = size.w;
+      height = size.h;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      var count = Math.min(70, Math.round((fxWidth * fxHeight) / 18000));
+      var count = Math.min(opts.maxCount, Math.round((width * height) / opts.density));
       particles = [];
       for (var i = 0; i < count; i++) {
         particles.push({
-          x: Math.random() * fxWidth,
-          y: Math.random() * fxHeight,
-          vx: (Math.random() - 0.5) * 0.35,
-          vy: (Math.random() - 0.5) * 0.35
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * opts.speed,
+          vy: (Math.random() - 0.5) * opts.speed
         });
       }
     }
 
-    function drawFx() {
-      ctx.clearRect(0, 0, fxWidth, fxHeight);
+    function draw() {
+      ctx.clearRect(0, 0, width, height);
 
       var i, p;
       for (i = 0; i < particles.length; i++) {
         p = particles[i];
         p.x += p.vx;
         p.y += p.vy;
-        if (p.x < 0 || p.x > fxWidth) p.vx *= -1;
-        if (p.y < 0 || p.y > fxHeight) p.vy *= -1;
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
       }
 
       for (var a = 0; a < particles.length; a++) {
@@ -119,7 +130,7 @@
           if (dist < linkDist) {
             var near = nearMouse(particles[a]) || nearMouse(particles[b]);
             var t = 1 - dist / linkDist;
-            ctx.strokeStyle = near ? 'rgba(198,163,255,' + (0.55 * t) + ')' : 'rgba(115,83,139,' + (0.22 * t) + ')';
+            ctx.strokeStyle = near ? opts.colors.lineNear(t) : opts.colors.line(t);
             ctx.lineWidth = near ? 1.4 : 1;
             ctx.beginPath();
             ctx.moveTo(particles[a].x, particles[a].y);
@@ -129,12 +140,12 @@
         }
       }
 
-      if (mouse.active) {
+      if (opts.interactive && mouse.active) {
         for (i = 0; i < particles.length; i++) {
           p = particles[i];
           var mDist = Math.hypot(p.x - mouse.x, p.y - mouse.y);
           if (mDist < mouseDist) {
-            ctx.strokeStyle = 'rgba(198,163,255,' + (0.5 * (1 - mDist / mouseDist)) + ')';
+            ctx.strokeStyle = opts.colors.lineNear(1 - mDist / mouseDist);
             ctx.lineWidth = 1.2;
             ctx.beginPath();
             ctx.moveTo(p.x, p.y);
@@ -147,50 +158,122 @@
       for (i = 0; i < particles.length; i++) {
         p = particles[i];
         var glow = nearMouse(p);
-        ctx.fillStyle = glow ? '#e4d6ff' : 'rgba(179,136,255,.55)';
+        ctx.fillStyle = glow ? opts.colors.dotNear : opts.colors.dot;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, glow ? 2.6 : 1.8, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, glow ? opts.dotSize + 1.3 : opts.dotSize, 0, Math.PI * 2);
         ctx.fill();
       }
 
-      if (running) rafId = requestAnimationFrame(drawFx);
+      if (running) rafId = requestAnimationFrame(draw);
     }
 
-    function startFx() {
+    function start() {
       if (running) return;
       running = true;
-      rafId = requestAnimationFrame(drawFx);
+      rafId = requestAnimationFrame(draw);
     }
 
-    function stopFx() {
+    function stop() {
       running = false;
       if (rafId) cancelAnimationFrame(rafId);
     }
 
-    resizeFx();
+    resize();
+    window.addEventListener('resize', resize);
 
-    window.addEventListener('resize', resizeFx);
+    if (opts.interactive) {
+      if (opts.fixed) {
+        /* the whole-viewport canvas has no single element to bind to — track the cursor
+           across the window, and treat leaving the document as leaving the field */
+        window.addEventListener('mousemove', function (e) {
+          mouse.x = e.clientX;
+          mouse.y = e.clientY;
+          mouse.active = true;
+        });
+        document.documentElement.addEventListener('mouseleave', function () { mouse.active = false; });
+      } else {
+        opts.sizeEl.addEventListener('mousemove', function (e) {
+          var rect = opts.sizeEl.getBoundingClientRect();
+          mouse.x = e.clientX - rect.left;
+          mouse.y = e.clientY - rect.top;
+          mouse.active = true;
+        });
+        opts.sizeEl.addEventListener('mouseleave', function () { mouse.active = false; });
+      }
+    }
 
-    heroSection.addEventListener('mousemove', function (e) {
-      var rect = heroSection.getBoundingClientRect();
-      mouse.x = e.clientX - rect.left;
-      mouse.y = e.clientY - rect.top;
-      mouse.active = true;
-    });
-    heroSection.addEventListener('mouseleave', function () {
-      mouse.active = false;
-    });
+    /* track whether this canvas is actually on screen (always true for the fixed,
+       whole-site version, which has no watchEl) so a tab regaining focus doesn't
+       resume animating a section that's currently scrolled out of view */
+    var isOnScreen = !opts.watchEl;
 
-    /* only animate while the hero is actually on screen */
-    if ('IntersectionObserver' in window) {
+    if (opts.watchEl && 'IntersectionObserver' in window) {
       new IntersectionObserver(function (entries) {
         entries.forEach(function (entry) {
-          if (entry.isIntersecting) startFx();
-          else stopFx();
+          isOnScreen = entry.isIntersecting;
+          if (isOnScreen && !document.hidden) start(); else stop();
         });
-      }, { threshold: 0 }).observe(heroSection);
+      }, { threshold: 0 }).observe(opts.watchEl);
     } else {
-      startFx();
+      start();
+    }
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stop();
+      else if (isOnScreen) start();
+    });
+  }
+
+  if (!reduced) {
+    /* denser, mouse-reactive network confined to the hero's empty space (desktop only,
+       matching the CSS breakpoint that hides the canvas where there's no spare room) */
+    var heroCanvas = document.getElementById('heroFx');
+    if (heroCanvas && window.matchMedia('(min-width:821px)').matches) {
+      makeParticleField({
+        canvas: heroCanvas,
+        sizeEl: heroCanvas.closest('.hero'),
+        watchEl: heroCanvas.closest('.hero'),
+        fixed: false,
+        interactive: true,
+        density: 11000,
+        maxCount: 110,
+        speed: 0.4,
+        linkDist: 155,
+        mouseDist: 210,
+        dotSize: 2.4,
+        colors: {
+          line: function (t) { return 'rgba(157,120,199,' + (0.38 * t) + ')'; },
+          lineNear: function (t) { return 'rgba(212,184,255,' + (0.8 * t) + ')'; },
+          dot: 'rgba(198,163,255,.8)',
+          dotNear: '#f1e9ff'
+        }
+      });
+    }
+
+    /* sparser but still clearly visible, mouse-reactive network fixed to the viewport so it
+       drifts behind every section of the site — kept a notch fainter than the hero's own
+       version so it still reads as background texture rather than competing with it */
+    var bgCanvas = document.getElementById('bgFx');
+    if (bgCanvas) {
+      makeParticleField({
+        canvas: bgCanvas,
+        sizeEl: null,
+        watchEl: null,
+        fixed: true,
+        interactive: true,
+        density: 20000,
+        maxCount: 95,
+        speed: 0.16,
+        linkDist: 135,
+        mouseDist: 170,
+        dotSize: 1.8,
+        colors: {
+          line: function (t) { return 'rgba(157,120,199,' + (0.26 * t) + ')'; },
+          lineNear: function (t) { return 'rgba(198,163,255,' + (0.6 * t) + ')'; },
+          dot: 'rgba(179,136,255,.5)',
+          dotNear: '#cbb6ee'
+        }
+      });
     }
   }
 
@@ -201,7 +284,7 @@
   var heroCardInner = document.getElementById('heroCard');
   var heroCodeEl = document.getElementById('heroCode');
 
-  if (heroCardOuter && heroCardInner && heroCodeEl && getComputedStyle(heroCardOuter).display !== 'none') {
+  if (heroCardOuter && heroCardInner && heroCodeEl && heroCardOuter.offsetParent !== null) {
     var codeTokens = [
       { t: 'const ', c: 'hc-key' },
       { t: 'developer', c: '' },
