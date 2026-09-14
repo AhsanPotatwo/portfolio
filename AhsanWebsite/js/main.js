@@ -400,6 +400,62 @@
     });
   }
 
+  /* ---- shooting stars: launched one at a time from a small pool, each flight fully
+     randomized (start point, angle, distance, speed) instead of looping a fixed CSS
+     animation — that was why they kept reappearing on the same paths. The trail length is
+     derived from that flight's actual speed (distance / duration) so a fast comet earns a
+     longer tail and a slow one stays short, rather than every trail fading in at the same
+     fixed length regardless of how fast it's moving. Skipped entirely under reduced-motion,
+     matching every other ambient animation on the site. ---- */
+  var shootingStars = Array.prototype.slice.call(document.querySelectorAll('.shooting-star'));
+  if (!reduced && shootingStars.length) {
+    var starBusy = shootingStars.map(function () { return false; });
+
+    var launchShootingStar = function () {
+      if (document.hidden) { scheduleNextStar(); return; }
+
+      var idx = starBusy.indexOf(false);
+      if (idx === -1) { scheduleNextStar(); return; } /* pool fully busy — try again shortly */
+
+      var el = shootingStars[idx];
+      starBusy[idx] = true;
+
+      var angle = Math.random() * 360;
+      var dist = 170 + Math.random() * 260;      /* 170–430px travelled */
+      var duration = 0.55 + Math.random() * 0.85; /* 0.55–1.4s flight time */
+      var speed = dist / duration;                /* px/s — faster comets get longer trails */
+      var trail = Math.max(35, Math.min(180, speed * 0.11));
+
+      el.style.setProperty('--shoot-angle', angle.toFixed(1) + 'deg');
+      el.style.setProperty('--shoot-dist', dist.toFixed(0) + 'px');
+      el.style.setProperty('--shoot-duration', duration.toFixed(2) + 's');
+      el.style.setProperty('--shoot-trail', trail.toFixed(0) + 'px');
+      el.style.top = (4 + Math.random() * 60) + '%';
+      el.style.left = (Math.random() * 100) + '%';
+
+      el.classList.remove('is-flying');
+      void el.offsetWidth; /* force reflow so the animation restarts from its first frame */
+      el.classList.add('is-flying');
+
+      var onDone = function (e) {
+        if (e.target !== el) return;
+        el.classList.remove('is-flying');
+        starBusy[idx] = false;
+        el.removeEventListener('animationend', onDone);
+      };
+      el.addEventListener('animationend', onDone);
+
+      scheduleNextStar();
+    };
+
+    function scheduleNextStar() {
+      var delay = 3500 + Math.random() * 9000; /* 3.5–12.5s between launches */
+      setTimeout(launchShootingStar, delay);
+    }
+
+    setTimeout(launchShootingStar, 1500 + Math.random() * 3000);
+  }
+
   /* ---- footer year ---- */
   var year = document.getElementById('year');
   if (year) year.textContent = String(new Date().getFullYear());

@@ -87,15 +87,14 @@ body{
 @keyframes nebulaDrift2{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(-2.5vw,-3vw) scale(1.06); } }
 @keyframes nebulaDrift3{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(-2vw,2.5vw) scale(1.1); } }
 
-/* a rare streak across the sky — each one is invisible for almost all of its (long) cycle
-   and only briefly visible/moving, so they read as an occasional surprise, not a loop.
-   The whole element (dot + trail) rotates by --shoot-angle and then travels along its own
-   rotated X-axis via translateX, rather than animating a separate translate(x,y) — that
-   keeps the trail pointing exactly the way it's moving instead of at a fixed angle that
-   didn't match the flight path. Per-keyframe easing (a quick burst in, a slightly eased
-   traversal) replaces the old constant-speed `linear` sweep, which read as too mechanical
-   for something meant to look like a flick across the sky. Each star gets its own angle,
-   distance, speed and easing so they don't all trace an identical path. */
+/* a rare streak across the sky, launched and fully randomized from JS (see main.js) rather
+   than looping a fixed CSS animation — each flight gets its own random start point, angle,
+   distance and speed, so stars stop reappearing in the same spots on the same paths. The
+   whole element (dot + trail) rotates by --shoot-angle and travels along its own rotated
+   X-axis via translateX, so the trail always points the way it's actually moving. The
+   trail's length (--shoot-trail) is set by JS proportional to that flight's speed, and its
+   scale is animated in `shootingTrail` alongside the head's own easing, so a fast comet
+   grows a long tail as it speeds up rather than fading in with one already at full length. */
 .shooting-star{
   position:fixed; z-index:-1;
   top:0; left:0;
@@ -106,50 +105,51 @@ body{
   opacity:0;
   pointer-events:none;
   transform-origin:0 0;
+  transform:rotate(var(--shoot-angle,0deg));
+}
+.shooting-star.is-flying{
   animation-name:shootingStar;
-  animation-iteration-count:infinite;
+  animation-duration:var(--shoot-duration,1s);
+  animation-fill-mode:forwards;
 }
 .shooting-star::before{
   content:"";
   position:absolute; top:50%; right:1px;
-  width:90px; height:1px;
+  width:var(--shoot-trail,70px); height:1px;
   background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.85));
-  transform:translateY(-50%);
+  transform-origin:100% 50%;
+  transform:translateY(-50%) scaleX(.05);
 }
-.shooting-star-a{
-  top:12%; left:70%;
-  --shoot-angle:148deg; --shoot-dist:300px;
-  animation-duration:17s;
-}
-.shooting-star-b{
-  top:52%; left:6%;
-  --shoot-angle:-24deg; --shoot-dist:250px;
-  animation-duration:23s; animation-delay:8s;
-}
-.shooting-star-c{
-  top:74%; left:82%;
-  --shoot-angle:200deg; --shoot-dist:210px;
-  animation-duration:29s; animation-delay:15s;
+.shooting-star.is-flying::before{
+  animation-name:shootingTrail;
+  animation-duration:var(--shoot-duration,1s);
+  animation-fill-mode:forwards;
 }
 @keyframes shootingStar{
   0%{
     opacity:0;
-    transform:rotate(var(--shoot-angle)) translateX(-16px) scale(.5);
+    transform:rotate(var(--shoot-angle)) translateX(-10px) scale(.4);
     animation-timing-function:cubic-bezier(.3,0,.15,1);
   }
-  2.5%{
+  18%{
     opacity:1;
-    transform:rotate(var(--shoot-angle)) translateX(40px) scale(1);
-    animation-timing-function:cubic-bezier(.6,0,.85,1);
+    transform:rotate(var(--shoot-angle)) translateX(calc(var(--shoot-dist) * 0.22)) scale(1);
+    animation-timing-function:cubic-bezier(.4,0,.7,1);
   }
-  9%{
-    opacity:0;
-    transform:rotate(var(--shoot-angle)) translateX(var(--shoot-dist)) scale(.85);
+  72%{
+    opacity:.9;
+    transform:rotate(var(--shoot-angle)) translateX(calc(var(--shoot-dist) * 0.88)) scale(.85);
   }
   100%{
     opacity:0;
-    transform:rotate(var(--shoot-angle)) translateX(var(--shoot-dist)) scale(.85);
+    transform:rotate(var(--shoot-angle)) translateX(var(--shoot-dist)) scale(.65);
   }
+}
+@keyframes shootingTrail{
+  0%{ opacity:0; transform:translateY(-50%) scaleX(.04); }
+  18%{ opacity:.9; transform:translateY(-50%) scaleX(1); }
+  72%{ opacity:.7; transform:translateY(-50%) scaleX(.8); }
+  100%{ opacity:0; transform:translateY(-50%) scaleX(.35); }
 }
 
 img{ display:block; max-width:100%; }
