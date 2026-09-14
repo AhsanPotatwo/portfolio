@@ -88,7 +88,14 @@ body{
 @keyframes nebulaDrift3{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(-2vw,2.5vw) scale(1.1); } }
 
 /* a rare streak across the sky — each one is invisible for almost all of its (long) cycle
-   and only briefly visible/moving, so they read as an occasional surprise, not a loop */
+   and only briefly visible/moving, so they read as an occasional surprise, not a loop.
+   The whole element (dot + trail) rotates by --shoot-angle and then travels along its own
+   rotated X-axis via translateX, rather than animating a separate translate(x,y) — that
+   keeps the trail pointing exactly the way it's moving instead of at a fixed angle that
+   didn't match the flight path. Per-keyframe easing (a quick burst in, a slightly eased
+   traversal) replaces the old constant-speed `linear` sweep, which read as too mechanical
+   for something meant to look like a flick across the sky. Each star gets its own angle,
+   distance, speed and easing so they don't all trace an identical path. */
 .shooting-star{
   position:fixed; z-index:-1;
   top:0; left:0;
@@ -98,7 +105,9 @@ body{
   box-shadow:0 0 6px 2px rgba(255,255,255,.85);
   opacity:0;
   pointer-events:none;
-  animation:shootingStar linear infinite;
+  transform-origin:0 0;
+  animation-name:shootingStar;
+  animation-iteration-count:infinite;
 }
 .shooting-star::before{
   content:"";
@@ -107,13 +116,40 @@ body{
   background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.85));
   transform:translateY(-50%);
 }
-.shooting-star-a{ top:14%; left:66%; animation-duration:16s; }
-.shooting-star-b{ top:48%; left:8%; animation-duration:22s; animation-delay:9s; }
+.shooting-star-a{
+  top:12%; left:70%;
+  --shoot-angle:148deg; --shoot-dist:300px;
+  animation-duration:17s;
+}
+.shooting-star-b{
+  top:52%; left:6%;
+  --shoot-angle:-24deg; --shoot-dist:250px;
+  animation-duration:23s; animation-delay:8s;
+}
+.shooting-star-c{
+  top:74%; left:82%;
+  --shoot-angle:200deg; --shoot-dist:210px;
+  animation-duration:29s; animation-delay:15s;
+}
 @keyframes shootingStar{
-  0%{ opacity:0; transform:translate(0,0); }
-  1%{ opacity:1; }
-  6%{ opacity:0; transform:translate(260px,170px); }
-  100%{ opacity:0; transform:translate(260px,170px); }
+  0%{
+    opacity:0;
+    transform:rotate(var(--shoot-angle)) translateX(-16px) scale(.5);
+    animation-timing-function:cubic-bezier(.3,0,.15,1);
+  }
+  2.5%{
+    opacity:1;
+    transform:rotate(var(--shoot-angle)) translateX(40px) scale(1);
+    animation-timing-function:cubic-bezier(.6,0,.85,1);
+  }
+  9%{
+    opacity:0;
+    transform:rotate(var(--shoot-angle)) translateX(var(--shoot-dist)) scale(.85);
+  }
+  100%{
+    opacity:0;
+    transform:rotate(var(--shoot-angle)) translateX(var(--shoot-dist)) scale(.85);
+  }
 }
 
 img{ display:block; max-width:100%; }
