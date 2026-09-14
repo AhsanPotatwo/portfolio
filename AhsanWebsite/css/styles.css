@@ -800,8 +800,19 @@ a{ color:inherit; text-decoration:none; }
   .nav.is-open{ max-height:420px; }
   .nav .nav-link{
     width:100%;
-    padding:18px 32px; /* TWEAK ME: 2nd value is the left/right breathing room for the dropdown text */
+    /* horizontal padding matches the container gutter (plus a little extra) so the dropdown
+       text lines up with the logo/hamburger above it instead of using its own unrelated
+       fixed indent — TWEAK ME: the "+ 10px" is the extra breathing room beyond that gutter */
+    padding:18px calc(var(--gutter) + 10px);
     font-size:20px;
+    border-left:3px solid transparent;
+    transition:color .18s ease, background-color .18s ease, border-color .18s ease;
+  }
+  .nav .nav-link + .nav-link{ border-top:1px solid rgba(255,255,255,.08); }
+  .nav .nav-link:active{ background:rgba(255,255,255,.06); }
+  .nav .nav-link.is-active{
+    background:rgba(115,83,139,.14);
+    border-left-color:var(--purple-nav);
   }
   .nav-link::after{ display:none; }
   .nav-inner{ min-height:84px; position:relative; }
