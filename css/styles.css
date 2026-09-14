@@ -29,7 +29,7 @@
 
 *,*::before,*::after{ box-sizing:border-box; }
 
-html{ scroll-behavior:smooth; scroll-padding-top:120px; overflow-x:hidden; }
+html{ scroll-behavior:smooth; scroll-padding-top:120px; }
 
 body{
   margin:0;
@@ -41,29 +41,46 @@ body{
   overflow-x:hidden;
 }
 
+/* belt and suspenders against horizontal scroll on mobile, scoped to content below the
+   header rather than html/body so it can't interfere with the header's position:sticky
+   (overflow on an ancestor breaks sticky, but main/footer aren't ancestors of the header) */
+main, .site-footer{
+  overflow-x:hidden;
+}
+
 /* background canvas the stars get drawn on, see main.js */
 .bg-fx{
-  position:fixed; inset:0;
-  width:100vw; height:100vh;
+  position:fixed; top:0; left:0;
+  width:100svw; height:100svh;
   z-index:-1;
+  pointer-events:none;
+}
+
+/* pins the blobs below to the actual visible viewport (not the "large" one iOS Safari
+   uses for 100vw/vh, which is a bit taller than what's really on screen and was causing
+   a few px of horizontal scroll on mobile) */
+.bg-glow{
+  position:fixed; top:0; left:0; z-index:-2;
+  width:100svw; height:100svh;
+  overflow:hidden;
   pointer-events:none;
 }
 
 /* the blurry purple/blue blobs floating in the background */
 .bg-nebula{
-  position:fixed; z-index:-2;
+  position:absolute;
   border-radius:50%;
   filter:blur(70px);
   pointer-events:none;
 }
 .bg-nebula-1{
-  top:-10%; left:-8%;
+  top:0; left:0;
   width:46vw; height:46vw;
   background:radial-gradient(circle at 40% 40%, rgba(109,18,179,.32), transparent 70%);
   animation:nebulaDrift1 34s ease-in-out infinite;
 }
 .bg-nebula-2{
-  bottom:-14%; right:-10%;
+  bottom:0; right:0;
   width:50vw; height:50vw;
   background:radial-gradient(circle at 60% 60%, rgba(77,155,227,.22), transparent 70%);
   animation:nebulaDrift2 42s ease-in-out infinite;
