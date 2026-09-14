@@ -381,6 +381,25 @@
     }
   }
 
+  /* ---- about card tilt: a smaller, quieter echo of the hero card's cursor tilt, so the
+     About section picks up a touch of the same interactivity instead of feeling static
+     next to it. Skipped under reduced-motion. ---- */
+  var aboutCard = document.getElementById('aboutCard');
+  if (aboutCard && !reduced) {
+    aboutCard.addEventListener('mousemove', function (e) {
+      var rect = aboutCard.getBoundingClientRect();
+      var relX = (e.clientX - rect.left) / rect.width;
+      var relY = (e.clientY - rect.top) / rect.height;
+      var maxTilt = 3.5;
+      var rotateY = (relX - 0.5) * maxTilt * 2;
+      var rotateX = -(relY - 0.5) * maxTilt * 2;
+      aboutCard.style.transform = 'perspective(1200px) rotateX(' + rotateX.toFixed(2) + 'deg) rotateY(' + rotateY.toFixed(2) + 'deg)';
+    });
+    aboutCard.addEventListener('mouseleave', function () {
+      aboutCard.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg)';
+    });
+  }
+
   /* ---- footer year ---- */
   var year = document.getElementById('year');
   if (year) year.textContent = String(new Date().getFullYear());
