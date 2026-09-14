@@ -17,22 +17,19 @@
 
 <body>
 
-  <!-- decorative space/galaxy backdrop for the whole site: a few soft blurred "nebula"
-       clouds, the twinkling starfield canvas (see main.js), and the occasional shooting
-       star. Purely visual — aria-hidden and pointer-events:none throughout. -->
+  <!-- background stuff, just decoration, sits behind everything -->
   <div class="bg-nebula bg-nebula-1" aria-hidden="true"></div>
   <div class="bg-nebula bg-nebula-2" aria-hidden="true"></div>
   <div class="bg-nebula bg-nebula-3" aria-hidden="true"></div>
   <canvas class="bg-fx" id="bgFx" aria-hidden="true"></canvas>
-  <!-- a small pool main.js rotates through, launching one at a time with randomized
-       position/angle/speed each time (see the "shooting stars" block in main.js) -->
+  <!-- these get reused/repositioned by main.js for the shooting star effect -->
   <span class="shooting-star" aria-hidden="true"></span>
   <span class="shooting-star" aria-hidden="true"></span>
   <span class="shooting-star" aria-hidden="true"></span>
 
   <a class="skip-link" href="#home">Skip to content</a>
 
-  <!-- ============ NAV ============ -->
+  <!-- nav -->
   <header class="site-header" id="header">
     <div class="container nav-inner">
       <a class="brand" href="#home">[Ahsan]</a>
@@ -53,16 +50,14 @@
 
   <main>
 
-    <!-- ============ HERO ============ -->
     <section class="hero" id="home">
+      <!-- canvas for the little constellation effect next to the hero text, desktop only -->
       <canvas class="hero-fx" id="heroFx" aria-hidden="true"></canvas>
 
-      <!-- shared anchor point: the aura and the card are both centered on this single spot
-           (see .hero-fx-anchor in styles.css) so they stay concentric no matter how wide
-           either one is — tweak the anchor's own position to move both together. -->
       <div class="hero-fx-anchor" aria-hidden="true">
         <div class="hero-aura"></div>
 
+        <!-- fake code editor card, main.js types the text out -->
         <div class="hero-card">
           <div class="hero-card-inner" id="heroCard">
             <div class="hero-card-pulse"></div>
@@ -125,7 +120,7 @@
       </div>
     </section>
 
-    <!-- ============ ABOUT ============ -->
+    <!-- about me -->
     <section class="about" id="about">
       <div class="container">
         <div class="about-panel">
@@ -173,14 +168,13 @@
       </div>
     </section>
 
-    <!-- ============ SKILLS & EXPERIENCE ============ -->
     <section class="skills" id="skills">
       <div class="container">
         <h2 class="section-title">Skills &amp; Experience</h2>
 
         <div class="skills-grid">
 
-          <!-- Left: skill groups -->
+          <!-- skill icons, grouped by category -->
           <div class="skill-groups">
 
             <h3 class="group-title">Frontend</h3>
@@ -224,6 +218,7 @@
                 <span>Node.js</span>
               </li>
               <li class="tile">
+                <!-- php logo came as separate svg pieces, just stacking them -->
                 <span class="glyph composite" aria-hidden="true">
                   <img class="layer base" src="assets/php.svg" alt="">
                   <img class="layer php-a" src="assets/php-a.svg" alt="">
@@ -286,7 +281,7 @@
             </ul>
           </div>
 
-          <!-- Right: timeline -->
+          <!-- work + education timeline -->
           <div class="timeline-col">
             <h3 class="timeline-heading">Experience</h3>
 
@@ -338,7 +333,7 @@
       </div>
     </section>
 
-    <!-- ============ PROJECTS ============ -->
+    <!-- projects, need to swap these placeholders for real stuff eventually -->
     <section class="projects" id="projects">
       <div class="container">
         <h2 class="section-title">My projects</h2>
@@ -362,12 +357,11 @@
       </div>
     </section>
 
-    <!-- ============ CONTACT ============ -->
     <section class="contact" id="contact">
       <div class="container contact-inner">
         <h2 class="section-title">Get in touch</h2>
         <p class="contact-copy">Open to full stack roles and freelance work.</p>
-        <a class="btn btn-primary" href="mailto:hello@example.com">Email me</a>
+        <a class="btn btn-primary" href="mailto:ahsansid10@hotmail.com">Email me</a>
 
         <ul class="socials socials-footer">
           <li>
