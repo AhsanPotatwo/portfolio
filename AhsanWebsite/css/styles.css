@@ -46,14 +46,74 @@ body{
   overflow-x:hidden;
 }
 
-/* sitewide ambient node field — fixed to the viewport (so it never needs to be as tall as
-   the page) and sits behind absolutely everything; see main.js for the very sparse,
-   non-interactive particle settings used here */
+/* sitewide space/galaxy backdrop — a twinkling starfield canvas (see main.js for the
+   twinkle/glow/constellation-on-hover settings), a few soft "nebula" clouds for color and
+   depth, and the occasional streaking shooting star. Everything here is fixed to the
+   viewport (so nothing needs to be as tall as the page), sits behind all real content, and
+   is pointer-events:none — decoration only, never something a user can accidentally
+   trigger or that gets in the way of reading the page. */
 .bg-fx{
   position:fixed; inset:0;
   width:100vw; height:100vh;
   z-index:-1;
   pointer-events:none;
+}
+
+.bg-nebula{
+  position:fixed; z-index:-2;
+  border-radius:50%;
+  filter:blur(70px);
+  pointer-events:none;
+}
+.bg-nebula-1{
+  top:-10%; left:-8%;
+  width:46vw; height:46vw;
+  background:radial-gradient(circle at 40% 40%, rgba(109,18,179,.32), transparent 70%);
+  animation:nebulaDrift1 34s ease-in-out infinite;
+}
+.bg-nebula-2{
+  bottom:-14%; right:-10%;
+  width:50vw; height:50vw;
+  background:radial-gradient(circle at 60% 60%, rgba(77,155,227,.22), transparent 70%);
+  animation:nebulaDrift2 42s ease-in-out infinite;
+}
+.bg-nebula-3{
+  top:35%; left:60%;
+  width:34vw; height:34vw;
+  background:radial-gradient(circle at 50% 50%, rgba(198,120,220,.18), transparent 72%);
+  animation:nebulaDrift3 28s ease-in-out infinite;
+}
+@keyframes nebulaDrift1{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(3vw,2vw) scale(1.08); } }
+@keyframes nebulaDrift2{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(-2.5vw,-3vw) scale(1.06); } }
+@keyframes nebulaDrift3{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(-2vw,2.5vw) scale(1.1); } }
+
+/* a rare streak across the sky — each one is invisible for almost all of its (long) cycle
+   and only briefly visible/moving, so they read as an occasional surprise, not a loop */
+.shooting-star{
+  position:fixed; z-index:-1;
+  top:0; left:0;
+  width:3px; height:3px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 0 6px 2px rgba(255,255,255,.85);
+  opacity:0;
+  pointer-events:none;
+  animation:shootingStar linear infinite;
+}
+.shooting-star::before{
+  content:"";
+  position:absolute; top:50%; right:1px;
+  width:90px; height:1px;
+  background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.85));
+  transform:translateY(-50%);
+}
+.shooting-star-a{ top:14%; left:66%; animation-duration:16s; }
+.shooting-star-b{ top:48%; left:8%; animation-duration:22s; animation-delay:9s; }
+@keyframes shootingStar{
+  0%{ opacity:0; transform:translate(0,0); }
+  1%{ opacity:1; }
+  6%{ opacity:0; transform:translate(260px,170px); }
+  100%{ opacity:0; transform:translate(260px,170px); }
 }
 
 img{ display:block; max-width:100%; }
@@ -686,4 +746,5 @@ a{ color:inherit; text-decoration:none; }
   *{ transition-duration:.01ms !important; animation-duration:.01ms !important; }
   .reveal{ opacity:1; transform:none; }
   .hero-aura, .hc-orbit-1, .hc-orbit-2, .hc-orbit-3, .hero-card-pulse, .hero-card-spark, .hero-card-caret{ animation:none; }
+  .bg-nebula-1, .bg-nebula-2, .bg-nebula-3, .shooting-star{ animation:none; }
 }

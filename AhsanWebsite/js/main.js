@@ -105,12 +105,15 @@
           x: Math.random() * width,
           y: Math.random() * height,
           vx: (Math.random() - 0.5) * opts.speed,
-          vy: (Math.random() - 0.5) * opts.speed
+          vy: (Math.random() - 0.5) * opts.speed,
+          size: opts.varySize ? 0.55 + Math.random() * 1.1 : 1,
+          phase: Math.random() * Math.PI * 2,
+          tSpeed: 0.5 + Math.random() * 0.9
         });
       }
     }
 
-    function draw() {
+    function draw(ts) {
       ctx.clearRect(0, 0, width, height);
 
       var i, p;
@@ -129,6 +132,7 @@
           var dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < linkDist) {
             var near = nearMouse(particles[a]) || nearMouse(particles[b]);
+            if (opts.linkNearMouseOnly && !near) continue;
             var t = 1 - dist / linkDist;
             ctx.strokeStyle = near ? opts.colors.lineNear(t) : opts.colors.line(t);
             ctx.lineWidth = near ? 1.4 : 1;
@@ -158,10 +162,20 @@
       for (i = 0; i < particles.length; i++) {
         p = particles[i];
         var glow = nearMouse(p);
+        var twinkle = opts.twinkle ? (0.45 + 0.55 * Math.sin((ts || 0) * 0.0011 * p.tSpeed + p.phase)) : 1;
+        var radius = (glow ? opts.dotSize + 1.3 : opts.dotSize) * p.size;
+
+        ctx.globalAlpha = twinkle;
+        if (opts.glow) {
+          ctx.shadowBlur = glow ? 10 : 5;
+          ctx.shadowColor = glow ? opts.colors.dotNear : opts.colors.dot;
+        }
         ctx.fillStyle = glow ? opts.colors.dotNear : opts.colors.dot;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, glow ? opts.dotSize + 1.3 : opts.dotSize, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
         ctx.fill();
+        if (opts.glow) ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1;
       }
 
       if (running) rafId = requestAnimationFrame(draw);
@@ -250,9 +264,10 @@
       });
     }
 
-    /* sparser but still clearly visible, mouse-reactive network fixed to the viewport so it
-       drifts behind every section of the site — kept a notch fainter than the hero's own
-       version so it still reads as background texture rather than competing with it */
+    /* a quiet starfield fixed behind the whole site: stars sit mostly still and twinkle in
+       place (real stars don't drift much), and stay unconnected until the cursor comes
+       near — then nearby stars link up into little constellations, like your mouse is
+       tracing shapes in the sky. Kept faint enough to read as ambience, not foreground. */
     var bgCanvas = document.getElementById('bgFx');
     if (bgCanvas) {
       makeParticleField({
@@ -261,17 +276,21 @@
         watchEl: null,
         fixed: true,
         interactive: true,
-        density: 20000,
-        maxCount: 95,
-        speed: 0.16,
-        linkDist: 135,
-        mouseDist: 170,
-        dotSize: 1.8,
+        twinkle: true,
+        glow: true,
+        varySize: true,
+        linkNearMouseOnly: true,
+        density: 13000,
+        maxCount: 150,
+        speed: 0.035,
+        linkDist: 150,
+        mouseDist: 190,
+        dotSize: 1.4,
         colors: {
-          line: function (t) { return 'rgba(157,120,199,' + (0.26 * t) + ')'; },
-          lineNear: function (t) { return 'rgba(198,163,255,' + (0.6 * t) + ')'; },
-          dot: 'rgba(179,136,255,.5)',
-          dotNear: '#cbb6ee'
+          line: function (t) { return 'rgba(198,163,255,' + (0.5 * t) + ')'; },
+          lineNear: function (t) { return 'rgba(214,193,255,' + (0.6 * t) + ')'; },
+          dot: 'rgba(210,196,255,.75)',
+          dotNear: '#f2ebff'
         }
       });
     }

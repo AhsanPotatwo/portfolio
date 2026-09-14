@@ -17,7 +17,15 @@
 
 <body>
 
+  <!-- decorative space/galaxy backdrop for the whole site: a few soft blurred "nebula"
+       clouds, the twinkling starfield canvas (see main.js), and the occasional shooting
+       star. Purely visual — aria-hidden and pointer-events:none throughout. -->
+  <div class="bg-nebula bg-nebula-1" aria-hidden="true"></div>
+  <div class="bg-nebula bg-nebula-2" aria-hidden="true"></div>
+  <div class="bg-nebula bg-nebula-3" aria-hidden="true"></div>
   <canvas class="bg-fx" id="bgFx" aria-hidden="true"></canvas>
+  <span class="shooting-star shooting-star-a" aria-hidden="true"></span>
+  <span class="shooting-star shooting-star-b" aria-hidden="true"></span>
 
   <a class="skip-link" href="#home">Skip to content</a>
 
