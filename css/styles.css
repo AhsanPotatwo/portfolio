@@ -901,6 +901,105 @@ a{ color:inherit; text-decoration:none; }
   100%{ top:145px; opacity:0; }
 }
 
+/* pantry wizard card: a conjuring crystal ball surrounded by floating
+   pantry staples. Icon sizes/positions are lifted directly from the
+   Figma node coordinates (400x145 card), expressed as % so they hold
+   their layout as the card scales down on narrow screens. */
+.project-card-pantry{
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(109deg, #5e7fff 2.6%, #af53ff 98.1%);
+  transition:filter .25s ease, transform .2s ease;
+}
+.project-card-pantry:hover,
+.project-card-pantry:focus-visible{
+  background:linear-gradient(109deg, #6f8dff 2.6%, #bd68ff 98.1%);
+  filter:brightness(1.08);
+}
+.project-card-pantry:focus-visible{ outline:2px solid var(--purple-line); outline-offset:3px; }
+
+.pantry-orb{
+  position:absolute;
+  left:1.5%; top:6.9%;
+  width:31.25%;
+  aspect-ratio:1/1;
+  z-index:0;
+}
+.pantry-food{
+  position:absolute;
+  z-index:1;
+  --tilt:6deg;
+  animation:pantry-bob var(--dur,4s) ease-in-out infinite, pantry-idle-glow 3s ease-in-out infinite;
+  animation-delay:var(--delay,0s), var(--delay,0s);
+}
+.pantry-food-inner{ display:block; width:100%; height:100%; }
+.pantry-orb img,
+.pantry-food img{ display:block; width:100%; height:100%; pointer-events:none; }
+
+/* fruits form a two-row zigzag stepping up to the right: drumstick
+   (bottom row, leftmost) - bread (top row) - kiwi (bottom row) - apple
+   (top row, top-right corner, rightmost) - evenly spaced, same size */
+.pantry-food-drumstick{
+  left:36.25%; top:53.8%; width:16.5%; aspect-ratio:1/1;
+  --tilt:8deg; --dur:3.8s; --delay:1.1s;
+}
+.pantry-food-bread{
+  left:51.25%; top:2.8%; width:16.5%; aspect-ratio:1/1;
+  --tilt:-7deg; --dur:4.6s; --delay:.2s;
+}
+.pantry-food-kiwi{
+  left:66.25%; top:53.8%; width:16.5%; aspect-ratio:1/1;
+  --tilt:-6deg; --dur:4.2s; --delay:.6s;
+}
+.pantry-food-apple{
+  left:80%; top:12%; width:16.5%; aspect-ratio:1/1;
+  --tilt:9deg; --dur:5s; --delay:1.6s;
+}
+
+.pantry-title{
+  position:relative; z-index:2;
+  font-family:var(--font-sans);
+  font-weight:700;
+  font-size:clamp(24px,2.8vw,36px);
+  color:#fff;
+  -webkit-text-stroke:3.5px #b34bff;
+  paint-order:stroke fill;
+}
+
+/* continuous idle float - this animates the outer .pantry-food element
+   and keeps running the whole time, hover or not, so the apparate effect
+   below (which lives on the inner wrapper) never interrupts it */
+@keyframes pantry-bob{
+  0%,100%{ transform:translateY(0) rotate(var(--tilt,0deg)); }
+  50%{ transform:translateY(-9px) rotate(calc(var(--tilt,0deg) * -1)); }
+}
+
+/* faint, always-on magical shimmer so the food reads as enchanted even
+   before you hover */
+@keyframes pantry-idle-glow{
+  0%,100%{ filter:drop-shadow(0 0 0 rgba(230,190,255,0)); }
+  50%{ filter:drop-shadow(0 0 5px rgba(230,190,255,.55)); }
+}
+
+/* on hover the conjured food winks out and back in - apparating and
+   disapparating - staggered per item via --delay so they never all
+   vanish at once. This runs on the inner wrapper only (opacity/scale/
+   glow), separate from the outer element's bob animation, so the float
+   never stops or jumps when the hover state changes. */
+.project-card-pantry:hover .pantry-food-inner,
+.project-card-pantry:focus-visible .pantry-food-inner{
+  animation:pantry-apparate 1.7s ease-in-out infinite;
+  animation-delay:var(--delay,0s);
+}
+@keyframes pantry-apparate{
+  0%,55%{ transform:scale(1); opacity:1; filter:drop-shadow(0 0 0 rgba(255,255,255,0)); }
+  60%{ transform:scale(.25); opacity:0; filter:drop-shadow(0 0 9px rgba(255,255,255,.9)); }
+  65%{ transform:scale(.25); opacity:0; }
+  72%{ transform:scale(1.22); opacity:1; filter:drop-shadow(0 0 16px rgba(230,190,255,1)); }
+  85%{ transform:scale(1); opacity:1; filter:drop-shadow(0 0 6px rgba(230,190,255,.6)); }
+  100%{ transform:scale(1); opacity:1; filter:drop-shadow(0 0 0 rgba(255,255,255,0)); }
+}
+
 /* contact + footer */
 .contact{ padding-bottom:clamp(50px,7vw,90px); }
 .contact-inner{ display:flex; flex-direction:column; align-items:center; text-align:center; }
@@ -1015,4 +1114,5 @@ a{ color:inherit; text-decoration:none; }
   .avatar-halo, .av-orbit-1, .av-orbit-2, .badge-open{ animation:none; }
   .wizard-wand-a, .wizard-wand-b, .wand-tip{ animation:none; }
   .cli-ping, .cli-scan{ animation:none; }
+  .pantry-food, .pantry-food-inner{ animation:none; }
 }
