@@ -932,16 +932,39 @@ a{ color:inherit; text-decoration:none; }
   animation:pantry-bob var(--dur,4s) ease-in-out infinite, pantry-idle-glow 3s ease-in-out infinite;
   animation-delay:var(--delay,0s), var(--delay,0s);
 }
-.pantry-food-inner{ display:block; width:100%; height:100%; }
+/* .pantry-food-inner itself is never faded or scaled - it stays opaque
+   the whole time, so its ::after glow (below) can stay visible on its
+   own timeline. The actual vanish/reappear of the icon happens one level
+   deeper, on .pantry-food-icon - keeping the two on separate elements
+   means the glow doesn't get dragged down to opacity 0 along with the
+   icon it's supposed to linger after. */
+.pantry-food-inner{ display:block; width:100%; height:100%; position:relative; }
+.pantry-food-icon{ display:block; width:100%; height:100%; }
 .pantry-orb img,
 .pantry-food img{ display:block; width:100%; height:100%; pointer-events:none; }
 
+/* radial burst behind each icon - blooms as it vanishes and lingers
+   after, for a "poof" of magic rather than a plain shrink/fade */
+.pantry-food-inner::after{
+  content:"";
+  position:absolute;
+  top:50%; left:50%;
+  width:150%; height:150%;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.95) 0%, rgba(230,190,255,.65) 40%, rgba(230,190,255,0) 72%);
+  transform:translate(-50%,-50%) scale(.3);
+  opacity:0;
+  pointer-events:none;
+}
+
 /* fruits form a two-row zigzag stepping up to the right: drumstick
    (bottom row, leftmost) - bread (top row) - kiwi (bottom row) - apple
-   (top row, top-right corner, rightmost) - evenly spaced, same size */
+   (top row, top-right corner, rightmost) - evenly spaced, same size.
+   --delay staggers both the idle bob and, on hover, the apparate/poof
+   sequence, left to right, so the food vanishes and returns in order. */
 .pantry-food-drumstick{
   left:36.25%; top:53.8%; width:16.5%; aspect-ratio:1/1;
-  --tilt:8deg; --dur:3.8s; --delay:1.1s;
+  --tilt:8deg; --dur:3.8s; --delay:0s;
 }
 .pantry-food-bread{
   left:51.25%; top:2.8%; width:16.5%; aspect-ratio:1/1;
@@ -949,11 +972,11 @@ a{ color:inherit; text-decoration:none; }
 }
 .pantry-food-kiwi{
   left:66.25%; top:53.8%; width:16.5%; aspect-ratio:1/1;
-  --tilt:-6deg; --dur:4.2s; --delay:.6s;
+  --tilt:-6deg; --dur:4.2s; --delay:.4s;
 }
 .pantry-food-apple{
   left:80%; top:12%; width:16.5%; aspect-ratio:1/1;
-  --tilt:9deg; --dur:5s; --delay:1.6s;
+  --tilt:9deg; --dur:5s; --delay:.6s;
 }
 
 .pantry-title{
@@ -962,7 +985,7 @@ a{ color:inherit; text-decoration:none; }
   font-weight:700;
   font-size:clamp(24px,2.8vw,36px);
   color:#fff;
-  -webkit-text-stroke:3.5px #b34bff;
+  -webkit-text-stroke:4.5px #d167ff;
   paint-order:stroke fill;
 }
 
@@ -981,23 +1004,43 @@ a{ color:inherit; text-decoration:none; }
   50%{ filter:drop-shadow(0 0 5px rgba(230,190,255,.55)); }
 }
 
-/* on hover the conjured food winks out and back in - apparating and
-   disapparating - staggered per item via --delay so they never all
-   vanish at once. This runs on the inner wrapper only (opacity/scale/
-   glow), separate from the outer element's bob animation, so the float
-   never stops or jumps when the hover state changes. */
-.project-card-pantry:hover .pantry-food-inner,
-.project-card-pantry:focus-visible .pantry-food-inner{
-  animation:pantry-apparate 1.7s ease-in-out infinite;
+/* on hover the conjured food vanishes and returns one at a time rather
+   than all at once: every item shares this exact timeline, so --delay
+   (staggered left to right above) shifts each into its own turn. The
+   poof happens on the way OUT - a quick charge-up, a twist, and a flash
+   - so that's the moment the user actually sees; after all four sit gone
+   for a beat, they return with a plain, quiet fade/scale back to normal.
+   Runs on the inner wrapper only, separate from the outer element's bob
+   animation, so the float never stops or jumps when the hover state
+   changes. */
+.project-card-pantry:hover .pantry-food-icon,
+.project-card-pantry:focus-visible .pantry-food-icon{
+  animation:pantry-apparate 2.6s ease-in-out infinite;
+  animation-delay:var(--delay,0s);
+}
+.project-card-pantry:hover .pantry-food-inner::after,
+.project-card-pantry:focus-visible .pantry-food-inner::after{
+  animation:pantry-poof 2.6s ease-in-out infinite;
   animation-delay:var(--delay,0s);
 }
 @keyframes pantry-apparate{
-  0%,55%{ transform:scale(1); opacity:1; filter:drop-shadow(0 0 0 rgba(255,255,255,0)); }
-  60%{ transform:scale(.25); opacity:0; filter:drop-shadow(0 0 9px rgba(255,255,255,.9)); }
-  65%{ transform:scale(.25); opacity:0; }
-  72%{ transform:scale(1.22); opacity:1; filter:drop-shadow(0 0 16px rgba(230,190,255,1)); }
-  85%{ transform:scale(1); opacity:1; filter:drop-shadow(0 0 6px rgba(230,190,255,.6)); }
-  100%{ transform:scale(1); opacity:1; filter:drop-shadow(0 0 0 rgba(255,255,255,0)); }
+  0%,3%{ transform:scale(1) rotate(0deg); opacity:1; }
+  5%{ transform:scale(1.15) rotate(-6deg); opacity:1; }
+  10.5%{ transform:scale(0) rotate(26deg); opacity:0; }
+  10.51%,40%{ transform:scale(0) rotate(0deg); opacity:0; }
+  46%,100%{ transform:scale(1) rotate(0deg); opacity:1; }
+}
+/* the "poof" - a glow that blooms as the food disappears, holds at full
+   strength for a beat, then dissipates slowly like lingering magical
+   residue instead of just flashing on and off; reappearing gets no
+   burst, just the plain fade above */
+@keyframes pantry-poof{
+  0%,3%{ opacity:0; transform:translate(-50%,-50%) scale(.3); }
+  8%{ opacity:1; transform:translate(-50%,-50%) scale(1.15); }
+  14%{ opacity:1; transform:translate(-50%,-50%) scale(1.3); }
+  24%{ opacity:.5; transform:translate(-50%,-50%) scale(1.6); }
+  34%{ opacity:0; transform:translate(-50%,-50%) scale(2); }
+  34.01%,100%{ opacity:0; transform:translate(-50%,-50%) scale(.3); }
 }
 
 /* contact + footer */
@@ -1114,5 +1157,5 @@ a{ color:inherit; text-decoration:none; }
   .avatar-halo, .av-orbit-1, .av-orbit-2, .badge-open{ animation:none; }
   .wizard-wand-a, .wizard-wand-b, .wand-tip{ animation:none; }
   .cli-ping, .cli-scan{ animation:none; }
-  .pantry-food, .pantry-food-inner{ animation:none; }
+  .pantry-food, .pantry-food-icon, .pantry-food-inner::after{ animation:none; }
 }
