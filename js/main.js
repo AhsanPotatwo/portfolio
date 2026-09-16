@@ -384,7 +384,7 @@
         varySize: true,
         maxLinks: 1,
         mouseLinks: 2,
-        constellations: 10,
+        constellations: 10,              
         linkRefresh: 650,
         density: 16000,
         maxCount: 55,
@@ -597,6 +597,49 @@
     }
 
     setTimeout(launchShootingStar, 1500 + Math.random() * 3000);
+  }
+
+  // CLI battleships project card: reshuffle which grid cells the radar
+  // pings land on every time the hover/focus animation is about to play,
+  // so it's not the same handful of cells lighting up each time
+  var cliCards = document.querySelectorAll('.project-card-cli');
+  if (cliCards.length) {
+    var cliCols = 8, cliRows = 3;
+    var cliCells = [];
+    for (var cr = 0; cr < cliRows; cr++) {
+      for (var cc = 0; cc < cliCols; cc++) {
+        cliCells.push({
+          left: ((cc + 0.5) / cliCols * 100).toFixed(3) + '%',
+          top: ((cr + 0.5) / cliRows * 100).toFixed(3) + '%'
+        });
+      }
+    }
+
+    var shuffledCliCells = function () {
+      var pool = cliCells.slice();
+      for (var i = pool.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+      }
+      return pool;
+    };
+
+    Array.prototype.forEach.call(cliCards, function (card) {
+      var pings = card.querySelectorAll('.cli-ping');
+
+      var randomizePings = function () {
+        var pool = shuffledCliCells();
+        Array.prototype.forEach.call(pings, function (ping, i) {
+          var cell = pool[i % pool.length];
+          ping.style.left = cell.left;
+          ping.style.top = cell.top;
+        });
+      };
+
+      randomizePings();
+      card.addEventListener('mouseenter', randomizePings);
+      card.addEventListener('focus', randomizePings);
+    });
   }
 
   // keep the footer year up to date
