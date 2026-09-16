@@ -775,6 +775,97 @@ a{ color:inherit; text-decoration:none; }
   50%{ box-shadow:0 0 11px 4px rgba(255,235,180,1), 0 0 26px 10px rgba(255,200,90,.7); }
 }
 
+/* CLI battleships card: terminal-green grid with a couple of ship silhouettes
+   and a radar-scan sweep on hover */
+.project-card-cli{
+  position:relative;
+  overflow:hidden;
+  background:#0b0f0b;
+}
+.project-card-cli:hover,
+.project-card-cli:focus-visible{ background:#0e130e; }
+.project-card-cli:focus-visible{ outline:2px solid var(--purple-line); outline-offset:3px; }
+
+/* explicit line elements rather than a tiled background: a tiled pattern
+   always redraws a line at position 0, which doubled up with the frame
+   border and made the top/left edges look thicker than the others. Only
+   the 7 interior column dividers and 2 row dividers are drawn here; the
+   frame itself is the single source of truth for all four edges. */
+.cli-grid{
+  position:absolute; inset:0;
+  border:2px solid rgba(45,201,99,.55);
+  border-radius:20px;
+  overflow:hidden;
+  transition:filter .3s ease;
+}
+.project-card-cli:hover .cli-grid,
+.project-card-cli:focus-visible .cli-grid{ filter:brightness(1.4); }
+
+.cli-vline{ position:absolute; top:0; bottom:0; width:2px; background:rgba(45,201,99,.55); }
+.cli-hline{ position:absolute; left:0; right:0; height:2px; background:rgba(45,201,99,.55); }
+
+/* glowing radar pings, each centered on a grid cell (grid is 8 cols x 3
+   rows, so cell centers land on 1/16, 3/16 ... of the width and 1/6, 1/2,
+   5/6 of the height). Delays are staggered to roughly match the scanline
+   passing each row, so they "light up" in sequence top to bottom. */
+.cli-ping{
+  position:absolute;
+  width:14px; height:14px;
+  border-radius:50%;
+  border:2px solid rgba(120,255,160,.9);
+  transform:translate(-50%,-50%) scale(.3);
+  opacity:0;
+}
+.cli-ping-a{ left:31.25%; top:50%; }
+.cli-ping-b{ left:81.25%; top:50%; }
+.cli-ping-c{ left:31.25%; top:16.667%; }
+.cli-ping-d{ left:68.75%; top:16.667%; }
+.cli-ping-e{ left:56.25%; top:83.333%; }
+.project-card-cli:hover .cli-ping,
+.project-card-cli:focus-visible .cli-ping{ animation:cli-ping .8s ease-out .52s; }
+.project-card-cli:hover .cli-ping-c,
+.project-card-cli:focus-visible .cli-ping-c{ animation-delay:.30s; }
+.project-card-cli:hover .cli-ping-d,
+.project-card-cli:focus-visible .cli-ping-d{ animation-delay:.38s; }
+.project-card-cli:hover .cli-ping-b,
+.project-card-cli:focus-visible .cli-ping-b{ animation-delay:.60s; }
+.project-card-cli:hover .cli-ping-e,
+.project-card-cli:focus-visible .cli-ping-e{ animation-delay:.80s; }
+@keyframes cli-ping{
+  0%{ transform:translate(-50%,-50%) scale(.3); opacity:.9; }
+  100%{ transform:translate(-50%,-50%) scale(2.6); opacity:0; }
+}
+
+.cli-title{
+  position:relative; z-index:1;
+  font-family:var(--font-mono);
+  font-weight:700;
+  font-size:clamp(20px,2.4vw,32px);
+  color:#0ba800;
+  transition:color .3s ease, text-shadow .3s ease;
+}
+.project-card-cli:hover .cli-title,
+.project-card-cli:focus-visible .cli-title{
+  color:#2be645;
+  text-shadow:0 0 10px rgba(80,255,150,.6);
+}
+
+.cli-scan{
+  position:absolute; left:0; right:0; height:28px;
+  top:-30px;
+  background:linear-gradient(rgba(110,255,150,0) 0%, rgba(130,255,170,.5) 50%, rgba(110,255,150,0) 100%);
+  pointer-events:none;
+  opacity:0;
+}
+.project-card-cli:hover .cli-scan,
+.project-card-cli:focus-visible .cli-scan{ animation:cli-scan-sweep 1s ease-in-out; }
+@keyframes cli-scan-sweep{
+  0%{ top:-30px; opacity:0; }
+  12%{ opacity:1; }
+  88%{ opacity:1; }
+  100%{ top:145px; opacity:0; }
+}
+
 /* contact + footer */
 .contact{ padding-bottom:clamp(50px,7vw,90px); }
 .contact-inner{ display:flex; flex-direction:column; align-items:center; text-align:center; }
@@ -888,4 +979,5 @@ a{ color:inherit; text-decoration:none; }
   .bg-nebula-1, .bg-nebula-2, .bg-nebula-3, .shooting-star{ animation:none; }
   .avatar-halo, .av-orbit-1, .av-orbit-2, .badge-open{ animation:none; }
   .wizard-wand-a, .wizard-wand-b, .wand-tip{ animation:none; }
+  .cli-ping, .cli-scan{ animation:none; }
 }
