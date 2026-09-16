@@ -790,16 +790,28 @@ a{ color:inherit; text-decoration:none; }
    always redraws a line at position 0, which doubled up with the frame
    border and made the top/left edges look thicker than the others. Only
    the 7 interior column dividers and 2 row dividers are drawn here; the
-   frame itself is the single source of truth for all four edges. */
+   frame is a separate, border-less element so it isn't the containing
+   block for anything. cli-grid itself carries no border, so its box is
+   exactly the full card (0-100%) - the same coordinate space the pings
+   use - otherwise a border here would shrink the % coordinate space for
+   grid lines only, throwing them out of sync with the pings. */
 .cli-grid{
+  position:absolute; inset:0;
+  overflow:hidden;
+  border-radius:20px;
+  transition:filter .3s ease;
+}
+.cli-frame{
   position:absolute; inset:0;
   border:2px solid rgba(45,201,99,.55);
   border-radius:20px;
-  overflow:hidden;
+  pointer-events:none;
   transition:filter .3s ease;
 }
 .project-card-cli:hover .cli-grid,
-.project-card-cli:focus-visible .cli-grid{ filter:brightness(1.4); }
+.project-card-cli:hover .cli-frame,
+.project-card-cli:focus-visible .cli-grid,
+.project-card-cli:focus-visible .cli-frame{ filter:brightness(1.4); }
 
 .cli-vline{ position:absolute; top:0; bottom:0; width:2px; background:rgba(45,201,99,.55); }
 .cli-hline{ position:absolute; left:0; right:0; height:2px; background:rgba(45,201,99,.55); }
@@ -822,7 +834,7 @@ a{ color:inherit; text-decoration:none; }
 .cli-ping-d{ left:68.75%; top:16.667%; }
 .cli-ping-e{ left:56.25%; top:83.333%; }
 .project-card-cli:hover .cli-ping,
-.project-card-cli:focus-visible .cli-ping{ animation:cli-ping .8s ease-out .52s; }
+.project-card-cli:focus-visible .cli-ping{ animation:cli-ping .8s ease-out .52s infinite; }
 .project-card-cli:hover .cli-ping-c,
 .project-card-cli:focus-visible .cli-ping-c{ animation-delay:.30s; }
 .project-card-cli:hover .cli-ping-d,
@@ -858,7 +870,7 @@ a{ color:inherit; text-decoration:none; }
   opacity:0;
 }
 .project-card-cli:hover .cli-scan,
-.project-card-cli:focus-visible .cli-scan{ animation:cli-scan-sweep 1s ease-in-out; }
+.project-card-cli:focus-visible .cli-scan{ animation:cli-scan-sweep 1.6s ease-in-out infinite; }
 @keyframes cli-scan-sweep{
   0%{ top:-30px; opacity:0; }
   12%{ opacity:1; }
