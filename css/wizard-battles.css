@@ -33,42 +33,58 @@ body.wizard-page main{ overflow-x:visible; }
    <body> and #canvas-wrapper (this section, its container, the game frame)
    may have `position`, a `transform`, or anything else that creates a new
    containing block. Put decorative positioning on siblings instead (see
-   .wb-hero-cloud-anchor below), never on an ancestor of #canvas-wrapper. */
+   .wb-bubble-clip below), never on an ancestor of #canvas-wrapper. */
 .wb-hero{
-  /* enough top padding that the title clears the bubble band below it
-     (300px, see .wb-bubble-band) with room to spare, at every viewport width. */
-  padding-top:clamp(230px,24vw,280px);
+  /* clears the bubble cloud above it (which bottoms out at .wb-bubble-clip's
+     height) with room to spare, at every viewport width. */
+  padding-top:clamp(250px,26vw,400px);
   padding-bottom:clamp(60px,7vw,96px);
   text-align:center;
 }
 .wb-hero-inner{ position:static; }
 
-.wb-hero-cloud-anchor{
-  position:relative;
-  height:0;
+/* ---------- bubble cloud across the top ----------
+   A 1:1 CSS rebuild of the Figma graphic: 17 flat circles in three purple
+   layers (dark behind, mid, light in front), at the exact centres/radii
+   from the source SVG, expressed as percentages of a box locked to that
+   file's 1652x679 frame so everything scales together and every circle
+   stays a circle. The source SVG itself is unusable here because it
+   declares preserveAspectRatio="none" — it's built to be stretched, which
+   is what turned these into ovals.
+
+   The box is always wider than the viewport so no circle's left/right edge
+   is ever on screen, and its *bottom* is pinned to the clip's bottom
+   rather than its top being pinned to the page's: that keeps the cloud a
+   consistent depth at any width, and pushes the tops of the circles up off
+   the screen (and behind the header) so you never see a whole circle —
+   just the layered, scalloped underside. */
+.wb-bubble-clip{
+  position:absolute;
+  top:0; left:0;
+  width:100%;
+  height:clamp(300px,29vw,460px);
+  overflow:hidden;
   pointer-events:none;
 }
-/* Plain CSS circles rather than the source cloud SVG: that graphic uses
-   preserveAspectRatio="none", meant to be stretched, so setting an
-   independent width/height on it (needed to bleed both edges off the page
-   at a controlled height) squashed its circles into ovals. Real circles,
-   drawn directly, can't have that problem. Three depth layers: a row of
-   large ones clipped by the band's top edge so no full circle is ever
-   visible (like they're emerging from above the screen), a middle row of
-   fully-formed ones, and small faint ones cascading further down into the
-   hero — the classic rising-bubbles-in-a-potion read. */
-.wb-bubble-band{
+.wb-bubbles{
   position:absolute;
-  left:0; right:0; top:0;
-  height:300px;
-  overflow:hidden;
+  bottom:0; left:50%;
+  transform:translateX(-50%);
+  width:max(860px,115vw);
+  aspect-ratio:1652/679;
 }
 .wb-bubble{
   position:absolute;
+  left:var(--l);
+  top:var(--t);
+  width:var(--d);
+  aspect-ratio:1;
   border-radius:50%;
-  background-color:var(--c);
-  background-image:radial-gradient(circle at 32% 28%, rgba(255,255,255,.4), rgba(255,255,255,0) 45%);
+  background:var(--c);
 }
+.wb-b-dark { --d:16.646%; --c:#40167a; }
+.wb-b-mid  { --d:20.521%; --c:#521c9c; }
+.wb-b-light{ --d:24.213%; --c:#6425bc; }
 
 .wb-title{
   margin:0 0 34px;
