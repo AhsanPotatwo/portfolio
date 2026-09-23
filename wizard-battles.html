@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wizard Battles — Ahsan</title>
+  <meta name="description"
+    content="Wizard Battles — a turn-based p5.js game built as a psychology dissertation project, measuring risk-taking behaviour through a gamified battle system.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=Fira+Mono:wght@400&family=Crimson+Pro:wght@400&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/wizard-battles.css">
+</head>
+
+<body class="wizard-page">
+
+  <!-- background stuff, just decoration, sits behind everything -- same as the main site -->
+  <div class="bg-glow" aria-hidden="true">
+    <div class="bg-nebula bg-nebula-1"></div>
+    <div class="bg-nebula bg-nebula-2"></div>
+    <div class="bg-nebula bg-nebula-3"></div>
+  </div>
+  <canvas class="bg-fx" id="bgFx" aria-hidden="true"></canvas>
+  <span class="shooting-star" aria-hidden="true"></span>
+  <span class="shooting-star" aria-hidden="true"></span>
+  <span class="shooting-star" aria-hidden="true"></span>
+
+  <a class="skip-link" href="#game">Skip to content</a>
+
+  <!-- nav, identical to the home page, just pointed back at its sections -->
+  <header class="site-header" id="header">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html#home">[Ahsan]</a>
+
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="nav" id="primaryNav" aria-label="Primary">
+        <a href="index.html#home" class="nav-link">Home</a>
+        <a href="index.html#about" class="nav-link">About</a>
+        <a href="index.html#skills" class="nav-link">Skills</a>
+        <a href="index.html#projects" class="nav-link is-active">Projects</a>
+        <a href="index.html#contact" class="nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- kept outside .wb-hero on purpose: the game's buttons (below) are plain
+         p5 elements appended straight to <body>, and rely on nothing between
+         <body> and #canvas-wrapper ever getting a CSS position, or their
+         on-page coordinates go stale — see the note on .wb-hero in
+         wizard-battles.css. This decorative wrapper is a sibling, not an
+         ancestor, of the game markup, so it's free to be positioned. -->
+    <div class="wb-hero-cloud-anchor" aria-hidden="true">
+      <div class="wb-bubble-band">
+        <!-- large bubbles, clipped by the band's top edge so no full circle
+             is ever visible — like they're emerging from above the screen -->
+        <span class="wb-bubble" style="--c:#521c9c; left:0%;   top:-160px; width:260px; height:260px;"></span>
+        <span class="wb-bubble" style="--c:#6425bc; left:16%;  top:-210px; width:330px; height:330px;"></span>
+        <span class="wb-bubble" style="--c:#40167a; left:38%;  top:-180px; width:290px; height:290px;"></span>
+        <span class="wb-bubble" style="--c:#521c9c; left:58%;  top:-220px; width:340px; height:340px;"></span>
+        <span class="wb-bubble" style="--c:#6425bc; left:80%;  top:-170px; width:280px; height:280px;"></span>
+        <span class="wb-bubble" style="--c:#40167a; left:97%;  top:-130px; width:220px; height:220px;"></span>
+
+        <!-- mid-sized, fully-formed bubbles risen further from the band -->
+        <span class="wb-bubble" style="--c:#735aff; left:8%;  top:70px;  width:64px; height:64px; opacity:.9;"></span>
+        <span class="wb-bubble" style="--c:#6425bc; left:27%; top:110px; width:44px; height:44px; opacity:.85;"></span>
+        <span class="wb-bubble" style="--c:#521c9c; left:47%; top:50px;  width:80px; height:80px; opacity:.9;"></span>
+        <span class="wb-bubble" style="--c:#735aff; left:68%; top:100px; width:50px; height:50px; opacity:.85;"></span>
+        <span class="wb-bubble" style="--c:#6425bc; left:88%; top:60px;  width:60px; height:60px; opacity:.85;"></span>
+
+        <!-- small, faint bubbles cascading further down for depth -->
+        <span class="wb-bubble" style="--c:#735aff; left:4%;  top:210px; width:18px; height:18px; opacity:.55;"></span>
+        <span class="wb-bubble" style="--c:#6425bc; left:17%; top:250px; width:13px; height:13px; opacity:.5;"></span>
+        <span class="wb-bubble" style="--c:#521c9c; left:33%; top:230px; width:22px; height:22px; opacity:.5;"></span>
+        <span class="wb-bubble" style="--c:#735aff; left:46%; top:265px; width:11px; height:11px; opacity:.45;"></span>
+        <span class="wb-bubble" style="--c:#6425bc; left:58%; top:205px; width:17px; height:17px; opacity:.5;"></span>
+        <span class="wb-bubble" style="--c:#521c9c; left:76%; top:255px; width:15px; height:15px; opacity:.45;"></span>
+        <span class="wb-bubble" style="--c:#735aff; left:91%; top:215px; width:20px; height:20px; opacity:.5;"></span>
+      </div>
+      <!-- a last few stragglers drifting past the band into the hero itself -->
+      <span class="wb-bubble" style="--c:#735aff; left:12%; top:335px; width:12px; height:12px; opacity:.4;"></span>
+      <span class="wb-bubble" style="--c:#6425bc; left:41%; top:360px; width:9px;  height:9px;  opacity:.35;"></span>
+      <span class="wb-bubble" style="--c:#521c9c; left:64%; top:345px; width:14px; height:14px; opacity:.4;"></span>
+      <span class="wb-bubble" style="--c:#735aff; left:83%; top:370px; width:10px; height:10px; opacity:.35;"></span>
+    </div>
+
+    <section class="wb-hero" id="game">
+      <div class="container wb-hero-inner">
+        <h1 class="wb-title" aria-label="Wizard Battles">
+          <span style="--r:-20.35deg;--y:.5125em;--d:0s" aria-hidden="true">W</span><span style="--r:-16.43deg;--y:.336em;--d:.05s" aria-hidden="true">i</span><span style="--r:-13.96deg;--y:.241em;--d:.1s" aria-hidden="true">z</span><span style="--r:-10.28deg;--y:.131em;--d:.15s" aria-hidden="true">a</span><span style="--r:-6.8deg;--y:.0576em;--d:.2s" aria-hidden="true">r</span><span style="--r:-3.31deg;--y:.0137em;--d:.25s" aria-hidden="true">d</span><span style="--r:-0.27deg;--y:0em;--d:.3s" aria-hidden="true">&nbsp;</span><span style="--r:2.88deg;--y:.0103em;--d:.35s" aria-hidden="true">B</span><span style="--r:7.09deg;--y:.0627em;--d:.4s" aria-hidden="true">a</span><span style="--r:10.48deg;--y:.1367em;--d:.45s" aria-hidden="true">t</span><span style="--r:13.14deg;--y:.215em;--d:.5s" aria-hidden="true">t</span><span style="--r:15.39deg;--y:.2952em;--d:.55s" aria-hidden="true">l</span><span style="--r:18.24deg;--y:.4117em;--d:.6s" aria-hidden="true">e</span><span style="--r:21.8deg;--y:.587em;--d:.65s" aria-hidden="true">s</span>
+        </h1>
+        <p class="wb-subtitle">A turn-based psychological experiment</p>
+
+        <div class="wb-game-frame">
+          <div id="canvas-wrapper"></div>
+          <p class="wb-game-hint">Best played on a larger screen — on narrow screens the page scrolls sideways so the game and its buttons stay lined up.</p>
+        </div>
+
+        <p class="wb-participant">Participant ID: <span id="player-id">—</span></p>
+
+        <div class="wb-actions">
+          <a class="btn btn-wizard" href="assets/wizard-battles/downloads/ParticipantConsentForm.pdf" download>Download<br>consent form</a>
+          <button class="btn btn-wizard is-disabled" type="button" disabled title="The study behind Wizard Battles has concluded, so the questionnaire is no longer accepting responses.">Questionnaire<br>closed</button>
+          <a class="btn btn-wizard" href="assets/wizard-battles/downloads/ParticipantInformationSheet.pdf" download>Download<br>Information Sheet</a>
+        </div>
+        <p class="wb-study-note">The dissertation study this game was built for has concluded — the game below is fully playable, but the consent form, information sheet and questionnaire are kept here purely for reference.</p>
+      </div>
+    </section>
+
+    <section class="wb-section wb-intro">
+      <div class="container wb-intro-inner">
+        <div class="wb-intro-text">
+          <h2>What is <span class="wb-accent">Wizard Battles?</span></h2>
+          <p>Wizard Battles is designed to be a turn-based game used as an experimental tool for psychology researchers to measure risk-taking behaviour in individuals utilising a gamified method. Wizard battles was partially inspired from the battling system in Pokemon and other turn based games that I enjoy playing.</p>
+        </div>
+        <div class="wb-intro-art">
+          <div class="wb-crystal-ball-cluster">
+            <img class="wb-cb-ball" src="assets/wizard-battles/illustrations/crystal-ball.svg" alt="Illustration of a crystal ball">
+            <img class="wb-cb-question" src="assets/wizard-battles/illustrations/question-mark.svg" alt="" aria-hidden="true">
+            <img class="wb-cb-eye wb-cb-eye-1" src="assets/wizard-battles/illustrations/eye.svg" alt="" aria-hidden="true">
+            <img class="wb-cb-eye wb-cb-eye-2" src="assets/wizard-battles/illustrations/eye-b.svg" alt="" aria-hidden="true">
+            <img class="wb-cb-eye wb-cb-eye-3" src="assets/wizard-battles/illustrations/eye-c.svg" alt="" aria-hidden="true">
+            <img class="wb-cb-eye wb-cb-eye-4" src="assets/wizard-battles/illustrations/eye.svg" alt="" aria-hidden="true">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="wb-ribbon-wrap"><span class="wb-ribbon">Behind the Magic</span></div>
+
+    <section class="wb-section wb-panel wb-panel-a">
+      <div class="container wb-two-col wb-two-col-reverse">
+        <div class="wb-art">
+          <img src="assets/wizard-battles/illustrations/wizard.svg" alt="Illustration of a wizard">
+        </div>
+        <div class="wb-copy wb-copy-right">
+          <h2><span class="wb-accent">Why did I make</span> Wizard Battles?</h2>
+          <hr class="wb-divider">
+          <p>I made Wizard Battles as my 3rd dissertation project for my Bachelor's degree in computer science. I chose this project because I've always been fascinated by how psychology can intertwine with computerised design, whether that be in the realm of game design, UI design or user interaction. I think psychology plays a much deeper role than people realise and I wanted to indulge myself in a project that reflected that as its core principle.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="wb-section wb-panel wb-panel-b">
+      <div class="container wb-two-col">
+        <div class="wb-copy">
+          <h2><span class="wb-accent">How it</span> works</h2>
+          <hr class="wb-divider">
+          <p>The game tests risk by letting the player attack with multiple tiers of power. The player also has an option to heal and defend, both with unique penalties. Low risk attacks will always deal damage but high risk attacks deal greater damage at the risk of not always landing. Every risk the player takes is fully optional.</p>
+        </div>
+        <div class="wb-art">
+          <img src="assets/wizard-battles/illustrations/swords-crossed.svg" alt="Illustration of crossed swords">
+        </div>
+      </div>
+    </section>
+
+    <section class="wb-section wb-panel wb-panel-c">
+      <div class="container wb-two-col wb-two-col-reverse">
+        <div class="wb-art">
+          <img src="assets/wizard-battles/illustrations/robot.svg" alt="Illustration of a robot enemy">
+        </div>
+        <div class="wb-copy wb-copy-right">
+          <h2>How the <span class="wb-accent">AI enemy</span> works</h2>
+          <hr class="wb-divider">
+          <p>The enemy doesn't cheat, it fights you as if it was another player. The AI uses a predictive algorithm, tracking your last 10 moves to guess what move you will make and counter your gameplay style. If the AI is low on health, it will prioritise healing and if the player is being risky then the AI will try to defend itself, just like a real wizard!</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="wb-section wb-panel wb-panel-d">
+      <div class="container wb-two-col">
+        <div class="wb-copy">
+          <h2>Collecting <span class="wb-accent">data &amp; backend</span></h2>
+          <hr class="wb-divider">
+          <p>The game runs in the browser on p5.js with a Node.js and Express backend server. Each round is sent to the server and written to a CSV file. A CSV file allows researchers to easily read and process the necessary data easily while the backend server is fairly easy to build and setup.</p>
+        </div>
+        <div class="wb-art">
+          <img class="wb-art-accent" src="assets/wizard-battles/illustrations/scroll.svg" alt="" aria-hidden="true">
+          <img src="assets/wizard-battles/illustrations/book.svg" alt="Illustration of an open book">
+        </div>
+      </div>
+    </section>
+
+    <div class="wb-ribbon-wrap"><span class="wb-ribbon">Do it yourself!</span></div>
+
+    <section class="wb-section wb-cta">
+      <div class="container wb-cta-grid">
+        <div class="wb-cta-card">
+          <h3>Build the project for yourself!</h3>
+          <p>Download the project on github and run it on your own machine.</p>
+          <a class="btn btn-wizard-lg" href="https://github.com/AhsanPotatwo/Wizard-battles" target="_blank" rel="noopener">Try it here</a>
+        </div>
+        <div class="wb-cta-card">
+          <h3>Read the report for the project</h3>
+          <p>Read the dissertation document which outlines details about this project.</p>
+          <a class="btn btn-wizard-lg" href="assets/wizard-battles/downloads/Wizard-Battles-Dissertation-Report.pdf" target="_blank" rel="noopener">Read it here</a>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Made in <span id="year">2026</span> by pondering my crystal orb ~ Ahsan, Full Stack Wizard</p>
+    </div>
+  </footer>
+
+  <script src="js/particles.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/wizard-battles/page.js"></script>
+  <script src="js/wizard-battles/p5.min.js"></script>
+  <script src="js/wizard-battles/sketch.js"></script>
+</body>
+
+</html>

@@ -732,8 +732,13 @@ a{ color:inherit; text-decoration:none; }
   background:#50352e;
 }
 .project-card-wizard:hover,
-.project-card-wizard:focus-visible{ background:#5a3c34; }
-.project-card-wizard:focus-visible{ outline:2px solid var(--purple-line); outline-offset:3px; }
+.project-card-wizard:focus-within{ background:#5a3c34; }
+
+.project-card-link{
+  position:absolute; inset:0;
+  display:grid; place-items:center;
+}
+.project-card-link:focus-visible{ outline:2px solid var(--purple-line); outline-offset:-3px; }
 
 .wizard-robe{ position:absolute; inset:0; }
 .wizard-robe-a{
@@ -812,12 +817,12 @@ a{ color:inherit; text-decoration:none; }
   50%{ transform:rotate(183.9deg); }
 }
 .project-card-wizard:hover .wizard-wand-a,
-.project-card-wizard:focus-visible .wizard-wand-a{ animation:wand-wave-a .9s ease-in-out infinite; }
+.project-card-wizard:focus-within .wizard-wand-a{ animation:wand-wave-a .9s ease-in-out infinite; }
 .project-card-wizard:hover .wizard-wand-b,
-.project-card-wizard:focus-visible .wizard-wand-b{ animation:wand-wave-b .9s ease-in-out infinite; }
+.project-card-wizard:focus-within .wizard-wand-b{ animation:wand-wave-b .9s ease-in-out infinite; }
 
 .project-card-wizard:hover .wand-tip,
-.project-card-wizard:focus-visible .wand-tip{
+.project-card-wizard:focus-within .wand-tip{
   background:#fff3d6;
   animation:tip-glow .9s ease-in-out infinite;
 }
