@@ -18,6 +18,36 @@
 
 <body class="wizard-page">
 
+  <!-- Bubble cloud over the top of the page. Sits at the very top of <body>
+       so it can be positioned against the document origin, and is a sibling
+       of <main> rather than an ancestor of the game canvas (see the note in
+       wizard-battles.css). Circle positions/sizes are the Figma graphic's
+       own, as percentages of its 1652x679 frame; painted back-to-front:
+       dark, mid, light. -->
+  <div class="wb-bubble-clip" aria-hidden="true">
+    <div class="wb-bubbles">
+      <span class="wb-bubble wb-b-dark"  style="--l:0%;       --t:55.817%"></span>
+      <span class="wb-bubble wb-b-dark"  style="--l:12.107%;  --t:48.012%"></span>
+      <span class="wb-bubble wb-b-dark"  style="--l:24.395%;  --t:38.586%"></span>
+      <span class="wb-bubble wb-b-dark"  style="--l:38.499%;  --t:33.726%"></span>
+      <span class="wb-bubble wb-b-dark"  style="--l:52.058%;  --t:34.021%"></span>
+      <span class="wb-bubble wb-b-dark"  style="--l:65.496%;  --t:39.765%"></span>
+      <span class="wb-bubble wb-b-dark"  style="--l:83.354%;  --t:59.499%"></span>
+
+      <span class="wb-bubble wb-b-mid"   style="--l:1.332%;   --t:36.966%"></span>
+      <span class="wb-bubble wb-b-mid"   style="--l:15.193%;  --t:27.540%"></span>
+      <span class="wb-bubble wb-b-mid"   style="--l:29.964%;  --t:18.557%"></span>
+      <span class="wb-bubble wb-b-mid"   style="--l:55.993%;  --t:20.324%"></span>
+      <span class="wb-bubble wb-b-mid"   style="--l:75.182%;  --t:36.966%"></span>
+
+      <span class="wb-bubble wb-b-light" style="--l:0%;       --t:18.557%"></span>
+      <span class="wb-bubble wb-b-light" style="--l:18.159%;  --t:0%"></span>
+      <span class="wb-bubble wb-b-light" style="--l:35.533%;  --t:6.775%"></span>
+      <span class="wb-bubble wb-b-light" style="--l:54.661%;  --t:0%"></span>
+      <span class="wb-bubble wb-b-light" style="--l:70.339%;  --t:18.557%"></span>
+    </div>
+  </div>
+
   <!-- background stuff, just decoration, sits behind everything -- same as the main site -->
   <div class="bg-glow" aria-hidden="true">
     <div class="bg-nebula bg-nebula-1"></div>
@@ -51,46 +81,6 @@
   </header>
 
   <main>
-
-    <!-- kept outside .wb-hero on purpose: the game's buttons (below) are plain
-         p5 elements appended straight to <body>, and rely on nothing between
-         <body> and #canvas-wrapper ever getting a CSS position, or their
-         on-page coordinates go stale — see the note on .wb-hero in
-         wizard-battles.css. This decorative wrapper is a sibling, not an
-         ancestor, of the game markup, so it's free to be positioned. -->
-    <div class="wb-hero-cloud-anchor" aria-hidden="true">
-      <div class="wb-bubble-band">
-        <!-- large bubbles, clipped by the band's top edge so no full circle
-             is ever visible — like they're emerging from above the screen -->
-        <span class="wb-bubble" style="--c:#521c9c; left:0%;   top:-160px; width:260px; height:260px;"></span>
-        <span class="wb-bubble" style="--c:#6425bc; left:16%;  top:-210px; width:330px; height:330px;"></span>
-        <span class="wb-bubble" style="--c:#40167a; left:38%;  top:-180px; width:290px; height:290px;"></span>
-        <span class="wb-bubble" style="--c:#521c9c; left:58%;  top:-220px; width:340px; height:340px;"></span>
-        <span class="wb-bubble" style="--c:#6425bc; left:80%;  top:-170px; width:280px; height:280px;"></span>
-        <span class="wb-bubble" style="--c:#40167a; left:97%;  top:-130px; width:220px; height:220px;"></span>
-
-        <!-- mid-sized, fully-formed bubbles risen further from the band -->
-        <span class="wb-bubble" style="--c:#735aff; left:8%;  top:70px;  width:64px; height:64px; opacity:.9;"></span>
-        <span class="wb-bubble" style="--c:#6425bc; left:27%; top:110px; width:44px; height:44px; opacity:.85;"></span>
-        <span class="wb-bubble" style="--c:#521c9c; left:47%; top:50px;  width:80px; height:80px; opacity:.9;"></span>
-        <span class="wb-bubble" style="--c:#735aff; left:68%; top:100px; width:50px; height:50px; opacity:.85;"></span>
-        <span class="wb-bubble" style="--c:#6425bc; left:88%; top:60px;  width:60px; height:60px; opacity:.85;"></span>
-
-        <!-- small, faint bubbles cascading further down for depth -->
-        <span class="wb-bubble" style="--c:#735aff; left:4%;  top:210px; width:18px; height:18px; opacity:.55;"></span>
-        <span class="wb-bubble" style="--c:#6425bc; left:17%; top:250px; width:13px; height:13px; opacity:.5;"></span>
-        <span class="wb-bubble" style="--c:#521c9c; left:33%; top:230px; width:22px; height:22px; opacity:.5;"></span>
-        <span class="wb-bubble" style="--c:#735aff; left:46%; top:265px; width:11px; height:11px; opacity:.45;"></span>
-        <span class="wb-bubble" style="--c:#6425bc; left:58%; top:205px; width:17px; height:17px; opacity:.5;"></span>
-        <span class="wb-bubble" style="--c:#521c9c; left:76%; top:255px; width:15px; height:15px; opacity:.45;"></span>
-        <span class="wb-bubble" style="--c:#735aff; left:91%; top:215px; width:20px; height:20px; opacity:.5;"></span>
-      </div>
-      <!-- a last few stragglers drifting past the band into the hero itself -->
-      <span class="wb-bubble" style="--c:#735aff; left:12%; top:335px; width:12px; height:12px; opacity:.4;"></span>
-      <span class="wb-bubble" style="--c:#6425bc; left:41%; top:360px; width:9px;  height:9px;  opacity:.35;"></span>
-      <span class="wb-bubble" style="--c:#521c9c; left:64%; top:345px; width:14px; height:14px; opacity:.4;"></span>
-      <span class="wb-bubble" style="--c:#735aff; left:83%; top:370px; width:10px; height:10px; opacity:.35;"></span>
-    </div>
 
     <section class="wb-hero" id="game">
       <div class="container wb-hero-inner">
