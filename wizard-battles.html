@@ -90,8 +90,9 @@
         <p class="wb-subtitle">A turn-based psychological experiment</p>
 
         <div class="wb-game-frame">
-          <div id="canvas-wrapper"></div>
-          <p class="wb-game-hint">Best played on a larger screen — on narrow screens the page scrolls sideways so the game and its buttons stay lined up.</p>
+          <div class="wb-game-stage" id="gameStage">
+            <div id="canvas-wrapper"></div>
+          </div>
         </div>
 
         <p class="wb-participant">Participant ID: <span id="player-id">—</span></p>
@@ -206,9 +207,10 @@
 
   <script src="js/particles.js"></script>
   <script src="js/main.js"></script>
-  <script src="js/wizard-battles/page.js"></script>
   <script src="js/wizard-battles/p5.min.js"></script>
   <script src="js/wizard-battles/sketch.js"></script>
+  <!-- must come after sketch.js: it wraps the sketch's setup() -->
+  <script src="js/wizard-battles/page.js"></script>
 </body>
 
 </html>
