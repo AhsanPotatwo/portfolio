@@ -74,10 +74,14 @@
     <div class="bg-nebula bg-nebula-2"></div>
     <div class="bg-nebula bg-nebula-3"></div>
   </div>
-  <canvas class="bg-fx" id="bgFx" aria-hidden="true"></canvas>
-  <span class="shooting-star" aria-hidden="true"></span>
-  <span class="shooting-star" aria-hidden="true"></span>
-  <span class="shooting-star" aria-hidden="true"></span>
+  <!-- this page's own backdrop instead of the home page's star field:
+       two faint magic circles turning slowly in opposite corners, and
+       rising motes of magic dust (js/wizard-battles/background.js) -->
+  <div class="wb-arcane-layer" aria-hidden="true">
+    <img class="wb-arcane wb-arcane-1" src="assets/wizard-battles/illustrations/arcane-circle.svg" alt="">
+    <img class="wb-arcane wb-arcane-2" src="assets/wizard-battles/illustrations/arcane-circle.svg" alt="">
+  </div>
+  <canvas class="bg-fx" id="wbMotes" aria-hidden="true"></canvas>
 
   <a class="skip-link" href="#game">Skip to content</a>
 
@@ -242,6 +246,7 @@
   <!-- must come after sketch.js: it wraps the sketch's setup() -->
   <script src="js/wizard-battles/page.js"></script>
   <script src="js/wizard-battles/eyes.js"></script>
+  <script src="js/wizard-battles/background.js"></script>
 </body>
 
 </html>
