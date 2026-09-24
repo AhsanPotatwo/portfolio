@@ -448,16 +448,27 @@
   .wb-ribbon{ padding-inline:28px; }
 }
 
-/* sits between the heading and the paragraph below it, not above the
-   heading — matching Figma's Line 37/38/39, which all land in that gap */
+/* Each panel's heading and its divider line sit together in .wb-heading,
+   which shrinks to the heading's width so the line spans exactly the
+   heading, like Figma's Line 37-40. The line sits in the gap between the
+   heading and the paragraph, and fades out toward the picture: solid at
+   the text's outer edge, transparent at the end nearest the art. */
+.wb-heading{
+  width:fit-content;
+  max-width:100%;
+  margin-bottom:10px;
+}
 .wb-divider{
   display:block;
   height:3px;
   width:100%;
-  max-width:610px;
   border:none;
-  background:linear-gradient(90deg,var(--wb-accent),rgba(115,90,255,0));
-  margin:18px 0 22px;
+  background:linear-gradient(to right,var(--wb-accent),rgba(115,90,255,0));
+  margin:14px 0 0;
+}
+/* text on the right, art on the left: solid on the right, fading left */
+.wb-copy-right .wb-divider{
+  background:linear-gradient(to left,var(--wb-accent),rgba(115,90,255,0));
 }
 /* ---------- story panels ----------
    Figma overlays each band with a flat grey (#252525, near the page's own
@@ -487,24 +498,49 @@
 .wb-two-col-reverse .wb-art{ order:1; }
 .wb-two-col-reverse .wb-copy{ order:2; }
 
+/* sizes from Figma's 1440px frame: 40px headings (64px for "How it
+   works"), 25px body text on 35px lines, in a 610px-wide block (484px for
+   the AI panel) */
 .wb-copy h2{
   font-family:var(--font-sans);
   font-weight:700;
-  font-size:clamp(30px,4vw,48px);
+  font-size:clamp(28px,2.78vw,40px);
+  line-height:1.25;
   color:#fff;
-  margin-bottom:24px;
 }
+.wb-copy h2.wb-h2-lg{ font-size:clamp(40px,4.45vw,64px); }
 .wb-copy p{
-  font-size:clamp(16px,1.5vw,24px);
-  line-height:1.55;
+  max-width:610px;
+  font-size:clamp(17px,1.74vw,25px);
+  line-height:1.4;
   color:#fff;
 }
+.wb-copy-narrow p{ max-width:484px; }
 .wb-copy-right{ text-align:right; }
-.wb-copy-right .wb-divider{ margin-left:auto; }
+.wb-copy-right .wb-heading,
+.wb-copy-right p{ margin-left:auto; }
 
 .wb-art{ display:grid; place-items:center; position:relative; }
 .wb-art img{ width:min(320px,85%); }
-.wb-art-accent{ position:absolute; width:130px; top:-10px; left:-24px; transform:rotate(-15deg); opacity:.95; }
+/* the book + scroll pair in the last panel: the stack is the book's size,
+   and the scroll overlaps its top-left corner on top of it, matching
+   Figma relative to the book. The scroll artwork is 55.6% of the book's
+   width, centred on the book's left edge, 20.3% of the way down, and
+   tilted -13.3deg (Figma's layer is the upright artwork inside a rotated
+   frame). The stack is nudged right so the pair as a whole stays centred. */
+.wb-art-stack{
+  position:relative;
+  width:min(320px,85%);
+  translate:17% 0;
+}
+.wb-art-stack img{ width:100%; }
+.wb-art-stack .wb-art-accent{
+  position:absolute;
+  left:-27.8%;
+  top:-7.95%;
+  width:55.6%;
+  rotate:-13.3deg;
+}
 
 /* ---------- do-it-yourself CTA ---------- */
 .wb-cta{ text-align:center; }
@@ -588,8 +624,11 @@
   /* picture above the text on every panel once they're stacked */
   .wb-two-col .wb-art{ order:-1; }
   .wb-copy-right{ text-align:center; }
-  .wb-copy-right .wb-divider{ margin-inline:auto; }
-  .wb-art-accent{ display:none; }
+  .wb-copy .wb-heading, .wb-copy p{ margin-inline:auto; }
+  /* centred text: the line fades out at both ends instead of one */
+  .wb-copy .wb-divider{
+    background:linear-gradient(to right,rgba(115,90,255,0),var(--wb-accent),rgba(115,90,255,0));
+  }
 
   /* the left/right grey fade only makes sense next to a side-by-side
      layout — once art and text stack vertically, fall back to the flat
@@ -635,7 +674,7 @@
   .wb-intro-art{ min-height:0; padding-top:60px; }
   .wb-crystal-ball-cluster{ width:min(150px,42%); translate:-8% 0; }
 
-  .wb-art img{ width:min(220px,70%); }
+  .wb-art > img, .wb-art-stack{ width:min(220px,70%); }
 
   .btn-wizard-lg{ min-width:0; width:100%; max-width:320px; }
 }
