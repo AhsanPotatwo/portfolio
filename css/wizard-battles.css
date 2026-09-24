@@ -380,7 +380,18 @@
   width:37.3%; height:53.5%;
   transform:translate(-50%,-50%) rotate(-14.62deg);
 }
-.wb-cb-eye{ position:absolute; }
+/* holds the shared eye drawing (see the top of wizard-battles.html). Kept
+   in the page but zero-sized rather than display:none, which would stop
+   its clip path working in some browsers. */
+.wb-svg-defs{ position:absolute; width:0; height:0; overflow:hidden; }
+/* the eyes are inline SVGs so their irises can move (js/wizard-battles/eyes.js) */
+.wb-cb-eye{
+  position:absolute;
+  display:block;
+  height:auto;
+  aspect-ratio:120.529/77.6698;
+  overflow:visible;
+}
 .wb-cb-eye-1{ left:-36.5%; top:-12%;   width:46.8%;  transform:rotate(-23.82deg); }
 .wb-cb-eye-2{ left:51.9%;  top:-23.5%; width:29.4%;  transform:rotate(13.33deg); }
 .wb-cb-eye-3{ left:13.1%;  top:-20.4%; width:30.8%;  transform:rotate(-21.69deg); }
