@@ -19,9 +19,8 @@
 <body class="wizard-page">
 
   <!-- Bubble cloud over the top of the page. Sits at the very top of <body>
-       so it can be positioned against the document origin, and is a sibling
-       of <main> rather than an ancestor of the game canvas (see the note in
-       wizard-battles.css). Circle positions/sizes are the Figma graphic's
+       so it can be positioned against the document origin. Circle
+       positions/sizes are the Figma graphic's
        own, as percentages of its 1652x679 frame; painted back-to-front:
        dark, mid, light. -->
   <div class="wb-bubble-clip" aria-hidden="true">
@@ -133,8 +132,10 @@
           <img src="assets/wizard-battles/illustrations/wizard.svg" alt="Illustration of a wizard">
         </div>
         <div class="wb-copy wb-copy-right">
-          <h2><span class="wb-accent">Why did I make</span> Wizard Battles?</h2>
-          <hr class="wb-divider">
+          <div class="wb-heading">
+            <h2><span class="wb-accent">Why did I make</span> Wizard Battles?</h2>
+            <hr class="wb-divider">
+          </div>
           <p>I made Wizard Battles as my 3rd dissertation project for my Bachelor's degree in computer science. I chose this project because I've always been fascinated by how psychology can intertwine with computerised design, whether that be in the realm of game design, UI design or user interaction. I think psychology plays a much deeper role than people realise and I wanted to indulge myself in a project that reflected that as its core principle.</p>
         </div>
       </div>
@@ -143,8 +144,10 @@
     <section class="wb-section wb-panel wb-panel-b">
       <div class="container wb-two-col">
         <div class="wb-copy">
-          <h2><span class="wb-accent">How it</span> works</h2>
-          <hr class="wb-divider">
+          <div class="wb-heading">
+            <h2 class="wb-h2-lg">How it <span class="wb-accent">works</span></h2>
+            <hr class="wb-divider">
+          </div>
           <p>The game tests risk by letting the player attack with multiple tiers of power. The player also has an option to heal and defend, both with unique penalties. Low risk attacks will always deal damage but high risk attacks deal greater damage at the risk of not always landing. Every risk the player takes is fully optional.</p>
         </div>
         <div class="wb-art">
@@ -158,9 +161,11 @@
         <div class="wb-art">
           <img src="assets/wizard-battles/illustrations/robot.svg" alt="Illustration of a robot enemy">
         </div>
-        <div class="wb-copy wb-copy-right">
-          <h2>How the <span class="wb-accent">AI enemy</span> works</h2>
-          <hr class="wb-divider">
+        <div class="wb-copy wb-copy-right wb-copy-narrow">
+          <div class="wb-heading">
+            <h2>How the <span class="wb-accent">AI enemy</span> works</h2>
+            <hr class="wb-divider">
+          </div>
           <p>The enemy doesn't cheat, it fights you as if it was another player. The AI uses a predictive algorithm, tracking your last 10 moves to guess what move you will make and counter your gameplay style. If the AI is low on health, it will prioritise healing and if the player is being risky then the AI will try to defend itself, just like a real wizard!</p>
         </div>
       </div>
@@ -169,13 +174,17 @@
     <section class="wb-section wb-panel wb-panel-d">
       <div class="container wb-two-col">
         <div class="wb-copy">
-          <h2>Collecting <span class="wb-accent">data &amp; backend</span></h2>
-          <hr class="wb-divider">
+          <div class="wb-heading">
+            <h2>Collecting <span class="wb-accent">data &amp; backend</span></h2>
+            <hr class="wb-divider">
+          </div>
           <p>The game runs in the browser on p5.js with a Node.js and Express backend server. Each round is sent to the server and written to a CSV file. A CSV file allows researchers to easily read and process the necessary data easily while the backend server is fairly easy to build and setup.</p>
         </div>
         <div class="wb-art">
-          <img class="wb-art-accent" src="assets/wizard-battles/illustrations/scroll.svg" alt="" aria-hidden="true">
-          <img src="assets/wizard-battles/illustrations/book.svg" alt="Illustration of an open book">
+          <div class="wb-art-stack">
+            <img src="assets/wizard-battles/illustrations/book.svg" alt="Illustration of an open book">
+            <img class="wb-art-accent" src="assets/wizard-battles/illustrations/scroll.svg" alt="" aria-hidden="true">
+          </div>
         </div>
       </div>
     </section>
