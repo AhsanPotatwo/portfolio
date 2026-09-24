@@ -61,17 +61,29 @@
   position:absolute;
   top:0; left:0;
   width:100%;
-  /* see --wb-cloud-depth at the top of this file */
-  height:var(--wb-cloud-depth);
+  /* see --wb-cloud-depth at the top of this file. The clip runs
+     --wb-cloud-slack past the cloud's bottom (and the cloud is lifted by
+     the same amount), so the moving circles below never get sliced flat
+     against the clip's bottom edge. */
+  --wb-cloud-slack:40px;
+  height:calc(var(--wb-cloud-depth) + var(--wb-cloud-slack));
   overflow:hidden;
   pointer-events:none;
 }
 .wb-bubbles{
   position:absolute;
-  bottom:0; left:50%;
+  bottom:var(--wb-cloud-slack); left:50%;
   transform:translateX(-50%);
   width:max(860px,115vw);
   aspect-ratio:1652/679;
+  /* the whole cloud drifts slowly from side to side. This uses the
+     separate `translate` property so it adds to the centring transform
+     above instead of replacing it. */
+  animation:wbCloudDrift 24s ease-in-out infinite;
+}
+@keyframes wbCloudDrift{
+  0%,100%{ translate:-1% 0; }
+  50%{ translate:1% 0; }
 }
 .wb-bubble{
   position:absolute;
@@ -81,10 +93,31 @@
   aspect-ratio:1;
   border-radius:50%;
   background:var(--c);
+  /* each circle bobs up, swells a little and sways sideways. Every
+     circle has its own timing (below), so the cloud's scalloped underside
+     keeps slowly changing shape instead of moving as one block. */
+  animation:wbBubbleDrift var(--dur,10s) ease-in-out var(--delay,0s) infinite;
+  will-change:translate,scale;
 }
-.wb-b-dark { --d:16.646%; --c:#40167a; }
-.wb-b-mid  { --d:20.521%; --c:#521c9c; }
-.wb-b-light{ --d:24.213%; --c:#6425bc; }
+/* --sway is how far each layer moves sideways, as a % of the circle's own
+   width: the back layer moves least and the front layer most, which gives
+   the cloud a bit of parallax depth. --bob is the upward lift. */
+.wb-b-dark { --d:16.646%; --c:#40167a; --sway:2.5%; --bob:-4%; }
+.wb-b-mid  { --d:20.521%; --c:#521c9c; --sway:4%;   --bob:-5%; }
+.wb-b-light{ --d:24.213%; --c:#6425bc; --sway:5.5%; --bob:-6%; }
+@keyframes wbBubbleDrift{
+  0%,100%{ translate:0 0; scale:1; }
+  50%{ translate:calc(var(--sway) * var(--dir,1)) var(--bob); scale:1.04; }
+}
+/* varied timing: mixed durations, starting part way through (negative
+   delays) and every other circle swaying the opposite way */
+.wb-bubble:nth-child(odd) { --dur:9s; }
+.wb-bubble:nth-child(even){ --dur:11.5s; --dir:-1; }
+.wb-bubble:nth-child(3n)  { --dur:13s; }
+.wb-bubble:nth-child(3n+1){ --delay:-2s; }
+.wb-bubble:nth-child(3n+2){ --delay:-6.5s; }
+.wb-bubble:nth-child(3n)  { --delay:-4s; }
+.wb-bubble:nth-child(4n)  { --delay:-9s; }
 
 .wb-title{
   /* the arc's end letters are pushed down by up to .587em (see --y below),
@@ -552,4 +585,5 @@
     text-shadow:0 0 .1em rgba(191,146,255,.55), 0 0 .3em rgba(113,42,255,.6);
   }
   .wb-crystal-ball-cluster{ animation:none; }
+  .wb-bubbles, .wb-bubble{ animation:none; }
 }
