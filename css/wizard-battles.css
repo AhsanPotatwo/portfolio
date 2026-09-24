@@ -179,14 +179,70 @@
    game's 4:3 shape and takes up the space in the layout. The wrapper
    inside it is transformed, which doesn't change layout, so it's
    positioned absolutely over the stage. */
+/* A quiet "magic rim": the frame keeps the site's see-through purple
+   tint, and a thin rim runs around its edge with a soft, faint streak of
+   lighter purple slowly travelling round it, plus one small sparkle on
+   the top-left corner. It's meant to be noticed on a second look, not to
+   compete with the game.
+
+   The rim is a conic gradient on ::before, masked down to a thin ring
+   (the "exclude" mask removes everything but the padding area), so the
+   frame's own translucent background isn't covered. It rotates by
+   animating --wb-frame-angle, which @property makes animatable. Browsers
+   without @property just show the rim standing still. */
+@property --wb-frame-angle{
+  syntax:'<angle>';
+  initial-value:0deg;
+  inherits:false;
+}
 .wb-game-frame{
+  --wb-frame-rim:2px;
+  position:relative;
   margin:0 auto;
   width:100%;
   max-width:836px;
   padding:18px;
   border-radius:26px;
-  background:linear-gradient(180deg,rgba(115,90,255,.35),rgba(85,66,188,.12));
-  box-shadow:0 25px 60px rgba(0,0,0,.4);
+  background:linear-gradient(180deg,rgba(115,90,255,.3),rgba(85,66,188,.1));
+  box-shadow:0 0 30px rgba(113,42,255,.15), 0 25px 60px rgba(0,0,0,.4);
+}
+.wb-game-frame::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  padding:var(--wb-frame-rim);
+  border-radius:inherit;
+  background:conic-gradient(from var(--wb-frame-angle),
+    rgba(115,90,255,.35) 0deg,
+    rgba(115,90,255,.35) 200deg,
+    rgba(191,146,255,.75) 250deg,
+    rgba(115,90,255,.35) 300deg,
+    rgba(115,90,255,.35) 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+  mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events:none;
+  animation:wbFrameSpin 14s linear infinite;
+}
+@keyframes wbFrameSpin{
+  to{ --wb-frame-angle:360deg; }
+}
+/* one small sparkle over the top-left corner, gently twinkling */
+.wb-game-frame::after{
+  content:"\2726";
+  position:absolute;
+  z-index:1;
+  top:-11px; left:-11px;
+  font-size:22px;
+  line-height:1;
+  color:#bf92ff;
+  text-shadow:0 0 10px rgba(113,42,255,.6);
+  pointer-events:none;
+  animation:wbSparkle 4s ease-in-out infinite;
+}
+@keyframes wbSparkle{
+  0%,100%{ scale:.75; rotate:0deg;  opacity:.35; }
+  50%    { scale:1;   rotate:45deg; opacity:.8; }
 }
 .wb-game-stage{
   position:relative;
@@ -203,7 +259,12 @@
   transform:scale(var(--wb-scale,1));
   transform-origin:0 0;
 }
-#canvas-wrapper canvas{ display:block; border-radius:16px; }
+#canvas-wrapper canvas{
+  display:block;
+  border-radius:16px;
+  /* faint edge where the game meets the frame */
+  box-shadow:0 0 0 1px rgba(191,146,255,.2);
+}
 /* stops a quick double tap on a game button zooming the page on phones */
 #canvas-wrapper > button{ touch-action:manipulation; }
 
@@ -544,6 +605,7 @@
 
 @media (max-width:860px){
   .wb-game-frame{ padding:10px; border-radius:18px; }
+  .wb-game-frame::after{ top:-9px; left:-9px; font-size:18px; }
 }
 
 @media (max-width:600px){
@@ -586,4 +648,5 @@
   }
   .wb-crystal-ball-cluster{ animation:none; }
   .wb-bubbles, .wb-bubble{ animation:none; }
+  .wb-game-frame::before, .wb-game-frame::after{ animation:none; }
 }
