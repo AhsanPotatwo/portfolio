@@ -33,6 +33,47 @@
 
 .wb-accent{ color:var(--wb-accent); }
 
+/* ---------- page backdrop ----------
+   Swaps the home page's space theme for something more arcane: the
+   drifting background glows are recoloured from space blue to violet,
+   plum and indigo, and two very faint magic circles turn slowly in
+   opposite corners (half off-screen, so they read as texture rather than
+   as pictures). The rising dust motes are drawn by
+   js/wizard-battles/background.js. */
+.wizard-page .bg-nebula-1{ background:radial-gradient(circle at 40% 40%, rgba(109,18,179,.30), transparent 70%); }
+.wizard-page .bg-nebula-2{ background:radial-gradient(circle at 60% 60%, rgba(84,40,170,.26), transparent 70%); }
+.wizard-page .bg-nebula-3{ background:radial-gradient(circle at 50% 50%, rgba(150,52,140,.16), transparent 72%); }
+
+.wb-arcane-layer{
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  overflow:hidden;
+  pointer-events:none;
+}
+.wb-arcane{
+  position:absolute;
+  max-width:none;
+  aspect-ratio:1;
+  opacity:.045;
+}
+.wb-arcane-1{
+  width:min(75vmax,1000px);
+  left:max(-24vmax,-320px);
+  bottom:max(-26vmax,-350px);
+  animation:wbArcaneSpin 200s linear infinite;
+}
+.wb-arcane-2{
+  width:min(55vmax,720px);
+  right:max(-18vmax,-240px);
+  top:max(-8vmax,-100px);
+  opacity:.035;
+  animation:wbArcaneSpin 260s linear infinite reverse;
+}
+@keyframes wbArcaneSpin{
+  to{ rotate:360deg; }
+}
+
 /* ---------- hero ---------- */
 .wb-hero{
   /* see --wb-title-top at the top of this file */
@@ -702,5 +743,6 @@
   }
   .wb-crystal-ball-cluster{ animation:none; }
   .wb-bubbles, .wb-bubble{ animation:none; }
+  .wb-arcane{ animation:none; }
   .wb-game-frame::before, .wb-game-frame::after{ animation:none; }
 }
