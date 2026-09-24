@@ -1,8 +1,9 @@
 // Background for the Wizard Battles page, replacing the home page's star
 // field: tiny glowing motes of "magic dust" that slowly rise and sway, like
-// embers drifting off a spell, each fading in and out over its life. Kept
-// sparse and dim on purpose so it sits behind the page rather than
-// competing with it. Drawn on the fixed #wbMotes canvas.
+// embers drifting off a spell, each fading in and out over its life. Motes
+// near the mouse drift away from it and glow a little brighter, as if
+// stirred by a wand. Kept sparse and dim on purpose so it sits behind the
+// page rather than competing with it. Drawn on the fixed #wbMotes canvas.
 (function () {
   'use strict';
 
@@ -27,6 +28,9 @@
   var motes = [];
   var running = false;
   var last = 0;
+  // how close (px) the mouse has to be to stir a mote
+  var STIR_RADIUS = 130;
+  var mouse = { x: 0, y: 0, active: false };
 
   function pickColor() {
     var total = 0, i;
@@ -53,7 +57,8 @@
       lifespan: 9 + Math.random() * 12,       // seconds
       peak: 0.25 + Math.random() * 0.45,      // brightest alpha it reaches
       color: pickColor(),
-      baseX: 0
+      baseX: 0,
+      ox: 0, oy: 0      // how far the mouse has pushed it
     };
   }
 
@@ -93,10 +98,27 @@
       m.phase += m.swaySpeed * dt;
       m.x = m.baseX + Math.sin(m.phase) * m.swayAmp;
 
+      // pushed gently away from the mouse; the push eases back off after
+      var stir = 0;
+      if (mouse.active) {
+        var dx = m.x + m.ox - mouse.x;
+        var dy = m.y + m.oy - mouse.y;
+        var d = Math.sqrt(dx * dx + dy * dy);
+        if (d < STIR_RADIUS && d > 0.1) {
+          stir = 1 - d / STIR_RADIUS;
+          m.ox += (dx / d) * stir * 90 * dt;
+          m.oy += (dy / d) * stir * 90 * dt;
+        }
+      }
+      m.ox *= 0.985;
+      m.oy *= 0.985;
+      var drawX = m.x + m.ox;
+      var drawY = m.y + m.oy;
+
       // fade in over the first fifth of its life, out over the last two fifths
       var t = m.life / m.lifespan;
       var a = t < 0.2 ? t / 0.2 : t > 0.6 ? Math.max(0, (1 - t) / 0.4) : 1;
-      a *= m.peak;
+      a *= Math.min(1, m.peak + stir * 0.5);
 
       if (m.life >= m.lifespan || m.y < -10) {
         motes[i] = makeMote(false);
@@ -109,17 +131,17 @@
       if (a <= 0.01) continue;
 
       // soft halo, then a brighter core
-      var glow = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r * 5);
+      var glow = ctx.createRadialGradient(drawX, drawY, 0, drawX, drawY, m.r * 5);
       glow.addColorStop(0, 'rgba(' + m.color + ',' + (a * 0.5).toFixed(3) + ')');
       glow.addColorStop(1, 'rgba(' + m.color + ',0)');
       ctx.fillStyle = glow;
       ctx.beginPath();
-      ctx.arc(m.x, m.y, m.r * 5, 0, Math.PI * 2);
+      ctx.arc(drawX, drawY, m.r * 5, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.fillStyle = 'rgba(' + m.color + ',' + a.toFixed(3) + ')';
       ctx.beginPath();
-      ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+      ctx.arc(drawX, drawY, m.r, 0, Math.PI * 2);
       ctx.fill();
     }
   }
@@ -144,6 +166,16 @@
 
   resize();
   window.addEventListener('resize', resize);
+
+  window.addEventListener('pointermove', function (e) {
+    if (e.pointerType === 'touch') return;
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+    mouse.active = true;
+  }, { passive: true });
+  document.documentElement.addEventListener('mouseleave', function () {
+    mouse.active = false;
+  });
 
   if (reduced) {
     // no drifting: just a still scattering of dust
