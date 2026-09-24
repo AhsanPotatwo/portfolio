@@ -630,14 +630,12 @@
     background:linear-gradient(to right,rgba(115,90,255,0),var(--wb-accent),rgba(115,90,255,0));
   }
 
-  /* the left/right grey fade only makes sense next to a side-by-side
-     layout — once art and text stack vertically, fall back to the flat
-     band color so there's no arbitrary diagonal-looking split. */
-  .wb-panel-a, .wb-panel-b, .wb-panel-c, .wb-panel-d{ background-image:none; }
-  .wb-panel-a{ background-color:var(--wb-band-1); }
-  .wb-panel-b{ background-color:var(--wb-band-2); }
-  .wb-panel-c{ background-color:var(--wb-band-3); }
-  .wb-panel-d{ background-color:var(--wb-band-4); }
+  /* same idea as the desktop fade, turned on its side to follow the
+     stacked layout: the band's colour shows behind the picture at the top
+     and fades into the solid grey behind the text below it. */
+  .wb-panel-a, .wb-panel-b, .wb-panel-c, .wb-panel-d{
+    background-image:linear-gradient(to top, #252525 52%, transparent 100%);
+  }
 
   .wb-cta-grid{ grid-template-columns:1fr; }
 }
