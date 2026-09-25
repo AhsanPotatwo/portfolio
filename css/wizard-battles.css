@@ -608,6 +608,58 @@
 .wb-panel-a{ margin-top: calc(var(--wb-ribbon-h) / -2); }
 .wb-panel-d{ margin-bottom: calc(var(--wb-ribbon-h) / -2); }
 
+/* A little life on the grey text half of each panel, kept sparse so the
+   grey stays clean and the text easy to read:
+   .wb-panel::before - a soft violet "candlelight" glow behind the text;
+   .wb-panel::after  - the page's magic circle as a huge, barely-there
+                       watermark, half tucked behind the panel's outer
+                       edge, turning slowly;
+   .wb-copy::before/::after - two small twinkling sparkles by the corners
+                       of the text block. */
+.wb-panel > .container{ position:relative; z-index:1; }
+.wb-panel::before,
+.wb-panel::after{
+  content:"";
+  position:absolute;
+  pointer-events:none;
+}
+.wb-panel::before{
+  inset:0;
+  background:radial-gradient(ellipse 38% 55% at var(--wb-glow-x) var(--wb-glow-y,42%), rgba(115,90,255,.13), transparent 70%);
+}
+.wb-panel-a::before, .wb-panel-c::before{ --wb-glow-x:78%; }
+.wb-panel-b::before, .wb-panel-d::before{ --wb-glow-x:22%; }
+.wb-panel::after{
+  top:50%;
+  width:min(680px,60vw);
+  aspect-ratio:1;
+  margin-top:calc(min(680px,60vw) / -2);
+  background:url("../assets/wizard-battles/illustrations/arcane-circle.svg") center / contain no-repeat;
+  opacity:.065;
+  animation:wbArcaneSpin 300s linear infinite;
+}
+.wb-panel-a::after, .wb-panel-c::after{ right:calc(min(680px,60vw) * -0.42); }
+.wb-panel-b::after, .wb-panel-d::after{ left:calc(min(680px,60vw) * -0.42); animation-direction:reverse; }
+/* one sparkle just outside the text block's outer top corner, a smaller
+   one by its inner bottom corner, twinkling out of step */
+.wb-copy{ position:relative; }
+.wb-panel .wb-copy::before,
+.wb-panel .wb-copy::after{
+  content:"\2726";
+  position:absolute;
+  line-height:1;
+  color:#bf92ff;
+  text-shadow:0 0 10px rgba(115,90,255,.7);
+  pointer-events:none;
+  animation:wbSparkle 4.5s ease-in-out infinite;
+}
+.wb-panel .wb-copy::before{ top:-34px; font-size:20px; }
+.wb-panel .wb-copy::after{ bottom:-30px; font-size:13px; animation-delay:-2.2s; }
+.wb-panel .wb-copy-right::before{ right:-6px; }
+.wb-panel .wb-copy-right::after{ left:8%; }
+.wb-panel .wb-copy:not(.wb-copy-right)::before{ left:-6px; }
+.wb-panel .wb-copy:not(.wb-copy-right)::after{ right:8%; }
+
 .wb-two-col{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -764,6 +816,22 @@
   .wb-panel-a, .wb-panel-b, .wb-panel-c, .wb-panel-d{
     background-image:linear-gradient(to top, #252525 52%, transparent 100%);
   }
+  .wb-panel-a::before, .wb-panel-b::before,
+  .wb-panel-c::before, .wb-panel-d::before{
+    --wb-glow-x:50%;
+    --wb-glow-y:75%;
+  }
+  .wb-panel .wb-copy[class]::before{ left:6%; right:auto; top:-18px; }
+  .wb-panel .wb-copy[class]::after{ right:6%; left:auto; bottom:-24px; }
+  .wb-panel-a::after, .wb-panel-b::after,
+  .wb-panel-c::after, .wb-panel-d::after{
+    top:auto;
+    bottom:calc(min(560px,120vw) * -0.4);
+    left:50%;
+    right:auto;
+    width:min(560px,120vw);
+    margin:0 0 0 calc(min(560px,120vw) / -2);
+  }
 
   .wb-cta-grid{ grid-template-columns:1fr; }
 }
@@ -815,7 +883,8 @@
   }
   .wb-crystal-ball-cluster{ animation:none; }
   .wb-bubbles, .wb-bubble{ animation:none; }
-  .wb-arcane, .wb-cb-circle{ animation:none; }
+  .wb-arcane, .wb-cb-circle, .wb-panel::after{ animation:none; }
+  .wb-panel .wb-copy::before, .wb-panel .wb-copy::after{ animation:none; opacity:.7; }
   .wb-art > img, .wb-art-stack{ animation:none; }
   .wb-game-frame::before, .wb-game-frame::after{ animation:none; }
 }
