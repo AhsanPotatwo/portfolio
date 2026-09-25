@@ -19,7 +19,7 @@
 
   // ---------- materialise on scroll ----------
   var revealTargets = document.querySelectorAll(
-    '.wb-intro-text, .wb-intro-art, .wb-panel .wb-art, .wb-panel .wb-copy, .wb-cta-card'
+    '.wb-intro-text, .wb-intro-art, .wb-tome, .wb-section-head, .wb-spell, .wb-berserk, .wb-elements, .wb-cta-card'
   );
   if ('IntersectionObserver' in window && revealTargets.length) {
     var revealer = new IntersectionObserver(function (entries) {

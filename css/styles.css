@@ -22,6 +22,13 @@
   --radius-card:   20px;
   --ease-out:      cubic-bezier(.22,.61,.36,1);
 
+  /* one type scale and rhythm for every page: space between sections,
+     section headings, and paragraph text */
+  --section-pad:   clamp(64px,8vw,112px);
+  --h2:            clamp(34px,4.4vw,56px);
+  --text-body:     clamp(17px,1.45vw,20px);
+  --lh-body:       1.65;
+
   --term-key:      #8f8f8f;
   --term-role:     #4d9be3;
   --term-val:      #b7b7b7;
@@ -474,7 +481,7 @@ a{ color:inherit; text-decoration:none; }
 .icon-email{ width:46px; height:35px; }
 
 /* about section */
-.about{ padding-bottom:clamp(60px,8vw,95px); }
+.about{ padding-bottom:var(--section-pad); }
 .about-panel{
   position:relative; z-index:0;
   display:grid;
@@ -585,22 +592,22 @@ a{ color:inherit; text-decoration:none; }
    in touch) is the same size */
 .about-copy h2,
 .section-title{
-  font-size:clamp(38px,5vw,64px);
+  font-size:var(--h2);
   font-weight:700;
   line-height:1.15;
 }
 .about-copy{ padding-top:clamp(0px,1vw,10px); }
 .about-copy h2{ margin-bottom:clamp(24px,3vw,36px); }
 .about-copy p{
-  font-size:clamp(18px,1.7vw,22px);
+  font-size:var(--text-body);
   font-weight:400;
-  line-height:1.6;
+  line-height:var(--lh-body);
   color:#e9e6f0;
   max-width:600px;
 }
 
 /* skills + experience */
-.skills{ padding:clamp(40px,6vw,95px) 0 clamp(50px,7vw,110px); }
+.skills{ padding-bottom:var(--section-pad); }
 .section-title{
   text-align:center;
   margin:0 auto clamp(40px,5vw,64px);
@@ -991,7 +998,7 @@ a{ color:inherit; text-decoration:none; }
 .tl-points li::marker{ color:var(--accent-soft); }
 
 /* projects, still just placeholders */
-.projects{ padding-bottom:clamp(60px,8vw,110px); }
+.projects{ padding-bottom:var(--section-pad); }
 .project-grid{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,400px));
@@ -1376,16 +1383,37 @@ a{ color:inherit; text-decoration:none; }
 }
 
 /* contact + footer */
-.contact{ padding-bottom:clamp(50px,7vw,90px); }
+.contact{ padding-bottom:var(--section-pad); }
 .contact-inner{ display:flex; flex-direction:column; align-items:center; text-align:center; }
 .contact .section-title{ margin-bottom:24px; }
 .contact-copy{
-  font-size:clamp(18px,1.7vw,22px);
+  font-size:var(--text-body);
   font-weight:400;
   color:var(--muted);
   margin:0 0 32px;
 }
 .socials-footer{ margin-top:40px; }
+
+/* the last thing on each project page: a quiet link back to the list of
+   projects. Each page colours it with its own accent through --page-accent. */
+.page-back{
+  /* positioned so it paints above the section before it: on Wizard
+     Battles it's pulled up into that section's padding, and without this
+     the section sits on top of the link and swallows the click */
+  position:relative;
+  padding-bottom:var(--section-pad);
+  text-align:center;
+}
+.page-back a{
+  display:inline-flex; align-items:center; gap:10px;
+  font-size:18px;
+  font-weight:600;
+  color:var(--page-accent, var(--accent-text));
+  transition:gap .2s var(--ease-out), color .2s ease;
+}
+.page-back a span{ transition:translate .2s var(--ease-out); }
+.page-back a:hover{ color:#fff; }
+.page-back a:hover span{ translate:-4px 0; }
 
 .site-footer{
   border-top:1px solid rgba(255,255,255,.08);

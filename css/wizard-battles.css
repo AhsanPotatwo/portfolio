@@ -6,10 +6,6 @@
 :root{
   --wb-accent: #735aff;
   --wb-accent-deep: #5542bc;
-  --wb-band-1: #2a1f4e;
-  --wb-band-2: #3e1f4e;
-  --wb-band-3: #08082f;
-  --wb-band-4: #4b0c2d;
   --wb-ribbon-h: 71px;
 
   /* ---- hero tuning knobs ----
@@ -32,6 +28,10 @@
 }
 
 .wb-accent{ color:var(--wb-accent); }
+/* colour of the "Back to all projects" link (.page-back in styles.css) */
+.wizard-page{ --page-accent:var(--wb-title-fill); }
+/* the "Do it yourself!" section above already ends with a full gap */
+.wizard-page .page-back{ margin-top:calc(var(--section-pad) * -.5); }
 
 /* ---------- page backdrop ----------
    Swaps the home page's space theme for something more arcane: the
@@ -93,7 +93,9 @@
   transition:opacity .9s ease, filter .9s ease, translate .9s ease;
 }
 .wb-reveal.is-visible{ opacity:1; filter:none; translate:0 0; }
-.wb-panel .wb-copy.wb-reveal{ transition-delay:.12s; }
+.wb-spell.wb-reveal:nth-child(2){ transition-delay:.1s; }
+.wb-spell.wb-reveal:nth-child(3){ transition-delay:.2s; }
+.wb-elements.wb-reveal{ transition-delay:.1s; }
 .wb-cta-card.wb-reveal + .wb-cta-card.wb-reveal{ transition-delay:.12s; }
 
 /* ---------- hero ---------- */
@@ -237,6 +239,24 @@
   color:#fff;
   margin:0 auto clamp(32px,4vw,56px);
   max-width:800px;
+}
+
+/* the "built with" tags under the subtitle */
+.wb-tags{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:10px;
+  margin:calc(clamp(32px,4vw,56px) * -0.5) auto clamp(32px,4vw,52px);
+}
+.wb-tags li{
+  padding:7px 16px;
+  border:1px solid rgba(191,146,255,.35);
+  border-radius:999px;
+  background:rgba(115,90,255,.12);
+  color:#d9c9ff;
+  font-size:15px;
+  font-weight:600;
 }
 
 /* ---------- game frame ----------
@@ -422,7 +442,9 @@
 }
 
 /* ---------- intro ---------- */
-.wb-section{ padding-block:clamp(60px,8vw,110px); position:relative; }
+/* spacing and text sizes come from the shared scale in styles.css
+   (--section-pad, --h2, --text-body) so every page reads the same */
+.wb-section{ padding-block:var(--section-pad); position:relative; }
 
 .wb-intro-inner{
   display:grid;
@@ -433,7 +455,7 @@
 .wb-intro-text h2{
   font-family:var(--font-sans);
   font-weight:600;
-  font-size:clamp(32px,3.9vw,56px);
+  font-size:var(--h2);
   line-height:1.2;
   color:#fff;
   margin-bottom:22px;
@@ -441,8 +463,8 @@
 /* same body text as the story panels below */
 .wb-intro-text p{
   max-width:633px;
-  font-size:clamp(17px,1.74vw,25px);
-  line-height:1.4;
+  font-size:var(--text-body);
+  line-height:var(--lh-body);
   color:#fff;
 }
 .wb-intro-art{
@@ -609,12 +631,8 @@
    centered exactly on the badge's edge so half of the point sits outside
    the rectangle and half overlaps into it — that overlap is what makes it
    read as one continuous shape instead of a rectangle with tacked-on caps. */
-/* This sits between the plain intro section and the first colored panel
-   (or the last colored panel and the plain CTA section), and has to read
-   as the actual seam between them: the panel it's adjacent to is pulled
-   over it by half the ribbon's height (see .wb-panel-a/.wb-panel-d further
-   down) so the color change happens exactly on this line, with the badge
-   straddling the seam on top of it — not floating in a gap above/below it. */
+/* Ribbons divide the page into its chapters (Behind the Magic, The
+   Spellbook, The Opponent, The Research, Do it yourself!). */
 .wb-ribbon-wrap{
   position:relative;
   z-index:2;
@@ -667,155 +685,128 @@
   .wb-ribbon{ padding-inline:28px; }
 }
 
-/* Each panel's heading and its divider line sit together in .wb-heading,
-   which shrinks to the heading's width so the line spans exactly the
-   heading, like Figma's Line 37-40. The line sits in the gap between the
-   heading and the paragraph, and fades out toward the picture: solid at
-   the text's outer edge, transparent at the end nearest the art. */
-.wb-heading{
-  width:fit-content;
-  max-width:100%;
-  margin-bottom:10px;
+/* ---------- section heading ----------
+   Used where a section opens with its own centred heading (the Spellbook)
+   rather than a panel. */
+.wb-section-head{
+  max-width:780px;
+  margin:0 auto clamp(32px,4vw,52px);
+  text-align:center;
 }
-.wb-divider{
-  display:block;
-  height:3px;
-  width:100%;
-  border:none;
-  background:linear-gradient(to right,var(--wb-accent),rgba(115,90,255,0));
-  margin:14px 0 0;
+.wb-section-icon{
+  width:76px;
+  margin:0 auto 16px;
+  filter:drop-shadow(0 0 18px rgba(115,90,255,.35));
 }
-/* text on the right, art on the left: solid on the right, fading left */
-.wb-copy-right .wb-divider{
-  background:linear-gradient(to left,var(--wb-accent),rgba(115,90,255,0));
+.wb-section-head h2{
+  font-size:var(--h2);
+  font-weight:700;
+  line-height:1.15;
+  color:#fff;
 }
-/* ---------- story panels ----------
-   Figma overlays each band with a flat grey (#252525, near the page's own
-   background) that's solid over the text half and fades to fully
-   transparent (revealing the band's real color) over the art half — never
-   the other way round. Direction alternates with which side the text is
-   on: text-right panels fade grey from the right, text-left panels fade it
-   from the left. */
-.wb-panel{ overflow:hidden; }
-.wb-panel-a{ background:linear-gradient(to left,  #252525 47.6%, transparent 100%), var(--wb-band-1); }
-.wb-panel-b{ background:linear-gradient(to right, #252525 47.6%, transparent 100%), var(--wb-band-2); }
-.wb-panel-c{ background:linear-gradient(to left,  #252525 47.6%, transparent 100%), var(--wb-band-3); }
-.wb-panel-d{ background:linear-gradient(to right, #252525 47.6%, transparent 100%), var(--wb-band-4); }
+.wb-section-head p{
+  margin-top:16px;
+  font-size:var(--text-body);
+  line-height:var(--lh-body);
+  color:#e9e6f0;
+}
+.wb-section-head strong{ color:#fff; }
 
-/* pulled up/down by half the ribbon divider's height so this panel's own
-   background — not empty space — is what the ribbon's line sits on top of;
-   see the note on .wb-ribbon-wrap above. */
-.wb-panel-a{ margin-top: calc(var(--wb-ribbon-h) / -2); }
-.wb-panel-d{ margin-bottom: calc(var(--wb-ribbon-h) / -2); }
-
-/* A little life on the grey text half of each panel, kept sparse so the
-   grey stays clean and the text easy to read:
-   .wb-panel::before - a soft violet "candlelight" glow behind the text;
-   .wb-panel::after  - the page's magic circle as a huge, barely-there
-                       watermark, half tucked behind the panel's outer
-                       edge, turning slowly;
-   .wb-copy::before/::after - two small twinkling sparkles by the corners
-                       of the text block. */
-.wb-panel > .container{ position:relative; z-index:1; }
-.wb-panel::before,
-.wb-panel::after{
+/* ---------- tomes (the story panels) ----------
+   Each story is a rounded panel: text on one side, its illustration on the
+   other with a soft glow of the panel's colour behind it, the page's magic
+   circle turning slowly as a faint watermark, and a small sparkle in the
+   corner like the one on the game frame. .wb-tome-reverse puts the picture
+   on the left; the three panels alternate sides down the page. */
+.wb-tome{
+  --wb-glow:rgba(115,90,255,.3);
+  --wb-glow-x:78%;
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
+  grid-template-areas:"copy art";
+  align-items:center;
+  gap:clamp(28px,5vw,72px);
+  padding:clamp(28px,4.5vw,64px);
+  border:1px solid rgba(191,146,255,.16);
+  border-radius:var(--radius-card);
+  background:
+    radial-gradient(circle at var(--wb-glow-x) 50%, var(--wb-glow), transparent 55%),
+    linear-gradient(180deg, rgba(44,37,58,.8), rgba(28,25,34,.9));
+  box-shadow:0 20px 44px rgba(0,0,0,.35);
+}
+.wb-tome-reverse{
+  --wb-glow-x:22%;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+  grid-template-areas:"art copy";
+}
+.wb-tome-violet{ --wb-glow:rgba(115,90,255,.3); }
+.wb-tome-indigo{ --wb-glow:rgba(70,100,235,.28); }
+.wb-tome-plum  { --wb-glow:rgba(190,45,125,.26); }
+/* the magic circle watermark, centred behind the picture */
+.wb-tome::after{
   content:"";
   position:absolute;
+  z-index:-1;
+  top:50%;
+  left:var(--wb-glow-x);
+  width:min(640px,80vw);
+  aspect-ratio:1;
+  translate:-50% -50%;
+  background:url("../assets/wizard-battles/illustrations/arcane-circle.svg") center / contain no-repeat;
+  opacity:.07;
+  animation:wbArcaneSpin 300s linear infinite;
   pointer-events:none;
 }
-.wb-panel::before{
-  inset:0;
-  background:radial-gradient(ellipse 38% 55% at var(--wb-glow-x) var(--wb-glow-y,42%), rgba(115,90,255,.13), transparent 70%);
-}
-.wb-panel-a::before, .wb-panel-c::before{ --wb-glow-x:78%; }
-.wb-panel-b::before, .wb-panel-d::before{ --wb-glow-x:22%; }
-.wb-panel::after{
-  top:50%;
-  width:min(680px,60vw);
-  aspect-ratio:1;
-  margin-top:calc(min(680px,60vw) / -2);
-  background:url("../assets/wizard-battles/illustrations/arcane-circle.svg") center / contain no-repeat;
-  opacity:.065;
-  animation:wbArcaneSpin 300s linear infinite;
-}
-.wb-panel-a::after, .wb-panel-c::after{ right:calc(min(680px,60vw) * -0.42); }
-.wb-panel-b::after, .wb-panel-d::after{ left:calc(min(680px,60vw) * -0.42); animation-direction:reverse; }
-/* one sparkle just outside the text block's outer top corner, a smaller
-   one by its inner bottom corner, twinkling out of step */
-.wb-copy{ position:relative; }
-.wb-panel .wb-copy::before,
-.wb-panel .wb-copy::after{
+.wb-tome-reverse::after{ animation-direction:reverse; }
+.wb-tome::before{
   content:"\2726";
   position:absolute;
+  top:18px; left:20px;
+  font-size:18px;
   line-height:1;
   color:#bf92ff;
-  text-shadow:0 0 10px rgba(115,90,255,.7);
+  text-shadow:0 0 10px rgba(113,42,255,.6);
   pointer-events:none;
   animation:wbSparkle 4.5s ease-in-out infinite;
 }
-.wb-panel .wb-copy::before{ top:-34px; font-size:20px; }
-.wb-panel .wb-copy::after{ bottom:-30px; font-size:13px; animation-delay:-2.2s; }
-.wb-panel .wb-copy-right::before{ right:-6px; }
-.wb-panel .wb-copy-right::after{ left:8%; }
-.wb-panel .wb-copy:not(.wb-copy-right)::before{ left:-6px; }
-.wb-panel .wb-copy:not(.wb-copy-right)::after{ right:8%; }
-
-.wb-two-col{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  align-items:center;
-  gap:clamp(30px,5vw,70px);
-}
-.wb-two-col-reverse .wb-art{ order:1; }
-.wb-two-col-reverse .wb-copy{ order:2; }
-
-/* sizes from Figma's 1440px frame: 40px headings (64px for "How it
-   works"), 25px body text on 35px lines, in a 610px-wide block (484px for
-   the AI panel) */
-.wb-copy h2{
-  font-family:var(--font-sans);
+.wb-tome-copy{ grid-area:copy; }
+.wb-tome-copy h2{
+  font-size:clamp(28px,3vw,42px);
   font-weight:700;
-  font-size:clamp(28px,2.78vw,40px);
-  line-height:1.25;
+  line-height:1.2;
   color:#fff;
+  margin-bottom:18px;
 }
-.wb-copy h2.wb-h2-lg{ font-size:clamp(40px,4.45vw,64px); }
-.wb-copy p{
-  max-width:610px;
-  font-size:clamp(17px,1.74vw,25px);
-  line-height:1.4;
-  color:#fff;
+.wb-tome-copy p{
+  max-width:600px;
+  font-size:var(--text-body);
+  line-height:var(--lh-body);
+  color:#e9e6f0;
 }
-.wb-copy-narrow p{ max-width:484px; }
-.wb-copy-right{ text-align:right; }
-.wb-copy-right .wb-heading,
-.wb-copy-right p{ margin-left:auto; }
-
-.wb-art{ display:grid; place-items:center; position:relative; }
-/* each illustration bobs gently like the crystal ball, out of step with
-   the others, and picks up a soft purple glow when hovered */
-.wb-art > img,
+.wb-tome-art{
+  grid-area:art;
+  display:grid;
+  place-items:center;
+}
+/* each illustration bobs gently, out of step with the others, and picks
+   up a soft purple glow when hovered */
+.wb-tome-art > img,
 .wb-art-stack{
+  width:min(300px,80%);
   animation:wbFloat 6s ease-in-out infinite;
   transition:filter .3s ease;
 }
-.wb-panel-b .wb-art > *{ animation-delay:-1.5s; }
-.wb-panel-c .wb-art > *{ animation-delay:-3s; }
-.wb-panel-d .wb-art > *{ animation-delay:-4.5s; }
-.wb-art:hover > img,
-.wb-art:hover .wb-art-stack{ filter:drop-shadow(0 0 26px rgba(115,90,255,.45)); }
-.wb-art img{ width:min(320px,85%); }
-/* the book + scroll pair in the last panel: the stack is the book's size,
-   and the scroll overlaps its top-left corner on top of it, matching
-   Figma relative to the book. The scroll artwork is 55.6% of the book's
-   width, centred on the book's left edge, 20.3% of the way down, and
-   tilted -13.3deg (Figma's layer is the upright artwork inside a rotated
-   frame). The stack is nudged right so the pair as a whole stays centred. */
-.wb-art-stack{
-  position:relative;
-  width:min(320px,85%);
-  translate:17% 0;
-}
+.wb-tome-indigo .wb-tome-art > *{ animation-delay:-2s; }
+.wb-tome-plum .wb-tome-art > *{ animation-delay:-4s; }
+.wb-tome-art:hover > img,
+.wb-tome-art:hover .wb-art-stack{ filter:drop-shadow(0 0 26px rgba(115,90,255,.45)); }
+/* the book + scroll pair in the research panel: the scroll overlaps the
+   book's top-left corner, matching Figma relative to the book, and the
+   pair is nudged right so it stays centred as a whole */
+.wb-art-stack{ position:relative; translate:17% 0; }
 .wb-art-stack img{ width:100%; }
 .wb-art-stack .wb-art-accent{
   position:absolute;
@@ -825,32 +816,247 @@
   rotate:-13.3deg;
 }
 
+/* the AI's decision rules, numbered in little rune circles */
+.wb-rules{
+  counter-reset:rule;
+  display:grid;
+  gap:12px;
+  margin-top:22px;
+  max-width:600px;
+  font-size:17px;
+  line-height:1.5;
+  color:#e9e6f0;
+}
+.wb-rules li{
+  counter-increment:rule;
+  position:relative;
+  padding-left:40px;
+}
+.wb-rules li::before{
+  content:counter(rule);
+  position:absolute;
+  left:0; top:-1px;
+  display:grid; place-items:center;
+  width:26px; height:26px;
+  border:1.5px solid rgba(191,146,255,.55);
+  border-radius:50%;
+  font-size:13px;
+  font-weight:700;
+  color:var(--wb-title-fill);
+}
+.wb-rules strong{ color:#fff; }
+
+/* ---------- the example session file ----------
+   Drawn as a parchment scroll (like the scroll illustration) spanning the
+   full width under the research panel, in a typewriter font. Scrolls
+   sideways on narrow screens. */
+.wb-tome-plum{ grid-template-areas:"art copy" "scroll scroll"; row-gap:clamp(24px,3vw,40px); }
+.wb-scroll{ grid-area:scroll; margin:0; min-width:0; }
+.wb-scroll figcaption{
+  margin-bottom:12px;
+  font-size:15px;
+  font-weight:600;
+  color:#d9c9ff;
+}
+.wb-scroll figcaption span{ font-weight:400; color:var(--muted); }
+.wb-scroll-body{
+  overflow-x:auto;
+  border-radius:14px;
+  background:linear-gradient(180deg,#f6e8cb,#ead3a8);
+  box-shadow:inset 0 0 0 1px rgba(120,84,40,.25), inset 0 0 40px rgba(150,105,45,.25), 0 12px 28px rgba(0,0,0,.3);
+  scrollbar-color:#b08d5a transparent;
+  scrollbar-width:thin;
+}
+.wb-csv{
+  width:100%;
+  border-collapse:collapse;
+  font-family:var(--font-mono);
+  font-size:14px;
+  color:#4a3520;
+  white-space:nowrap;
+}
+.wb-csv th,
+.wb-csv td{
+  padding:10px 16px;
+  text-align:left;
+  border-bottom:1px solid rgba(74,53,32,.16);
+}
+.wb-csv th{ font-weight:700; color:#2f200f; }
+.wb-csv tbody tr:last-child td{ border-bottom:0; }
+
+/* ---------- the Spellbook ----------
+   One card per kind of move. Each tier shows its effect, a bar for its
+   chance of working, and the percentage; the bars fill in when the card
+   appears (magic.js adds .wb-reveal / .is-visible). */
+.wb-spells{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:24px;
+}
+.wb-spell,
+.wb-elements{
+  border:1px solid rgba(191,146,255,.18);
+  border-radius:var(--radius-card);
+  background:linear-gradient(180deg, rgba(58,44,92,.5), rgba(30,27,40,.85));
+  box-shadow:0 16px 36px rgba(0,0,0,.3);
+}
+.wb-spell{
+  display:flex;
+  flex-direction:column;
+  padding:clamp(22px,2.4vw,30px);
+}
+.wb-spell-title{
+  display:flex; align-items:center; gap:12px;
+  margin-bottom:22px;
+  font-size:clamp(24px,2.2vw,30px);
+  font-weight:700;
+  color:#fff;
+}
+.wb-spell-dot{
+  width:14px; height:14px;
+  border-radius:50%;
+  flex:none;
+  box-shadow:0 0 12px currentColor;
+}
+.wb-dot-attack{ background:#ff7a6b; color:#ff7a6b; }
+.wb-dot-defend{ background:#7fb2ff; color:#7fb2ff; }
+.wb-dot-heal  { background:#6fe0a0; color:#6fe0a0; }
+.wb-tiers{ display:grid; gap:18px; }
+.wb-tier{
+  display:grid;
+  grid-template-columns:48px minmax(0,1fr) auto;
+  grid-template-areas:"name effect chance" "bar bar bar";
+  align-items:baseline;
+  row-gap:8px;
+}
+.wb-tier-name{
+  grid-area:name;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:var(--wb-title-fill);
+}
+.wb-tier-effect{ grid-area:effect; font-size:17px; font-weight:600; color:#fff; }
+.wb-tier-chance{
+  grid-area:chance;
+  font-size:15px;
+  font-weight:600;
+  color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+.wb-tier-bar{
+  grid-area:bar;
+  height:8px;
+  border-radius:99px;
+  background:rgba(255,255,255,.08);
+  overflow:hidden;
+}
+.wb-tier-bar i{
+  display:block;
+  height:100%;
+  width:var(--chance);
+  border-radius:inherit;
+  background:linear-gradient(90deg,var(--wb-accent),var(--wb-title-fill));
+  transition:width 1s var(--ease-out) .25s;
+}
+.wb-spell.wb-reveal:not(.is-visible) .wb-tier-bar i{ width:0; }
+.wb-spell-note{
+  margin-top:auto;
+  padding-top:18px;
+  font-size:15px;
+  line-height:1.5;
+  color:var(--muted);
+}
+.wb-tiers + .wb-spell-note{ margin-top:22px; border-top:1px dashed rgba(191,146,255,.2); }
+
+.wb-spells-extra{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.6fr);
+  gap:24px;
+  margin-top:24px;
+}
+/* the desperation move gets a darker, blood-red card */
+.wb-berserk{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  padding:clamp(24px,2.8vw,36px);
+  border:1px solid rgba(255,107,107,.35);
+  border-radius:var(--radius-card);
+  background:
+    radial-gradient(circle at 85% 15%, rgba(255,80,80,.18), transparent 55%),
+    linear-gradient(160deg,#3f0d14,#210b10);
+  box-shadow:0 16px 36px rgba(0,0,0,.35);
+}
+.wb-berserk-tag{
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#ff9b8a;
+}
+.wb-berserk h3{
+  margin:8px 0 12px;
+  font-size:clamp(26px,2.6vw,34px);
+  font-weight:700;
+  color:#ffe1dc;
+}
+.wb-berserk p{ font-size:17px; line-height:1.55; color:#f3d6d2; }
+.wb-berserk strong{ color:#fff; }
+.wb-elements{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(200px,280px);
+  align-items:center;
+  gap:clamp(20px,3vw,40px);
+  padding:clamp(24px,2.8vw,36px);
+}
+.wb-elements h3{
+  margin-bottom:12px;
+  font-size:clamp(24px,2.2vw,30px);
+  font-weight:700;
+  color:#fff;
+}
+.wb-elements p{ font-size:17px; line-height:1.55; color:#e9e6f0; }
+.wb-elements strong{ color:#fff; }
+.wb-cycle{ width:100%; height:auto; overflow:visible; }
+
 /* ---------- do-it-yourself CTA ---------- */
 .wb-cta{ text-align:center; }
 .wb-cta-grid{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:clamp(28px,4vw,60px);
+  gap:24px;
+}
+.wb-cta-card{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:clamp(32px,4vw,52px) clamp(24px,3vw,40px);
+  border:1px solid rgba(191,146,255,.16);
+  border-radius:var(--radius-card);
+  background:linear-gradient(180deg, rgba(58,44,92,.45), rgba(30,27,40,.8));
+  box-shadow:0 16px 36px rgba(0,0,0,.3);
 }
 .wb-cta-card h3{
-  max-width:560px;
-  margin:0 auto 18px;
+  max-width:460px;
+  margin:0 auto 14px;
   font-family:var(--font-sans);
   font-weight:700;
-  font-size:clamp(34px,4.45vw,64px);
-  line-height:1.15;
+  font-size:clamp(28px,3vw,40px);
+  line-height:1.2;
   color:#fff;
   text-wrap:balance;
 }
 .wb-cta-card p{
-  max-width:360px;
-  margin:0 auto 32px;
-  font-size:clamp(16px,1.67vw,24px);
-  line-height:1.4;
+  max-width:380px;
+  margin:0 auto 28px;
+  font-size:var(--text-body);
+  line-height:var(--lh-body);
   color:var(--muted);
   text-wrap:balance;
 }
-.btn-wizard-lg{ font-size:clamp(22px,2.5vw,36px); }
+.btn-wizard-lg{ font-size:clamp(20px,1.9vw,26px); }
 
 /* ================= ported p5 game controls =================
    These classes come from the wizard battles sketch.js (js/wizard-battles/sketch.js)
@@ -900,40 +1106,27 @@
   .wb-intro-inner{ grid-template-columns:1fr; text-align:center; }
   .wb-intro-art{ order:-1; }
 
-  .wb-two-col{ grid-template-columns:1fr; text-align:center; }
-  /* picture above the text on every panel once they're stacked */
-  .wb-two-col .wb-art{ order:-1; }
-  .wb-copy-right{ text-align:center; }
-  .wb-copy .wb-heading, .wb-copy p{ margin-inline:auto; }
-  /* centred text: the line fades out at both ends instead of one */
-  .wb-copy .wb-divider{
-    background:linear-gradient(to right,rgba(115,90,255,0),var(--wb-accent),rgba(115,90,255,0));
-  }
-
-  /* same idea as the desktop fade, turned on its side to follow the
-     stacked layout: the band's colour shows behind the picture at the top
-     and fades into the solid grey behind the text below it. */
-  .wb-panel-a, .wb-panel-b, .wb-panel-c, .wb-panel-d{
-    background-image:linear-gradient(to top, #252525 52%, transparent 100%);
-  }
-  .wb-panel-a::before, .wb-panel-b::before,
-  .wb-panel-c::before, .wb-panel-d::before{
+  /* panels stack: picture on top, then the text (then the scroll) */
+  .wb-tome,
+  .wb-tome-reverse{
     --wb-glow-x:50%;
-    --wb-glow-y:75%;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-areas:"art" "copy";
+    background:
+      radial-gradient(circle at 50% 18%, var(--wb-glow), transparent 50%),
+      linear-gradient(180deg, rgba(44,37,58,.8), rgba(28,25,34,.9));
   }
-  .wb-panel .wb-copy[class]::before{ left:6%; right:auto; top:-18px; }
-  .wb-panel .wb-copy[class]::after{ right:6%; left:auto; bottom:-24px; }
-  .wb-panel-a::after, .wb-panel-b::after,
-  .wb-panel-c::after, .wb-panel-d::after{
-    top:auto;
-    bottom:calc(min(560px,120vw) * -0.4);
-    left:50%;
-    right:auto;
-    width:min(560px,120vw);
-    margin:0 0 0 calc(min(560px,120vw) / -2);
-  }
+  .wb-tome::after{ top:22%; }
+  .wb-tome-plum{ grid-template-areas:"art" "copy" "scroll"; }
 
-  .wb-cta-grid{ grid-template-columns:1fr; }
+  .wb-spells-extra{ grid-template-columns:minmax(0,1fr); }
+  .wb-cta-grid{ grid-template-columns:minmax(0,1fr); }
+}
+
+@media (max-width:900px){
+  .wb-spells{ grid-template-columns:minmax(0,1fr); max-width:560px; margin-inline:auto; }
+  .wb-elements{ grid-template-columns:minmax(0,1fr); }
+  .wb-cycle{ max-width:280px; justify-self:center; }
 }
 
 @media (max-width:860px){
@@ -969,7 +1162,8 @@
   .wb-intro-art{ min-height:0; padding-top:60px; }
   .wb-crystal-ball-cluster{ width:min(150px,42%); translate:-8% 0; }
 
-  .wb-art > img, .wb-art-stack{ width:min(220px,70%); }
+  .wb-tome-art > img, .wb-art-stack{ width:min(220px,64%); }
+  .wb-tome::before{ top:14px; left:16px; }
 
   .btn-wizard-lg{ min-width:0; width:100%; max-width:320px; min-height:64px; font-size:22px; }
   .wb-cb-circle{ width:min(260px,85%); }
@@ -991,8 +1185,9 @@
     filter:drop-shadow(0 0 8px rgba(255,210,255,.9));
   }
   .wb-bubbles, .wb-bubble{ animation:none; }
-  .wb-arcane, .wb-cb-circle, .wb-panel::after{ animation:none; }
-  .wb-panel .wb-copy::before, .wb-panel .wb-copy::after{ animation:none; opacity:.7; }
-  .wb-art > img, .wb-art-stack{ animation:none; }
+  .wb-arcane, .wb-cb-circle, .wb-tome::after{ animation:none; }
+  .wb-tome::before{ animation:none; opacity:.7; }
+  .wb-tome-art > img, .wb-art-stack{ animation:none; }
+  .wb-tier-bar i{ transition:none; }
   .wb-game-frame::before, .wb-game-frame::after{ animation:none; }
 }
