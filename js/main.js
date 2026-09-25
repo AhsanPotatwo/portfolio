@@ -247,7 +247,7 @@
 
       randomizePings();
       card.addEventListener('mouseenter', randomizePings);
-      card.addEventListener('focus', randomizePings);
+      card.addEventListener('focusin', randomizePings);
     });
   }
 

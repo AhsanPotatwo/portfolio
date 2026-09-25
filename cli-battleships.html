@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLI Battleships — Ahsan</title>
+  <meta name="description"
+    content="CLI Battleships — one game of battleships written in Python, C and Rust to compare object-oriented, procedural and functional programming. Play it in the browser.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/cli-battleships.css">
+</head>
+
+<body class="cb-page">
+
+  <!-- background: the site's drifting glows, recoloured green (see cli-battleships.css) -->
+  <div class="bg-glow" aria-hidden="true">
+    <div class="bg-nebula bg-nebula-1"></div>
+    <div class="bg-nebula bg-nebula-2"></div>
+    <div class="bg-nebula bg-nebula-3"></div>
+  </div>
+
+  <a class="skip-link" href="#play">Skip to the demo</a>
+
+  <!-- nav, identical to the home page, just pointed back at its sections -->
+  <header class="site-header" id="header">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html#home"><span class="brand-bracket">[</span>Ahsan<span class="brand-bracket">]</span></a>
+
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="nav" id="primaryNav" aria-label="Primary">
+        <a href="index.html#home" class="nav-link">Home</a>
+        <a href="index.html#about" class="nav-link">About</a>
+        <a href="index.html#skills" class="nav-link">Skills</a>
+        <a href="index.html#projects" class="nav-link is-active">Projects</a>
+        <a href="index.html#contact" class="nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- hero: typed title on the left, a sonar screen on the right -->
+    <section class="cb-hero">
+      <div class="container cb-hero-inner">
+        <div class="cb-hero-text">
+          <p class="cb-path" aria-hidden="true"><span class="cb-path-user">guest@ahsan</span>:<span class="cb-path-dir">~/projects</span>$ ./battleships --lang python,c,rust</p>
+          <h1 class="cb-title"><span class="cb-title-text">CLI Battleships</span><span class="cb-caret" aria-hidden="true"></span></h1>
+          <p class="cb-lede">One game of battleships, written three times: in Python, C and Rust. Same rules, same board, three very different ways of thinking about a program.</p>
+
+          <ul class="cb-langs" aria-label="Languages">
+            <li><span class="cb-lang-dot cb-dot-py" aria-hidden="true"></span>Python <span>object-oriented</span></li>
+            <li><span class="cb-lang-dot cb-dot-c" aria-hidden="true"></span>C <span>procedural</span></li>
+            <li><span class="cb-lang-dot cb-dot-rs" aria-hidden="true"></span>Rust <span>functional-style</span></li>
+          </ul>
+
+          <div class="cb-actions">
+            <a class="btn-cb btn-cb-primary" href="#play"><span aria-hidden="true">&gt;</span> Play the demo</a>
+            <a class="btn-cb" href="https://github.com/AhsanPotatwo/CLI-Battlehips" target="_blank" rel="noopener"><span aria-hidden="true">~/</span>View source</a>
+          </div>
+        </div>
+
+        <!-- decoration: a sonar screen sweeping for ships -->
+        <div class="cb-radar" aria-hidden="true">
+          <span class="cb-radar-sweep"></span>
+          <span class="cb-radar-ping" style="--x:30%;--y:34%;--d:.3s"></span>
+          <span class="cb-radar-ping" style="--x:68%;--y:26%;--d:1.1s"></span>
+          <span class="cb-radar-ping cb-radar-hit" style="--x:72%;--y:64%;--d:2s"></span>
+          <span class="cb-radar-ping" style="--x:38%;--y:74%;--d:2.9s"></span>
+          <span class="cb-radar-label cb-radar-label-n">N</span>
+          <span class="cb-radar-label cb-radar-label-e">E</span>
+          <span class="cb-radar-label cb-radar-label-s">S</span>
+          <span class="cb-radar-label cb-radar-label-w">W</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 01: the playable terminal (js/cli-battleships/terminal.js) -->
+    <section class="cb-section" id="play">
+      <div class="container">
+        <header class="cb-section-head">
+          <p class="cb-kicker">// 01 &middot; try it</p>
+          <h2>Play it in your browser</h2>
+          <p class="cb-section-lede">This terminal runs a JavaScript port of all three versions, with each one's own prompts and messages. Pick a version below, or type <code>help</code>.</p>
+        </header>
+
+        <div class="cb-play">
+          <div class="cb-term" id="cbTerm">
+            <div class="cb-term-bar">
+              <span class="cb-term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="cb-term-title">guest@ahsan: ~/cli-battleships</span>
+              <button class="cb-term-stop" id="cbTermStop" type="button" hidden>Stop <kbd>Ctrl+C</kbd></button>
+            </div>
+            <div class="cb-term-body" id="cbTermBody">
+              <div class="cb-term-out" id="cbTermOut" role="log" aria-live="polite"></div>
+              <label class="cb-term-line">
+                <span class="cb-term-prompt" id="cbTermPrompt"></span>
+                <input class="cb-term-input" id="cbTermInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Terminal input">
+              </label>
+            </div>
+            <noscript><p class="cb-term-noscript">The terminal needs JavaScript to run. You can still get the code on GitHub.</p></noscript>
+          </div>
+
+          <aside class="cb-play-side">
+            <div class="cb-panel">
+              <h3>Run a version</h3>
+              <div class="cb-quick">
+                <button class="btn-cb btn-cb-sm" type="button" data-cmd="python3 PYTHON_battleships.py"><span class="cb-lang-dot cb-dot-py" aria-hidden="true"></span>Python</button>
+                <button class="btn-cb btn-cb-sm" type="button" data-cmd="gcc C_battleships.c -o battleships &amp;&amp; ./battleships"><span class="cb-lang-dot cb-dot-c" aria-hidden="true"></span>C</button>
+                <button class="btn-cb btn-cb-sm" type="button" data-cmd="cargo run"><span class="cb-lang-dot cb-dot-rs" aria-hidden="true"></span>Rust</button>
+              </div>
+            </div>
+
+            <div class="cb-panel">
+              <h3>How to play</h3>
+              <ol class="cb-steps">
+                <li>Choose a board size (up to 10&times;10) and how many ships each side gets.</li>
+                <li>Ships are one square each and placed at random.</li>
+                <li>Fire by typing a row and column, like <code>2 3</code>.</li>
+                <li>Sink all the computer's ships before it sinks yours.</li>
+              </ol>
+            </div>
+
+            <div class="cb-panel">
+              <h3>Reading the board</h3>
+              <dl class="cb-legend">
+                <div><dt class="c-water">~</dt><dd>Water</dd></div>
+                <div><dt class="c-ship">S</dt><dd>Your ship</dd></div>
+                <div><dt class="c-hit">X</dt><dd>Hit</dd></div>
+                <div><dt class="c-miss">O</dt><dd>Miss</dd></div>
+              </dl>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- 02: one card per language -->
+    <section class="cb-section">
+      <div class="container">
+        <header class="cb-section-head">
+          <p class="cb-kicker">// 02 &middot; paradigms</p>
+          <h2>One game, three ways of thinking</h2>
+          <p class="cb-section-lede">Each version follows the same rules, but its structure comes from how its language wants you to write code.</p>
+        </header>
+
+        <div class="cb-cards">
+          <article class="cb-card cb-card-py">
+            <header class="cb-card-head">
+              <span class="cb-file"><span class="cb-lang-dot cb-dot-py" aria-hidden="true"></span>PYTHON_battleships.py</span>
+              <h3>Python <span>Object-oriented</span></h3>
+            </header>
+            <pre class="cb-code"><code><span class="k">class</span> <span class="t">BattleshipGame</span>:
+    <span class="k">def</span> <span class="f">__init__</span>(self):
+        self.player_grid = [[<span class="s">'~'</span>] * GRID_SIZE
+                            <span class="k">for</span> _ <span class="k">in</span> range(GRID_SIZE)]
+        self.computer_ships = []
+        self.computer_guesses = set()
+
+    <span class="k">def</span> <span class="f">check_winner</span>(self):
+        <span class="k">if not</span> self.player_ships:
+            <span class="k">return</span> <span class="s">"Computer"</span></code></pre>
+            <ul class="cb-points">
+              <li>All of the game's state lives on one <code>BattleshipGame</code> object.</li>
+              <li>Each step of the game is a method that reads and updates <code>self</code>.</li>
+              <li>Bad input is caught with <code>try</code> / <code>except ValueError</code>.</li>
+            </ul>
+          </article>
+
+          <article class="cb-card cb-card-c">
+            <header class="cb-card-head">
+              <span class="cb-file"><span class="cb-lang-dot cb-dot-c" aria-hidden="true"></span>C_battleships.c</span>
+              <h3>C <span>Procedural</span></h3>
+            </header>
+            <pre class="cb-code"><code><span class="t">void</span> <span class="f">placeShips</span>(
+    <span class="t">char</span> grid[MAX_GRID_SIZE][MAX_GRID_SIZE],
+    <span class="t">int</span> size, <span class="t">int</span> numShips) {
+    <span class="t">int</span> shipsPlaced = <span class="n">0</span>;
+    <span class="k">while</span> (shipsPlaced &lt; numShips) {
+        <span class="t">int</span> x = rand() % size;
+        <span class="t">int</span> y = rand() % size;
+        <span class="k">if</span> (grid[x][y] == <span class="s">'~'</span>) {
+            grid[x][y] = <span class="s">'S'</span>;
+            shipsPlaced++;
+        }
+    }
+}</code></pre>
+            <ul class="cb-points">
+              <li>The boards are fixed-size <code>char</code> arrays, changed in place.</li>
+              <li>Plain functions pass counters around by pointer (<code>int *shipsLeft</code>).</li>
+              <li>Input is checked by hand using <code>scanf</code>'s return value.</li>
+            </ul>
+          </article>
+
+          <article class="cb-card cb-card-rs">
+            <header class="cb-card-head">
+              <span class="cb-file"><span class="cb-lang-dot cb-dot-rs" aria-hidden="true"></span>RUST_battleships.rs</span>
+              <h3>Rust <span>Functional-style</span></h3>
+            </header>
+            <pre class="cb-code"><code><span class="k">fn</span> <span class="f">place_ships</span>(grid_size: <span class="t">usize</span>, num_ships: <span class="t">usize</span>,
+               ships: <span class="t">HashSet</span>&lt;<span class="t">Position</span>&gt;)
+               -&gt; <span class="t">HashSet</span>&lt;<span class="t">Position</span>&gt; {
+    <span class="k">if</span> ships.len() == num_ships {
+        ships
+    } <span class="k">else</span> {
+        <span class="k">let</span> x = rand::thread_rng().gen_range(<span class="n">0</span>..grid_size);
+        <span class="k">let</span> y = rand::thread_rng().gen_range(<span class="n">0</span>..grid_size);
+        <span class="f">place_ships</span>(grid_size, num_ships,
+            ships.into_iter()
+                 .chain([(x, y)].iter().cloned())
+                 .collect())
+    }
+}</code></pre>
+            <ul class="cb-points">
+              <li>Ship placement and the game loop are recursive rather than loops.</li>
+              <li>Grids and ship sets are passed into functions and handed back, rather than changed in place.</li>
+              <li><code>match</code> on each <code>parse()</code> result checks the input.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03: side-by-side comparison -->
+    <section class="cb-section">
+      <div class="container">
+        <header class="cb-section-head">
+          <p class="cb-kicker">// 03 &middot; compare</p>
+          <h2>Side by side</h2>
+        </header>
+
+        <div class="cb-table-wrap">
+          <table class="cb-table">
+            <thead>
+              <tr>
+                <th scope="col"><span class="visually-hidden">Aspect</span></th>
+                <th scope="col"><span class="cb-lang-dot cb-dot-py" aria-hidden="true"></span>Python</th>
+                <th scope="col"><span class="cb-lang-dot cb-dot-c" aria-hidden="true"></span>C</th>
+                <th scope="col"><span class="cb-lang-dot cb-dot-rs" aria-hidden="true"></span>Rust</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Paradigm</th>
+                <td>Object-oriented</td>
+                <td>Procedural</td>
+                <td>Functional-style</td>
+              </tr>
+              <tr>
+                <th scope="row">Game state</th>
+                <td>Attributes on a <code>BattleshipGame</code> object</td>
+                <td>Fixed-size <code>char</code> arrays, changed through pointers</td>
+                <td>Grids and ship sets (<code>HashSet</code>) passed into and returned from functions</td>
+              </tr>
+              <tr>
+                <th scope="row">Game loop</th>
+                <td><code>while True</code> inside <code>play()</code></td>
+                <td><code>while</code> loop in <code>main()</code></td>
+                <td>Recursive <code>game_loop()</code></td>
+              </tr>
+              <tr>
+                <th scope="row">Placing ships</th>
+                <td>Loop, adding to a list</td>
+                <td>Loop, checking each cell</td>
+                <td>Recursive <code>place_ships()</code></td>
+              </tr>
+              <tr>
+                <th scope="row">Input checking</th>
+                <td><code>try</code> / <code>except ValueError</code></td>
+                <td><code>scanf</code> return value</td>
+                <td><code>match</code> on a <code>Result</code></td>
+              </tr>
+              <tr>
+                <th scope="row">Computer's guesses</th>
+                <td>Remembered in a <code>set</code></td>
+                <td>Re-rolls until it finds a new cell</td>
+                <td>Remembered in a <code>HashSet</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04: source -->
+    <section class="cb-section cb-cta">
+      <div class="container">
+        <div class="cb-cta-box">
+          <p class="cb-kicker">// 04 &middot; source</p>
+          <h2>Read the code</h2>
+          <p>All three versions are on GitHub. Clone the repo and run whichever one you like from your own terminal.</p>
+          <div class="cb-actions cb-actions-center">
+            <a class="btn-cb btn-cb-primary" href="https://github.com/AhsanPotatwo/CLI-Battlehips" target="_blank" rel="noopener"><span aria-hidden="true">$</span> git clone</a>
+            <a class="btn-cb" href="index.html#projects"><span aria-hidden="true">cd ..</span> Other projects</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Made in <span id="year">2026</span> by pondering my crystal orb ~ Ahsan, Full Stack Wizard</p>
+    </div>
+  </footer>
+
+  <script src="js/particles.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/cli-battleships/terminal.js"></script>
+</body>
+
+</html>

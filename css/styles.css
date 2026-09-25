@@ -1160,8 +1160,7 @@ a{ color:inherit; text-decoration:none; }
   background:#0b0f0b;
 }
 .project-card-cli:hover,
-.project-card-cli:focus-visible{ background:#0e130e; }
-.project-card-cli:focus-visible{ outline:3px solid var(--accent-soft); outline-offset:3px; }
+.project-card-cli:focus-within{ background:#0e130e; }
 
 /* explicit line elements rather than a tiled background: a tiled pattern
    always redraws a line at position 0, which doubled up with the frame
@@ -1187,8 +1186,8 @@ a{ color:inherit; text-decoration:none; }
 }
 .project-card-cli:hover .cli-grid,
 .project-card-cli:hover .cli-frame,
-.project-card-cli:focus-visible .cli-grid,
-.project-card-cli:focus-visible .cli-frame{ filter:brightness(1.4); }
+.project-card-cli:focus-within .cli-grid,
+.project-card-cli:focus-within .cli-frame{ filter:brightness(1.4); }
 
 .cli-vline{ position:absolute; top:0; bottom:0; width:2px; background:rgba(45,201,99,.55); }
 .cli-hline{ position:absolute; left:0; right:0; height:2px; background:rgba(45,201,99,.55); }
@@ -1218,15 +1217,15 @@ a{ color:inherit; text-decoration:none; }
   100%{ transform:translate(-50%,-50%) scale(1.8); opacity:0; }
 }
 .project-card-cli:hover .cli-ping,
-.project-card-cli:focus-visible .cli-ping{ animation:cli-ping .8s ease-out .52s infinite; }
+.project-card-cli:focus-within .cli-ping{ animation:cli-ping .8s ease-out .52s infinite; }
 .project-card-cli:hover .cli-ping-c,
-.project-card-cli:focus-visible .cli-ping-c{ animation-delay:.30s; }
+.project-card-cli:focus-within .cli-ping-c{ animation-delay:.30s; }
 .project-card-cli:hover .cli-ping-d,
-.project-card-cli:focus-visible .cli-ping-d{ animation-delay:.38s; }
+.project-card-cli:focus-within .cli-ping-d{ animation-delay:.38s; }
 .project-card-cli:hover .cli-ping-b,
-.project-card-cli:focus-visible .cli-ping-b{ animation-delay:.60s; }
+.project-card-cli:focus-within .cli-ping-b{ animation-delay:.60s; }
 .project-card-cli:hover .cli-ping-e,
-.project-card-cli:focus-visible .cli-ping-e{ animation-delay:.80s; }
+.project-card-cli:focus-within .cli-ping-e{ animation-delay:.80s; }
 @keyframes cli-ping{
   0%{ transform:translate(-50%,-50%) scale(.3); opacity:.9; }
   100%{ transform:translate(-50%,-50%) scale(2.6); opacity:0; }
@@ -1241,7 +1240,7 @@ a{ color:inherit; text-decoration:none; }
   transition:color .3s ease, text-shadow .3s ease;
 }
 .project-card-cli:hover .cli-title,
-.project-card-cli:focus-visible .cli-title{
+.project-card-cli:focus-within .cli-title{
   color:#2be645;
   text-shadow:0 0 10px rgba(80,255,150,.6);
 }
@@ -1262,7 +1261,7 @@ a{ color:inherit; text-decoration:none; }
   100%{ top:145px; opacity:0; }
 }
 .project-card-cli:hover .cli-scan,
-.project-card-cli:focus-visible .cli-scan{ animation:cli-scan-sweep 1.6s ease-in-out infinite; }
+.project-card-cli:focus-within .cli-scan{ animation:cli-scan-sweep 1.6s ease-in-out infinite; }
 @keyframes cli-scan-sweep{
   0%{ top:-30px; opacity:0; }
   12%{ opacity:1; }
