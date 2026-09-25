@@ -20,12 +20,12 @@
 
   var SLIDES = [
     {
-      src: 'assets/Home%20Page%20UI%20design.png',
+      src: 'assets/Home%20Page%20UI%20design.webp',
       title: 'Home page',
       alt: 'Figma design of the portfolio home page'
     },
     {
-      src: 'assets/Wizard%20Battles%20Page%20Design.png',
+      src: 'assets/Wizard%20Battles%20Page%20Design.webp',
       title: 'Wizard Battles page',
       alt: 'Figma design of the Wizard Battles project page'
     }
