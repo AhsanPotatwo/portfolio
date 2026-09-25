@@ -93,10 +93,12 @@
   <main>
 
     <section class="wb-hero" id="game">
-      <!-- the portal behind the title: clouds and a violet glow at the top of
-           the page, two magic circles turning in opposite directions (the title
+      <!-- the night sky behind the title: clouds and a violet glow at the
+           top of the page, a moon, drifting symbols, two magic circles turning in opposite directions (the title
            arcs along the top of the big one), and a scatter of sparkles -->
       <div class="wb-portal" aria-hidden="true">
+        <!-- a crescent moon rising from behind the clouds -->
+        <span class="wb-moon"></span>
         <!-- clouds across the top in three layers (dark at the back, light
              in front), hanging deeper in the corners than over the title -->
         <span class="wb-clouds">
@@ -139,8 +141,17 @@
             <i class="wb-puff" style="--x:97.3;--y:-0.64;--r:10;--i:8"></i>
           </span>
         </span>
-        <img class="wb-portal-ring wb-portal-ring-outer" src="assets/wizard-battles/illustrations/arcane-circle.svg" alt="">
-        <img class="wb-portal-ring wb-portal-ring-inner" src="assets/wizard-battles/illustrations/arcane-circle.svg" alt="">
+        <!-- moon and planet symbols drifting up either side of the title and
+             fading, like sparks from a spell (the \FE0E after each one asks
+             for the plain text symbol rather than an emoji) -->
+        <span class="wb-glyph" style="--x:11%;--y:58%;--s:26px;--d:0s">☽&#xFE0E;</span>
+        <span class="wb-glyph" style="--x:22%;--y:50%;--s:20px;--d:-2.5s">☿&#xFE0E;</span>
+        <span class="wb-glyph" style="--x:16%;--y:44%;--s:22px;--d:-5s">♄&#xFE0E;</span>
+        <span class="wb-glyph" style="--x:27%;--y:60%;--s:16px;--d:-7.5s">✶&#xFE0E;</span>
+        <span class="wb-glyph" style="--x:84%;--y:56%;--s:24px;--d:-1.2s">♃&#xFE0E;</span>
+        <span class="wb-glyph" style="--x:76%;--y:48%;--s:22px;--d:-3.8s">☉&#xFE0E;</span>
+        <span class="wb-glyph" style="--x:90%;--y:42%;--s:20px;--d:-6.2s">♆&#xFE0E;</span>
+        <span class="wb-glyph" style="--x:72%;--y:62%;--s:18px;--d:-8.6s">☾&#xFE0E;</span>
         <span class="wb-portal-star" style="--x:9%;--y:18%;--s:18px;--d:0s"></span>
         <span class="wb-portal-star" style="--x:19%;--y:52%;--s:11px;--d:-1.4s"></span>
         <span class="wb-portal-star" style="--x:27%;--y:9%;--s:13px;--d:-2.6s"></span>

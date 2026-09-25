@@ -89,10 +89,12 @@
 
 /* ---------- hero ----------
    The title starts at the same height as the other pages' heroes. Behind
-   it, the portal: a violet glow pouring down from the top of the page, a
-   large magic circle whose top edge the arched title follows, a smaller
-   one turning the other way inside it, and a few twinkling sparkles. It
-   all fades out downwards so the game frame sits on plain background. */
+   it, a night sky: a violet glow pouring down from the top of the page,
+   layered clouds, a crescent moon rising from behind them, moon and planet
+   symbols drifting up either side of the title, and a few twinkling
+   sparkles. It all fades out downwards so the game frame sits on plain
+   background. (The page's magic circle already appears in the backdrop,
+   the story panels and behind the crystal ball, so it's left out here.) */
 .wb-hero{
   position:relative;
   isolation:isolate;
@@ -158,25 +160,52 @@
   50%{ scale:1.05; margin-top:calc(var(--u, 8px) * -.6); }
 }
 
-.wb-portal-ring{
+/* the moon: a glowing disc with a darker disc slid over it (the box
+   shadow) to cut it into a crescent, and a soft halo around it. It sits
+   just behind the clouds' lower edge in the top-right, clear of the title. */
+.wb-moon{
+  --m:clamp(84px,9vw,136px);
   position:absolute;
-  left:50%;
-  max-width:none;
+  left:84%;
+  top:clamp(70px,8.6vw,124px);
+  width:var(--m);
   aspect-ratio:1;
-  translate:-50% 0;
+  border-radius:50%;
+  box-shadow:inset calc(var(--m) * -.26) calc(var(--m) * .08) 0 0 #f4ecff;
+  filter:drop-shadow(0 0 14px rgba(230,215,255,.7)) drop-shadow(0 0 40px rgba(191,146,255,.55));
+  rotate:-18deg;
+  animation:wbMoonRise 9s ease-in-out infinite alternate;
 }
-.wb-portal-ring-outer{
-  top:clamp(28px,3.4vw,52px);
-  width:var(--wb-portal);
-  opacity:.16;
-  filter:drop-shadow(0 0 18px rgba(191,146,255,.5));
-  animation:wbArcaneSpin 160s linear infinite;
+.wb-moon::before{
+  content:"";
+  position:absolute;
+  inset:-80%;
+  border-radius:50%;
+  background:radial-gradient(circle, rgba(191,146,255,.22), transparent 62%);
 }
-.wb-portal-ring-inner{
-  top:calc(clamp(28px,3.4vw,52px) + var(--wb-portal) * .19);
-  width:calc(var(--wb-portal) * .62);
-  opacity:.08;
-  animation:wbArcaneSpin 110s linear infinite reverse;
+@keyframes wbMoonRise{
+  from{ translate:0 6px; }
+  to  { translate:0 -6px; }
+}
+
+/* the drifting symbols: each rises about 140px while fading in and out,
+   on its own delay, so there are always a couple in the air */
+.wb-glyph{
+  position:absolute;
+  left:var(--x); top:var(--y);
+  font-family:"Segoe UI Symbol","Apple Symbols","Noto Sans Symbols",sans-serif;
+  font-size:var(--s);
+  line-height:1;
+  color:#e4d4ff;
+  text-shadow:0 0 8px rgba(191,146,255,.9), 0 0 18px rgba(113,42,255,.8);
+  opacity:0;
+  animation:wbGlyphRise 10s ease-in-out var(--d) infinite;
+}
+@keyframes wbGlyphRise{
+  0%  { opacity:0;   translate:0 0;       rotate:-8deg; }
+  20% { opacity:.75; }
+  70% { opacity:.55; }
+  100%{ opacity:0;   translate:10px -140px; rotate:8deg; }
 }
 .wb-portal-star{
   position:absolute;
@@ -1139,8 +1168,10 @@
      (much smaller) title */
   :root{ --wb-portal: 150vw; }
   .wb-hero{ padding-top:64px; padding-bottom:56px; }
-  .wb-portal-ring-outer{ top:18px; }
-  .wb-portal-ring-inner{ top:calc(18px + var(--wb-portal) * .19); }
+  /* a smaller moon tucked into the corner, and no drifting symbols:
+     the title fills the width, so there's no free space beside it */
+  .wb-moon{ --m:42px; left:auto; right:4px; top:66px; }
+  .wb-glyph{ display:none; }
 
   .wb-title{ font-size:clamp(34px,10.5vw,48px); }
   .wb-subtitle{ font-size:18px; margin-bottom:26px; }
@@ -1181,7 +1212,8 @@
     rotate:-10deg;
     filter:drop-shadow(0 0 8px rgba(255,210,255,.9));
   }
-  .wb-portal-ring, .wb-portal-star, .wb-puff, .wb-cloud-layer{ animation:none; }
+  .wb-moon, .wb-portal-star, .wb-puff, .wb-cloud-layer{ animation:none; }
+  .wb-glyph{ animation:none; opacity:.45; }
   .wb-arcane, .wb-cb-circle, .wb-tome::after{ animation:none; }
   .wb-tome::before{ animation:none; opacity:.7; }
   .wb-tome-art > img, .wb-art-stack{ animation:none; }
