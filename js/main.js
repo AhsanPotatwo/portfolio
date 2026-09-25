@@ -128,7 +128,8 @@
       { t: "'PHP'", c: 'hc-str' },
       { t: ', ', c: '' },
       { t: "'.NET'", c: 'hc-str' },
-      { t: ', ', c: '' },
+      // own line, so the array doesn't wrap mid-item in the narrow card
+      { t: ',\n          ', c: '' },
       { t: "'React'", c: 'hc-str' },
       { t: '],\n  ', c: '' },
       { t: 'status', c: 'hc-prop' },

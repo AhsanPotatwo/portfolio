@@ -36,6 +36,19 @@
           </g>
         </g>
       </symbol>
+      <!-- the question mark seen inside the crystal ball, and the ball's
+           four-pointed stars (coloured with currentColor) -->
+      <linearGradient id="wbQuestionFill" x1="0" y1="0" x2=".35" y2="1">
+        <stop offset=".1" stop-color="#fff"/>
+        <stop offset=".45" stop-color="#f3d4ff"/>
+        <stop offset=".9" stop-color="#c89bff"/>
+      </linearGradient>
+      <symbol id="wbQuestion" viewBox="0 0 104.875 183.633">
+        <path d="M52.4373 0C59.5285 0 66.433 1.309 72.7778 4.11398C79.1225 6.91897 84.7208 10.659 89.3861 15.3339C94.2379 20.1959 97.9701 25.6189 100.769 32.1638C103.382 38.5218 104.875 45.2538 104.875 52.3598C104.875 57.0347 104.315 61.1487 103.382 65.0757C102.262 69.0027 100.956 72.7427 99.0898 76.2956C97.2237 79.6616 94.9843 83.0276 92.3718 86.2066C89.7593 89.3856 86.9601 92.3776 83.7878 95.3695C80.9886 97.8005 78.5627 100.419 76.3234 103.037C74.084 105.654 72.218 108.272 70.5385 111.264C68.859 114.069 67.7393 117.248 66.8063 120.427C65.8732 123.793 65.5 127.346 65.5 131.086H39.3746C39.3746 125.102 39.9345 119.679 41.2407 114.63C42.547 109.394 44.4131 104.532 46.839 100.045C49.265 95.5565 52.0641 91.2556 55.6097 87.1416C58.9687 83.0276 62.7009 79.1006 66.9929 75.1736C70.3519 71.9947 73.151 68.6287 75.3903 65.0757C77.443 61.5227 78.5627 57.4087 78.5627 52.3598C78.5627 48.8068 77.8162 45.4408 76.51 42.2618C75.0171 39.0828 73.151 36.2778 70.9117 33.8468C68.4858 31.6028 65.6866 29.7329 62.5142 28.2369C59.3419 26.9279 55.9829 26.1799 52.4373 26.1799C48.8917 26.1799 45.3462 26.9279 42.1738 28.2369C39.0014 29.5459 36.2023 31.4159 33.7764 33.8468C31.537 36.2778 29.6709 38.8958 28.1781 42.2618C26.8718 45.4408 26.1254 48.8068 26.1254 52.3598H0C0 45.2538 1.49288 38.5218 4.29202 32.1638C6.90456 25.6189 10.6368 20.1959 15.4886 15.3339C20.1538 10.659 25.7521 6.91897 32.0969 4.11398C38.4416 1.309 45.1595 0 52.4373 0ZM68.6724 167.364C68.6724 169.608 68.2991 171.665 67.5527 173.722C66.6197 175.592 65.5 177.462 64.0071 178.958C62.5142 180.267 60.8348 181.576 58.7821 182.324C56.7293 183.259 54.6766 183.633 52.4373 183.633C50.198 183.633 48.1453 183.259 46.0926 182.324C44.0399 181.576 42.3604 180.267 40.8675 178.958C39.3746 177.462 38.255 175.592 37.3219 173.722C36.3889 171.665 36.0157 169.608 36.0157 167.364C36.0157 165.12 36.3889 162.876 37.3219 161.006C38.255 158.949 39.3746 157.079 40.8675 155.583C42.3604 154.274 44.0399 152.965 46.0926 152.217C47.9587 151.282 50.198 150.908 52.4373 150.908C54.6766 150.908 56.7293 151.282 58.7821 152.217C60.8348 152.965 62.5142 154.274 64.0071 155.583C65.5 157.079 66.6197 158.949 67.5527 161.006C68.2991 162.876 68.6724 165.12 68.6724 167.364Z" fill="url(#wbQuestionFill)"/>
+      </symbol>
+      <symbol id="wbSparkle" viewBox="0 0 84.349 84.349">
+        <path d="M0 41.975L27.983 27.983L41.974 0L55.966 27.983L84.349 41.975L55.966 55.966L41.974 84.349L27.983 55.966Z" fill="currentColor"/>
+      </symbol>
     </defs>
   </svg>
 
@@ -89,7 +102,7 @@
   <!-- nav, identical to the home page, just pointed back at its sections -->
   <header class="site-header" id="header">
     <div class="container nav-inner">
-      <a class="brand" href="index.html#home">[Ahsan]</a>
+      <a class="brand" href="index.html#home"><span class="brand-bracket">[</span>Ahsan<span class="brand-bracket">]</span></a>
 
       <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Open menu">
         <span></span><span></span><span></span>
@@ -123,9 +136,9 @@
         <p class="wb-participant">Participant ID: <span id="player-id">—</span></p>
 
         <div class="wb-actions">
-          <a class="btn btn-wizard" href="assets/wizard-battles/downloads/ParticipantConsentForm.pdf" download>Download<br>consent form</a>
-          <button class="btn btn-wizard is-disabled" type="button" disabled title="The study behind Wizard Battles has concluded, so the questionnaire is no longer accepting responses.">Questionnaire<br>closed</button>
-          <a class="btn btn-wizard" href="assets/wizard-battles/downloads/ParticipantInformationSheet.pdf" download>Download<br>Information Sheet</a>
+          <a class="btn-wizard" href="assets/wizard-battles/downloads/ParticipantConsentForm.pdf" download>Download<br>consent form</a>
+          <button class="btn-wizard is-disabled" type="button" disabled title="The study behind Wizard Battles has concluded, so the questionnaire is no longer accepting responses.">Questionnaire<br>closed</button>
+          <a class="btn-wizard" href="assets/wizard-battles/downloads/ParticipantInformationSheet.pdf" download>Download<br>information sheet</a>
         </div>
         <p class="wb-study-note">The study has now concluded. The game is still fully playable, and the documents are kept here for reference.</p>
       </div>
@@ -135,7 +148,7 @@
       <div class="container wb-intro-inner">
         <div class="wb-intro-text">
           <h2>What is <span class="wb-accent">Wizard Battles?</span></h2>
-          <p>Wizard Battles is designed to be a turn-based game used as an experimental tool for psychology researchers to measure risk-taking behaviour in individuals utilising a gamified method. Wizard battles was partially inspired from the battling system in Pokemon and other turn based games that I enjoy playing.</p>
+          <p>Wizard Battles is a turn-based game designed as an experimental tool for psychology researchers, measuring risk-taking behaviour in individuals through a gamified method. It was partly inspired by the battle system in Pokémon and other turn-based games that I enjoy playing.</p>
         </div>
         <div class="wb-intro-art">
           <img class="wb-cb-circle" src="assets/wizard-battles/illustrations/arcane-circle.svg" alt="" aria-hidden="true">
@@ -143,12 +156,12 @@
             <img class="wb-cb-ball" src="assets/wizard-battles/illustrations/crystal-ball.svg" alt="Illustration of a crystal ball">
             <div class="wb-cb-vision" aria-hidden="true">
               <span class="wb-cb-mist"></span>
-              <span class="wb-cb-question"><span class="wb-cb-question-glyph"></span></span>
-              <span class="wb-cb-orbit"><span class="wb-cb-star wb-cb-star-cyan"></span></span>
+              <span class="wb-cb-question"><svg class="wb-cb-question-glyph" viewBox="0 0 104.875 183.633" focusable="false"><use href="#wbQuestion"/></svg></span>
+              <span class="wb-cb-orbit"><svg class="wb-cb-star wb-cb-star-cyan" viewBox="0 0 84.349 84.349" focusable="false"><use href="#wbSparkle"/></svg></span>
             </div>
             <span class="wb-cb-glass" aria-hidden="true"></span>
-            <span class="wb-cb-star wb-cb-star-yellow" aria-hidden="true"></span>
-            <span class="wb-cb-star wb-cb-star-pink" aria-hidden="true"></span>
+            <svg class="wb-cb-star wb-cb-star-yellow" viewBox="0 0 84.349 84.349" aria-hidden="true" focusable="false"><use href="#wbSparkle"/></svg>
+            <svg class="wb-cb-star wb-cb-star-pink" viewBox="0 0 84.349 84.349" aria-hidden="true" focusable="false"><use href="#wbSparkle"/></svg>
             <svg class="wb-cb-eye wb-cb-eye-1" viewBox="0 0 120.529 77.6698" aria-hidden="true" focusable="false"><use href="#wbEye"/></svg>
             <svg class="wb-cb-eye wb-cb-eye-2" viewBox="0 0 120.529 77.6698" aria-hidden="true" focusable="false"><use href="#wbEye"/></svg>
             <svg class="wb-cb-eye wb-cb-eye-3" viewBox="0 0 120.529 77.6698" aria-hidden="true" focusable="false"><use href="#wbEye"/></svg>
@@ -170,7 +183,7 @@
             <h2><span class="wb-accent">Why did I make</span> Wizard Battles?</h2>
             <hr class="wb-divider">
           </div>
-          <p>I made Wizard Battles as my 3rd dissertation project for my Bachelor's degree in computer science. I chose this project because I've always been fascinated by how psychology can intertwine with computerised design, whether that be in the realm of game design, UI design or user interaction. I think psychology plays a much deeper role than people realise and I wanted to indulge myself in a project that reflected that as its core principle.</p>
+          <p>I made Wizard Battles as my third-year dissertation project for my Bachelor's degree in computer science. I chose this project because I've always been fascinated by how psychology can intertwine with computerised design, whether that be in the realm of game design, UI design or user interaction. I think psychology plays a much deeper role than people realise and I wanted to indulge myself in a project that reflected that as its core principle.</p>
         </div>
       </div>
     </section>
@@ -200,7 +213,7 @@
             <h2>How the <span class="wb-accent">AI enemy</span> works</h2>
             <hr class="wb-divider">
           </div>
-          <p>The enemy doesn't cheat, it fights you as if it was another player. The AI uses a predictive algorithm, tracking your last 10 moves to guess what move you will make and counter your gameplay style. If the AI is low on health, it will prioritise healing and if the player is being risky then the AI will try to defend itself, just like a real wizard!</p>
+          <p>The enemy doesn't cheat; it fights you as if it were another player. The AI uses a predictive algorithm, tracking your last 10 moves to guess what move you will make and counter your gameplay style. If the AI is low on health, it will prioritise healing and if the player is being risky then the AI will try to defend itself, just like a real wizard!</p>
         </div>
       </div>
     </section>
@@ -212,7 +225,7 @@
             <h2>Collecting <span class="wb-accent">data &amp; backend</span></h2>
             <hr class="wb-divider">
           </div>
-          <p>The game runs in the browser on p5.js with a Node.js and Express backend server. Each round is sent to the server and written to a CSV file. A CSV file allows researchers to easily read and process the necessary data easily while the backend server is fairly easy to build and setup.</p>
+          <p>The game runs in the browser on p5.js with a Node.js and Express backend server. Each round is sent to the server and written to a CSV file. A CSV file lets researchers easily read and process the data, and the backend server is simple to build and set up.</p>
         </div>
         <div class="wb-art">
           <div class="wb-art-stack">
@@ -229,13 +242,13 @@
       <div class="container wb-cta-grid">
         <div class="wb-cta-card">
           <h3>Build the project for yourself!</h3>
-          <p>Download the project on github and run it on your own machine.</p>
-          <a class="btn btn-wizard-lg" href="https://github.com/AhsanPotatwo/Wizard-battles" target="_blank" rel="noopener">Try it here</a>
+          <p>Download the project from GitHub and run it on your own machine.</p>
+          <a class="btn-wizard-lg" href="https://github.com/AhsanPotatwo/Wizard-battles" target="_blank" rel="noopener">Try it here</a>
         </div>
         <div class="wb-cta-card">
           <h3>Read the report for the project</h3>
           <p>Read the dissertation document which outlines details about this project.</p>
-          <a class="btn btn-wizard-lg" href="assets/wizard-battles/downloads/Wizard-Battles-Dissertation-Report.pdf" target="_blank" rel="noopener">Read it here</a>
+          <a class="btn-wizard-lg" href="assets/wizard-battles/downloads/Wizard-Battles-Dissertation-Report.pdf" target="_blank" rel="noopener">Read it here</a>
         </div>
       </div>
     </section>

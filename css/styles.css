@@ -4,16 +4,24 @@
   --panel-top:     #393145;
   --tile:          #302c3b;
 
-  --purple-brand:  #5512b3;
-  --purple-nav:    #6425bc;
-  --purple-accent: #66469c;
-  --purple-line:   #73538b;
-  --grad-from:     #66538b;
-  --grad-to:       #6d12b3;
+  /* one violet family shared by both pages: --accent for fills (buttons,
+     lines, badges), --accent-text for text/links on the dark background,
+     where the fill colour would be too dark to read comfortably */
+  --accent:        #735aff;
+  --accent-deep:   #5542bc;
+  --accent-text:   #a48bff;
+  --accent-soft:   #bf92ff;
+  /* the logo, the current nav link and its underline */
+  --nav-purple:    #8b63e6;
 
   --text:          #ffffff;
-  --muted:         #787878;
-  --dim:           #5c5a63;
+  --muted:         #9b96a6;
+  --dim:           #6f6b78;
+
+  --radius-btn:    16px;
+  --radius-card:   20px;
+  --ease-out:      cubic-bezier(.22,.61,.36,1);
+
   --term-key:      #8f8f8f;
   --term-role:     #4d9be3;
   --term-val:      #b7b7b7;
@@ -29,7 +37,13 @@
 
 *,*::before,*::after{ box-sizing:border-box; }
 
-html{ scroll-behavior:smooth; scroll-padding-top:120px; }
+html{
+  scroll-behavior:smooth;
+  scroll-padding-top:100px;
+  scrollbar-color:#4a3d6e var(--bg);
+  color-scheme:dark;
+}
+::selection{ background:rgba(115,90,255,.45); color:#fff; }
 
 body{
   margin:0;
@@ -168,12 +182,12 @@ a{ color:inherit; text-decoration:none; }
 /* hidden off screen until focused, for keyboard nav */
 .skip-link{
   position:absolute; left:-9999px; top:0; z-index:100;
-  background:var(--purple-brand); color:#fff; padding:10px 16px; border-radius:0 0 8px 0;
+  background:var(--accent); color:#fff; padding:10px 16px; border-radius:0 0 8px 0;
 }
 .skip-link:focus{ left:0; }
 
 :focus-visible{
-  outline:3px solid var(--purple-nav);
+  outline:3px solid var(--accent-soft);
   outline-offset:3px;
   border-radius:4px;
 }
@@ -187,30 +201,37 @@ a{ color:inherit; text-decoration:none; }
 }
 .nav-inner{
   display:flex; align-items:center; justify-content:space-between;
-  gap:24px; min-height:110px;
+  gap:24px; min-height:88px;
 }
 .brand{
-  font-size:clamp(26px,3vw,36px);
+  font-size:clamp(26px,2.6vw,34px);
   font-weight:700;
-  color:var(--purple-brand);
+  color:var(--nav-purple);
+  transition:color .2s ease;
 }
-.nav{ display:flex; align-items:center; gap:clamp(20px,3.6vw,52px); }
+.brand-bracket{ transition:margin .25s var(--ease-out); }
+.brand:hover{ color:#a283ec; }
+/* the brackets open out a touch on hover */
+.brand:hover .brand-bracket{ margin-inline:3px; }
+.nav{ display:flex; align-items:center; gap:clamp(20px,3.2vw,48px); }
 .nav-link{
   position:relative;
-  font-size:clamp(17px,1.7vw,24px);
+  font-size:clamp(17px,1.5vw,21px);
   font-weight:500;
-  padding-bottom:6px;
+  padding-block:6px;
   transition:color .18s ease;
 }
 .nav-link::after{
   content:""; position:absolute; left:50%; bottom:0;
-  width:0; height:2px; background:var(--purple-nav);
+  width:0; height:2px; border-radius:2px;
+  background:var(--nav-purple);
   transform:translateX(-50%);
-  transition:width .22s ease;
+  transition:width .25s var(--ease-out);
 }
-.nav-link:hover{ color:#cbb6ee; }
-.nav-link.is-active{ color:var(--purple-nav); }
-.nav-link.is-active::after{ width:70px; max-width:100%; }
+.nav-link:hover{ color:#dccfff; }
+.nav-link:hover::after{ width:24px; }
+.nav-link.is-active{ color:var(--nav-purple); }
+.nav-link.is-active::after{ width:100%; }
 
 .nav-toggle{
   display:none;
@@ -331,7 +352,7 @@ a{ color:inherit; text-decoration:none; }
   line-height:1.7;
   color:var(--term-val);
   white-space:pre-wrap;
-  min-height:9.5em;
+  min-height:11.9em; /* all 7 lines, so the card doesn't grow while typing */
 }
 .hero-card-code .hc-key{ color:var(--term-role); }
 .hero-card-code .hc-prop{ color:var(--term-key); }
@@ -362,53 +383,87 @@ a{ color:inherit; text-decoration:none; }
   font-size:clamp(26px,4vw,48px);
   font-weight:600;
 }
+/* the rule under the hero text: a solid purple line with rounded ends */
+.hero-rule{
+  height:3px;
+  border-radius:2px;
+  background:linear-gradient(90deg,#8466b4,#7a2fd0);
+}
 .hero-rule{
   width:min(534px,100%);
-  height:3px;
-  margin:clamp(28px,4vw,49px) 0 clamp(24px,3vw,41px);
-  background:linear-gradient(90deg,var(--purple-line),var(--grad-to));
-  border-radius:2px;
+  margin:clamp(28px,4vw,44px) 0 clamp(24px,3vw,36px);
 }
-.hero-actions{ display:flex; flex-wrap:wrap; gap:19px; }
+.hero-actions{ display:flex; flex-wrap:wrap; gap:18px; }
 
+/* Home page buttons: rounded rectangles in a soft purple gradient, lit
+   from the top so they don't look flat. On hover they lift and a glint
+   sweeps across. (The Wizard Battles page has its own buttons,
+   .btn-wizard, in wizard-battles.css.) */
 .btn{
+  position:relative;
+  overflow:hidden;
   display:inline-flex; align-items:center; justify-content:center;
-  width:261px; max-width:100%; height:80px;
-  border-radius:10px;
-  font-size:clamp(24px,3vw,36px);
+  width:250px; max-width:100%; height:72px;
+  padding-inline:28px;
+  border-radius:14px;
+  font-size:clamp(21px,2vw,26px);
   font-weight:600;
-  transition:transform .18s ease, box-shadow .18s ease, background-color .18s ease;
+  transition:transform .2s var(--ease-out), box-shadow .2s ease, background-color .2s ease, border-color .2s ease;
 }
 .btn-primary{
-  background:linear-gradient(90deg,var(--grad-from),var(--grad-to));
+  background:linear-gradient(160deg,#8a62cf 0%,#6d36c4 55%,#5b25ad 100%);
   color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2), inset 0 -2px 0 rgba(0,0,0,.12), 0 8px 20px rgba(90,40,170,.3);
 }
 .btn-ghost{
-  border:3px solid var(--purple-line);
+  background:rgba(115,83,139,.08);
+  border:2px solid #7d5ea8;
   color:#fff;
 }
-.btn:hover{ transform:translateY(-2px); box-shadow:0 10px 26px rgba(109,18,179,.35); }
-.btn-ghost:hover{ background:rgba(115,83,139,.18); }
+/* the glint */
+.btn::after{
+  content:"";
+  position:absolute;
+  top:0; bottom:0;
+  left:-60%;
+  width:45%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.22),transparent);
+  transform:skewX(-18deg);
+  pointer-events:none;
+  transition:left .6s ease;
+}
+.btn:hover::after,
+.btn:focus-visible::after{ left:120%; }
+.btn:hover{ transform:translateY(-2px); }
+.btn-primary:hover{ box-shadow:inset 0 1px 0 rgba(255,255,255,.22), inset 0 -2px 0 rgba(0,0,0,.12), 0 12px 28px rgba(100,45,190,.42); }
+.btn-ghost:hover{ background:rgba(125,94,168,.2); border-color:#9a7bc8; }
 
 .connect{
   display:flex; align-items:center; flex-wrap:wrap;
   gap:clamp(16px,2.5vw,27px);
-  margin-top:clamp(48px,7vw,103px);
+  margin-top:clamp(48px,6vw,88px);
 }
 .connect-label{
-  font-size:clamp(22px,2.6vw,32px);
+  font-size:clamp(20px,2vw,26px);
   font-weight:600;
   color:var(--muted);
 }
-.socials{ display:flex; gap:28px; }
+.socials{ display:flex; gap:20px; }
 .social{
   display:grid; place-items:center;
-  width:70px; height:70px;
+  width:64px; height:64px;
   background:var(--tile);
-  border-radius:10px;
-  transition:background-color .18s ease, transform .18s ease;
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:14px;
+  transition:background-color .2s ease, transform .2s var(--ease-out), box-shadow .2s ease, border-color .2s ease;
 }
-.social:hover{ background:#3d3750; transform:translateY(-3px); }
+.social:hover{
+  background:#3a3350;
+  border-color:rgba(164,139,255,.45);
+  box-shadow:0 8px 22px rgba(115,90,255,.3);
+  transform:translateY(-3px);
+}
+.social > *{ scale:.9; }
 
 .icon-linkedin{ position:relative; display:block; width:45px; height:43px; }
 .icon-linkedin img{ position:absolute; }
@@ -426,9 +481,11 @@ a{ color:inherit; text-decoration:none; }
   grid-template-columns:620px minmax(0,1fr);
   gap:clamp(32px,5vw,77px);
   align-items:start;
-  padding:clamp(28px,4vw,45px) clamp(24px,4vw,52px);
-  border-radius:15px;
-  background:linear-gradient(180deg,var(--panel-top) 0%,var(--bg) 78.8%);
+  padding:clamp(20px,4vw,45px) clamp(16px,4vw,52px);
+  border-radius:var(--radius-card);
+  /* fades to transparent rather than to the page colour, so the panel has
+     no hard bottom edge against the background glows */
+  background:linear-gradient(180deg,var(--panel-top) 0%,rgba(57,49,69,0) 85%);
 }
 .about-panel::before{
   content:"";
@@ -443,11 +500,12 @@ a{ color:inherit; text-decoration:none; }
 .about-card{
   position:relative;
   background:var(--card);
-  border-radius:20px;
-  padding:55px clamp(24px,3vw,48px);
+  border:1px solid rgba(255,255,255,.05);
+  border-radius:var(--radius-card);
+  padding:clamp(36px,4vw,55px) clamp(20px,3vw,48px);
   min-height:586px;
   display:flex; flex-direction:column;
-  box-shadow: 0 20px 30px rgba(0,0,0,.35);
+  box-shadow:0 20px 40px rgba(0,0,0,.35);
   transition:transform .2s ease-out;
   will-change:transform;
 }
@@ -504,7 +562,7 @@ a{ color:inherit; text-decoration:none; }
 .spec-row{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
 .spec-row dt{ color:var(--term-key); }
 .spec-row dd{ text-align:right; }
-.v-name{ color:var(--purple-accent); font-weight:700; }
+.v-name{ color:var(--accent-text); font-weight:700; }
 .v-role{ color:var(--term-role); }
 .v-loc{ color:var(--term-val); }
 .badge-open{
@@ -523,25 +581,29 @@ a{ color:inherit; text-decoration:none; }
   50%{ box-shadow:0 0 10px 2px rgba(49,250,150,.4); }
 }
 
-.about-copy h2{
-  font-size:clamp(40px,6vw,64px);
+/* every section heading (About me, Skills & experience, My projects, Get
+   in touch) is the same size */
+.about-copy h2,
+.section-title{
+  font-size:clamp(38px,5vw,64px);
   font-weight:700;
-  margin-bottom:clamp(24px,4vw,53px);
+  line-height:1.15;
 }
+.about-copy{ padding-top:clamp(0px,1vw,10px); }
+.about-copy h2{ margin-bottom:clamp(24px,3vw,36px); }
 .about-copy p{
-  font-size:clamp(19px,2.1vw,27px);
+  font-size:clamp(18px,1.7vw,22px);
   font-weight:400;
-  line-height:1.3;
-  max-width:563px;
+  line-height:1.6;
+  color:#e9e6f0;
+  max-width:600px;
 }
 
 /* skills + experience */
 .skills{ padding:clamp(40px,6vw,95px) 0 clamp(50px,7vw,110px); }
 .section-title{
-  font-size:clamp(40px,7vw,70px);
-  font-weight:700;
   text-align:center;
-  margin-bottom:clamp(40px,6vw,74px);
+  margin:0 auto clamp(40px,5vw,64px);
 }
 .skills-grid{
   display:grid;
@@ -550,13 +612,20 @@ a{ color:inherit; text-decoration:none; }
   align-items:start;
 }
 
-.group-title{
-  font-size:clamp(32px,4.2vw,48px);
+/* the subheadings in both columns (Frontend, Backend..., Experience,
+   Education) are one size */
+.group-title,
+.timeline-heading{
+  font-size:clamp(28px,3.2vw,40px);
   font-weight:600;
-  text-align:center;
-  margin-bottom:clamp(28px,4vw,48px);
+  line-height:1.2;
 }
-.group-title + .tiles{ margin-bottom:clamp(40px,5vw,66px); }
+.group-title{
+  text-align:center;
+  margin-bottom:clamp(24px,3vw,36px);
+}
+.group-title + .tiles{ margin-bottom:clamp(40px,5vw,60px); }
+.group-title + .tiles:last-child{ margin-bottom:0; }
 
 .tiles{
   display:grid;
@@ -566,10 +635,12 @@ a{ color:inherit; text-decoration:none; }
   row-gap:48px;
 }
 .tile{
-  display:flex; flex-direction:column; align-items:center; gap:13px;
-  font-size:clamp(18px,2vw,24px);
-  font-weight:400;
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+  font-size:clamp(16px,1.6vw,20px);
+  font-weight:500;
+  color:#e9e6f0;
   text-align:center;
+  white-space:nowrap;
 }
 .tile .glyph,
 .tile .plate{
@@ -577,6 +648,14 @@ a{ color:inherit; text-decoration:none; }
   position:relative;
   flex:none;
   display:block;
+  border-radius:15px;
+  transition:transform .25s var(--ease-out), box-shadow .25s ease;
+}
+/* a little hop and glow when you hover over a skill */
+.tile:hover .glyph,
+.tile:hover .plate{
+  transform:translateY(-4px) rotate(-3deg);
+  box-shadow:0 10px 24px rgba(115,90,255,.35);
 }
 
 /* The Figma tile has a small, quiet tag hanging underneath it, linking to
@@ -736,7 +815,7 @@ a{ color:inherit; text-decoration:none; }
   transition:background-color .2s ease, border-color .2s ease;
 }
 .dv-close:hover,
-.dv-nav:hover{ background:var(--purple-nav); border-color:var(--purple-nav); }
+.dv-nav:hover{ background:var(--accent); border-color:var(--accent); }
 .dv-close svg,
 .dv-nav svg{
   width:20px; height:20px;
@@ -845,60 +924,71 @@ a{ color:inherit; text-decoration:none; }
 }
 
 /* timeline */
-.timeline-heading{
-  font-size:clamp(40px,5.4vw,64px);
-  font-weight:700;
-  margin-bottom:clamp(24px,3vw,45px);
-}
-.timeline-heading-education{
-  margin-top:20px; 
-}
-.timeline{ display:flex; flex-direction:column; gap:clamp(36px,5vw,60px); }
+.timeline-heading{ margin-bottom:clamp(24px,3vw,36px); }
+.timeline-heading-education{ margin-top:clamp(48px,5vw,64px); }
+.timeline{ display:flex; flex-direction:column; gap:clamp(36px,4vw,52px); }
 .tl-item{
   position:relative;
-  padding-left:92px;
+  padding-left:80px;
   padding-bottom:8px;
 }
-.tl-item-freelance{
-  margin-top:12px; 
+/* The ring and the line hanging from it are drawn as one shape: same
+   colour, same 4px stroke, and the line starts inside the ring's bottom
+   edge so there's no seam. It stays solid for a while and then fades out
+   before the next entry. */
+.tl-dot{
+  --tl-ring:44px;
+  position:absolute; left:0; top:0;
+  width:var(--tl-ring); height:var(--tl-ring);
+  border:4px solid var(--accent);
+  border-radius:50%;
 }
 .tl-item::before{
   content:"";
   position:absolute;
-  left:22.5px; top:48px; bottom:-38px;
-  width:5px; border-radius:3px;
-  background:linear-gradient(180deg,var(--purple-accent),rgba(102,70,156,0));
+  left:20px; top:42px; bottom:-38px;
+  width:4px;
+  border-radius:0 0 3px 3px;
+  background:linear-gradient(180deg,var(--accent) 0%,var(--accent) 35%,rgba(115,90,255,0) 100%);
 }
 .timeline .tl-item:last-child::before{ bottom:0; }
-.tl-dot{
-  position:absolute; left:0; top:0;
-  width:50px; height:50px;
-}
 .tl-title{
-  font-size:clamp(28px,3.4vw,40px);
+  font-size:clamp(22px,2.3vw,30px);
   font-weight:600;
-  margin-bottom:14px;
+  line-height:1.25;
+  margin:4px 0 8px;
 }
-.tl-title-sm{ font-size:clamp(24px,2.8vw,32px); }
-.tl-title-md{ font-size:clamp(26px,3.2vw,38px); }
+/* company / place and dates, split with a small dot rather than a pipe so
+   the line wraps cleanly on phones */
 .tl-meta{
-  font-size:clamp(18px,2vw,24px);
+  display:flex; flex-wrap:wrap; align-items:center;
+  column-gap:10px;
+  font-size:clamp(15px,1.4vw,18px);
   font-weight:600;
-  color:var(--purple-accent);
-  margin-bottom:20px;
+  color:var(--accent-text);
+  margin-bottom:16px;
 }
-.tl-meta-sm{ font-size:clamp(16px,1.6vw,18px); }
+.tl-meta span + span::before{
+  content:"";
+  display:inline-block;
+  width:4px; height:4px;
+  margin-right:10px;
+  vertical-align:middle;
+  border-radius:50%;
+  background:currentColor;
+  opacity:.7;
+}
 .tl-points{
   list-style:disc;
-  padding-left:27px;
+  padding-left:22px;
   display:flex; flex-direction:column; gap:8px;
-  font-size:18px;
+  font-size:clamp(16px,1.3vw,18px);
   font-weight:400;
-  line-height:1.35;
-  max-width:520px;
+  line-height:1.5;
+  color:#e2dfea;
+  max-width:560px;
 }
-.tl-points-lg{ font-size:20px; }
-.tl-points li::marker{ color:#fff; }
+.tl-points li::marker{ color:var(--accent-soft); }
 
 /* projects, still just placeholders */
 .projects{ padding-bottom:clamp(60px,8vw,110px); }
@@ -906,19 +996,30 @@ a{ color:inherit; text-decoration:none; }
   display:grid;
   grid-template-columns:repeat(3,minmax(0,400px));
   justify-content:center;
-  gap:72px 67px;
+  gap:clamp(24px,4vw,48px);
 }
 .project-card{
   display:grid; place-items:center;
   height:145px;
   background:var(--card);
-  border-radius:20px;
-  color:var(--dim);
-  font-size:clamp(24px,3vw,36px);
-  font-weight:400;
-  transition:background-color .2s ease, transform .2s ease;
+  border-radius:var(--radius-card);
+  box-shadow:0 12px 28px rgba(0,0,0,.3);
+  transition:background-color .2s ease, transform .25s var(--ease-out), box-shadow .25s ease;
 }
-.project-card:hover{ background:#26232b; transform:translateY(-3px); }
+.project-card:hover{ transform:translateY(-4px); box-shadow:0 18px 36px rgba(0,0,0,.4), 0 0 0 1px rgba(164,139,255,.25); }
+
+/* empty slots waiting for future projects: a dashed outline, so they read
+   as intentionally empty rather than a card that failed to load */
+.project-card-soon{
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(30,28,33,.45);
+  border:2px dashed rgba(164,139,255,.22);
+  box-shadow:none;
+  color:var(--dim);
+  font-size:clamp(18px,1.6vw,22px);
+  font-weight:500;
+}
+.project-card-soon:hover{ transform:none; box-shadow:none; border-color:rgba(164,139,255,.35); }
 
 /* small corner ribbon flagging a card as still in progress. Sits in the
    top-right corner as a diagonal banner; the card's own overflow:hidden +
@@ -958,7 +1059,7 @@ a{ color:inherit; text-decoration:none; }
   position:absolute; inset:0;
   display:grid; place-items:center;
 }
-.project-card-link:focus-visible{ outline:2px solid var(--purple-line); outline-offset:-3px; }
+.project-card-link:focus-visible{ outline:3px solid var(--accent-soft); outline-offset:3px; border-radius:var(--radius-card); }
 
 .wizard-robe{ position:absolute; inset:0; }
 .wizard-robe-a{
@@ -1060,7 +1161,7 @@ a{ color:inherit; text-decoration:none; }
 }
 .project-card-cli:hover,
 .project-card-cli:focus-visible{ background:#0e130e; }
-.project-card-cli:focus-visible{ outline:2px solid var(--purple-line); outline-offset:3px; }
+.project-card-cli:focus-visible{ outline:3px solid var(--accent-soft); outline-offset:3px; }
 
 /* explicit line elements rather than a tiled background: a tiled pattern
    always redraws a line at position 0, which doubled up with the frame
@@ -1184,7 +1285,7 @@ a{ color:inherit; text-decoration:none; }
   background:linear-gradient(109deg, #6f8dff 2.6%, #bd68ff 98.1%);
   filter:brightness(1.08);
 }
-.project-card-pantry:focus-visible{ outline:2px solid var(--purple-line); outline-offset:3px; }
+.project-card-pantry:focus-visible{ outline:3px solid var(--accent-soft); outline-offset:3px; }
 
 .pantry-orb{
   position:absolute;
@@ -1278,19 +1379,20 @@ a{ color:inherit; text-decoration:none; }
 /* contact + footer */
 .contact{ padding-bottom:clamp(50px,7vw,90px); }
 .contact-inner{ display:flex; flex-direction:column; align-items:center; text-align:center; }
+.contact .section-title{ margin-bottom:24px; }
 .contact-copy{
-  font-size:clamp(19px,2.1vw,27px);
+  font-size:clamp(18px,1.7vw,22px);
   font-weight:400;
   color:var(--muted);
-  margin:-24px 0 32px;
+  margin:0 0 32px;
 }
 .socials-footer{ margin-top:40px; }
 
 .site-footer{
-  border-top:1px solid rgba(255,255,255,.1);
+  border-top:1px solid rgba(255,255,255,.08);
   padding:28px 0;
-  color:var(--dim);
-  font-size:16px;
+  color:var(--muted);
+  font-size:15px;
   text-align:center;
 }
 
@@ -1354,7 +1456,7 @@ a{ color:inherit; text-decoration:none; }
   .nav .nav-link:active{ background:rgba(255,255,255,.06); }
   .nav .nav-link.is-active{
     background:rgba(115,83,139,.14);
-    border-left-color:var(--purple-nav);
+    border-left-color:var(--nav-purple);
   }
   .nav-link::after{ display:none; }
   .nav-inner{ min-height:84px; position:relative; }
@@ -1365,18 +1467,20 @@ a{ color:inherit; text-decoration:none; }
   :root{ --glyph:70px; }
   .hero{ padding-top:56px; text-align:center; }
   .hero-rule{ width:min(240px,100%); margin-inline:auto; }
-  .btn{ width:100%; max-width:320px; height:60px; }
+  .btn{ width:100%; max-width:320px; height:62px; }
   .hero-actions{ width:min(400px,100%); margin-inline:auto; justify-content:center; }
   .connect{ margin-top:56px; flex-direction:column; justify-content:center; }
   .socials{ justify-content:center; }
+  .about-card{ padding-bottom:32px; }
+  .about-copy h2{ text-align:center; }
   .specs{ gap:22px; font-size:16px; }
-  .avatar-wrap{ width:180px; height:180px; --av-r1:98px; --av-r2:110px; }
+  .avatar-wrap{ width:180px; height:180px; margin-bottom:40px; --av-r1:98px; --av-r2:110px; }
   .tiles{ column-gap:clamp(18px,6vw,40px); row-gap:34px; }
-  .tl-item{ padding-left:64px; }
-  .tl-dot{ width:40px; height:40px; }
-  .tl-item::before{ left:17.5px; top:38px; }
+  .tl-item{ padding-left:60px; }
+  .tl-dot{ --tl-ring:40px; }
+  .tl-item::before{ left:18px; top:38px; }
   .project-grid{ grid-template-columns:minmax(0,400px); gap:24px; }
-  .project-card{ height:120px; font-size:28px; }
+  .project-card{ height:120px; }
   .wizard-title, .pantry-title{ font-size:28px; }
   .cli-title{ font-size:24px; }
 }
@@ -1393,5 +1497,6 @@ a{ color:inherit; text-decoration:none; }
   .design-viewer[open]{ animation:none; }
   .wizard-robe-a, .wizard-robe-b, .wizard-wand-a, .wizard-wand-b, .wand-tip{ animation:none; }
   .cli-ping, .cli-scan{ animation:none; }
+  .btn::after{ display:none; }
   .pantry-food, .pantry-food-inner{ animation:none; }
 }
