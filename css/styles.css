@@ -579,6 +579,62 @@ a{ color:inherit; text-decoration:none; }
   display:block;
 }
 
+/* the Figma tile has a small tag hanging underneath it on a string,
+   linking to this site's own design file. The tile gets extra room at the
+   bottom for it so it never runs into the next heading. */
+.tile-figma{ position:relative; padding-bottom:66px; }
+.figma-tag{
+  position:absolute;
+  bottom:0;
+  left:50%;
+  translate:-50% 0;
+  width:max-content;
+  padding:13px 14px 8px;
+  border-radius:10px;
+  background:linear-gradient(90deg,var(--grad-from),var(--grad-to));
+  color:#fff;
+  font-size:13px;
+  font-weight:600;
+  line-height:1.3;
+  text-align:center;
+  box-shadow:0 6px 18px rgba(109,18,179,.35);
+  transform-origin:50% -14px;
+  animation:figmaTagSway 3.4s ease-in-out infinite;
+  transition:box-shadow .2s ease, filter .2s ease;
+}
+/* the string, running up to the "Figma" label */
+.figma-tag::before{
+  content:"";
+  position:absolute;
+  bottom:100%;
+  left:50%;
+  width:2px;
+  height:14px;
+  margin-left:-1px;
+  background:rgba(255,255,255,.45);
+}
+/* the tag's eyelet */
+.figma-tag::after{
+  content:"";
+  position:absolute;
+  top:4px;
+  left:50%;
+  width:5px; height:5px;
+  margin-left:-2.5px;
+  border-radius:50%;
+  background:rgba(34,32,37,.75);
+}
+.figma-tag:hover,
+.figma-tag:focus-visible{
+  animation-play-state:paused;
+  filter:brightness(1.12);
+  box-shadow:0 8px 24px rgba(109,18,179,.55);
+}
+@keyframes figmaTagSway{
+  0%,100%{ rotate:-4deg; }
+  50%{ rotate:4deg; }
+}
+
 .plate{ border-radius:15px; }
 .plate-react{ background:#e0fffd; }
 .plate-p5{ background:#ed225d; }
@@ -1169,6 +1225,7 @@ a{ color:inherit; text-decoration:none; }
   .hero-aura, .hc-orbit-1, .hc-orbit-2, .hc-orbit-3, .hero-card-pulse, .hero-card-spark, .hero-card-caret{ animation:none; }
   .bg-nebula-1, .bg-nebula-2, .bg-nebula-3, .shooting-star{ animation:none; }
   .avatar-halo, .av-orbit-1, .av-orbit-2, .badge-open{ animation:none; }
+  .figma-tag{ animation:none; }
   .wizard-robe-a, .wizard-robe-b, .wizard-wand-a, .wizard-wand-b, .wand-tip{ animation:none; }
   .cli-ping, .cli-scan{ animation:none; }
   .pantry-food, .pantry-food-inner{ animation:none; }
