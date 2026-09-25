@@ -1,0 +1,152 @@
+#imports the random library to allow randomising to be
+#used in the program
+import random
+#this piece of code allows the player to input how big they would
+#like the grid to be
+while True:
+    try:
+        max_grid = 11
+        GRID_SIZE = int(input("Enter the size of the board (e.g., 8 for an 8x8 grid, Max 10x10): "))
+        if max_grid > GRID_SIZE > 0:
+            break
+        else:
+            print("Please enter a valid number.")
+    except ValueError:
+        print("Invalid input. Please enter a valid number.")
+#this piece of code allows the player to input how many ships they would
+#like on the board
+while True:
+    try:
+        max_ships = GRID_SIZE * GRID_SIZE
+        NUM_SHIPS = int(input(f"Enter the number of ships (maximum {max_ships}): "))
+        if 1 <= NUM_SHIPS <= max_ships:
+            break
+        else:
+            print(f"Please enter a number between 1 and {max_ships}.")
+    except ValueError:
+        print("Invalid input. Please enter a valid number.")
+
+#the following class contains the whole game, it groups all of the
+#functions in the game together
+class BattleshipGame:
+    def __init__(self):
+        self.player_grid = [['~'] * GRID_SIZE for _ in range(GRID_SIZE)]
+        self.computer_grid = [['~'] * GRID_SIZE for _ in range(GRID_SIZE)]
+        #both of these lines create grids that are 8x8 in size
+        self.computer_ships = []
+        self.player_ships = []
+        #both of these lines are lists that store the enemy
+        #and player ships
+        self.computer_guesses = set()
+        #creates a set to track the enemy's guesses
+        #so that it doesn't guess the same position twice
+
+    def place_ships(self, grid, ships):
+        while len(ships) < NUM_SHIPS:
+        #this while loop places ships until the number of ships is reached
+            x, y = random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1)
+            #this line picks a random spot on the board to place the ship
+            if (x, y) not in ships:
+            #this checks if the spot has already been picked
+                ships.append((x, y))
+                grid[x][y] = 'S'
+            #if the spot hasn't been picked, the spot is marked with an "s"
+
+    def print_grid(self, grid, reveal_ships=False):
+        print("  " + " ".join(map(str, range(GRID_SIZE))))
+        #this line prints the grid with the size that has been assigned
+        for i, row in enumerate(grid):
+            print(f"{i} " + ' '.join(['~' if cell == 'S' and not reveal_ships else cell for cell in row]))
+            #this area of the code labels the rows with the correct coordinates
+        print()
+
+    def get_player_guess(self):
+        while True:
+            try:
+                guess = input("Enter your guess (row and column, e.g., 2 3): ")
+                #this takes the user's guess for the round
+                x, y = map(int, guess.split())
+                #this splits up the user's guess into 2 integers
+                if 0 <= x < GRID_SIZE and 0 <= y < GRID_SIZE:
+                #this checks if the user's input is in the valid range
+                    return x, y
+                else:
+                    print(f"Invalid input. Please enter values between 0 and {GRID_SIZE - 1}.")
+            except ValueError:
+                #checks to see if the user's input is a valid answer
+                print("Invalid input. Please enter two numbers separated by a space.")
+
+    def make_guess(self, grid, ships, x, y):
+        #this function checks for the geuss to see if it is correct
+        if (x, y) in ships:
+            grid[x][y] = 'X'
+            ships.remove((x, y))
+            print("Hit!")
+            return True
+        else:
+            grid[x][y] = 'O'
+            print("Miss.")
+            return False
+
+    def computer_turn(self):
+        #this function makes the computer's guess
+        while True:
+            x, y = random.randint(0, GRID_SIZE - 1), random.randint(0, GRID_SIZE - 1)
+            #the computer guesses randomly
+            if (x, y) not in self.computer_guesses:
+                self.computer_guesses.add((x, y))
+                #this checks to see if the computer hasn't already made the guess
+                #if the guess is valid, it adds it to a list so the guesses can
+                #be tracked
+                print(f"Computer guesses: {x}, {y}")
+                hit = self.make_guess(self.player_grid, self.player_ships, x, y)
+                return hit
+
+    def check_winner(self):
+    #this functions tests if the game is over
+    #by checking if  the player has no ships left
+        if not self.player_ships:
+            return "Computer"
+        elif not self.computer_ships:
+            return "Player"
+        return None
+
+    def play(self):
+        print("Welcome to Ahsan's Battleships!")
+
+        # Place ships
+        self.place_ships(self.computer_grid, self.computer_ships)
+        self.place_ships(self.player_grid, self.player_ships)
+
+        # Game loop
+        while True:
+            print("\nYour Grid:")
+            self.print_grid(self.player_grid, reveal_ships=True)
+            print("\nComputer's Grid:")
+            self.print_grid(self.computer_grid, reveal_ships=False)
+
+            # Player's turn
+            print("Your turn!")
+            x, y = self.get_player_guess()
+            self.make_guess(self.computer_grid, self.computer_ships, x, y)
+
+            # Check for a winner
+            winner = self.check_winner()
+            if winner:
+                print(f"{winner} wins!")
+                break
+
+            # Computer's turn
+            print("Computer's turn!")
+            self.computer_turn()
+
+            # Check for a winner
+            winner = self.check_winner()
+            if winner:
+                print(f"{winner} wins!")
+                break
+
+if __name__ == "__main__":
+    game = BattleshipGame()
+    game.play()
+
