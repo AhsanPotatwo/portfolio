@@ -934,8 +934,9 @@ a{ color:inherit; text-decoration:none; }
 }
 /* The ring and the line hanging from it are drawn as one shape: same
    colour, same 4px stroke, and the line starts inside the ring's bottom
-   edge so there's no seam. It stays solid for a while and then fades out
-   before the next entry. */
+   edge so there's no seam. The line ends level with the bottom of the
+   entry's text (above the item's 8px bottom padding), staying solid for a
+   while and then fading out, so it never runs into the next ring. */
 .tl-dot{
   --tl-ring:44px;
   position:absolute; left:0; top:0;
@@ -946,12 +947,11 @@ a{ color:inherit; text-decoration:none; }
 .tl-item::before{
   content:"";
   position:absolute;
-  left:20px; top:42px; bottom:-38px;
+  left:20px; top:42px; bottom:8px;
   width:4px;
   border-radius:0 0 3px 3px;
   background:linear-gradient(180deg,var(--accent) 0%,var(--accent) 35%,rgba(115,90,255,0) 100%);
 }
-.timeline .tl-item:last-child::before{ bottom:0; }
 .tl-title{
   font-size:clamp(22px,2.3vw,30px);
   font-weight:600;
