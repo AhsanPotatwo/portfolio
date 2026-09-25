@@ -92,7 +92,8 @@
         <div class="hero-rule" aria-hidden="true"></div>
 
         <div class="hero-actions">
-          <a class="btn btn-primary" href="assets/AhsanResume.pdf" download="Ahsan-Resume.pdf">My resume</a>
+          <!-- opens the resume viewer below (js/resume-viewer.js); without JavaScript it just downloads the PDF -->
+          <a class="btn btn-primary" href="assets/AhsanResume.pdf" download="Ahsan-Resume.pdf" data-resume-viewer>My resume</a>
           <a class="btn btn-ghost" href="#projects">Projects</a>
         </div>
 
@@ -472,9 +473,39 @@
     </button>
   </dialog>
 
+  <!-- popup for reading the resume without leaving the page, opened from the
+       "My resume" button. Same look as the design viewer above. -->
+  <dialog class="design-viewer resume-viewer" id="resumeViewer" aria-labelledby="rvTitle">
+    <div class="dv-bar">
+      <p class="dv-heading" id="rvTitle">Resume <span class="dv-sub">Ahsan Siddiqui</span></p>
+      <a class="rv-action" href="assets/AhsanResume.pdf" target="_blank" rel="noopener">Open in new tab</a>
+      <a class="rv-action rv-action-primary" href="assets/AhsanResume.pdf" download="Ahsan-Resume.pdf">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg>
+        Download
+      </a>
+      <button class="dv-close" type="button" aria-label="Close resume" autofocus>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="dv-stage rv-stage" id="rvStage">
+      <!-- the PDF is loaded into this frame the first time the viewer opens -->
+      <iframe class="rv-frame" id="rvFrame" title="Ahsan Siddiqui resume (PDF)"></iframe>
+      <!-- shown instead of the frame on browsers that can't display PDFs inside a page (most phones) -->
+      <div class="rv-fallback" id="rvFallback" hidden>
+        <p class="rv-fallback-title">Your browser can't show PDFs inside the page.</p>
+        <p>Open it in a new tab or download it instead.</p>
+        <div class="rv-fallback-actions">
+          <a class="btn btn-primary" href="assets/AhsanResume.pdf" download="Ahsan-Resume.pdf">Download</a>
+          <a class="btn btn-ghost" href="assets/AhsanResume.pdf" target="_blank" rel="noopener">Open</a>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <script src="js/particles.js"></script>
   <script src="js/main.js"></script>
   <script src="js/design-viewer.js"></script>
+  <script src="js/resume-viewer.js"></script>
 </body>
 
 </html>
