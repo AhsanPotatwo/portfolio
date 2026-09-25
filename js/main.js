@@ -44,7 +44,7 @@
 
   // fade sections in as they scroll into view
   if (!reduced && 'IntersectionObserver' in window) {
-    var targets = document.querySelectorAll('.about-panel, .skill-groups, .timeline-col, .project-grid, .contact-inner, .skills .section-title, .projects .section-title');
+    var targets = document.querySelectorAll('.about-panel, .skill-groups, .timeline-col, .project-grid, .contact-inner, .skills .section-title, .projects .section-title, [data-reveal]');
     var revealer = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         entry.target.classList.toggle('is-visible', entry.isIntersecting);

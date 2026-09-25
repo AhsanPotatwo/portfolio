@@ -7,6 +7,7 @@
   <title>Wizard Battles — Ahsan</title>
   <meta name="description"
     content="Wizard Battles — a turn-based p5.js game built as a psychology dissertation project, measuring risk-taking behaviour through a gamified battle system.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -126,6 +127,11 @@
           <span style="--r:-20.35deg;--y:.5125em;--d:0s" aria-hidden="true">W</span><span style="--r:-16.43deg;--y:.336em;--d:.05s" aria-hidden="true">i</span><span style="--r:-13.96deg;--y:.241em;--d:.1s" aria-hidden="true">z</span><span style="--r:-10.28deg;--y:.131em;--d:.15s" aria-hidden="true">a</span><span style="--r:-6.8deg;--y:.0576em;--d:.2s" aria-hidden="true">r</span><span style="--r:-3.31deg;--y:.0137em;--d:.25s" aria-hidden="true">d</span><span style="--r:-0.27deg;--y:0em;--d:.3s" aria-hidden="true">&nbsp;</span><span style="--r:2.88deg;--y:.0103em;--d:.35s" aria-hidden="true">B</span><span style="--r:7.09deg;--y:.0627em;--d:.4s" aria-hidden="true">a</span><span style="--r:10.48deg;--y:.1367em;--d:.45s" aria-hidden="true">t</span><span style="--r:13.14deg;--y:.215em;--d:.5s" aria-hidden="true">t</span><span style="--r:15.39deg;--y:.2952em;--d:.55s" aria-hidden="true">l</span><span style="--r:18.24deg;--y:.4117em;--d:.6s" aria-hidden="true">e</span><span style="--r:21.8deg;--y:.587em;--d:.65s" aria-hidden="true">s</span>
         </h1>
         <p class="wb-subtitle">A turn-based psychological experiment</p>
+        <ul class="wb-tags" aria-label="Built with">
+          <li>p5.js</li>
+          <li>Node.js &amp; Express</li>
+          <li>Dissertation project</li>
+        </ul>
 
         <div class="wb-game-frame">
           <div class="wb-game-stage" id="gameStage">
@@ -173,66 +179,210 @@
 
     <div class="wb-ribbon-wrap"><span class="wb-ribbon">Behind the Magic</span></div>
 
-    <section class="wb-section wb-panel wb-panel-a">
-      <div class="container wb-two-col wb-two-col-reverse">
-        <div class="wb-art">
-          <img src="assets/wizard-battles/illustrations/wizard.svg" alt="Illustration of a wizard">
-        </div>
-        <div class="wb-copy wb-copy-right">
-          <div class="wb-heading">
+    <!-- why it exists -->
+    <section class="wb-section">
+      <div class="container">
+        <article class="wb-tome wb-tome-reverse wb-tome-violet">
+          <div class="wb-tome-art">
+            <img src="assets/wizard-battles/illustrations/wizard.svg" alt="Illustration of a wizard">
+          </div>
+          <div class="wb-tome-copy">
             <h2><span class="wb-accent">Why did I make</span> Wizard Battles?</h2>
-            <hr class="wb-divider">
+            <p>I made Wizard Battles as my third-year dissertation project for my Bachelor's degree in computer science. I chose this project because I've always been fascinated by how psychology can intertwine with computerised design, whether that be in the realm of game design, UI design or user interaction. I think psychology plays a much deeper role than people realise and I wanted to indulge myself in a project that reflected that as its core principle.</p>
           </div>
-          <p>I made Wizard Battles as my third-year dissertation project for my Bachelor's degree in computer science. I chose this project because I've always been fascinated by how psychology can intertwine with computerised design, whether that be in the realm of game design, UI design or user interaction. I think psychology plays a much deeper role than people realise and I wanted to indulge myself in a project that reflected that as its core principle.</p>
+        </article>
+      </div>
+    </section>
+
+    <div class="wb-ribbon-wrap"><span class="wb-ribbon">The Spellbook</span></div>
+
+    <!-- how a battle works: every move, its odds, and the elements -->
+    <section class="wb-section" id="spellbook">
+      <div class="container">
+        <header class="wb-section-head">
+          <img class="wb-section-icon" src="assets/wizard-battles/illustrations/swords-crossed.svg" alt="" aria-hidden="true">
+          <h2>How it <span class="wb-accent">works</span></h2>
+          <p>Each turn you pick a move and its strength. Stronger moves are less likely to work, and every risk is optional, so the game records how much risk each player chooses to take. You start with <strong>100</strong> health; the enemy wizard has <strong>200</strong>.</p>
+        </header>
+
+        <div class="wb-spells">
+          <article class="wb-spell">
+            <h3 class="wb-spell-title"><span class="wb-spell-dot wb-dot-attack" aria-hidden="true"></span>Attack</h3>
+            <ul class="wb-tiers">
+              <li class="wb-tier" style="--chance:100%">
+                <span class="wb-tier-name">Low</span>
+                <span class="wb-tier-effect">15 damage</span>
+                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
+                <span class="wb-tier-chance">100%</span>
+              </li>
+              <li class="wb-tier" style="--chance:75%">
+                <span class="wb-tier-name">Mid</span>
+                <span class="wb-tier-effect">30 damage</span>
+                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
+                <span class="wb-tier-chance">75%</span>
+              </li>
+              <li class="wb-tier" style="--chance:50%">
+                <span class="wb-tier-name">High</span>
+                <span class="wb-tier-effect">45 damage</span>
+                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
+                <span class="wb-tier-chance">50%</span>
+              </li>
+            </ul>
+            <p class="wb-spell-note">On average Mid and High both deal 22.5 damage a turn. High just swings harder.</p>
+          </article>
+
+          <article class="wb-spell">
+            <h3 class="wb-spell-title"><span class="wb-spell-dot wb-dot-defend" aria-hidden="true"></span>Defend</h3>
+            <ul class="wb-tiers">
+              <li class="wb-tier" style="--chance:100%">
+                <span class="wb-tier-name">Low</span>
+                <span class="wb-tier-effect">Block 10%</span>
+                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
+                <span class="wb-tier-chance">100%</span>
+              </li>
+              <li class="wb-tier" style="--chance:60%">
+                <span class="wb-tier-name">Mid</span>
+                <span class="wb-tier-effect">Block 20%</span>
+                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
+                <span class="wb-tier-chance">60%</span>
+              </li>
+              <li class="wb-tier" style="--chance:50%">
+                <span class="wb-tier-name">High</span>
+                <span class="wb-tier-effect">Block 50%</span>
+                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
+                <span class="wb-tier-chance">50%</span>
+              </li>
+            </ul>
+            <p class="wb-spell-note">Cuts the damage you take for one round.</p>
+          </article>
+
+          <article class="wb-spell">
+            <h3 class="wb-spell-title"><span class="wb-spell-dot wb-dot-heal" aria-hidden="true"></span>Heal</h3>
+            <ul class="wb-tiers">
+              <li class="wb-tier" style="--chance:75%">
+                <span class="wb-tier-name">Low</span>
+                <span class="wb-tier-effect">+10 health</span>
+                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
+                <span class="wb-tier-chance">75%</span>
+              </li>
+              <li class="wb-tier" style="--chance:60%">
+                <span class="wb-tier-name">Mid</span>
+                <span class="wb-tier-effect">+25 health</span>
+                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
+                <span class="wb-tier-chance">60%</span>
+              </li>
+              <li class="wb-tier" style="--chance:50%">
+                <span class="wb-tier-name">High</span>
+                <span class="wb-tier-effect">+40 health</span>
+                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
+                <span class="wb-tier-chance">50%</span>
+              </li>
+            </ul>
+            <p class="wb-spell-note">A successful heal makes your next move 10, 20 or 30% less likely to land.</p>
+          </article>
+        </div>
+
+        <div class="wb-spells-extra">
+          <article class="wb-berserk">
+            <p class="wb-berserk-tag">Desperation move</p>
+            <h3>Berserk Strike</h3>
+            <p>Appears once you're down to <strong>15%</strong> health: <strong>60 damage</strong> at a <strong>35%</strong> chance, and a miss costs you 10 health of your own.</p>
+          </article>
+
+          <article class="wb-elements">
+            <div class="wb-elements-copy">
+              <h3>Elements</h3>
+              <p>Every attack also has an element. Hit the one it beats for <strong>double</strong> damage; hit the one that beats it for <strong>half</strong>. Each arrow points at the element it beats. Neutral is never better or worse.</p>
+            </div>
+            <!-- Fire beats Earth, Earth beats Water, Water beats Fire -->
+            <svg class="wb-cycle" viewBox="0 0 300 250" role="img" aria-labelledby="wbCycleTitle">
+              <title id="wbCycleTitle">Fire beats Earth, Earth beats Water, and Water beats Fire</title>
+              <defs>
+                <marker id="wbArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0 0L10 5L0 10z" fill="#bf92ff"/>
+                </marker>
+              </defs>
+              <g class="wb-cycle-arrows" fill="none" stroke="#bf92ff" stroke-width="2" marker-end="url(#wbArrow)">
+                <path d="M170 58 Q222 88 236 150"/>
+                <path d="M206 206 Q150 232 94 206"/>
+                <path d="M64 150 Q78 88 130 58"/>
+              </g>
+              <g class="wb-cycle-labels" font-family="Quicksand, sans-serif" font-size="17" font-weight="700" fill="#e9e6f0" text-anchor="middle">
+                <text x="232" y="94">&#215;2</text>
+                <text x="150" y="244">&#215;2</text>
+                <text x="68" y="94">&#215;2</text>
+              </g>
+              <g class="wb-cycle-nodes" font-family="Quicksand, sans-serif" font-size="15" font-weight="700" text-anchor="middle">
+                <circle cx="150" cy="40" r="32" fill="#3a1a1a" stroke="#ff7a45" stroke-width="2.5"/>
+                <text x="150" y="45" fill="#ffb08a">Fire</text>
+                <circle cx="242" cy="186" r="32" fill="#1a2e1c" stroke="#6cc56b" stroke-width="2.5"/>
+                <text x="242" y="191" fill="#a6e3a5">Earth</text>
+                <circle cx="58" cy="186" r="32" fill="#16243a" stroke="#4aa8ff" stroke-width="2.5"/>
+                <text x="58" y="191" fill="#9ccfff">Water</text>
+              </g>
+            </svg>
+          </article>
         </div>
       </div>
     </section>
 
-    <section class="wb-section wb-panel wb-panel-b">
-      <div class="container wb-two-col">
-        <div class="wb-copy">
-          <div class="wb-heading">
-            <h2 class="wb-h2-lg">How it <span class="wb-accent">works</span></h2>
-            <hr class="wb-divider">
-          </div>
-          <p>The game tests risk by letting the player attack with multiple tiers of power. The player also has an option to heal and defend, both with unique penalties. Low risk attacks will always deal damage but high risk attacks deal greater damage at the risk of not always landing. Every risk the player takes is fully optional.</p>
-        </div>
-        <div class="wb-art">
-          <img src="assets/wizard-battles/illustrations/swords-crossed.svg" alt="Illustration of crossed swords">
-        </div>
-      </div>
-    </section>
+    <div class="wb-ribbon-wrap"><span class="wb-ribbon">The Opponent</span></div>
 
-    <section class="wb-section wb-panel wb-panel-c">
-      <div class="container wb-two-col wb-two-col-reverse">
-        <div class="wb-art">
-          <img src="assets/wizard-battles/illustrations/robot.svg" alt="Illustration of a robot enemy">
-        </div>
-        <div class="wb-copy wb-copy-right wb-copy-narrow">
-          <div class="wb-heading">
+    <!-- the AI enemy, with its actual decision rules -->
+    <section class="wb-section">
+      <div class="container">
+        <article class="wb-tome wb-tome-indigo">
+          <div class="wb-tome-art">
+            <img src="assets/wizard-battles/illustrations/robot.svg" alt="Illustration of a robot enemy">
+          </div>
+          <div class="wb-tome-copy">
             <h2>How the <span class="wb-accent">AI enemy</span> works</h2>
-            <hr class="wb-divider">
+            <p>The enemy doesn't cheat; it plays by the same kind of moves you do. It reads the state of the battle and your recent choices, then picks the move a sensible wizard would, just like a real opponent.</p>
+            <ol class="wb-rules">
+              <li><strong>Below 35% health</strong>, it usually heals.</li>
+              <li>If you keep <strong>playing it safe</strong> (three low moves in your last five), it often defends.</li>
+              <li>If <strong>you're</strong> low on health or healing a lot, it keeps attacking.</li>
+              <li>Otherwise it attacks <strong>60%</strong> of the time and defends the rest.</li>
+              <li>It remembers the elements of your <strong>last 10 attacks</strong> and picks the element that counters your favourite.</li>
+            </ol>
           </div>
-          <p>The enemy doesn't cheat; it fights you as if it were another player. The AI uses a predictive algorithm, tracking your last 10 moves to guess what move you will make and counter your gameplay style. If the AI is low on health, it will prioritise healing and if the player is being risky then the AI will try to defend itself, just like a real wizard!</p>
-        </div>
+        </article>
       </div>
     </section>
 
-    <section class="wb-section wb-panel wb-panel-d">
-      <div class="container wb-two-col">
-        <div class="wb-copy">
-          <div class="wb-heading">
+    <div class="wb-ribbon-wrap"><span class="wb-ribbon">The Research</span></div>
+
+    <!-- how the data is collected, with an example of the file it produces -->
+    <section class="wb-section">
+      <div class="container">
+        <article class="wb-tome wb-tome-reverse wb-tome-plum">
+          <div class="wb-tome-art">
+            <div class="wb-art-stack">
+              <img src="assets/wizard-battles/illustrations/book.svg" alt="Illustration of an open book">
+              <img class="wb-art-accent" src="assets/wizard-battles/illustrations/scroll.svg" alt="" aria-hidden="true">
+            </div>
+          </div>
+          <div class="wb-tome-copy">
             <h2>Collecting <span class="wb-accent">data &amp; backend</span></h2>
-            <hr class="wb-divider">
+            <p>The game runs in the browser on p5.js with a Node.js and Express backend server. Every move either side makes is logged, and at the end of a battle the whole session is sent to the server and saved as a CSV file, which researchers can open and analyse straight away.</p>
           </div>
-          <p>The game runs in the browser on p5.js with a Node.js and Express backend server. Each round is sent to the server and written to a CSV file. A CSV file lets researchers easily read and process the data, and the backend server is simple to build and set up.</p>
-        </div>
-        <div class="wb-art">
-          <div class="wb-art-stack">
-            <img src="assets/wizard-battles/illustrations/book.svg" alt="Illustration of an open book">
-            <img class="wb-art-accent" src="assets/wizard-battles/illustrations/scroll.svg" alt="" aria-hidden="true">
-          </div>
-        </div>
+          <figure class="wb-scroll">
+            <figcaption>A session file, one row per move <span>(example values)</span></figcaption>
+            <div class="wb-scroll-body">
+              <table class="wb-csv">
+                <thead>
+                  <tr><th>PlayerID</th><th>MoveNum</th><th>Role</th><th>MoveType</th><th>MoveTier</th><th>Element</th><th>Outcome</th><th>Value</th><th>Success</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>K2U75E2AY1</td><td>1</td><td>Player</td><td>Attack</td><td>Mid Attack</td><td>Earth</td><td>Hit for 60 damage</td><td>60</td><td>true</td></tr>
+                  <tr><td>K2U75E2AY1</td><td>2</td><td>Player</td><td>Heal</td><td>Low Heal</td><td>n/a</td><td>Healed for 10</td><td>10</td><td>true</td></tr>
+                  <tr><td>K2U75E2AY1</td><td>1</td><td>Enemy</td><td>attack</td><td>Mid Attack</td><td>Water</td><td>Enemy hit for 18 damage</td><td>18</td><td>true</td></tr>
+                  <tr><td>K2U75E2AY1</td><td>2</td><td>Enemy</td><td>defend</td><td>High Defend</td><td>n/a</td><td>Applied 50% defense</td><td>0</td><td>true</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </figure>
+        </article>
       </div>
     </section>
 
@@ -252,6 +402,10 @@
         </div>
       </div>
     </section>
+
+    <div class="container page-back">
+      <a href="index.html#projects"><span aria-hidden="true">&larr;</span> Back to all projects</a>
+    </div>
 
   </main>
 

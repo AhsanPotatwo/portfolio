@@ -25,6 +25,8 @@
   /* JetBrains Mono would draw == and -> as single symbols; code on this
      page should show the characters as written */
   font-variant-ligatures:no-contextual;
+  /* the "Back to all projects" link (.page-back in styles.css) */
+  --page-accent:var(--cb-green);
 
   /* faint graph paper, like a plotting board */
   background:
@@ -141,13 +143,98 @@
 .cb-dot-c { background:var(--cb-c); }
 .cb-dot-rs{ background:var(--cb-rs); }
 
-/* ---------- hero ---------- */
-.cb-hero{ padding:clamp(56px,8vw,120px) 0 clamp(48px,6vw,90px); }
-.cb-hero-inner{
+/* main normally uses overflow-x:hidden (styles.css), which would stop the
+   side rail below from sticking; clip does the same job without that */
+.cb-page main{ overflow-x:clip; }
+
+/* ---------- layout ----------
+   Unlike the home page (text on the left) and Wizard Battles (everything
+   centred), this page is laid out like a code editor: a narrow side rail
+   that stays put as you scroll, listing the page's sections like files in
+   a project, beside a wide content column. */
+.cb-layout{
   display:grid;
-  grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);
+  grid-template-columns:220px minmax(0,1fr);
+  gap:clamp(32px,4vw,64px);
+  align-items:start;
+}
+.cb-rail{
+  position:sticky;
+  top:112px;
+  padding-top:clamp(48px,6vw,88px);
+  display:grid;
+  gap:32px;
+}
+.cb-toc-root{
+  font-family:var(--font-code);
+  font-size:14px;
+  color:var(--cb-muted);
+  margin-bottom:10px;
+}
+/* the links hang off a vertical line like a file tree; the current
+   section's link lights up and its piece of the line turns green */
+.cb-toc ul{ border-left:1px solid var(--cb-line); }
+.cb-toc a{
+  position:relative;
+  display:block;
+  padding:7px 0 7px 18px;
+  font-size:16px;
+  font-weight:500;
+  color:var(--cb-muted);
+  transition:color .15s ease;
+}
+.cb-toc a::before{
+  content:"";
+  position:absolute;
+  left:-1px; top:6px; bottom:6px;
+  width:2px;
+  background:transparent;
+  transition:background-color .15s ease;
+}
+.cb-toc a:hover{ color:var(--cb-text); }
+.cb-toc a.is-current{ color:var(--cb-green-bright); }
+.cb-toc a.is-current::before{ background:var(--cb-green); }
+.cb-rail-heading{
+  font-family:var(--font-code);
+  font-size:13px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--cb-muted);
+  margin-bottom:12px;
+}
+.cb-rail-langs{ display:grid; gap:10px; }
+.cb-rail-langs li{
+  display:grid;
+  grid-template-columns:9px 1fr;
   align-items:center;
-  gap:clamp(32px,5vw,80px);
+  column-gap:10px;
+  font-weight:600;
+}
+.cb-rail-langs li > span:last-child{
+  grid-column:2;
+  font-size:14px;
+  font-weight:400;
+  color:var(--cb-muted);
+}
+.cb-rail-link{
+  font-size:15px;
+  font-weight:600;
+  color:var(--cb-green);
+  overflow-wrap:anywhere;
+  border-bottom:1px solid transparent;
+  transition:border-color .15s ease, color .15s ease;
+}
+.cb-rail-link:hover{ color:var(--cb-green-bright); border-bottom-color:currentColor; }
+
+/* ---------- hero ----------
+   The title takes the full width of the content column; the intro and the
+   sonar screen sit side by side beneath it. */
+.cb-hero{ padding-top:clamp(48px,6vw,88px); }
+.cb-hero-body{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  align-items:start;
+  gap:clamp(32px,5vw,72px);
 }
 .cb-path{
   font-family:var(--font-code);
@@ -166,12 +253,12 @@
   align-items:center;
   font-family:var(--font-code);
   font-weight:700;
-  /* sized so all 15 characters plus the cursor fit the text column */
-  font-size:clamp(30px,5vw,74px);
+  /* sized so all 15 characters plus the cursor fit the content column */
+  font-size:clamp(30px,5.4vw,80px);
   line-height:1.1;
   letter-spacing:-.02em;
   color:#fff;
-  margin-bottom:24px;
+  margin-bottom:28px;
 }
 .cb-title-text{
   flex:none;
@@ -187,33 +274,17 @@
   width:.55ch; height:.9em;
   margin-left:.12em;
   background:var(--cb-green);
-  box-shadow:0 0 14px rgba(61,220,132,.6);
   animation:cbBlink 1s step-end infinite;
 }
 .cb-lede{
-  max-width:600px;
-  font-size:clamp(18px,1.7vw,22px);
+  max-width:560px;
+  margin-bottom:32px;
+  font-size:clamp(18px,1.6vw,22px);
   font-weight:400;
-  line-height:1.6;
+  line-height:var(--lh-body);
   color:var(--cb-text);
 }
 
-.cb-langs{
-  display:flex; flex-wrap:wrap;
-  gap:10px;
-  margin:28px 0 36px;
-}
-.cb-langs li{
-  display:inline-flex; align-items:center; gap:8px;
-  padding:7px 14px;
-  border:1px solid var(--cb-line);
-  border-radius:8px;
-  background:var(--cb-panel);
-  font-family:var(--font-code);
-  font-size:15px;
-  font-weight:500;
-}
-.cb-langs li > span:last-child{ color:var(--cb-muted); font-weight:400; }
 .cb-actions{ display:flex; flex-wrap:wrap; gap:16px; }
 .cb-actions-center{ justify-content:center; }
 
@@ -222,8 +293,7 @@
    turns round it, and a few contacts that flash as the sweep passes. */
 .cb-radar{
   position:relative;
-  justify-self:center;
-  width:min(420px,100%);
+  width:clamp(220px,24vw,340px);
   aspect-ratio:1;
   border-radius:50%;
   border:1.5px solid var(--cb-line-strong);
@@ -236,7 +306,7 @@
       transparent 50% 74.6%, rgba(61,220,132,.22) 74.6% 75%,
       transparent 75%),
     radial-gradient(circle, rgba(20,60,36,.55), rgba(8,16,11,.85) 72%);
-  box-shadow:0 0 0 10px rgba(61,220,132,.04), 0 0 80px rgba(61,220,132,.12), inset 0 0 40px rgba(0,0,0,.5);
+  box-shadow:0 0 0 8px rgba(61,220,132,.04), inset 0 0 40px rgba(0,0,0,.5);
   overflow:hidden;
 }
 .cb-radar-sweep{
@@ -276,26 +346,26 @@
 .cb-radar-label-w{ left:10px; top:50%; translate:0 -50%; }
 
 /* ---------- sections ---------- */
-.cb-section{ padding:clamp(48px,7vw,100px) 0; }
-.cb-section-head{ max-width:760px; margin-bottom:clamp(28px,4vw,48px); }
-.cb-kicker{
-  font-family:var(--font-code);
-  font-size:15px;
-  color:var(--cb-green);
-  margin-bottom:10px;
-}
+/* spacing and text sizes come from the shared scale in styles.css
+   (--section-pad, --h2, --text-body) so every page reads the same */
+.cb-section{ padding-top:var(--section-pad); scroll-margin-top:100px; }
+.cb-hero{ scroll-margin-top:120px; }
+.cb-section-head{ max-width:760px; margin-bottom:clamp(28px,4vw,44px); }
 .cb-section-head h2,
 .cb-cta-box h2{
-  font-size:clamp(32px,4vw,52px);
+  font-size:var(--h2);
   font-weight:700;
   line-height:1.15;
   color:#fff;
 }
+/* one word or phrase of each heading in the page's accent colour, the same
+   device the Wizard Battles page uses in purple */
+.cb-accent{ color:var(--cb-green); }
 .cb-section-lede{
   margin-top:14px;
-  font-size:clamp(17px,1.5vw,20px);
+  font-size:var(--text-body);
   font-weight:400;
-  line-height:1.6;
+  line-height:var(--lh-body);
   color:var(--cb-muted);
 }
 
@@ -306,7 +376,7 @@
 .cb-cta-box{
   background:var(--cb-panel);
   border:1px solid var(--cb-line);
-  border-radius:14px;
+  border-radius:16px;
   box-shadow:0 14px 34px rgba(0,0,0,.35);
 }
 
@@ -472,36 +542,23 @@
 .cb-legend dd{ margin:0; font-size:15px; color:var(--cb-muted); }
 
 /* ---------- language cards ---------- */
-.cb-cards{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:24px;
-}
+/* one card per language, stacked, each with its code on the left and
+   what it shows on the right */
+.cb-cards{ display:grid; gap:24px; }
 .cb-card{
   --cb-lang:var(--cb-green);
-  position:relative;
-  display:flex; flex-direction:column;
-  padding:24px;
-  overflow:hidden;
-  transition:transform .25s var(--ease-out), border-color .25s ease, box-shadow .25s ease;
-}
-/* a thin strip of the language's colour along the top */
-.cb-card::before{
-  content:"";
-  position:absolute;
-  top:0; left:0; right:0;
-  height:3px;
-  background:var(--cb-lang);
-  opacity:.85;
+  display:grid;
+  grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
+  grid-template-areas:"head head" "code points";
+  gap:6px clamp(24px,3vw,40px);
+  padding:clamp(22px,2.4vw,32px);
+  transition:border-color .25s ease;
 }
 .cb-card-py{ --cb-lang:var(--cb-py); }
 .cb-card-c { --cb-lang:var(--cb-c); }
 .cb-card-rs{ --cb-lang:var(--cb-rs); }
-.cb-card:hover{
-  transform:translateY(-4px);
-  border-color:var(--cb-line-strong);
-  box-shadow:0 20px 40px rgba(0,0,0,.45);
-}
+.cb-card:hover{ border-color:var(--cb-line-strong); }
+.cb-card-head{ grid-area:head; }
 .cb-file{
   display:inline-flex; align-items:center; gap:8px;
   font-family:var(--font-code);
@@ -522,15 +579,17 @@
   color:var(--cb-lang);
 }
 .cb-code{
-  margin:0 0 20px;
+  grid-area:code;
+  margin:0;
+  align-self:start;
   padding:16px;
   border:1px solid rgba(61,220,132,.1);
   border-radius:10px;
   background:#070b08;
   overflow-x:auto;
   font-family:var(--font-code);
-  font-size:12.5px;
-  line-height:1.6;
+  font-size:13px;
+  line-height:1.65;
   color:#cfe3d6;
   scrollbar-color:#1f5c38 transparent;
   scrollbar-width:thin;
@@ -543,11 +602,12 @@
 .cb-code .s{ color:#c3e88d; }
 .cb-code .n{ color:#f78c6c; }
 .cb-points{
-  display:grid; gap:10px;
-  margin-top:auto;
-  font-size:16px;
+  grid-area:points;
+  align-self:center;
+  display:grid; gap:14px;
+  font-size:17px;
   font-weight:400;
-  line-height:1.5;
+  line-height:1.55;
 }
 .cb-points li{ position:relative; padding-left:20px; }
 .cb-points li::before{
@@ -601,26 +661,49 @@
   padding:clamp(32px,5vw,56px) clamp(20px,4vw,48px);
   text-align:center;
 }
-.cb-cta-box p:not(.cb-kicker){
+.cb-cta-box p{
   max-width:540px;
   margin:14px auto 30px;
-  font-size:clamp(17px,1.5vw,20px);
+  font-size:var(--text-body);
   font-weight:400;
-  line-height:1.6;
+  line-height:var(--lh-body);
   color:var(--cb-muted);
 }
 
+/* the back link closes the content column */
+.cb-content .page-back{ padding-top:clamp(40px,5vw,64px); }
+
 /* ---------- responsive ---------- */
-@media (max-width:1100px){
-  .cb-cards{ grid-template-columns:1fr; max-width:720px; }
+@media (max-width:1280px){
+  /* the terminal gets the full width; its side panels move underneath */
   .cb-play{ grid-template-columns:1fr; }
-  .cb-play-side{ grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
+  .cb-play-side{ grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); }
 }
-@media (max-width:900px){
-  .cb-hero-inner{ grid-template-columns:1fr; }
-  /* one column now, so the title can use the full width */
-  .cb-title{ font-size:clamp(30px,9vw,64px); }
-  .cb-radar{ width:min(300px,80%); order:-1; }
+@media (max-width:1000px){
+  /* the rail becomes a row of jump links above the content */
+  .cb-layout{ grid-template-columns:minmax(0,1fr); gap:0; }
+  .cb-rail{
+    position:static;
+    padding-top:24px;
+    gap:0;
+  }
+  .cb-rail-block, .cb-toc-root{ display:none; }
+  .cb-toc ul{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    border-left:0;
+    border-bottom:1px solid var(--cb-line);
+    scrollbar-width:none;
+  }
+  .cb-toc a{ padding:10px 12px; white-space:nowrap; font-size:15px; }
+  .cb-toc a::before{ left:12px; right:12px; top:auto; bottom:-1px; width:auto; height:2px; }
+  .cb-title{ font-size:clamp(30px,8.4vw,80px); }
+}
+@media (max-width:860px){
+  .cb-hero-body{ grid-template-columns:minmax(0,1fr); }
+  .cb-radar{ order:-1; justify-self:center; width:min(280px,76%); }
+  .cb-card{ grid-template-columns:minmax(0,1fr); grid-template-areas:"head" "code" "points"; gap:18px; }
 }
 @media (max-width:600px){
   .cb-term-body{ height:440px; padding:12px 12px 16px; font-size:12.5px; }
