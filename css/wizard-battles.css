@@ -167,7 +167,7 @@
   --m:clamp(84px,9vw,136px);
   position:absolute;
   left:84%;
-  top:clamp(70px,8.6vw,124px);
+  top:clamp(100px,13.5vw,250px);
   width:var(--m);
   aspect-ratio:1;
   border-radius:50%;
