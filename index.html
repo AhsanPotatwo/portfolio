@@ -252,8 +252,9 @@
                   <img class="layer fig-1" src="assets/figma-1.svg" alt="">
                 </span>
                 <span>Figma</span>
-                <!-- little rune stone hanging off the Figma tile, linking to this site's design file -->
-                <a class="figma-tag" href="https://www.figma.com/design/8I7CBDkn3dz2HJuaapmHwE/Portfolio-website-design" target="_blank" rel="noopener">
+                <!-- little sign hanging off the Figma tile. Opens the design viewer popup
+                     (js/design-viewer.js); without JavaScript it's a plain link to the Figma file -->
+                <a class="figma-tag" href="https://www.figma.com/design/8I7CBDkn3dz2HJuaapmHwE/Portfolio-website-design" target="_blank" rel="noopener" data-design-viewer>
                   <span class="figma-tag-stone">
                     <span class="figma-tag-star" aria-hidden="true">&#10022;</span>
                     <span class="figma-tag-text">Check out this site's<br>UI design</span>
@@ -457,8 +458,30 @@
     </div>
   </footer>
 
+  <!-- popup viewer for this site's page designs, opened from the sign on the Figma tile -->
+  <dialog class="design-viewer" id="designViewer" aria-labelledby="dvTitle">
+    <div class="dv-bar">
+      <p class="dv-heading"><span id="dvTitle">Home page</span> <span class="dv-sub">UI design</span></p>
+      <p class="dv-count" aria-live="polite"><span id="dvIndex">1</span> / <span id="dvTotal">2</span></p>
+      <a class="dv-figma" href="https://www.figma.com/design/8I7CBDkn3dz2HJuaapmHwE/Portfolio-website-design" target="_blank" rel="noopener">Open in Figma</a>
+      <button class="dv-close" type="button" aria-label="Close design viewer" autofocus>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="dv-stage" id="dvStage">
+      <img class="dv-img" id="dvImg" alt="">
+    </div>
+    <button class="dv-nav dv-prev" type="button" aria-label="Previous design">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <button class="dv-nav dv-next" type="button" aria-label="Next design">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+    </button>
+  </dialog>
+
   <script src="js/particles.js"></script>
   <script src="js/main.js"></script>
+  <script src="js/design-viewer.js"></script>
 </body>
 
 </html>

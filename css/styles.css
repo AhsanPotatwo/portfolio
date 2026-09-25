@@ -669,6 +669,136 @@ a{ color:inherit; text-decoration:none; }
   .figma-tag{ translate:calc(-50% + 12px) 0; transform-origin:calc(50% - 12px) -13px; }
   .figma-tag::before{ left:calc(50% - 12px); }
 }
+/* ---------- design viewer popup ----------
+   Full-screen <dialog> for browsing this site's Figma page designs
+   (js/design-viewer.js). A top bar with the design's name, a counter, a
+   Figma link and a close button; below it the design itself, which is very
+   tall, so it's shown at a readable width and scrolls; and prev/next
+   buttons floating at the sides. */
+.dv-lock, .dv-lock body{ overflow:hidden; }
+.design-viewer{
+  width:100vw; height:100dvh;
+  max-width:none; max-height:none;
+  margin:0; padding:0;
+  border:none;
+  background:transparent;
+  color:#fff;
+  overflow:hidden;
+}
+.design-viewer[open]{
+  display:flex;
+  flex-direction:column;
+  animation:dvIn .25s ease;
+}
+.design-viewer::backdrop{
+  background:rgba(16,14,22,.88);
+  backdrop-filter:blur(6px);
+}
+@keyframes dvIn{
+  from{ opacity:0; transform:scale(.98); }
+  to{ opacity:1; transform:none; }
+}
+.dv-bar{
+  display:flex;
+  align-items:center;
+  gap:18px;
+  padding:12px clamp(16px,3vw,28px);
+  background:rgba(34,32,37,.92);
+  border-bottom:1px solid rgba(255,255,255,.1);
+  flex:none;
+}
+.dv-heading{
+  margin-right:auto;
+  font-size:clamp(16px,1.6vw,20px);
+  font-weight:600;
+}
+.dv-sub{ color:var(--muted); font-weight:500; }
+.dv-count{
+  font-size:14px;
+  color:var(--muted);
+  font-variant-numeric:tabular-nums;
+}
+.dv-figma{
+  font-size:14px;
+  color:#c9bde6;
+  border-bottom:1px solid rgba(201,189,230,.35);
+  transition:color .2s ease, border-color .2s ease;
+}
+.dv-figma:hover{ color:#fff; border-color:#fff; }
+.dv-close,
+.dv-nav{
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(191,146,255,.35);
+  background:rgba(34,32,37,.85);
+  color:#fff;
+  cursor:pointer;
+  transition:background-color .2s ease, border-color .2s ease;
+}
+.dv-close:hover,
+.dv-nav:hover{ background:var(--purple-nav); border-color:var(--purple-nav); }
+.dv-close svg,
+.dv-nav svg{
+  width:20px; height:20px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:2.2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.dv-close{ width:40px; height:40px; border-radius:10px; }
+.dv-stage{
+  position:relative;
+  flex:1;
+  overflow:auto;
+  overscroll-behavior:contain;
+  padding:28px 88px 48px;
+  cursor:zoom-out;
+}
+/* shows while a design is still downloading */
+.dv-stage::before{
+  content:"Loading design\2026";
+  position:absolute;
+  top:120px; left:0; right:0;
+  text-align:center;
+  color:var(--muted);
+  font-size:15px;
+}
+.dv-img{
+  position:relative;
+  z-index:1;
+  display:block;
+  width:min(1100px,100%);
+  margin:0 auto;
+  border-radius:12px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+  cursor:auto;
+  opacity:0;
+  transition:opacity .25s ease;
+}
+.dv-img.is-loaded{ opacity:1; }
+.dv-nav{
+  position:fixed;
+  top:50%;
+  width:52px; height:52px;
+  margin-top:-26px;
+  border-radius:50%;
+  z-index:2;
+}
+.dv-prev{ left:clamp(12px,2vw,24px); }
+.dv-next{ right:clamp(12px,2vw,24px); }
+
+@media (max-width:700px){
+  .dv-bar{ gap:12px; }
+  .dv-figma{ display:none; }
+  .dv-stage{ padding:14px 12px 88px; }
+  .dv-img{ border-radius:8px; }
+  /* on phones the arrows sit at the bottom, out of the way of the design */
+  .dv-nav{ top:auto; bottom:18px; margin-top:0; width:48px; height:48px; }
+  .dv-prev{ left:calc(50% - 60px); }
+  .dv-next{ right:calc(50% - 60px); }
+}
+
 .plate{ border-radius:15px; }
 .plate-react{ background:#e0fffd; }
 .plate-p5{ background:#ed225d; }
@@ -1260,6 +1390,7 @@ a{ color:inherit; text-decoration:none; }
   .bg-nebula-1, .bg-nebula-2, .bg-nebula-3, .shooting-star{ animation:none; }
   .avatar-halo, .av-orbit-1, .av-orbit-2, .badge-open{ animation:none; }
   .figma-tag{ animation:none; }
+  .design-viewer[open]{ animation:none; }
   .wizard-robe-a, .wizard-robe-b, .wizard-wand-a, .wizard-wand-b, .wand-tip{ animation:none; }
   .cli-ping, .cli-scan{ animation:none; }
   .pantry-food, .pantry-food-inner{ animation:none; }
