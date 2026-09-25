@@ -113,6 +113,51 @@
   -webkit-mask-image:linear-gradient(#000 55%, transparent);
           mask-image:linear-gradient(#000 55%, transparent);
 }
+/* ---------- clouds ----------
+   The page's original layered cloud, reworked to frame the hero instead
+   of filling it: three rows of overlapping circles in the original
+   purples, dark at the back, then mid, then light at the front. The back
+   row hangs lowest and the front row highest, so each layer's scalloped
+   edge shows beneath the one in front of it, which is what gives the
+   cloud its depth. The rows dip deeper in the corners and stay shallow
+   above the title. Each layer sways sideways by a different amount (least
+   at the back, most at the front) for a little parallax, and every puff
+   also bobs on its own timing. It all lives inside .wb-portal, which is
+   out of the page flow, so it never changes the layout. Sizes are in
+   --u, which scales with the screen. */
+.wb-clouds{
+  --u:clamp(5px,.8vw,12px);
+  position:absolute;
+  inset:0;
+}
+.wb-cloud-layer{
+  position:absolute;
+  top:0; left:0; right:0;
+  animation:wbCloudSway var(--sway-dur) ease-in-out infinite alternate;
+}
+.wb-cloud-d{ --c:#40167a; --sway:.6%; --sway-dur:13s; }
+.wb-cloud-m{ --c:#521c9c; --sway:1%;  --sway-dur:11s; }
+.wb-cloud-l{ --c:#6425bc; --sway:1.4%; --sway-dur:9s; }
+@keyframes wbCloudSway{
+  from{ translate:calc(var(--sway) * -1) 0; }
+  to  { translate:var(--sway) 0; }
+}
+.wb-puff{
+  position:absolute;
+  left:calc(var(--x) * 1%);
+  top:calc(var(--y) * var(--u));
+  width:calc(var(--r) * 2 * var(--u));
+  aspect-ratio:1;
+  translate:-50% -50%;
+  border-radius:50%;
+  background:var(--c);
+  animation:wbPuff calc(8s + var(--i) * .7s) ease-in-out calc(var(--i) * -1.3s) infinite;
+}
+@keyframes wbPuff{
+  0%,100%{ scale:1; margin-top:0; }
+  50%{ scale:1.05; margin-top:calc(var(--u, 8px) * -.6); }
+}
+
 .wb-portal-ring{
   position:absolute;
   left:50%;
@@ -1136,7 +1181,7 @@
     rotate:-10deg;
     filter:drop-shadow(0 0 8px rgba(255,210,255,.9));
   }
-  .wb-portal-ring, .wb-portal-star{ animation:none; }
+  .wb-portal-ring, .wb-portal-star, .wb-puff, .wb-cloud-layer{ animation:none; }
   .wb-arcane, .wb-cb-circle, .wb-tome::after{ animation:none; }
   .wb-tome::before{ animation:none; opacity:.7; }
   .wb-tome-art > img, .wb-art-stack{ animation:none; }
