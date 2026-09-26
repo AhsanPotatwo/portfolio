@@ -634,7 +634,6 @@ html.pw-light .pw-hero .pw-bubble{ --pw-text:#22163f; --pw-surface-solid:#fff; -
   line-height:1.55 !important;
 }
 .pw-quirk strong{ color:var(--pw-text); }
-.pw-shot-note{ font-size:14px !important; color:var(--pw-muted) !important; }
 
 /* ---------- the recreated app ---------- */
 .pw-play{
