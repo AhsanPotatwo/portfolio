@@ -7,10 +7,18 @@ namespace PantryWizard.Services
 {
     public static class GoogleLocationService
     {
-        private const string ApiKey = "AIzaSyBzfrAzabvT5EQTmYeS0n1jp14nhPfQ1hU";
+        // Put your own Google Maps Geocoding API key here to get city names.
+        // Don't commit a real key. Without one, the lookup is skipped and
+        // items are stamped with their coordinates instead.
+        private const string KeyPlaceholder = "YOUR_GOOGLE_MAPS_API_KEY";
+        private static readonly string ApiKey = KeyPlaceholder;
 
-        public static async Task<string> GetCityFromCoordinatesAsync(double latitude, double longitude)
+        // Returns the city name, or null if it couldn't be found
+        public static async Task<string?> GetCityFromCoordinatesAsync(double latitude, double longitude)
         {
+            if (ApiKey == KeyPlaceholder)
+                return null;
+
             try
             {
                 var url = $"https://maps.googleapis.com/maps/api/geocode/json?latlng={latitude},{longitude}&key={ApiKey}";
@@ -36,12 +44,13 @@ namespace PantryWizard.Services
                     }
                 }
 
-                return "Unknown city";
+                // no city in the results (or the request was refused, e.g. a bad key)
+                return null;
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Google location error: {ex.Message}");
-                return "Error getting city";
+                return null;
             }
         }
     }

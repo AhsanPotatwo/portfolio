@@ -221,10 +221,10 @@ namespace PantryWizard
                         System.Diagnostics.Debug.WriteLine("⚠️ Location is from mock provider.");
 
                     // Attempt city lookup using Google Maps API
-                    string city = await Services.GoogleLocationService.GetCityFromCoordinatesAsync(location.Latitude, location.Longitude);
+                    string? city = await Services.GoogleLocationService.GetCityFromCoordinatesAsync(location.Latitude, location.Longitude);
 
                     // If lookup fails, fallback to coordinates
-                    if (!string.IsNullOrWhiteSpace(city) && !city.Contains("Error"))
+                    if (!string.IsNullOrWhiteSpace(city))
                     {
                         detectedLocation = $"📍 {city}";
                     }
