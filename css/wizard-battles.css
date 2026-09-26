@@ -3,35 +3,70 @@
    specific to this page: the hero title lettering, the ported p5 game frame,
    and the alternating "Behind the Magic" story panels. */
 
+/* ---------- palette ----------
+   The home page is charcoal grey with a violet/space-blue accent. This
+   page has its own "witching hour" palette so it feels like a different
+   world: a midnight-plum background, spells that run violet into magenta,
+   orchid for highlighted text, and warm candle-gold for the small bits of
+   light (sparkles, the moon, numbers). */
 :root{
-  --wb-accent: #735aff;
-  --wb-accent-deep: #5542bc;
+  --wb-bg: #140d22;
+  --wb-accent: #7c3aed;
+  --wb-accent-deep: #5b21b6;
+  --wb-magenta: #c026d3;
+  --wb-orchid: #e9a8ff;
+  --wb-gold: #f6c96b;
+  --wb-gold-soft: #ffe6b3;
+  /* the spell gradient used by buttons, ribbons and bars */
+  --wb-spell: linear-gradient(135deg, var(--wb-accent), var(--wb-magenta));
+  /* the stone-and-velvet look shared by every card on the page */
+  --wb-panel: linear-gradient(180deg, rgba(56,28,88,.62), rgba(22,13,38,.92));
+  --wb-panel-line: rgba(233,168,255,.15);
   --wb-ribbon-h: 71px;
 
   /* size of the portal's big magic circle, which the hero title arcs along */
   --wb-portal: min(1080px, 94vw);
 
-  /* title lettering colours, straight from the Figma text layers */
-  --wb-title-fill: #bf92ff;
-  --wb-title-stroke: #712aff;
+  /* title lettering: the Figma lilac, nudged pinker to suit the palette */
+  --wb-title-fill: #dcaaff;
+  --wb-title-stroke: #7a1fd6;
 }
 
-.wb-accent{ color:var(--wb-accent); }
-/* colour of the "Back to all projects" link (.page-back in styles.css) */
-.wizard-page{ --page-accent:var(--wb-title-fill); }
+/* the shared tokens from styles.css, retuned for this page */
+.wizard-page{
+  --bg: var(--wb-bg);
+  --muted: #a99cbf;
+  --dim: #76698c;
+  --nav-purple: #c77dff;
+  --accent-text: var(--wb-orchid);
+  /* colour of the "Back to all projects" link (.page-back in styles.css) */
+  --page-accent: var(--wb-gold);
+}
+html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
+.wizard-page ::selection{ background:rgba(192,38,211,.45); color:#fff; }
+.wizard-page .site-header{
+  background:rgba(20,13,34,.86);
+  /* a thin spell-coloured line under the nav instead of the plain grey one */
+  border-image:linear-gradient(90deg, transparent, rgba(124,58,237,.6) 20%, rgba(192,38,211,.6) 50%, rgba(246,201,107,.5) 80%, transparent) 1;
+}
+.wizard-page .brand:hover{ color:#e0b3ff; }
+.wizard-page .nav-link:hover{ color:#f3d9ff; }
+.wizard-page .site-footer{ border-top-color:rgba(233,168,255,.12); }
+
+.wb-accent{ color:var(--wb-orchid); }
 /* the "Do it yourself!" section above already ends with a full gap */
 .wizard-page .page-back{ margin-top:calc(var(--section-pad) * -.5); }
 
 /* ---------- page backdrop ----------
    Swaps the home page's space theme for something more arcane: the
-   drifting background glows are recoloured from space blue to violet,
-   plum and indigo, and two very faint magic circles turn slowly in
+   drifting background glows are recoloured from space blue to magenta,
+   deep indigo and rose, and two very faint magic circles turn slowly in
    opposite corners (half off-screen, so they read as texture rather than
    as pictures). The rising dust motes are drawn by
    js/wizard-battles/background.js. */
-.wizard-page .bg-nebula-1{ background:radial-gradient(circle at 40% 40%, rgba(109,18,179,.30), transparent 70%); }
-.wizard-page .bg-nebula-2{ background:radial-gradient(circle at 60% 60%, rgba(84,40,170,.26), transparent 70%); }
-.wizard-page .bg-nebula-3{ background:radial-gradient(circle at 50% 50%, rgba(150,52,140,.16), transparent 72%); }
+.wizard-page .bg-nebula-1{ background:radial-gradient(circle at 40% 40%, rgba(160,32,205,.30), transparent 70%); }
+.wizard-page .bg-nebula-2{ background:radial-gradient(circle at 60% 60%, rgba(76,29,170,.38), transparent 70%); }
+.wizard-page .bg-nebula-3{ background:radial-gradient(circle at 50% 50%, rgba(236,72,153,.13), transparent 72%); }
 
 .wb-arcane-layer{
   position:fixed;
@@ -110,8 +145,8 @@
   overflow:hidden;
   pointer-events:none;
   background:
-    radial-gradient(ellipse 60% 70% at 50% 0%, rgba(113,42,255,.38), rgba(113,42,255,.12) 45%, transparent 75%),
-    radial-gradient(ellipse 30% 40% at 50% 38%, rgba(191,146,255,.16), transparent 70%);
+    radial-gradient(ellipse 60% 70% at 50% 0%, rgba(124,58,237,.4), rgba(160,32,205,.14) 45%, transparent 75%),
+    radial-gradient(ellipse 30% 40% at 50% 38%, rgba(233,168,255,.16), transparent 70%);
   -webkit-mask-image:linear-gradient(#000 55%, transparent);
           mask-image:linear-gradient(#000 55%, transparent);
 }
@@ -137,9 +172,10 @@
   top:0; left:0; right:0;
   animation:wbCloudSway var(--sway-dur) ease-in-out infinite alternate;
 }
-.wb-cloud-d{ --c:#40167a; --sway:.6%; --sway-dur:13s; }
-.wb-cloud-m{ --c:#521c9c; --sway:1%;  --sway-dur:11s; }
-.wb-cloud-l{ --c:#6425bc; --sway:1.4%; --sway-dur:9s; }
+/* dusk colours: deep indigo at the back warming to plum at the front */
+.wb-cloud-d{ --c:#301565; --sway:.6%; --sway-dur:13s; }
+.wb-cloud-m{ --c:#4f1c8c; --sway:1%;  --sway-dur:11s; }
+.wb-cloud-l{ --c:#7222a8; --sway:1.4%; --sway-dur:9s; }
 @keyframes wbCloudSway{
   from{ translate:calc(var(--sway) * -1) 0; }
   to  { translate:var(--sway) 0; }
@@ -161,7 +197,8 @@
 }
 
 /* the moon: a glowing disc with a darker disc slid over it (the box
-   shadow) to cut it into a crescent, and a soft halo around it. It sits
+   shadow) to cut it into a crescent, and a soft halo around it. It's a
+   warm, candle-gold moon, so it stands out against all the purple. It sits
    just behind the clouds' lower edge in the top-right, clear of the title. */
 .wb-moon{
   --m:clamp(84px,9vw,136px);
@@ -171,8 +208,8 @@
   width:var(--m);
   aspect-ratio:1;
   border-radius:50%;
-  box-shadow:inset calc(var(--m) * -.26) calc(var(--m) * .08) 0 0 #f4ecff;
-  filter:drop-shadow(0 0 14px rgba(230,215,255,.7)) drop-shadow(0 0 40px rgba(191,146,255,.55));
+  box-shadow:inset calc(var(--m) * -.26) calc(var(--m) * .08) 0 0 #fff0cc;
+  filter:drop-shadow(0 0 14px rgba(255,226,166,.75)) drop-shadow(0 0 40px rgba(246,180,90,.45));
   rotate:-18deg;
   animation:wbMoonRise 9s ease-in-out infinite alternate;
 }
@@ -181,7 +218,7 @@
   position:absolute;
   inset:-80%;
   border-radius:50%;
-  background:radial-gradient(circle, rgba(191,146,255,.22), transparent 62%);
+  background:radial-gradient(circle, rgba(246,201,107,.16), rgba(192,38,211,.08) 40%, transparent 62%);
 }
 @keyframes wbMoonRise{
   from{ translate:0 6px; }
@@ -196,8 +233,8 @@
   font-family:"Segoe UI Symbol","Apple Symbols","Noto Sans Symbols",sans-serif;
   font-size:var(--s);
   line-height:1;
-  color:#e4d4ff;
-  text-shadow:0 0 8px rgba(191,146,255,.9), 0 0 18px rgba(113,42,255,.8);
+  color:#f6dcff;
+  text-shadow:0 0 8px rgba(233,168,255,.9), 0 0 18px rgba(192,38,211,.8);
   opacity:0;
   animation:wbGlyphRise 10s ease-in-out var(--d) infinite;
 }
@@ -212,8 +249,8 @@
   left:var(--x); top:var(--y);
   font-size:var(--s);
   line-height:1;
-  color:var(--wb-title-fill);
-  text-shadow:0 0 10px rgba(113,42,255,.7);
+  color:var(--wb-gold-soft);
+  text-shadow:0 0 10px rgba(246,201,107,.7);
   animation:wbSparkle 4.2s ease-in-out var(--d,0s) infinite;
 }
 .wb-portal-star::before{ content:"\2726"; }
@@ -257,8 +294,8 @@
   50%{ translate:0 -6px; }
 }
 @keyframes wbLetterGlow{
-  from{ text-shadow:0 0 .08em rgba(191,146,255,.45), 0 0 .25em rgba(113,42,255,.45); }
-  to  { text-shadow:0 0 .12em rgba(191,146,255,.7),  0 0 .4em  rgba(113,42,255,.75); }
+  from{ text-shadow:0 0 .08em rgba(233,168,255,.45), 0 0 .25em rgba(192,38,211,.45); }
+  to  { text-shadow:0 0 .12em rgba(233,168,255,.7),  0 0 .4em  rgba(192,38,211,.75); }
 }
 
 .wb-subtitle{
@@ -280,10 +317,10 @@
 }
 .wb-tags li{
   padding:7px 16px;
-  border:1px solid rgba(191,146,255,.35);
+  border:1px solid rgba(233,168,255,.32);
   border-radius:999px;
-  background:rgba(115,90,255,.12);
-  color:#d9c9ff;
+  background:linear-gradient(135deg, rgba(124,58,237,.18), rgba(192,38,211,.14));
+  color:#f3d6ff;
   font-size:15px;
   font-weight:600;
 }
@@ -320,8 +357,8 @@
   max-width:836px;
   padding:18px;
   border-radius:26px;
-  background:linear-gradient(180deg,rgba(115,90,255,.3),rgba(85,66,188,.1));
-  box-shadow:0 0 30px rgba(113,42,255,.15), 0 25px 60px rgba(0,0,0,.4);
+  background:linear-gradient(160deg,rgba(124,58,237,.3),rgba(160,32,205,.12) 60%,rgba(91,33,182,.1));
+  box-shadow:0 0 40px rgba(160,32,205,.18), 0 25px 60px rgba(0,0,0,.45);
 }
 .wb-game-frame::before{
   content:"";
@@ -330,11 +367,12 @@
   padding:var(--wb-frame-rim);
   border-radius:inherit;
   background:conic-gradient(from var(--wb-frame-angle),
-    rgba(115,90,255,.35) 0deg,
-    rgba(115,90,255,.35) 200deg,
-    rgba(191,146,255,.75) 250deg,
-    rgba(115,90,255,.35) 300deg,
-    rgba(115,90,255,.35) 360deg);
+    rgba(124,58,237,.4) 0deg,
+    rgba(124,58,237,.4) 190deg,
+    rgba(233,120,255,.8) 235deg,
+    rgba(255,226,166,.85) 255deg,
+    rgba(124,58,237,.4) 300deg,
+    rgba(124,58,237,.4) 360deg);
   -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite:xor;
   mask:linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
@@ -352,8 +390,8 @@
   top:-11px; left:-11px;
   font-size:22px;
   line-height:1;
-  color:#bf92ff;
-  text-shadow:0 0 10px rgba(113,42,255,.6);
+  color:var(--wb-gold);
+  text-shadow:0 0 10px rgba(246,201,107,.6);
   pointer-events:none;
   animation:wbSparkle 4s ease-in-out infinite;
 }
@@ -380,7 +418,7 @@
   display:block;
   border-radius:16px;
   /* faint edge where the game meets the frame */
-  box-shadow:0 0 0 1px rgba(191,146,255,.2);
+  box-shadow:0 0 0 1px rgba(233,168,255,.2);
 }
 /* stops a quick double tap on a game button zooming the page on phones */
 #canvas-wrapper > button{ touch-action:manipulation; }
@@ -392,7 +430,12 @@
   font-size:clamp(22px,2.78vw,40px);
   color:#fff;
 }
-.wb-participant span{ font-family:var(--font-mono); color:var(--wb-accent); letter-spacing:.03em; }
+.wb-participant span{
+  font-family:var(--font-mono);
+  color:var(--wb-gold);
+  text-shadow:0 0 14px rgba(246,201,107,.35);
+  letter-spacing:.03em;
+}
 
 /* ---------- hero action buttons ---------- */
 .wb-actions{
@@ -405,8 +448,8 @@
 
 /* Every purple button on the page (the three under the game and the two
    in "Do it yourself!") shares one look, from Figma: a 289x78 pill with
-   20px corners and the accent gradient. On hover a streak of light sweeps
-   across it, and it lifts with a soft purple glow. */
+   20px corners, filled with the violet-to-magenta spell gradient. On hover
+   a streak of light sweeps across it, and it lifts with a magenta glow. */
 .btn-wizard,
 .btn-wizard-lg{
   /* this page's own buttons, separate from the home page's .btn */
@@ -424,7 +467,8 @@
   padding:12px 28px;
   border:none;
   border-radius:20px;
-  background:linear-gradient(180deg,var(--wb-accent),var(--wb-accent-deep));
+  background:var(--wb-spell);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 6px 18px rgba(124,58,237,.25);
   color:#fff;
   font-family:var(--font-sans);
   font-weight:600;
@@ -450,9 +494,10 @@
 .btn-wizard:focus-visible::after,
 .btn-wizard-lg:focus-visible::after{ left:120%; }
 .btn-wizard:not(.is-disabled):hover,
-.btn-wizard-lg:hover{ transform:translateY(-2px); box-shadow:0 10px 28px rgba(115,90,255,.4); }
+.btn-wizard-lg:hover{ transform:translateY(-2px); box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 10px 30px rgba(192,38,211,.45); }
 .btn-wizard.is-disabled{
-  background:linear-gradient(180deg,#4a4a55,#33333c);
+  background:linear-gradient(180deg,#48405a,#302a3d);
+  box-shadow:none;
   color:rgba(255,255,255,.65);
   cursor:not-allowed;
   border:none;
@@ -509,7 +554,7 @@
   width:min(380px,110%);
   max-width:none;
   aspect-ratio:1;
-  opacity:.16;
+  opacity:.18;
   animation:wbArcaneSpin 90s linear infinite;
   pointer-events:none;
 }
@@ -532,7 +577,7 @@
 .wb-cb-ball{
   position:absolute; inset:0;
   width:100%; height:100%;
-  filter:drop-shadow(0 20px 34px rgba(115,90,255,.35));
+  filter:drop-shadow(0 20px 34px rgba(160,32,205,.35));
 }
 /* The vision seen inside the ball: a circle over the ball's lighter face
    (centred on 190,160 of the 351x392.6 drawing, 260 across) that clips
@@ -676,7 +721,8 @@
   left:0; right:0;
   top:50%;
   height:5px;
-  background:var(--wb-accent);
+  /* the line fades out towards the screen edges */
+  background:linear-gradient(90deg, transparent, var(--wb-accent) 18%, var(--wb-accent) 82%, transparent);
   z-index:0;
 }
 .wb-ribbon{
@@ -687,8 +733,11 @@
   justify-content:center;
   height:var(--wb-ribbon-h);
   padding-inline:46px;
-  background:var(--wb-accent);
+  /* magenta in the middle, back to the line's violet at the pointed ends
+     so the points still join on seamlessly */
+  background:linear-gradient(90deg, var(--wb-accent), var(--wb-magenta) 50%, var(--wb-accent));
   color:#fff;
+  text-shadow:0 1px 8px rgba(40,6,70,.45);
   font-family:var(--font-sans);
   font-weight:700;
   font-size:clamp(20px,2.2vw,32px);
@@ -725,7 +774,7 @@
 .wb-section-icon{
   width:76px;
   margin:0 auto 16px;
-  filter:drop-shadow(0 0 18px rgba(115,90,255,.35));
+  filter:drop-shadow(0 0 18px rgba(192,38,211,.35));
 }
 .wb-section-head h2{
   font-size:var(--h2);
@@ -748,7 +797,7 @@
    corner like the one on the game frame. .wb-tome-reverse puts the picture
    on the left; the three panels alternate sides down the page. */
 .wb-tome{
-  --wb-glow:rgba(115,90,255,.3);
+  --wb-glow:rgba(124,58,237,.32);
   --wb-glow-x:78%;
   position:relative;
   isolation:isolate;
@@ -759,21 +808,21 @@
   align-items:center;
   gap:clamp(28px,5vw,72px);
   padding:clamp(28px,4.5vw,64px);
-  border:1px solid rgba(191,146,255,.16);
+  border:1px solid var(--wb-panel-line);
   border-radius:var(--radius-card);
   background:
     radial-gradient(circle at var(--wb-glow-x) 50%, var(--wb-glow), transparent 55%),
-    linear-gradient(180deg, rgba(44,37,58,.8), rgba(28,25,34,.9));
-  box-shadow:0 20px 44px rgba(0,0,0,.35);
+    var(--wb-panel);
+  box-shadow:0 20px 44px rgba(0,0,0,.4);
 }
 .wb-tome-reverse{
   --wb-glow-x:22%;
   grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
   grid-template-areas:"art copy";
 }
-.wb-tome-violet{ --wb-glow:rgba(115,90,255,.3); }
-.wb-tome-indigo{ --wb-glow:rgba(70,100,235,.28); }
-.wb-tome-plum  { --wb-glow:rgba(190,45,125,.26); }
+.wb-tome-violet{ --wb-glow:rgba(124,58,237,.34); }
+.wb-tome-indigo{ --wb-glow:rgba(79,70,229,.32); }
+.wb-tome-plum  { --wb-glow:rgba(217,55,200,.26); }
 /* the magic circle watermark, centred behind the picture */
 .wb-tome::after{
   content:"";
@@ -796,8 +845,8 @@
   top:18px; left:20px;
   font-size:18px;
   line-height:1;
-  color:#bf92ff;
-  text-shadow:0 0 10px rgba(113,42,255,.6);
+  color:var(--wb-gold);
+  text-shadow:0 0 10px rgba(246,201,107,.6);
   pointer-events:none;
   animation:wbSparkle 4.5s ease-in-out infinite;
 }
@@ -831,7 +880,7 @@
 .wb-tome-indigo .wb-tome-art > *{ animation-delay:-2s; }
 .wb-tome-plum .wb-tome-art > *{ animation-delay:-4s; }
 .wb-tome-art:hover > img,
-.wb-tome-art:hover .wb-art-stack{ filter:drop-shadow(0 0 26px rgba(115,90,255,.45)); }
+.wb-tome-art:hover .wb-art-stack{ filter:drop-shadow(0 0 26px rgba(192,38,211,.5)); }
 /* the book + scroll pair in the research panel: the scroll overlaps the
    book's top-left corner, matching Figma relative to the book, and the
    pair is nudged right so it stays centred as a whole */
@@ -867,11 +916,12 @@
   left:0; top:-1px;
   display:grid; place-items:center;
   width:26px; height:26px;
-  border:1.5px solid rgba(191,146,255,.55);
+  border:1.5px solid rgba(246,201,107,.6);
   border-radius:50%;
   font-size:13px;
   font-weight:700;
-  color:var(--wb-title-fill);
+  color:var(--wb-gold);
+  box-shadow:0 0 10px rgba(246,201,107,.15);
 }
 .wb-rules strong{ color:#fff; }
 
@@ -885,7 +935,7 @@
   margin-bottom:12px;
   font-size:15px;
   font-weight:600;
-  color:#d9c9ff;
+  color:#f3d6ff;
 }
 .wb-scroll figcaption span{ font-weight:400; color:var(--muted); }
 .wb-scroll-body{
@@ -924,10 +974,10 @@
 }
 .wb-spell,
 .wb-elements{
-  border:1px solid rgba(191,146,255,.18);
+  border:1px solid var(--wb-panel-line);
   border-radius:var(--radius-card);
-  background:linear-gradient(180deg, rgba(58,44,92,.5), rgba(30,27,40,.85));
-  box-shadow:0 16px 36px rgba(0,0,0,.3);
+  background:var(--wb-panel);
+  box-shadow:0 16px 36px rgba(0,0,0,.35);
 }
 .wb-spell{
   display:flex;
@@ -964,7 +1014,7 @@
   font-weight:700;
   letter-spacing:.04em;
   text-transform:uppercase;
-  color:var(--wb-title-fill);
+  color:var(--wb-gold);
 }
 .wb-tier-effect{ grid-area:effect; font-size:17px; font-weight:600; color:#fff; }
 .wb-tier-chance{
@@ -986,7 +1036,8 @@
   height:100%;
   width:var(--chance);
   border-radius:inherit;
-  background:linear-gradient(90deg,var(--wb-accent),var(--wb-title-fill));
+  background:linear-gradient(90deg,var(--wb-accent),var(--wb-magenta) 70%,#f08cff);
+  box-shadow:0 0 10px rgba(192,38,211,.45);
   transition:width 1s var(--ease-out) .25s;
 }
 .wb-spell.wb-reveal:not(.is-visible) .wb-tier-bar i{ width:0; }
@@ -997,7 +1048,7 @@
   line-height:1.5;
   color:var(--muted);
 }
-.wb-tiers + .wb-spell-note{ margin-top:22px; border-top:1px dashed rgba(191,146,255,.2); }
+.wb-tiers + .wb-spell-note{ margin-top:22px; border-top:1px dashed rgba(233,168,255,.2); }
 
 .wb-spells-extra{
   display:grid;
@@ -1062,10 +1113,12 @@
   flex-direction:column;
   align-items:center;
   padding:clamp(32px,4vw,52px) clamp(24px,3vw,40px);
-  border:1px solid rgba(191,146,255,.16);
+  border:1px solid var(--wb-panel-line);
   border-radius:var(--radius-card);
-  background:linear-gradient(180deg, rgba(58,44,92,.45), rgba(30,27,40,.8));
-  box-shadow:0 16px 36px rgba(0,0,0,.3);
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(192,38,211,.14), transparent 70%),
+    var(--wb-panel);
+  box-shadow:0 16px 36px rgba(0,0,0,.35);
 }
 .wb-cta-card h3{
   max-width:460px;
@@ -1143,7 +1196,7 @@
     grid-template-areas:"art" "copy";
     background:
       radial-gradient(circle at 50% 18%, var(--wb-glow), transparent 50%),
-      linear-gradient(180deg, rgba(44,37,58,.8), rgba(28,25,34,.9));
+      var(--wb-panel);
   }
   .wb-tome::after{ top:22%; }
   .wb-tome-plum{ grid-template-areas:"art" "copy" "scroll"; }
@@ -1201,7 +1254,7 @@
   /* no floating or pulsing, but keep a steady glow */
   .wb-title span{
     animation:none;
-    text-shadow:0 0 .1em rgba(191,146,255,.55), 0 0 .3em rgba(113,42,255,.6);
+    text-shadow:0 0 .1em rgba(233,168,255,.55), 0 0 .3em rgba(192,38,211,.6);
   }
   .wb-crystal-ball-cluster{ animation:none; }
   /* the question mark just stays visible in the ball */

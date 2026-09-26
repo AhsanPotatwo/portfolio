@@ -41,7 +41,7 @@
   if (!canvas || !canvas.getContext) return;
   var ctx = canvas.getContext('2d');
 
-  var COLORS = ['191,146,255', '233,220,255', '115,90,255', '255,214,150'];
+  var COLORS = ['233,168,255', '246,226,255', '192,38,211', '255,214,150'];
   var MAX_SPARKS = 160;
   // one trail sparkle per this many px the cursor travels
   var TRAIL_SPACING = 16;
@@ -134,7 +134,7 @@
       var p = r.life / r.lifespan;
       var ease = 1 - Math.pow(1 - p, 3);
       var radius = 6 + ease * r.maxR;
-      ctx.strokeStyle = 'rgba(191,146,255,' + ((1 - p) * 0.55).toFixed(3) + ')';
+      ctx.strokeStyle = 'rgba(233,168,255,' + ((1 - p) * 0.55).toFixed(3) + ')';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(r.x, r.y, radius, 0, Math.PI * 2);
@@ -143,7 +143,7 @@
       ctx.save();
       ctx.setLineDash([3, 6]);
       ctx.lineDashOffset = -p * 40;
-      ctx.strokeStyle = 'rgba(233,220,255,' + ((1 - p) * 0.4).toFixed(3) + ')';
+      ctx.strokeStyle = 'rgba(255,226,166,' + ((1 - p) * 0.4).toFixed(3) + ')';
       ctx.beginPath();
       ctx.arc(r.x, r.y, radius * 0.7, 0, Math.PI * 2);
       ctx.stroke();
