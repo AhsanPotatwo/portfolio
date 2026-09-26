@@ -14,11 +14,13 @@
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var ctx = canvas.getContext('2d');
 
-  // mostly lilac/violet, with the odd warm gold one like candlelight
+  // mostly orchid/violet, some magenta, and the odd warm gold one like
+  // candlelight (the page's palette, see the top of wizard-battles.css)
   var COLORS = [
-    { rgb: '191,146,255', w: 5 },
-    { rgb: '150,120,255', w: 3 },
-    { rgb: '255,214,150', w: 1.2 }
+    { rgb: '233,168,255', w: 5 },
+    { rgb: '167,120,255', w: 3 },
+    { rgb: '230,90,240', w: 1.5 },
+    { rgb: '255,214,150', w: 1.4 }
   ];
   // one mote per this many square px of screen, capped
   var DENSITY = 22000;
