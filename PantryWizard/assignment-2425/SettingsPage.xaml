@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="PantryWizard.SettingsPage"
+             BackgroundColor="#FFFFFF"
+             Padding="20">
+
+    <ScrollView>
+        <VerticalStackLayout Spacing="25">
+
+            <!-- Title -->
+                <Label Text="Settings"
+                   x:Name="TitleLabel"
+                   FontSize="32"
+                   FontFamily="QuicksandBold"
+                   TextColor="#8F66B3"
+                   Margin="0,0,0,10"/>
+
+            <!-- Accessibility Section -->
+            <Frame x:Name="AccessibilityFrame" BackgroundColor="#DCC5FF"
+                   BorderColor="Transparent"
+                   CornerRadius="20"
+                   Padding="20"
+                   HasShadow="False">
+                    <VerticalStackLayout Spacing="25">
+                    <Label x:Name="AccessibilityHeader" Text="Accessibility"
+                           FontSize="16"
+                           FontFamily="QuicksandBold"
+                           TextColor="#B89AE0" />
+
+                        <!-- Dark Mode -->
+                        <Grid ColumnDefinitions="*,Auto" RowSpacing="2">
+                            <VerticalStackLayout>
+                                <Label Text="Dark mode"
+                                   x:Name="DarkModeTitle"
+                                   FontSize="20"
+                                   FontFamily="QuicksandBold"
+                                   TextColor="#6A4B8D" />
+                                <Label Text="Apply a darker theme"
+                                   x:Name="DarkModeDesc"
+                                   FontSize="14"
+                                   TextColor="#9B77C6"
+                                   FontFamily="QuicksandSemiBold" />
+                            </VerticalStackLayout>
+                            <Switch x:Name="DarkModeSwitch"
+                                OnColor="#7E5AAE"
+                                ThumbColor="#FFFFFF"
+                                Toggled="OnDarkModeToggled"
+                                Grid.Column="1" />
+                        </Grid>
+
+                        <!-- Text to Speech -->
+                        <Grid ColumnDefinitions="*,Auto" RowSpacing="2">
+                            <VerticalStackLayout>
+                                <Label Text="Text to speech"
+                                   x:Name="TtsTitle"
+                                   FontSize="20"
+                                   FontFamily="QuicksandBold"
+                                   TextColor="#6A4B8D" />
+                                <Label Text="Converts text to audio"
+                                   x:Name="TtsDesc"
+                                   FontSize="14"
+                                   TextColor="#9B77C6"
+                                   FontFamily="QuicksandSemiBold" />
+                            </VerticalStackLayout>
+                            <Switch
+                                x:Name="TtsSwitch"
+                                OnColor="#7E5AAE"
+                                ThumbColor="White"
+                                Toggled="OnTextToSpeechToggled"
+                                Grid.Column="1" />
+                        </Grid>
+
+                    </VerticalStackLayout>
+                </Frame>
+
+                <!-- Placeholder for "Other" Section -->
+            <Frame x:Name="OtherFrame" BackgroundColor="#DCC5FF"
+                   BorderColor="Transparent"
+                   CornerRadius="20"
+                   Padding="20"
+                   HasShadow="False">
+                <VerticalStackLayout Spacing="25">
+                    <Label x:Name="OtherHeader" Text="Other"
+                           FontSize="16"
+                           FontFamily="QuicksandBold"
+                           TextColor="#B89AE0" />
+
+                    <!-- Future expandable elements go here -->
+                </VerticalStackLayout>
+            </Frame>
+                
+
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

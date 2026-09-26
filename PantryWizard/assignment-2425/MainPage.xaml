@@ -1,0 +1,85 @@
+﻿<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="PantryWizard.MainPage"
+             BackgroundColor="Transparent"
+             Shell.NavBarIsVisible="False">
+
+    <ContentPage.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#5E7FFF" Offset="0.0" />
+            <GradientStop Color="#AF53FF" Offset="1.0" />
+        </LinearGradientBrush>
+    </ContentPage.Background>
+
+    <!-- Use a Grid to respect safe area with padding -->
+    <Grid Padding="30"
+          RowDefinitions="Auto, *, Auto">
+
+        <!-- Settings Icon -->
+        <ImageButton Source="settings.svg"
+                     WidthRequest="70"
+                     HeightRequest="70"
+                     BackgroundColor="Transparent"
+                     Clicked="OnSettingsClicked"
+                     HorizontalOptions="Start"
+                     VerticalOptions="Start"
+                     Margin="-10,0,0,0" />
+
+        <!-- Centered Content -->
+        <VerticalStackLayout Grid.Row="1"
+                             VerticalOptions="Center"
+                             Spacing="-20"
+                             HorizontalOptions="Center">
+
+            <Image Source="crystal_ball.png"
+                   HeightRequest="150"
+                   WidthRequest="150"
+                   HorizontalOptions="Center"
+                   Margin="0,-280,0,40" />
+
+            <Label Text="Welcome to"
+                   x:Name="WelcomeLabel"
+                   FontSize="20"
+                   FontFamily="QuicksandBold"
+                   TextColor="White"
+                   HorizontalOptions="Center" />
+
+            <Label Text="Pantry&#10;Wizard"
+                   x:Name="TitleLabel"
+                   FontSize="96"
+                   FontAttributes="Bold"
+                   FontFamily="QuicksandBold"
+                   TextColor="White"
+                   LineHeight="0.85"
+                   Margin="0,-10,0,0"
+                   HorizontalOptions="Center" />
+
+            <Label Text="Your pantry tracking solution"
+                   x:Name="SubtitleLabel"
+                   FontSize="24"
+                   FontFamily="QuicksandBold"
+                   TextColor="White"
+                   HorizontalOptions="Center"
+                   Margin="0,10,0,0" />
+        </VerticalStackLayout>
+
+        <!-- Enter Button -->
+        <Button Text="Enter"
+                x:Name="EnterButton"
+                Grid.Row="2"
+                BackgroundColor="#B184FF"
+                TextColor="White"
+                FontFamily="QuicksandBold"
+                FontSize="24"
+                CornerRadius="15"
+                HeightRequest="50"
+                Padding="0"
+                Margin="0,-350,0,0"
+                WidthRequest="200"
+                HorizontalOptions="Center"
+                Clicked="OnEnterClicked" />
+    </Grid>
+</ContentPage>
+
+
+
