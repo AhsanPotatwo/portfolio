@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:System="clr-namespace:System;assembly=mscorlib"
+             x:Class="PantryWizard.EditItemPage"
+             BackgroundColor="White">
+
+    <Grid RowDefinitions="Auto, *">
+        <!-- Top Section -->
+        <ScrollView Grid.Row="0">
+            <VerticalStackLayout Padding="20" Spacing="15">
+
+                <Label x:Name="TitleLabel"
+                       Text="Edit item"
+                       FontSize="32"
+                       FontFamily="QuicksandBold"
+                       TextColor="#8F66B3" />
+
+                <Image x:Name="ItemImage"
+                       Source="placeholder.png"
+                       HeightRequest="150"
+                       HorizontalOptions="Center" />
+
+                <Button x:Name="EditImageButton"
+                        Text="Edit image"
+                        BackgroundColor="#D2A8FF"
+                        TextColor="White"
+                        FontFamily="QuicksandSemiBold"
+                        CornerRadius="15"
+                        HeightRequest="40"
+                        WidthRequest="150"
+                        HorizontalOptions="Center"
+                        Clicked="OnPickImageClicked" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Bottom Section -->
+        <ScrollView Grid.Row="1">
+            <Grid x:Name="BottomGrid"
+                  BackgroundColor="#B784FF"
+                  Padding="30"
+                  RowSpacing="15">
+
+                <VerticalStackLayout Spacing="15">
+
+                    <!-- Name -->
+                    <Frame x:Name="NameFrame" BorderColor="Transparent" BackgroundColor="#DEC7FF" CornerRadius="10" HasShadow="False" Padding="10,0">
+                        <Entry x:Name="NameEntry"
+                               Placeholder="Item name"
+                               PlaceholderColor="#67489D"
+                               FontFamily="QuicksandSemiBold"
+                               BackgroundColor="Transparent"
+                               TextColor="Black"
+                               FontSize="16" />
+                    </Frame>
+
+                    <!-- Quantity -->
+                    <Frame x:Name="QuantityFrame" BorderColor="Transparent" BackgroundColor="#DEC7FF" CornerRadius="10" HasShadow="False" Padding="10,0">
+                        <Entry x:Name="QuantityEntry"
+                               Placeholder="Item quantity"
+                               PlaceholderColor="#67489D"
+                               Keyboard="Numeric"
+                               FontFamily="QuicksandSemiBold"
+                               BackgroundColor="Transparent"
+                               TextColor="Black"
+                               FontSize="16" />
+                    </Frame>
+
+                    <!-- Quantity Type -->
+                    <Frame x:Name="QuantityTypeFrame" BorderColor="Transparent" BackgroundColor="#DEC7FF" CornerRadius="10" HasShadow="False" Padding="10,0">
+                        <Picker x:Name="QuantityTypePicker"
+                                Title="Item quantity type"
+                                FontFamily="QuicksandSemiBold"
+                                TitleColor="#67489D"
+                                BackgroundColor="Transparent"
+                                TextColor="Black">
+                            <Picker.ItemsSource>
+                                <x:Array Type="{x:Type x:String}">
+                                    <x:String>pieces</x:String>
+                                    <x:String>kg</x:String>
+                                    <x:String>g</x:String>
+                                    <x:String>lbs</x:String>
+                                    <x:String>ml</x:String>
+                                </x:Array>
+                            </Picker.ItemsSource>
+                        </Picker>
+                    </Frame>
+
+                    <!-- Expiration -->
+                    <Frame x:Name="DateFrame"
+                           BorderColor="Transparent"
+                           BackgroundColor="#DEC7FF"
+                           CornerRadius="10"
+                           HasShadow="False"
+                           Padding="10,0">
+                        <DatePicker x:Name="ExpirationDatePicker"
+                                    FontFamily="QuicksandSemiBold"
+                                    BackgroundColor="Transparent"
+                                    TextColor="#67489D"
+                                    MinimumDate="{x:Static System:DateTime.Now}" />
+                    </Frame>
+
+                    <!-- Save/Cancel -->
+                    <HorizontalStackLayout Spacing="20" HorizontalOptions="Center">
+                        <Button x:Name="SaveButton"
+                                Text="Save"
+                                BackgroundColor="#8EE263"
+                                TextColor="#40673B"
+                                FontSize="20"
+                                FontFamily="QuicksandBold"
+                                CornerRadius="10"
+                                WidthRequest="120"
+                                Clicked="OnSaveClicked" />
+
+                        <Button x:Name="CancelButton"
+                                Text="Cancel"
+                                BackgroundColor="#CCCCCC"
+                                TextColor="#777777"
+                                FontSize="20"
+                                FontFamily="QuicksandBold"
+                                CornerRadius="10"
+                                WidthRequest="120"
+                                Clicked="OnCancelClicked" />
+                    </HorizontalStackLayout>
+
+                    <!-- Delete -->
+                    <Button x:Name="DeleteButton"
+                            Text="Delete"
+                            BackgroundColor="#E95656"
+                            TextColor="#B13B3B"
+                            FontFamily="QuicksandBold"
+                            FontSize="18"
+                            CornerRadius="10"
+                            Clicked="OnDeleteClicked"
+                            WidthRequest="150"
+                            HorizontalOptions="Center" />
+                </VerticalStackLayout>
+            </Grid>
+        </ScrollView>
+    </Grid>
+</ContentPage>

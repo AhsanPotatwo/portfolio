@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="PantryWizard.PantryPage"
+             xmlns:model="clr-namespace:PantryWizard.Models"
+             BackgroundColor="White">
+
+    <Grid Padding="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header row -->
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Label x:Name="HeaderLabel"
+                   Text="My Pantry"
+                   FontSize="32"
+                   FontFamily="QuicksandBold"
+                   TextColor="#8F66B3"
+                   VerticalOptions="Center" />
+
+            <Button x:Name="AddButton"
+                    Text="+"
+                    FontSize="40"
+                    WidthRequest="50"
+                    HeightRequest="50"
+                    BackgroundColor="#EAD7FF"
+                    CornerRadius="25"
+                    TextColor="#FFFFFF"
+                    FontFamily="Quicksand"
+                    FontAttributes="Bold"
+                    Padding="-100"
+                    Clicked="OnAddItemClicked"
+                    HorizontalOptions="End"
+                    VerticalOptions="Center"
+                    Grid.Column="1" />
+        </Grid>
+
+        <!-- Just bind to the data -->
+        <CollectionView Grid.Row="1"
+                        x:Name="PantryListView"
+                        Margin="0,20,0,0"
+                        SelectionMode="Single"
+                        ItemsSource="{Binding PantryItems}" />
+    </Grid>
+</ContentPage>
+
+
+
+
