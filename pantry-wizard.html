@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pantry Wizard — Ahsan</title>
+  <meta name="description"
+    content="Pantry Wizard — a .NET MAUI mobile app for tracking what's in your pantry, using the phone's camera, vibration, text to speech and GPS. Try a web recreation of it in your browser.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/pantry-wizard.css">
+  <!-- the page has the app's own light and dark modes (dark by default, like
+       the rest of the site). Applied before the page draws, so a visitor who
+       picked light mode last time doesn't see a flash of dark first. -->
+  <script>
+    try { if (localStorage.getItem('pw-theme') === 'light') document.documentElement.classList.add('pw-light'); } catch (e) {}
+  </script>
+</head>
+
+<body class="pw-page">
+
+  <!-- background: the site's drifting glows, recoloured to the app's blue and violet (see pantry-wizard.css) -->
+  <div class="bg-glow" aria-hidden="true">
+    <div class="bg-nebula bg-nebula-1"></div>
+    <div class="bg-nebula bg-nebula-2"></div>
+    <div class="bg-nebula bg-nebula-3"></div>
+  </div>
+
+  <a class="skip-link" href="#overview">Skip to content</a>
+
+  <!-- nav, identical to the home page, just pointed back at its sections -->
+  <header class="site-header" id="header">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html#home"><span class="brand-bracket">[</span>Ahsan<span class="brand-bracket">]</span></a>
+
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="nav" id="primaryNav" aria-label="Primary">
+        <a href="index.html#home" class="nav-link">Home</a>
+        <a href="index.html#about" class="nav-link">About</a>
+        <a href="index.html#skills" class="nav-link">Skills</a>
+        <a href="index.html#projects" class="nav-link is-active">Projects</a>
+        <a href="index.html#contact" class="nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="pwMain">
+
+    <!-- ---------- hero ---------- -->
+    <section class="pw-hero" id="overview">
+      <div class="container pw-hero-inner">
+        <div class="pw-hero-copy">
+          <p class="pw-eyebrow"><span class="pw-dot" aria-hidden="true"></span>Mobile app · C# &amp; .NET MAUI</p>
+          <h1 class="pw-title">Pantry <span>Wizard</span></h1>
+          <p class="pw-tagline">Your pantry tracking solution</p>
+          <p class="pw-lede">A cross-platform mobile app that keeps track of everything in your cupboards: what you have, how much of it, when you added it, where you were and when it expires. It uses four of the phone's own hardware features: the <strong>camera</strong>, <strong>vibration</strong>, <strong>text to speech</strong> and <strong>GPS</strong>.</p>
+
+          <ul class="pw-tags" aria-label="Built with">
+            <li>C#</li>
+            <li>.NET MAUI</li>
+            <li>XAML</li>
+            <li>SQLite</li>
+            <li>Android · iOS · Windows · macOS</li>
+          </ul>
+
+          <div class="pw-actions">
+            <a class="btn-pw btn-pw-primary" href="#try">Try it in your browser</a>
+            <a class="btn-pw" href="#tour">Tour the screens</a>
+          </div>
+
+          <!-- the page's dark mode, which works the same way as the app's -->
+          <div class="pw-theme-chip">
+            <span id="pwHeroThemeLabel">Dark mode</span>
+            <button class="pw-switch" type="button" role="switch" aria-checked="true" aria-labelledby="pwHeroThemeLabel" data-pref="theme"><span class="pw-switch-knob"></span></button>
+            <span class="pw-theme-note">Flip it to see the app's light theme</span>
+          </div>
+        </div>
+
+        <!-- the app's home screen in a phone, swapping between its light and
+             dark versions with the page theme, surrounded by floating food -->
+        <div class="pw-hero-art" aria-hidden="true">
+          <span class="pw-hero-halo"></span>
+          <div class="pw-phone pw-phone-hero">
+            <span class="pw-phone-notch"></span>
+            <img class="pw-shot pw-shot-dark" src="assets/pantry-wizard/home-dark.png" alt="" width="412" height="917">
+            <img class="pw-shot pw-shot-light" src="assets/pantry-wizard/home-light.png" alt="" width="412" height="917">
+          </div>
+          <img class="pw-float pw-float-apple" src="assets/pantry-apple.svg" alt="">
+          <img class="pw-float pw-float-bread" src="assets/pantry-bread.svg" alt="">
+          <img class="pw-float pw-float-kiwi" src="assets/pantry-kiwi.svg" alt="">
+          <img class="pw-float pw-float-drumstick" src="assets/pantry-drumstick.svg" alt="">
+          <span class="pw-bubble pw-bubble-speech">
+            <svg viewBox="0 0 24 24"><use href="#pwIconSpeaker"/></svg>
+            “Added apples, 6 pieces”
+          </span>
+          <span class="pw-bubble pw-bubble-buzz">
+            <svg viewBox="0 0 24 24"><use href="#pwIconVibrate"/></svg>
+            Buzz · 50 ms
+          </span>
+        </div>
+      </div>
+
+      <!-- quick facts -->
+      <div class="container">
+        <ul class="pw-facts" data-reveal>
+          <li><strong>4</strong><span>hardware features</span></li>
+          <li><strong>5</strong><span>screens, including settings</span></li>
+          <li><strong>2</strong><span>themes, light and dark</span></li>
+          <li><strong>0</strong><span>accounts needed: it all lives on the phone</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ---------- screen tour ---------- -->
+    <section class="pw-section" id="tour">
+      <div class="container">
+        <header class="pw-head" data-reveal>
+          <p class="pw-kicker">The screens</p>
+          <h2>A quick tour of the <span class="pw-accent">app</span></h2>
+          <p>Every screen comes in light and dark. Switch the page's theme and the screens switch with it.</p>
+        </header>
+
+        <div class="pw-tour" data-reveal>
+          <div class="pw-tabs" role="tablist" aria-label="App screens">
+            <button class="pw-tab" type="button" role="tab" id="pwTabHome" aria-controls="pwPanelHome" aria-selected="true">
+              <span class="pw-tab-num">1</span>Home
+            </button>
+            <button class="pw-tab" type="button" role="tab" id="pwTabPantry" aria-controls="pwPanelPantry" aria-selected="false" tabindex="-1">
+              <span class="pw-tab-num">2</span>My Pantry
+            </button>
+            <button class="pw-tab" type="button" role="tab" id="pwTabAdd" aria-controls="pwPanelAdd" aria-selected="false" tabindex="-1">
+              <span class="pw-tab-num">3</span>Add item
+            </button>
+            <button class="pw-tab" type="button" role="tab" id="pwTabEdit" aria-controls="pwPanelEdit" aria-selected="false" tabindex="-1">
+              <span class="pw-tab-num">4</span>Edit item
+            </button>
+          </div>
+
+          <div class="pw-panel" role="tabpanel" id="pwPanelHome" aria-labelledby="pwTabHome">
+            <div class="pw-phone">
+              <span class="pw-phone-notch" aria-hidden="true"></span>
+              <img class="pw-shot pw-shot-dark" src="assets/pantry-wizard/home-dark.png" alt="Pantry Wizard's home screen in dark mode: a crystal ball above the words Welcome to Pantry Wizard, your pantry tracking solution, and an Enter button" width="412" height="917" loading="lazy">
+              <img class="pw-shot pw-shot-light" src="assets/pantry-wizard/home-light.png" alt="Pantry Wizard's home screen in light mode, on a blue to violet gradient" width="412" height="917" loading="lazy">
+            </div>
+            <div class="pw-panel-copy">
+              <h3>Home</h3>
+              <p>The welcome screen, with the crystal ball mascot. Light mode is a bright blue-to-violet gradient; dark mode fades from deep purple to midnight blue.</p>
+              <ul class="pw-points">
+                <li><strong>Enter</strong> gives a 100 ms buzz, says “Enter pantry page” if text to speech is on, and opens your pantry.</li>
+                <li>The <strong>gear icon</strong> opens Settings, where you switch dark mode and text to speech.</li>
+                <li>The theme is re-applied every time the screen appears, so changing it in Settings takes effect straight away when you come back.</li>
+              </ul>
+              <p class="pw-quirk"><strong>Known quirk:</strong> the dark gradient can look slightly “choppy” (colour banding). That's how .NET MAUI draws dark gradients rather than something the app can fix, and it doesn't happen in light mode.</p>
+            </div>
+          </div>
+
+          <div class="pw-panel" role="tabpanel" id="pwPanelPantry" aria-labelledby="pwTabPantry">
+            <div class="pw-phone">
+              <span class="pw-phone-notch" aria-hidden="true"></span>
+              <img class="pw-shot pw-shot-always" src="assets/pantry-wizard/pantry-dark.png" alt="The My Pantry screen in dark mode: a list of cards for cereal, tomatoes, eggs, sugar, chicken breast, noodles, carrots and lettuce, each with a photo, quantity, when it was added and its expiry" width="412" height="917" loading="lazy">
+            </div>
+            <div class="pw-panel-copy">
+              <h3>My Pantry</h3>
+              <p>Everything you've stocked, one card per item: its photo, name, quantity and unit, the date it was added, where it was added and when it expires.</p>
+              <ul class="pw-points">
+                <li>The list is loaded from the phone's <strong>SQLite</strong> database each time the screen appears, so it's always up to date after adding, editing or deleting.</li>
+                <li><strong>Tap an item</strong> to feel a buzz, hear it read back (“Tomatoes, 8 pieces, Expiry: …”) and open it for editing.</li>
+                <li>The <strong>+ button</strong> opens Add item.</li>
+              </ul>
+              <p class="pw-shot-note">Shown in dark mode.</p>
+            </div>
+          </div>
+
+          <div class="pw-panel" role="tabpanel" id="pwPanelAdd" aria-labelledby="pwTabAdd">
+            <div class="pw-phone">
+              <span class="pw-phone-notch" aria-hidden="true"></span>
+              <img class="pw-shot pw-shot-dark" src="assets/pantry-wizard/add-dark.png" alt="The Add item screen in dark mode: a photo of a bowl of cereal with an Edit image button, then fields for item name, quantity, quantity type and expiration, and Submit and Cancel buttons" width="412" height="917" loading="lazy">
+              <img class="pw-shot pw-shot-light" src="assets/pantry-wizard/add-light.png" alt="The Add item screen in light mode" width="412" height="917" loading="lazy">
+            </div>
+            <div class="pw-panel-copy">
+              <h3>Add item</h3>
+              <p>A photo at the top and a short form underneath. The form sits on its own coloured panel, so it reads clearly in both themes.</p>
+              <ul class="pw-points">
+                <li><strong>Edit image</strong> asks whether to take a photo with the camera or choose one from the gallery.</li>
+                <li>Quantity types are <strong>pieces, kg, g, lbs and ml</strong>, and the expiry date picker won't let you choose a date in the past.</li>
+                <li>Leave a required field empty and it turns <strong>red</strong> until you fill it in.</li>
+                <li>Your <strong>location</strong> is detected when the screen opens and stamped on the item.</li>
+                <li>Every field buzzes and, with text to speech on, announces itself when you tap into it.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="pw-panel" role="tabpanel" id="pwPanelEdit" aria-labelledby="pwTabEdit">
+            <div class="pw-phone">
+              <span class="pw-phone-notch" aria-hidden="true"></span>
+              <img class="pw-shot pw-shot-dark" src="assets/pantry-wizard/edit-dark.png" alt="The Edit item screen in dark mode: the same form as Add item, with Save, Cancel and Delete buttons" width="412" height="917" loading="lazy">
+              <img class="pw-shot pw-shot-light" src="assets/pantry-wizard/edit-light.png" alt="The Edit item screen in light mode" width="412" height="917" loading="lazy">
+            </div>
+            <div class="pw-panel-copy">
+              <h3>Edit item</h3>
+              <p>The same form, filled in with the item you tapped, and <strong>Save</strong>, <strong>Cancel</strong> and <strong>Delete</strong> buttons in place of Submit.</p>
+              <ul class="pw-points">
+                <li>Saving checks the same required fields, then updates the item in the database.</li>
+                <li><strong>Delete</strong> always asks for confirmation first, and reads the question aloud: “Are you sure you want to delete cereal?”</li>
+                <li>You can retake or re-pick the item's photo here too.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- the playground ---------- -->
+    <section class="pw-section pw-try" id="try">
+      <div class="container">
+        <header class="pw-head" data-reveal>
+          <p class="pw-kicker">Try it</p>
+          <h2>The app, rebuilt for your <span class="pw-accent">browser</span></h2>
+          <p>The real app runs on phones, so here's a web recreation of its pantry, add and edit screens. It behaves like the app and uses your browser's versions of the same hardware: take or pick a photo, feel the buzz on an Android phone, hear items read aloud, and tag them with your location. Everything stays on your device and resets when you reload.</p>
+        </header>
+
+        <div class="pw-play" data-reveal>
+          <!-- the recreated app (js/pantry-wizard/page.js) -->
+          <div class="pw-device" id="pwDevice">
+            <span class="pw-phone-notch" aria-hidden="true"></span>
+            <div class="pw-app" id="pwApp" data-screen="list" role="region" aria-label="Pantry Wizard web demo">
+
+              <!-- My Pantry -->
+              <div class="pw-screen pw-screen-list" id="pwScreenList">
+                <div class="pw-app-bar">
+                  <h3 class="pw-app-title">My Pantry</h3>
+                  <button class="pw-app-add" type="button" id="pwAddBtn" aria-label="Add item">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                  </button>
+                </div>
+                <ul class="pw-items" id="pwItems"></ul>
+                <p class="pw-empty" id="pwEmpty" hidden>Your pantry is empty. Tap + to add something.</p>
+              </div>
+
+              <!-- Add item / Edit item -->
+              <form class="pw-screen pw-screen-form" id="pwForm" novalidate hidden>
+                <div class="pw-form-top">
+                  <h3 class="pw-app-title" id="pwFormTitle">Add item</h3>
+                  <img class="pw-form-img" id="pwFormImg" src="assets/pantry-crystalball.svg" alt="">
+                  <button class="pw-edit-image" type="button" id="pwEditImage">Edit image</button>
+                </div>
+                <div class="pw-form-bottom">
+                  <label class="pw-field" id="pwFieldName">
+                    <span class="visually-hidden">Item name</span>
+                    <input type="text" id="pwName" placeholder="Item name" autocomplete="off" maxlength="30">
+                  </label>
+                  <label class="pw-field" id="pwFieldQty">
+                    <span class="visually-hidden">Item quantity</span>
+                    <input type="number" id="pwQty" placeholder="Item quantity" inputmode="decimal" min="0" step="any">
+                  </label>
+                  <label class="pw-field" id="pwFieldType">
+                    <span class="visually-hidden">Item quantity type</span>
+                    <select id="pwType">
+                      <option value="">Item quantity type</option>
+                      <option>pieces</option>
+                      <option>kg</option>
+                      <option>g</option>
+                      <option>lbs</option>
+                      <option>ml</option>
+                    </select>
+                  </label>
+                  <label class="pw-field" id="pwFieldDate">
+                    <span class="pw-field-label">Item expiration</span>
+                    <input type="date" id="pwDate">
+                  </label>
+
+                  <div class="pw-form-actions pw-form-actions-add">
+                    <button class="pw-btn-submit" type="submit" id="pwSubmit">Submit</button>
+                    <button class="pw-btn-cancel" type="button" data-cancel>Cancel</button>
+                  </div>
+                  <div class="pw-form-actions pw-form-actions-edit">
+                    <div class="pw-form-row">
+                      <button class="pw-btn-submit" type="submit" id="pwSave">Save</button>
+                      <button class="pw-btn-cancel" type="button" data-cancel>Cancel</button>
+                    </div>
+                    <button class="pw-btn-delete" type="button" id="pwDelete">Delete</button>
+                  </div>
+                </div>
+              </form>
+
+              <!-- "Select Image Source" action sheet -->
+              <div class="pw-overlay" id="pwSheet" role="dialog" aria-modal="true" aria-labelledby="pwSheetTitle" hidden>
+                <div class="pw-sheet">
+                  <p class="pw-sheet-title" id="pwSheetTitle">Select Image Source</p>
+                  <button type="button" id="pwTakePhoto">Take Photo</button>
+                  <button type="button" id="pwChoosePhoto">Choose from Gallery</button>
+                  <button type="button" class="pw-sheet-cancel" data-close>Cancel</button>
+                </div>
+              </div>
+
+              <!-- alerts and the delete confirmation -->
+              <div class="pw-overlay" id="pwAlert" role="alertdialog" aria-modal="true" aria-labelledby="pwAlertTitle" aria-describedby="pwAlertText" hidden>
+                <div class="pw-alert">
+                  <p class="pw-alert-title" id="pwAlertTitle"></p>
+                  <p class="pw-alert-text" id="pwAlertText"></p>
+                  <div class="pw-alert-actions">
+                    <button type="button" id="pwAlertCancel">Cancel</button>
+                    <button type="button" id="pwAlertOk">OK</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- photos never leave the browser: they're shown from a local object URL -->
+              <input class="visually-hidden" type="file" id="pwCameraInput" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true">
+              <input class="visually-hidden" type="file" id="pwGalleryInput" accept="image/*" tabindex="-1" aria-hidden="true">
+            </div>
+          </div>
+
+          <!-- what the "phone" is being asked to do, as it happens -->
+          <aside class="pw-console" aria-labelledby="pwConsoleTitle">
+            <h3 id="pwConsoleTitle">Hardware log</h3>
+            <p class="pw-console-sub">Each time the app would use the phone's hardware or its database, it shows up here along with the .NET MAUI call behind it.</p>
+
+            <ol class="pw-log" id="pwLog" aria-live="polite">
+              <li class="pw-log-empty">Tap an item or the + button to start.</li>
+            </ol>
+
+            <div class="pw-console-controls">
+              <div class="pw-control">
+                <div>
+                  <p class="pw-control-title" id="pwConsoleTtsLabel">Text to speech</p>
+                  <p class="pw-control-desc" id="pwTtsSupport">Read buttons and items aloud, like the app</p>
+                </div>
+                <button class="pw-switch" type="button" role="switch" aria-checked="false" aria-labelledby="pwConsoleTtsLabel" aria-describedby="pwTtsSupport" data-pref="tts"><span class="pw-switch-knob"></span></button>
+              </div>
+              <div class="pw-control">
+                <div>
+                  <p class="pw-control-title">Location</p>
+                  <p class="pw-control-desc" id="pwLocStatus">New items are saved as “Unknown location”</p>
+                </div>
+                <button class="btn-pw btn-pw-small" type="button" id="pwLocBtn">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><use href="#pwIconPin"/></svg>Use my location
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- hardware ---------- -->
+    <section class="pw-section" id="hardware">
+      <div class="container">
+        <header class="pw-head" data-reveal>
+          <p class="pw-kicker">Hardware</p>
+          <h2>Four features from the <span class="pw-accent">phone itself</span></h2>
+          <p>The app uses .NET MAUI's cross-platform APIs, so the same C# code works with the camera, vibration motor, speech engine and GPS on Android, iOS and Windows.</p>
+        </header>
+
+        <div class="pw-hw-grid">
+          <article class="pw-hw" data-reveal>
+            <span class="pw-hw-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#pwIconCamera"/></svg></span>
+            <h3>Camera &amp; file picker</h3>
+            <p>Every item can have a photo. <strong>Edit image</strong> offers <em>Take Photo</em> or <em>Choose from Gallery</em>, and the result is shown straight away and saved with the item. If the camera isn't available or permission is refused, you get a friendly “Camera Error” alert instead of a crash.</p>
+            <p class="pw-api"><code>MediaPicker.CapturePhotoAsync()</code> <code>FilePicker.PickAsync()</code></p>
+          </article>
+
+          <article class="pw-hw" data-reveal>
+            <span class="pw-hw-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#pwIconVibrate"/></svg></span>
+            <h3>Vibration &amp; haptics</h3>
+            <p>A short buzz confirms every tap: <strong>100 ms</strong> for the big actions (Enter, Save, Delete) and <strong>50 ms</strong> for lighter ones like opening an item or tapping into a field. It's wrapped in error handling, so phones without a vibration motor just carry on.</p>
+            <p class="pw-api"><code>Vibration.Default.Vibrate()</code></p>
+          </article>
+
+          <article class="pw-hw" data-reveal>
+            <span class="pw-hw-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#pwIconSpeaker"/></svg></span>
+            <h3>Text to speech</h3>
+            <p>An accessibility option, off by default. When it's on, buttons and fields announce themselves and items are read back in full, like “Added tomatoes, 8 pieces, Expiry: 12/10/2026”. One small service checks the setting before speaking, so each screen only has to call a single method.</p>
+            <p class="pw-api"><code>TextToSpeech.SpeakAsync()</code> <code>Preferences.Get()</code></p>
+          </article>
+
+          <article class="pw-hw" data-reveal>
+            <span class="pw-hw-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#pwIconPin"/></svg></span>
+            <h3>GPS location</h3>
+            <p>When you add an item, the app asks for permission, takes a high-accuracy reading and turns it into a city name with <strong>Google's Geocoding API</strong>, so the item is stamped “📍 Manchester”. If the lookup fails it falls back to the coordinates, and if permission is refused the item is saved as “Unknown location”.</p>
+            <p class="pw-api"><code>Geolocation.GetLocationAsync()</code> <code>Permissions.RequestAsync()</code></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- settings ---------- -->
+    <section class="pw-section" id="settings">
+      <div class="container pw-settings-inner">
+        <div class="pw-settings-copy" data-reveal>
+          <p class="pw-kicker">Settings</p>
+          <h2>Dark mode and <span class="pw-accent">accessibility</span></h2>
+          <p>The Settings screen has two switches. Both are saved on the phone, so they're remembered the next time the app opens.</p>
+          <ul class="pw-points">
+            <li><strong>Dark mode</strong> fades the screen out, swaps every colour and fades back in, 200 ms each way. Every screen applies the theme again when it appears, so the whole app follows along.</li>
+            <li><strong>Text to speech</strong> confirms itself out loud. Switching it off says “Text to speech turned off” <em>before</em> going quiet, so you're never left wondering whether it worked.</li>
+          </ul>
+          <p>This settings card is a working copy: it controls this page, and it remembers your choice too.</p>
+        </div>
+
+        <!-- a working recreation of the app's Settings screen -->
+        <div class="pw-settings-card" data-reveal>
+          <p class="pw-settings-title">Settings</p>
+          <div class="pw-settings-group">
+            <p class="pw-settings-heading">Accessibility</p>
+            <div class="pw-setting">
+              <div>
+                <p class="pw-setting-title" id="pwSetThemeLabel">Dark mode</p>
+                <p class="pw-setting-desc">Apply a darker theme</p>
+              </div>
+              <button class="pw-switch" type="button" role="switch" aria-checked="true" aria-labelledby="pwSetThemeLabel" data-pref="theme"><span class="pw-switch-knob"></span></button>
+            </div>
+            <div class="pw-setting">
+              <div>
+                <p class="pw-setting-title" id="pwSetTtsLabel">Text to speech</p>
+                <p class="pw-setting-desc">Converts text to audio</p>
+              </div>
+              <button class="pw-switch" type="button" role="switch" aria-checked="false" aria-labelledby="pwSetTtsLabel" data-pref="tts"><span class="pw-switch-knob"></span></button>
+            </div>
+          </div>
+          <div class="pw-settings-group">
+            <p class="pw-settings-heading">Other</p>
+            <p class="pw-setting-desc">Room to grow: this section is ready for future options.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- under the hood ---------- -->
+    <section class="pw-section" id="build">
+      <div class="container">
+        <header class="pw-head" data-reveal>
+          <p class="pw-kicker">Under the hood</p>
+          <h2>How it's <span class="pw-accent">built</span></h2>
+          <p>One C# codebase, compiled for Android, iOS, Windows and macOS with .NET MAUI.</p>
+        </header>
+
+        <!-- how you move around the app: a stack of pages, pushed and popped -->
+        <div class="pw-flow" data-reveal aria-label="How the screens connect">
+          <!-- on wide screens the arrows between the boxes carry the labels;
+               on phones the arrows are hidden and it becomes an indented tree,
+               with each box saying how you get to it (data-via) -->
+          <div class="pw-node pw-node-home"><strong>Home</strong><span>Welcome screen</span></div>
+          <div class="pw-edge pw-edge-settings" aria-hidden="true"><span>gear icon</span></div>
+          <div class="pw-node pw-node-settings" data-via="gear icon"><strong>Settings</strong><span>Dark mode, text to speech</span></div>
+          <div class="pw-edge pw-edge-enter" aria-hidden="true"><span>Enter</span></div>
+          <div class="pw-node pw-node-pantry" data-via="Enter"><strong>My Pantry</strong><span>Reads every item from SQLite</span></div>
+          <div class="pw-edge pw-edge-add" aria-hidden="true"><span>+ button</span></div>
+          <div class="pw-node pw-node-add" data-via="+ button"><strong>Add item</strong><span>Photo, GPS, validation</span></div>
+          <div class="pw-edge pw-edge-edit" aria-hidden="true"><span>tap an item</span></div>
+          <div class="pw-node pw-node-edit" data-via="tap an item"><strong>Edit item</strong><span>Save, cancel, delete</span></div>
+        </div>
+
+        <div class="pw-build">
+          <div class="pw-code" data-reveal>
+            <p class="pw-code-bar"><span class="pw-code-dots" aria-hidden="true"><i></i><i></i><i></i></span>Models/PantryItem.cs</p>
+            <pre><code><span class="tk">public class</span> <span class="tt">PantryItem</span>
+{
+    [<span class="tt">PrimaryKey</span>, <span class="tt">AutoIncrement</span>]
+    <span class="tk">public int</span> Id { <span class="tk">get</span>; <span class="tk">set</span>; }
+
+    <span class="tk">public string</span> Name { <span class="tk">get</span>; <span class="tk">set</span>; }
+    <span class="tk">public string</span> Quantity { <span class="tk">get</span>; <span class="tk">set</span>; }
+    <span class="tk">public string</span> Image { <span class="tk">get</span>; <span class="tk">set</span>; }
+    <span class="tk">public</span> <span class="tt">DateTime</span> DateAdded { <span class="tk">get</span>; <span class="tk">set</span>; }
+    <span class="tk">public string</span> ExpirationInfo { <span class="tk">get</span>; <span class="tk">set</span>; }
+    <span class="tk">public string</span> QuantityType { <span class="tk">get</span>; <span class="tk">set</span>; }
+    <span class="tk">public string</span> LocationInfo { <span class="tk">get</span>; <span class="tk">set</span>; }
+
+    <span class="tk">public string</span> DisplayQuantity =&gt; <span class="ts">$"{Quantity} {QuantityType}"</span>;
+}</code></pre>
+          </div>
+
+          <div class="pw-code" data-reveal>
+            <p class="pw-code-bar"><span class="pw-code-dots" aria-hidden="true"><i></i><i></i><i></i></span>Services/TextToSpeechService.cs</p>
+            <pre><code><span class="tk">public static class</span> <span class="tt">TextToSpeechService</span>
+{
+    <span class="tk">public static async</span> <span class="tt">Task</span> SpeakAsync(<span class="tk">string</span> text)
+    {
+        <span class="tk">bool</span> isTtsEnabled = <span class="tt">Preferences</span>.Get(<span class="ts">"TextToSpeechEnabled"</span>, <span class="tk">false</span>);
+
+        <span class="tk">if</span> (isTtsEnabled &amp;&amp; !<span class="tk">string</span>.IsNullOrWhiteSpace(text))
+        {
+            <span class="tk">await</span> <span class="tt">TextToSpeech</span>.SpeakAsync(text);
+        }
+    }
+}</code></pre>
+          </div>
+
+          <ul class="pw-build-points" data-reveal>
+            <li>
+              <strong>Stored on the phone</strong>
+              <span>Items live in a local SQLite database (sqlite-net-pcl) in the app's data folder, so it works offline and needs no account. One method handles both inserting and updating.</span>
+            </li>
+            <li>
+              <strong>Always up to date</strong>
+              <span>Screens reload in <code>OnAppearing</code>, so returning from Add or Edit shows the change straight away without any extra wiring.</span>
+            </li>
+            <li>
+              <strong>Themes in code</strong>
+              <span>The pantry cards are built in C# with a <code>DataTemplate</code>, so their colours can be swapped along with the rest of the screen whenever dark mode changes.</span>
+            </li>
+            <li>
+              <strong>Friendly validation</strong>
+              <span>Missing fields turn red and reset the moment you type, and the expiry picker's minimum date is today, so there's no way to add something that's already expired.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- source ---------- -->
+    <section class="pw-section pw-cta" id="source">
+      <div class="container">
+        <div class="pw-cta-box" data-reveal>
+          <img class="pw-cta-ball" src="assets/pantry-crystalball.svg" alt="" aria-hidden="true">
+          <h2>Read the <span class="pw-accent">code</span></h2>
+          <p>The full .NET MAUI project, with every page, service and platform folder, is on GitHub.</p>
+          <div class="pw-actions pw-actions-center">
+            <a class="btn-pw btn-pw-primary" href="https://github.com/AhsanPotatwo/portfolio/tree/main/PantryWizard" target="_blank" rel="noopener">View on GitHub <span aria-hidden="true">&#8599;</span></a>
+            <a class="btn-pw" href="#try">Try the web version</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="page-back">
+      <a href="index.html#projects"><span aria-hidden="true">&larr;</span> Back to all projects</a>
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Made in <span id="year">2026</span> by pondering my crystal orb ~ Ahsan, Full Stack Wizard</p>
+    </div>
+  </footer>
+
+  <!-- icons used around the page -->
+  <svg class="pw-icons" aria-hidden="true" focusable="false">
+    <symbol id="pwIconCamera" viewBox="0 0 24 24"><path d="M4 8h3l1.6-2.4A1.5 1.5 0 0 1 9.9 5h4.2a1.5 1.5 0 0 1 1.3.6L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+    <symbol id="pwIconVibrate" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4.5 8v8M1.5 10v4M19.5 8v8M22.5 10v4"/></symbol>
+    <symbol id="pwIconSpeaker" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
+    <symbol id="pwIconPin" viewBox="0 0 24 24"><path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></symbol>
+    <symbol id="pwIconData" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="2.8"/><path d="M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/></symbol>
+  </svg>
+
+  <script src="js/particles.js"></script>
+  <script src="js/main.js"></script>
+  <script src="js/pantry-wizard/page.js"></script>
+</body>
+
+</html>
