@@ -1354,11 +1354,10 @@ a{ color:inherit; text-decoration:none; }
   transition:filter .25s ease, transform .2s ease;
 }
 .project-card-pantry:hover,
-.project-card-pantry:focus-visible{
+.project-card-pantry:focus-within{
   background:linear-gradient(109deg, #6f8dff 2.6%, #bd68ff 98.1%);
   filter:brightness(1.08);
 }
-.project-card-pantry:focus-visible{ outline:3px solid var(--accent-soft); outline-offset:3px; }
 
 .pantry-orb{
   position:absolute;
@@ -1412,7 +1411,7 @@ a{ color:inherit; text-decoration:none; }
   transition:text-shadow .3s ease;
 }
 .project-card-pantry:hover .pantry-title,
-.project-card-pantry:focus-visible .pantry-title{
+.project-card-pantry:focus-within .pantry-title{
   text-shadow:0 0 12px rgba(209,103,255,.85), 0 0 26px rgba(209,103,255,.55);
 }
 
@@ -1437,7 +1436,7 @@ a{ color:inherit; text-decoration:none; }
    element's bob animation, so the float never stops or jumps when the
    hover state changes. */
 .project-card-pantry:hover .pantry-food-inner,
-.project-card-pantry:focus-visible .pantry-food-inner{
+.project-card-pantry:focus-within .pantry-food-inner{
   animation:pantry-apparate 2.6s ease-in-out infinite;
   animation-delay:var(--delay,0s);
 }
