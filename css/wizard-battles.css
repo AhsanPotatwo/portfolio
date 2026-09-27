@@ -1222,8 +1222,11 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   :root{ --wb-portal: 150vw; }
   .wb-hero{ padding-top:64px; padding-bottom:56px; }
   /* a smaller moon tucked into the corner, and no drifting symbols:
-     the title fills the width, so there's no free space beside it */
-  .wb-moon{ --m:42px; left:auto; right:4px; top:66px; }
+     the title fills the width, so there's no free space beside it. The
+     clouds hang down to about 88px in that corner at this size, so the moon
+     sits just under them (only the right edge of its box is the lit
+     crescent, so it can sit this close to the end of the title) */
+  .wb-moon{ --m:42px; left:auto; right:4px; top:96px; }
   .wb-glyph{ display:none; }
 
   .wb-title{ font-size:clamp(34px,10.5vw,48px); }
