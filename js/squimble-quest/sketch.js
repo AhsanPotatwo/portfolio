@@ -120,11 +120,18 @@ function loadMap(name) {
 }
 
 // makes the map's enemies and npcs, each where it was placed and with full health. runs when a map
-// loads, and when the map editor changes them or closes
+// loads, and when the map editor changes them or closes.
+// enemies that have been defeated aren't made again: their spawn was taken off the map when they
+// died (see draw() below), so they only come back if the map's loaded fresh from its file
 function spawnCharacters() {
   // the npc you're talking to is about to be replaced, so the conversation ends
   if (Dialogue.active) Dialogue.close();
-  enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row));
+  enemies = worldMap.enemySpawns.map((spawn) => {
+    const enemy = new Enemy(spawn.type, spawn.col, spawn.row);
+    // remember which spawn it came from, so it can be taken off the map when it's defeated
+    enemy.spawn = spawn;
+    return enemy;
+  });
   npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row));
 }
 
@@ -174,6 +181,11 @@ function draw() {
 
     // each enemy's and npc's ai decides what it does
     for (const enemy of enemies) enemy.update(dt, world);
+    // defeated enemies are gone, and so is the spawn they came from, otherwise closing the map
+    // editor (which remakes everyone from their spawns) would bring them back
+    for (const enemy of enemies) {
+      if (enemy.dead && enemy.spawn) worldMap.removeSpawn('enemy', enemy.spawn);
+    }
     enemies = enemies.filter((enemy) => !enemy.dead);
     for (const npc of npcs) npc.update(dt, world);
 

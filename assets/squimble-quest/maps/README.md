@@ -57,7 +57,7 @@ Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything 
 
 Empty tiles show the dark background and can't be walked on, like the edge of the map.
 
-While the editor's open, everyone stands still. Closing it puts every enemy and NPC back where it was placed, with full health.
+While the editor's open, everyone stands still. Closing it puts every enemy and NPC back where it was placed, with full health. Enemies you've defeated stay gone: they're removed from the map when they die, so they won't be in the file if you export afterwards. Reloading the map (or switching to it with **M**) brings back the enemies saved in its file.
 
 ### New maps
 

@@ -162,6 +162,13 @@ class TileMap {
     return this[list].length !== before;
   }
 
+  // removes one particular spawn (the actual { type, col, row } from the list), e.g. the one a
+  // defeated enemy came from, so it doesn't come back
+  removeSpawn(kind, spawn) {
+    const list = SPAWN_KINDS[kind].list;
+    this[list] = this[list].filter((other) => other !== spawn);
+  }
+
   updateSolidCells() {
     this.solidCells.clear();
     for (const obj of this.objects) {
