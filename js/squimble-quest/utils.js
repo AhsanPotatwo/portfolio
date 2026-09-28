@@ -15,6 +15,12 @@ function angleDifference(a, b) {
   return diff;
 }
 
+// turns a steady 0 → 1 into one that starts slow, speeds up in the middle and slows down at the
+// end (called "ease in-out"). for smooth movements with a set length, like the camera's glides
+function easeInOut(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
 // moves current towards target, covering part of the gap each frame, so it slows down as it
 // arrives (a smooth ease). speed is how quickly: higher is snappier, Infinity gets there instantly.
 // the Math.exp part keeps it the same speed at any frame rate, like dt does for movement

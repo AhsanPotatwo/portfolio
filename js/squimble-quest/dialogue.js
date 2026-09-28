@@ -11,6 +11,15 @@ const TALK_RANGE = 56;
 // how many letters of a line appear per second
 const DIALOGUE_TYPE_SPEED = 45;
 
+// while talking, the camera glides in to frame you and the npc (see focusOn() in camera.js)
+const DIALOGUE_CAMERA = {
+  // how much closer it gets, compared to the zoom before talking. 1.35 is 35% closer
+  zoom: 1.35,
+  // how long the glide in and back out take, in seconds
+  inTime: 0.6,
+  outTime: 0.5,
+};
+
 // layout of the text box, in screen pixels
 const DIALOGUE_BOX = {
   margin: 16,
@@ -28,6 +37,8 @@ const Dialogue = {
   shown: 0,
   // the box itself, a ui element (made in init())
   box: null,
+  // the game's camera, which glides in while talking (given to open())
+  camera: null,
 
   // call once from setup()
   init() {
@@ -56,7 +67,7 @@ const Dialogue = {
   },
 
   // start talking to an npc
-  open(npc, player) {
+  open(npc, player, camera) {
     this.active = true;
     this.npc = npc;
     this.line = 0;
@@ -66,6 +77,15 @@ const Dialogue = {
     npc.aimAt({ x: player.x, y: player.y });
     // the box goes where the hotbar is (inventory.js)
     Hotbar.show(false);
+
+    // the camera glides in to the point halfway between you and them
+    this.camera = camera;
+    camera.focusOn(
+      (player.x + npc.x) / 2,
+      (player.y + npc.y) / 2,
+      camera.targetZoom * DIALOGUE_CAMERA.zoom,
+      DIALOGUE_CAMERA.inTime
+    );
   },
 
   close() {
@@ -73,6 +93,8 @@ const Dialogue = {
     this.npc = null;
     this.box.visible = false;
     Hotbar.show(true);
+    // and glides back out to following you
+    if (this.camera) this.camera.release(DIALOGUE_CAMERA.outTime);
   },
 
   // the line that's showing

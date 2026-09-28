@@ -271,6 +271,12 @@ class TileMap {
     this.drawObjects(camera);
   }
 
+  // tiles are drawn straight onto screen pixels, rather than through the camera's zoom like
+  // everything else. at a zoom like 1.35 (e.g. talking to someone) tile edges would land partway
+  // through a pixel, and the browser softens those edge pixels by blending them with what's behind,
+  // which shows up as a faint grid across the ground. so instead each tile edge is worked out on
+  // screen and rounded to a whole pixel, and neighbouring tiles share exactly the same edge:
+  // no gaps, no overlap, nothing softened, at any zoom
   drawTiles(camera) {
     const view = camera.view();
     const firstCol = Math.max(this.left, this.colAt(view.left));
@@ -278,22 +284,41 @@ class TileMap {
     const firstRow = Math.max(this.top, this.rowAt(view.top));
     const lastRow = Math.min(this.top + this.rows - 1, this.rowAt(view.bottom));
 
+    // the real screen can have more than one pixel per game pixel (pixelDensity() is 2 on most high
+    // resolution screens), so edges are rounded to those real pixels
+    const density = pixelDensity();
+    const toPixel = (value) => Math.round(value * density) / density;
+
+    // where every column's left edge and every row's top edge land on screen, plus one more for the
+    // far edge of the last one. a tile runs from its edge to the next one's
+    const xs = [];
+    for (let col = firstCol; col <= lastCol + 1; col++) xs.push(toPixel(camera.drawnPosition(col * TILE, 0).x));
+    const ys = [];
+    for (let row = firstRow; row <= lastRow + 1; row++) ys.push(toPixel(camera.drawnPosition(0, row * TILE).y));
+
+    // draw in screen positions for this part: resetMatrix() undoes the camera's move and zoom,
+    // and pop() puts them back for everything drawn after
+    push();
+    resetMatrix();
     noStroke();
     for (let row = firstRow; row <= lastRow; row++) {
+      const top = ys[row - firstRow];
+      const h = ys[row - firstRow + 1] - top;
       for (let col = firstCol; col <= lastCol; col++) {
         const type = this.get(col, row);
         // empty, nothing to draw (the background shows through)
         if (!type) continue;
-        const x = col * TILE;
-        const y = row * TILE;
+        const left = xs[col - firstCol];
+        const w = xs[col - firstCol + 1] - left;
         if (type.img) {
-          image(type.img, x, y, TILE, TILE);
+          image(type.img, left, top, w, h);
         } else {
           fill(type.fill);
-          rect(x, y, TILE, TILE);
+          rect(left, top, w, h);
         }
       }
     }
+    pop();
   }
 
   // in the order they were placed, so later ones are drawn on top

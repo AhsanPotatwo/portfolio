@@ -198,11 +198,12 @@ const Editor = {
 
   open(player, camera) {
     this.active = true;
-    // start looking at wherever the camera already is, and follow the editor's view instead of the player
-    this.view = { x: camera.x, y: camera.y };
-    camera.follow(this.view);
     // stop any conversation first, its text box would be in the way (dialogue.js)
     if (Dialogue.active) Dialogue.close();
+    // start looking at wherever the camera already is, and follow the editor's view instead of the
+    // player. follow() also stops the conversation's camera glide
+    this.view = { x: camera.x, y: camera.y };
+    camera.follow(this.view);
     UI.showGroup('editor', true);
     // the editor's bar goes where the hotbar is (inventory.js)
     Hotbar.show(false);
