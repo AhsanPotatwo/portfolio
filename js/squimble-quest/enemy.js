@@ -13,7 +13,7 @@ class Enemy extends Character {
     this.placeFeetOnTile(col, row);
   }
 
-  // world: { map, player, enemies }
+  // world: { map, player, enemies, npcs }
   update(dt, world) {
     // its ai decides what to do, the same way the keyboard and mouse decide for the player
     const controls = this.type.ai ? this.type.ai(this, world, dt) : STAND_STILL;

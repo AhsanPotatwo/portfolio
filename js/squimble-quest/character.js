@@ -60,9 +60,9 @@ class Character {
   // ---------- every frame ----------
 
   // controls: what to do this frame (see the top of this file). dt: seconds since the last frame.
-  // world: { map, player, enemies }, everything it might need to know about
+  // world: { map, player, enemies, npcs }, everything it might need to know about
   update(controls, dt, world) {
-    this.walk(controls.move, dt, world.map);
+    this.walk(controls.move, dt, world);
     this.aimAt(controls.aim);
     if (controls.attack) this.attack();
 
@@ -84,8 +84,10 @@ class Character {
   // ---------- moving ----------
 
   // walking. only changes where it is, not where it faces,
-  // so it can walk one way while aiming another (like backing away while fighting)
-  walk(dir, dt, map) {
+  // so it can walk one way while aiming another (like backing away while fighting).
+  // walls (the map) and other characters both stop it
+  walk(dir, dt, world) {
+    const map = world.map;
     let dx = dir.x;
     let dy = dir.y;
 
@@ -100,10 +102,16 @@ class Character {
     // the same speed at any frame rate
     const speed = this.speed * (this.tile ? this.tile.speed : 1);
 
-    // the map works out how far the feet can go before they hit something solid
-    const moved = map.moveBox(this.feetBox(), dx * speed * dt, dy * speed * dt);
-    this.x += moved.x;
-    this.y += moved.y;
+    // across first, then down, like map.moveBox() does, so walking into a wall or someone at an
+    // angle slides along them. each time: the map says how far the feet can go before a wall,
+    // then that's cut short again if another character's feet are in the way
+    const others = this.bumpsInto(world);
+    const feet = this.feetBox();
+    const moveX = this.stopAtOthers(others, feet, 'x', map.moveAlongX(feet, dx * speed * dt));
+    feet.x += moveX;
+    const moveY = this.stopAtOthers(others, feet, 'y', map.moveAlongY(feet, dy * speed * dt));
+    this.x += moveX;
+    this.y += moveY;
 
     // the feet stop at the edge of the map, but the head sticks up above them and could poke
     // off the top. this stops the character once its head reaches the top edge.
@@ -113,7 +121,35 @@ class Character {
     if (edges.bottom - edges.top >= this.h && this.y < headLimit) this.y = headLimit;
   }
 
-  // the part that bumps into walls: just the feet, at the bottom of the body.
+  // everyone it can't walk through: every other character that's still alive
+  bumpsInto(world) {
+    return [world.player, ...(world.enemies ?? []), ...(world.npcs ?? [])]
+      .filter((other) => other && other !== this && !other.dead);
+  }
+
+  // how far the feet can move along one axis ('x' or 'y') before they'd walk into another
+  // character's feet. amount is how far they want to go, and it's cut short to stop flush against
+  // whoever's in the way. only the feet bump, like with walls, so heads and bodies can still
+  // overlap from this angle (someone standing in front of someone else)
+  stopAtOthers(others, feet, axis, amount) {
+    if (amount === 0) return 0;
+    const size = axis === 'x' ? 'w' : 'h';
+    for (const other of others) {
+      const theirs = other.feetBox();
+      // already overlapping (e.g. one was teleported onto the other): let them walk apart,
+      // rather than both being stuck
+      if (boxesOverlap(feet, theirs)) continue;
+      const moved = { ...feet, [axis]: feet[axis] + amount };
+      if (!boxesOverlap(moved, theirs)) continue;
+      // stop flush against them: our front edge on their near edge
+      amount = amount > 0
+        ? theirs[axis] - (feet[axis] + feet[size])
+        : (theirs[axis] + theirs[size]) - feet[axis];
+    }
+    return amount;
+  }
+
+  // the part that bumps into walls and other characters: just the feet, at the bottom of the body.
   // that way the head can overlap a wall above, which looks right from a top down angle,
   // and the player fits through 1 tile gaps (the whole body is nearly 2 tiles tall)
   feetBox() {
