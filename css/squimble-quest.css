@@ -1,0 +1,77 @@
+/* squimble quest page. just the hero + game area for now, the rest of the page comes later */
+.sq-page{
+  --sq-green:  #7bd88f;
+  --sq-leaf:   #3f8f52;
+  --sq-moss:   #1b2a1f;
+  --page-accent: var(--sq-green);
+}
+
+/* ---------- hero ---------- */
+.sq-hero{
+  padding:clamp(56px,7vw,96px) 0 var(--section-pad);
+  text-align:center;
+}
+.sq-title{
+  margin:0;
+  font-size:clamp(40px,6vw,80px);
+  font-weight:700;
+  line-height:1.05;
+}
+.sq-title span{ color:var(--sq-green); }
+.sq-subtitle{
+  margin:14px 0 0;
+  font-size:var(--text-body);
+  color:var(--muted);
+}
+.sq-tags{
+  list-style:none;
+  display:flex; flex-wrap:wrap; justify-content:center;
+  gap:10px;
+  margin:24px 0 clamp(32px,4vw,48px);
+  padding:0;
+}
+.sq-tags li{
+  padding:6px 14px;
+  border-radius:999px;
+  border:1px solid rgba(123,216,143,.35);
+  background:rgba(123,216,143,.08);
+  color:var(--sq-green);
+  font-size:15px;
+  font-weight:600;
+}
+
+/* ---------- game ---------- */
+.sq-game-frame{
+  width:100%;
+  max-width:996px; /* 960 canvas + padding */
+  margin:0 auto;
+  padding:18px;
+  border-radius:26px;
+  background:linear-gradient(160deg, rgba(63,143,82,.35), rgba(27,42,31,.2));
+  box-shadow:0 0 0 1px rgba(123,216,143,.2), 0 25px 60px rgba(0,0,0,.45);
+}
+.sq-game-stage{
+  aspect-ratio:16/9;
+  border-radius:14px;
+  overflow:hidden;
+  background:var(--sq-moss);
+}
+/* p5 puts a fixed px size on the canvas inline, this scales the 960x540 canvas to the frame.
+   p5 still works out mouseX/mouseY correctly when the canvas is scaled like this */
+.sq-game-stage canvas{
+  display:block;
+  width:100% !important;
+  height:100% !important;
+  image-rendering:pixelated;
+}
+.sq-note{
+  margin:20px auto 0;
+  max-width:560px;
+  color:var(--muted);
+  font-size:15px;
+}
+
+@media (max-width:600px){
+  .sq-game-frame{ padding:6px; border-radius:14px; }
+  .sq-game-stage{ border-radius:10px; }
+}

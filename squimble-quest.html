@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Squimble Quest — Ahsan</title>
+  <meta name="description"
+    content="Squimble Quest — a top-down RPG with quests and combat, built in p5.js. Currently in development.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/squimble-quest.css">
+</head>
+
+<body class="sq-page">
+
+  <!-- background glows, same as the main site -->
+  <div class="bg-glow" aria-hidden="true">
+    <div class="bg-nebula bg-nebula-1"></div>
+    <div class="bg-nebula bg-nebula-2"></div>
+    <div class="bg-nebula bg-nebula-3"></div>
+  </div>
+
+  <a class="skip-link" href="#game">Skip to content</a>
+
+  <!-- nav -->
+  <header class="site-header" id="header">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html#home"><span class="brand-bracket">[</span>Ahsan<span class="brand-bracket">]</span></a>
+
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="nav" id="primaryNav" aria-label="Primary">
+        <a href="index.html#home" class="nav-link">Home</a>
+        <a href="index.html#about" class="nav-link">About</a>
+        <a href="index.html#skills" class="nav-link">Skills</a>
+        <a href="index.html#projects" class="nav-link is-active">Projects</a>
+        <a href="index.html#contact" class="nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <section class="sq-hero" id="game">
+      <div class="container">
+        <h1 class="sq-title">Squimble <span>Quest</span></h1>
+        <p class="sq-subtitle">A top-down RPG of quests and combat</p>
+        <ul class="sq-tags" aria-label="Built with">
+          <li>p5.js</li>
+          <li>JavaScript</li>
+          <li>In development</li>
+        </ul>
+
+        <div class="sq-game-frame">
+          <!-- sketch.js puts the canvas in here -->
+          <div class="sq-game-stage" id="sqCanvas"></div>
+        </div>
+
+        <p class="sq-note">Squimble Quest is still being built. Check back soon to play it.</p>
+      </div>
+    </section>
+
+    <div class="container page-back">
+      <a href="index.html#projects"><span aria-hidden="true">&larr;</span> Back to all projects</a>
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Made in <span id="year">2026</span> by pondering my crystal orb ~ Ahsan, Full Stack Wizard</p>
+    </div>
+  </footer>
+
+  <script src="js/particles.js"></script>
+  <script src="js/main.js"></script>
+  <!-- same p5 build as wizard battles, so the browser can reuse the cached copy -->
+  <script src="js/wizard-battles/p5.min.js"></script>
+  <script src="js/squimble-quest/sketch.js"></script>
+</body>
+
+</html>
