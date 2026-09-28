@@ -12,7 +12,6 @@ const MAP_FOLDER = 'assets/squimble-quest/maps/';
 const MAP_FILES = [
   'default.json',
   'example.json',
-  'testonthegrass.json',
 ];
 
 // the map the game starts on, by name
@@ -23,6 +22,16 @@ const START_MAP = 'default';
 // builds the map, so it starts fresh every time you go to it (see loadMap() in sketch.js)
 const MAPS = {};
 
+// a new map, cols tiles wide and rows tall, every tile fillWith (a tile name, or null for empty).
+// tile (0, 0) is in its middle, which is where the player spawns. the map editor's New map uses this
+function makeBlankMap(cols, rows, fillWith) {
+  // "0 -" rather than just "-", which would give -0 for tiny maps
+  const map = new TileMap(0 - Math.floor(cols / 2), 0 - Math.floor(rows / 2), cols, rows, fillWith);
+  map.showGrid = true;
+  map.setSpawnTile(0, 0);
+  return map;
+}
+
 // ---------- if no map files load ----------
 
 // the name of the stand-in map below, used when not a single map file could be loaded
@@ -31,7 +40,5 @@ const FALLBACK_MAP = 'no-maps-loaded';
 // a small blank map so the game can still run, e.g. when the page is opened without a local server
 // (see "Running the game locally" in the README). there's a message on screen while you're on it
 function buildFallbackMap() {
-  const map = new TileMap(-15, -9, 30, 18, 'blank');
-  map.showGrid = true;
-  return map;
+  return makeBlankMap(30, 18, 'blank');
 }

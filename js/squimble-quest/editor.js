@@ -1,30 +1,38 @@
-// the map editor. a simple way to paint tiles onto the map you're on.
+// the map editor. a simple way to build maps: paint tiles and place objects on the map you're on.
 // open it from dev mode: press ` for dev mode, then E.
 //
 // while it's open:
 //   - the player stops, and WASD / the arrow keys move the camera around instead
-//   - pick a tile from the bar at the bottom (‹ › for more pages once there are lots of tiles)
-//   - left click or drag to paint that tile, replacing whatever was there
-//   - right click or drag to erase (or pick Erase in the bar). erased tiles are empty:
-//     nothing's drawn there and nothing can walk on it, like off the edge of the map
+//   - pick a tile or an object from the bar at the bottom (‹ › for more pages once there are lots)
+//   - tiles: left click or drag to paint, replacing whatever tile was there
+//   - objects: left click to place one, its top left corner on the tile under the mouse
+//   - right click or drag to erase (or pick Erase in the bar). if you start on an object it removes
+//     objects, otherwise it empties tiles. empty tiles are like off the edge of the map:
+//     nothing's drawn there and nothing can walk on them
 //   - P puts the player's spawn point on the tile under the mouse (marked with a yellow ring)
-//   - Export saves the map as a file, Open loads one (see mapfile.js)
+//   - New map makes a blank map of any size, Export saves the map as a file, Open file loads one
 //   - the dev mode keys still work (zoom, teleport, next map)
 //
-// every tile in tiles.js shows up in the bar by itself, in the order they're defined.
+// every tile in tiles.js and object in objects.js shows up in the bar by itself.
 //
 // changes are made to the map you're on, so you can walk around on them straight away.
 // Export them to keep them: going to another map (M) or reloading builds maps fresh
-// from their file or maps.js. the full guide is in assets/squimble-quest/maps/README.md
+// from their files. the full guide is in assets/squimble-quest/maps/README.md
 
 // how fast WASD moves the camera, in screen pixels a second (so it feels the same at any zoom)
 const EDITOR_PAN_SPEED = 600;
 
-// the controls box in the top right, and the Export / Open buttons under it
+// the biggest a new map can be each way, in tiles. just to stop a typo making a gigantic map
+const EDITOR_MAX_MAP_SIZE = 500;
+
+// what a map made with New map is called until it's exported with a name of its own
+const NEW_MAP_NAME = 'new-map';
+
+// the controls box in the top right, and the New / Export / Open buttons under it
 const EDITOR_HELP = {
   lines: [
     'MAP EDITOR   E to close',
-    'left click: paint   right click: erase',
+    'left click: paint / place   right: erase',
     'WASD: move   - = / wheel: zoom',
     'P: player spawns here',
   ],
@@ -35,37 +43,44 @@ const EDITOR_HELP = {
 // layout of the bar along the bottom, in screen pixels
 const EDITOR_BAR = {
   height: 84,
-  // each tile square, and the space each one gets (square + gap + room for its name)
+  // each square, and the space each one gets (square + gap + room for its name)
   swatchSize: 44,
   slotWidth: 60,
-  // where the tile squares start and stop across the bar. the rest is the Erase button and arrows
+  // where the squares start and stop across the bar. the rest is the Erase button and arrows
   swatchesLeft: 110,
   swatchesRight: GAME_W - 44,
 };
 
 const Editor = {
   active: false,
-  // the tile being painted, by name. null means erase
+  // what's picked in the bar: { kind: 'tile' or 'object', name }, or null for Erase
   selected: null,
-  // which page of tiles the bar is showing
+  // which page of the bar is showing
   page: 0,
   pageCount: 1,
   // what the camera looks at while editing. WASD moves this, the camera follows it
   view: { x: 0, y: 0 },
-  // where the last bit of paint went while dragging, so fast drags can fill in the gap
+  // where the mouse was last frame while dragging, so fast drags can fill in the gap
   lastPaint: null,
+  // whether the current erase drag is removing objects (true) or emptying tiles (false)
+  erasingObjects: false,
 
   // the bar's ui elements, made once in init()
   swatches: [],
   eraseButton: null,
 
-  // call once from setup(). makes the bar (hidden until the editor opens)
+  // call once from setup(). makes the bar and buttons (hidden until the editor opens)
   init() {
     const barY = GAME_H - EDITOR_BAR.height;
-    const names = Object.keys(TILE_TYPES);
+
+    // everything in the bar: every tile, then every object
+    const entries = [
+      ...Object.keys(TILE_TYPES).map((name) => ({ kind: 'tile', name })),
+      ...Object.keys(OBJECT_TYPES).map((name) => ({ kind: 'object', name })),
+    ];
     const perPage = Math.floor((EDITOR_BAR.swatchesRight - EDITOR_BAR.swatchesLeft) / EDITOR_BAR.slotWidth);
-    this.pageCount = Math.ceil(names.length / perPage);
-    this.selected = names[0];
+    this.pageCount = Math.ceil(entries.length / perPage);
+    this.selected = entries[0];
 
     // everything's in the 'editor' group, so it can be shown and hidden together.
     // the bar goes first so it's underneath the rest, and it blocks clicks between the buttons
@@ -86,30 +101,36 @@ const Editor = {
     add(new Button({ ...arrows, x: 74, y: barY + 10, w: 28, h: 44, label: '‹', onClick: () => this.turnPage(-1) }));
     add(new Button({ ...arrows, x: GAME_W - 38, y: barY + 10, w: 28, h: 44, label: '›', onClick: () => this.turnPage(1) }));
 
-    // one square per tile. each knows which page it's on, only that page's squares are shown
-    this.swatches = names.map((name, i) => {
+    // one square per entry. each knows which page it's on, only that page's squares are shown
+    this.swatches = entries.map((entry, i) => {
       const slot = i % perPage;
-      return add(new TileSwatch({
+      return add(new PaletteSwatch({
         x: EDITOR_BAR.swatchesLeft + slot * EDITOR_BAR.slotWidth + (EDITOR_BAR.slotWidth - EDITOR_BAR.swatchSize) / 2,
         y: barY + 10,
         w: EDITOR_BAR.swatchSize,
         h: EDITOR_BAR.swatchSize,
-        tileName: name,
+        kind: entry.kind,
+        name: entry.name,
         page: Math.floor(i / perPage),
-        onClick: () => { this.selected = name; },
+        onClick: () => { this.selected = entry; },
       }));
     });
 
-    // Export and Open, side by side under the controls box. worldMap is the map you're on (sketch.js)
+    // New map, Export and Open, in a row under the controls box. worldMap, player and gameCamera
+    // are the game's (sketch.js)
     const helpLeft = GAME_W - 8 - EDITOR_HELP.width;
     const buttonsY = 8 + EDITOR_HELP.lines.length * EDITOR_HELP.lineHeight + 12 + 8;
-    const half = (EDITOR_HELP.width - 8) / 2;
+    const third = (EDITOR_HELP.width - 16) / 3;
     add(new Button({
-      x: helpLeft, y: buttonsY, w: half, h: 32, label: 'Export map', style: 'primary',
+      x: helpLeft, y: buttonsY, w: third, h: 32, label: 'New map',
+      onClick: () => this.newMap(),
+    }));
+    add(new Button({
+      x: helpLeft + third + 8, y: buttonsY, w: third, h: 32, label: 'Export', style: 'primary',
       onClick: () => exportMap(worldMap),
     }));
     add(new Button({
-      x: helpLeft + half + 8, y: buttonsY, w: half, h: 32, label: 'Open map file',
+      x: helpLeft + (third + 8) * 2, y: buttonsY, w: third, h: 32, label: 'Open file',
       onClick: () => openMapFile(),
     }));
 
@@ -152,6 +173,47 @@ const Editor = {
     for (const swatch of this.swatches) swatch.visible = swatch.page === page;
   },
 
+  // is this tile or object the one picked in the bar?
+  isSelected(kind, name) {
+    return this.selected !== null && this.selected.kind === kind && this.selected.name === name;
+  },
+
+  // ---------- new map ----------
+
+  // asks for a size, then makes a blank map that size and goes to it. it's filled with the tile
+  // picked in the bar, or starts empty if Erase is picked (handy for rooms that aren't rectangles:
+  // start empty, then paint the floor in whatever shape you like)
+  newMap() {
+    const typed = prompt('Size of the new map in tiles, width x height:', '40x24');
+    // cancelled
+    if (typed === null) return;
+
+    // "40x24", "40 x 24" or "40,24"
+    const match = typed.match(/^\s*(\d+)\s*[x×*,]\s*(\d+)\s*$/i);
+    if (!match) {
+      alert('Type the size as width x height, e.g. 40x24');
+      return;
+    }
+    const cols = Number(match[1]);
+    const rows = Number(match[2]);
+    if (cols < 1 || rows < 1) {
+      alert('The smallest a map can be is 1x1.');
+      return;
+    }
+    if (cols > EDITOR_MAX_MAP_SIZE || rows > EDITOR_MAX_MAP_SIZE) {
+      alert(`The biggest a map can be is ${EDITOR_MAX_MAP_SIZE}x${EDITOR_MAX_MAP_SIZE}.`);
+      return;
+    }
+
+    let fillWith = 'blank';
+    if (this.selected === null) fillWith = null;
+    else if (this.selected.kind === 'tile') fillWith = this.selected.name;
+
+    // added to MAPS like any other map, so dev mode's M key can come back to it
+    MAPS[NEW_MAP_NAME] = () => makeBlankMap(cols, rows, fillWith);
+    loadMap(NEW_MAP_NAME); // in sketch.js
+  },
+
   // ---------- every frame, while open ----------
 
   // aim is the mouse's world position, or null
@@ -165,44 +227,63 @@ const Editor = {
     this.view.x = constrain(this.view.x + dir.x * speed * dt, bounds.left, bounds.right);
     this.view.y = constrain(this.view.y + dir.y * speed * dt, bounds.top, bounds.bottom);
 
+    // the tile under the mouse, or null if the mouse isn't over the game
+    const over = aim && Input.mouse.inside ? { col: map.colAt(aim.x), row: map.rowAt(aim.y) } : null;
+
     // P: the player will start with their feet in the middle of the tile under the mouse.
     // not on solid or empty tiles, they'd be stuck
-    if (Input.wasPressed('setSpawn') && aim) {
-      const col = map.colAt(aim.x);
-      const row = map.rowAt(aim.y);
-      if (!map.isSolid(col, row)) {
-        // spawn is the player's centre, which is above their feet
-        const feetBelowCentre = PLAYER.height / 2 - PLAYER.feetHeight / 2;
-        map.spawn = { x: (col + 0.5) * TILE, y: (row + 0.5) * TILE - feetBelowCentre };
-      }
+    if (Input.wasPressed('setSpawn') && over && !map.isSolid(over.col, over.row)) {
+      map.setSpawnTile(over.col, over.row);
     }
 
-    // paint while a button's held. mouseHeld() ignores clicks that landed on the bar (see input.js)
-    const painting = Input.mouseHeld('left');
-    const erasing = Input.mouseHeld('right');
-    if (aim && Input.mouse.inside && (painting || erasing)) {
-      this.paintLine(map, this.lastPaint ?? aim, aim, erasing ? null : this.selected);
+    // objects: one per click. mousePressed() ignores clicks that landed on the bar (see input.js)
+    if (over && this.selected?.kind === 'object' && Input.mousePressed('left')) {
+      this.placeObject(map, this.selected.name, over.col, over.row);
+    }
+
+    // tiles and erasing: keep going while the button's held
+    const erasing = Input.mouseHeld('right') || (this.selected === null && Input.mouseHeld('left'));
+    const painting = !erasing && this.selected?.kind === 'tile' && Input.mouseHeld('left');
+
+    if (over && (painting || erasing)) {
+      // an erase drag that starts on an object only removes objects, otherwise it only empties
+      // tiles. stops one drag removing a table and then the floor it was standing on
+      if (!this.lastPaint) this.erasingObjects = erasing && map.objectsAt(over.col, over.row).length > 0;
+
+      this.forEachTileOnLine(map, this.lastPaint ?? aim, aim, (col, row) => {
+        if (painting) map.set(col, row, this.selected.name);
+        else if (this.erasingObjects) map.removeObjectsAt(col, row);
+        else map.set(col, row, null);
+      });
       this.lastPaint = aim;
     } else {
       this.lastPaint = null;
     }
   },
 
-  // paints every tile along a line. a fast drag can jump several tiles between frames,
-  // so this fills in the ones in between instead of leaving gaps
-  paintLine(map, from, to, name) {
+  // places an object with its top left corner on col, row
+  placeObject(map, name, col, row) {
+    if (!map.inside(col, row)) return;
+    // not the same object twice in exactly the same spot (easy to do with a double click)
+    if (map.objects.some((obj) => obj.type === name && obj.col === col && obj.row === row)) return;
+    map.addObject(name, col, row);
+  },
+
+  // runs action(col, row) for every tile along a line. a fast drag can jump several tiles between
+  // frames, so this fills in the ones in between instead of leaving gaps
+  forEachTileOnLine(map, from, to, action) {
     // a check every half tile along the line is enough to not skip any
     const steps = Math.max(1, Math.ceil(dist(from.x, from.y, to.x, to.y) / (TILE / 2)));
     for (let i = 0; i <= steps; i++) {
       const x = lerp(from.x, to.x, i / steps);
       const y = lerp(from.y, to.y, i / steps);
-      map.set(map.colAt(x), map.rowAt(y), name);
+      action(map.colAt(x), map.rowAt(y));
     }
   },
 
   // ---------- drawing ----------
 
-  // marks the spawn point, and outlines the tile under the mouse.
+  // marks the spawn point, and shows what a click would do under the mouse.
   // uses world positions, so draw it before camera.end()
   drawCursor(map, camera, aim) {
     // same trick as the grid: divide by zoom so lines stay the same thickness on screen
@@ -223,14 +304,39 @@ const Editor = {
     const row = map.rowAt(aim.y);
     if (!map.inside(col, row)) return;
 
+    // an object: a see-through preview of it, covering the tiles it would
+    if (this.selected?.kind === 'object') {
+      const type = OBJECT_TYPES[this.selected.name];
+      const preview = color(type.fill);
+      preview.setAlpha(110);
+      fill(preview);
+      this.outline(col * TILE, row * TILE, type.width * TILE, type.height * TILE, '#ffffff', px);
+      return;
+    }
+
+    // erasing over objects: outline the objects that would be removed
+    if (this.selected === null) {
+      for (const obj of map.objectsAt(col, row)) {
+        const type = OBJECT_TYPES[obj.type];
+        noFill();
+        this.outline(obj.col * TILE, obj.row * TILE, type.width * TILE, type.height * TILE, '#ff6b6b', px);
+      }
+    }
+
+    // the tile under the mouse. red when erasing
     noFill();
-    // dark then light, so it shows up on any tile. red when erasing
+    this.outline(col * TILE, row * TILE, TILE, TILE, this.selected === null ? '#ff6b6b' : '#ffffff', px);
+  },
+
+  // a rectangle with a dark edge then a light one, so it shows up on anything. uses the current fill
+  outline(x, y, w, h, colour, px) {
     stroke(0, 0, 0, 160);
     strokeWeight(3 * px);
-    rect(col * TILE, row * TILE, TILE, TILE);
-    stroke(this.selected === null ? '#ff6b6b' : '#ffffff');
+    rect(x, y, w, h);
+    noFill();
+    stroke(colour);
     strokeWeight(1.5 * px);
-    rect(col * TILE, row * TILE, TILE, TILE);
+    rect(x, y, w, h);
   },
 
   // a reminder of the controls, top right (the text is in EDITOR_HELP at the top of this file).
@@ -272,27 +378,34 @@ class EditorBar extends UIElement {
   }
 }
 
-// one tile in the bar. a Button, so clicking works the same, but it draws the tile instead of a box
-class TileSwatch extends Button {
+// one tile or object in the bar. a Button, so clicking works the same, but it draws the tile or
+// object instead of a box
+class PaletteSwatch extends Button {
   constructor(options) {
     super(options);
-    // the tile it picks, and which page of the bar it's on
-    this.tileName = options.tileName;
+    // 'tile' or 'object', its name, and which page of the bar it's on
+    this.kind = options.kind;
+    this.name = options.name;
     this.page = options.page;
   }
 
   draw() {
-    const type = TILE_TYPES[this.tileName];
-    const selected = Editor.selected === this.tileName;
+    const selected = Editor.isSelected(this.kind, this.name);
     const y = this.y + (this.pressed && this.hovered ? 1 : 0);
 
-    // the tile itself: its picture, or its colour
-    if (type.img) {
-      image(type.img, this.x, y, this.w, this.h);
+    if (this.kind === 'tile') {
+      this.drawArt(TILE_TYPES[this.name], this.x, y, this.w, this.h);
     } else {
+      // objects sit on a dark square, shrunk to fit but keeping their shape,
+      // so a 2 x 1 table looks twice as wide as it is tall
+      const type = OBJECT_TYPES[this.name];
       noStroke();
-      fill(type.fill);
+      fill(42, 45, 54);
       rect(this.x, y, this.w, this.h);
+      const scale = Math.min(this.w / type.width, this.h / type.height) * 0.8;
+      const w = type.width * scale;
+      const h = type.height * scale;
+      this.drawArt(type, this.x + (this.w - w) / 2, y + (this.h - h) / 2, w, h, 4);
     }
 
     // yellow edge for the one that's picked, white when the mouse is over it
@@ -313,6 +426,17 @@ class TileSwatch extends Button {
     textStyle(BOLD);
     textSize(11);
     textAlign(CENTER, CENTER);
-    text(this.tileName, this.x + this.w / 2, this.y + this.h + 12);
+    text(this.name, this.x + this.w / 2, this.y + this.h + 12);
+  }
+
+  // a tile's or object's picture, or its colour if it hasn't got one
+  drawArt(type, x, y, w, h, radius = 0) {
+    if (type.img) {
+      image(type.img, x, y, w, h);
+    } else {
+      noStroke();
+      fill(type.fill);
+      rect(x, y, w, h, radius);
+    }
   }
 }

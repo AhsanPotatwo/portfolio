@@ -6,6 +6,7 @@
 //   input.js    the keyboard and mouse
 //   camera.js   which part of the world is on screen, and world ↔ screen positions
 //   tiles.js    every kind of tile and what it does (grass, walls, lava...)
+//   objects.js  every kind of object that sits on the tiles (furniture, decorations...)
 //   tilemap.js  a map made of tiles: storing, drawing, and collision with solid tiles
 //   maps.js     the list of map files to load, and the map the game starts on
 //   mapfile.js  saving and loading maps as files
@@ -28,7 +29,8 @@ let mapsReady = false;
 // runs before setup(). p5 waits for everything started here (like images) to finish loading
 // before it starts the game. load images for buttons and anything else in here too
 function preload() {
-  prepareTiles();
+  prepareArt(TILE_TYPES, 'tile');
+  prepareArt(OBJECT_TYPES, 'object');
 }
 
 // runs once when the page loads, after preload()
@@ -87,6 +89,12 @@ function loadMap(name) {
 
   // the camera stops at the edges of the map
   gameCamera.bounds = worldMap.bounds();
+  // if the map editor's open, the camera's following its view rather than the player,
+  // so move that to the new map's spawn point too
+  if (Editor.active) {
+    Editor.view.x = worldMap.spawn.x;
+    Editor.view.y = worldMap.spawn.y;
+  }
   // jump there, rather than gliding across from wherever it was
   gameCamera.snap();
 }
