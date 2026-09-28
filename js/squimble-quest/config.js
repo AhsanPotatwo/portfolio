@@ -141,6 +141,9 @@ const KEYS = {
   zoomReset: ['Digit0', 'Numpad0'],
   teleport:  ['KeyT'],
   nextMap:   ['KeyM'],
+  editor:    ['KeyE'],
+  // map editor only
+  setSpawn:  ['KeyP'],
 };
 
 // the browser numbers mouse buttons, this gives them names. the middle button is left out

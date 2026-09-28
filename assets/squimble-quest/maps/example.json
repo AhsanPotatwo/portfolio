@@ -1,0 +1,48 @@
+{
+  "format": "squimble-quest-map",
+  "version": 1,
+  "left": -20,
+  "top": -12,
+  "spawn": {
+    "x": 0,
+    "y": 0
+  },
+  "showGrid": false,
+  "legend": {
+    ".": null,
+    "w": "wall",
+    "g": "grass",
+    "d": "dirt",
+    "s": "sand",
+    "p": "planks",
+    "W": "water",
+    "l": "lava",
+    "S": "spikes"
+  },
+  "rows": [
+    "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww",
+    "wggggggggggggggggggddggggggggggggggggggw",
+    "wggggggggggggggggggddggggggggggggggggggw",
+    "wgggggwwwwwwwggggggddggggssssssssggggggw",
+    "wgggggwpppppwggggggddggggsWWWWWWsggggggw",
+    "wgggggwpppppwggggggddggggsWWWWWWsggggggw",
+    "wgggggwpppppwggggggddggggsWWWWWWsggggggw",
+    "wgggggwwwpwwwggggggddggggsWWWWWWsggggggw",
+    "wggggggggggggggggggddggggssssssssggggggw",
+    "wggggggggggggggggggddggggggggggggggggggw",
+    "wggggggggggggggggggddggggggggggggggggggw",
+    "wddddddddddddddddddddddddddddddddddddddw",
+    "wddddddddddddddddddddddddddddddddddddddw",
+    "wggggggggggggggggggddggggggggggggggggggw",
+    "wggggggggggggggggggddggggggggggggggggggw",
+    "wggggggggggggggggggddggggggggggggggggggw",
+    "wgggggggllllgggggggddggggggggggggggggggw",
+    "wgggggggllllgggggggddggggggggggggggggggw",
+    "wgggggggllllgggggggddgggggSSSSSggggggggw",
+    "wgggggggllllgggggggddggggggggggggggggggw",
+    "wggggggggggggggggggddggggggggggggggggggw",
+    "wggggggggggggggggggddggggggggggggggggggw",
+    "wggggggggggggggggggddggggggggggggggggggw",
+    "wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww"
+  ]
+}

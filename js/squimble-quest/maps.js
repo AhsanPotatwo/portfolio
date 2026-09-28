@@ -1,20 +1,33 @@
-// the maps, built in code for now. the map maker will replace building maps by hand like this.
+// the list of maps, and the two built into the code (default and test).
 //
-// positions are in tiles (column, row), not pixels. tile (0, 0) is in the middle, negative columns
-// are to the left and negative rows are up. turn on dev mode (`) to see the tile grid, the lines
-// through (0, 0), and which tile you're standing on.
+// most maps should be made in the map editor and saved as files. the full guide is in
+// assets/squimble-quest/maps/README.md. in short:
+//   1. make a map in the editor (dev mode ` then E), click Export, it downloads as a .json file
+//   2. put the file in assets/squimble-quest/maps/
+//   3. add its file name to MAP_FILES below
 //
-// to add a map: write a function that builds and returns a TileMap (like the ones below),
-// then add it to MAPS. dev mode's M key goes through them in the order they're listed
+// positions in the built in maps are in tiles (column, row), not pixels. tile (0, 0) is in the
+// middle, negative columns are to the left and negative rows are up
 
 // every map, by name. each one is a function that builds it, so the map starts fresh
-// every time you go to it. loadMap() in sketch.js is what switches between them
+// every time you go to it. loadMap() in sketch.js is what switches between them.
+// map files are added to this when the game starts (see mapfile.js).
+// dev mode's M key goes through them all in this order, then the files in MAP_FILES order
 const MAPS = {
   default: buildDefaultMap,
   test: buildTestMap,
 };
 
-// the map the game starts on
+// where map files live, from the site's main folder
+const MAP_FOLDER = 'assets/squimble-quest/maps/';
+
+// map files that load with the game. add a map by putting its file in MAP_FOLDER and its
+// file name here. the file name is the map's name: 'forest.json' is the map called 'forest'
+const MAP_FILES = [
+  'example.json',
+];
+
+// the map the game starts on. can be one of the built in maps or a map file's name
 const START_MAP = 'default';
 
 // a map the size of WORLD in config.js (80 x 50 tiles, with (0, 0) in the middle), every tile fillWith

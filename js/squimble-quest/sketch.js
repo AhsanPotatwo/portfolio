@@ -7,12 +7,14 @@
 //   camera.js   which part of the world is on screen, and world ↔ screen positions
 //   tiles.js    every kind of tile and what it does (grass, walls, lava...)
 //   tilemap.js  a map made of tiles: storing, drawing, and collision with solid tiles
-//   maps.js     the maps themselves (just a test map for now)
+//   maps.js     the list of maps, the built in ones, and which map files to load
+//   mapfile.js  saving and loading maps as files
 //   world.js    draws the world (the map, plus dev mode lines)
 //   player.js   the player
 //   ui.js       the ui system: UIElement and the UI manager
 //   button.js   buttons (needs ui.js loaded first, because Button builds on UIElement)
 //   hud.js      things drawn over the game that aren't ui elements (crosshair, messages)
+//   editor.js   the map editor, opened from dev mode (needs button.js loaded first)
 //   debug.js    developer mode, hidden testing tools (press ` while playing)
 
 let player;
@@ -20,6 +22,8 @@ let player;
 let gameCamera;
 // the tile map the player is on
 let worldMap;
+// false until the map files have loaded, the game shows a loading message until then
+let mapsReady = false;
 
 // runs before setup(). p5 waits for everything started here (like images) to finish loading
 // before it starts the game. load images for buttons and anything else in here too
@@ -41,11 +45,23 @@ function setup() {
   gameCamera = new Camera();
   gameCamera.follow(player);
 
-  // START_MAP is in maps.js
-  loadMap(START_MAP);
+  // the map files load in the background (see mapfile.js), then the game starts on START_MAP (maps.js).
+  // they're loaded here rather than in preload() because a missing file in preload() would stop
+  // the game ever starting, and this way it's just skipped
+  loadMapFiles().then(() => {
+    let first = START_MAP;
+    if (!MAPS[first]) {
+      console.warn(`START_MAP is "${first}", but there's no map called that. Starting on "default" instead.`);
+      first = 'default';
+    }
+    loadMap(first);
+    mapsReady = true;
+  });
 
   // turns dev mode back on if it was on last time
   Debug.init();
+  // makes the map editor's tile bar (hidden until it's opened)
+  Editor.init();
 
   // ui: make buttons and other ui elements here, e.g.
   //   UI.add(new Button({ x: 20, y: 20, w: 120, h: 40, label: 'Play', onClick: () => { ... } }));
@@ -71,6 +87,11 @@ function loadMap(name) {
 
 // runs every frame, around 60 times a second
 function draw() {
+  if (!mapsReady) {
+    drawLoading();
+    return;
+  }
+
   // deltaTime is how long the last frame took in milliseconds (p5 gives us this).
   // turned into seconds and capped, see MAX_DT in config.js
   const dt = Math.min(deltaTime / 1000, MAX_DT);
@@ -87,7 +108,12 @@ function draw() {
   // 2. update: dev tools first (they can move the player or zoom), then move everything,
   // then the camera last so it follows where the player is now
   Debug.update(player, gameCamera, worldMap, aim, dt);
-  player.update(Input.direction(), aim, dt, worldMap);
+  // while the map editor's open it takes over: WASD moves the camera, and the player stands still
+  if (Editor.active) {
+    Editor.update(worldMap, gameCamera, aim, dt);
+  } else {
+    player.update(Input.direction(), aim, dt, worldMap);
+  }
   gameCamera.update(dt);
 
   // 3. draw: back to front, so later things go on top of earlier ones.
@@ -95,10 +121,12 @@ function draw() {
   gameCamera.begin();
   drawWorld(gameCamera, worldMap, Debug.enabled);
   player.draw();
+  if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
   gameCamera.end();
 
   // ui on top, in screen positions
   Debug.draw(player, gameCamera, worldMap, aim);
+  if (Editor.active) Editor.drawHelp();
   UI.draw();
   if (Input.focused) {
     drawCrosshair(Input.mouse, Input.mouseHeld('left'), UI.hovered !== null);

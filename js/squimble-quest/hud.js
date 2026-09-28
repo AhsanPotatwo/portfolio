@@ -1,6 +1,18 @@
 // things drawn on top of the game that aren't ui elements: messages and the crosshair now,
 // health bars and quest text later
 
+// shown for a moment when the game starts, while the map files load
+function drawLoading() {
+  background('#2b2b30');
+  noStroke();
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textFont('Quicksand');
+  textStyle(BOLD);
+  textSize(22);
+  text('Loading maps…', GAME_W / 2, GAME_H / 2);
+}
+
 // shown until the game is clicked, because it can't hear the keyboard or mouse before then (see input.js)
 function drawClickToPlay() {
   // dim the game underneath

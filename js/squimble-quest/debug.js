@@ -8,6 +8,7 @@
 //   - - and = (or the mouse wheel) zoom, 0 resets the zoom
 //   - T teleports the player to the mouse (if it's pointing at somewhere you can stand)
 //   - M goes to the next map (the maps are listed in maps.js)
+//   - E opens the map editor (see editor.js)
 //
 // it's remembered in this browser, so it stays on when you reload while working on the game.
 // players never see any of it unless they press the key.
@@ -34,19 +35,25 @@ const Debug = {
     Input.captureWheel = this.enabled;
   },
 
-  toggle(camera) {
+  toggle(player, camera) {
     this.enabled = !this.enabled;
     try { localStorage.setItem(DEV_STORAGE_KEY, this.enabled ? 'on' : 'off'); } catch (e) {}
     // the wheel only zooms in dev mode, the rest of the time it scrolls the page like normal
     Input.captureWheel = this.enabled;
-    // don't leave the game zoomed in or out once the tools are put away
-    if (!this.enabled) camera.zoomTo(1);
+    if (!this.enabled) {
+      // the editor is part of dev mode, so it closes too
+      if (Editor.active) Editor.close(player, camera);
+      // don't leave the game zoomed in or out once the tools are put away
+      camera.zoomTo(1);
+    }
   },
 
   // run every frame, before the player and camera update. aim is the mouse's world position, or null
   update(player, camera, map, aim, dt) {
-    if (Input.wasPressed('devMode')) this.toggle(camera);
+    if (Input.wasPressed('devMode')) this.toggle(player, camera);
     if (!this.enabled) return;
+
+    if (Input.wasPressed('editor')) Editor.toggle(player, camera);
 
     this.fps = approach(this.fps, frameRate(), 4, dt);
 
@@ -91,6 +98,7 @@ const Debug = {
       '- = / wheel  zoom   0  reset',
       'T  teleport to mouse',
       'M  next map',
+      'E  map editor',
     ];
 
     const lineHeight = 18;
