@@ -41,7 +41,8 @@ Open the editor with **`** then **E**. Everything you do changes the map you're 
 
 | Control | What it does |
 |---|---|
-| Click a tile or object in the bottom bar | Choose it (**‹ ›** for more pages). Tiles come first, then objects |
+| **Tiles** / **Objects** tabs above the bar | Switch between the ground tiles and the objects (furniture, decorations…) |
+| Click a tile or object in the bottom bar | Choose it (**‹ ›** for more pages) |
 | Left click / drag (tile chosen) | Paint that tile, replacing the one there |
 | Left click (object chosen) | Place the object, its top-left corner on the tile under the mouse. A see-through preview shows where it'll go |
 | Right click / drag, or **Erase** | Delete. Starting on an object removes objects; starting on bare ground empties tiles |

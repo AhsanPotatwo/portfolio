@@ -3,7 +3,8 @@
 //
 // while it's open:
 //   - the player stops, and WASD / the arrow keys move the camera around instead
-//   - pick a tile or an object from the bar at the bottom (‹ › for more pages once there are lots)
+//   - pick a tile or an object from the bar at the bottom. the tabs above it switch between
+//     tiles and objects (‹ › for more pages once there are lots)
 //   - tiles: left click or drag to paint, replacing whatever tile was there
 //   - objects: left click to place one, its top left corner on the tile under the mouse
 //   - right click or drag to erase (or pick Erase in the bar). if you start on an object it removes
@@ -49,15 +50,27 @@ const EDITOR_BAR = {
   // where the squares start and stop across the bar. the rest is the Erase button and arrows
   swatchesLeft: 110,
   swatchesRight: GAME_W - 44,
+  // the tabs sitting on top of the bar
+  tabWidth: 96,
+  tabHeight: 26,
 };
+
+// the tabs above the bar, left to right. each one shows everything of its kind
+const EDITOR_TABS = [
+  { kind: 'tile', label: 'Tiles' },
+  // furniture, decorations, chests... everything in objects.js
+  { kind: 'object', label: 'Objects' },
+];
 
 const Editor = {
   active: false,
   // what's picked in the bar: { kind: 'tile' or 'object', name }, or null for Erase
   selected: null,
-  // which page of the bar is showing
-  page: 0,
-  pageCount: 1,
+  // which tab is showing ('tile' or 'object'), and for each tab, which page it's on and how many
+  // pages it has. each tab remembers its own page, so switching back finds it where you left it
+  tab: 'tile',
+  pages: {},
+  pageCounts: {},
   // what the camera looks at while editing. WASD moves this, the camera follows it
   view: { x: 0, y: 0 },
   // where the mouse was last frame while dragging, so fast drags can fill in the gap
@@ -67,20 +80,23 @@ const Editor = {
 
   // the bar's ui elements, made once in init()
   swatches: [],
+  tabButtons: [],
   eraseButton: null,
+  prevButton: null,
+  nextButton: null,
 
   // call once from setup(). makes the bar and buttons (hidden until the editor opens)
   init() {
     const barY = GAME_H - EDITOR_BAR.height;
-
-    // everything in the bar: every tile, then every object
-    const entries = [
-      ...Object.keys(TILE_TYPES).map((name) => ({ kind: 'tile', name })),
-      ...Object.keys(OBJECT_TYPES).map((name) => ({ kind: 'object', name })),
-    ];
     const perPage = Math.floor((EDITOR_BAR.swatchesRight - EDITOR_BAR.swatchesLeft) / EDITOR_BAR.slotWidth);
-    this.pageCount = Math.ceil(entries.length / perPage);
-    this.selected = entries[0];
+
+    // what goes in each tab, and how many pages each one needs (at least 1, even if it's empty)
+    const names = { tile: Object.keys(TILE_TYPES), object: Object.keys(OBJECT_TYPES) };
+    for (const { kind } of EDITOR_TABS) {
+      this.pages[kind] = 0;
+      this.pageCounts[kind] = Math.max(1, Math.ceil(names[kind].length / perPage));
+    }
+    this.selected = { kind: 'tile', name: names.tile[0] };
 
     // everything's in the 'editor' group, so it can be shown and hidden together.
     // the bar goes first so it's underneath the rest, and it blocks clicks between the buttons
@@ -96,25 +112,42 @@ const Editor = {
       onClick: () => { this.selected = null; },
     }));
 
-    // page arrows. they go round, so › on the last page goes back to the first
-    const arrows = { style: { textSize: 20 }, enabled: this.pageCount > 1 };
-    add(new Button({ ...arrows, x: 74, y: barY + 10, w: 28, h: 44, label: '‹', onClick: () => this.turnPage(-1) }));
-    add(new Button({ ...arrows, x: GAME_W - 38, y: barY + 10, w: 28, h: 44, label: '›', onClick: () => this.turnPage(1) }));
+    // page arrows. they go round, so › on the last page goes back to the first.
+    // showPage() switches them off when the tab only has one page
+    const arrows = { style: { textSize: 20 } };
+    this.prevButton = add(new Button({ ...arrows, x: 74, y: barY + 10, w: 28, h: 44, label: '‹', onClick: () => this.turnPage(-1) }));
+    this.nextButton = add(new Button({ ...arrows, x: GAME_W - 38, y: barY + 10, w: 28, h: 44, label: '›', onClick: () => this.turnPage(1) }));
 
-    // one square per entry. each knows which page it's on, only that page's squares are shown
-    this.swatches = entries.map((entry, i) => {
-      const slot = i % perPage;
-      return add(new PaletteSwatch({
-        x: EDITOR_BAR.swatchesLeft + slot * EDITOR_BAR.slotWidth + (EDITOR_BAR.slotWidth - EDITOR_BAR.swatchSize) / 2,
-        y: barY + 10,
-        w: EDITOR_BAR.swatchSize,
-        h: EDITOR_BAR.swatchSize,
-        kind: entry.kind,
-        name: entry.name,
-        page: Math.floor(i / perPage),
-        onClick: () => { this.selected = entry; },
-      }));
-    });
+    // the tabs, sitting on top of the bar. toggles, so the open one looks switched on
+    // (update() keeps button.on matching)
+    this.tabButtons = EDITOR_TABS.map(({ kind, label }, i) => add(new Button({
+      x: 10 + i * (EDITOR_BAR.tabWidth + 6),
+      y: barY - EDITOR_BAR.tabHeight,
+      w: EDITOR_BAR.tabWidth,
+      h: EDITOR_BAR.tabHeight,
+      label,
+      style: { textSize: 13, radius: 6, onFill: '#4a7bd8', pressOffset: 0 },
+      toggle: true,
+      onClick: () => this.showTab(kind),
+    })));
+
+    // one square per tile and object. each knows its tab and page, only the open ones are shown
+    this.swatches = [];
+    for (const { kind } of EDITOR_TABS) {
+      names[kind].forEach((name, i) => {
+        const slot = i % perPage;
+        this.swatches.push(add(new PaletteSwatch({
+          x: EDITOR_BAR.swatchesLeft + slot * EDITOR_BAR.slotWidth + (EDITOR_BAR.slotWidth - EDITOR_BAR.swatchSize) / 2,
+          y: barY + 10,
+          w: EDITOR_BAR.swatchSize,
+          h: EDITOR_BAR.swatchSize,
+          kind,
+          name,
+          page: Math.floor(i / perPage),
+          onClick: () => { this.selected = { kind, name }; },
+        })));
+      });
+    }
 
     // New map, Export and Open, in a row under the controls box. worldMap, player and gameCamera
     // are the game's (sketch.js)
@@ -153,7 +186,7 @@ const Editor = {
     this.view = { x: camera.x, y: camera.y };
     camera.follow(this.view);
     UI.showGroup('editor', true);
-    this.showPage(this.page);
+    this.showTab(this.tab);
   },
 
   close(player, camera) {
@@ -163,14 +196,29 @@ const Editor = {
     UI.showGroup('editor', false);
   },
 
-  turnPage(step) {
-    // + pageCount stops it going negative, % wraps it round
-    this.showPage((this.page + step + this.pageCount) % this.pageCount);
+  // ---------- tabs and pages ----------
+
+  // switches the bar to a tab ('tile' or 'object'), on whichever page it was last on
+  showTab(kind) {
+    this.tab = kind;
+    this.showPage(this.pages[kind]);
   },
 
+  turnPage(step) {
+    const count = this.pageCounts[this.tab];
+    // + count stops it going negative, % wraps it round
+    this.showPage((this.pages[this.tab] + step + count) % count);
+  },
+
+  // shows one page of the open tab
   showPage(page) {
-    this.page = page;
-    for (const swatch of this.swatches) swatch.visible = swatch.page === page;
+    this.pages[this.tab] = page;
+    for (const swatch of this.swatches) {
+      swatch.visible = swatch.kind === this.tab && swatch.page === page;
+    }
+    const morePages = this.pageCounts[this.tab] > 1;
+    this.prevButton.enabled = morePages;
+    this.nextButton.enabled = morePages;
   },
 
   // is this tile or object the one picked in the bar?
@@ -218,7 +266,9 @@ const Editor = {
 
   // aim is the mouse's world position, or null
   update(map, camera, aim, dt) {
+    // toggles flip themselves when clicked, so set them to match what's really picked and open
     this.eraseButton.on = this.selected === null;
+    this.tabButtons.forEach((button, i) => { button.on = EDITOR_TABS[i].kind === this.tab; });
 
     // move the view with WASD. dividing by zoom keeps it the same speed on screen at any zoom
     const dir = Input.direction();
@@ -307,10 +357,22 @@ const Editor = {
     // an object: a see-through preview of it, covering the tiles it would
     if (this.selected?.kind === 'object') {
       const type = OBJECT_TYPES[this.selected.name];
-      const preview = color(type.fill);
-      preview.setAlpha(110);
-      fill(preview);
-      this.outline(col * TILE, row * TILE, type.width * TILE, type.height * TILE, '#ffffff', px);
+      const x = col * TILE;
+      const y = row * TILE;
+      const w = type.width * TILE;
+      const h = type.height * TILE;
+      if (type.img) {
+        // tint() with a second number fades an image, noTint() puts it back for everything after
+        tint(255, 110);
+        image(type.img, x, y, w, h);
+        noTint();
+        noFill();
+      } else {
+        // a brand new colour, made from the object's. color(type.fill) would hand back the object's
+        // own colour rather than a copy, so fading it would fade every one of them on the map too
+        fill(red(type.fill), green(type.fill), blue(type.fill), 110);
+      }
+      this.outline(x, y, w, h, '#ffffff', px);
       return;
     }
 
@@ -373,7 +435,7 @@ class EditorBar extends UIElement {
     textStyle(BOLD);
     textSize(11);
     textAlign(CENTER, CENTER);
-    text(`${Editor.page + 1} / ${Editor.pageCount}`, GAME_W - 24, this.y + 66);
+    text(`${Editor.pages[Editor.tab] + 1} / ${Editor.pageCounts[Editor.tab]}`, GAME_W - 24, this.y + 66);
     text('or right click', 38, this.y + 66);
   }
 }
