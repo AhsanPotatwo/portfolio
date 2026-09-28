@@ -1,61 +1,71 @@
 // saving and loading maps as files.
 // the full guide to making maps is in assets/squimble-quest/maps/README.md
 //
-// a map file is json, a text format that javascript can read and write easily. the tiles are stored as
-// rows of letters, one letter per tile, so you can see the map's shape if you open the file:
+// a map file is json, a text format that javascript can read and write easily. the tiles are stored
+// as rows of short codes, one code per tile, so you can see the map's shape if you open the file.
+// objects (objects.js) are a separate list, because several can share a tile and one can cover many:
 //
 //   {
 //     "format": "squimble-quest-map",
-//     "version": 1,
+//     "version": 2,
 //     "left": -20,                          the column of the map's left edge (tile coordinates)
 //     "top": -12,                           the row of the map's top edge
 //     "spawn": { "x": 0, "y": 0 },          where the player starts, in world pixels
 //     "showGrid": false,                    draw the tile grid all the time
-//     "legend": {                           which letter means which tile
-//       ".": null,                          . is always an empty tile
-//       "g": "grass",
-//       "w": "wall"
+//     "legend": {                           which code means which tile
+//       "..": null,                         .. is always an empty tile
+//       "gr": "grass",
+//       "wa": "wall"
 //     },
-//     "rows": [                             the tiles, top row first
-//       "wwwwwwwwww",
-//       "wggggggggw",
-//       "wgg..ggggw"
+//     "rows": [                             the tiles, top row first, codes split by spaces
+//       "wa wa wa wa wa",
+//       "wa gr gr gr wa",
+//       "wa gr .. gr wa"
+//     ],
+//     "objects": [                          things on top of the tiles, each one's top left tile
+//       { "type": "table", "col": -1, "row": -11 }
 //     ]
 //   }
+//
+// codes are 2 characters, made from the tile's name where possible (gr for grass, wt for water
+// when wa is already wall), which gives thousands of possible codes. the game only cares that
+// codes are split by spaces, so a code in a hand made file can be any length.
+//
+// version 1 files (one character per tile, no spaces, no objects) still load.
 //
 // the map's name comes from its file name: forest.json is the map called "forest"
 
 const MAP_FORMAT = 'squimble-quest-map';
-const MAP_VERSION = 1;
+const MAP_VERSION = 2;
 
-// letters handed out to tiles in the legend when a map is saved, if a tile's own first letter is taken
-const LEGEND_LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#@%&*+=~^';
+// the code for an empty tile
+const EMPTY_CODE = '..';
+// characters for making codes, when a tile's name doesn't give a free one
+const CODE_CHARACTERS = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-// ---------- map ↔ file data ----------
+// ---------- map → file data ----------
 
 // turns a map into plain data, ready to save as a file
 function mapToData(map) {
-  // give each kind of tile on the map its own letter. tries the first letter of its name first
-  // (g for grass), so the file is easy to read
-  const legend = { '.': null };
-  const letterFor = {};
+  // give each kind of tile on the map its own code
+  const legend = { [EMPTY_CODE]: null };
+  const codeFor = {};
   for (const name of new Set(map.tiles)) {
     if (name === null) continue;
-    const options = name[0].toLowerCase() + name[0].toUpperCase() + LEGEND_LETTERS;
-    const letter = [...options].find((l) => !(l in legend));
-    legend[letter] = name;
-    letterFor[name] = letter;
+    const code = makeTileCode(name, legend);
+    legend[code] = name;
+    codeFor[name] = code;
   }
 
-  // one line of letters per row of tiles
+  // one line of codes per row of tiles
   const rows = [];
   for (let r = 0; r < map.rows; r++) {
-    let line = '';
+    const codes = [];
     for (let c = 0; c < map.cols; c++) {
       const name = map.tiles[r * map.cols + c];
-      line += name === null ? '.' : letterFor[name];
+      codes.push(name === null ? EMPTY_CODE : codeFor[name]);
     }
-    rows.push(line);
+    rows.push(codes.join(' '));
   }
 
   return {
@@ -67,8 +77,26 @@ function mapToData(map) {
     showGrid: map.showGrid,
     legend,
     rows,
+    objects: map.objects.map((obj) => ({ type: obj.type, col: obj.col, row: obj.row })),
   };
 }
+
+// a 2 character code for a tile that isn't already in the legend. tries the first letter of its
+// name with each of its other letters (grass → gr, ga, gs...), then its first letter with anything,
+// then any 2 characters at all (over 3,800 of those, so it won't run out)
+function makeTileCode(name, legend) {
+  const letters = name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'x';
+  const first = letters[0];
+  const options = [];
+  for (const c of letters.slice(1)) options.push(first + c);
+  for (const c of CODE_CHARACTERS) options.push(first + c);
+  for (const a of CODE_CHARACTERS) {
+    for (const b of CODE_CHARACTERS) options.push(a + b);
+  }
+  return options.find((code) => !(code in legend));
+}
+
+// ---------- file data → map ----------
 
 // turns data from a map file back into a map. throws an error with a readable message
 // if the data isn't a map, so whoever's loading it can show that message
@@ -76,32 +104,48 @@ function mapFromData(data) {
   if (!data || !Array.isArray(data.rows) || typeof data.legend !== 'object') {
     throw new Error("this doesn't look like a Squimble Quest map file");
   }
-  const rows = data.rows.length;
-  const cols = Math.max(0, ...data.rows.map((line) => line.length));
+
+  // each row split into its codes. version 1 files had one character per tile and no spaces
+  const oldFormat = (data.version ?? 1) < 2;
+  const grid = data.rows.map((line) => (oldFormat ? [...line] : line.trim().split(/\s+/)));
+
+  const rows = grid.length;
+  const cols = Math.max(0, ...grid.map((codes) => codes.length));
   if (rows === 0 || cols === 0) throw new Error('the map has no tiles in it');
 
   const map = new TileMap(data.left ?? 0, data.top ?? 0, cols, rows, null);
   if (data.spawn) map.spawn = { x: data.spawn.x, y: data.spawn.y };
   map.showGrid = !!data.showGrid;
 
-  // tile names the game doesn't know about (e.g. a tile that was renamed or removed from tiles.js).
-  // those tiles are left empty, and there's one warning per name rather than one per tile
+  // anything the game doesn't recognise (e.g. a tile that was renamed in tiles.js) is left out,
+  // with one warning listing them all rather than one per tile
   const unknown = new Set();
 
-  data.rows.forEach((line, r) => {
+  grid.forEach((codes, r) => {
     for (let c = 0; c < cols; c++) {
-      const letter = line[c] ?? '.';
-      const name = data.legend[letter] ?? null;
-      if (name !== null && !TILE_TYPES[name]) {
-        unknown.add(name);
-        continue;
+      // a short row is filled with empty tiles
+      const code = codes[c];
+      const name = code === undefined ? null : data.legend[code];
+      if (name === undefined) {
+        unknown.add(`code "${code}" (not in the legend)`);
+      } else if (name !== null && !TILE_TYPES[name]) {
+        unknown.add(`tile "${name}"`);
+      } else {
+        map.set(map.left + c, map.top + r, name);
       }
-      map.set(map.left + c, map.top + r, name);
     }
   });
 
+  for (const obj of data.objects ?? []) {
+    if (!OBJECT_TYPES[obj.type]) {
+      unknown.add(`object "${obj.type}"`);
+      continue;
+    }
+    map.addObject(obj.type, obj.col, obj.row);
+  }
+
   if (unknown.size > 0) {
-    console.warn(`This map uses tiles that aren't in tiles.js: ${[...unknown].join(', ')}. They've been left empty.`);
+    console.warn(`This map has things the game doesn't know, so they've been left out: ${[...unknown].join(', ')}.`);
   }
   return map;
 }
@@ -171,8 +215,7 @@ function exportMap(map) {
   registerMap(name, data);
   map.name = name;
 
-  // json with 2 space indents, which puts each row of tiles on its own line
-  downloadTextFile(`${name}.json`, JSON.stringify(data, null, 2));
+  downloadTextFile(`${name}.json`, mapDataToText(data));
 }
 
 // asks for a map file from the computer, then goes straight to that map
@@ -195,6 +238,15 @@ function openMapFile() {
 }
 
 // ---------- small helpers ----------
+
+// the text that goes in a map file. json with 2 space indents puts each row of tiles on its own
+// line, then each object is squashed onto one line, so a long list of objects stays easy to read
+function mapDataToText(data) {
+  return JSON.stringify(data, null, 2).replace(
+    /\{\s+"type": ("[^"]*"),\s+"col": (-?\d+),\s+"row": (-?\d+)\s+\}/g,
+    '{ "type": $1, "col": $2, "row": $3 }'
+  ) + '\n';
+}
 
 // "My Forest!" → "my-forest". keeps names safe to use as file names
 function cleanMapName(name) {

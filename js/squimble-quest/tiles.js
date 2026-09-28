@@ -47,15 +47,17 @@ function defineTile(name, settings) {
   TILE_TYPES[name] = { ...TILE_DEFAULTS, ...settings, name };
 }
 
-// run from preload() in sketch.js, before the game starts: loads tile images, and turns colours
-// into p5 colours once now rather than every time a tile is drawn (thousands of times a second)
-function prepareTiles() {
-  for (const type of Object.values(TILE_TYPES)) {
+// run from preload() in sketch.js, before the game starts, for tiles and objects (objects.js):
+//   prepareArt(TILE_TYPES, 'tile')
+// loads their images, and turns colours into p5 colours once now rather than every time
+// something's drawn (thousands of times a second). kind is only used in the warning
+function prepareArt(types, kind) {
+  for (const type of Object.values(types)) {
     type.fill = color(type.colour);
     type.img = null;
     if (type.image) {
       type.img = loadImage(type.image, undefined, () => {
-        console.warn(`Couldn't load "${type.image}" for the ${type.name} tile, using its colour instead`);
+        console.warn(`Couldn't load "${type.image}" for the ${type.name} ${kind}, using its colour instead`);
         type.img = null;
       });
     }

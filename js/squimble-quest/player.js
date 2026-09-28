@@ -65,9 +65,11 @@ class Player {
     this.y += moved.y;
 
     // the feet stop at the edge of the map, but the head sticks up above them and could poke
-    // off the top. this stops the player once their head reaches the top edge
-    const headLimit = map.bounds().top + this.h / 2;
-    if (this.y < headLimit) this.y = headLimit;
+    // off the top. this stops the player once their head reaches the top edge.
+    // skipped on maps shorter than the player, where it would push their feet off the bottom instead
+    const edges = map.bounds();
+    const headLimit = edges.top + this.h / 2;
+    if (edges.bottom - edges.top >= this.h && this.y < headLimit) this.y = headLimit;
   }
 
   // jump straight to a spot and make it where you respawn. for starting on a map

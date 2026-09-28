@@ -5,7 +5,7 @@
 // in other words: column = floor(world x / TILE), row = floor(world y / TILE)
 //
 // the map only stores tile names ('grass', 'wall'...). what each one looks like and does
-// lives in tiles.js
+// lives in tiles.js. it also keeps a list of objects on top of the tiles (see objects.js)
 class TileMap {
   // left, top: the column and row of the map's top left tile (can be negative).
   // cols, rows: how many tiles wide and tall. every tile starts as fillWith
@@ -23,6 +23,12 @@ class TileMap {
     this.spawn = { x: 0, y: 0 };
     // true draws the tile grid all the time, not just in dev mode
     this.showGrid = false;
+
+    // things on top of the tiles, each { type, col, row } (see objects.js)
+    this.objects = [];
+    // every tile covered by a solid object, as "col,row", so collision can check it quickly.
+    // kept up to date by addObject() and removeObjectsAt()
+    this.solidCells = new Set();
   }
 
   // ---------- reading and changing tiles ----------
@@ -69,10 +75,62 @@ class TileMap {
     this.fill(col + w - 1, row, 1, h, name);  // right
   }
 
-  // off the map and empty tiles count as solid, so nothing can walk out of the world or into a hole
+  // off the map and empty tiles count as solid, so nothing can walk out of the world or into a hole.
+  // so do tiles with a solid object on them
   isSolid(col, row) {
     const type = this.get(col, row);
-    return !type || type.solid;
+    return !type || type.solid || this.solidCells.has(`${col},${row}`);
+  }
+
+  // puts the player's spawn point on a tile: their feet in the middle of it.
+  // spawn is the player's centre, which is above their feet
+  setSpawnTile(col, row) {
+    const feetBelowCentre = PLAYER.height / 2 - PLAYER.feetHeight / 2;
+    this.spawn = { x: (col + 0.5) * TILE, y: (row + 0.5) * TILE - feetBelowCentre };
+  }
+
+  // ---------- objects ----------
+
+  // places an object (a name from objects.js) with its top left corner on col, row
+  addObject(type, col, row) {
+    if (!OBJECT_TYPES[type]) {
+      console.warn(`There's no object called "${type}", add it in objects.js`);
+      return;
+    }
+    this.objects.push({ type, col, row });
+    this.updateSolidCells();
+  }
+
+  // does this object cover this tile?
+  covers(obj, col, row) {
+    const type = OBJECT_TYPES[obj.type];
+    return col >= obj.col && col < obj.col + type.width &&
+           row >= obj.row && row < obj.row + type.height;
+  }
+
+  // every object covering this tile
+  objectsAt(col, row) {
+    return this.objects.filter((obj) => this.covers(obj, col, row));
+  }
+
+  // removes every object covering this tile. gives back true if there were any
+  removeObjectsAt(col, row) {
+    const before = this.objects.length;
+    this.objects = this.objects.filter((obj) => !this.covers(obj, col, row));
+    if (this.objects.length === before) return false;
+    this.updateSolidCells();
+    return true;
+  }
+
+  updateSolidCells() {
+    this.solidCells.clear();
+    for (const obj of this.objects) {
+      const type = OBJECT_TYPES[obj.type];
+      if (!type.solid) continue;
+      for (let r = obj.row; r < obj.row + type.height; r++) {
+        for (let c = obj.col; c < obj.col + type.width; c++) this.solidCells.add(`${c},${r}`);
+      }
+    }
   }
 
   // ---------- world positions ↔ tiles ----------
@@ -160,8 +218,13 @@ class TileMap {
   // ---------- drawing ----------
 
   // uses world positions, so it goes between camera.begin() and camera.end().
-  // only draws the tiles on screen, so a huge map costs the same as a small one
+  // only draws what's on screen, so a huge map costs the same as a small one
   draw(camera) {
+    this.drawTiles(camera);
+    this.drawObjects(camera);
+  }
+
+  drawTiles(camera) {
     const view = camera.view();
     const firstCol = Math.max(this.left, this.colAt(view.left));
     const lastCol = Math.min(this.left + this.cols - 1, this.colAt(view.right));
@@ -182,6 +245,32 @@ class TileMap {
           fill(type.fill);
           rect(x, y, TILE, TILE);
         }
+      }
+    }
+  }
+
+  // in the order they were placed, so later ones are drawn on top
+  drawObjects(camera) {
+    const view = camera.view();
+    for (const obj of this.objects) {
+      const type = OBJECT_TYPES[obj.type];
+      const x = obj.col * TILE;
+      const y = obj.row * TILE;
+      const w = type.width * TILE;
+      const h = type.height * TILE;
+      // off screen, skip it
+      if (x > view.right || x + w < view.left || y > view.bottom || y + h < view.top) continue;
+
+      if (type.img) {
+        image(type.img, x, y, w, h);
+      } else {
+        // placeholder: a rounded box a little smaller than its tiles, so it looks like it's
+        // sitting on them rather than being part of the floor
+        fill(type.fill);
+        stroke(0, 0, 0, 90);
+        strokeWeight(2);
+        rect(x + 3, y + 3, w - 6, h - 6, 5);
+        noStroke();
       }
     }
   }
