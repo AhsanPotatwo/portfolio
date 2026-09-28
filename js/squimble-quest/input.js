@@ -55,17 +55,28 @@ const Input = {
     const gameKeys = Object.values(KEYS).flat();
 
     el.addEventListener('keydown', (e) => {
-      if (!gameKeys.includes(e.code)) return;
-      // stops the arrow keys scrolling the page while you play
+      // with Ctrl held, a Ctrl combination the game uses (e.g. 'Control+KeyD') counts on its own,
+      // not as the plain key too, so Ctrl + D doesn't also walk right. otherwise it's just the key
+      // (e.g. 'KeyD'). only keys the game uses count (see KEYS in config.js)
+      const combo = `Control+${e.code}`;
+      const name = e.ctrlKey && gameKeys.includes(combo) ? combo : e.code;
+      if (!gameKeys.includes(name)) return;
+      const used = [name];
+
+      // stops the arrow keys scrolling the page while you play, and the browser doing
+      // whatever it normally does with a Ctrl shortcut the game uses
       e.preventDefault();
-      this.held.add(e.code);
-      // holding a key down makes the browser repeat keydown over and over.
-      // those repeats aren't new presses, so only the first one counts
-      if (!e.repeat) this._pendingKeys.add(e.code);
+      for (const name of used) {
+        this.held.add(name);
+        // holding a key down makes the browser repeat keydown over and over.
+        // those repeats aren't new presses, so only the first one counts
+        if (!e.repeat) this._pendingKeys.add(name);
+      }
     });
 
     el.addEventListener('keyup', (e) => {
       this.held.delete(e.code);
+      this.held.delete(`Control+${e.code}`);
     });
 
     // tracked on the whole window rather than just the canvas, so aiming keeps working

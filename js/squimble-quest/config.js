@@ -118,7 +118,8 @@ const BUTTON_STYLES = {
 
 // ---------- controls ----------
 // each action can have more than one key. these are e.code names, which go by the key's
-// position on the keyboard rather than the letter, so WASD still works on other layouts
+// position on the keyboard rather than the letter, so WASD still works on other layouts.
+// 'Control+' in front means that key with Ctrl held, e.g. 'Control+KeyD' is Ctrl + D
 const KEYS = {
   up:    ['KeyW', 'ArrowUp'],
   down:  ['KeyS', 'ArrowDown'],
@@ -136,8 +137,9 @@ const KEYS = {
   interact: ['KeyE'],
 
   // developer mode (see debug.js). ` is the key under Esc, it switches dev mode on and off.
+  // not every keyboard has a ` key, so Ctrl + D does the same.
   // the rest do nothing unless dev mode is on
-  devMode:   ['Backquote'],
+  devMode:   ['Backquote', 'Control+KeyD'],
   zoomIn:    ['Equal', 'NumpadAdd'],
   zoomOut:   ['Minus', 'NumpadSubtract'],
   zoomReset: ['Digit0', 'Numpad0'],

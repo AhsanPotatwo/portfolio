@@ -1,5 +1,5 @@
 // the map editor. a simple way to build maps: paint tiles, and place objects, enemies and npcs,
-// on the map you're on. open it from dev mode: press ` for dev mode, then B (for build).
+// on the map you're on. open it from dev mode: press ` (or Ctrl + D) for dev mode, then B (for build).
 //
 // while it's open:
 //   - everyone stops, and WASD / the arrow keys move the camera around instead
