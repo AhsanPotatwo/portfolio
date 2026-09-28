@@ -38,14 +38,16 @@ class TileMap {
     return (row - this.top) * this.cols + (col - this.left);
   }
 
-  // the tile type at a column and row (its settings from tiles.js), or null if it's off the map
+  // the tile type at a column and row (its settings from tiles.js),
+  // or null if it's off the map or empty
   get(col, row) {
     if (!this.inside(col, row)) return null;
-    return TILE_TYPES[this.tiles[this.index(col, row)]];
+    return TILE_TYPES[this.tiles[this.index(col, row)]] ?? null;
   }
 
+  // name is a tile from tiles.js, or null to empty the tile (nothing there, like off the map)
   set(col, row, name) {
-    if (!TILE_TYPES[name]) {
+    if (name !== null && !TILE_TYPES[name]) {
       console.warn(`There's no tile called "${name}", add it in tiles.js`);
       return;
     }
@@ -67,7 +69,7 @@ class TileMap {
     this.fill(col + w - 1, row, 1, h, name);  // right
   }
 
-  // off the map counts as solid, so nothing can walk out of the world
+  // off the map and empty tiles count as solid, so nothing can walk out of the world or into a hole
   isSolid(col, row) {
     const type = this.get(col, row);
     return !type || type.solid;
@@ -170,6 +172,8 @@ class TileMap {
     for (let row = firstRow; row <= lastRow; row++) {
       for (let col = firstCol; col <= lastCol; col++) {
         const type = this.get(col, row);
+        // empty, nothing to draw (the background shows through)
+        if (!type) continue;
         const x = col * TILE;
         const y = row * TILE;
         if (type.img) {
