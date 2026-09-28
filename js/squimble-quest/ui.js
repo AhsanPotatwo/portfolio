@@ -10,6 +10,17 @@
 // ui uses screen positions (see camera.js). the screen is always 960 x 540 however big the canvas
 // looks on the page, so a button at x: 900 is always near the right edge.
 // ui is drawn in the order it was added, so anything added later sits on top
+//
+// HOW TO USE BUTTONS: see the guide at the top of button.js
+//
+// making a new kind of ui element (a slider, an inventory slot, a text box...):
+//   1. make a new file, e.g. slider.js, with   class Slider extends UIElement { ... }
+//      "extends" means it gets everything UIElement has (position, size, visible, group...)
+//   2. in its constructor, call super(options) first, then set up its own settings
+//   3. give it an update(hovered) for what it does with the mouse, and a draw() for how it looks.
+//      button.js is a good example to copy from
+//   4. load it in squimble-quest.html after ui.js
+//   5. use it like a button: UI.add(new Slider({ x: 20, y: 20, w: 200, h: 20 }))
 
 class UIElement {
   // options is one object, so you only write the settings you need, in any order:
@@ -107,8 +118,10 @@ const UI = {
     for (const el of [...this.elements]) el.update(el === this.hovered);
   },
 
-  // showHitboxes outlines every element, including invisible ones (dev mode turns it on)
-  draw(showHitboxes) {
+  // run every frame, after the world is drawn (see sketch.js).
+  // UI.draw(true) also outlines every element, including invisible ones, which helps when
+  // lining up invisible buttons over your art. green outlines, pink for the one under the mouse
+  draw(showHitboxes = false) {
     for (const el of this.elements) {
       if (el.visible) el.draw();
     }

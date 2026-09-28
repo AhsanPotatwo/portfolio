@@ -34,8 +34,12 @@ function setup() {
   // start already on the player, rather than gliding over to them
   gameCamera.snap();
 
-  // makes the dev buttons, and turns dev mode back on if it was on last time
-  Debug.init(player, gameCamera);
+  // turns dev mode back on if it was on last time
+  Debug.init();
+
+  // ui: make buttons and other ui elements here, e.g.
+  //   UI.add(new Button({ x: 20, y: 20, w: 120, h: 40, label: 'Play', onClick: () => { ... } }));
+  // the guide at the top of button.js has everything else
 
   // phones/tablets get a message instead of the game (see squimble-quest.css), so don't run it there
   if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) noLoop();
@@ -65,13 +69,13 @@ function draw() {
   // 3. draw: back to front, so later things go on top of earlier ones.
   // the world, drawn through the camera in world positions
   gameCamera.begin();
-  drawWorld(gameCamera, Debug.enabled && Debug.showAxes);
+  drawWorld(gameCamera, Debug.enabled);
   player.draw();
   gameCamera.end();
 
   // ui on top, in screen positions
   Debug.draw(player, gameCamera, aim);
-  UI.draw(Debug.enabled && Debug.showHitboxes);
+  UI.draw();
   if (Input.focused) {
     drawCrosshair(Input.mouse, Input.mouseHeld('left'), UI.hovered !== null);
   } else {
