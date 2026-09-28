@@ -5,7 +5,10 @@
 //   utils.js    small maths helpers
 //   input.js    the keyboard and mouse
 //   camera.js   which part of the world is on screen, and world ↔ screen positions
-//   world.js    the floor and grid
+//   tiles.js    every kind of tile and what it does (grass, walls, lava...)
+//   tilemap.js  a map made of tiles: storing, drawing, and collision with solid tiles
+//   maps.js     the maps themselves (just a test map for now)
+//   world.js    draws the world (the map, plus dev mode lines)
 //   player.js   the player
 //   ui.js       the ui system: UIElement and the UI manager
 //   button.js   buttons (needs ui.js loaded first, because Button builds on UIElement)
@@ -15,8 +18,16 @@
 let player;
 // not just "camera", because p5 already has a function called camera() for 3D
 let gameCamera;
+// the tile map the player is on
+let worldMap;
 
-// runs once when the page loads
+// runs before setup(). p5 waits for everything started here (like images) to finish loading
+// before it starts the game. load images for buttons and anything else in here too
+function preload() {
+  prepareTiles();
+}
+
+// runs once when the page loads, after preload()
 function setup() {
   const canvas = createCanvas(GAME_W, GAME_H);
   canvas.parent('sqCanvas');
@@ -26,10 +37,14 @@ function setup() {
   // canvas.elt is the real <canvas> element that p5 made
   Input.attach(canvas.elt);
 
+  worldMap = buildTestMap();
+
   // start in the middle of the world
   player = new Player(0, 0);
 
   gameCamera = new Camera();
+  // the camera stops at the edges of the map
+  gameCamera.bounds = worldMap.bounds();
   gameCamera.follow(player);
   // start already on the player, rather than gliding over to them
   gameCamera.snap();
@@ -62,14 +77,14 @@ function draw() {
 
   // 2. update: dev tools first (they can move the player or zoom), then move everything,
   // then the camera last so it follows where the player is now
-  Debug.update(player, gameCamera, aim, dt);
-  player.update(Input.direction(), aim, dt);
+  Debug.update(player, gameCamera, worldMap, aim, dt);
+  player.update(Input.direction(), aim, dt, worldMap);
   gameCamera.update(dt);
 
   // 3. draw: back to front, so later things go on top of earlier ones.
   // the world, drawn through the camera in world positions
   gameCamera.begin();
-  drawWorld(gameCamera, Debug.enabled);
+  drawWorld(gameCamera, worldMap, Debug.enabled);
   player.draw();
   gameCamera.end();
 

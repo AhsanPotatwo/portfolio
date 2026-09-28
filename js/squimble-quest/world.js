@@ -1,55 +1,46 @@
-// the world. just a floor with a grid for now, plus the edge of the world.
-// the tile map will go here later
+// draws the world: the tile map, plus lines to help while developing
 const WORLD_COLOURS = {
-  outside: '#2b2b30', // past the edge of the world, only seen when zoomed right out
-  floor:   '#ffffff',
-  grid:    '#e2e2e2',
-  axis:    '#8a8a8a', // the x = 0 and y = 0 lines, dev mode only
-  edge:    '#23407a',
+  outside: '#2b2b30',          // past the edge of the map, only seen when zoomed right out
+  grid:    'rgba(0, 0, 0, 0.12)', // lines between tiles, dev mode only. see-through so it works on any tile
+  axis:    'rgba(0, 0, 0, 0.45)', // the x = 0 and y = 0 lines, dev mode only
 };
 
 // uses world positions, so call it between camera.begin() and camera.end().
-// showAxes draws lines through x = 0 and y = 0 (dev mode turns them on)
-function drawWorld(camera, showAxes) {
-  const w = WORLD;
-  const width = w.right - w.left;
-  const height = w.bottom - w.top;
+// devLines draws the tile grid and lines through x = 0 and y = 0 (dev mode turns them on)
+function drawWorld(camera, map, devLines) {
+  // background() ignores the camera and fills the whole canvas
+  background(WORLD_COLOURS.outside);
+
+  map.draw(camera);
+
+  if (devLines) drawDevLines(camera, map);
+}
+
+function drawDevLines(camera, map) {
+  const edges = map.bounds();
+  const width = edges.right - edges.left;
+  const height = edges.bottom - edges.top;
 
   // lines are drawn as thin rects (1px rects stay sharper than line()). everything between
   // camera.begin() and end() gets scaled by the zoom, so a 1px rect would go thick when zoomed in
   // and fade away when zoomed out. 1 / zoom world pixels always comes out as 1 pixel on screen
   const px = 1 / camera.zoom;
 
-  // background() ignores the camera and fills the whole canvas
-  background(WORLD_COLOURS.outside);
-
-  noStroke();
-  fill(WORLD_COLOURS.floor);
-  rect(w.left, w.top, width, height);
-
-  // grid lines, only the ones on screen. doesn't matter much yet, but a big map would
-  // slow right down if it drew every tile in the world every frame.
+  // grid lines, only the ones on screen.
   // floor(... / TILE) * TILE rounds down to the nearest tile edge, so the first line is just off screen
   const view = camera.view();
-  const firstX = Math.max(w.left, Math.floor(view.left / TILE) * TILE);
-  const lastX = Math.min(w.right, view.right);
-  const firstY = Math.max(w.top, Math.floor(view.top / TILE) * TILE);
-  const lastY = Math.min(w.bottom, view.bottom);
+  const firstX = Math.max(edges.left, Math.floor(view.left / TILE) * TILE);
+  const lastX = Math.min(edges.right, view.right);
+  const firstY = Math.max(edges.top, Math.floor(view.top / TILE) * TILE);
+  const lastY = Math.min(edges.bottom, view.bottom);
 
+  noStroke();
   fill(WORLD_COLOURS.grid);
-  for (let x = firstX; x <= lastX; x += TILE) rect(x, w.top, px, height);
-  for (let y = firstY; y <= lastY; y += TILE) rect(w.left, y, width, px);
+  for (let x = firstX; x <= lastX; x += TILE) rect(x, edges.top, px, height);
+  for (let y = firstY; y <= lastY; y += TILE) rect(edges.left, y, width, px);
 
   // the x = 0 and y = 0 lines, 2px wide and centred on 0
-  if (showAxes) {
-    fill(WORLD_COLOURS.axis);
-    rect(-px, w.top, px * 2, height);
-    rect(w.left, -px, width, px * 2);
-  }
-
-  // the edge of the world
-  noFill();
-  stroke(WORLD_COLOURS.edge);
-  strokeWeight(px * 3);
-  rect(w.left, w.top, width, height);
+  fill(WORLD_COLOURS.axis);
+  rect(-px, edges.top, px * 2, height);
+  rect(edges.left, -px, width, px * 2);
 }

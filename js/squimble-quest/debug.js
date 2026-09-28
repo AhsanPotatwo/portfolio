@@ -2,10 +2,11 @@
 // press ` (the key under Esc) while playing to switch it on or off.
 //
 // while it's on:
-//   - a panel in the top left shows fps and where the player, mouse and camera are
-//   - the lines through (0, 0) show on the world
+//   - a panel in the top left shows fps, the player's health and tile, and where the player,
+//     mouse and camera are
+//   - the tile grid and lines through (0, 0) show on the world
 //   - - and = (or the mouse wheel) zoom, 0 resets the zoom
-//   - T teleports the player to the mouse
+//   - T teleports the player to the mouse (if it's pointing at somewhere you can stand)
 //
 // it's remembered in this browser, so it stays on when you reload while working on the game.
 // players never see any of it unless they press the key.
@@ -42,7 +43,7 @@ const Debug = {
   },
 
   // run every frame, before the player and camera update. aim is the mouse's world position, or null
-  update(player, camera, aim, dt) {
+  update(player, camera, map, aim, dt) {
     if (Input.wasPressed('devMode')) this.toggle(camera);
     if (!this.enabled) return;
 
@@ -56,10 +57,11 @@ const Debug = {
     if (Input.wheel !== 0) camera.zoomTo(camera.targetZoom * Math.exp(-Input.wheel * DEV_WHEEL_ZOOM_RATE));
     if (Input.wasPressed('zoomReset')) camera.zoomTo(1);
 
-    // player.move() keeps them inside the world, so teleporting past the edge is fine
-    if (Input.wasPressed('teleport') && aim) {
+    // puts the player's feet on the mouse. not onto solid tiles or off the map, they'd be stuck
+    if (Input.wasPressed('teleport') && aim && !map.isSolid(map.colAt(aim.x), map.rowAt(aim.y))) {
+      const feet = player.feetBox();
       player.x = aim.x;
-      player.y = aim.y;
+      player.y = aim.y - (feet.y + feet.h / 2 - player.y);
     }
   },
 
@@ -71,6 +73,8 @@ const Debug = {
       'DEV MODE           ` to hide',
       `fps     ${Math.round(this.fps)}`,
       `player  ${formatPoint(player)}`,
+      `health  ${Math.ceil(player.health)} / ${PLAYER.maxHealth}`,
+      `tile    ${player.tile ? `${player.tile.name} (${player.tileCol}, ${player.tileRow})` : '-'}`,
       `mouse   ${aim ? formatPoint(aim) : '-'}`,
       `camera  ${formatPoint(camera)}  zoom ${camera.zoom.toFixed(2)}`,
       '',

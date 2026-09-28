@@ -8,6 +8,20 @@ class Player {
     this.h = PLAYER.height;
     this.speed = PLAYER.speed;
 
+    // where to go back to after dying
+    this.spawnX = x;
+    this.spawnY = y;
+
+    this.health = PLAYER.maxHealth;
+    // counts down after being hurt, the player flashes while it's above 0
+    this.hurtTimer = 0;
+
+    // the tile under the player's feet (its settings from tiles.js), and its column and row.
+    // null until the first update
+    this.tile = null;
+    this.tileCol = null;
+    this.tileRow = null;
+
     // the player always faces the mouse, kept two ways:
     // aimAngle is the exact angle to the mouse in radians (0 = right, PI/2 = down).
     //   for anything that needs to be precise, like which way a weapon points or an arrow flies
@@ -19,16 +33,18 @@ class Player {
   }
 
   // run every frame. dir is where to walk (from Input.direction()), aim is the point to face
-  // (from Input.aimPoint()), dt is seconds since the last frame.
+  // (from Input.aimPoint()), dt is seconds since the last frame, map is the tile map being walked on.
   // the player doesn't read the keyboard or mouse itself, so the same code could be driven by anything
-  update(dir, aim, dt) {
-    this.move(dir, dt);
+  update(dir, aim, dt, map) {
+    this.move(dir, dt, map);
     this.aimAt(aim);
+    this.checkTile(map, dt);
+    this.hurtTimer = Math.max(0, this.hurtTimer - dt);
   }
 
   // walking. only changes where the player is, not where they face,
   // so you can walk one way while aiming another (like backing away from an enemy)
-  move(dir, dt) {
+  move(dir, dt, map) {
     let dx = dir.x;
     let dy = dir.y;
 
@@ -39,13 +55,60 @@ class Player {
       dy *= Math.SQRT1_2;
     }
 
-    // speed is per second, so multiplying by dt makes it the same speed at any frame rate
-    this.x += dx * this.speed * dt;
-    this.y += dy * this.speed * dt;
+    // some tiles slow you down (sand). speed is per second, so multiplying by dt makes it
+    // the same speed at any frame rate
+    const speed = this.speed * (this.tile ? this.tile.speed : 1);
 
-    // keep the whole rectangle inside the world. walls on the map will do this job later
-    this.x = constrain(this.x, WORLD.left + this.w / 2, WORLD.right - this.w / 2);
-    this.y = constrain(this.y, WORLD.top + this.h / 2, WORLD.bottom - this.h / 2);
+    // the map works out how far the feet can go before they hit something solid
+    const moved = map.moveBox(this.feetBox(), dx * speed * dt, dy * speed * dt);
+    this.x += moved.x;
+    this.y += moved.y;
+  }
+
+  // the part of the player that bumps into walls: just the feet, at the bottom of the rectangle.
+  // that way the head can overlap a wall above, which looks right from a top down angle,
+  // and the player fits through 1 tile gaps (the whole body is nearly 2 tiles tall)
+  feetBox() {
+    const w = PLAYER.feetWidth;
+    const h = PLAYER.feetHeight;
+    return {
+      x: this.x - w / 2,
+      y: this.y + this.h / 2 - h,
+      w,
+      h,
+    };
+  }
+
+  // which tile the player is standing on (the one under the middle of their feet),
+  // and runs that tile's behaviours from tiles.js
+  checkTile(map, dt) {
+    const feet = this.feetBox();
+    const col = map.colAt(feet.x + feet.w / 2);
+    const row = map.rowAt(feet.y + feet.h / 2);
+
+    // stepped onto a different tile
+    if (col !== this.tileCol || row !== this.tileRow) {
+      this.tileCol = col;
+      this.tileRow = row;
+      this.tile = map.get(col, row);
+      if (this.tile && this.tile.onEnter) this.tile.onEnter(this);
+    }
+
+    if (this.tile && this.tile.onStand) this.tile.onStand(this, dt);
+  }
+
+  // take damage. anything can call this: tiles now, enemies and traps later
+  hurt(amount) {
+    this.health -= amount;
+    this.hurtTimer = PLAYER.hurtFlashTime;
+    if (this.health <= 0) this.respawn();
+  }
+
+  // back to the start with full health. a placeholder until there's a proper death screen
+  respawn() {
+    this.health = PLAYER.maxHealth;
+    this.x = this.spawnX;
+    this.y = this.spawnY;
   }
 
   // turn to face a point. if there's no point (not playing yet), keep facing the same way
@@ -72,7 +135,7 @@ class Player {
 
     stroke(PLAYER.outline);
     strokeWeight(2);
-    fill(PLAYER.colour);
+    fill(this.hurtTimer > 0 ? PLAYER.hurtColour : PLAYER.colour);
     rect(left, top, this.w, this.h);
 
     // dot towards the 8-way facing direction, shows which sprite would be used
