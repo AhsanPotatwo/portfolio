@@ -1,20 +1,22 @@
-// the map editor. a simple way to build maps: paint tiles and place objects on the map you're on.
-// open it from dev mode: press ` for dev mode, then E.
+// the map editor. a simple way to build maps: paint tiles, and place objects and enemies,
+// on the map you're on. open it from dev mode: press ` for dev mode, then E.
 //
 // while it's open:
-//   - the player stops, and WASD / the arrow keys move the camera around instead
-//   - pick a tile or an object from the bar at the bottom. the tabs above it switch between
-//     tiles and objects (‹ › for more pages once there are lots)
+//   - the player and enemies stop, and WASD / the arrow keys move the camera around instead
+//   - pick something from the bar at the bottom. the tabs above it switch between
+//     tiles, objects and enemies (‹ › for more pages once there are lots)
 //   - tiles: left click or drag to paint, replacing whatever tile was there
 //   - objects: left click to place one, its top left corner on the tile under the mouse
-//   - right click or drag to erase (or pick Erase in the bar). if you start on an object it removes
-//     objects, otherwise it empties tiles. empty tiles are like off the edge of the map:
+//   - enemies: left click to place one, standing on the tile under the mouse
+//   - right click or drag to erase (or pick Erase in the bar). if you start on an object or enemy
+//     it removes those, otherwise it empties tiles. empty tiles are like off the edge of the map:
 //     nothing's drawn there and nothing can walk on them
+//   - closing the editor puts every enemy back where it was placed, with full health
 //   - P puts the player's spawn point on the tile under the mouse (marked with a yellow ring)
 //   - New map makes a blank map of any size, Export saves the map as a file, Open file loads one
 //   - the dev mode keys still work (zoom, teleport, next map)
 //
-// every tile in tiles.js and object in objects.js shows up in the bar by itself.
+// every tile in tiles.js, object in objects.js and enemy in enemies.js shows up in the bar by itself.
 //
 // changes are made to the map you're on, so you can walk around on them straight away.
 // Export them to keep them: going to another map (M) or reloading builds maps fresh
@@ -60,7 +62,13 @@ const EDITOR_TABS = [
   { kind: 'tile', label: 'Tiles' },
   // furniture, decorations, chests... everything in objects.js
   { kind: 'object', label: 'Objects' },
+  { kind: 'enemy', label: 'Enemies' },
 ];
+
+// where each tab's things are defined
+function editorCatalogue(kind) {
+  return { tile: TILE_TYPES, object: OBJECT_TYPES, enemy: ENEMY_TYPES }[kind];
+}
 
 const Editor = {
   active: false,
@@ -75,8 +83,8 @@ const Editor = {
   view: { x: 0, y: 0 },
   // where the mouse was last frame while dragging, so fast drags can fill in the gap
   lastPaint: null,
-  // whether the current erase drag is removing objects (true) or emptying tiles (false)
-  erasingObjects: false,
+  // whether the current erase drag is removing objects and enemies (true) or emptying tiles (false)
+  erasingThings: false,
 
   // the bar's ui elements, made once in init()
   swatches: [],
@@ -91,7 +99,8 @@ const Editor = {
     const perPage = Math.floor((EDITOR_BAR.swatchesRight - EDITOR_BAR.swatchesLeft) / EDITOR_BAR.slotWidth);
 
     // what goes in each tab, and how many pages each one needs (at least 1, even if it's empty)
-    const names = { tile: Object.keys(TILE_TYPES), object: Object.keys(OBJECT_TYPES) };
+    const names = {};
+    for (const { kind } of EDITOR_TABS) names[kind] = Object.keys(editorCatalogue(kind));
     for (const { kind } of EDITOR_TABS) {
       this.pages[kind] = 0;
       this.pageCounts[kind] = Math.max(1, Math.ceil(names[kind].length / perPage));
@@ -186,6 +195,8 @@ const Editor = {
     this.view = { x: camera.x, y: camera.y };
     camera.follow(this.view);
     UI.showGroup('editor', true);
+    // the editor's bar goes where the hotbar is (inventory.js)
+    Hotbar.show(false);
     this.showTab(this.tab);
   },
 
@@ -193,7 +204,10 @@ const Editor = {
     this.active = false;
     this.lastPaint = null;
     camera.follow(player);
+    // every enemy back where it was placed, with full health (sketch.js)
+    spawnEnemies();
     UI.showGroup('editor', false);
+    Hotbar.show(true);
   },
 
   // ---------- tabs and pages ----------
@@ -286,9 +300,10 @@ const Editor = {
       map.setSpawnTile(over.col, over.row);
     }
 
-    // objects: one per click. mousePressed() ignores clicks that landed on the bar (see input.js)
-    if (over && this.selected?.kind === 'object' && Input.mousePressed('left')) {
-      this.placeObject(map, this.selected.name, over.col, over.row);
+    // objects and enemies: one per click. mousePressed() ignores clicks that landed on the bar (see input.js)
+    if (over && Input.mousePressed('left')) {
+      if (this.selected?.kind === 'object') this.placeObject(map, this.selected.name, over.col, over.row);
+      if (this.selected?.kind === 'enemy') this.placeEnemy(map, this.selected.name, over.col, over.row);
     }
 
     // tiles and erasing: keep going while the button's held
@@ -296,19 +311,32 @@ const Editor = {
     const painting = !erasing && this.selected?.kind === 'tile' && Input.mouseHeld('left');
 
     if (over && (painting || erasing)) {
-      // an erase drag that starts on an object only removes objects, otherwise it only empties
-      // tiles. stops one drag removing a table and then the floor it was standing on
-      if (!this.lastPaint) this.erasingObjects = erasing && map.objectsAt(over.col, over.row).length > 0;
+      // an erase drag that starts on an object or enemy only removes those, otherwise it only
+      // empties tiles. stops one drag removing a table and then the floor it was standing on
+      if (!this.lastPaint) this.erasingThings = erasing && this.thingsAt(map, over.col, over.row);
 
+      let removedEnemy = false;
       this.forEachTileOnLine(map, this.lastPaint ?? aim, aim, (col, row) => {
-        if (painting) map.set(col, row, this.selected.name);
-        else if (this.erasingObjects) map.removeObjectsAt(col, row);
-        else map.set(col, row, null);
+        if (painting) {
+          map.set(col, row, this.selected.name);
+        } else if (this.erasingThings) {
+          map.removeObjectsAt(col, row);
+          if (map.removeEnemySpawnsAt(col, row)) removedEnemy = true;
+        } else {
+          map.set(col, row, null);
+        }
       });
+      // so the removed enemy disappears straight away
+      if (removedEnemy) spawnEnemies();
       this.lastPaint = aim;
     } else {
       this.lastPaint = null;
     }
+  },
+
+  // is there an object or an enemy on this tile?
+  thingsAt(map, col, row) {
+    return map.objectsAt(col, row).length > 0 || map.enemySpawnsAt(col, row).length > 0;
   },
 
   // places an object with its top left corner on col, row
@@ -317,6 +345,21 @@ const Editor = {
     // not the same object twice in exactly the same spot (easy to do with a double click)
     if (map.objects.some((obj) => obj.type === name && obj.col === col && obj.row === row)) return;
     map.addObject(name, col, row);
+  },
+
+  // places an enemy standing on col, row. not on solid or empty tiles, it'd be stuck
+  placeEnemy(map, name, col, row) {
+    if (map.isSolid(col, row)) return;
+    if (map.enemySpawnsAt(col, row).some((spawn) => spawn.type === name)) return;
+    map.addEnemySpawn(name, col, row);
+    // so it appears straight away
+    spawnEnemies();
+  },
+
+  // where an enemy's body would be if it stood on this tile (like Character.placeFeetOnTile())
+  enemyBodyOnTile(type, col, row) {
+    const centreY = (row + 0.5) * TILE - (type.height / 2 - type.feetHeight / 2);
+    return { x: (col + 0.5) * TILE - type.width / 2, y: centreY - type.height / 2, w: type.width, h: type.height };
   },
 
   // runs action(col, row) for every tile along a line. a fast drag can jump several tiles between
@@ -357,37 +400,50 @@ const Editor = {
     // an object: a see-through preview of it, covering the tiles it would
     if (this.selected?.kind === 'object') {
       const type = OBJECT_TYPES[this.selected.name];
-      const x = col * TILE;
-      const y = row * TILE;
-      const w = type.width * TILE;
-      const h = type.height * TILE;
-      if (type.img) {
-        // tint() with a second number fades an image, noTint() puts it back for everything after
-        tint(255, 110);
-        image(type.img, x, y, w, h);
-        noTint();
-        noFill();
-      } else {
-        // a brand new colour, made from the object's. color(type.fill) would hand back the object's
-        // own colour rather than a copy, so fading it would fade every one of them on the map too
-        fill(red(type.fill), green(type.fill), blue(type.fill), 110);
-      }
-      this.outline(x, y, w, h, '#ffffff', px);
+      this.drawGhost(type, col * TILE, row * TILE, type.width * TILE, type.height * TILE, px);
       return;
     }
 
-    // erasing over objects: outline the objects that would be removed
+    // an enemy: a see-through preview of it, standing on the tile
+    if (this.selected?.kind === 'enemy') {
+      const type = ENEMY_TYPES[this.selected.name];
+      const body = this.enemyBodyOnTile(type, col, row);
+      this.drawGhost(type, body.x, body.y, body.w, body.h, px);
+      return;
+    }
+
+    // erasing over objects and enemies: outline the ones that would be removed
     if (this.selected === null) {
+      noFill();
       for (const obj of map.objectsAt(col, row)) {
         const type = OBJECT_TYPES[obj.type];
-        noFill();
         this.outline(obj.col * TILE, obj.row * TILE, type.width * TILE, type.height * TILE, '#ff6b6b', px);
+      }
+      for (const spawn of map.enemySpawnsAt(col, row)) {
+        const body = this.enemyBodyOnTile(ENEMY_TYPES[spawn.type], col, row);
+        this.outline(body.x, body.y, body.w, body.h, '#ff6b6b', px);
       }
     }
 
     // the tile under the mouse. red when erasing
     noFill();
     this.outline(col * TILE, row * TILE, TILE, TILE, this.selected === null ? '#ff6b6b' : '#ffffff', px);
+  },
+
+  // a see-through picture of an object or enemy (type), with an outline
+  drawGhost(type, x, y, w, h, px) {
+    if (type.img) {
+      // tint() with a second number fades an image, noTint() puts it back for everything after
+      tint(255, 110);
+      image(type.img, x, y, w, h);
+      noTint();
+      noFill();
+    } else {
+      // a brand new colour, made from the type's. color(type.fill) would hand back the type's
+      // own colour rather than a copy, so fading it would fade every one of them on the map too
+      fill(red(type.fill), green(type.fill), blue(type.fill), 110);
+    }
+    this.outline(x, y, w, h, '#ffffff', px);
   },
 
   // a rectangle with a dark edge then a light one, so it shows up on anything. uses the current fill
@@ -440,12 +496,12 @@ class EditorBar extends UIElement {
   }
 }
 
-// one tile or object in the bar. a Button, so clicking works the same, but it draws the tile or
-// object instead of a box
+// one tile, object or enemy in the bar. a Button, so clicking works the same, but it draws the
+// thing itself instead of a box
 class PaletteSwatch extends Button {
   constructor(options) {
     super(options);
-    // 'tile' or 'object', its name, and which page of the bar it's on
+    // 'tile', 'object' or 'enemy', its name, and which page of the bar it's on
     this.kind = options.kind;
     this.name = options.name;
     this.page = options.page;
@@ -458,9 +514,9 @@ class PaletteSwatch extends Button {
     if (this.kind === 'tile') {
       this.drawArt(TILE_TYPES[this.name], this.x, y, this.w, this.h);
     } else {
-      // objects sit on a dark square, shrunk to fit but keeping their shape,
+      // objects and enemies sit on a dark square, shrunk to fit but keeping their shape,
       // so a 2 x 1 table looks twice as wide as it is tall
-      const type = OBJECT_TYPES[this.name];
+      const type = editorCatalogue(this.kind)[this.name];
       noStroke();
       fill(42, 45, 54);
       rect(this.x, y, this.w, this.h);

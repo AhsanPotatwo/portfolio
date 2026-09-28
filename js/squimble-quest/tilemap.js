@@ -27,6 +27,10 @@ class TileMap {
     // every tile covered by a solid object, as "col,row", so collision can check it quickly.
     // kept up to date by addObject() and removeObjectsAt()
     this.solidCells = new Set();
+
+    // where enemies start, each { type, col, row }: a name from enemies.js, and the tile it stands on.
+    // the game makes the real enemies from these when the map loads (spawnEnemies() in sketch.js)
+    this.enemySpawns = [];
   }
 
   // ---------- reading and changing tiles ----------
@@ -118,6 +122,28 @@ class TileMap {
     if (this.objects.length === before) return false;
     this.updateSolidCells();
     return true;
+  }
+
+  // ---------- enemy spawns ----------
+
+  // an enemy (a name from enemies.js) will start standing on col, row
+  addEnemySpawn(type, col, row) {
+    if (!ENEMY_TYPES[type]) {
+      console.warn(`There's no enemy called "${type}", add it in enemies.js`);
+      return;
+    }
+    this.enemySpawns.push({ type, col, row });
+  }
+
+  enemySpawnsAt(col, row) {
+    return this.enemySpawns.filter((spawn) => spawn.col === col && spawn.row === row);
+  }
+
+  // removes every enemy spawn on this tile. gives back true if there were any
+  removeEnemySpawnsAt(col, row) {
+    const before = this.enemySpawns.length;
+    this.enemySpawns = this.enemySpawns.filter((spawn) => spawn.col !== col || spawn.row !== row);
+    return this.enemySpawns.length !== before;
   }
 
   updateSolidCells() {
