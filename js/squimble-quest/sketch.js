@@ -1,22 +1,44 @@
 // squimble quest, a top down rpg.
-// the game always draws at 960x540 (16:9) and css scales the canvas to fit the frame,
-// so all the game maths can use these numbers and ignore the real screen size
-const GAME_W = 960;
-const GAME_H = 540;
+// this file runs the game loop. the other files in this folder hold the pieces it uses,
+// and squimble-quest.html loads them in this order before this one:
+//   config.js   settings: sizes, speeds, controls
+//   input.js    the keyboard
+//   grid.js     the tile grid background
+//   player.js   the player
+//   ui.js       things drawn on top of the game
 
-// size of one map tile. 960x540 shows 30 x ~17 tiles, the camera will scroll so the half row is fine
-const TILE = 32;
+let player;
 
+// runs once when the page loads
 function setup() {
   const canvas = createCanvas(GAME_W, GAME_H);
   canvas.parent('sqCanvas');
   // keeps pixel art sharp instead of blurry when it's drawn scaled
   noSmooth();
 
+  // canvas.elt is the real <canvas> element that p5 made
+  Input.attach(canvas.elt);
+
+  // start in the middle of the screen
+  player = new Player(GAME_W / 2, GAME_H / 2);
+
   // phones/tablets get a message instead of the game (see squimble-quest.css), so don't run it there
   if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) noLoop();
 }
 
+// runs every frame, around 60 times a second
 function draw() {
+  // deltaTime is how long the last frame took in milliseconds (p5 gives us this).
+  // turned into seconds and capped, see MAX_DT in config.js
+  const dt = Math.min(deltaTime / 1000, MAX_DT);
+
+  // 1. update: move everything
+  player.update(Input.direction(), dt);
+
+  // 2. draw: back to front, so later things go on top of earlier ones
   background('#ffffff');
+  drawGrid();
+  player.draw();
+
+  if (!Input.focused) drawClickToPlay();
 }
