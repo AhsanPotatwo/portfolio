@@ -48,6 +48,16 @@ defineWeapon('sword', {
   cooldown: 0.3,
 });
 
+// what the grunt (enemies.js) attacks with. weak and slow, so a few of them are a fair fight
+defineWeapon('claws', {
+  damage: 8,
+  reach: 44,
+  arc: 90,
+  swingTime: 0.2,
+  cooldown: 1,
+  colour: '#ff8a8a',
+});
+
 // slower than the sword, but hits harder, reaches further and swings wider
 defineWeapon('axe', {
   damage: 35,

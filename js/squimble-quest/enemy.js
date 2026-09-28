@@ -1,6 +1,6 @@
 // an enemy in the game. walking, health, tiles, aiming and attacking all come from Character
 // (character.js). what kind of enemy it is (size, health, ai...) comes from enemies.js.
-// this file only has what's different about enemies: the ai, who they hit, dying, and a health bar
+// this file only has what's different about enemies: the ai, who they hit, and dying
 
 // what an enemy with no ai does: nothing
 const STAND_STILL = { move: { x: 0, y: 0 }, aim: null, attack: false };
@@ -33,19 +33,8 @@ class Enemy extends Character {
 
   draw() {
     this.drawBody();
-    // once it's been hurt, a health bar over its head
+    // once it's been hurt, a health bar over its head (character.js)
     if (this.health < this.maxHealth) this.drawHealthBar();
     if (this.swing) this.swing.draw();
-  }
-
-  drawHealthBar() {
-    const w = this.w + 8;
-    const x = Math.round(this.x - w / 2);
-    const y = Math.round(this.y - this.h / 2) - 10;
-    noStroke();
-    fill(0, 0, 0, 160);
-    rect(x - 1, y - 1, w + 2, 7, 2);
-    fill('#e05050');
-    rect(x, y, w * (this.health / this.maxHealth), 5, 2);
   }
 }

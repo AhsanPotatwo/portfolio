@@ -247,6 +247,19 @@ class Character {
 
   // ---------- drawing ----------
 
+  // a bar over its head showing how much health it has left, in its settings' healthBarColour.
+  // the player and enemies draw it once they've been hurt
+  drawHealthBar() {
+    const w = this.w + 8;
+    const x = Math.round(this.x - w / 2);
+    const y = Math.round(this.y - this.h / 2) - 10;
+    noStroke();
+    fill(0, 0, 0, 160);
+    rect(x - 1, y - 1, w + 2, 7, 2);
+    fill(this.settings.healthBarColour);
+    rect(x, y, w * (this.health / this.maxHealth), 5, 2);
+  }
+
   // the body, and which way it's facing. uses world positions, so it's drawn between
   // camera.begin() and camera.end()
   drawBody() {
