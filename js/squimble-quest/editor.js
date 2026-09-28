@@ -11,7 +11,8 @@
 //   - right click or drag to erase (or pick Erase in the bar). if you start on an object, enemy
 //     or npc it removes those, otherwise it empties tiles. empty tiles are like off the edge of
 //     the map: nothing's drawn there and nothing can walk on them
-//   - closing the editor puts every enemy and npc back where it was placed
+//   - closing the editor puts every enemy and npc back where it was placed, with full health.
+//     defeated enemies stay defeated (their spawn is taken off the map when they die)
 //   - P puts the player's spawn point on the tile under the mouse (marked with a yellow ring)
 //   - New map makes a blank map of any size, Export saves the map as a file, Open file loads one
 //   - the dev mode keys still work (zoom, teleport, next map)
