@@ -63,6 +63,23 @@ class Player {
     const moved = map.moveBox(this.feetBox(), dx * speed * dt, dy * speed * dt);
     this.x += moved.x;
     this.y += moved.y;
+
+    // the feet stop at the edge of the map, but the head sticks up above them and could poke
+    // off the top. this stops the player once their head reaches the top edge
+    const headLimit = map.bounds().top + this.h / 2;
+    if (this.y < headLimit) this.y = headLimit;
+  }
+
+  // jump straight to a spot and make it where you respawn. for starting on a map
+  placeAt(x, y) {
+    this.x = x;
+    this.y = y;
+    this.spawnX = x;
+    this.spawnY = y;
+    // forget the last map's tile, so the tile here counts as freshly stepped on
+    this.tile = null;
+    this.tileCol = null;
+    this.tileRow = null;
   }
 
   // the part of the player that bumps into walls: just the feet, at the bottom of the rectangle.

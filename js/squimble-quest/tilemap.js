@@ -16,6 +16,13 @@ class TileMap {
     this.rows = rows;
     // one long list, row after row. index() finds a tile's place in it
     this.tiles = new Array(cols * rows).fill(fillWith);
+
+    // set by loadMap() in sketch.js, the map's name in MAPS (maps.js)
+    this.name = '';
+    // where the player starts, in world positions (the centre of the player)
+    this.spawn = { x: 0, y: 0 };
+    // true draws the tile grid all the time, not just in dev mode
+    this.showGrid = false;
   }
 
   // ---------- reading and changing tiles ----------

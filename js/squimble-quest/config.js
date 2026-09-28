@@ -15,7 +15,7 @@ const TILE = 32;
 const MAX_DT = 0.05;
 
 // ---------- world ----------
-// the edges of the test map (maps.js), in world pixels. (0, 0) is the middle of the world.
+// how big the maps in maps.js are, as edges in world pixels. (0, 0) is the middle of the world.
 // 80 x 50 tiles (2560 x 1600 pixels), a few screens each way so the camera has room to move
 const WORLD = {
   left:   -40 * TILE,
@@ -140,6 +140,7 @@ const KEYS = {
   zoomOut:   ['Minus', 'NumpadSubtract'],
   zoomReset: ['Digit0', 'Numpad0'],
   teleport:  ['KeyT'],
+  nextMap:   ['KeyM'],
 };
 
 // the browser numbers mouse buttons, this gives them names. the middle button is left out

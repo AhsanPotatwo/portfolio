@@ -2,11 +2,12 @@
 // press ` (the key under Esc) while playing to switch it on or off.
 //
 // while it's on:
-//   - a panel in the top left shows fps, the player's health and tile, and where the player,
-//     mouse and camera are
+//   - a panel in the top left shows fps, which map you're on, the player's health and tile,
+//     and where the player, mouse and camera are
 //   - the tile grid and lines through (0, 0) show on the world
 //   - - and = (or the mouse wheel) zoom, 0 resets the zoom
 //   - T teleports the player to the mouse (if it's pointing at somewhere you can stand)
+//   - M goes to the next map (the maps are listed in maps.js)
 //
 // it's remembered in this browser, so it stays on when you reload while working on the game.
 // players never see any of it unless they press the key.
@@ -57,6 +58,14 @@ const Debug = {
     if (Input.wheel !== 0) camera.zoomTo(camera.targetZoom * Math.exp(-Input.wheel * DEV_WHEEL_ZOOM_RATE));
     if (Input.wasPressed('zoomReset')) camera.zoomTo(1);
 
+    // goes to the next map in MAPS (maps.js), back to the first after the last
+    if (Input.wasPressed('nextMap')) {
+      const names = Object.keys(MAPS);
+      const next = names[(names.indexOf(map.name) + 1) % names.length];
+      loadMap(next); // in sketch.js
+      return; // the old map is gone, so skip the rest of this frame's tools
+    }
+
     // puts the player's feet on the mouse. not onto solid tiles or off the map, they'd be stuck
     if (Input.wasPressed('teleport') && aim && !map.isSolid(map.colAt(aim.x), map.rowAt(aim.y))) {
       const feet = player.feetBox();
@@ -66,12 +75,13 @@ const Debug = {
   },
 
   // the panel in the top left. uses screen positions, so draw it after camera.end()
-  draw(player, camera, aim) {
+  draw(player, camera, map, aim) {
     if (!this.enabled) return;
 
     const lines = [
       'DEV MODE           ` to hide',
       `fps     ${Math.round(this.fps)}`,
+      `map     ${map.name}`,
       `player  ${formatPoint(player)}`,
       `health  ${Math.ceil(player.health)} / ${PLAYER.maxHealth}`,
       `tile    ${player.tile ? `${player.tile.name} (${player.tileCol}, ${player.tileRow})` : '-'}`,
@@ -80,6 +90,7 @@ const Debug = {
       '',
       '- = / wheel  zoom   0  reset',
       'T  teleport to mouse',
+      'M  next map',
     ];
 
     const lineHeight = 18;

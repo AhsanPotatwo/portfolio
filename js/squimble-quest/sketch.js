@@ -37,17 +37,12 @@ function setup() {
   // canvas.elt is the real <canvas> element that p5 made
   Input.attach(canvas.elt);
 
-  worldMap = buildTestMap();
-
-  // start in the middle of the world
   player = new Player(0, 0);
-
   gameCamera = new Camera();
-  // the camera stops at the edges of the map
-  gameCamera.bounds = worldMap.bounds();
   gameCamera.follow(player);
-  // start already on the player, rather than gliding over to them
-  gameCamera.snap();
+
+  // START_MAP is in maps.js
+  loadMap(START_MAP);
 
   // turns dev mode back on if it was on last time
   Debug.init();
@@ -58,6 +53,20 @@ function setup() {
 
   // phones/tablets get a message instead of the game (see squimble-quest.css), so don't run it there
   if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) noLoop();
+}
+
+// go to a map, by its name in MAPS (maps.js). builds it fresh, puts the player at its spawn point
+// (where they'll respawn too), and moves the camera straight there. dev mode's M key uses this
+function loadMap(name) {
+  worldMap = MAPS[name]();
+  worldMap.name = name;
+
+  player.placeAt(worldMap.spawn.x, worldMap.spawn.y);
+
+  // the camera stops at the edges of the map
+  gameCamera.bounds = worldMap.bounds();
+  // jump there, rather than gliding across from wherever it was
+  gameCamera.snap();
 }
 
 // runs every frame, around 60 times a second
@@ -89,7 +98,7 @@ function draw() {
   gameCamera.end();
 
   // ui on top, in screen positions
-  Debug.draw(player, gameCamera, aim);
+  Debug.draw(player, gameCamera, worldMap, aim);
   UI.draw();
   if (Input.focused) {
     drawCrosshair(Input.mouse, Input.mouseHeld('left'), UI.hovered !== null);

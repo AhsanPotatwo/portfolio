@@ -1,24 +1,48 @@
-// maps. just one test map for now, built in code, with a bit of every tile to try out.
-// the map maker will replace building maps by hand like this.
+// the maps, built in code for now. the map maker will replace building maps by hand like this.
 //
-// positions are in tiles (column, row), not pixels. tile (0, 0) is where the player starts,
-// negative columns are to the left and negative rows are up. turn on dev mode (`) to see
-// the lines through (0, 0) and which tile you're standing on
+// positions are in tiles (column, row), not pixels. tile (0, 0) is in the middle, negative columns
+// are to the left and negative rows are up. turn on dev mode (`) to see the tile grid, the lines
+// through (0, 0), and which tile you're standing on.
+//
+// to add a map: write a function that builds and returns a TileMap (like the ones below),
+// then add it to MAPS. dev mode's M key goes through them in the order they're listed
 
-function buildTestMap() {
-  // the same size as WORLD in config.js: 80 x 50 tiles, with (0, 0) in the middle
-  const map = new TileMap(
+// every map, by name. each one is a function that builds it, so the map starts fresh
+// every time you go to it. loadMap() in sketch.js is what switches between them
+const MAPS = {
+  default: buildDefaultMap,
+  test: buildTestMap,
+};
+
+// the map the game starts on
+const START_MAP = 'default';
+
+// a map the size of WORLD in config.js (80 x 50 tiles, with (0, 0) in the middle), every tile fillWith
+function makeWorldSizedMap(fillWith) {
+  return new TileMap(
     WORLD.left / TILE,
     WORLD.top / TILE,
     (WORLD.right - WORLD.left) / TILE,
     (WORLD.bottom - WORLD.top) / TILE,
-    'grass'
+    fillWith
   );
+}
 
-  // walls round the edge. 2 thick along the top, because the player's head sticks up above
-  // their feet (the only part that bumps into things) and would poke out past the top of the world
+// ---------- default ----------
+// plain white floor with the grid always showing, nothing else. a blank space to try things out in
+function buildDefaultMap() {
+  const map = makeWorldSizedMap('blank');
+  map.showGrid = true;
+  return map;
+}
+
+// ---------- test ----------
+// a bit of every tile, to check they all work
+function buildTestMap() {
+  const map = makeWorldSizedMap('grass');
+
+  // walls round the edge
   map.outline(map.left, map.top, map.cols, map.rows, 'wall');
-  map.fill(map.left, map.top, map.cols, 2, 'wall');
 
   // a dirt path through the middle, where the player starts
   map.fill(-30, -1, 61, 3, 'dirt');

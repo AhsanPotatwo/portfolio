@@ -66,6 +66,7 @@ function prepareTiles() {
 // placeholder colours until there's art
 
 // ground you can walk on
+defineTile('blank',  { colour: '#ffffff' }); // the default map's plain floor
 defineTile('grass',  { colour: '#6fae4f' });
 defineTile('dirt',   { colour: '#a47148' });
 defineTile('planks', { colour: '#b98a55' });
