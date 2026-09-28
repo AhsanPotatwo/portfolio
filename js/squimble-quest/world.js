@@ -6,16 +6,17 @@ const WORLD_COLOURS = {
 };
 
 // uses world positions, so call it between camera.begin() and camera.end().
-// devLines draws the tile grid and lines through x = 0 and y = 0 (dev mode turns them on).
-// maps with showGrid (like the default map) get the grid all the time
+// devLines draws the tile grid and lines through x = 0 and y = 0 (dev mode turns them on)
 function drawWorld(camera, map, devLines) {
   // background() ignores the camera and fills the whole canvas
   background(WORLD_COLOURS.outside);
 
   map.draw(camera);
 
-  if (devLines || map.showGrid) drawGrid(camera, map);
-  if (devLines) drawAxes(camera, map);
+  if (devLines) {
+    drawGrid(camera, map);
+    drawAxes(camera, map);
+  }
 }
 
 // lines are drawn as thin rects (1px rects stay sharper than line()). everything between

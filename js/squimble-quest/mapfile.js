@@ -11,7 +11,6 @@
 //     "left": -20,                          the column of the map's left edge (tile coordinates)
 //     "top": -12,                           the row of the map's top edge
 //     "spawn": { "x": 0, "y": 0 },          where the player starts, in world pixels
-//     "showGrid": false,                    draw the tile grid all the time
 //     "legend": {                           which code means which tile
 //       "..": null,                         .. is always an empty tile
 //       "gr": "grass",
@@ -74,7 +73,6 @@ function mapToData(map) {
     left: map.left,
     top: map.top,
     spawn: { x: map.spawn.x, y: map.spawn.y },
-    showGrid: map.showGrid,
     legend,
     rows,
     objects: map.objects.map((obj) => ({ type: obj.type, col: obj.col, row: obj.row })),
@@ -115,7 +113,7 @@ function mapFromData(data) {
 
   const map = new TileMap(data.left ?? 0, data.top ?? 0, cols, rows, null);
   if (data.spawn) map.spawn = { x: data.spawn.x, y: data.spawn.y };
-  map.showGrid = !!data.showGrid;
+  // older files might also have "showGrid", which isn't used any more (the grid is dev mode only)
 
   // anything the game doesn't recognise (e.g. a tile that was renamed in tiles.js) is left out,
   // with one warning listing them all rather than one per tile

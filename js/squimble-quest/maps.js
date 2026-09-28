@@ -15,7 +15,7 @@ const MAP_FILES = [
 ];
 
 // the map the game starts on, by name
-const START_MAP = 'default';
+const START_MAP = 'example';
 
 // every map, by name. filled in from MAP_FILES when the game starts (see loadMapFiles() in
 // mapfile.js), plus any map opened or exported in the editor. each one is a function that
@@ -27,7 +27,6 @@ const MAPS = {};
 function makeBlankMap(cols, rows, fillWith) {
   // "0 -" rather than just "-", which would give -0 for tiny maps
   const map = new TileMap(0 - Math.floor(cols / 2), 0 - Math.floor(rows / 2), cols, rows, fillWith);
-  map.showGrid = true;
   map.setSpawnTile(0, 0);
   return map;
 }

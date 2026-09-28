@@ -21,8 +21,6 @@ class TileMap {
     this.name = '';
     // where the player starts, in world positions (the centre of the player)
     this.spawn = { x: 0, y: 0 };
-    // true draws the tile grid all the time, not just in dev mode
-    this.showGrid = false;
 
     // things on top of the tiles, each { type, col, row } (see objects.js)
     this.objects = [];
