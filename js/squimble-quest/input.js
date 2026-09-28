@@ -28,8 +28,8 @@ const Input = {
   buttonsReleased: new Set(),
   // how far the mouse wheel turned since the last frame. positive is scrolling down (towards you)
   wheel: 0,
-  // while false the wheel scrolls the page like normal. set it to true when something in the game
-  // uses the wheel (dev mode zoom now, maybe switching weapons later), and it stops scrolling the page
+  // while false the wheel scrolls the page like normal. true when something in the game uses the
+  // wheel, which stops it scrolling the page while you play. the hotbar turns it on (inventory.js)
   captureWheel: false,
 
   _el: null,

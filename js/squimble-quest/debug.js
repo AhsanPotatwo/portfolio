@@ -5,7 +5,8 @@
 //   - a panel in the top left shows fps, which map you're on, the player's health and tile,
 //     and where the player, mouse and camera are
 //   - the tile grid and lines through (0, 0) show on the world
-//   - - and = (or the mouse wheel) zoom, 0 resets the zoom
+//   - - and = zoom, 0 resets the zoom. in the map editor the mouse wheel zooms too
+//     (the rest of the time the wheel changes hotbar slot)
 //   - T teleports the player to the mouse (if it's pointing at somewhere you can stand)
 //   - M goes to the next map (the maps are listed in maps.js)
 //   - E opens the map editor (see editor.js)
@@ -32,14 +33,11 @@ const Debug = {
   init() {
     // browser storage can be switched off or blocked, in which case dev mode just starts off
     try { this.enabled = localStorage.getItem(DEV_STORAGE_KEY) === 'on'; } catch (e) {}
-    Input.captureWheel = this.enabled;
   },
 
   toggle(player, camera) {
     this.enabled = !this.enabled;
     try { localStorage.setItem(DEV_STORAGE_KEY, this.enabled ? 'on' : 'off'); } catch (e) {}
-    // the wheel only zooms in dev mode, the rest of the time it scrolls the page like normal
-    Input.captureWheel = this.enabled;
     if (!this.enabled) {
       // the editor is part of dev mode, so it closes too
       if (Editor.active) Editor.close(player, camera);
@@ -61,8 +59,11 @@ const Debug = {
     // Math.exp(rate * dt) is just over 1, Math.exp(-rate * dt) just under
     if (Input.isDown('zoomIn')) camera.zoomTo(camera.targetZoom * Math.exp(DEV_KEY_ZOOM_RATE * dt));
     if (Input.isDown('zoomOut')) camera.zoomTo(camera.targetZoom * Math.exp(-DEV_KEY_ZOOM_RATE * dt));
+    // the wheel zooms in the map editor (the rest of the time it's for the hotbar).
     // wheel down (positive) zooms out, like most map apps
-    if (Input.wheel !== 0) camera.zoomTo(camera.targetZoom * Math.exp(-Input.wheel * DEV_WHEEL_ZOOM_RATE));
+    if (Editor.active && Input.wheel !== 0) {
+      camera.zoomTo(camera.targetZoom * Math.exp(-Input.wheel * DEV_WHEEL_ZOOM_RATE));
+    }
     if (Input.wasPressed('zoomReset')) camera.zoomTo(1);
 
     // goes to the next map in MAPS (maps.js), back to the first after the last
@@ -91,11 +92,12 @@ const Debug = {
       `map     ${map.name}`,
       `player  ${formatPoint(player)}`,
       `health  ${Math.ceil(player.health)} / ${PLAYER.maxHealth}`,
+      `holding ${player.inventory.held() ? player.inventory.held().type.name : 'nothing'}`,
       `tile    ${player.tile ? `${player.tile.name} (${player.tileCol}, ${player.tileRow})` : '-'}`,
       `mouse   ${aim ? formatPoint(aim) : '-'}`,
       `camera  ${formatPoint(camera)}  zoom ${camera.zoom.toFixed(2)}`,
       '',
-      '- = / wheel  zoom   0  reset',
+      '- =  zoom   0  reset',
       'T  teleport to mouse',
       'M  next map',
       'E  map editor',

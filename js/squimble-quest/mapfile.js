@@ -23,6 +23,9 @@
 //     ],
 //     "objects": [                          things on top of the tiles, each one's top left tile
 //       { "type": "table", "col": -1, "row": -11 }
+//     ],
+//     "enemies": [                          where enemies start, each one's tile (enemies.js)
+//       { "type": "dummy", "col": 3, "row": -3 }
 //     ]
 //   }
 //
@@ -76,6 +79,7 @@ function mapToData(map) {
     legend,
     rows,
     objects: map.objects.map((obj) => ({ type: obj.type, col: obj.col, row: obj.row })),
+    enemies: map.enemySpawns.map((spawn) => ({ type: spawn.type, col: spawn.col, row: spawn.row })),
   };
 }
 
@@ -140,6 +144,15 @@ function mapFromData(data) {
       continue;
     }
     map.addObject(obj.type, obj.col, obj.row);
+  }
+
+  // maps from before enemies were added don't have this list, which is fine
+  for (const spawn of data.enemies ?? []) {
+    if (!ENEMY_TYPES[spawn.type]) {
+      unknown.add(`enemy "${spawn.type}"`);
+      continue;
+    }
+    map.addEnemySpawn(spawn.type, spawn.col, spawn.row);
   }
 
   if (unknown.size > 0) {
@@ -238,7 +251,7 @@ function openMapFile() {
 // ---------- small helpers ----------
 
 // the text that goes in a map file. json with 2 space indents puts each row of tiles on its own
-// line, then each object is squashed onto one line, so a long list of objects stays easy to read
+// line, then each object and enemy is squashed onto one line, so long lists of them stay easy to read
 function mapDataToText(data) {
   return JSON.stringify(data, null, 2).replace(
     /\{\s+"type": ("[^"]*"),\s+"col": (-?\d+),\s+"row": (-?\d+)\s+\}/g,

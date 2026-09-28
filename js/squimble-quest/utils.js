@@ -1,5 +1,14 @@
 // small maths helpers that more than one part of the game can use
 
+// the smallest turn from angle b to angle a, in radians, between -PI and PI.
+// e.g. from 350° to 10° is a 20° turn, not 340°. used to check if something's within an arc
+function angleDifference(a, b) {
+  let diff = (a - b) % (Math.PI * 2);
+  if (diff > Math.PI) diff -= Math.PI * 2;
+  if (diff < -Math.PI) diff += Math.PI * 2;
+  return diff;
+}
+
 // moves current towards target, covering part of the gap each frame, so it slows down as it
 // arrives (a smooth ease). speed is how quickly: higher is snappier, Infinity gets there instantly.
 // the Math.exp part keeps it the same speed at any frame rate, like dt does for movement

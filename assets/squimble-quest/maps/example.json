@@ -49,5 +49,9 @@
     { "type": "table", "col": -11, "row": -8 },
     { "type": "table", "col": 2, "row": 2 },
     { "type": "rug", "col": -4, "row": 2 }
+  ],
+  "enemies": [
+    { "type": "dummy", "col": 3, "row": -3 },
+    { "type": "dummy", "col": 5, "row": -3 }
   ]
 }

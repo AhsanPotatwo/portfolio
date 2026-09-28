@@ -52,7 +52,7 @@ function drawClickToPlay() {
 
   textStyle(NORMAL);
   textSize(18);
-  text('Move with WASD or the arrow keys, aim with the mouse', GAME_W / 2, GAME_H / 2 + 24);
+  text('Move with WASD or the arrow keys, aim with the mouse, click to attack', GAME_W / 2, GAME_H / 2 + 24);
 }
 
 // marks where the mouse is. it replaces the normal cursor while you play (hidden in squimble-quest.css).

@@ -39,6 +39,9 @@ const PLAYER = {
   feetWidth: 24,
   feetHeight: 14,
   maxHealth: 100,
+  // what's in the hotbar at the start, from slot 1 along (names from items.js). the rest start empty.
+  // the player attacks with whatever's in the picked slot (left click), empty hands can't attack
+  startingItems: ['sword', 'axe'],
   colour: '#4a7bd8',
   outline: '#23407a',
   // flashes this colour for a moment when hurt
@@ -122,6 +125,13 @@ const KEYS = {
   down:  ['KeyS', 'ArrowDown'],
   left:  ['KeyA', 'ArrowLeft'],
   right: ['KeyD', 'ArrowRight'],
+
+  // pick a hotbar slot (see inventory.js)
+  slot1: ['Digit1', 'Numpad1'],
+  slot2: ['Digit2', 'Numpad2'],
+  slot3: ['Digit3', 'Numpad3'],
+  slot4: ['Digit4', 'Numpad4'],
+  slot5: ['Digit5', 'Numpad5'],
 
   // developer mode (see debug.js). ` is the key under Esc, it switches dev mode on and off.
   // the rest do nothing unless dev mode is on

@@ -7,14 +7,20 @@
 //   camera.js   which part of the world is on screen, and world ↔ screen positions
 //   tiles.js    every kind of tile and what it does (grass, walls, lava...)
 //   objects.js  every kind of object that sits on the tiles (furniture, decorations...)
+//   enemies.js  every kind of enemy, and its ai
+//   weapons.js  every weapon, and the swings they make
+//   items.js    every kind of item that can be carried (a sword, an axe...)
 //   tilemap.js  a map made of tiles: storing, drawing, and collision with solid tiles
 //   maps.js     the list of map files to load, and the map the game starts on
 //   mapfile.js  saving and loading maps as files
 //   world.js    draws the world (the map, plus dev mode lines)
-//   player.js   the player
+//   character.js  what the player and enemies share: walking, health, attacking
+//   player.js   the player (needs character.js loaded first)
+//   enemy.js    an enemy in the game (needs character.js loaded first)
 //   ui.js       the ui system: UIElement and the UI manager
 //   button.js   buttons (needs ui.js loaded first, because Button builds on UIElement)
 //   hud.js      things drawn over the game that aren't ui elements (crosshair, messages)
+//   inventory.js  inventories, and the hotbar (needs button.js loaded first)
 //   editor.js   the map editor, opened from dev mode (needs button.js loaded first)
 //   debug.js    developer mode, hidden testing tools (press ` while playing)
 
@@ -23,6 +29,8 @@ let player;
 let gameCamera;
 // the tile map the player is on
 let worldMap;
+// the enemies on it right now (see spawnEnemies())
+let enemies = [];
 // false until the map files have loaded, the game shows a loading message until then
 let mapsReady = false;
 
@@ -31,6 +39,8 @@ let mapsReady = false;
 function preload() {
   prepareArt(TILE_TYPES, 'tile');
   prepareArt(OBJECT_TYPES, 'object');
+  prepareArt(ENEMY_TYPES, 'enemy');
+  prepareArt(ITEM_TYPES, 'item');
 }
 
 // runs once when the page loads, after preload()
@@ -46,6 +56,8 @@ function setup() {
   player = new Player(0, 0);
   gameCamera = new Camera();
   gameCamera.follow(player);
+  // the hotbar along the bottom shows the player's inventory
+  Hotbar.init(player.inventory);
 
   // the map files load in the background (see mapfile.js), then the game starts on START_MAP (maps.js).
   // they're loaded here rather than in preload() because a missing file in preload() would stop
@@ -86,6 +98,7 @@ function loadMap(name) {
   worldMap.name = name;
 
   player.placeAt(worldMap.spawn.x, worldMap.spawn.y);
+  spawnEnemies();
 
   // the camera stops at the edges of the map
   gameCamera.bounds = worldMap.bounds();
@@ -97,6 +110,12 @@ function loadMap(name) {
   }
   // jump there, rather than gliding across from wherever it was
   gameCamera.snap();
+}
+
+// makes the map's enemies, each where it was placed and with full health. runs when a map loads,
+// and when the map editor changes the enemies or closes
+function spawnEnemies() {
+  enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row));
 }
 
 // runs every frame, around 60 times a second
@@ -122,11 +141,27 @@ function draw() {
   // 2. update: dev tools first (they can move the player or zoom), then move everything,
   // then the camera last so it follows where the player is now
   Debug.update(player, gameCamera, worldMap, aim, dt);
-  // while the map editor's open it takes over: WASD moves the camera, and the player stands still
+  // while the map editor's open it takes over: WASD moves the camera, and everyone stands still
   if (Editor.active) {
     Editor.update(worldMap, gameCamera, aim, dt);
   } else {
-    player.update(Input.direction(), aim, dt, worldMap);
+    // everything the player and enemies might need to know about
+    const world = { map: worldMap, player, enemies };
+
+    // number keys and the mouse wheel change what the player's holding
+    Hotbar.update();
+
+    // the keyboard and mouse decide what the player does (see the top of character.js).
+    // mousePressed() ignores clicks on buttons, so clicking the ui never swings the sword
+    player.update({
+      move: Input.direction(),
+      aim,
+      attack: Input.mousePressed('left'),
+    }, dt, world);
+
+    // each enemy's ai decides what it does
+    for (const enemy of enemies) enemy.update(dt, world);
+    enemies = enemies.filter((enemy) => !enemy.dead);
   }
   gameCamera.update(dt);
 
@@ -134,13 +169,16 @@ function draw() {
   // the world, drawn through the camera in world positions
   gameCamera.begin();
   drawWorld(gameCamera, worldMap, Debug.enabled);
-  player.draw();
+  // whoever's standing further down the screen is in front, so sort by where their feet are
+  const characters = [player, ...enemies].sort((a, b) => (a.y + a.h / 2) - (b.y + b.h / 2));
+  for (const character of characters) character.draw();
   if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
   gameCamera.end();
 
   // ui on top, in screen positions
   Debug.draw(player, gameCamera, worldMap, aim);
   if (Editor.active) Editor.drawHelp();
+  else Hotbar.drawLabel();
   UI.draw();
   if (worldMap.name === FALLBACK_MAP) drawNoMapsMessage();
   if (Input.focused) {
