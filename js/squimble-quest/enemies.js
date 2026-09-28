@@ -18,8 +18,11 @@
 //   weapon                 a name from WEAPONS (weapons.js), or null if it doesn't attack
 //   colour, outline        placeholder colours, until there's art
 //   hurtColour             what it flashes when hit
+//   healthBarColour        its health bar, shown over its head once it's hurt
 //   image                  a picture for it instead of the placeholder
 //   ai                     what it does, see below. null just stands still
+//   sightRange             for chasePlayer: how close you have to be before it comes after you
+//   attackRange            for chasePlayer: how close it gets before it swings its weapon
 //   onDeath                runs when it hits 0 health: (enemy) => { ... }. if its health is
 //                          still 0 afterwards it's gone for good, so onDeath could drop loot,
 //                          or bring it back like the training dummy
@@ -31,24 +34,12 @@
 //
 //   ai: (enemy, world, dt) => ({ move: { x, y }, aim: { x, y }, attack: true or false }),
 //
-// world has { map, player, enemies, npcs } in it, so it can see where the player is. for example,
-// an enemy that walks at the player and swings its weapon when it's close:
+// world has { map, player, enemies, npcs } in it, so it can see where the player is.
+// chasePlayer below is a complete example: the grunt uses it, and any other enemy can too
+// (ai: chasePlayer), or you can write a new one next to it.
 //
-//   ai: (enemy, world) => {
-//     const player = world.player;
-//     const dx = player.x - enemy.x;
-//     const dy = player.y - enemy.y;
-//     return {
-//       // -1, 0 or 1 each way. 0 once it's within a few pixels, otherwise when it's level with the
-//       // player it would flick between up and down every frame, and jitter along diagonally
-//       move: { x: Math.abs(dx) > 4 ? Math.sign(dx) : 0, y: Math.abs(dy) > 4 ? Math.sign(dy) : 0 },
-//       aim: { x: player.x, y: player.y },
-//       attack: Math.hypot(dx, dy) < 50,
-//     };
-//   },
-//
-// walking into walls, getting hurt, tiles like lava and swinging weapons all already work
-// for enemies, the ai only has to decide what to do
+// walking into walls and other characters, getting hurt, tiles like lava and swinging weapons all
+// already work for enemies, the ai only has to decide what to do
 //
 // ====================================================================================
 
@@ -64,8 +55,11 @@ const ENEMY_DEFAULTS = {
   outline: '#5e1c1c',
   hurtColour: '#ffffff',
   hurtFlashTime: 0.15,
+  healthBarColour: '#e05050',
   image: null,
   ai: null,
+  sightRange: 300,
+  attackRange: 44,
   onDeath: null,
 };
 
@@ -76,7 +70,42 @@ function defineEnemy(name, settings) {
   ENEMY_TYPES[name] = { ...ENEMY_DEFAULTS, ...settings, name };
 }
 
+// ---------- ais ----------
+
+// comes straight at the player once they're within its sightRange, and swings its weapon when it's
+// within attackRange. otherwise it waits where it is. it doesn't know about walls, it just slides
+// along them (finding a way round would be the next step up, called pathfinding)
+function chasePlayer(enemy, world) {
+  const player = world.player;
+  const dx = player.x - enemy.x;
+  const dy = player.y - enemy.y;
+  const distance = Math.hypot(dx, dy);
+
+  if (distance > enemy.type.sightRange) return STAND_STILL;
+
+  return {
+    // -1, 0 or 1 each way, towards the player. 0 once it's within a few pixels on that side,
+    // otherwise when it's level with the player it would flick between up and down every frame
+    move: { x: Math.abs(dx) > 4 ? Math.sign(dx) : 0, y: Math.abs(dy) > 4 ? Math.sign(dy) : 0 },
+    aim: { x: player.x, y: player.y },
+    attack: distance < enemy.type.attackRange,
+  };
+}
+
 // ---------- the enemies ----------
+
+// a basic enemy to fight: chases you and swipes at you. slower than you, so you can get away,
+// and weak on its own. 3 sword hits or 2 axe hits beats it
+defineEnemy('grunt', {
+  width: 28,
+  height: 50,
+  speed: 95,
+  maxHealth: 60,
+  weapon: 'claws',
+  colour: '#d64545',
+  outline: '#6e1f1f',
+  ai: chasePlayer,
+});
 
 // something to practise on. it doesn't move or fight back, and when it runs out of health
 // it just fills back up, so you can keep hitting it

@@ -47,6 +47,8 @@ const PLAYER = {
   // flashes this colour for a moment when hurt
   hurtColour: '#e05050',
   hurtFlashTime: 0.15,
+  // the bar over its head that shows while it's hurt
+  healthBarColour: '#4ade80',
 };
 
 // ---------- aiming ----------
