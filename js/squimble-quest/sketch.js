@@ -12,8 +12,11 @@ function setup() {
   canvas.parent('sqCanvas');
   // keeps pixel art sharp instead of blurry when it's drawn scaled
   noSmooth();
+
+  // phones/tablets get a message instead of the game (see squimble-quest.css), so don't run it there
+  if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) noLoop();
 }
 
 function draw() {
-  background('#1b2a1f');
+  background('#ffffff');
 }

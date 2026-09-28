@@ -71,7 +71,35 @@
   font-size:15px;
 }
 
+/* message for phones/tablets, hidden everywhere else */
+.sq-mobile-note{
+  display:none;
+  max-width:520px;
+  margin:0 auto;
+  padding:28px 24px;
+  border-radius:var(--radius-card);
+  border:2px dashed rgba(123,216,143,.4);
+  background:rgba(27,42,31,.6);
+  color:var(--muted);
+  font-size:17px;
+  line-height:1.6;
+}
+.sq-mobile-note p{ margin:0; }
+.sq-mobile-note-title{
+  margin-bottom:8px !important;
+  color:var(--sq-green);
+  font-size:22px;
+  font-weight:700;
+}
+
 @media (max-width:600px){
   .sq-game-frame{ padding:6px; border-radius:14px; }
   .sq-game-stage{ border-radius:10px; }
+}
+
+/* touch screen with no mouse = phone or tablet. goes by input type rather than width
+   so a small desktop window still gets the game. keep in sync with setup() in sketch.js */
+@media (hover:none) and (pointer:coarse){
+  .sq-game-frame, .sq-note{ display:none; }
+  .sq-mobile-note{ display:block; }
 }
