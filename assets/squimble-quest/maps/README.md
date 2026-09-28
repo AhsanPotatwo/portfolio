@@ -20,7 +20,7 @@ The tile grid shows on every map while developer mode is on, and never outside i
 
 ## Quick start
 
-1. Open the game, click it, press **`** (developer mode), then **B** (map editor).
+1. Open the game, click it, press **`** or **Ctrl + D** (developer mode), then **B** (map editor).
 2. Click **New map** and type a size, e.g. `40x24`. Or just edit the map you're on.
 3. Paint tiles and place objects.
 4. Click **Export**, give it a name, and it downloads as `yourname.json`.
@@ -39,7 +39,7 @@ The tile grid shows on every map while developer mode is on, and never outside i
 
 ## Making a map
 
-Open the editor with **`** then **B** (for build). Everything you do changes the map you're on, so you can close the editor (**B**) and walk around it straight away.
+Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything you do changes the map you're on, so you can close the editor (**B**) and walk around it straight away.
 
 | Control | What it does |
 |---|---|

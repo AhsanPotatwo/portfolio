@@ -25,7 +25,7 @@
 //   inventory.js  inventories, and the hotbar (needs button.js loaded first)
 //   dialogue.js   talking to npcs: who's in range, and the text box
 //   editor.js   the map editor, opened from dev mode (needs button.js loaded first)
-//   debug.js    developer mode, hidden testing tools (press ` while playing)
+//   debug.js    developer mode, hidden testing tools (press ` or Ctrl + D while playing)
 
 let player;
 // not just "camera", because p5 already has a function called camera() for 3D

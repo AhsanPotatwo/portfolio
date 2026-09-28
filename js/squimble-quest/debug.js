@@ -1,5 +1,5 @@
 // developer mode: testing tools that stay hidden until you want them.
-// press ` (the key under Esc) while playing to switch it on or off.
+// press ` (the key under Esc) or Ctrl + D while playing to switch it on or off.
 //
 // while it's on:
 //   - a panel in the top left shows fps, which map you're on, the player's health and tile,
@@ -87,7 +87,7 @@ const Debug = {
     if (!this.enabled) return;
 
     const lines = [
-      'DEV MODE           ` to hide',
+      'DEV MODE     ` or Ctrl+D to hide',
       `fps     ${Math.round(this.fps)}`,
       `map     ${map.name}`,
       `player  ${formatPoint(player)}`,
