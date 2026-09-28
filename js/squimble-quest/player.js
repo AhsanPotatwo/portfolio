@@ -1,7 +1,7 @@
 // the player. just a rectangle until there's a sprite
 class Player {
   constructor(x, y) {
-    // x, y is the centre of the player
+    // x, y is the centre of the player, in world positions (see camera.js)
     this.x = x;
     this.y = y;
     this.w = PLAYER.width;
@@ -43,9 +43,9 @@ class Player {
     this.x += dx * this.speed * dt;
     this.y += dy * this.speed * dt;
 
-    // keep the whole rectangle on screen. will be replaced by map walls later
-    this.x = constrain(this.x, this.w / 2, GAME_W - this.w / 2);
-    this.y = constrain(this.y, this.h / 2, GAME_H - this.h / 2);
+    // keep the whole rectangle inside the world. walls on the map will do this job later
+    this.x = constrain(this.x, WORLD.left + this.w / 2, WORLD.right - this.w / 2);
+    this.y = constrain(this.y, WORLD.top + this.h / 2, WORLD.bottom - this.h / 2);
   }
 
   // turn to face a point. if there's no point (not playing yet), keep facing the same way

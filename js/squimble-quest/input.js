@@ -12,23 +12,32 @@ const Input = {
   // ---------- keyboard ----------
   // e.code of every key currently held down, e.g. 'KeyW'
   held: new Set(),
+  // keys that went down since the last frame. only lasts one frame, see update()
+  keysPressed: new Set(),
 
   // ---------- mouse ----------
-  // where the mouse is, in game pixels (0-960 across, 0-540 down) no matter how big the canvas
-  // looks on screen. x and y are null until the mouse has moved over the page.
-  // inside is true when the mouse is over the game
+  // where the mouse is on screen, in game pixels (0-960 across, 0-540 down) no matter how big the canvas
+  // looks on the page. this is a screen position, the camera turns it into a world position.
+  // x and y are null until the mouse has moved over the page. inside is true when it's over the game
   mouse: { x: null, y: null, inside: false },
   // mouse buttons held down right now, by name: 'left' or 'right' (see MOUSE_BUTTONS in config.js)
   buttonsHeld: new Set(),
   // buttons that were clicked since the last frame. only lasts one frame, see update()
   buttonsPressed: new Set(),
+  // how far the mouse wheel turned since the last frame. positive is scrolling down (towards you)
+  wheel: 0,
+  // while false the wheel scrolls the page like normal. set it to true when something in the game
+  // uses the wheel (dev mode zoom now, maybe switching weapons later), and it stops scrolling the page
+  captureWheel: false,
 
   _el: null,
   // the mouse position the browser gave us, in page pixels. turned into game pixels in update()
   _clientX: null,
   _clientY: null,
-  // clicks that have happened but that the game hasn't seen yet
-  _pendingPresses: new Set(),
+  // keys, clicks and wheel turns that have happened but the game hasn't seen yet
+  _pendingKeys: new Set(),
+  _pendingClicks: new Set(),
+  _pendingWheel: 0,
 
   // call once from setup() with the canvas element
   attach(el) {
@@ -45,6 +54,9 @@ const Input = {
       // stops the arrow keys scrolling the page while you play
       e.preventDefault();
       this.held.add(e.code);
+      // holding a key down makes the browser repeat keydown over and over.
+      // those repeats aren't new presses, so only the first one counts
+      if (!e.repeat) this._pendingKeys.add(e.code);
     });
 
     el.addEventListener('keyup', (e) => {
@@ -65,7 +77,7 @@ const Input = {
       const button = MOUSE_BUTTONS[e.button];
       if (!button) return;
       this.buttonsHeld.add(button);
-      this._pendingPresses.add(button);
+      this._pendingClicks.add(button);
     });
 
     // on the window, because you might let go after dragging the mouse off the game
@@ -78,6 +90,14 @@ const Input = {
       e.preventDefault();
     });
 
+    // passive: false is needed to be allowed to stop the page scrolling
+    el.addEventListener('wheel', (e) => {
+      if (!this.focused || !this.captureWheel) return;
+      e.preventDefault();
+      // most browsers measure the wheel in pixels, but some (firefox) in lines. ~16px a line
+      this._pendingWheel += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    }, { passive: false });
+
     el.addEventListener('focus', () => {
       this.focused = true;
     });
@@ -88,16 +108,22 @@ const Input = {
       this.focused = false;
       this.held.clear();
       this.buttonsHeld.clear();
-      this._pendingPresses.clear();
+      this._pendingKeys.clear();
+      this._pendingClicks.clear();
+      this._pendingWheel = 0;
     });
   },
 
   // call once at the very start of every frame, before anything reads the input
   update() {
-    // clicks from since the last frame become this frame's clicks, and are gone next frame.
-    // that's what lets mousePressed() be true for exactly one frame per click
-    this.buttonsPressed = this._pendingPresses;
-    this._pendingPresses = new Set();
+    // presses from since the last frame become this frame's presses, and are gone next frame.
+    // that's what lets wasPressed() and mousePressed() be true for exactly one frame per press
+    this.keysPressed = this._pendingKeys;
+    this._pendingKeys = new Set();
+    this.buttonsPressed = this._pendingClicks;
+    this._pendingClicks = new Set();
+    this.wheel = this._pendingWheel;
+    this._pendingWheel = 0;
 
     if (this._clientX === null) return;
 
@@ -113,9 +139,16 @@ const Input = {
 
   // ---------- keyboard ----------
 
-  // is any key for this action held? e.g. Input.isDown('up')
+  // is any key for this action held? true every frame while held, e.g. Input.isDown('up').
+  // for things that keep going, like walking
   isDown(action) {
     return KEYS[action].some((code) => this.held.has(code));
+  },
+
+  // was a key for this action pressed this frame? true for one frame only per press.
+  // for one-off things, like opening a menu or switching something on and off
+  wasPressed(action) {
+    return KEYS[action].some((code) => this.keysPressed.has(code));
   },
 
   // which way the keys point, as x and y that are each -1, 0 or 1.
@@ -142,8 +175,8 @@ const Input = {
     return this.buttonsPressed.has(button);
   },
 
-  // the point the player is aiming at: the mouse's game position,
-  // or null if the game isn't being played or the mouse hasn't been seen yet
+  // the point the player is aiming at: the mouse's screen position (use camera.screenToWorld() to
+  // find it in the world), or null if the game isn't being played or the mouse hasn't been seen yet
   aimPoint() {
     if (!this.focused || this.mouse.x === null) return null;
     return { x: this.mouse.x, y: this.mouse.y };

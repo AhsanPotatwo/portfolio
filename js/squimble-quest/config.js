@@ -14,6 +14,28 @@ const TILE = 32;
 // the browser pauses the game, and without this the player would jump a long way when you come back
 const MAX_DT = 0.05;
 
+// ---------- world ----------
+// the edges of the world, in world pixels. (0, 0) is the middle of the world.
+// 80 x 50 tiles for now (2560 x 1600 pixels), a few screens each way so the camera has room to move
+const WORLD = {
+  left:   -40 * TILE,
+  right:   40 * TILE,
+  top:    -25 * TILE,
+  bottom:  25 * TILE,
+};
+
+// ---------- camera ----------
+const CAMERA = {
+  // how quickly the camera catches up with what it's following. higher is snappier,
+  // lower is floatier. Infinity locks it straight onto the target with no delay
+  followSpeed: 8,
+  // same idea, for how quickly it reaches a new zoom
+  zoomSpeed: 10,
+  // 1 is normal size, 2 is everything twice as big, 0.5 is half size (see twice as much)
+  minZoom: 0.25,
+  maxZoom: 3,
+};
+
 // ---------- player ----------
 const PLAYER = {
   // a bit under 1 tile wide and 2 tiles tall, a normal person in a top down game.
@@ -55,6 +77,14 @@ const KEYS = {
   down:  ['KeyS', 'ArrowDown'],
   left:  ['KeyA', 'ArrowLeft'],
   right: ['KeyD', 'ArrowRight'],
+
+  // developer mode (see debug.js). ` is the key under Esc, it switches dev mode on and off.
+  // the rest do nothing unless dev mode is on
+  devMode:   ['Backquote'],
+  zoomIn:    ['Equal', 'NumpadAdd'],
+  zoomOut:   ['Minus', 'NumpadSubtract'],
+  zoomReset: ['Digit0', 'Numpad0'],
+  teleport:  ['KeyT'],
 };
 
 // the browser numbers mouse buttons, this gives them names. the middle button is left out
