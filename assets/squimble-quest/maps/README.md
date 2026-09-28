@@ -11,9 +11,10 @@ A map has two layers:
 
 | File | What it is |
 |---|---|
-| `default.json` | A blank white map (80 × 50 tiles) with the grid showing. The game starts here |
+| `default.json` | A blank white map (80 × 50 tiles). The game starts here |
 | `example.json` | The testing map: a bit of every tile (hut, pond, lava, spikes), plus tables and rugs |
-| `testonthegrass.json` | Your map |
+
+The tile grid shows on every map while developer mode is on, and never outside it.
 
 ## Quick start
 
@@ -116,7 +117,6 @@ You can open a map in any text editor. It looks like this:
   "left": -5,
   "top": -2,
   "spawn": { "x": 16, "y": -5 },
-  "showGrid": false,
   "legend": {
     "..": null,
     "wa": "wall",
@@ -142,7 +142,8 @@ You can open a map in any text editor. It looks like this:
 - **`objects`**: everything placed on the tiles. `type` is the object's name in `objects.js`, and `col`, `row` is the tile its top-left corner is on. They're drawn in list order, so later ones go on top.
 - **`left`, `top`**: the tile column and row of the map's top-left corner. Tile `(0, 0)` is at the middle of the world, so `-5, -2` puts the middle of a 10 × 5 map there.
 - **`spawn`**: where the player starts, in pixels (the centre of the player). Easiest to set with **P** in the editor.
-- **`showGrid`**: `true` shows the tile grid all the time, like the default map.
+
+Older map files may also have a `"showGrid"` line. It isn't used any more and can be left in or deleted.
 
 You can edit a map by hand: swap codes in `rows`, add a line to `legend`, or add an object to `objects`. Keep the codes separated by spaces. Codes in a hand-made file can be any length (e.g. `"grass": "grass"`), as long as they have no spaces in them.
 
