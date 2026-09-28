@@ -24,6 +24,8 @@ const Input = {
   buttonsHeld: new Set(),
   // buttons that were clicked since the last frame. only lasts one frame, see update()
   buttonsPressed: new Set(),
+  // buttons that were let go since the last frame. only lasts one frame
+  buttonsReleased: new Set(),
   // how far the mouse wheel turned since the last frame. positive is scrolling down (towards you)
   wheel: 0,
   // while false the wheel scrolls the page like normal. set it to true when something in the game
@@ -37,7 +39,10 @@ const Input = {
   // keys, clicks and wheel turns that have happened but the game hasn't seen yet
   _pendingKeys: new Set(),
   _pendingClicks: new Set(),
+  _pendingReleases: new Set(),
   _pendingWheel: 0,
+  // mouse buttons whose current click belongs to the ui, so the game ignores them (see claimMouse())
+  _claimed: new Set(),
 
   // call once from setup() with the canvas element
   attach(el) {
@@ -82,7 +87,11 @@ const Input = {
 
     // on the window, because you might let go after dragging the mouse off the game
     window.addEventListener('pointerup', (e) => {
-      this.buttonsHeld.delete(MOUSE_BUTTONS[e.button]);
+      const button = MOUSE_BUTTONS[e.button];
+      // only counts as a release if we saw it go down in the game
+      if (!this.buttonsHeld.has(button)) return;
+      this.buttonsHeld.delete(button);
+      this._pendingReleases.add(button);
     });
 
     // right click is a game button, so don't open the browser's right click menu
@@ -110,18 +119,26 @@ const Input = {
       this.buttonsHeld.clear();
       this._pendingKeys.clear();
       this._pendingClicks.clear();
+      this._pendingReleases.clear();
       this._pendingWheel = 0;
+      this._claimed.clear();
     });
   },
 
   // call once at the very start of every frame, before anything reads the input
   update() {
+    // a claimed click is over once its release has been and gone (released last frame).
+    // it has to last through the release frame too, or the game would see the release
+    for (const button of this.buttonsReleased) this._claimed.delete(button);
+
     // presses from since the last frame become this frame's presses, and are gone next frame.
     // that's what lets wasPressed() and mousePressed() be true for exactly one frame per press
     this.keysPressed = this._pendingKeys;
     this._pendingKeys = new Set();
     this.buttonsPressed = this._pendingClicks;
     this._pendingClicks = new Set();
+    this.buttonsReleased = this._pendingReleases;
+    this._pendingReleases = new Set();
     this.wheel = this._pendingWheel;
     this._pendingWheel = 0;
 
@@ -163,16 +180,31 @@ const Input = {
 
   // ---------- mouse ----------
 
+  // these three are for gameplay. they ignore clicks that were meant for ui buttons,
+  // so the game never has to check whether the mouse was over a button
+
   // is this button held down right now? true every frame while held.
   // for things that keep going, like a charging bow or a flamethrower
   mouseHeld(button) {
-    return this.buttonsHeld.has(button);
+    return this.buttonsHeld.has(button) && !this._claimed.has(button);
   },
 
   // was this button clicked this frame? true for one frame only per click.
   // for one-off actions, like a single sword swing
   mousePressed(button) {
-    return this.buttonsPressed.has(button);
+    return this.buttonsPressed.has(button) && !this._claimed.has(button);
+  },
+
+  // was this button let go this frame? true for one frame only.
+  // for things that happen on release, like firing a charged bow
+  mouseReleased(button) {
+    return this.buttonsReleased.has(button) && !this._claimed.has(button);
+  },
+
+  // the ui calls this when a click starts on one of its buttons. the game then ignores that click,
+  // from press to release. the ui itself reads buttonsPressed etc. directly, so it still sees it
+  claimMouse() {
+    for (const button of this.buttonsPressed) this._claimed.add(button);
   },
 
   // the point the player is aiming at: the mouse's screen position (use camera.screenToWorld() to
