@@ -75,7 +75,7 @@
         varySize: true,
         maxLinks: 1,
         mouseLinks: 2,
-        constellations: 10,              
+        constellations: 10,
         linkRefresh: 650,
         density: 16000,
         maxCount: 55,
@@ -98,7 +98,7 @@
       });
     }
 
-    // fainter starfield behind the whole page, shared with other pages via particles.js
+    // background starfield (particles.js)
     if (window.PortfolioFX) window.PortfolioFX.initBackgroundStarfield();
   }
 
@@ -205,12 +205,10 @@
     });
   }
 
-  // shooting stars drifting across the background, shared with other pages via particles.js
+  // shooting stars (particles.js)
   if (window.PortfolioFX) window.PortfolioFX.initShootingStars();
 
-  // CLI battleships project card: reshuffle which grid cells the radar
-  // pings land on every time the hover/focus animation is about to play,
-  // so it's not the same handful of cells lighting up each time
+  // shuffle the radar pings on the cli battleships card each hover so it's not the same cells every time
   var cliCards = document.querySelectorAll('.project-card-cli');
   if (cliCards.length) {
     var cliCols = 8, cliRows = 3;

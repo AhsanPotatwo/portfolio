@@ -1,14 +1,6 @@
-/* Wizard Battles project page. Builds on the shared tokens/reset in styles.css
-   (colors, fonts, header, footer, .btn, .container) and only adds what's
-   specific to this page: the hero title lettering, the ported p5 game frame,
-   and the alternating "Behind the Magic" story panels. */
+/* wizard battles page, loaded on top of styles.css */
 
-/* ---------- palette ----------
-   The home page is charcoal grey with a violet/space-blue accent. This
-   page has its own "witching hour" palette so it feels like a different
-   world: a midnight-plum background, spells that run violet into magenta,
-   orchid for highlighted text, and warm candle-gold for the small bits of
-   light (sparkles, the moon, numbers). */
+/* ---------- palette ---------- */
 :root{
   --wb-bg: #140d22;
   --wb-accent: #7c3aed;
@@ -19,7 +11,7 @@
   --wb-gold-soft: #ffe6b3;
   /* the spell gradient used by buttons, ribbons and bars */
   --wb-spell: linear-gradient(135deg, var(--wb-accent), var(--wb-magenta));
-  /* the stone-and-velvet look shared by every card on the page */
+  /* card background */
   --wb-panel: linear-gradient(180deg, rgba(56,28,88,.62), rgba(22,13,38,.92));
   --wb-panel-line: rgba(233,168,255,.15);
   --wb-ribbon-h: 71px;
@@ -27,12 +19,12 @@
   /* size of the portal's big magic circle, which the hero title arcs along */
   --wb-portal: min(1080px, 94vw);
 
-  /* title lettering: the Figma lilac, nudged pinker to suit the palette */
+  /* title colour, figma lilac but a bit pinker */
   --wb-title-fill: #dcaaff;
   --wb-title-stroke: #7a1fd6;
 }
 
-/* the shared tokens from styles.css, retuned for this page */
+/* overrides for styles.css */
 .wizard-page{
   --bg: var(--wb-bg);
   --muted: #a99cbf;
@@ -58,12 +50,8 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 .wizard-page .page-back{ margin-top:calc(var(--section-pad) * -.5); }
 
 /* ---------- page backdrop ----------
-   Swaps the home page's space theme for something more arcane: the
-   drifting background glows are recoloured from space blue to magenta,
-   deep indigo and rose, and two very faint magic circles turn slowly in
-   opposite corners (half off-screen, so they read as texture rather than
-   as pictures). The rising dust motes are drawn by
-   js/wizard-battles/background.js. */
+   recoloured glows + two faint magic circles in the corners.
+   the dust is drawn in js/wizard-battles/background.js */
 .wizard-page .bg-nebula-1{ background:radial-gradient(circle at 40% 40%, rgba(160,32,205,.30), transparent 70%); }
 .wizard-page .bg-nebula-2{ background:radial-gradient(circle at 60% 60%, rgba(76,29,170,.38), transparent 70%); }
 .wizard-page .bg-nebula-3{ background:radial-gradient(circle at 50% 50%, rgba(236,72,153,.13), transparent 72%); }
@@ -98,8 +86,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   to{ rotate:360deg; }
 }
 
-/* the wand trail / spell burst sparkles (js/wizard-battles/magic.js):
-   over the page content but under the header, and never catching clicks */
+/* sparkles canvas for magic.js, sits under the header */
 .wb-sparkles{
   position:fixed;
   top:0; left:0;
@@ -108,8 +95,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   pointer-events:none;
 }
 
-/* sections fade in out of a soft blur as they're scrolled to. The class is
-   only added by magic.js, so without JavaScript everything just shows. */
+/* blur-in on scroll, class gets added by magic.js */
 .wb-reveal{
   opacity:0;
   filter:blur(8px);
@@ -122,14 +108,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 .wb-elements.wb-reveal{ transition-delay:.1s; }
 .wb-cta-card.wb-reveal + .wb-cta-card.wb-reveal{ transition-delay:.12s; }
 
-/* ---------- hero ----------
-   The title starts at the same height as the other pages' heroes. Behind
-   it, a night sky: a violet glow pouring down from the top of the page,
-   layered clouds, a crescent moon rising from behind them, moon and planet
-   symbols drifting up either side of the title, and a few twinkling
-   sparkles. It all fades out downwards so the game frame sits on plain
-   background. (The page's magic circle already appears in the backdrop,
-   the story panels and behind the crystal ball, so it's left out here.) */
+/* ---------- hero ---------- */
 .wb-hero{
   position:relative;
   isolation:isolate;
@@ -151,17 +130,8 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
           mask-image:linear-gradient(#000 55%, transparent);
 }
 /* ---------- clouds ----------
-   The page's original layered cloud, reworked to frame the hero instead
-   of filling it: three rows of overlapping circles in the original
-   purples, dark at the back, then mid, then light at the front. The back
-   row hangs lowest and the front row highest, so each layer's scalloped
-   edge shows beneath the one in front of it, which is what gives the
-   cloud its depth. The rows dip deeper in the corners and stay shallow
-   above the title. Each layer sways sideways by a different amount (least
-   at the back, most at the front) for a little parallax, and every puff
-   also bobs on its own timing. It all lives inside .wb-portal, which is
-   out of the page flow, so it never changes the layout. Sizes are in
-   --u, which scales with the screen. */
+   3 rows of circles, back row hangs lowest so each edge shows under the one
+   in front. front row sways the most for a bit of parallax. sizes use --u */
 .wb-clouds{
   --u:clamp(5px,.8vw,12px);
   position:absolute;
@@ -196,10 +166,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   50%{ scale:1.05; margin-top:calc(var(--u, 8px) * -.6); }
 }
 
-/* the moon: a glowing disc with a darker disc slid over it (the box
-   shadow) to cut it into a crescent, and a soft halo around it. It's a
-   warm, candle-gold moon, so it stands out against all the purple. It sits
-   just behind the clouds' lower edge in the top-right, clear of the title. */
+/* moon, the box-shadow cuts it into a crescent */
 .wb-moon{
   --m:clamp(84px,9vw,136px);
   position:absolute;
@@ -225,8 +192,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   to  { translate:0 -6px; }
 }
 
-/* the drifting symbols: each rises about 140px while fading in and out,
-   on its own delay, so there are always a couple in the air */
+/* floating moon/planet symbols */
 .wb-glyph{
   position:absolute;
   left:var(--x); top:var(--y);
@@ -256,9 +222,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 .wb-portal-star::before{ content:"\2726"; }
 
 .wb-title{
-  /* the arc's end letters are pushed down by up to .587em (see --y below),
-     but transforms don't take up layout space, so this margin leaves room
-     for them plus a gap above the subtitle */
+  /* room for the end letters, they get pushed down by the transform */
   margin:0 0 .8em;
   font-family:var(--font-sans);
   font-weight:600;
@@ -270,20 +234,14 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   justify-content:center;
   flex-wrap:nowrap;
 }
-/* letters arc upward like a rainbow: each one tilts by --r and is nudged
-   down by --y (in em, so the curve scales with the responsive font-size),
-   with the two ends dipping lowest and the middle sitting highest — matching
-   the Figma lettering exactly rather than just angling letters in a row. */
+/* arched title, each letter gets its own --r rotation and --y offset (em so it scales) */
 .wb-title span{
   display:inline-block;
   transform:translateY(var(--y,0em)) rotate(var(--r,0deg));
-  /* Figma's outline sits outside the letters (~4.5px at 128px). A text
-     stroke is centred on the glyph edge, so it's drawn at double that
-     width with the fill painted over it, leaving only the outer half. */
+  /* double width stroke with the fill painted over, so only the outside half shows like in figma */
   -webkit-text-stroke:.07em var(--wb-title-stroke);
   paint-order:stroke fill;
-  /* float and glow run on different lengths so they drift in and out of
-     step instead of repeating as one loop */
+  /* different lengths so they don't sync up */
   animation:
     wbLetterFloat 4.2s ease-in-out infinite,
     wbLetterGlow 3.2s ease-in-out infinite alternate;
@@ -326,24 +284,10 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 }
 
 /* ---------- game frame ----------
-   The sketch always draws at 800x600 and pins its buttons in pixels, so
-   rather than resize it, js/wizard-battles/page.js moves those buttons
-   inside #canvas-wrapper and sets --wb-scale so the whole 800x600 unit
-   shrinks to fit the stage, like zooming out on it. The stage keeps the
-   game's 4:3 shape and takes up the space in the layout. The wrapper
-   inside it is transformed, which doesn't change layout, so it's
-   positioned absolutely over the stage. */
-/* A quiet "magic rim": the frame keeps the site's see-through purple
-   tint, and a thin rim runs around its edge with a soft, faint streak of
-   lighter purple slowly travelling round it, plus one small sparkle on
-   the top-left corner. It's meant to be noticed on a second look, not to
-   compete with the game.
-
-   The rim is a conic gradient on ::before, masked down to a thin ring
-   (the "exclude" mask removes everything but the padding area), so the
-   frame's own translucent background isn't covered. It rotates by
-   animating --wb-frame-angle, which @property makes animatable. Browsers
-   without @property just show the rim standing still. */
+   game is always 800x600, page.js scales the whole thing down with --wb-scale.
+   the stage holds the 4:3 space in the layout */
+/* rim is a conic gradient masked to a thin ring, spins with --wb-frame-angle
+   (needs @property, otherwise it just doesn't move) */
 @property --wb-frame-angle{
   syntax:'<angle>';
   initial-value:0deg;
@@ -382,7 +326,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 @keyframes wbFrameSpin{
   to{ --wb-frame-angle:360deg; }
 }
-/* one small sparkle over the top-left corner, gently twinkling */
+/* sparkle on the top-left corner */
 .wb-game-frame::after{
   content:"\2726";
   position:absolute;
@@ -405,8 +349,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   aspect-ratio:800/600;
 }
 #canvas-wrapper{
-  /* also makes this the containing block the sketch measures its button
-     positions against, so those come out relative to the canvas */
+  /* so the sketch's button positions end up relative to the canvas */
   position:absolute;
   top:0; left:0;
   width:800px;
@@ -446,10 +389,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   margin-top:clamp(22px,3vw,32px);
 }
 
-/* Every purple button on the page (the three under the game and the two
-   in "Do it yourself!") shares one look, from Figma: a 289x78 pill with
-   20px corners, filled with the violet-to-magenta spell gradient. On hover
-   a streak of light sweeps across it, and it lifts with a magenta glow. */
+/* purple buttons, 289x78 from figma */
 .btn-wizard,
 .btn-wizard-lg{
   /* this page's own buttons, separate from the home page's .btn */
@@ -504,8 +444,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 }
 .btn-wizard.is-disabled:hover{ transform:none; box-shadow:none; }
 
-/* kept within the width of the button row above it, with lines evened
-   out so there's no single word left dangling on the last line */
+/* same width as the buttons, balance stops a single word on the last line */
 .wb-study-note{
   max-width:560px;
   margin:18px auto 0;
@@ -516,8 +455,6 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 }
 
 /* ---------- intro ---------- */
-/* spacing and text sizes come from the shared scale in styles.css
-   (--section-pad, --h2, --text-body) so every page reads the same */
 .wb-section{ padding-block:var(--section-pad); position:relative; }
 
 .wb-intro-inner{
@@ -546,9 +483,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   place-items:center;
   min-height:340px;
 }
-/* the ball and a faint, slowly turning magic circle (the same one as in
-   the page backdrop) share one grid cell, so the circle sits centred
-   behind the ball */
+/* ball + magic circle stacked in the same grid cell */
 .wb-intro-art > *{ grid-area:1 / 1; }
 .wb-cb-circle{
   width:min(380px,110%);
@@ -558,11 +493,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   animation:wbArcaneSpin 90s linear infinite;
   pointer-events:none;
 }
-/* Sized to the crystal ball's own aspect ratio (351x392.6 in the Figma
-   source) so every child below can be placed with the exact percentages
-   Figma uses, measured relative to this box: the question mark sits inside
-   the ball's face, the four eyes hover above/around its rim, all positioned
-   and rotated to match the design 1:1 rather than approximated. */
+/* same ratio as the ball in figma (351x392.6) so the % positions below line up */
 .wb-crystal-ball-cluster{
   position:relative;
   width:min(230px,64%);
@@ -579,10 +510,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   width:100%; height:100%;
   filter:drop-shadow(0 20px 34px rgba(160,32,205,.35));
 }
-/* The vision seen inside the ball: a circle over the ball's lighter face
-   (centred on 190,160 of the 351x392.6 drawing, 260 across) that clips
-   everything in it and fades out towards its edge, so the question mark
-   and mist look like they're deep inside the glass rather than stuck on. */
+/* inside of the ball, clipped + faded at the edge so it looks like it's in the glass */
 .wb-cb-vision{
   position:absolute;
   left:17.1%; top:7.6%;
@@ -616,8 +544,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   0%,100%{ opacity:.15; scale:.7; }
   22%,80%{ opacity:.9;  scale:1; }
 }
-/* the question mark swirls up out of the fog, hangs there bobbing, then
-   dissolves back into it — on the same 9s cycle as the glow behind it */
+/* question mark fades in and out of the fog, same 9s loop as the glow */
 .wb-cb-question{
   position:absolute;
   left:50%; top:50%;
@@ -643,14 +570,13 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   0%,100%{ translate:0 4%; }
   50%    { translate:0 -4%; }
 }
-/* the ball's blue star, now a little glint circling the vision */
+/* blue star that circles inside the ball */
 .wb-cb-orbit{
   position:absolute; inset:12%;
   animation:wbArcaneSpin 12s linear infinite;
 }
 .wb-cb-orbit .wb-cb-star{ left:50%; top:0; width:17%; translate:-50% 0; opacity:.9; }
-/* a sheen across the whole ball, drawn over the vision so it reads as
-   being behind the glass */
+/* glass shine over the top */
 .wb-cb-glass{
   position:absolute;
   left:4%; top:0;
@@ -660,9 +586,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   background:radial-gradient(ellipse 22% 14% at 66% 20%, rgba(255,255,255,.55), transparent 70%);
   pointer-events:none;
 }
-/* the ball's stars (taken out of crystal-ball.svg so they can twinkle),
-   placed where they were in the drawing. Inline SVGs using #wbSparkle,
-   filled with their text colour. */
+/* stars pulled out of crystal-ball.svg so they can twinkle */
 .wb-cb-star{
   position:absolute;
   display:block;
@@ -679,9 +603,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   0%,100%{ scale:1;   rotate:0deg; }
   50%    { scale:.8;  rotate:20deg; }
 }
-/* holds the shared eye drawing (see the top of wizard-battles.html). Kept
-   in the page but zero-sized rather than display:none, which would stop
-   its clip path working in some browsers. */
+/* zero size instead of display:none, some browsers drop the clip path otherwise */
 .wb-svg-defs{ position:absolute; width:0; height:0; overflow:hidden; }
 /* the eyes are inline SVGs so their irises can move (js/wizard-battles/eyes.js) */
 .wb-cb-eye{
@@ -696,17 +618,8 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 .wb-cb-eye-3{ left:13.1%;  top:-20.4%; width:30.8%;  transform:rotate(-21.69deg); }
 .wb-cb-eye-4{ left:81.2%;  top:-28.8%; width:71.6%;  transform:rotate(29.42deg); }
 
-/* ---------- section ribbons / dividers ----------
-   A full-width line (Figma's Line 36) with a banner badge centered on top
-   of it, the badge blending seamlessly into the line rather than floating
-   above it. The badge's pointed ends are rotated squares whose *rotated*
-   bounding box is the same height as the badge itself (49.47px square ->
-   69.96px diagonal against a 71px-tall badge in the source file), each
-   centered exactly on the badge's edge so half of the point sits outside
-   the rectangle and half overlaps into it — that overlap is what makes it
-   read as one continuous shape instead of a rectangle with tacked-on caps. */
-/* Ribbons divide the page into its chapters (Behind the Magic, The
-   Spellbook, The Opponent, The Research, Do it yourself!). */
+/* ---------- section ribbons ----------
+   the pointy ends are rotated squares sitting half over the badge edge */
 .wb-ribbon-wrap{
   position:relative;
   z-index:2;
@@ -733,8 +646,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   justify-content:center;
   height:var(--wb-ribbon-h);
   padding-inline:46px;
-  /* magenta in the middle, back to the line's violet at the pointed ends
-     so the points still join on seamlessly */
+  /* violet at the ends so the points match */
   background:linear-gradient(90deg, var(--wb-accent), var(--wb-magenta) 50%, var(--wb-accent));
   color:#fff;
   text-shadow:0 1px 8px rgba(40,6,70,.45);
@@ -749,8 +661,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   content:"";
   position:absolute;
   top:50%;
-  /* side = ribbon-height / sqrt(2), so the rotated square's bounding box
-     comes out exactly ribbon-height tall */
+  /* height / sqrt(2) so it's the same height once rotated */
   width:calc(var(--wb-ribbon-h) * 0.7071);
   height:calc(var(--wb-ribbon-h) * 0.7071);
   background:var(--wb-accent);
@@ -763,9 +674,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   .wb-ribbon{ padding-inline:28px; }
 }
 
-/* ---------- section heading ----------
-   Used where a section opens with its own centred heading (the Spellbook)
-   rather than a panel. */
+/* ---------- section heading ---------- */
 .wb-section-head{
   max-width:780px;
   margin:0 auto clamp(32px,4vw,52px);
@@ -790,12 +699,8 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 }
 .wb-section-head strong{ color:#fff; }
 
-/* ---------- tomes (the story panels) ----------
-   Each story is a rounded panel: text on one side, its illustration on the
-   other with a soft glow of the panel's colour behind it, the page's magic
-   circle turning slowly as a faint watermark, and a small sparkle in the
-   corner like the one on the game frame. .wb-tome-reverse puts the picture
-   on the left; the three panels alternate sides down the page. */
+/* ---------- tomes (story panels) ----------
+   .wb-tome-reverse flips the picture to the left */
 .wb-tome{
   --wb-glow:rgba(124,58,237,.32);
   --wb-glow-x:78%;
@@ -869,8 +774,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   display:grid;
   place-items:center;
 }
-/* each illustration bobs gently, out of step with the others, and picks
-   up a soft purple glow when hovered */
+/* illustrations bob + glow on hover */
 .wb-tome-art > img,
 .wb-art-stack{
   width:min(300px,80%);
@@ -881,9 +785,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 .wb-tome-plum .wb-tome-art > *{ animation-delay:-4s; }
 .wb-tome-art:hover > img,
 .wb-tome-art:hover .wb-art-stack{ filter:drop-shadow(0 0 26px rgba(192,38,211,.5)); }
-/* the book + scroll pair in the research panel: the scroll overlaps the
-   book's top-left corner, matching Figma relative to the book, and the
-   pair is nudged right so it stays centred as a whole */
+/* book + scroll, nudged right so the pair looks centred */
 .wb-art-stack{ position:relative; translate:17% 0; }
 .wb-art-stack img{ width:100%; }
 .wb-art-stack .wb-art-accent{
@@ -894,7 +796,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   rotate:-13.3deg;
 }
 
-/* the AI's decision rules, numbered in little rune circles */
+/* AI rules list */
 .wb-rules{
   counter-reset:rule;
   display:grid;
@@ -925,10 +827,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 }
 .wb-rules strong{ color:#fff; }
 
-/* ---------- the example session file ----------
-   Drawn as a parchment scroll (like the scroll illustration) spanning the
-   full width under the research panel, in a typewriter font. Scrolls
-   sideways on narrow screens. */
+/* ---------- example session file ---------- */
 .wb-tome-plum{ grid-template-areas:"art copy" "scroll scroll"; row-gap:clamp(24px,3vw,40px); }
 .wb-scroll{ grid-area:scroll; margin:0; min-width:0; }
 .wb-scroll figcaption{
@@ -963,10 +862,8 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 .wb-csv th{ font-weight:700; color:#2f200f; }
 .wb-csv tbody tr:last-child td{ border-bottom:0; }
 
-/* ---------- the Spellbook ----------
-   One card per kind of move. Each tier shows its effect, a bar for its
-   chance of working, and the percentage; the bars fill in when the card
-   appears (magic.js adds .wb-reveal / .is-visible). */
+/* ---------- spellbook ----------
+   bars fill in when magic.js adds .is-visible */
 .wb-spells{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
@@ -1140,27 +1037,16 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 }
 .btn-wizard-lg{ font-size:clamp(20px,1.9vw,26px); }
 
-/* ================= ported p5 game controls =================
-   These classes come from the wizard battles sketch.js (js/wizard-battles/sketch.js)
-   and are applied directly by the game via createButton(...).class(...). The
-   game only ever sets background-color/border/font-size/color inline, so hover
-   feedback here is layered on with filter/shadow rather than fighting those
-   inline styles. */
+/* ================= game buttons =================
+   classes come from sketch.js. it sets colours inline so hover uses filter/shadow instead */
 .hoverColor1, .hoverColor2,
 .attackButton, .defendButton, .healButton,
 .fireHover, .waterHover, .earthHover, .neutralHover{
-  /* deliberately no font-family override: the sketch's own inline
-     font-size/padding was tuned for the browser's default UI font, and
-     swapping in Quicksand changes glyph widths enough to throw off the
-     button sizing/wrapping the game sets up for itself. */
+  /* don't change the font, quicksand is wider and breaks the button sizes */
   cursor:pointer;
   transition:filter .15s ease, transform .15s ease, box-shadow .15s ease;
 }
-/* sketch.js never sets a width/height on these three (only background
-   colour/font-size), so it's relying on a base stylesheet that no longer
-   exists to make them the 85x85 squares from the original design — without
-   this they just auto-size to their text, which is what was making them
-   look shrunken/rectangular instead of their regular square size. */
+/* the original project's stylesheet made these 85x85, sketch.js doesn't set a size */
 .attackButton, .defendButton, .healButton{
   box-sizing:border-box;
   width:85px;
@@ -1217,22 +1103,17 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
 }
 
 @media (max-width:600px){
-  /* the portal is drawn wider than the screen so it still frames the
-     (much smaller) title */
+  /* wider than the screen so it still frames the title */
   :root{ --wb-portal: 150vw; }
   .wb-hero{ padding-top:64px; padding-bottom:56px; }
-  /* a smaller moon tucked into the corner, and no drifting symbols:
-     the title fills the width, so there's no free space beside it. The
-     clouds hang down to about 88px in that corner at this size, so the moon
-     sits just under them (only the right edge of its box is the lit
-     crescent, so it can sit this close to the end of the title) */
+  /* smaller moon just under the clouds, no symbols (no room) */
   .wb-moon{ --m:42px; left:auto; right:4px; top:96px; }
   .wb-glyph{ display:none; }
 
   .wb-title{ font-size:clamp(34px,10.5vw,48px); }
   .wb-subtitle{ font-size:18px; margin-bottom:26px; }
 
-  /* the edge-to-edge frame gives the scaled-down game as much width as possible */
+  /* full width frame so the game isn't tiny */
   .wb-game-frame{ padding:6px; border-radius:14px; }
   #canvas-wrapper canvas{ border-radius:10px; }
 
@@ -1240,9 +1121,7 @@ html:has(.wizard-page){ scrollbar-color:#5a2b85 var(--wb-bg); }
   .btn-wizard{ min-width:0; width:100%; max-width:320px; min-height:60px; font-size:17px; }
   .wb-study-note{ max-width:320px; font-size:14px; }
 
-  /* the eyes stick out well past the ball on both sides (further on the
-     right), so it's kept small enough that they stay on screen, and nudged
-     left to balance them out */
+  /* smaller + nudged left so the eyes stay on screen */
   .wb-intro-art{ min-height:0; padding-top:60px; }
   .wb-crystal-ball-cluster{ width:min(150px,42%); translate:-8% 0; }
 

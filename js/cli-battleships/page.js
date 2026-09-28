@@ -1,6 +1,4 @@
-// Highlights the side rail's link for whichever section of the CLI
-// Battleships page is currently in the middle of the screen, the same way
-// the home page's nav follows its sections (see main.js).
+// highlights the side rail link for the section on screen
 (function () {
   'use strict';
 

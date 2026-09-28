@@ -1,10 +1,5 @@
-/* Pantry Wizard project page. Builds on the shared tokens/reset in styles.css
-   (header, footer, .container, fonts, .reveal) and gives the page the app's
-   own look: its blue-to-violet gradient, lilac cards and fresh green, in
-   both of the app's themes. Dark is the default, like the rest of the site;
-   html.pw-light (set by js/pantry-wizard/page.js, and remembered) swaps
-   every colour for the app's light theme. The recreated app in the "Try
-   it" section uses the app's exact colours for each theme. */
+/* pantry wizard page, loaded on top of styles.css.
+   dark by default, html.pw-light switches to the app's light theme (page.js) */
 
 /* ---------- palette ---------- */
 .pw-page{
@@ -89,8 +84,7 @@ html.pw-light .pw-page{
   --pw-shadow:       0 18px 40px rgba(80,60,160,.14);
   --pw-switch-off:   #cdbff0;
 
-  /* the app's light-mode colours (a couple of the pale text colours are
-     darkened a touch so they're readable on the web) */
+  /* light mode colours, some text darkened a bit so it's readable */
   --app-bg:          #ffffff;
   --app-title:       #8f66b3;
   --app-add-bg:      #ead7ff;
@@ -124,8 +118,7 @@ html:has(.pw-page){ scrollbar-color:#3d2c6b #140e29; }
 html.pw-light:has(.pw-page){ scrollbar-color:#c2adef #f4f1ff; }
 .pw-page ::selection{ background:rgba(94,127,255,.4); color:inherit; }
 
-/* switching theme fades the page out and back in, 200ms each way, like the
-   app's Settings screen does (page.js adds this class) */
+/* fade when switching theme, same as the app */
 .pw-page.pw-fading{ opacity:0; }
 
 /* the site's drifting background glows, recoloured to the app's blue and violet */
@@ -173,9 +166,7 @@ html.pw-light .pw-page .bg-nebula-2{ background:radial-gradient(circle at 60% 60
   color:transparent;
 }
 
-/* ---------- buttons ----------
-   Rounded like the app's buttons. The primary one wears the app's
-   gradient, and a soft shine slides across it on hover. */
+/* ---------- buttons ---------- */
 .btn-pw{
   position:relative;
   display:inline-flex;
@@ -219,9 +210,7 @@ html.pw-light .pw-page .bg-nebula-2{ background:radial-gradient(circle at 60% 60
 .btn-pw svg{ width:18px; height:18px; flex:none; }
 .btn-pw:disabled{ opacity:.6; cursor:default; transform:none; }
 
-/* ---------- the switch ----------
-   Used for dark mode and text to speech everywhere on the page; every
-   switch for the same setting stays in sync (page.js). */
+/* ---------- switch ---------- */
 .pw-switch{
   position:relative;
   flex:none;
@@ -247,9 +236,7 @@ html.pw-light .pw-page .bg-nebula-2{ background:radial-gradient(circle at 60% 60
 .pw-switch:disabled{ opacity:.45; cursor:not-allowed; }
 
 /* ---------- phones ----------
-   A simple phone: a dark bezel with a punch-hole camera, holding the app's
-   screenshots at their own 412x917 shape. Each screen has a light and a
-   dark screenshot stacked up, and the page theme picks which one shows. */
+   screenshots are 412x917, light + dark stacked and the theme picks one */
 .pw-phone{
   position:relative;
   width:min(300px, 72vw);
@@ -291,9 +278,7 @@ html.pw-light .pw-shot-dark{ opacity:0; }
   isolation:isolate;
   padding:clamp(56px,7vw,104px) 0 clamp(40px,5vw,72px);
 }
-/* in dark mode, a soft glow of the app's colours behind the phone; in light
-   mode the whole hero becomes the app's own home-screen gradient, with a
-   curved bottom edge, and its text turns white like the app's */
+/* glow behind the phone in dark mode, full gradient hero in light mode */
 .pw-hero::before{
   content:"";
   position:absolute;
@@ -645,8 +630,7 @@ html.pw-light .pw-hero .pw-bubble{ --pw-text:#22163f; --pw-surface-solid:#fff; -
 }
 .pw-device{
   position:relative;
-  /* a fixed width: it sits in an auto-sized grid column, where a
-     percentage would have nothing to be a percentage of */
+  /* fixed width, % doesn't work in an auto grid column */
   width:360px;
   max-width:100%;
   padding:10px;
@@ -778,8 +762,7 @@ html.pw-light .pw-hero .pw-bubble{ --pw-text:#22163f; --pw-surface-solid:#fff; -
 .pw-item-exp { grid-row:3; color:var(--app-exp); font-size:11px; }
 .pw-empty{ margin-top:40px; padding-inline:20px; text-align:center; color:var(--app-qty); font-weight:600; }
 
-/* Add item / Edit item: a photo on the page background, then the form on
-   its own coloured panel, like the app */
+/* Add item / Edit item */
 .pw-screen-form{ display:flex; flex-direction:column; }
 .pw-form-top{
   display:flex;
@@ -1106,8 +1089,7 @@ html.pw-light .pw-log-data  { --k:#7a3cc7; }
 .pw-setting-desc{ margin-top:2px; font-size:15px; color:var(--set-row-desc); }
 
 /* ---------- under the hood ---------- */
-/* how the screens connect: Home on the left, My Pantry in the middle,
-   Add and Edit on the right, Settings under Home */
+/* screen flow diagram */
 .pw-flow{
   display:grid;
   grid-template-columns:minmax(0,1fr) 110px minmax(0,1fr) 130px minmax(0,1fr);

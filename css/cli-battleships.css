@@ -1,8 +1,4 @@
-/* CLI Battleships project page. Builds on the shared tokens/reset in
-   styles.css (header, footer, .container, fonts) and gives the page its own
-   look: a terminal-green palette on a faint graph-paper grid, monospace
-   accents, its own buttons (.btn-cb), a sonar screen in the hero, and the
-   playable terminal (js/cli-battleships/terminal.js). */
+/* cli battleships page, loaded on top of styles.css */
 
 .cb-page{
   --cb-bg:           #0c110e;
@@ -22,8 +18,7 @@
   --cb-c:            #7fb2ff;
   --cb-rs:           #ff8a50;
   --font-code: "JetBrains Mono", "Courier Prime", ui-monospace, monospace;
-  /* JetBrains Mono would draw == and -> as single symbols; code on this
-     page should show the characters as written */
+  /* not JetBrains Mono, its ligatures turn == and -> into single symbols */
   font-variant-ligatures:no-contextual;
   /* the "Back to all projects" link (.page-back in styles.css) */
   --page-accent:var(--cb-green);
@@ -73,11 +68,7 @@
   white-space:nowrap;
 }
 
-/* ---------- buttons ----------
-   This page's own buttons: squared-off with small corners, monospace, a
-   green outline and a prompt character in front. On hover they fill in
-   solid green with dark text, like a highlighted terminal selection, and a
-   cursor blinks after the label. */
+/* ---------- buttons ---------- */
 .btn-cb{
   position:relative;
   display:inline-flex; align-items:center; justify-content:center;
@@ -143,15 +134,11 @@
 .cb-dot-c { background:var(--cb-c); }
 .cb-dot-rs{ background:var(--cb-rs); }
 
-/* main normally uses overflow-x:hidden (styles.css), which would stop the
-   side rail below from sticking; clip does the same job without that */
+/* clip instead of hidden, hidden breaks the sticky side rail */
 .cb-page main{ overflow-x:clip; }
 
 /* ---------- layout ----------
-   Unlike the home page (text on the left) and Wizard Battles (everything
-   centred), this page is laid out like a code editor: a narrow side rail
-   that stays put as you scroll, listing the page's sections like files in
-   a project, beside a wide content column. */
+   sticky side rail + content column, like a code editor */
 .cb-layout{
   display:grid;
   grid-template-columns:220px minmax(0,1fr);
@@ -171,8 +158,7 @@
   color:var(--cb-muted);
   margin-bottom:10px;
 }
-/* the links hang off a vertical line like a file tree; the current
-   section's link lights up and its piece of the line turns green */
+/* file tree style links, current one goes green */
 .cb-toc ul{ border-left:1px solid var(--cb-line); }
 .cb-toc a{
   position:relative;
@@ -226,9 +212,7 @@
 }
 .cb-rail-link:hover{ color:var(--cb-green-bright); border-bottom-color:currentColor; }
 
-/* ---------- hero ----------
-   The title takes the full width of the content column; the intro and the
-   sonar screen sit side by side beneath it. */
+/* ---------- hero ---------- */
 .cb-hero{ padding-top:clamp(48px,6vw,88px); }
 .cb-hero-body{
   display:grid;
@@ -246,8 +230,7 @@
 .cb-path-user{ color:var(--cb-green); }
 .cb-path-dir{ color:var(--cb-c); }
 
-/* the title types itself out once, then the block cursor keeps blinking.
-   It's 15 characters of a monospace font, so 15ch is exactly its width. */
+/* typing effect, title is 15 chars so 15ch */
 .cb-title{
   display:flex;
   align-items:center;
@@ -288,9 +271,7 @@
 .cb-actions{ display:flex; flex-wrap:wrap; gap:16px; }
 .cb-actions-center{ justify-content:center; }
 
-/* ---------- sonar screen ----------
-   Four range rings and a crosshair drawn with gradients, a sweep that
-   turns round it, and a few contacts that flash as the sweep passes. */
+/* ---------- sonar ---------- */
 .cb-radar{
   position:relative;
   width:clamp(220px,24vw,340px);
@@ -346,8 +327,6 @@
 .cb-radar-label-w{ left:10px; top:50%; translate:0 -50%; }
 
 /* ---------- sections ---------- */
-/* spacing and text sizes come from the shared scale in styles.css
-   (--section-pad, --h2, --text-body) so every page reads the same */
 .cb-section{ padding-top:var(--section-pad); scroll-margin-top:100px; }
 .cb-hero{ scroll-margin-top:120px; }
 .cb-section-head{ max-width:760px; margin-bottom:clamp(28px,4vw,44px); }
@@ -358,8 +337,7 @@
   line-height:1.15;
   color:#fff;
 }
-/* one word or phrase of each heading in the page's accent colour, the same
-   device the Wizard Battles page uses in purple */
+/* highlighted word in headings */
 .cb-accent{ color:var(--cb-green); }
 .cb-section-lede{
   margin-top:14px;
@@ -542,8 +520,7 @@
 .cb-legend dd{ margin:0; font-size:15px; color:var(--cb-muted); }
 
 /* ---------- language cards ---------- */
-/* one card per language, stacked, each with its code on the left and
-   what it shows on the right */
+/* one card per language, code on the left */
 .cb-cards{ display:grid; gap:24px; }
 .cb-card{
   --cb-lang:var(--cb-green);

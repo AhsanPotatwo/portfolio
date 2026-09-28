@@ -1,15 +1,5 @@
-// Pantry Wizard project page.
-//
-//  - The page's two settings, which work like the app's Settings screen:
-//    dark mode (fades the page out, swaps theme, fades back in) and text to
-//    speech (off by default; confirms itself out loud). Both are remembered,
-//    and every switch for the same setting stays in sync.
-//  - The screen tour's tabs.
-//  - A web recreation of the app's My Pantry, Add item and Edit item
-//    screens, using the browser's versions of the phone hardware the app
-//    uses (camera / file picker, vibration, speech and location), with a
-//    log of each one beside it. Nothing is saved or uploaded: photos are
-//    shown from local object URLs and the pantry resets on reload.
+// pantry wizard page: dark mode / tts settings, the tour tabs, and the web version of the app.
+// nothing gets saved or uploaded, the pantry resets on reload
 (function () {
   'use strict';
 
@@ -17,13 +7,12 @@
   var body = document.body;
   var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // localStorage can be missing or throw (private windows, blocked storage);
-  // the page works the same without it, it just won't remember
+  // localStorage can throw in private windows
   function load(key) {
     try { return window.localStorage.getItem(key); } catch (e) { return null; }
   }
   function save(key, value) {
-    try { window.localStorage.setItem(key, value); } catch (e) { /* not remembered */ }
+    try { window.localStorage.setItem(key, value); } catch (e) {}
   }
 
   // ---------- hardware log ----------
@@ -80,8 +69,7 @@
     synth.speak(utterance);
   }
 
-  // speaks only when text to speech is on, like the app's TextToSpeechService;
-  // either way the log shows what would have been said
+  // only speaks if tts is on, but always logs it
   function announce(text) {
     if (ttsOn) {
       say(text);
@@ -112,7 +100,7 @@
       root.classList.toggle('pw-light', isLight);
       return;
     }
-    // fade out, swap the theme, fade back in: 200ms each way, like the app
+    // 200ms fade out/in like the app
     body.classList.add('pw-fading');
     clearTimeout(fadeTimer);
     fadeTimer = setTimeout(function () {
@@ -123,7 +111,7 @@
 
   function setTts(on) {
     if (!synth || on === ttsOn) return;
-    // turning it off still says so first, then goes quiet
+    // announce before turning off
     if (on) {
       ttsOn = true;
       announce('Text to speech turned on');
@@ -148,7 +136,7 @@
   }
   syncSwitches();
 
-  // ---------- screen tour tabs ----------
+  // ---------- tour tabs ----------
   var tour = document.querySelector('.pw-tour');
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.pw-tab'));
 
@@ -162,7 +150,7 @@
       if (selected && panel.hidden) {
         panel.hidden = false;
         panel.classList.remove('is-entering');
-        void panel.offsetWidth; // restart the entrance animation
+        void panel.offsetWidth; // restart animation
         panel.classList.add('is-entering');
       } else if (!selected) {
         panel.hidden = true;
@@ -190,7 +178,7 @@
     });
   }
 
-  // ---------- the recreated app ----------
+  // ---------- app demo ----------
   var app = document.getElementById('pwApp');
   if (!app) return;
 
@@ -225,12 +213,11 @@
   var UNKNOWN_LOCATION = 'Unknown location';
   var itemLocation = UNKNOWN_LOCATION;
   var mode = 'add';
-  var editing = null;       // the item open in Edit item
-  var pendingImage = null;  // a photo chosen on the form, not saved yet
+  var editing = null;
+  var pendingImage = null;  // unsaved photo from the form
   var nextId = 1;
 
-  // dates as the app shows them: "Sep 26, 2026" for when an item was added,
-  // and the phone's short date (UK style here) for its expiry
+  // same date formats as the app
   function startOfDay(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
   function daysFromToday(n) { var d = startOfDay(new Date()); d.setDate(d.getDate() + n); return d; }
   function formatAdded(d) { return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
@@ -243,7 +230,7 @@
     return parts.length === 3 ? new Date(+parts[0], +parts[1] - 1, +parts[2]) : daysFromToday(0);
   }
 
-  // a few things already in the pantry
+  // starter items
   var items = [
     { name: 'Apples', qty: '6', type: 'pieces', img: 'assets/pantry-apple.svg', added: daysFromToday(-3), exp: daysFromToday(16), loc: '📍 Manchester' },
     { name: 'Bread', qty: '800', type: 'g', img: 'assets/pantry-bread.svg', added: daysFromToday(-1), exp: daysFromToday(5), loc: '📍 Manchester' },
@@ -255,10 +242,9 @@
     return item.name + ', ' + item.qty + ' ' + item.type + ', Expiry: ' + formatShort(item.exp);
   }
 
-  // every tap gets a buzz: a real one where the browser can vibrate (Android),
-  // and a shake of the phone on screen everywhere
+  // real vibration on android, plus a shake animation so it shows everywhere
   function buzz(ms, what) {
-    try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* no motor */ }
+    try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) {}
     if (device) {
       device.classList.remove('is-buzzing');
       void device.offsetWidth;
@@ -268,7 +254,7 @@
   }
   if (device) device.addEventListener('animationend', function () { device.classList.remove('is-buzzing'); });
 
-  // the Add item screen buzzes for 50ms, Edit item for 100ms, as in the app
+  // 50ms on add, 100ms on edit (same as the app)
   function formBuzzMs() { return mode === 'edit' ? 100 : 50; }
 
   function render(highlightId) {
@@ -342,7 +328,7 @@
     qtyInput.value = item ? item.qty : '';
     typeInput.value = item ? item.type : '';
     syncTypePlaceholder();
-    // the expiry picker's earliest date is today, and it starts on today
+    // can't pick a date before today
     var today = daysFromToday(0);
     dateInput.min = toInputValue(today);
     dateInput.value = toInputValue(item && item.exp > today ? item.exp : today);
@@ -350,7 +336,7 @@
 
     showScreen('form');
 
-    // Add item looks up where you are as it opens
+    // add item grabs the location when it opens
     if (mode === 'add') {
       if (itemLocation === UNKNOWN_LOCATION) {
         log('gps', 'Location not shared, so this item will be saved as “Unknown location”', null, true);
@@ -372,7 +358,7 @@
     }
   }
 
-  // ---------- overlays inside the phone (action sheet, alerts) ----------
+  // ---------- action sheet + alerts ----------
   var overlayReturn = null;
   var alertDone = null;
 
@@ -388,7 +374,7 @@
     }
     overlayReturn = null;
   }
-  // keeps Tab inside an open overlay, and Esc closes it
+  // trap tab inside, esc closes
   [sheet, alertBox].forEach(function (el) {
     el.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
@@ -411,7 +397,7 @@
     });
   });
 
-  // DisplayAlert: a title, a message, OK (or a named action) and optionally Cancel
+  // basically DisplayAlert from maui
   function showAlert(title, text, okLabel, cancelLabel, danger, done) {
     alertTitle.textContent = title;
     alertText.textContent = text;
@@ -461,7 +447,7 @@
       announce(p[2]);
     });
   });
-  // a red field goes back to normal as soon as it's changed
+  // clear the red error once they type something
   nameInput.addEventListener('input', function () { fields.name.classList.remove('is-error'); });
   qtyInput.addEventListener('input', function () { fields.qty.classList.remove('is-error'); });
   typeInput.addEventListener('change', function () { fields.type.classList.remove('is-error'); syncTypePlaceholder(); });
@@ -574,10 +560,7 @@
   });
 
   // ---------- location ----------
-  // The app asks for permission, takes a high-accuracy reading with a 10
-  // second timeout, then turns it into a city name with Google's Geocoding
-  // API. The web version stops at the coordinates, which is what the app
-  // falls back to when the city lookup fails.
+  // the app turns this into a city name with google, here it just shows the coords
   if (locBtn) {
     if (!navigator.geolocation) {
       locBtn.disabled = true;

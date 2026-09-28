@@ -1360,10 +1360,10 @@ function drawArrowHead(x, y, angle) {
 
 //lets the player switch through the buttons freely
 function buttonFunctionality() {
-  // RESET ELEMENT VISIBILITY FIRST (default)
+  //hide elements by default
   showElements = false;
 
-  // ------------------- BUTTON STATE -------------------
+  //button states
   if (atkBtn === true) {
     attackButtonLow.show();
     attackButtonMid.show();
@@ -1403,7 +1403,7 @@ function buttonFunctionality() {
     healButton.style("background-color", "#B69963");
   }
 
-  // ------------------- ELEMENT DISPLAY LOGIC -------------------
+  //element buttons
   const isStandardAttackChosen = atkBtnLow || atkBtnMid || atkBtnHigh;
   const isBerserkSelected = berserk === true;
 
@@ -1434,7 +1434,7 @@ function buttonFunctionality() {
   );
   berserkButton.style("background-color", berserk ? "#FFB732" : "#400000");
 
-  // ------------------- DESPERATION MOVE VISIBILITY -------------------
+  //desperation move
   if (player1.playerHealth / player1.playerMaxHealth <= 0.15) {
     berserkButton.show();
   } else {
@@ -1482,7 +1482,7 @@ function exportGameDataCSV() {
     csv += `${playerID},${i + 1},Enemy,${moveType},${move},${element},${outcome},${value},${success}\n`;
   }
 
-  // NEW: Send to backend instead of downloading
+  //sends the csv to the server
   fetch('/save-csv', {
     method: 'POST',
     headers: {

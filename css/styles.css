@@ -4,14 +4,12 @@
   --panel-top:     #393145;
   --tile:          #302c3b;
 
-  /* one violet family shared by both pages: --accent for fills (buttons,
-     lines, badges), --accent-text for text/links on the dark background,
-     where the fill colour would be too dark to read comfortably */
+  /* --accent for fills, --accent-text for text (accent is too dark to read on the bg) */
   --accent:        #735aff;
   --accent-deep:   #5542bc;
   --accent-text:   #a48bff;
   --accent-soft:   #bf92ff;
-  /* the logo, the current nav link and its underline */
+  /* logo + active nav link */
   --nav-purple:    #8b63e6;
 
   --text:          #ffffff;
@@ -22,8 +20,7 @@
   --radius-card:   20px;
   --ease-out:      cubic-bezier(.22,.61,.36,1);
 
-  /* one type scale and rhythm for every page: space between sections,
-     section headings, and paragraph text */
+  /* shared spacing/type sizes for every page */
   --section-pad:   clamp(64px,8vw,112px);
   --h2:            clamp(34px,4.4vw,56px);
   --text-body:     clamp(17px,1.45vw,20px);
@@ -62,14 +59,12 @@ body{
   overflow-x:hidden;
 }
 
-/* belt and suspenders against horizontal scroll on mobile, scoped to content below the
-   header rather than html/body so it can't interfere with the header's position:sticky
-   (overflow on an ancestor breaks sticky, but main/footer aren't ancestors of the header) */
+/* stops sideways scroll on mobile. on main/footer not body, otherwise the sticky header breaks */
 main, .site-footer{
   overflow-x:hidden;
 }
 
-/* background canvas the stars get drawn on, see main.js */
+/* background canvas the stars get drawn on, see particles.js */
 .bg-fx{
   position:fixed; top:0; left:0;
   width:100svw; height:100svh;
@@ -77,9 +72,7 @@ main, .site-footer{
   pointer-events:none;
 }
 
-/* pins the blobs below to the actual visible viewport (not the "large" one iOS Safari
-   uses for 100vw/vh, which is a bit taller than what's really on screen and was causing
-   a few px of horizontal scroll on mobile) */
+/* 100vw/vh on iOS Safari was causing a few px of sideways scroll, this fixes it */
 .bg-glow{
   position:fixed; top:0; left:0; z-index:-2;
   width:100svw; height:100svh;
@@ -116,7 +109,7 @@ main, .site-footer{
 @keyframes nebulaDrift2{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(-2.5vw,-3vw) scale(1.06); } }
 @keyframes nebulaDrift3{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(-2vw,2.5vw) scale(1.1); } }
 
-/* the actual shooting star + its trail, main.js moves these around randomly */
+/* the shooting star + its trail, particles.js moves these around randomly */
 .shooting-star{
   position:fixed; z-index:-1;
   top:0; left:0;
@@ -390,7 +383,7 @@ a{ color:inherit; text-decoration:none; }
   font-size:clamp(26px,4vw,48px);
   font-weight:600;
 }
-/* the rule under the hero text: a solid purple line with rounded ends */
+/* line under the hero text */
 .hero-rule{
   height:3px;
   border-radius:2px;
@@ -402,10 +395,7 @@ a{ color:inherit; text-decoration:none; }
 }
 .hero-actions{ display:flex; flex-wrap:wrap; gap:18px; }
 
-/* Home page buttons: rounded rectangles in a soft purple gradient, lit
-   from the top so they don't look flat. On hover they lift and a glint
-   sweeps across. (The Wizard Battles page has its own buttons,
-   .btn-wizard, in wizard-battles.css.) */
+/* buttons (wizard battles uses .btn-wizard instead) */
 .btn{
   position:relative;
   overflow:hidden;
@@ -490,8 +480,7 @@ a{ color:inherit; text-decoration:none; }
   align-items:start;
   padding:clamp(20px,4vw,45px) clamp(16px,4vw,52px);
   border-radius:var(--radius-card);
-  /* fades to transparent rather than to the page colour, so the panel has
-     no hard bottom edge against the background glows */
+  /* fade to transparent so there's no hard edge over the glows */
   background:linear-gradient(180deg,var(--panel-top) 0%,rgba(57,49,69,0) 85%);
 }
 .about-panel::before{
@@ -588,8 +577,7 @@ a{ color:inherit; text-decoration:none; }
   50%{ box-shadow:0 0 10px 2px rgba(49,250,150,.4); }
 }
 
-/* every section heading (About me, Skills & experience, My projects, Get
-   in touch) is the same size */
+/* section headings */
 .about-copy h2,
 .section-title{
   font-size:var(--h2);
@@ -619,8 +607,7 @@ a{ color:inherit; text-decoration:none; }
   align-items:start;
 }
 
-/* the subheadings in both columns (Frontend, Backend..., Experience,
-   Education) are one size */
+/* subheadings */
 .group-title,
 .timeline-heading{
   font-size:clamp(28px,3.2vw,40px);
@@ -665,14 +652,8 @@ a{ color:inherit; text-decoration:none; }
   box-shadow:0 10px 24px rgba(115,90,255,.35);
 }
 
-/* The Figma tile has a small, quiet tag hanging underneath it, linking to
-   this site's own design file: a dark stone-like tag with slightly chipped
-   corners and a thin lilac edge, hanging from the "Figma" label on a fine
-   thread. The tile gets extra room at the bottom for it so it never runs
-   into the next heading.
-
-   .figma-tag-stone is the tag's edge colour clipped to the chipped shape,
-   with its darker face (::before) set 1px inside it. */
+/* little tag hanging off the figma tile, opens the design viewer.
+   the stone is the border colour clipped to shape, ::before is the face 1px inside */
 .tile-figma{ position:relative; padding-bottom:62px; }
 .figma-tag{
   --figma-stone-cut:polygon(6px 0, calc(100% - 7px) 0, 100% 7px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 7px 100%, 0 calc(100% - 7px), 0 6px);
@@ -742,25 +723,17 @@ a{ color:inherit; text-decoration:none; }
   50%{ rotate:2.5deg; }
 }
 
-/* on narrow screens the Figma tile sits close to the screen's left edge,
-   so the stone is made more compact to stay fully on screen */
+/* smaller tag on narrow screens so it doesn't go off the edge */
 @media (max-width:700px){
   .figma-tag-stone{ gap:6px; padding:7px 10px; }
   .figma-tag-text{ font-size:11px; }
 }
-/* on the very narrowest phones (320px) it's shifted right a little so it
-   isn't cut off at the screen edge, with its thread shifted back the same
-   amount so it still hangs from the label */
+/* 320px phones: nudge it right, and the thread back left to match */
 @media (max-width:340px){
   .figma-tag{ translate:calc(-50% + 12px) 0; transform-origin:calc(50% - 12px) -13px; }
   .figma-tag::before{ left:calc(50% - 12px); }
 }
-/* ---------- design viewer popup ----------
-   Full-screen <dialog> for browsing this site's Figma page designs
-   (js/design-viewer.js). A top bar with the design's name, a counter, a
-   Figma link and a close button; below it the design itself, which is very
-   tall, so it's shown at a readable width and scrolls; and prev/next
-   buttons floating at the sides. */
+/* design viewer popup (js/design-viewer.js) */
 .dv-lock, .dv-lock body{ overflow:hidden; }
 .design-viewer{
   width:100vw; height:100dvh;
@@ -812,10 +785,7 @@ a{ color:inherit; text-decoration:none; }
 }
 .dv-figma:hover{ color:#fff; border-color:#fff; }
 
-/* ---------- resume viewer ----------
-   The same popup as the design viewer (.design-viewer) with a PDF in it:
-   the page fills the height of the screen at a readable width, and the
-   bar has open-in-new-tab and download links. */
+/* resume viewer, reuses the design viewer styles */
 .rv-action{
   display:inline-flex; align-items:center; gap:8px;
   height:40px;
@@ -1006,11 +976,7 @@ a{ color:inherit; text-decoration:none; }
   padding-left:80px;
   padding-bottom:8px;
 }
-/* The ring and the line hanging from it are drawn as one shape: same
-   colour, same 4px stroke, and the line starts inside the ring's bottom
-   edge so there's no seam. The line ends level with the bottom of the
-   entry's text (above the item's 8px bottom padding), staying solid for a
-   while and then fading out, so it never runs into the next ring. */
+/* line starts inside the ring so there's no gap, then fades out before the next one */
 .tl-dot{
   --tl-ring:44px;
   position:absolute; left:0; top:0;
@@ -1032,8 +998,7 @@ a{ color:inherit; text-decoration:none; }
   line-height:1.25;
   margin:4px 0 8px;
 }
-/* company / place and dates, split with a small dot rather than a pipe so
-   the line wraps cleanly on phones */
+/* company + dates */
 .tl-meta{
   display:flex; flex-wrap:wrap; align-items:center;
   column-gap:10px;
@@ -1064,7 +1029,7 @@ a{ color:inherit; text-decoration:none; }
 }
 .tl-points li::marker{ color:var(--accent-soft); }
 
-/* projects, still just placeholders */
+/* projects */
 .projects{ padding-bottom:var(--section-pad); }
 .project-grid{
   display:grid;
@@ -1082,8 +1047,7 @@ a{ color:inherit; text-decoration:none; }
 }
 .project-card:hover{ transform:translateY(-4px); box-shadow:0 18px 36px rgba(0,0,0,.4), 0 0 0 1px rgba(164,139,255,.25); }
 
-/* empty slots waiting for future projects: a dashed outline, so they read
-   as intentionally empty rather than a card that failed to load */
+/* "coming soon" placeholders */
 .project-card-soon{
   display:flex; align-items:center; justify-content:center;
   background:rgba(30,28,33,.45);
@@ -1095,9 +1059,7 @@ a{ color:inherit; text-decoration:none; }
 }
 .project-card-soon:hover{ transform:none; box-shadow:none; border-color:rgba(164,139,255,.35); }
 
-/* small corner ribbon flagging a card as still in progress. Sits in the
-   top-right corner as a diagonal banner; the card's own overflow:hidden +
-   border-radius (set on .project-card) clips it cleanly at the edges. */
+/* "in progress" corner ribbon, the card's overflow:hidden clips it */
 .wip-ribbon{
   position:absolute;
   top:16px; right:-38px;
@@ -1118,9 +1080,7 @@ a{ color:inherit; text-decoration:none; }
   pointer-events:none;
 }
 
-/* wizard battles card: two rival wizard robes with wands reaching for a duel.
-   Robe + wand geometry is lifted directly from the Figma node coordinates
-   (rotated-square masks + exact wand rects), not eyeballed. */
+/* wizard battles card, positions taken from the figma file */
 .project-card-wizard{
   position:relative;
   overflow:hidden;
@@ -1147,8 +1107,7 @@ a{ color:inherit; text-decoration:none; }
   animation:robe-idle-b 4.6s ease-in-out infinite .3s;
 }
 
-/* faint, always-on breathing so the robes read as alive before you hover,
-   same subtlety as the pantry card's idle shimmer */
+/* idle breathing */
 @keyframes robe-idle-a{
   0%,100%{ opacity:1; }
   50%{ opacity:.85; }
@@ -1226,8 +1185,7 @@ a{ color:inherit; text-decoration:none; }
   50%{ box-shadow:0 0 11px 4px rgba(255,235,180,1), 0 0 26px 10px rgba(255,200,90,.7); }
 }
 
-/* CLI battleships card: terminal-green grid with a couple of ship silhouettes
-   and a radar-scan sweep on hover */
+/* cli battleships card */
 .project-card-cli{
   position:relative;
   overflow:hidden;
@@ -1236,15 +1194,9 @@ a{ color:inherit; text-decoration:none; }
 .project-card-cli:hover,
 .project-card-cli:focus-within{ background:#0e130e; }
 
-/* explicit line elements rather than a tiled background: a tiled pattern
-   always redraws a line at position 0, which doubled up with the frame
-   border and made the top/left edges look thicker than the others. Only
-   the 7 interior column dividers and 2 row dividers are drawn here; the
-   frame is a separate, border-less element so it isn't the containing
-   block for anything. cli-grid itself carries no border, so its box is
-   exactly the full card (0-100%) - the same coordinate space the pings
-   use - otherwise a border here would shrink the % coordinate space for
-   grid lines only, throwing them out of sync with the pings. */
+/* real line elements instead of a repeating background, the background version
+   doubled up the top/left edge with the frame border. no border on cli-grid
+   or the % positions stop lining up with the pings */
 .cli-grid{
   position:absolute; inset:0;
   overflow:hidden;
@@ -1266,10 +1218,7 @@ a{ color:inherit; text-decoration:none; }
 .cli-vline{ position:absolute; top:0; bottom:0; width:2px; background:rgba(45,201,99,.55); }
 .cli-hline{ position:absolute; left:0; right:0; height:2px; background:rgba(45,201,99,.55); }
 
-/* glowing radar pings, each centered on a grid cell (grid is 8 cols x 3
-   rows, so cell centers land on 1/16, 3/16 ... of the width and 1/6, 1/2,
-   5/6 of the height). Delays are staggered to roughly match the scanline
-   passing each row, so they "light up" in sequence top to bottom. */
+/* radar pings, sit in the middle of a grid cell (8x3). delays roughly follow the scanline */
 .cli-ping{
   position:absolute;
   width:14px; height:14px;
@@ -1284,8 +1233,7 @@ a{ color:inherit; text-decoration:none; }
 .cli-ping-c{ left:31.25%; top:16.667%; animation-delay:.7s; }
 .cli-ping-d{ left:68.75%; top:16.667%; animation-delay:1.4s; }
 .cli-ping-e{ left:56.25%; top:83.333%; animation-delay:2.8s; }
-/* faint always-on blips, same subtlety as the pantry card's idle bob -
-   hover swaps these for the brighter, faster sweep-synced pings below */
+/* faint idle blips, hover swaps them for the brighter ones below */
 @keyframes cli-ping-idle{
   0%{ transform:translate(-50%,-50%) scale(.3); opacity:.4; }
   100%{ transform:translate(-50%,-50%) scale(1.8); opacity:0; }
@@ -1343,10 +1291,7 @@ a{ color:inherit; text-decoration:none; }
   100%{ top:145px; opacity:0; }
 }
 
-/* pantry wizard card: a conjuring crystal ball surrounded by floating
-   pantry staples. Icon sizes/positions are lifted directly from the
-   Figma node coordinates (400x145 card), expressed as % so they hold
-   their layout as the card scales down on narrow screens. */
+/* pantry wizard card, positions from figma (400x145) as % so it scales */
 .project-card-pantry{
   position:relative;
   overflow:hidden;
@@ -1377,11 +1322,7 @@ a{ color:inherit; text-decoration:none; }
 .pantry-orb img,
 .pantry-food img{ display:block; width:100%; height:100%; pointer-events:none; }
 
-/* fruits form a two-row zigzag stepping up to the right: drumstick
-   (bottom row, leftmost) - bread (top row) - kiwi (bottom row) - apple
-   (top row, top-right corner, rightmost) - evenly spaced, same size.
-   --delay staggers both the idle bob and, on hover, the apparate
-   sequence, left to right, so the food vanishes and returns in order. */
+/* zigzag left to right, --delay staggers the bob and the hover animation */
 .pantry-food-drumstick{
   left:36.25%; top:53.8%; width:16.5%; aspect-ratio:1/1;
   --tilt:8deg; --dur:3.8s; --delay:0s;
@@ -1421,20 +1362,14 @@ a{ color:inherit; text-decoration:none; }
   50%{ transform:translateY(-9px) rotate(calc(var(--tilt,0deg) * -1)); }
 }
 
-/* faint, always-on magical shimmer so the food reads as enchanted even
-   before you hover */
+/* idle shimmer */
 @keyframes pantry-idle-glow{
   0%,100%{ filter:drop-shadow(0 0 0 rgba(230,190,255,0)); }
   50%{ filter:drop-shadow(0 0 5px rgba(230,190,255,.55)); }
 }
 
-/* on hover the conjured food vanishes and returns one at a time rather
-   than all at once: every item shares this exact timeline, so --delay
-   (staggered left to right above) shifts each into its own turn - a
-   quick snap out, a beat with everything gone, then a plain fade back
-   to normal. Runs on the inner wrapper only, separate from the outer
-   element's bob animation, so the float never stops or jumps when the
-   hover state changes. */
+/* hover: food disappears one by one then fades back. on the inner span
+   so it doesn't fight with the bob animation */
 .project-card-pantry:hover .pantry-food-inner,
 .project-card-pantry:focus-within .pantry-food-inner{
   animation:pantry-apparate 2.6s ease-in-out infinite;
@@ -1460,12 +1395,9 @@ a{ color:inherit; text-decoration:none; }
 }
 .socials-footer{ margin-top:40px; }
 
-/* the last thing on each project page: a quiet link back to the list of
-   projects. Each page colours it with its own accent through --page-accent. */
+/* "back to all projects" link on the project pages, colour set per page with --page-accent */
 .page-back{
-  /* positioned so it paints above the section before it: on Wizard
-     Battles it's pulled up into that section's padding, and without this
-     the section sits on top of the link and swallows the click */
+  /* otherwise the section above covers it on wizard battles and it can't be clicked */
   position:relative;
   padding-bottom:var(--section-pad);
   text-align:center;

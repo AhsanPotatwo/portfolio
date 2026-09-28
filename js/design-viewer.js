@@ -1,16 +1,5 @@
-// Popup viewer for this site's Figma page designs, opened from the little
-// sign hanging off the Figma tile in the Skills section.
-//
-// Built on the native <dialog> element (#designViewer in index.html), which
-// handles keeping focus inside it, closing on Esc and handing focus back to
-// the sign afterwards. The designs are full-page mockups (1440px wide and
-// several thousand px tall), so each one is shown at a readable width and
-// scrolls vertically rather than being squashed to fit the screen.
-//
-// Switch designs with the arrow buttons, the left/right arrow keys, or a
-// sideways swipe on touch screens. Close with the X, Esc, or by clicking the
-// dark space around the image. Without JavaScript (or <dialog> support) the
-// sign is still a normal link to the Figma file.
+// popup for the figma designs, opened from the tag on the figma tile.
+// without js the tag is just a link to figma
 (function () {
   'use strict';
 
@@ -53,7 +42,7 @@
       img.src = slide.src;
     }
 
-    // start fetching the other design(s) in the background
+    // preload the others
     SLIDES.forEach(function (s) {
       if (s !== slide) new Image().src = s.src;
     });
@@ -83,8 +72,7 @@
     dialog.close();
     unlock();
   }
-  // Esc closes the dialog natively; this catches that (and any other way
-  // it gets closed) so the page can scroll again
+  // catches Esc too
   dialog.addEventListener('close', unlock);
 
   dialog.querySelector('.dv-close').addEventListener('click', close);
@@ -95,7 +83,7 @@
     show(index + 1);
   });
 
-  // clicking the empty space around the design closes the viewer
+  // click outside to close
   stage.addEventListener('click', function (e) {
     if (e.target === stage) close();
   });
@@ -105,7 +93,7 @@
     else if (e.key === 'ArrowRight') { e.preventDefault(); show(index + 1); }
   });
 
-  // swipe left/right on touch screens (a mostly-vertical drag is just scrolling)
+  // swipe to change design, ignore vertical drags since that's scrolling
   var touchStart = null;
   stage.addEventListener('touchstart', function (e) {
     if (e.touches.length !== 1) { touchStart = null; return; }

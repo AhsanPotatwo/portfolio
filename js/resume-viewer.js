@@ -1,12 +1,4 @@
-// Popup for reading the resume without leaving the page, opened from the
-// "My resume" button in the hero. Same idea (and look) as the design viewer
-// in design-viewer.js: a native <dialog> (#resumeViewer in index.html) that
-// keeps focus inside it, closes on Esc and hands focus back afterwards.
-//
-// The PDF is shown in an <iframe>, loaded the first time the viewer opens so
-// it doesn't slow down the page. Browsers that can't display PDFs inside a
-// page (most phones) get "Open" and "Download" buttons instead. Without
-// JavaScript (or <dialog> support) the button just downloads the PDF.
+// resume popup. without js the button just downloads the pdf
 (function () {
   'use strict';
 
@@ -19,17 +11,14 @@
   var fallback = document.getElementById('rvFallback');
   var stage = document.getElementById('rvStage');
 
-  // navigator.pdfViewerEnabled is false where the browser has no built-in
-  // PDF viewer (e.g. Chrome on Android); older browsers that don't report it
-  // are assumed to have one unless they're on a phone-sized touch screen
+  // most phones can't show a pdf in an iframe. if pdfViewerEnabled isn't there, guess from screen size
   var canShowPdf = typeof navigator.pdfViewerEnabled === 'boolean'
     ? navigator.pdfViewerEnabled
     : !window.matchMedia('(pointer: coarse) and (max-width: 820px)').matches;
 
   function open() {
     if (canShowPdf) {
-      // open with the thumbnail sidebar closed and the page fitted to the
-      // frame's width (Chrome, Edge and Firefox read these; others ignore them)
+      // hide the sidebar and fit to width. only loads the first time it's opened
       if (!frame.getAttribute('src')) frame.src = PDF + '#navpanes=0&view=FitH';
     } else {
       frame.hidden = true;
@@ -54,7 +43,7 @@
     dialog.close();
   });
 
-  // clicking the dark space around the resume closes the viewer
+  // click outside to close
   stage.addEventListener('click', function (e) {
     if (e.target === stage) dialog.close();
   });

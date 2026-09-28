@@ -1,15 +1,4 @@
-// The Wizard Battles page's "spell" effects, layered over the page:
-//
-//  - Wand trail: moving the mouse leaves a short trail of twinkling
-//    four-pointed sparkles that drift, spin and fade.
-//  - Spell burst: clicking or tapping anywhere throws out a ring of
-//    sparkles and a quick expanding rune ring from that point.
-//  - Materialise: sections fade in out of a soft blur as they're scrolled
-//    to, once each.
-//
-// The sparkles are drawn on the fixed #wbSparkles canvas, which ignores the
-// pointer so it never gets in the way of clicking anything. Everything here
-// is skipped for people who've asked for reduced motion.
+// wizard battles effects: sparkle trail on the mouse, burst on click, sections blur in on scroll
 (function () {
   'use strict';
 
@@ -17,7 +6,7 @@
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduced) return;
 
-  // ---------- materialise on scroll ----------
+  // ---------- reveal on scroll ----------
   var revealTargets = document.querySelectorAll(
     '.wb-intro-text, .wb-intro-art, .wb-tome, .wb-section-head, .wb-spell, .wb-berserk, .wb-elements, .wb-cta-card'
   );
@@ -43,8 +32,7 @@
 
   var COLORS = ['233,168,255', '246,226,255', '192,38,211', '255,214,150'];
   var MAX_SPARKS = 160;
-  // one trail sparkle per this many px the cursor travels
-  var TRAIL_SPACING = 16;
+  var TRAIL_SPACING = 16; // px between trail sparkles
 
   var width = 0, height = 0, dpr = 1;
   var sparks = [];
@@ -80,7 +68,7 @@
     start();
   }
 
-  // a four-pointed star, like the ✦ used elsewhere on the page
+  // 4 point star
   function drawStar(s, alpha) {
     var r = s.size;
     var w = r * 0.28;
@@ -115,10 +103,10 @@
       s.x += s.vx * dt;
       s.y += s.vy * dt;
       s.vx *= 0.96;
-      s.vy = s.vy * 0.96 + 18 * dt;   // a little gravity, so they settle
+      s.vy = s.vy * 0.96 + 18 * dt;   // bit of gravity
       s.rot += s.spin * dt;
       var t = s.life / s.lifespan;
-      // quick pop in, then shrink and fade out
+      // pop in then shrink/fade
       var alpha = t < 0.15 ? t / 0.15 : 1 - (t - 0.15) / 0.85;
       var scale = t < 0.15 ? 0.6 + t / 0.15 * 0.4 : 1 - (t - 0.15) * 0.7;
       var size = s.size;
@@ -139,7 +127,7 @@
       ctx.beginPath();
       ctx.arc(r.x, r.y, radius, 0, Math.PI * 2);
       ctx.stroke();
-      // a dashed inner ring turning the other way, like a tiny spell circle
+      // dashed inner ring
       ctx.save();
       ctx.setLineDash([3, 6]);
       ctx.lineDashOffset = -p * 40;
@@ -164,7 +152,7 @@
     requestAnimationFrame(frame);
   }
 
-  // wand trail: mouse/pen only (on touch screens a finger drag is scrolling)
+  // trail, not on touch
   window.addEventListener('pointermove', function (e) {
     if (e.pointerType === 'touch') return;
     var x = e.clientX, y = e.clientY;
@@ -172,7 +160,7 @@
     var dx = x - lastTrail.x, dy = y - lastTrail.y;
     var dist = Math.sqrt(dx * dx + dy * dy);
     if (dist < TRAIL_SPACING) return;
-    // spread along the path so fast movements still leave an even trail
+    // fill in the gaps when the mouse moves fast
     var steps = Math.min(4, Math.floor(dist / TRAIL_SPACING));
     for (var i = 1; i <= steps; i++) {
       var f = i / steps;
@@ -191,7 +179,7 @@
     lastTrail = null;
   });
 
-  // spell burst on click/tap
+  // burst on click
   window.addEventListener('pointerdown', function (e) {
     var x = e.clientX, y = e.clientY;
     var count = 14;

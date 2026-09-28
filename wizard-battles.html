@@ -19,12 +19,7 @@
 
 <body class="wizard-page">
 
-  <!-- The crystal ball's eyes. All four are the same drawing (the old
-       eye / eye-b / eye-c files were one eye at three sizes), so it's
-       defined once here and reused. The iris + pupil group is clipped to
-       the white of the eye and shifted by --ex/--ey (in the eye's own
-       units), which js/wizard-battles/eyes.js sets so they follow the
-       cursor. -->
+  <!-- shared svgs. the eye is reused 4 times, eyes.js moves the iris with --ex/--ey -->
   <svg class="wb-svg-defs" aria-hidden="true" focusable="false">
     <defs>
       <clipPath id="wbEyeClip"><path d="M60.3258 2.19345e-05C65.4755 2.19345e-05 70.6253 0.614494 75.6524 1.96634C80.6796 3.31819 85.4615 5.28451 90.1208 7.61952C94.7801 10.0774 99.1942 13.0269 103.24 16.3451C107.287 19.7861 110.842 23.473 114.03 27.5285C114.521 28.0201 115.134 28.8804 115.87 29.8635C116.605 30.8467 117.218 31.8299 117.954 32.9359C118.69 34.042 119.303 35.148 119.793 36.2541C120.284 37.3602 120.529 38.2204 120.529 38.8349C120.529 39.4494 120.284 40.4325 119.793 41.4157C119.303 42.5217 118.69 43.6278 117.954 44.7339C117.218 45.717 116.605 46.8231 115.87 47.8062C115.134 48.7894 114.521 49.6497 114.03 50.1413C110.842 54.1968 107.287 57.8836 103.24 61.3247C99.1942 64.6429 94.7801 67.5924 90.2434 70.0503C85.5841 72.3853 80.6796 74.3516 75.6524 75.5806C70.6253 76.9324 65.4755 77.6698 60.3258 77.6698C54.8082 77.6698 49.4132 76.9324 44.1408 75.4577C38.8684 73.9829 33.8413 71.8937 29.0594 69.3129C24.2774 66.6092 19.8634 63.5368 15.6945 59.85C11.6483 56.286 7.96987 52.2305 4.78192 47.9291C4.41408 47.4376 3.92363 46.8231 3.43318 45.9628C2.94272 45.2254 2.45227 44.3652 1.8392 43.5049C1.34875 42.6446 0.980908 41.7844 0.613068 40.9241C0.245228 40.0638 0 39.3265 0 38.8349C0 38.2204 0.245228 37.483 0.613068 36.7457C0.980908 35.8854 1.34875 35.0251 1.8392 34.1649C2.32965 33.3046 2.94272 32.4443 3.43318 31.707C3.92363 30.8467 4.41408 30.2322 4.78192 29.7407C7.96987 25.4393 11.6483 21.3838 15.6945 17.8198C19.8634 14.133 24.2774 10.9377 29.0594 8.3569C33.8413 5.6532 38.8684 3.68688 44.1408 2.21214C49.4132 0.737394 54.8082 2.19345e-05 60.3258 2.19345e-05Z"/></clipPath>
@@ -37,8 +32,6 @@
           </g>
         </g>
       </symbol>
-      <!-- the question mark seen inside the crystal ball, and the ball's
-           four-pointed stars (coloured with currentColor) -->
       <linearGradient id="wbQuestionFill" x1="0" y1="0" x2=".35" y2="1">
         <stop offset=".1" stop-color="#fff"/>
         <stop offset=".45" stop-color="#f3d4ff"/>
@@ -53,15 +46,13 @@
     </defs>
   </svg>
 
-  <!-- background stuff, just decoration, sits behind everything -- same as the main site -->
+  <!-- background stuff, same as the main site -->
   <div class="bg-glow" aria-hidden="true">
     <div class="bg-nebula bg-nebula-1"></div>
     <div class="bg-nebula bg-nebula-2"></div>
     <div class="bg-nebula bg-nebula-3"></div>
   </div>
-  <!-- this page's own backdrop instead of the home page's star field:
-       two faint magic circles turning slowly in opposite corners, and
-       rising motes of magic dust (js/wizard-battles/background.js) -->
+  <!-- magic circles + dust instead of the star field -->
   <div class="wb-arcane-layer" aria-hidden="true">
     <img class="wb-arcane wb-arcane-1" src="assets/wizard-battles/illustrations/arcane-circle.svg" alt="">
     <img class="wb-arcane wb-arcane-2" src="assets/wizard-battles/illustrations/arcane-circle.svg" alt="">
@@ -71,7 +62,7 @@
 
   <a class="skip-link" href="#game">Skip to content</a>
 
-  <!-- nav, identical to the home page, just pointed back at its sections -->
+  <!-- nav -->
   <header class="site-header" id="header">
     <div class="container nav-inner">
       <a class="brand" href="index.html#home"><span class="brand-bracket">[</span>Ahsan<span class="brand-bracket">]</span></a>
@@ -93,16 +84,10 @@
   <main>
 
     <section class="wb-hero" id="game">
-      <!-- the night sky behind the title: clouds and a violet glow at the
-           top of the page, a moon, drifting symbols, two magic circles turning in opposite directions (the title
-           arcs along the top of the big one), and a scatter of sparkles -->
+      <!-- sky behind the title -->
       <div class="wb-portal" aria-hidden="true">
-        <!-- a crescent moon rising from behind the clouds -->
         <span class="wb-moon"></span>
-        <!-- clouds across the top in three layers (dark at the back, light
-             in front), hanging deeper in the corners than over the title.
-             Puff sizes, spacing and each layer's edge are irregular on
-             purpose so the layers weave rather than running parallel. -->
+        <!-- 3 cloud layers, uneven on purpose so they don't look like stripes -->
         <span class="wb-clouds">
           <span class="wb-cloud-layer wb-cloud-d">
             <i class="wb-puff" style="--x:-3.9;--y:4.19;--r:12.8;--i:0"></i>
@@ -155,9 +140,7 @@
             <i class="wb-puff" style="--x:104.1;--y:1.46;--r:9.2;--i:7"></i>
           </span>
         </span>
-        <!-- moon and planet symbols drifting up either side of the title and
-             fading, like sparks from a spell (the \FE0E after each one asks
-             for the plain text symbol rather than an emoji) -->
+        <!-- floating symbols. &#xFE0E; stops them showing as emoji -->
         <span class="wb-glyph" style="--x:11%;--y:58%;--s:26px;--d:0s">☽&#xFE0E;</span>
         <span class="wb-glyph" style="--x:22%;--y:50%;--s:20px;--d:-2.5s">☿&#xFE0E;</span>
         <span class="wb-glyph" style="--x:16%;--y:44%;--s:22px;--d:-5s">♄&#xFE0E;</span>
@@ -249,7 +232,7 @@
 
     <div class="wb-ribbon-wrap"><span class="wb-ribbon">The Spellbook</span></div>
 
-    <!-- how a battle works: every move, its odds, and the elements -->
+    <!-- moves + elements -->
     <section class="wb-section" id="spellbook">
       <div class="container">
         <header class="wb-section-head">
@@ -381,7 +364,7 @@
 
     <div class="wb-ribbon-wrap"><span class="wb-ribbon">The Opponent</span></div>
 
-    <!-- the AI enemy, with its actual decision rules -->
+    <!-- the AI -->
     <section class="wb-section">
       <div class="container">
         <article class="wb-tome wb-tome-indigo">
@@ -405,7 +388,7 @@
 
     <div class="wb-ribbon-wrap"><span class="wb-ribbon">The Research</span></div>
 
-    <!-- how the data is collected, with an example of the file it produces -->
+    <!-- data collection -->
     <section class="wb-section">
       <div class="container">
         <article class="wb-tome wb-tome-reverse wb-tome-plum">
@@ -472,7 +455,7 @@
   <script src="js/main.js"></script>
   <script src="js/wizard-battles/p5.min.js"></script>
   <script src="js/wizard-battles/sketch.js"></script>
-  <!-- must come after sketch.js: it wraps the sketch's setup() -->
+  <!-- has to load after sketch.js -->
   <script src="js/wizard-battles/page.js"></script>
   <script src="js/wizard-battles/eyes.js"></script>
   <script src="js/wizard-battles/background.js"></script>

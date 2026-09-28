@@ -4,11 +4,10 @@ const path = require("path");
 const app = express();
 const PORT = 3000;
 
-// Middleware to parse JSON
 app.use(express.json());
-app.use(express.static(__dirname)); // Serve static files (index.html, etc.)
+app.use(express.static(__dirname));
 
-// POST route to save CSV to /sessions
+// saves the session csv into /sessions
 app.post("/save-csv", (req, res) => {
   const { filename, content } = req.body;
 
@@ -23,7 +22,6 @@ app.post("/save-csv", (req, res) => {
   });
 });
 
-// Start server
 app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
