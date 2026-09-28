@@ -7,13 +7,11 @@ namespace PantryWizard.Services
 {
     public static class GoogleLocationService
     {
-        // Put your own Google Maps Geocoding API key here to get city names.
-        // Don't commit a real key. Without one, the lookup is skipped and
-        // items are stamped with their coordinates instead.
+        // add a google maps api key here for city names, otherwise it just uses coordinates
         private const string KeyPlaceholder = "YOUR_GOOGLE_MAPS_API_KEY";
         private static readonly string ApiKey = KeyPlaceholder;
 
-        // Returns the city name, or null if it couldn't be found
+        // null if no city found
         public static async Task<string?> GetCityFromCoordinatesAsync(double latitude, double longitude)
         {
             if (ApiKey == KeyPlaceholder)
@@ -35,7 +33,7 @@ namespace PantryWizard.Services
                         {
                             foreach (var type in component.GetProperty("types").EnumerateArray())
                             {
-                                if (type.GetString() == "locality") // This means city
+                                if (type.GetString() == "locality") // city
                                 {
                                     return component.GetProperty("long_name").GetString();
                                 }
@@ -44,7 +42,6 @@ namespace PantryWizard.Services
                     }
                 }
 
-                // no city in the results (or the request was refused, e.g. a bad key)
                 return null;
             }
             catch (Exception ex)

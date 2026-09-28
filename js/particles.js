@@ -1,13 +1,10 @@
-// Shared background fx used on every page: the star field canvas (plus optional
-// hero constellation) and the shooting stars. Pulled out of main.js so the
-// wizard battles page can reuse the exact same effect without duplicating it.
+// star field + shooting stars, shared between pages
 (function () {
   'use strict';
 
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // draws the little star field with lines connecting nearby stars, used for both the
-  // hero's constellation effect and the fainter one behind the whole page
+  // stars with lines between the close ones. used for the hero and the page background
   function makeParticleField(opts) {
     var canvas = opts.canvas;
     if (!canvas) return;
@@ -84,8 +81,7 @@
       buildConstellations();
     }
 
-    // picks a few stars and chains them together permanently so there's always at
-    // least a couple of little constellation shapes visible, not just random lines
+    // chains a few stars together so there are always some constellation shapes
     function buildConstellations() {
       fixedLinks = [];
       fixedKeys = {};
@@ -120,8 +116,7 @@
       }
     }
 
-    // re-pairs up nearby stars every so often instead of every frame, otherwise the
-    // lines flicker around too much and it looks jittery
+    // only re-link every so often, doing it every frame made the lines flicker
     function recomputeEdges() {
       var top = new Array(particles.length);
       var i;
@@ -317,7 +312,7 @@
     });
   }
 
-  // fainter starfield behind the whole page, same on every page that includes it
+  // fainter starfield behind the whole page
   function initBackgroundStarfield() {
     if (reduced) return;
     var bgCanvas = document.getElementById('bgFx');
@@ -367,7 +362,7 @@
     var launchShootingStar = function () {
       if (document.hidden) { scheduleNextStar(); return; }
 
-      // all stars in the pool are mid-flight already, try again in a bit
+      // all of them are already flying, try again later
       var idx = starBusy.indexOf(false);
       if (idx === -1) { scheduleNextStar(); return; }
 

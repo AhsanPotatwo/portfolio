@@ -1,12 +1,5 @@
-// Makes the eyes floating around the crystal ball ("What is Wizard Battles?")
-// follow the cursor. Each eye is an inline SVG using the shared #wbEye
-// drawing (see the top of wizard-battles.html), whose iris + pupil group is
-// shifted by the --ex/--ey custom properties set here, in the eye's own
-// drawing units. The iris is clipped to the white of the eye, so when it
-// looks far to one side it tucks under the edge like a real eye.
-//
-// With no mouse (phones, or the cursor off the page for a while) the eyes
-// glance around on their own, all looking the same way.
+// eyes around the crystal ball follow the cursor (moves the iris with --ex/--ey).
+// if there's no mouse for a bit they just look around randomly
 (function () {
   'use strict';
 
@@ -14,16 +7,12 @@
   var cluster = document.querySelector('.wb-crystal-ball-cluster');
   if (!eyes.length || !cluster) return;
 
-  // how far the iris can move, in the eye drawing's units (it's 120x78).
-  // Wider than tall because the eye is.
+  // max iris movement in svg units (eye is 120x78)
   var MAX_X = 17;
   var MAX_Y = 7;
-  // how far away (px) the cursor has to be before the eyes look all the way
-  // over; closer than this they look proportionally less far
+  // px away before they look all the way over
   var FULL_LOOK_DIST = 260;
-  // after this long (ms) without the cursor moving, go back to glancing around
-  var IDLE_AFTER = 4000;
-  // fraction of the remaining distance covered each frame, for smooth motion
+  var IDLE_AFTER = 4000; // ms
   var EASE = 0.14;
 
   var reduceMotion = window.matchMedia &&
@@ -35,8 +24,7 @@
   var running = false;
 
   function onPointer(e) {
-    // touch drags scroll the page, so only a real mouse/pen steers the eyes
-    // continuously; a tap still makes them look at where it landed
+    // ignore touch drags (that's scrolling), taps still count
     if (e.pointerType === 'touch' && e.type === 'pointermove') return;
     pointer.x = e.clientX;
     pointer.y = e.clientY;
@@ -48,8 +36,7 @@
     pointer.at = -Infinity;
   });
 
-  // Each eye is rotated in the CSS, so a direction on screen has to be
-  // turned into the eye's own tilted frame before moving the iris.
+  // the eyes are rotated in css so the direction needs rotating too
   function eyeAngle(el) {
     var t = getComputedStyle(el).transform;
     if (!t || t === 'none') return 0;
@@ -59,7 +46,7 @@
   var angles = eyes.map(eyeAngle);
 
   function pickGlance(now) {
-    // sometimes look straight ahead, otherwise a random direction
+    // 25% chance to look straight ahead
     if (Math.random() < 0.25) {
       glance.x = 0;
       glance.y = 0;
@@ -74,14 +61,13 @@
 
   function frame() {
     if (!running) return;
-    // same clock as the pointer timestamps (the time rAF passes in isn't
-    // guaranteed to line up with it)
+    // performance.now() to match the pointer timestamps
     var now = performance.now();
     var idle = now - pointer.at > IDLE_AFTER;
     if (idle && now > glance.next) pickGlance(now);
 
     for (var i = 0; i < eyes.length; i++) {
-      // where the iris should head to, from -1 to 1 on each axis
+      // target, -1 to 1
       var gx, gy;
       if (idle) {
         gx = reduceMotion ? 0 : glance.x;
@@ -115,7 +101,7 @@
     requestAnimationFrame(frame);
   }
 
-  // only animate while the crystal ball is on screen
+  // only run when it's on screen
   if ('IntersectionObserver' in window) {
     new IntersectionObserver(function (entries) {
       if (entries[0].isIntersecting) start();

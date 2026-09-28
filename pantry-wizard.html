@@ -15,9 +15,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/pantry-wizard.css">
-  <!-- the page has the app's own light and dark modes (dark by default, like
-       the rest of the site). Applied before the page draws, so a visitor who
-       picked light mode last time doesn't see a flash of dark first. -->
+  <!-- set the theme early so light mode doesn't flash dark on load -->
   <script>
     try { if (localStorage.getItem('pw-theme') === 'light') document.documentElement.classList.add('pw-light'); } catch (e) {}
   </script>
@@ -25,7 +23,7 @@
 
 <body class="pw-page">
 
-  <!-- background: the site's drifting glows, recoloured to the app's blue and violet (see pantry-wizard.css) -->
+  <!-- background glows, blue/violet on this page -->
   <div class="bg-glow" aria-hidden="true">
     <div class="bg-nebula bg-nebula-1"></div>
     <div class="bg-nebula bg-nebula-2"></div>
@@ -34,7 +32,7 @@
 
   <a class="skip-link" href="#overview">Skip to content</a>
 
-  <!-- nav, identical to the home page, just pointed back at its sections -->
+  <!-- nav -->
   <header class="site-header" id="header">
     <div class="container nav-inner">
       <a class="brand" href="index.html#home"><span class="brand-bracket">[</span>Ahsan<span class="brand-bracket">]</span></a>
@@ -77,7 +75,7 @@
             <a class="btn-pw" href="#tour">Tour the screens</a>
           </div>
 
-          <!-- the page's dark mode, which works the same way as the app's -->
+          <!-- dark mode toggle -->
           <div class="pw-theme-chip">
             <span id="pwHeroThemeLabel">Dark mode</span>
             <button class="pw-switch" type="button" role="switch" aria-checked="true" aria-labelledby="pwHeroThemeLabel" data-pref="theme"><span class="pw-switch-knob"></span></button>
@@ -85,8 +83,7 @@
           </div>
         </div>
 
-        <!-- the app's home screen in a phone, swapping between its light and
-             dark versions with the page theme, surrounded by floating food -->
+        <!-- phone with the home screen -->
         <div class="pw-hero-art" aria-hidden="true">
           <span class="pw-hero-halo"></span>
           <div class="pw-phone pw-phone-hero">
@@ -219,7 +216,7 @@
       </div>
     </section>
 
-    <!-- ---------- the playground ---------- -->
+    <!-- ---------- playground ---------- -->
     <section class="pw-section pw-try" id="try">
       <div class="container">
         <header class="pw-head" data-reveal>
@@ -229,7 +226,7 @@
         </header>
 
         <div class="pw-play" data-reveal>
-          <!-- the recreated app (js/pantry-wizard/page.js) -->
+          <!-- app demo (js/pantry-wizard/page.js) -->
           <div class="pw-device" id="pwDevice">
             <span class="pw-phone-notch" aria-hidden="true"></span>
             <div class="pw-app" id="pwApp" data-screen="list" role="region" aria-label="Pantry Wizard web demo">
@@ -302,7 +299,7 @@
                 </div>
               </div>
 
-              <!-- alerts and the delete confirmation -->
+              <!-- alerts -->
               <div class="pw-overlay" id="pwAlert" role="alertdialog" aria-modal="true" aria-labelledby="pwAlertTitle" aria-describedby="pwAlertText" hidden>
                 <div class="pw-alert">
                   <p class="pw-alert-title" id="pwAlertTitle"></p>
@@ -314,13 +311,13 @@
                 </div>
               </div>
 
-              <!-- photos never leave the browser: they're shown from a local object URL -->
+              <!-- photos stay local, nothing gets uploaded -->
               <input class="visually-hidden" type="file" id="pwCameraInput" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true">
               <input class="visually-hidden" type="file" id="pwGalleryInput" accept="image/*" tabindex="-1" aria-hidden="true">
             </div>
           </div>
 
-          <!-- what the "phone" is being asked to do, as it happens -->
+          <!-- hardware log -->
           <aside class="pw-console" aria-labelledby="pwConsoleTitle">
             <h3 id="pwConsoleTitle">Hardware log</h3>
             <p class="pw-console-sub">Each time the app would use the phone's hardware or its database, it shows up here along with the .NET MAUI call behind it.</p>
@@ -407,7 +404,7 @@
           <p>This settings card is a working copy: it controls this page, and it remembers your choice too.</p>
         </div>
 
-        <!-- a working recreation of the app's Settings screen -->
+        <!-- settings screen -->
         <div class="pw-settings-card" data-reveal>
           <p class="pw-settings-title">Settings</p>
           <div class="pw-settings-group">
@@ -444,11 +441,9 @@
           <p>One C# codebase, compiled for Android, iOS, Windows and macOS with .NET MAUI.</p>
         </header>
 
-        <!-- how you move around the app: a stack of pages, pushed and popped -->
+        <!-- navigation flow -->
         <div class="pw-flow" data-reveal aria-label="How the screens connect">
-          <!-- on wide screens the arrows between the boxes carry the labels;
-               on phones the arrows are hidden and it becomes an indented tree,
-               with each box saying how you get to it (data-via) -->
+          <!-- turns into a tree on mobile, data-via replaces the arrow labels -->
           <div class="pw-node pw-node-home"><strong>Home</strong><span>Welcome screen</span></div>
           <div class="pw-edge pw-edge-settings" aria-hidden="true"><span>gear icon</span></div>
           <div class="pw-node pw-node-settings" data-via="gear icon"><strong>Settings</strong><span>Dark mode, text to speech</span></div>
@@ -545,7 +540,7 @@
     </div>
   </footer>
 
-  <!-- icons used around the page -->
+  <!-- icons -->
   <svg class="pw-icons" aria-hidden="true" focusable="false">
     <symbol id="pwIconCamera" viewBox="0 0 24 24"><path d="M4 8h3l1.6-2.4A1.5 1.5 0 0 1 9.9 5h4.2a1.5 1.5 0 0 1 1.3.6L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></symbol>
     <symbol id="pwIconVibrate" viewBox="0 0 24 24"><rect x="8" y="3" width="8" height="18" rx="2"/><path d="M4.5 8v8M1.5 10v4M19.5 8v8M22.5 10v4"/></symbol>

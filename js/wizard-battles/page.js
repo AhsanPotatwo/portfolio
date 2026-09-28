@@ -1,16 +1,6 @@
-// Makes the wizard battles game (js/wizard-battles/sketch.js, untouched from
-// the original project) scale to fit any screen width.
-//
-// The sketch draws on a fixed 800x600 canvas and creates its buttons with
-// p5's createButton(), which appends them to <body> and pins them with
-// absolute left/top values worked out from the canvas's position. Because
-// #canvas-wrapper is position:relative (see wizard-battles.css), that
-// position comes out as 0,0, so every button's left/top is really an offset
-// *within the canvas*. Once setup() has run, the buttons are moved inside
-// #canvas-wrapper, so canvas and buttons form one 800x600 unit. That unit
-// is then shrunk with a CSS transform to fit the width available, like
-// zooming out on the whole game. Nothing can drift out of line, and the
-// page never has to scroll sideways.
+// scales the game to fit the screen without touching sketch.js.
+// the sketch is a fixed 800x600 and puts its buttons on <body>, so after setup()
+// they get moved into #canvas-wrapper and the whole thing is scaled with css
 (function () {
   'use strict';
 
@@ -32,15 +22,13 @@
     window.addEventListener('resize', fit);
   }
 
-  // p5 (global mode) looks up window.setup when the page finishes loading,
-  // so wrapping it here, after sketch.js has defined it, still takes effect.
+  // p5 doesn't call setup until the page loads so wrapping it here still works
   var sketchSetup = window.setup;
   if (typeof sketchSetup !== 'function') return;
 
   window.setup = function () {
     sketchSetup.apply(this, arguments);
-    // every button the sketch made is a direct child of <body>; nothing
-    // else on this page puts a <button> there
+    // only the sketch puts buttons directly on body
     var buttons = document.querySelectorAll('body > button');
     for (var i = 0; i < buttons.length; i++) {
       wrapper.appendChild(buttons[i]);

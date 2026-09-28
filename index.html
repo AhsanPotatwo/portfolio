@@ -25,7 +25,7 @@
     <div class="bg-nebula bg-nebula-3"></div>
   </div>
   <canvas class="bg-fx" id="bgFx" aria-hidden="true"></canvas>
-  <!-- these get reused/repositioned by main.js for the shooting star effect -->
+  <!-- shooting stars, particles.js moves these around -->
   <span class="shooting-star" aria-hidden="true"></span>
   <span class="shooting-star" aria-hidden="true"></span>
   <span class="shooting-star" aria-hidden="true"></span>
@@ -54,7 +54,7 @@
   <main>
 
     <section class="hero" id="home">
-      <!-- canvas for the little constellation effect next to the hero text, desktop only -->
+      <!-- constellation effect, desktop only -->
       <canvas class="hero-fx" id="heroFx" aria-hidden="true"></canvas>
 
       <div class="hero-fx-anchor" aria-hidden="true">
@@ -92,7 +92,6 @@
         <div class="hero-rule" aria-hidden="true"></div>
 
         <div class="hero-actions">
-          <!-- opens the resume viewer below (js/resume-viewer.js); without JavaScript it just downloads the PDF -->
           <a class="btn btn-primary" href="assets/AhsanResume.pdf" download="Ahsan-Resume.pdf" data-resume-viewer>My resume</a>
           <a class="btn btn-ghost" href="#projects">Projects</a>
         </div>
@@ -254,8 +253,7 @@
                   <img class="layer fig-1" src="assets/figma-1.svg" alt="">
                 </span>
                 <span>Figma</span>
-                <!-- little sign hanging off the Figma tile. Opens the design viewer popup
-                     (js/design-viewer.js); without JavaScript it's a plain link to the Figma file -->
+                <!-- opens the design viewer -->
                 <a class="figma-tag" href="https://www.figma.com/design/8I7CBDkn3dz2HJuaapmHwE/Portfolio-website-design" target="_blank" rel="noopener" data-design-viewer>
                   <span class="figma-tag-stone">
                     <span class="figma-tag-star" aria-hidden="true">&#10022;</span>
@@ -345,7 +343,7 @@
       </div>
     </section>
 
-    <!-- projects. The dashed "coming soon" slots fill out the last row until there are more to show -->
+    <!-- projects -->
     <section class="projects" id="projects">
       <div class="container">
         <h2 class="section-title">My projects</h2>
@@ -453,7 +451,7 @@
     </div>
   </footer>
 
-  <!-- popup viewer for this site's page designs, opened from the sign on the Figma tile -->
+  <!-- design viewer popup -->
   <dialog class="design-viewer" id="designViewer" aria-labelledby="dvTitle">
     <div class="dv-bar">
       <p class="dv-heading"><span id="dvTitle">Home page</span> <span class="dv-sub">UI design</span></p>
@@ -474,8 +472,7 @@
     </button>
   </dialog>
 
-  <!-- popup for reading the resume without leaving the page, opened from the
-       "My resume" button. Same look as the design viewer above. -->
+  <!-- resume popup -->
   <dialog class="design-viewer resume-viewer" id="resumeViewer" aria-labelledby="rvTitle">
     <div class="dv-bar">
       <p class="dv-heading" id="rvTitle">Resume <span class="dv-sub">Ahsan Siddiqui</span></p>
@@ -489,9 +486,8 @@
       </button>
     </div>
     <div class="dv-stage rv-stage" id="rvStage">
-      <!-- the PDF is loaded into this frame the first time the viewer opens -->
       <iframe class="rv-frame" id="rvFrame" title="Ahsan Siddiqui resume (PDF)"></iframe>
-      <!-- shown instead of the frame on browsers that can't display PDFs inside a page (most phones) -->
+      <!-- for phones that can't show the pdf inline -->
       <div class="rv-fallback" id="rvFallback" hidden>
         <p class="rv-fallback-title">Your browser can't show PDFs inside the page.</p>
         <p>Open it in a new tab or download it instead.</p>

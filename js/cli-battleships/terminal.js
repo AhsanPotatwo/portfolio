@@ -1,18 +1,5 @@
-// The playable terminal on the CLI Battleships page.
-//
-// It's a tiny pretend shell (help, ls, cat, clear, history...) that can
-// "run" JavaScript ports of the three versions of the game. Each port keeps
-// its original's prompts, messages, board layout and turn order, so playing
-// the Python, C and Rust versions here feels like running the real thing:
-//
-//   python3 PYTHON_battleships.py
-//   gcc C_battleships.c -o battleships && ./battleships
-//   cargo run            (or rustc RUST_battleships.rs && ./RUST_battleships)
-//
-// The games are generator functions. Whenever one needs input it yields an
-// ask(...) request; the terminal shows that prompt, waits for the player to
-// press Enter, and passes the typed line back in with next(). That keeps
-// each port reading top to bottom like the original program.
+// fake terminal for the cli battleships page, runs js ports of the python, c and rust versions.
+// the games are generators: they yield ask() when they need input and get the line back from next()
 (function () {
   'use strict';
 
@@ -31,8 +18,7 @@
 
   // ---------- output ----------
 
-  // one line of output. `parts` is a string or a list of [text, className]
-  // pairs, so user input is only ever inserted as text, never as HTML
+  // parts is a string or [text, className] pairs. always textContent so input can't inject html
   function print(parts, cls) {
     var line = document.createElement('div');
     if (cls) line.className = cls;
@@ -48,7 +34,7 @@
       });
     }
     out.appendChild(line);
-    // keep the log from growing forever over a long session
+    // cap the log length
     while (out.childNodes.length > 1500) out.removeChild(out.firstChild);
     scrollToEnd();
   }
@@ -71,9 +57,7 @@
     scrollToEnd();
   }
 
-  // draws a board the way the original prints it: a header row of column
-  // numbers, then each row number followed by its cells. C and Rust print a
-  // space after every cell, Python joins them with spaces.
+  // c and rust print a trailing space after each cell, python doesn't
   function printGrid(grid, reveal, trailingSpace) {
     var n = grid.length;
     var head = [];
@@ -113,10 +97,8 @@
   function key(x, y) { return x + ',' + y; }
 
   // ---------- Python version ----------
-  // A BattleshipGame "object" holding both grids, both ship lists and the
-  // set of the computer's guesses, as in the original class.
   function* pythonGame() {
-    // Python's int() accepts surrounding spaces and a sign, nothing else
+    // same rules as python's int()
     function pyInt(s) {
       return /^\s*[+-]?\d+\s*$/.test(s) ? parseInt(s, 10) : null;
     }
@@ -162,7 +144,7 @@
         print([['Hit!', 't-ok']]);
         return true;
       }
-      // (the original would also turn an earlier hit back into an O here)
+      // original turns a hit back into an O here, not copying that bug
       if (grid[x][y] !== 'X') grid[x][y] = 'O';
       print('Miss.');
       return false;
@@ -222,11 +204,8 @@
   }
 
   // ---------- C version ----------
-  // Two fixed char grids and two ship counters, changed in place by plain
-  // functions, as in the original.
   function* cGame() {
-    // scanf("%d") takes the number at the start of the input and ignores
-    // whatever follows it
+    // like scanf("%d"), reads the number at the start and ignores the rest
     function getValidIntInput(prompt, min, max) {
       return (function* () {
         while (true) {
@@ -324,11 +303,9 @@
   }
 
   // ---------- Rust version ----------
-  // Prompts are printed on their own line and read on the next, and the
-  // state is rebuilt each round: the original does this by recursion, here
-  // each round just replaces the previous values.
+  // prompts go on their own line. the original uses recursion for the rounds, this is just a loop
   function* rustGame() {
-    // str::parse::<usize>() accepts digits with an optional leading +
+    // like parse::<usize>()
     function parseUsize(s) {
       return /^\+?\d+$/.test(s) ? parseInt(s, 10) : null;
     }
@@ -421,10 +398,10 @@
 
   // ---------- running programs ----------
 
-  var program = null;     // the running game's generator, if any
+  var program = null;     // running game generator
   var programLang = null; // 'python' | 'c' | 'rust'
-  var pending = null;     // what it's currently asking for
-  var compiled = {};      // binaries "built" this session, name -> game
+  var pending = null;     // current ask()
+  var compiled = {};      // "compiled" binaries, name -> game
 
   function startProgram(gen, lang) {
     program = gen;
@@ -495,7 +472,7 @@
     'A simple game of battleships on a command line interface coded on Python, C and Rust'
   ];
 
-  // runs one command; returns false if it failed (so `a && b` stops)
+  // returns false on failure so && can stop
   function runOne(line) {
     var argv = line.trim().split(/\s+/);
     var cmd = argv[0];
@@ -592,7 +569,7 @@
         return true;
     }
 
-    // ./something: run a binary built earlier this session
+    // ./name runs something compiled earlier
     if (cmd.indexOf('./') === 0) {
       var name = cmd.slice(2);
       if (compiled[name]) { startProgram(GAMES[compiled[name]](), compiled[name]); return true; }
@@ -622,7 +599,7 @@
     return false;
   }
 
-  // supports `a && b`, stopping at the first failure or once a game starts
+  // a && b, stops on a failure or when a game starts
   function runLine(line) {
     var cmds = line.split('&&');
     for (var i = 0; i < cmds.length; i++) {
@@ -641,7 +618,7 @@
     input.value = '';
 
     if (program) {
-      // echo what was typed after the prompt, like a real terminal
+      // echo the input after the prompt
       print(pending.inline ? [pending.prompt, [value, 't-cmd']] : [[value, 't-cmd']]);
       step(value);
       return;
@@ -656,7 +633,7 @@
     scrollToEnd();
   }
 
-  // completes the last word against commands and file names
+  // tab completion
   function complete() {
     var value = input.value;
     var m = /(\S*)$/.exec(value);
@@ -688,7 +665,7 @@
       e.preventDefault();
       submit();
     } else if (e.ctrlKey && (e.key === 'c' || e.key === 'C') && !hasSelection()) {
-      // Ctrl+C with nothing selected interrupts; with a selection it copies
+      // only interrupt if nothing's selected, otherwise let it copy
       e.preventDefault();
       interrupt();
     } else if (e.key === 'l' && e.ctrlKey) {
@@ -708,8 +685,7 @@
     }
   });
 
-  // clicking anywhere in the terminal focuses the input, unless the click
-  // was the end of selecting some text to copy
+  // click to focus, but not if they're selecting text
   body.addEventListener('click', function () {
     var sel = window.getSelection && window.getSelection();
     if (sel && String(sel).length) return;
@@ -723,7 +699,7 @@
     });
   }
 
-  // the "Run a version" buttons type their command into the terminal
+  // buttons that type a command in for you
   var typing = null;
   Array.prototype.forEach.call(document.querySelectorAll('[data-cmd]'), function (btn) {
     btn.addEventListener('click', function () {
