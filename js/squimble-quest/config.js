@@ -55,9 +55,6 @@ const AIM = {
   // how close (in pixels) the mouse can get to the player's centre before it stops changing
   // where they face. stops them spinning wildly when the mouse is right on top of them
   deadzone: 6,
-  // the line pointing from the player towards the mouse, where a weapon will go later
-  lineLength: 40,
-  lineColour: '#d84a4a',
 };
 
 const CROSSHAIR = {

@@ -1,7 +1,7 @@
 // the player. just a rectangle until there's a sprite.
 // walking, health, tiles, aiming and attacking all come from Character (character.js).
 // this file only has what's different about the player: its inventory, who it can hit,
-// what happens when it dies, and the aim line
+// and what happens when it dies
 class Player extends Character {
   constructor(x, y) {
     // PLAYER is in config.js
@@ -54,21 +54,6 @@ class Player extends Character {
 
   draw() {
     this.drawBody();
-
-    // mid swing, the sword's there instead of the aim line
-    if (this.swing) {
-      this.swing.draw();
-      return;
-    }
-
-    // line along the exact aim angle, where the weapon is held.
-    // cos and sin of the angle give how far across and down one pixel along it is
-    stroke(AIM.lineColour);
-    strokeWeight(3);
-    line(
-      this.x, this.y,
-      this.x + Math.cos(this.aimAngle) * AIM.lineLength,
-      this.y + Math.sin(this.aimAngle) * AIM.lineLength
-    );
+    if (this.swing) this.swing.draw();
   }
 }

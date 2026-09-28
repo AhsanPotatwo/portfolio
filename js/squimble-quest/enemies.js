@@ -31,7 +31,7 @@
 //
 //   ai: (enemy, world, dt) => ({ move: { x, y }, aim: { x, y }, attack: true or false }),
 //
-// world has { map, player, enemies } in it, so it can see where the player is. for example,
+// world has { map, player, enemies, npcs } in it, so it can see where the player is. for example,
 // an enemy that walks at the player and swings its weapon when it's close:
 //
 //   ai: (enemy, world) => {

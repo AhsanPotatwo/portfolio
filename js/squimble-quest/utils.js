@@ -1,5 +1,11 @@
 // small maths helpers that more than one part of the game can use
 
+// do two boxes ({ x, y, w, h }) overlap? boxes that only touch along an edge don't count
+function boxesOverlap(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x &&
+         a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
 // the smallest turn from angle b to angle a, in radians, between -PI and PI.
 // e.g. from 350° to 10° is a 20° turn, not 340°. used to check if something's within an arc
 function angleDifference(a, b) {
