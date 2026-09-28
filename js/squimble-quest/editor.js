@@ -1,22 +1,22 @@
-// the map editor. a simple way to build maps: paint tiles, and place objects and enemies,
-// on the map you're on. open it from dev mode: press ` for dev mode, then E.
+// the map editor. a simple way to build maps: paint tiles, and place objects, enemies and npcs,
+// on the map you're on. open it from dev mode: press ` for dev mode, then B (for build).
 //
 // while it's open:
-//   - the player and enemies stop, and WASD / the arrow keys move the camera around instead
+//   - everyone stops, and WASD / the arrow keys move the camera around instead
 //   - pick something from the bar at the bottom. the tabs above it switch between
-//     tiles, objects and enemies (‹ › for more pages once there are lots)
+//     tiles, objects, enemies and npcs (‹ › for more pages once there are lots)
 //   - tiles: left click or drag to paint, replacing whatever tile was there
 //   - objects: left click to place one, its top left corner on the tile under the mouse
-//   - enemies: left click to place one, standing on the tile under the mouse
-//   - right click or drag to erase (or pick Erase in the bar). if you start on an object or enemy
-//     it removes those, otherwise it empties tiles. empty tiles are like off the edge of the map:
-//     nothing's drawn there and nothing can walk on them
-//   - closing the editor puts every enemy back where it was placed, with full health
+//   - enemies and npcs: left click to place one, standing on the tile under the mouse
+//   - right click or drag to erase (or pick Erase in the bar). if you start on an object, enemy
+//     or npc it removes those, otherwise it empties tiles. empty tiles are like off the edge of
+//     the map: nothing's drawn there and nothing can walk on them
+//   - closing the editor puts every enemy and npc back where it was placed
 //   - P puts the player's spawn point on the tile under the mouse (marked with a yellow ring)
 //   - New map makes a blank map of any size, Export saves the map as a file, Open file loads one
 //   - the dev mode keys still work (zoom, teleport, next map)
 //
-// every tile in tiles.js, object in objects.js and enemy in enemies.js shows up in the bar by itself.
+// everything in tiles.js, objects.js, enemies.js and npcs.js shows up in the bar by itself.
 //
 // changes are made to the map you're on, so you can walk around on them straight away.
 // Export them to keep them: going to another map (M) or reloading builds maps fresh
@@ -34,7 +34,7 @@ const NEW_MAP_NAME = 'new-map';
 // the controls box in the top right, and the New / Export / Open buttons under it
 const EDITOR_HELP = {
   lines: [
-    'MAP EDITOR   E to close',
+    'MAP EDITOR   B to close',
     'left click: paint / place   right: erase',
     'WASD: move   - = / wheel: zoom',
     'P: player spawns here',
@@ -63,11 +63,17 @@ const EDITOR_TABS = [
   // furniture, decorations, chests... everything in objects.js
   { kind: 'object', label: 'Objects' },
   { kind: 'enemy', label: 'Enemies' },
+  { kind: 'npc', label: 'NPCs' },
 ];
 
 // where each tab's things are defined
 function editorCatalogue(kind) {
-  return { tile: TILE_TYPES, object: OBJECT_TYPES, enemy: ENEMY_TYPES }[kind];
+  return { tile: TILE_TYPES, object: OBJECT_TYPES, enemy: ENEMY_TYPES, npc: NPC_TYPES }[kind];
+}
+
+// is this tab's kind a character that gets placed standing on a tile (an enemy or npc)?
+function isCharacterKind(kind) {
+  return kind in SPAWN_KINDS;
 }
 
 const Editor = {
@@ -194,6 +200,8 @@ const Editor = {
     // start looking at wherever the camera already is, and follow the editor's view instead of the player
     this.view = { x: camera.x, y: camera.y };
     camera.follow(this.view);
+    // stop any conversation first, its text box would be in the way (dialogue.js)
+    if (Dialogue.active) Dialogue.close();
     UI.showGroup('editor', true);
     // the editor's bar goes where the hotbar is (inventory.js)
     Hotbar.show(false);
@@ -204,8 +212,8 @@ const Editor = {
     this.active = false;
     this.lastPaint = null;
     camera.follow(player);
-    // every enemy back where it was placed, with full health (sketch.js)
-    spawnEnemies();
+    // every enemy and npc back where it was placed, with full health (sketch.js)
+    spawnCharacters();
     UI.showGroup('editor', false);
     Hotbar.show(true);
   },
@@ -300,10 +308,11 @@ const Editor = {
       map.setSpawnTile(over.col, over.row);
     }
 
-    // objects and enemies: one per click. mousePressed() ignores clicks that landed on the bar (see input.js)
-    if (over && Input.mousePressed('left')) {
-      if (this.selected?.kind === 'object') this.placeObject(map, this.selected.name, over.col, over.row);
-      if (this.selected?.kind === 'enemy') this.placeEnemy(map, this.selected.name, over.col, over.row);
+    // objects, enemies and npcs: one per click. mousePressed() ignores clicks that landed on the bar (see input.js)
+    if (over && Input.mousePressed('left') && this.selected) {
+      const { kind, name } = this.selected;
+      if (kind === 'object') this.placeObject(map, name, over.col, over.row);
+      if (isCharacterKind(kind)) this.placeCharacter(map, kind, name, over.col, over.row);
     }
 
     // tiles and erasing: keep going while the button's held
@@ -311,32 +320,35 @@ const Editor = {
     const painting = !erasing && this.selected?.kind === 'tile' && Input.mouseHeld('left');
 
     if (over && (painting || erasing)) {
-      // an erase drag that starts on an object or enemy only removes those, otherwise it only
+      // an erase drag that starts on an object, enemy or npc only removes those, otherwise it only
       // empties tiles. stops one drag removing a table and then the floor it was standing on
       if (!this.lastPaint) this.erasingThings = erasing && this.thingsAt(map, over.col, over.row);
 
-      let removedEnemy = false;
+      let removedCharacter = false;
       this.forEachTileOnLine(map, this.lastPaint ?? aim, aim, (col, row) => {
         if (painting) {
           map.set(col, row, this.selected.name);
         } else if (this.erasingThings) {
           map.removeObjectsAt(col, row);
-          if (map.removeEnemySpawnsAt(col, row)) removedEnemy = true;
+          for (const kind of Object.keys(SPAWN_KINDS)) {
+            if (map.removeSpawnsAt(kind, col, row)) removedCharacter = true;
+          }
         } else {
           map.set(col, row, null);
         }
       });
-      // so the removed enemy disappears straight away
-      if (removedEnemy) spawnEnemies();
+      // so removed enemies and npcs disappear straight away
+      if (removedCharacter) spawnCharacters();
       this.lastPaint = aim;
     } else {
       this.lastPaint = null;
     }
   },
 
-  // is there an object or an enemy on this tile?
+  // is there an object, enemy or npc on this tile?
   thingsAt(map, col, row) {
-    return map.objectsAt(col, row).length > 0 || map.enemySpawnsAt(col, row).length > 0;
+    if (map.objectsAt(col, row).length > 0) return true;
+    return Object.keys(SPAWN_KINDS).some((kind) => map.spawnsAt(kind, col, row).length > 0);
   },
 
   // places an object with its top left corner on col, row
@@ -347,17 +359,17 @@ const Editor = {
     map.addObject(name, col, row);
   },
 
-  // places an enemy standing on col, row. not on solid or empty tiles, it'd be stuck
-  placeEnemy(map, name, col, row) {
+  // places an enemy or npc (kind) standing on col, row. not on solid or empty tiles, it'd be stuck
+  placeCharacter(map, kind, name, col, row) {
     if (map.isSolid(col, row)) return;
-    if (map.enemySpawnsAt(col, row).some((spawn) => spawn.type === name)) return;
-    map.addEnemySpawn(name, col, row);
+    if (map.spawnsAt(kind, col, row).some((spawn) => spawn.type === name)) return;
+    map.addSpawn(kind, name, col, row);
     // so it appears straight away
-    spawnEnemies();
+    spawnCharacters();
   },
 
-  // where an enemy's body would be if it stood on this tile (like Character.placeFeetOnTile())
-  enemyBodyOnTile(type, col, row) {
+  // where a character's body would be if it stood on this tile (like Character.placeFeetOnTile())
+  characterBodyOnTile(type, col, row) {
     const centreY = (row + 0.5) * TILE - (type.height / 2 - type.feetHeight / 2);
     return { x: (col + 0.5) * TILE - type.width / 2, y: centreY - type.height / 2, w: type.width, h: type.height };
   },
@@ -404,10 +416,10 @@ const Editor = {
       return;
     }
 
-    // an enemy: a see-through preview of it, standing on the tile
-    if (this.selected?.kind === 'enemy') {
-      const type = ENEMY_TYPES[this.selected.name];
-      const body = this.enemyBodyOnTile(type, col, row);
+    // an enemy or npc: a see-through preview of it, standing on the tile
+    if (this.selected && isCharacterKind(this.selected.kind)) {
+      const type = editorCatalogue(this.selected.kind)[this.selected.name];
+      const body = this.characterBodyOnTile(type, col, row);
       this.drawGhost(type, body.x, body.y, body.w, body.h, px);
       return;
     }
@@ -419,9 +431,11 @@ const Editor = {
         const type = OBJECT_TYPES[obj.type];
         this.outline(obj.col * TILE, obj.row * TILE, type.width * TILE, type.height * TILE, '#ff6b6b', px);
       }
-      for (const spawn of map.enemySpawnsAt(col, row)) {
-        const body = this.enemyBodyOnTile(ENEMY_TYPES[spawn.type], col, row);
-        this.outline(body.x, body.y, body.w, body.h, '#ff6b6b', px);
+      for (const kind of Object.keys(SPAWN_KINDS)) {
+        for (const spawn of map.spawnsAt(kind, col, row)) {
+          const body = this.characterBodyOnTile(editorCatalogue(kind)[spawn.type], col, row);
+          this.outline(body.x, body.y, body.w, body.h, '#ff6b6b', px);
+        }
       }
     }
 

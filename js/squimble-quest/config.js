@@ -133,6 +133,9 @@ const KEYS = {
   slot4: ['Digit4', 'Numpad4'],
   slot5: ['Digit5', 'Numpad5'],
 
+  // talk to an npc when you're next to them, and move the conversation on (see dialogue.js)
+  interact: ['KeyE'],
+
   // developer mode (see debug.js). ` is the key under Esc, it switches dev mode on and off.
   // the rest do nothing unless dev mode is on
   devMode:   ['Backquote'],
@@ -141,7 +144,8 @@ const KEYS = {
   zoomReset: ['Digit0', 'Numpad0'],
   teleport:  ['KeyT'],
   nextMap:   ['KeyM'],
-  editor:    ['KeyE'],
+  // B for build. not E, that's for talking to people
+  editor:    ['KeyB'],
   // map editor only
   setSpawn:  ['KeyP'],
 };

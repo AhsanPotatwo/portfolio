@@ -17,10 +17,13 @@
 //   character.js  what the player and enemies share: walking, health, attacking
 //   player.js   the player (needs character.js loaded first)
 //   enemy.js    an enemy in the game (needs character.js loaded first)
+//   npcs.js     every kind of friendly npc, and what they say
+//   npc.js      an npc in the game (needs character.js loaded first)
 //   ui.js       the ui system: UIElement and the UI manager
 //   button.js   buttons (needs ui.js loaded first, because Button builds on UIElement)
 //   hud.js      things drawn over the game that aren't ui elements (crosshair, messages)
 //   inventory.js  inventories, and the hotbar (needs button.js loaded first)
+//   dialogue.js   talking to npcs: who's in range, and the text box
 //   editor.js   the map editor, opened from dev mode (needs button.js loaded first)
 //   debug.js    developer mode, hidden testing tools (press ` while playing)
 
@@ -29,8 +32,9 @@ let player;
 let gameCamera;
 // the tile map the player is on
 let worldMap;
-// the enemies on it right now (see spawnEnemies())
+// the enemies and npcs on it right now (see spawnCharacters())
 let enemies = [];
+let npcs = [];
 // false until the map files have loaded, the game shows a loading message until then
 let mapsReady = false;
 
@@ -41,6 +45,7 @@ function preload() {
   prepareArt(OBJECT_TYPES, 'object');
   prepareArt(ENEMY_TYPES, 'enemy');
   prepareArt(ITEM_TYPES, 'item');
+  prepareArt(NPC_TYPES, 'npc');
 }
 
 // runs once when the page loads, after preload()
@@ -82,6 +87,8 @@ function setup() {
   Debug.init();
   // makes the map editor's tile bar (hidden until it's opened)
   Editor.init();
+  // makes the text box for talking to npcs (hidden until you talk to one)
+  Dialogue.init();
 
   // ui: make buttons and other ui elements here, e.g.
   //   UI.add(new Button({ x: 20, y: 20, w: 120, h: 40, label: 'Play', onClick: () => { ... } }));
@@ -98,7 +105,7 @@ function loadMap(name) {
   worldMap.name = name;
 
   player.placeAt(worldMap.spawn.x, worldMap.spawn.y);
-  spawnEnemies();
+  spawnCharacters();
 
   // the camera stops at the edges of the map
   gameCamera.bounds = worldMap.bounds();
@@ -112,10 +119,13 @@ function loadMap(name) {
   gameCamera.snap();
 }
 
-// makes the map's enemies, each where it was placed and with full health. runs when a map loads,
-// and when the map editor changes the enemies or closes
-function spawnEnemies() {
+// makes the map's enemies and npcs, each where it was placed and with full health. runs when a map
+// loads, and when the map editor changes them or closes
+function spawnCharacters() {
+  // the npc you're talking to is about to be replaced, so the conversation ends
+  if (Dialogue.active) Dialogue.close();
   enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row));
+  npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row));
 }
 
 // runs every frame, around 60 times a second
@@ -144,9 +154,12 @@ function draw() {
   // while the map editor's open it takes over: WASD moves the camera, and everyone stands still
   if (Editor.active) {
     Editor.update(worldMap, gameCamera, aim, dt);
+  } else if (Dialogue.active) {
+    // talking to someone pauses the game. E moves the conversation on
+    Dialogue.update(dt);
   } else {
-    // everything the player and enemies might need to know about
-    const world = { map: worldMap, player, enemies };
+    // everything the player, enemies and npcs might need to know about
+    const world = { map: worldMap, player, enemies, npcs };
 
     // number keys and the mouse wheel change what the player's holding
     Hotbar.update();
@@ -159,9 +172,18 @@ function draw() {
       attack: Input.mousePressed('left'),
     }, dt, world);
 
-    // each enemy's ai decides what it does
+    // each enemy's and npc's ai decides what it does
     for (const enemy of enemies) enemy.update(dt, world);
     enemies = enemies.filter((enemy) => !enemy.dead);
+    for (const npc of npcs) npc.update(dt, world);
+
+    // the npc close enough to talk to (if any) shows an E over its head, and E starts talking
+    const talkTo = Dialogue.npcInRange(player, npcs);
+    for (const npc of npcs) npc.canTalk = npc === talkTo;
+    if (talkTo && Input.wasPressed('interact')) {
+      talkTo.canTalk = false;
+      Dialogue.open(talkTo, player);
+    }
   }
   gameCamera.update(dt);
 
@@ -170,7 +192,7 @@ function draw() {
   gameCamera.begin();
   drawWorld(gameCamera, worldMap, Debug.enabled);
   // whoever's standing further down the screen is in front, so sort by where their feet are
-  const characters = [player, ...enemies].sort((a, b) => (a.y + a.h / 2) - (b.y + b.h / 2));
+  const characters = [player, ...enemies, ...npcs].sort((a, b) => (a.y + a.h / 2) - (b.y + b.h / 2));
   for (const character of characters) character.draw();
   if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
   gameCamera.end();
@@ -178,7 +200,7 @@ function draw() {
   // ui on top, in screen positions
   Debug.draw(player, gameCamera, worldMap, aim);
   if (Editor.active) Editor.drawHelp();
-  else Hotbar.drawLabel();
+  else if (!Dialogue.active) Hotbar.drawLabel();
   UI.draw();
   if (worldMap.name === FALLBACK_MAP) drawNoMapsMessage();
   if (Input.focused) {

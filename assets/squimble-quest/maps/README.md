@@ -7,19 +7,20 @@ A map is made of:
 - **Tiles**: the ground. Every spot has exactly one tile (grass, wall, water…), or is empty. Tiles are defined in [`js/squimble-quest/tiles.js`](../../../js/squimble-quest/tiles.js).
 - **Objects**: things placed on top, like furniture and decorations. One object can cover several tiles (a 2 × 1 table), and several can share a tile (a table on a rug). Objects are defined in [`js/squimble-quest/objects.js`](../../../js/squimble-quest/objects.js).
 - **Enemies**: where each enemy starts. They appear there with full health whenever the map loads. Enemies are defined in [`js/squimble-quest/enemies.js`](../../../js/squimble-quest/enemies.js).
+- **NPCs**: where each friendly character starts. Walk up to one and press **E** to talk. NPCs, and what they say, are defined in [`js/squimble-quest/npcs.js`](../../../js/squimble-quest/npcs.js).
 
 ## The maps in this folder
 
 | File | What it is |
 |---|---|
 | `default.json` | A blank white map (80 × 50 tiles). The game starts here |
-| `example.json` | The testing map: a bit of every tile (hut, pond, lava, spikes), tables and rugs, and two training dummies to hit |
+| `example.json` | The testing map: a bit of every tile (hut, pond, lava, spikes), tables and rugs, two training dummies to hit, and a villager to talk to (walk up and press **E**) |
 
 The tile grid shows on every map while developer mode is on, and never outside it.
 
 ## Quick start
 
-1. Open the game, click it, press **`** (developer mode), then **E** (map editor).
+1. Open the game, click it, press **`** (developer mode), then **B** (map editor).
 2. Click **New map** and type a size, e.g. `40x24`. Or just edit the map you're on.
 3. Paint tiles and place objects.
 4. Click **Export**, give it a name, and it downloads as `yourname.json`.
@@ -38,25 +39,25 @@ The tile grid shows on every map while developer mode is on, and never outside i
 
 ## Making a map
 
-Open the editor with **`** then **E**. Everything you do changes the map you're on, so you can close the editor (**E**) and walk around it straight away.
+Open the editor with **`** then **B** (for build). Everything you do changes the map you're on, so you can close the editor (**B**) and walk around it straight away.
 
 | Control | What it does |
 |---|---|
-| **Tiles** / **Objects** / **Enemies** tabs above the bar | Switch between the ground tiles, objects (furniture, decorations…) and enemies |
+| **Tiles** / **Objects** / **Enemies** / **NPCs** tabs above the bar | Switch between the ground tiles, objects (furniture, decorations…), enemies and friendly NPCs |
 | Click something in the bottom bar | Choose it (**‹ ›** for more pages) |
 | Left click / drag (tile chosen) | Paint that tile, replacing the one there |
 | Left click (object chosen) | Place the object, its top-left corner on the tile under the mouse. A see-through preview shows where it'll go |
-| Left click (enemy chosen) | Place the enemy, standing on the tile under the mouse |
-| Right click / drag, or **Erase** | Delete. Starting on an object or enemy removes those; starting on bare ground empties tiles |
+| Left click (enemy or NPC chosen) | Place it, standing on the tile under the mouse |
+| Right click / drag, or **Erase** | Delete. Starting on an object, enemy or NPC removes those; starting on bare ground empties tiles |
 | **P** | The player spawns on the tile under the mouse (yellow ring) |
 | **WASD** | Move around the map |
 | **−** **=** or mouse wheel | Zoom out and in (**0** resets) |
 | **M** | Go to the next map |
-| **E** | Close the editor |
+| **B** | Close the editor |
 
 Empty tiles show the dark background and can't be walked on, like the edge of the map.
 
-While the editor's open, the player and enemies stand still. Closing it puts every enemy back where it was placed, with full health.
+While the editor's open, everyone stands still. Closing it puts every enemy and NPC back where it was placed, with full health.
 
 ### New maps
 
@@ -141,6 +142,9 @@ You can open a map in any text editor. It looks like this:
   ],
   "enemies": [
     { "type": "dummy", "col": 2, "row": 0 }
+  ],
+  "npcs": [
+    { "type": "villager", "col": -3, "row": 0 }
   ]
 }
 ```
@@ -148,7 +152,7 @@ You can open a map in any text editor. It looks like this:
 - **`rows`**: the tiles, one line per row, top row first, with a code for each tile separated by spaces.
 - **`legend`**: which code means which tile (the names in `tiles.js`). `..` is always empty. The editor makes a 2-character code for each tile when it exports, from the tile's name where it can: `gr` for grass, then `wt` for water because `wa` is already wall. There are thousands of possible codes, so they won't run out however many tiles you add.
 - **`objects`**: everything placed on the tiles. `type` is the object's name in `objects.js`, and `col`, `row` is the tile its top-left corner is on. They're drawn in list order, so later ones go on top.
-- **`enemies`**: where enemies start. `type` is the enemy's name in `enemies.js`, and `col`, `row` is the tile it stands on. Maps without this list just have no enemies.
+- **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is the name in `enemies.js` or `npcs.js`, and `col`, `row` is the tile it stands on. Maps without these lists just have none.
 - **`left`, `top`**: the tile column and row of the map's top-left corner. Tile `(0, 0)` is at the middle of the world, so `-5, -2` puts the middle of a 10 × 5 map there.
 - **`spawn`**: where the player starts, in pixels (the centre of the player). Easiest to set with **P** in the editor.
 
@@ -161,5 +165,5 @@ Maps saved before objects were added (version 1, one character per tile with no 
 ## If something goes wrong
 
 - **The map isn't in the M list:** check the file is in this folder, its name is in `MAP_FILES` with `.json` on the end, and the game is running through a local server. The browser console (F12) says which file failed and why.
-- **Some tiles, objects or enemies are missing:** the map uses a name the game doesn't know, maybe because it was renamed in `tiles.js`, `objects.js` or `enemies.js`, or a code that isn't in the `legend`. The console lists everything it left out. Add it back, or fix the name in the file.
+- **Some tiles, objects, enemies or NPCs are missing:** the map uses a name the game doesn't know, maybe because it was renamed in `tiles.js`, `objects.js`, `enemies.js` or `npcs.js`, or a code that isn't in the `legend`. The console lists everything it left out. Add it back, or fix the name in the file.
 - **"This doesn't look like a Squimble Quest map file":** the file isn't a map, or it's been damaged. It needs a `legend` and `rows` at least.

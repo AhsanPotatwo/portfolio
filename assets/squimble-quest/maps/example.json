@@ -53,5 +53,8 @@
   "enemies": [
     { "type": "dummy", "col": 3, "row": -3 },
     { "type": "dummy", "col": 5, "row": -3 }
+  ],
+  "npcs": [
+    { "type": "villager", "col": -3, "row": -3 }
   ]
 }

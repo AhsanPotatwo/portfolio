@@ -1,6 +1,6 @@
 // the list of maps. every map is a file in assets/squimble-quest/maps/, the full guide is in the
 // README.md there. in short:
-//   1. make a map in the editor (dev mode ` then E), click Export, it downloads as a .json file
+//   1. make a map in the editor (dev mode ` then B), click Export, it downloads as a .json file
 //   2. put the file in assets/squimble-quest/maps/
 //   3. add its file name to MAP_FILES below
 
