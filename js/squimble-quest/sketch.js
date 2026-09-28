@@ -7,8 +7,10 @@
 //   camera.js   which part of the world is on screen, and world ↔ screen positions
 //   world.js    the floor and grid
 //   player.js   the player
+//   ui.js       the ui system: UIElement and the UI manager
+//   button.js   buttons (needs ui.js loaded first, because Button builds on UIElement)
+//   hud.js      things drawn over the game that aren't ui elements (crosshair, messages)
 //   debug.js    developer mode, hidden testing tools (press ` while playing)
-//   ui.js       things drawn on top of the game (crosshair, messages)
 
 let player;
 // not just "camera", because p5 already has a function called camera() for 3D
@@ -32,8 +34,8 @@ function setup() {
   // start already on the player, rather than gliding over to them
   gameCamera.snap();
 
-  // turns dev mode back on if it was on last time
-  Debug.init();
+  // makes the dev buttons, and turns dev mode back on if it was on last time
+  Debug.init(player, gameCamera);
 
   // phones/tablets get a message instead of the game (see squimble-quest.css), so don't run it there
   if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) noLoop();
@@ -47,6 +49,8 @@ function draw() {
 
   // 1. input: catch up on what the keyboard and mouse did since the last frame
   Input.update();
+  // before anything else uses the mouse, so a click on a button isn't also a click in the game
+  UI.update();
 
   // the mouse is a position on screen, but the player aims at a place in the world
   const aimScreen = Input.aimPoint();
@@ -61,14 +65,15 @@ function draw() {
   // 3. draw: back to front, so later things go on top of earlier ones.
   // the world, drawn through the camera in world positions
   gameCamera.begin();
-  drawWorld(gameCamera, Debug.enabled);
+  drawWorld(gameCamera, Debug.enabled && Debug.showAxes);
   player.draw();
   gameCamera.end();
 
   // ui on top, in screen positions
   Debug.draw(player, gameCamera, aim);
+  UI.draw(Debug.enabled && Debug.showHitboxes);
   if (Input.focused) {
-    drawCrosshair(Input.mouse, Input.mouseHeld('left'));
+    drawCrosshair(Input.mouse, Input.mouseHeld('left'), UI.hovered !== null);
   } else {
     drawClickToPlay();
   }

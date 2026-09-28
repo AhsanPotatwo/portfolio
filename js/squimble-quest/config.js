@@ -69,6 +69,53 @@ const CROSSHAIR = {
   heldColour: '#d84a4a',
 };
 
+// ---------- buttons ----------
+// looks for buttons drawn as boxes (see button.js). a button picks one by name, e.g. style: 'primary',
+// and any style only needs the settings it changes, everything else comes from default.
+// colours can be anything css understands: '#ff0000', 'red', 'rgba(255, 0, 0, 0.5)'
+const BUTTON_STYLES = {
+  default: {
+    fill:          '#2f3542',
+    hoverFill:     '#3d4556',
+    pressedFill:   '#252a35',
+    // toggle buttons use this while they're switched on
+    onFill:        '#3f8f52',
+    border:        '#141820',
+    borderWeight:  2,
+    // rounded corners, 0 for square
+    radius:        6,
+    textColour:    '#ffffff',
+    font:          'Quicksand',
+    textSize:      16,
+    // 'normal', 'bold' or 'italic'
+    textStyle:     'bold',
+    // how far the button sinks while held down, gives a little "press"
+    pressOffset:   2,
+    // how see-through it is while disabled (0 invisible, 1 solid)
+    disabledAlpha: 0.4,
+  },
+  primary: {
+    fill:        '#4a7bd8',
+    hoverFill:   '#5b8ae3',
+    pressedFill: '#3d69bd',
+    border:      '#23407a',
+  },
+  danger: {
+    fill:        '#c94545',
+    hoverFill:   '#d65858',
+    pressedFill: '#a93838',
+    border:      '#5e1c1c',
+  },
+  // see-through with an outline, for less important buttons. white text, so it needs a dark background
+  ghost: {
+    fill:        'rgba(0, 0, 0, 0.35)',
+    hoverFill:   'rgba(255, 255, 255, 0.12)',
+    pressedFill: 'rgba(0, 0, 0, 0.5)',
+    border:      '#ffffff',
+    borderWeight: 1.5,
+  },
+};
+
 // ---------- controls ----------
 // each action can have more than one key. these are e.code names, which go by the key's
 // position on the keyboard rather than the letter, so WASD still works on other layouts
