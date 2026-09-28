@@ -26,6 +26,27 @@ const PLAYER = {
   outline: '#23407a',
 };
 
+// ---------- aiming ----------
+// the player always faces the mouse
+const AIM = {
+  // how close (in pixels) the mouse can get to the player's centre before it stops changing
+  // where they face. stops them spinning wildly when the mouse is right on top of them
+  deadzone: 6,
+  // the line pointing from the player towards the mouse, where a weapon will go later
+  lineLength: 40,
+  lineColour: '#d84a4a',
+};
+
+const CROSSHAIR = {
+  // width of the dot in pixels
+  size: 8,
+  colour: '#23407a',
+  // thin ring around the dot so it still shows up on dark ground
+  outline: '#ffffff',
+  // colour while the left button is held, so you can see clicks are being picked up
+  heldColour: '#d84a4a',
+};
+
 // ---------- controls ----------
 // each action can have more than one key. these are e.code names, which go by the key's
 // position on the keyboard rather than the letter, so WASD still works on other layouts
@@ -34,4 +55,11 @@ const KEYS = {
   down:  ['KeyS', 'ArrowDown'],
   left:  ['KeyA', 'ArrowLeft'],
   right: ['KeyD', 'ArrowRight'],
+};
+
+// the browser numbers mouse buttons, this gives them names. the middle button is left out
+// because on windows it starts the browser's auto scroll, which would fight with the game
+const MOUSE_BUTTONS = {
+  0: 'left',
+  2: 'right',
 };

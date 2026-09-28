@@ -56,7 +56,8 @@
 .sq-game-frame:focus-within{
   box-shadow:0 0 0 2px var(--sq-green), 0 0 24px rgba(123,216,143,.35), 0 25px 60px rgba(0,0,0,.45);
 }
-.sq-game-stage canvas:focus{ outline:none; }
+/* while playing, the game draws its own crosshair (ui.js) in place of the cursor */
+.sq-game-stage canvas:focus{ outline:none; cursor:none; }
 .sq-game-stage{
   aspect-ratio:16/9;
   border-radius:14px;

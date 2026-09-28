@@ -2,10 +2,11 @@
 // this file runs the game loop. the other files in this folder hold the pieces it uses,
 // and squimble-quest.html loads them in this order before this one:
 //   config.js   settings: sizes, speeds, controls
-//   input.js    the keyboard
+//   utils.js    small maths helpers
+//   input.js    the keyboard and mouse
 //   grid.js     the tile grid background
 //   player.js   the player
-//   ui.js       things drawn on top of the game
+//   ui.js       things drawn on top of the game (crosshair, messages)
 
 let player;
 
@@ -32,13 +33,20 @@ function draw() {
   // turned into seconds and capped, see MAX_DT in config.js
   const dt = Math.min(deltaTime / 1000, MAX_DT);
 
-  // 1. update: move everything
-  player.update(Input.direction(), dt);
+  // 1. input: catch up on what the keyboard and mouse did since the last frame
+  Input.update();
 
-  // 2. draw: back to front, so later things go on top of earlier ones
+  // 2. update: move everything
+  player.update(Input.direction(), Input.aimPoint(), dt);
+
+  // 3. draw: back to front, so later things go on top of earlier ones
   background('#ffffff');
   drawGrid();
   player.draw();
 
-  if (!Input.focused) drawClickToPlay();
+  if (Input.focused) {
+    drawCrosshair(Input.mouse, Input.mouseHeld('left'));
+  } else {
+    drawClickToPlay();
+  }
 }
