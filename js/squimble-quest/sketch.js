@@ -194,7 +194,7 @@ function draw() {
     for (const npc of npcs) npc.canTalk = npc === talkTo;
     if (talkTo && Input.wasPressed('interact')) {
       talkTo.canTalk = false;
-      Dialogue.open(talkTo, player);
+      Dialogue.open(talkTo, player, gameCamera);
     }
   }
   gameCamera.update(dt);
