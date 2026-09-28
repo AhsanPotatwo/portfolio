@@ -49,7 +49,14 @@
   border-radius:26px;
   background:linear-gradient(160deg, rgba(63,143,82,.35), rgba(27,42,31,.2));
   box-shadow:0 0 0 1px rgba(123,216,143,.2), 0 25px 60px rgba(0,0,0,.45);
+  transition:box-shadow .2s ease;
 }
+/* the game only hears the keyboard once it's clicked (js/squimble-quest/input.js).
+   the frame lights up to show that instead of the browser's outline on the canvas */
+.sq-game-frame:focus-within{
+  box-shadow:0 0 0 2px var(--sq-green), 0 0 24px rgba(123,216,143,.35), 0 25px 60px rgba(0,0,0,.45);
+}
+.sq-game-stage canvas:focus{ outline:none; }
 .sq-game-stage{
   aspect-ratio:16/9;
   border-radius:14px;
