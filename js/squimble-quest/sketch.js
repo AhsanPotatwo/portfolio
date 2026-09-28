@@ -7,7 +7,7 @@
 //   camera.js   which part of the world is on screen, and world ↔ screen positions
 //   tiles.js    every kind of tile and what it does (grass, walls, lava...)
 //   tilemap.js  a map made of tiles: storing, drawing, and collision with solid tiles
-//   maps.js     the list of maps, the built in ones, and which map files to load
+//   maps.js     the list of map files to load, and the map the game starts on
 //   mapfile.js  saving and loading maps as files
 //   world.js    draws the world (the map, plus dev mode lines)
 //   player.js   the player
@@ -49,10 +49,16 @@ function setup() {
   // they're loaded here rather than in preload() because a missing file in preload() would stop
   // the game ever starting, and this way it's just skipped
   loadMapFiles().then(() => {
+    // not one map file loaded, so use the blank stand-in map (maps.js) so there's something to play on
+    if (Object.keys(MAPS).length === 0) {
+      console.warn('No map files could be loaded, so the game is on a blank stand-in map.');
+      MAPS[FALLBACK_MAP] = buildFallbackMap;
+    }
+
     let first = START_MAP;
     if (!MAPS[first]) {
-      console.warn(`START_MAP is "${first}", but there's no map called that. Starting on "default" instead.`);
-      first = 'default';
+      first = Object.keys(MAPS)[0];
+      console.warn(`START_MAP is "${START_MAP}", but that map didn't load. Starting on "${first}" instead.`);
     }
     loadMap(first);
     mapsReady = true;
@@ -128,6 +134,7 @@ function draw() {
   Debug.draw(player, gameCamera, worldMap, aim);
   if (Editor.active) Editor.drawHelp();
   UI.draw();
+  if (worldMap.name === FALLBACK_MAP) drawNoMapsMessage();
   if (Input.focused) {
     drawCrosshair(Input.mouse, Input.mouseHeld('left'), UI.hovered !== null);
   } else {

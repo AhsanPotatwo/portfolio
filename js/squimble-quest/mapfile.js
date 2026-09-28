@@ -116,7 +116,7 @@ function registerMap(name, data) {
     console.warn(`Couldn't use the map "${name}": ${err.message}`);
     return false;
   }
-  // a fresh copy every time it's loaded, like the maps built in maps.js
+  // built fresh from the file's data every time you go to it
   MAPS[name] = () => mapFromData(data);
   return true;
 }
@@ -127,22 +127,29 @@ function registerMap(name, data) {
 // gives back a promise, which finishes once every file has loaded or failed. a file that
 // can't be loaded is skipped with a warning in the browser console, it never stops the game
 function loadMapFiles() {
+  // all the files download at the same time. each gives back its data, or null if it failed
   const loads = MAP_FILES.map((file) => {
-    const name = mapNameFromFile(file);
     return fetch(MAP_FOLDER + file)
       .then((response) => {
         if (!response.ok) throw new Error(`the file wasn't found (${response.status})`);
         return response.json();
       })
-      .then((data) => registerMap(name, data))
       .catch((err) => {
         const hint = location.protocol === 'file:'
           ? ' Map files only load when the site is run through a local server, see the README in the maps folder.'
           : '';
         console.warn(`Couldn't load the map file "${file}": ${err.message}.${hint}`);
+        return null;
       });
   });
-  return Promise.all(loads);
+
+  // added to MAPS once they've all arrived, in MAP_FILES order rather than whichever finished
+  // downloading first, so dev mode's M key always goes through them in the same order
+  return Promise.all(loads).then((results) => {
+    results.forEach((data, i) => {
+      if (data) registerMap(mapNameFromFile(MAP_FILES[i]), data);
+    });
+  });
 }
 
 // ---------- export and open (the buttons in the map editor) ----------

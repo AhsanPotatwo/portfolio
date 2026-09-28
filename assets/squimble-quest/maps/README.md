@@ -1,6 +1,14 @@
 # Squimble Quest maps
 
-Every map is one `.json` file in this folder. The file name is the map's name, so `forest.json` is the map called `forest`.
+Every map in the game is one `.json` file in this folder. The file name is the map's name, so `forest.json` is the map called `forest`.
+
+## The maps in this folder
+
+| File | What it is |
+|---|---|
+| `default.json` | A blank white map (80 × 50 tiles) with the grid showing. The game starts here, and it's the blank canvas for making new maps |
+| `example.json` | The testing map: a bit of every tile (hut, pond, lava, spikes) to check they all work |
+| `testonthegrass.json` | Your map |
 
 ## Quick start
 
@@ -12,6 +20,7 @@ Every map is one `.json` file in this folder. The file name is the map's name, s
 
    ```js
    const MAP_FILES = [
+     'default.json',
      'example.json',
      'yourname.json',
    ];
@@ -34,7 +43,7 @@ Open the editor with **`** then **E**. Everything you do changes the map you're 
 | **M** | Go to the next map |
 | **E** | Close the editor |
 
-**Starting a new map:** go to the `default` map (the blank white one) with **M**. It's a blank canvas 80 tiles wide and 50 tall. Paint over it, then export it under a new name.
+**Starting a new map:** go to the `default` map (the blank white one) with **M**. It's a blank canvas 80 tiles wide and 50 tall. Paint over it, then export it under a **new name**, so `default.json` stays blank for next time.
 
 **Changing a map you've already made:** go to it with **M** (or **Open map file**), edit it, **Export map** with the same name, and replace the old file in this folder with the new one.
 
@@ -54,13 +63,14 @@ const START_MAP = 'forest';
 
 The **M** key goes through every map in this order:
 
-1. `default` and `test`, the two built into the code in `maps.js`
-2. The files in `MAP_FILES`, in the order they're listed
-3. Any maps opened or exported since the page loaded
+1. The files in `MAP_FILES`, in the order they're listed
+2. Any maps opened or exported since the page loaded
 
-A map file with the same name as another map replaces it. For example, `test.json` in `MAP_FILES` would replace the built-in test map.
+Opening or exporting a map with the same name as one that's already loaded replaces it until you reload the page.
 
 Changes you make in the editor are lost when you go to a different map or reload, unless you export them first.
+
+If `START_MAP` doesn't load (e.g. its file is missing), the game starts on the first map that did, and the browser console says so.
 
 ## Running the game locally
 
@@ -69,7 +79,9 @@ Browsers don't let a page read files from your computer's folders when it's open
 - **VS Code:** install the *Live Server* extension, right-click `squimble-quest.html`, and choose *Open with Live Server*.
 - **Terminal:** run `npx serve .` in the portfolio folder, then open the address it shows (e.g. `http://localhost:3000/squimble-quest.html`).
 
-On the live site (GitHub Pages) it just works. Without a server, the game still runs with the built-in maps, and **Open map file** still works. The browser console (F12) explains any map file it couldn't load.
+On the live site (GitHub Pages) it just works.
+
+Without a server, no map files can load, so the game puts you on a small blank stand-in map with a message along the bottom explaining why. **Open map file** in the editor still works then, and the browser console (F12) explains which files didn't load.
 
 ## The file format
 
