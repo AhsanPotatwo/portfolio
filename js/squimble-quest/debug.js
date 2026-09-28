@@ -9,7 +9,7 @@
 //     (the rest of the time the wheel changes hotbar slot)
 //   - T teleports the player to the mouse (if it's pointing at somewhere you can stand)
 //   - M goes to the next map (the maps are listed in maps.js)
-//   - E opens the map editor (see editor.js)
+//   - B opens the map editor (see editor.js)
 //
 // it's remembered in this browser, so it stays on when you reload while working on the game.
 // players never see any of it unless they press the key.
@@ -100,7 +100,7 @@ const Debug = {
       '- =  zoom   0  reset',
       'T  teleport to mouse',
       'M  next map',
-      'E  map editor',
+      'B  map editor',
     ];
 
     const lineHeight = 18;

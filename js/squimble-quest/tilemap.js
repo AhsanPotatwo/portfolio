@@ -5,7 +5,17 @@
 // in other words: column = floor(world x / TILE), row = floor(world y / TILE)
 //
 // the map only stores tile names ('grass', 'wall'...). what each one looks like and does
-// lives in tiles.js. it also keeps a list of objects on top of the tiles (see objects.js)
+// lives in tiles.js. it also keeps a list of objects on top of the tiles (see objects.js),
+// and where each enemy and npc starts
+
+// the kinds of character that can be placed on a map: which list on the map they're kept in,
+// where they're defined, and what they're called in map files. adding another kind (e.g. animals)
+// would be a new line here, a list in the constructor, and a tab in the map editor
+const SPAWN_KINDS = {
+  enemy: { list: 'enemySpawns', types: ENEMY_TYPES, file: 'enemies.js', fileKey: 'enemies' },
+  npc:   { list: 'npcSpawns',   types: NPC_TYPES,   file: 'npcs.js',    fileKey: 'npcs' },
+};
+
 class TileMap {
   // left, top: the column and row of the map's top left tile (can be negative).
   // cols, rows: how many tiles wide and tall. every tile starts as fillWith
@@ -28,9 +38,11 @@ class TileMap {
     // kept up to date by addObject() and removeObjectsAt()
     this.solidCells = new Set();
 
-    // where enemies start, each { type, col, row }: a name from enemies.js, and the tile it stands on.
-    // the game makes the real enemies from these when the map loads (spawnEnemies() in sketch.js)
+    // where enemies and npcs start, each { type, col, row }: a name from enemies.js or npcs.js,
+    // and the tile it stands on. the game makes the real characters from these when the map
+    // loads (spawnCharacters() in sketch.js)
     this.enemySpawns = [];
+    this.npcSpawns = [];
   }
 
   // ---------- reading and changing tiles ----------
@@ -124,26 +136,30 @@ class TileMap {
     return true;
   }
 
-  // ---------- enemy spawns ----------
+  // ---------- where characters start ----------
+  // kind is 'enemy' or 'npc' (see SPAWN_KINDS at the top of this file)
 
-  // an enemy (a name from enemies.js) will start standing on col, row
-  addEnemySpawn(type, col, row) {
-    if (!ENEMY_TYPES[type]) {
-      console.warn(`There's no enemy called "${type}", add it in enemies.js`);
+  // a character (a name from enemies.js or npcs.js) will start standing on col, row.
+  // e.g. map.addSpawn('npc', 'villager', 3, -2)
+  addSpawn(kind, type, col, row) {
+    const info = SPAWN_KINDS[kind];
+    if (!info.types[type]) {
+      console.warn(`There's no ${kind} called "${type}", add it in ${info.file}`);
       return;
     }
-    this.enemySpawns.push({ type, col, row });
+    this[info.list].push({ type, col, row });
   }
 
-  enemySpawnsAt(col, row) {
-    return this.enemySpawns.filter((spawn) => spawn.col === col && spawn.row === row);
+  spawnsAt(kind, col, row) {
+    return this[SPAWN_KINDS[kind].list].filter((spawn) => spawn.col === col && spawn.row === row);
   }
 
-  // removes every enemy spawn on this tile. gives back true if there were any
-  removeEnemySpawnsAt(col, row) {
-    const before = this.enemySpawns.length;
-    this.enemySpawns = this.enemySpawns.filter((spawn) => spawn.col !== col || spawn.row !== row);
-    return this.enemySpawns.length !== before;
+  // removes every spawn of this kind on this tile. gives back true if there were any
+  removeSpawnsAt(kind, col, row) {
+    const list = SPAWN_KINDS[kind].list;
+    const before = this[list].length;
+    this[list] = this[list].filter((spawn) => spawn.col !== col || spawn.row !== row);
+    return this[list].length !== before;
   }
 
   updateSolidCells() {

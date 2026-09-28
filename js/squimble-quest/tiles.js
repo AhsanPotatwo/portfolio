@@ -61,6 +61,14 @@ function prepareArt(types, kind) {
         type.img = null;
       });
     }
+    // npcs can have a portrait for the text box too (npcs.js)
+    type.portraitImg = null;
+    if (type.portrait) {
+      type.portraitImg = loadImage(type.portrait, undefined, () => {
+        console.warn(`Couldn't load "${type.portrait}" for the ${type.name} ${kind}'s portrait, using a placeholder instead`);
+        type.portraitImg = null;
+      });
+    }
   }
 }
 

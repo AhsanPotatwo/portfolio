@@ -26,6 +26,9 @@
 //     ],
 //     "enemies": [                          where enemies start, each one's tile (enemies.js)
 //       { "type": "dummy", "col": 3, "row": -3 }
+//     ],
+//     "npcs": [                             where npcs start, each one's tile (npcs.js)
+//       { "type": "villager", "col": -3, "row": -3 }
 //     ]
 //   }
 //
@@ -70,7 +73,7 @@ function mapToData(map) {
     rows.push(codes.join(' '));
   }
 
-  return {
+  const data = {
     format: MAP_FORMAT,
     version: MAP_VERSION,
     left: map.left,
@@ -79,8 +82,12 @@ function mapToData(map) {
     legend,
     rows,
     objects: map.objects.map((obj) => ({ type: obj.type, col: obj.col, row: obj.row })),
-    enemies: map.enemySpawns.map((spawn) => ({ type: spawn.type, col: spawn.col, row: spawn.row })),
   };
+  // "enemies" and "npcs" lists (see SPAWN_KINDS in tilemap.js)
+  for (const info of Object.values(SPAWN_KINDS)) {
+    data[info.fileKey] = map[info.list].map((spawn) => ({ type: spawn.type, col: spawn.col, row: spawn.row }));
+  }
+  return data;
 }
 
 // a 2 character code for a tile that isn't already in the legend. tries the first letter of its
@@ -146,13 +153,15 @@ function mapFromData(data) {
     map.addObject(obj.type, obj.col, obj.row);
   }
 
-  // maps from before enemies were added don't have this list, which is fine
-  for (const spawn of data.enemies ?? []) {
-    if (!ENEMY_TYPES[spawn.type]) {
-      unknown.add(`enemy "${spawn.type}"`);
-      continue;
+  // the "enemies" and "npcs" lists. maps from before they were added don't have them, which is fine
+  for (const [kind, info] of Object.entries(SPAWN_KINDS)) {
+    for (const spawn of data[info.fileKey] ?? []) {
+      if (!info.types[spawn.type]) {
+        unknown.add(`${kind} "${spawn.type}"`);
+        continue;
+      }
+      map.addSpawn(kind, spawn.type, spawn.col, spawn.row);
     }
-    map.addEnemySpawn(spawn.type, spawn.col, spawn.row);
   }
 
   if (unknown.size > 0) {

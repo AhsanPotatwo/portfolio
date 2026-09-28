@@ -12,7 +12,8 @@
 // for the player these come from the keyboard and mouse (sketch.js). for an enemy they come from
 // its ai (enemies.js). so anything the player can do, an enemy can be made to do too
 //
-// settings come from PLAYER (config.js) for the player, and from ENEMY_TYPES (enemies.js) for enemies:
+// settings come from PLAYER (config.js) for the player, ENEMY_TYPES (enemies.js) for enemies,
+// and NPC_TYPES (npcs.js) for npcs:
 //   width, height, feetWidth, feetHeight, speed, maxHealth, weapon (enemies),
 //   colour, outline, hurtColour, hurtFlashTime
 class Character {
