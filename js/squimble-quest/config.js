@@ -14,16 +14,6 @@ const TILE = 32;
 // the browser pauses the game, and without this the player would jump a long way when you come back
 const MAX_DT = 0.05;
 
-// ---------- world ----------
-// how big the maps in maps.js are, as edges in world pixels. (0, 0) is the middle of the world.
-// 80 x 50 tiles (2560 x 1600 pixels), a few screens each way so the camera has room to move
-const WORLD = {
-  left:   -40 * TILE,
-  right:   40 * TILE,
-  top:    -25 * TILE,
-  bottom:  25 * TILE,
-};
-
 // ---------- camera ----------
 const CAMERA = {
   // how quickly the camera catches up with what it's following. higher is snappier,

@@ -24,8 +24,8 @@ class Camera {
     this.zoomSpeed = CAMERA.zoomSpeed;
 
     // the area the camera has to stay inside, so you never see past the edge of the world.
-    // null lets it go anywhere
-    this.bounds = WORLD;
+    // loadMap() in sketch.js sets it to the map's edges. null lets it go anywhere
+    this.bounds = null;
   }
 
   // ---------- telling the camera what to do ----------

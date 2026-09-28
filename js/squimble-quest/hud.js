@@ -13,6 +13,28 @@ function drawLoading() {
   text('Loading maps…', GAME_W / 2, GAME_H / 2);
 }
 
+// shown along the bottom when no map files could be loaded, and the game's on the blank stand-in map
+function drawNoMapsMessage() {
+  const lines = [
+    "Couldn't load any map files.",
+    'If the page was opened by double clicking it, run it through a local server instead',
+    '(see the README in assets/squimble-quest/maps). The browser console (F12) has details.',
+  ];
+  noStroke();
+  fill(0, 0, 0, 180);
+  rect(0, GAME_H - 76, GAME_W, 76);
+  fill(255);
+  textAlign(CENTER, CENTER);
+  textFont('Quicksand');
+  textStyle(BOLD);
+  textSize(15);
+  text(lines[0], GAME_W / 2, GAME_H - 56);
+  textStyle(NORMAL);
+  textSize(13);
+  text(lines[1], GAME_W / 2, GAME_H - 36);
+  text(lines[2], GAME_W / 2, GAME_H - 18);
+}
+
 // shown until the game is clicked, because it can't hear the keyboard or mouse before then (see input.js)
 function drawClickToPlay() {
   // dim the game underneath
