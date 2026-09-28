@@ -15,8 +15,8 @@ const TILE = 32;
 const MAX_DT = 0.05;
 
 // ---------- world ----------
-// the edges of the world, in world pixels. (0, 0) is the middle of the world.
-// 80 x 50 tiles for now (2560 x 1600 pixels), a few screens each way so the camera has room to move
+// the edges of the test map (maps.js), in world pixels. (0, 0) is the middle of the world.
+// 80 x 50 tiles (2560 x 1600 pixels), a few screens each way so the camera has room to move
 const WORLD = {
   left:   -40 * TILE,
   right:   40 * TILE,
@@ -44,8 +44,16 @@ const PLAYER = {
   height: 56,
   // pixels per second. 160 is 5 tiles a second, a brisk walk
   speed: 160,
+  // only the feet bump into walls, like most top down games (see feetBox() in player.js).
+  // under a tile tall and wide, so the player fits through 1 tile gaps both ways
+  feetWidth: 24,
+  feetHeight: 14,
+  maxHealth: 100,
   colour: '#4a7bd8',
   outline: '#23407a',
+  // flashes this colour for a moment when hurt
+  hurtColour: '#e05050',
+  hurtFlashTime: 0.15,
 };
 
 // ---------- aiming ----------
