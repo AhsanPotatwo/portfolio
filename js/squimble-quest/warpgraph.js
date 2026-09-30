@@ -12,6 +12,9 @@
 // both ends. a warp leading to a map's spawn point shows that spawn point as a box too, and
 // something a warp leads to that doesn't exist is a red box.
 //
+// hovering over a box shows where that warp is: a little window onto its map, with the warp
+// ringed in yellow and its enemies and npcs where they were placed.
+//
 // drag to move around it, the mouse wheel zooms, Close or Escape goes back to the settings box
 
 // how the graph is laid out, in pixels at normal zoom
@@ -25,6 +28,12 @@ const WARP_GRAPH = {
   // how far it can zoom out and in
   minZoom: 0.2,
   maxZoom: 2,
+  // the window onto a warp's map that shows while hovering over its box, in screen pixels, and how
+  // zoomed in it is. zoomed out a bit from normal play, so there's enough around the warp to tell
+  // where it is (the whole inside of the hut fits)
+  previewWidth: 360,
+  previewHeight: 240,
+  previewZoom: 0.75,
 };
 
 // every warp linked to the warp called warpName on the map mapName, however far away, laid out
@@ -147,6 +156,12 @@ class WarpGraphView extends UIElement {
     this.panY = space.y + Math.max(0, space.h - (bottom - top) * this.zoom) / 2 - top * this.zoom;
     // where the mouse was last frame while dragging, or null when it isn't
     this.dragFrom = null;
+    // the box the mouse is over (one of family.nodes), or null. it shows a preview of where it is
+    this.hoveredNode = null;
+    // the camera the preview's drawn through, and the enemies and npcs shown in it, by map name
+    // (see charactersOn())
+    this.previewCamera = new Camera();
+    this.characters = {};
   }
 
   update(hovered) {
@@ -169,6 +184,16 @@ class WarpGraphView extends UIElement {
       this.panX = mouse.x - (mouse.x - this.panX) * (zoom / this.zoom);
       this.panY = mouse.y - (mouse.y - this.panY) * (zoom / this.zoom);
       this.zoom = zoom;
+    }
+
+    // which box the mouse is over, worked out in the graph's own positions. none while dragging,
+    // so the preview doesn't get in the way of moving around
+    this.hoveredNode = null;
+    if (hovered && !this.dragFrom) {
+      const x = (mouse.x - this.panX) / this.zoom;
+      const y = (mouse.y - this.panY) / this.zoom;
+      this.hoveredNode = this.family.nodes.find((node) =>
+        Math.abs(x - node.x) < WARP_GRAPH.nodeWidth / 2 && Math.abs(y - node.y) < WARP_GRAPH.nodeHeight / 2) ?? null;
     }
   }
 
@@ -193,7 +218,76 @@ class WarpGraphView extends UIElement {
     text(this.title, 16, 28);
     fill(255, 255, 255, 150);
     setText(13, NORMAL, LEFT, CENTER);
-    text('Drag to move around, wheel to zoom, Escape to close', 16, 52);
+    text('Drag to move around, wheel to zoom, hover over a warp to see where it is, Escape to close', 16, 52);
+
+    // something that doesn't exist has nowhere to show
+    if (this.hoveredNode && !this.hoveredNode.missing) this.drawPreview(this.hoveredNode);
+  }
+
+  // a window onto the map a warp's on (or the spawn point, for a spawn point's box), next to the
+  // mouse. it's drawn by the same code as the game's world, through a camera of its own, with
+  // the editor's markers for warps and the spawn on top
+  drawPreview(node) {
+    const { previewWidth: w, previewHeight: h, previewZoom: zoom } = WARP_GRAPH;
+    const mouse = Input.mouse;
+    // below and to the right of the mouse, like a tooltip, or the other side if there isn't room
+    const x = mouse.x + 16 + w <= GAME_W - 8 ? mouse.x + 16 : Math.max(8, mouse.x - 16 - w);
+    const y = mouse.y + 16 + h <= GAME_H - 8 ? mouse.y + 16 : Math.max(8, mouse.y - 16 - h);
+
+    // getMap() is in maps.js
+    const map = getMap(node.map);
+    const warp = node.name ? map.warp(node.name) : null;
+    // the tile to show in the middle: the warp's, or the one the player spawns standing on
+    const col = warp ? warp.col : map.colAt(map.spawn.x);
+    const row = warp ? warp.row : map.rowAt(map.spawn.y + feetBelowCentre(PLAYER));
+
+    // what goes in the middle of the window: the tile, but kept far enough from the map's edges that
+    // the window doesn't show past them, like the game's camera. a map that fits in the window
+    // (like the hut) sits in its middle, all of it showing (clampAxis() is in camera.js)
+    const camera = this.previewCamera;
+    const bounds = map.bounds();
+    const middleX = camera.clampAxis((col + 0.5) * TILE, w / 2 / zoom, bounds.left, bounds.right);
+    const middleY = camera.clampAxis((row + 0.5) * TILE, h / 2 / zoom, bounds.top, bounds.bottom);
+    // a camera always puts what it's looking at in the middle of the screen, so it looks off to
+    // the side by however far the middle of the window is from the middle of the screen. that
+    // puts it in the middle of the window instead
+    camera.zoom = zoom;
+    camera.x = middleX - (x + w / 2 - GAME_W / 2) / zoom;
+    camera.y = middleY - (y + h / 2 - GAME_H / 2) / zoom;
+
+    // the world's drawn for the whole screen, but clip() stops anything outside the window showing
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.rect(x, y, w, h);
+    drawingContext.clip();
+    camera.begin();
+    drawWorld(camera, map, true); // world.js
+    for (const character of this.charactersOn(map)) character.draw();
+    // the same markers as the map editor's (see Editor.drawCursor() in editor.js), then the tile
+    // it's showing ringed in yellow, like the box it's for. a bit thicker than a pixel, so it stands out
+    const px = 1 / zoom;
+    for (const other of map.warps) drawWarpMarker(other, px);
+    drawSpawnRing(map.spawn.x, map.spawn.y + feetBelowCentre(PLAYER), px);
+    noFill();
+    Editor.outline(col * TILE, row * TILE, TILE, TILE, '#ffd23f', px * 2);
+    camera.end();
+    drawingContext.restore();
+
+    noFill();
+    stroke('#ffd23f');
+    strokeWeight(2);
+    rect(x, y, w, h);
+  }
+
+  // the map's enemies and npcs where they were placed, like the map editor shows them. made the
+  // first time the map's previewed, then kept while the graph's open. whoever's standing further
+  // down is in front, like in the game (sketch.js)
+  charactersOn(map) {
+    this.characters[map.name] ??= [
+      ...map.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row)),
+      ...map.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row)),
+    ].sort((a, b) => (a.y + a.h / 2) - (b.y + b.h / 2));
+    return this.characters[map.name];
   }
 }
 
