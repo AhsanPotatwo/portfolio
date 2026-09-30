@@ -1,5 +1,5 @@
 // the ui system: anything on screen you can click or look at that sits on top of the game,
-// like buttons, and later menus, inventory slots and map editor panels.
+// like buttons, the hotbar's slots, number boxes and the map editor's bar and panels.
 //
 // two parts:
 //   UIElement  the base every ui thing is built from. it has a position, a size, and can be

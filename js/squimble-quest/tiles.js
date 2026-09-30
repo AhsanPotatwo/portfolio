@@ -22,10 +22,10 @@
 //              onStand: (entity, dt) => entity.hurt(20 * dt)
 //            dt is seconds since the last frame, so "20 * dt" means 20 damage per second
 //
-// entity is whoever stepped on the tile. only the player for now, but enemies could later.
-// behaviours can do anything the player can do: hurt(), change speed, teleport...
+// entity is whoever stepped on the tile: the player, an enemy or an npc (they're all Characters,
+// character.js). behaviours can do anything to them a Character can do: hurt(), change speed, teleport...
 //
-// to use a new tile, put its name on a map (see maps.js)
+// a new tile shows up in the map editor's Tiles tab by itself, ready to paint onto maps
 //
 // =================================================================================
 

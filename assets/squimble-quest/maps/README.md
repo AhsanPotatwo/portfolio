@@ -13,8 +13,8 @@ A map is made of:
 
 | File | What it is |
 |---|---|
-| `default.json` | A blank white map (80 × 50 tiles). The game starts here |
-| `example.json` | The testing map: a bit of every tile (hut, pond, lava, spikes), tables and rugs, two training dummies to hit, and a villager to talk to (walk up and press **E**) |
+| `default.json` | A blank white map (80 × 50 tiles) |
+| `example.json` | The testing map: a bit of every tile (hut, pond, lava, spikes), tables and rugs, two training dummies to hit, and a villager to talk to (walk up and press **E**). The game starts here (`START_MAP` in `maps.js`) |
 
 The tile grid shows on every map while developer mode is on, and never outside it.
 
