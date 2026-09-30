@@ -1,6 +1,7 @@
 // a friendly character in the game. walking, facing and tiles come from Character (character.js),
 // what kind of npc it is (name, dialogue, ai...) comes from npcs.js.
-// this file only has what's different about npcs: their ai, and the "press E" prompt
+// this file only has what's different about npcs: no health bar, and the "press E" prompt.
+// their attacks (if they ever had any) hurt nobody, Character's targets() already gives no one
 class Npc extends Character {
   // type: a name from NPC_TYPES. col, row: the tile it stands on
   constructor(type, col, row) {
@@ -11,16 +12,9 @@ class Npc extends Character {
     this.canTalk = false;
   }
 
-  // world: { map, player, enemies, npcs }
   update(dt, world) {
-    // its ai decides what to do, the same way an enemy's does (STAND_STILL is in enemy.js)
-    const controls = this.type.ai ? this.type.ai(this, world, dt) : STAND_STILL;
-    super.update(controls, dt, world);
-  }
-
-  // an npc's attacks (if it ever had any) hurt nobody
-  targets(world) {
-    return [];
+    // its ai decides what to do, the same way an enemy's does
+    super.update(this.think(world, dt), dt, world);
   }
 
   draw() {
@@ -39,10 +33,7 @@ class Npc extends Character {
     rect(x, y, size, size, 4);
     noStroke();
     fill(30);
-    textFont('Quicksand');
-    textStyle(BOLD);
-    textSize(12);
-    textAlign(CENTER, CENTER);
+    setText(12);
     text('E', x + size / 2, y + size / 2 + 1);
   }
 }

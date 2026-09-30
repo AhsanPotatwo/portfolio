@@ -52,26 +52,23 @@ const Input = {
     el.setAttribute('tabindex', '0');
 
     // every key the game uses, so we know which ones to stop the browser handling
-    const gameKeys = Object.values(KEYS).flat();
+    const gameKeys = new Set(Object.values(KEYS).flat());
 
     el.addEventListener('keydown', (e) => {
       // with Ctrl held, a Ctrl combination the game uses (e.g. 'Control+KeyD') counts on its own,
       // not as the plain key too, so Ctrl + D doesn't also walk right. otherwise it's just the key
       // (e.g. 'KeyD'). only keys the game uses count (see KEYS in config.js)
       const combo = `Control+${e.code}`;
-      const name = e.ctrlKey && gameKeys.includes(combo) ? combo : e.code;
-      if (!gameKeys.includes(name)) return;
-      const used = [name];
+      const name = e.ctrlKey && gameKeys.has(combo) ? combo : e.code;
+      if (!gameKeys.has(name)) return;
 
       // stops the arrow keys scrolling the page while you play, and the browser doing
       // whatever it normally does with a Ctrl shortcut the game uses
       e.preventDefault();
-      for (const name of used) {
-        this.held.add(name);
-        // holding a key down makes the browser repeat keydown over and over.
-        // those repeats aren't new presses, so only the first one counts
-        if (!e.repeat) this._pendingKeys.add(name);
-      }
+      this.held.add(name);
+      // holding a key down makes the browser repeat keydown over and over.
+      // those repeats aren't new presses, so only the first one counts
+      if (!e.repeat) this._pendingKeys.add(name);
     });
 
     el.addEventListener('keyup', (e) => {

@@ -34,8 +34,8 @@ class TileMap {
 
     // things on top of the tiles, each { type, col, row } (see objects.js)
     this.objects = [];
-    // every tile covered by a solid object, as "col,row", so collision can check it quickly.
-    // kept up to date by addObject() and removeObjectsAt()
+    // every tile on the map covered by a solid object, by its index(), so collision can check it
+    // quickly. kept up to date by addObject() and removeObjectsAt()
     this.solidCells = new Set();
 
     // where enemies and npcs start, each { type, col, row }: a name from enemies.js or npcs.js,
@@ -90,17 +90,17 @@ class TileMap {
   }
 
   // off the map and empty tiles count as solid, so nothing can walk out of the world or into a hole.
-  // so do tiles with a solid object on them
+  // so do tiles with a solid object on them. (get() only finds a tile when it's on the map, so
+  // index() is safe to use after it)
   isSolid(col, row) {
     const type = this.get(col, row);
-    return !type || type.solid || this.solidCells.has(`${col},${row}`);
+    return !type || type.solid || this.solidCells.has(this.index(col, row));
   }
 
   // puts the player's spawn point on a tile: their feet in the middle of it.
-  // spawn is the player's centre, which is above their feet
+  // spawn is the player's centre, which is above their feet (standingOnTile() is in character.js)
   setSpawnTile(col, row) {
-    const feetBelowCentre = PLAYER.height / 2 - PLAYER.feetHeight / 2;
-    this.spawn = { x: (col + 0.5) * TILE, y: (row + 0.5) * TILE - feetBelowCentre };
+    this.spawn = standingOnTile(PLAYER, col, row);
   }
 
   // ---------- objects ----------
@@ -111,8 +111,10 @@ class TileMap {
       console.warn(`There's no object called "${type}", add it in objects.js`);
       return;
     }
-    this.objects.push({ type, col, row });
-    this.updateSolidCells();
+    const obj = { type, col, row };
+    this.objects.push(obj);
+    // only this object's tiles need adding, rather than going through every object again
+    this.markSolid(obj);
   }
 
   // does this object cover this tile?
@@ -169,13 +171,23 @@ class TileMap {
     this[list] = this[list].filter((other) => other !== spawn);
   }
 
+  // ---------- solid objects ----------
+
+  // works out solidCells from scratch. after removing objects, a tile might still be covered by
+  // another solid object, so it's simplest to go through them all again
   updateSolidCells() {
     this.solidCells.clear();
-    for (const obj of this.objects) {
-      const type = OBJECT_TYPES[obj.type];
-      if (!type.solid) continue;
-      for (let r = obj.row; r < obj.row + type.height; r++) {
-        for (let c = obj.col; c < obj.col + type.width; c++) this.solidCells.add(`${c},${r}`);
+    for (const obj of this.objects) this.markSolid(obj);
+  }
+
+  // adds the tiles a solid object covers to solidCells. any part hanging off the edge of the map
+  // is skipped: off the map is solid anyway, and index() only works for tiles on the map
+  markSolid(obj) {
+    const type = OBJECT_TYPES[obj.type];
+    if (!type.solid) return;
+    for (let r = obj.row; r < obj.row + type.height; r++) {
+      for (let c = obj.col; c < obj.col + type.width; c++) {
+        if (this.inside(c, r)) this.solidCells.add(this.index(c, r));
       }
     }
   }
@@ -276,7 +288,11 @@ class TileMap {
   // through a pixel, and the browser softens those edge pixels by blending them with what's behind,
   // which shows up as a faint grid across the ground. so instead each tile edge is worked out on
   // screen and rounded to a whole pixel, and neighbouring tiles share exactly the same edge:
-  // no gaps, no overlap, nothing softened, at any zoom
+  // no gaps, no overlap, nothing softened, at any zoom.
+  //
+  // tiles without an image are drawn in runs: a row of neighbouring tiles of the same colour is
+  // one rect instead of one each. it looks exactly the same (they'd share edges anyway), but a big
+  // field of grass is a handful of rects rather than thousands, which matters when zoomed out
   drawTiles(camera) {
     const view = camera.view();
     const firstCol = Math.max(this.left, this.colAt(view.left));
@@ -304,18 +320,26 @@ class TileMap {
     for (let row = firstRow; row <= lastRow; row++) {
       const top = ys[row - firstRow];
       const h = ys[row - firstRow + 1] - top;
+      // the tile type at a column on this row. the columns are already limited to the map, so this
+      // skips get()'s is-it-on-the-map check. undefined for an empty tile
+      const rowStart = this.index(this.left, row) - this.left;
+      const typeAt = (col) => TILE_TYPES[this.tiles[rowStart + col]];
+
       for (let col = firstCol; col <= lastCol; col++) {
-        const type = this.get(col, row);
+        const type = typeAt(col);
         // empty, nothing to draw (the background shows through)
         if (!type) continue;
         const left = xs[col - firstCol];
-        const w = xs[col - firstCol + 1] - left;
         if (type.img) {
-          image(type.img, left, top, w, h);
-        } else {
-          fill(type.fill);
-          rect(left, top, w, h);
+          image(type.img, left, top, xs[col - firstCol + 1] - left, h);
+          continue;
         }
+        // carry on along the row while the next tile is the same, then draw them all as one rect
+        let end = col;
+        while (end < lastCol && typeAt(end + 1) === type) end++;
+        fill(type.fill);
+        rect(left, top, xs[end - firstCol + 1] - left, h);
+        col = end;
       }
     }
     pop();

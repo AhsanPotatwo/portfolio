@@ -85,6 +85,9 @@ class MeleeSwing {
     this.time = 0;
     // everything this swing has already hit
     this.hit = new Set();
+    // the see-through swoosh colour, made once here rather than every frame it's drawn
+    this.swooshColour = color(weapon.colour);
+    this.swooshColour.setAlpha(70);
   }
 
   get finished() {
@@ -145,9 +148,8 @@ class MeleeSwing {
 
     // the swoosh: a see-through slice of a circle from where the swing started to the blade.
     // arc() wants the smaller angle first
-    const col = color(this.weapon.colour);
     noStroke();
-    fill(red(col), green(col), blue(col), 70);
+    fill(this.swooshColour);
     arc(ox, oy, this.weapon.reach * 2, this.weapon.reach * 2, Math.min(start, blade), Math.max(start, blade), PIE);
 
     // the blade

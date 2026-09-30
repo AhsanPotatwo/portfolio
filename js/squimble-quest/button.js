@@ -205,10 +205,7 @@ class Button extends UIElement {
     const s = this.style;
     noStroke();
     fill(s.textColour);
-    textFont(s.font);
-    textStyle(s.textStyle);
-    textSize(s.textSize);
-    textAlign(CENTER, CENTER);
+    setText(s.textSize, s.textStyle, CENTER, CENTER, s.font);
     text(this.label, this.x + this.w / 2, y + this.h / 2);
   }
 }

@@ -1,15 +1,29 @@
-// things drawn on top of the game that aren't ui elements: messages and the crosshair now,
-// health bars and quest text later
+// things drawn on top of the game that aren't ui elements: messages, text panels and the crosshair
+// now, health bars and quest text later. all of it uses screen positions, so draw it after camera.end()
+
+// the gap between lines in drawPanel()
+const PANEL_LINE_HEIGHT = 18;
+
+// a see-through dark box with lines of text in it, e.g. the dev mode panel (debug.js) and the map
+// editor's controls (editor.js). x, y is the box's top left corner. it's
+// lines.length * PANEL_LINE_HEIGHT + 12 tall, so anything placed under it can work out where it ends
+function drawPanel(x, y, width, lines, size) {
+  noStroke();
+  fill(0, 0, 0, 160);
+  rect(x, y, width, lines.length * PANEL_LINE_HEIGHT + 12, 6);
+
+  fill(255);
+  // courier prime is monospace, so numbers that change don't make the text jiggle about
+  setText(size, NORMAL, LEFT, TOP, 'Courier Prime');
+  lines.forEach((line, i) => text(line, x + 8, y + 6 + i * PANEL_LINE_HEIGHT));
+}
 
 // shown for a moment when the game starts, while the map files load
 function drawLoading() {
   background('#2b2b30');
   noStroke();
   fill(255);
-  textAlign(CENTER, CENTER);
-  textFont('Quicksand');
-  textStyle(BOLD);
-  textSize(22);
+  setText(22);
   text('Loading maps…', GAME_W / 2, GAME_H / 2);
 }
 
@@ -24,13 +38,9 @@ function drawNoMapsMessage() {
   fill(0, 0, 0, 180);
   rect(0, GAME_H - 76, GAME_W, 76);
   fill(255);
-  textAlign(CENTER, CENTER);
-  textFont('Quicksand');
-  textStyle(BOLD);
-  textSize(15);
+  setText(15);
   text(lines[0], GAME_W / 2, GAME_H - 56);
-  textStyle(NORMAL);
-  textSize(13);
+  setText(13, NORMAL);
   text(lines[1], GAME_W / 2, GAME_H - 36);
   text(lines[2], GAME_W / 2, GAME_H - 18);
 }
@@ -43,15 +53,10 @@ function drawClickToPlay() {
   rect(0, 0, GAME_W, GAME_H);
 
   fill(255);
-  textAlign(CENTER, CENTER);
-  // quicksand is already loaded by the page, so the canvas can use it too
-  textFont('Quicksand');
-  textStyle(BOLD);
-  textSize(32);
+  setText(32);
   text('Click to play', GAME_W / 2, GAME_H / 2 - 14);
 
-  textStyle(NORMAL);
-  textSize(18);
+  setText(18, NORMAL);
   text('Move with WASD or the arrow keys, aim with the mouse, click to attack', GAME_W / 2, GAME_H / 2 + 24);
 }
 
@@ -66,7 +71,7 @@ function drawCrosshair(mouse, held, overUI) {
   const y = Math.round(mouse.y);
 
   if (overUI) {
-    // a white ring with a dark edge, so it shows up on light and dark buttons
+    // a thin white ring on a thicker dark one, so it shows up on light and dark buttons
     noFill();
     stroke(CROSSHAIR.colour);
     strokeWeight(4);
