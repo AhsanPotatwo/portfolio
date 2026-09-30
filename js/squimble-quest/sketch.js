@@ -243,14 +243,18 @@ function draw() {
 
   // 3. draw: back to front, so later things go on top of earlier ones.
   // the world, drawn through the camera in world positions
-  gameCamera.begin();
-  drawWorld(gameCamera, worldMap, Debug.enabled);
-  // whoever's standing further down the screen is in front, so sort by where their feet are
-  const characters = [player, ...enemies, ...npcs].sort((a, b) => (a.y + a.h / 2) - (b.y + b.h / 2));
-  for (const character of characters) character.draw();
-  if (!Editor.active && !Dialogue.active) Warps.drawPrompt();
-  if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
-  gameCamera.end();
+  // the map editor's warp graph covers the whole screen (warpgraph.js), so there's no need to draw
+  // the world under it. a big map with lots of warps is slow to draw, and would slow the graph down
+  if (!WarpGraph.active) {
+    gameCamera.begin();
+    drawWorld(gameCamera, worldMap, Debug.enabled);
+    // whoever's standing further down the screen is in front, so sort by where their feet are
+    const characters = [player, ...enemies, ...npcs].sort((a, b) => (a.y + a.h / 2) - (b.y + b.h / 2));
+    for (const character of characters) character.draw();
+    if (!Editor.active && !Dialogue.active) Warps.drawPrompt();
+    if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
+    gameCamera.end();
+  }
 
   // ui on top, in screen positions. the map editor fades it out while you move around (editor.js).
   // globalAlpha fades everything drawn after it, and pop() puts it back
