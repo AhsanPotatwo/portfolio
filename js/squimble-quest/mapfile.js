@@ -29,6 +29,9 @@
 //     ],
 //     "npcs": [                             where npcs start, each one's tile (npcs.js)
 //       { "type": "villager", "col": -3, "row": -3 }
+//     ],
+//     "doors": [                            tiles that take the player somewhere else (doors.js)
+//       { "name": "hut", "col": -11, "row": -5, "to": "hut", "toDoor": "exit", "activate": "interact" }
 //     ]
 //   }
 //
@@ -87,6 +90,7 @@ function mapToData(map) {
   for (const info of Object.values(SPAWN_KINDS)) {
     data[info.fileKey] = map[info.list].map((spawn) => ({ type: spawn.type, col: spawn.col, row: spawn.row }));
   }
+  data.doors = map.doors.map(({ name, col, row, to, toDoor, activate }) => ({ name, col, row, to, toDoor, activate }));
   return data;
 }
 
@@ -162,6 +166,24 @@ function mapFromData(data) {
       }
       map.addSpawn(kind, spawn.type, spawn.col, spawn.row);
     }
+  }
+
+  // the "doors" list, also missing from older maps. a door needs a name and a tile, the rest can
+  // be left out: no "to" goes nowhere (only somewhere to arrive), no "toDoor" arrives at the
+  // spawn point, and anything but "interact" opens by stepping on it (see doors.js)
+  for (const door of data.doors ?? []) {
+    if (typeof door.name !== 'string' || !Number.isInteger(door.col) || !Number.isInteger(door.row)) {
+      unknown.add(`a door without a name, col or row`);
+      continue;
+    }
+    map.doors.push({
+      name: door.name,
+      col: door.col,
+      row: door.row,
+      to: door.to ?? '',
+      toDoor: door.toDoor ?? '',
+      activate: door.activate === 'interact' ? 'interact' : 'step',
+    });
   }
 
   if (unknown.size > 0) {
@@ -258,12 +280,17 @@ function openMapFile() {
 // ---------- small helpers ----------
 
 // the text that goes in a map file. json with 2 space indents puts each row of tiles on its own
-// line, then each object and enemy is squashed onto one line, so long lists of them stay easy to read
+// line, then each object, enemy, npc and door is squashed onto one line, so long lists of them stay
+// easy to read
 function mapDataToText(data) {
-  return JSON.stringify(data, null, 2).replace(
-    /\{\s+"type": ("[^"]*"),\s+"col": (-?\d+),\s+"row": (-?\d+)\s+\}/g,
-    '{ "type": $1, "col": $2, "row": $3 }'
-  ) + '\n';
+  return JSON.stringify(data, null, 2)
+    .replace(
+      /\{\s+"type": ("[^"]*"),\s+"col": (-?\d+),\s+"row": (-?\d+)\s+\}/g,
+      '{ "type": $1, "col": $2, "row": $3 }'
+    )
+    // a door: any { } starting with "name" that has nothing inside it but plain values
+    .replace(/\{\s+("name":[^{}[\]]*?)\s+\}/g, (match, inside) => `{ ${inside.replace(/,\s+/g, ', ')} }`)
+    + '\n';
 }
 
 // "My Forest!" → "my-forest". keeps names safe to use as file names

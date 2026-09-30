@@ -6,7 +6,7 @@
 //
 // the map only stores tile names ('grass', 'wall'...). what each one looks like and does
 // lives in tiles.js. it also keeps a list of objects on top of the tiles (see objects.js),
-// and where each enemy and npc starts
+// where each enemy and npc starts, and its doors (see doors.js)
 
 // the kinds of character that can be placed on a map: which list on the map they're kept in,
 // where they're defined, and what they're called in map files. adding another kind (e.g. animals)
@@ -43,6 +43,10 @@ class TileMap {
     // loads (spawnCharacters() in sketch.js)
     this.enemySpawns = [];
     this.npcSpawns = [];
+
+    // doors: tiles that take the player to another map, or somewhere else on this one. each is
+    // { name, col, row, to, toDoor, activate }, all explained at the top of doors.js
+    this.doors = [];
 
     // the enemy spawns whose enemy has been defeated, so spawnCharacters() doesn't make them again.
     // it's game progress, not part of the map's design: the spawns stay in their list (the editor
@@ -115,7 +119,7 @@ class TileMap {
   }
 
   // makes the map cols x rows, with its top left tile at left, top. every tile stays where it is in
-  // the world, new space is empty, and tiles, objects, enemies and npcs on any part that's gone are dropped
+  // the world, new space is empty, and tiles, objects, enemies, npcs and doors on any part that's gone are dropped
   resize(left, top, cols, rows) {
     const tiles = new Array(cols * rows).fill(null);
     for (let r = 0; r < rows; r++) {
@@ -131,6 +135,7 @@ class TileMap {
     for (const info of Object.values(SPAWN_KINDS)) {
       this[info.list] = this[info.list].filter((spawn) => this.inside(spawn.col, spawn.row));
     }
+    this.doors = this.doors.filter((door) => this.inside(door.col, door.row));
     // index() gives different numbers now the size has changed, so solidCells has to be redone
     this.updateSolidCells();
   }
@@ -208,6 +213,27 @@ class TileMap {
     const before = this[list].length;
     this[list] = this[list].filter((spawn) => spawn.col !== col || spawn.row !== row);
     return this[list].length !== before;
+  }
+
+  // ---------- doors ----------
+  // there's at most one door on a tile, and each door on a map has its own name (see doors.js).
+  // they're added by pushing onto this.doors
+
+  // the door on this tile, or null
+  doorAt(col, row) {
+    return this.doors.find((door) => door.col === col && door.row === row) ?? null;
+  }
+
+  // the door with this name, or null
+  door(name) {
+    return this.doors.find((door) => door.name === name) ?? null;
+  }
+
+  // removes the door on this tile. gives back true if there was one
+  removeDoorAt(col, row) {
+    const door = this.doorAt(col, row);
+    this.doors = this.doors.filter((other) => other !== door);
+    return door !== null;
   }
 
   // ---------- solid objects ----------

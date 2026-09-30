@@ -85,6 +85,8 @@ defineTile('sand',   { colour: '#e6d28e', speed: 0.8 });
 // can't walk through
 defineTile('wall',   { colour: '#5f6470', solid: true });
 defineTile('water',  { colour: '#3b7dd8', solid: true });
+// the top of a building, seen from above. its inside is a map of its own, through a door (doors.js)
+defineTile('roof',   { colour: '#8e4a3c', solid: true });
 
 // hurts you. lava hurts the whole time you stand in it, spikes hurt once per tile you step on
 defineTile('lava', {

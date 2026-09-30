@@ -12,6 +12,7 @@ const MAP_FOLDER = 'assets/squimble-quest/maps/';
 const MAP_FILES = [
   'default.json',
   'example.json',
+  'hut.json',
 ];
 
 // the map the game starts on, by name
@@ -22,11 +23,21 @@ const START_MAP = 'example';
 // builds the map fresh from its file. add maps with addMap() below
 const MAPS = {};
 
-// the maps that have been gone to since the page loaded, by name. the first visit builds the map
-// from MAPS, then going back finds it how it was left: defeated enemies stay defeated, and changes
-// made in the map editor are still there (see loadMap() in sketch.js). reloading the page starts
-// every map fresh from its file again
+// every map that's been built since the page loaded, by name (see getMap() below). the first visit
+// builds the map from MAPS, then going back finds it how it was left: defeated enemies stay
+// defeated, and changes made in the map editor are still there. reloading the page starts every
+// map fresh from its file again
 const VISITED_MAPS = {};
+
+// the map called name: built from MAPS the first time it's needed, then the same one every time
+// after, so it keeps its changes. null if there's no map called that. loadMap() (sketch.js) uses
+// it to go to a map, and doors (doors.js) use it to look inside the map they lead to
+function getMap(name) {
+  if (!MAPS[name]) return null;
+  VISITED_MAPS[name] ??= MAPS[name]();
+  VISITED_MAPS[name].name = name;
+  return VISITED_MAPS[name];
+}
 
 // puts a map in MAPS, or replaces the one with that name. build is a function that makes the map.
 // forgets the visited copy, so the next visit builds it fresh with the new version

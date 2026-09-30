@@ -9,14 +9,17 @@
 //   - tiles: left click or drag to paint, replacing whatever tile was there
 //   - objects: left click to place one, its top left corner on the tile under the mouse
 //   - enemies and npcs: left click to place one, standing on the tile under the mouse
-//   - right click or drag to erase (or pick Erase in the bar). if you start on an object, enemy
-//     or npc it removes those, otherwise it empties tiles. empty tiles are like off the edge of
-//     the map: nothing's drawn there and nothing can walk on them
+//   - pick Erase in the bar, then left click or drag to erase. if you start on an object, enemy,
+//     npc or door it removes those, otherwise it empties tiles. empty tiles are like off the edge
+//     of the map: nothing's drawn there and nothing can walk on them
+//   - right click something to change its settings. only doors have any so far
 //   - opening the editor brings back every enemy placed on the map, including defeated ones, so
 //     you always see the whole design. closing it puts every enemy and npc back where it was
 //     placed, with full health. (outside the editor, defeated enemies stay defeated, see sketch.js)
-//   - triggers: left click to place one. just the player's spawn point for now (a yellow ring),
-//     which moves to the tile under the mouse
+//   - triggers: left click to place one.
+//       spawn: the player's spawn point (a yellow ring), which moves to the tile under the mouse
+//       door:  a way to another map (doors.js), a purple square. placing one opens a box to pick
+//              its name, where it leads and how it opens. right click it to change those later
 //   - Map settings (top right) opens a panel for the whole map: Resize map changes its size
 //     (never smaller than the area with tiles in it), New map makes a map of any size filled
 //     with any tile, Open file loads one and Export saves the map as a file. sizes, the fill and
@@ -42,7 +45,7 @@ const NEW_MAP_NAME = 'new-map';
 const EDITOR_KEYS = [
   'MAP EDITOR KEYS',
   'left click  paint / place',
-  'right click erase',
+  'right click change settings (doors)',
   'WASD        move around',
   'wheel       zoom',
   'B           close the editor',
@@ -102,7 +105,7 @@ const EDITOR_TABS = [
   { kind: 'object', label: 'Objects' },
   { kind: 'enemy', label: 'Enemies' },
   { kind: 'npc', label: 'NPCs' },
-  // things on the map that make something happen, like where the player spawns
+  // things on the map that make something happen, like where the player spawns and doors
   { kind: 'trigger', label: 'Triggers' },
 ];
 
@@ -112,6 +115,8 @@ const TRIGGER_TYPES = {
   // where the player starts on this map, and comes back to after dying. there's only one, so
   // placing it moves it
   spawn: {},
+  // a way to another map, or somewhere else on this one (doors.js). one per tile
+  door: {},
 };
 
 // where each tab's things are defined, by kind
@@ -145,7 +150,7 @@ const Editor = {
   view: { x: 0, y: 0 },
   // where the mouse was last frame while dragging, so fast drags can fill in the gap
   lastPaint: null,
-  // whether the current erase drag is removing objects and enemies (true) or emptying tiles (false)
+  // whether the current erase drag is removing objects, characters and doors (true) or emptying tiles (false)
   erasingThings: false,
   // how see-through the ui is, 1 solid to 0 gone. it fades out while WASD moves the camera
   // (sketch.js draws the ui with it). stillFor is how long since the camera last moved, in seconds
@@ -359,7 +364,7 @@ const Editor = {
       rows: [
         { label: 'Width', field: sizeField(40), after: 'tiles' },
         { label: 'Height', field: sizeField(24), after: 'tiles' },
-        { label: 'Fill', field: new TilePicker({ w: 180, value: 'blank' }) },
+        { label: 'Fill', field: tilePicker('blank') },
       ],
       onConfirm: ([cols, rows, fillWith]) => {
         // added to MAPS like any other map, so dev mode's M key can come back to it (maps.js)
@@ -452,17 +457,24 @@ const Editor = {
       const { kind, name } = this.selected;
       if (kind === 'object') this.placeObject(map, name, over.col, over.row);
       if (isCharacterKind(kind)) this.placeCharacter(map, kind, name, over.col, over.row);
-      // the spawn is the only trigger so far
-      if (kind === 'trigger') this.placeSpawn(map, over.col, over.row);
+      if (kind === 'trigger' && name === 'spawn') this.placeSpawn(map, over.col, over.row);
+      if (kind === 'trigger' && name === 'door') this.placeDoor(map, over.col, over.row);
+    }
+
+    // right click changes the settings of whatever's there. only doors have any so far, anything
+    // else that gets settings later can be added here
+    if (over && Input.mousePressed('right')) {
+      const door = map.doorAt(over.col, over.row);
+      if (door) this.editDoor(map, door);
     }
 
     // tiles and erasing: keep going while the button's held
-    const erasing = Input.mouseHeld('right') || (this.selected === null && Input.mouseHeld('left'));
-    const painting = !erasing && this.selected?.kind === 'tile' && Input.mouseHeld('left');
+    const erasing = this.selected === null && Input.mouseHeld('left');
+    const painting = this.selected?.kind === 'tile' && Input.mouseHeld('left');
 
     if (over && (painting || erasing)) {
-      // an erase drag that starts on an object, enemy or npc only removes those, otherwise it only
-      // empties tiles. stops one drag removing a table and then the floor it was standing on
+      // an erase drag that starts on an object, enemy, npc or door only removes those, otherwise it
+      // only empties tiles. stops one drag removing a table and then the floor it was standing on
       if (!this.lastPaint) this.erasingThings = erasing && this.thingsAt(map, over.col, over.row);
 
       let removedCharacter = false;
@@ -471,6 +483,7 @@ const Editor = {
           map.set(col, row, this.selected.name);
         } else if (this.erasingThings) {
           map.removeObjectsAt(col, row);
+          map.removeDoorAt(col, row);
           for (const kind of Object.keys(SPAWN_KINDS)) {
             if (map.removeSpawnsAt(kind, col, row)) removedCharacter = true;
           }
@@ -486,9 +499,9 @@ const Editor = {
     }
   },
 
-  // is there an object, enemy or npc on this tile?
+  // is there an object, enemy, npc or door on this tile?
   thingsAt(map, col, row) {
-    if (map.objectsAt(col, row).length > 0) return true;
+    if (map.objectsAt(col, row).length > 0 || map.doorAt(col, row)) return true;
     return Object.keys(SPAWN_KINDS).some((kind) => map.spawnsAt(kind, col, row).length > 0);
   },
 
@@ -520,6 +533,74 @@ const Editor = {
     player.spawnY = map.spawn.y;
   },
 
+  // puts a door on col, row (doors.js), then opens its settings. it can go on any tile of the map,
+  // even under an object or npc. clicking a door that's already there opens its settings instead
+  placeDoor(map, col, row) {
+    if (!map.inside(col, row)) return;
+    let door = map.doorAt(col, row);
+    if (!door) {
+      // named door1, door2... whichever's free first, until it's given a better name
+      let number = 1;
+      while (map.door(`door${number}`)) number++;
+      // goes nowhere and opens by stepping on it, until its settings say otherwise
+      door = { name: `door${number}`, col, row, to: '', toDoor: '', activate: 'step' };
+      map.doors.push(door);
+    }
+    this.editDoor(map, door);
+  },
+
+  // a box for changing a door's settings: its name, which map it goes to, which door on that map
+  // it arrives at, and whether it opens by stepping on it or pressing E. the door changes when
+  // the box is confirmed, Cancel leaves it how it was
+  editDoor(map, door) {
+    // the doors it can arrive at on the map it goes to. '' is that map's spawn point
+    const arriveChoices = (mapName) => ['', ...doorNamesOn(mapName)];
+    // a map or door it leads to that doesn't exist any more still shows in the list, marked
+    // missing, so opening the box doesn't quietly change where it leads
+    const withCurrent = (choices, current) => (choices.includes(current) ? choices : [...choices, current]);
+    const missing = (name, exists) => (exists ? name : `${name} (missing)`);
+
+    const arrivePicker = new Picker({
+      w: 180,
+      choices: withCurrent(arriveChoices(door.to), door.toDoor),
+      value: door.toDoor,
+      label: (name) => (name ? missing(name, getMap(mapPicker.value)?.door(name)) : 'spawn point'),
+    });
+    const mapPicker = new Picker({
+      w: 180,
+      choices: withCurrent(['', ...Object.keys(MAPS)], door.to),
+      value: door.to,
+      label: (name) => (name ? missing(name, MAPS[name]) : 'nowhere'),
+      // a different map has different doors, so start again from its spawn point
+      onChange: (name) => arrivePicker.setChoices(arriveChoices(name), ''),
+    });
+
+    FormBox.open({
+      title: 'Door',
+      hint: 'Click the right of a choice for the next one',
+      confirmLabel: 'Save',
+      rows: [
+        { label: 'Name', field: new TextField({ w: 180, value: door.name }) },
+        { label: 'Goes to', field: mapPicker },
+        { label: 'Arrive at', field: arrivePicker },
+        {
+          label: 'Opens by',
+          field: new Picker({
+            w: 180,
+            choices: ['step', 'interact'],
+            value: door.activate,
+            label: (how) => (how === 'step' ? 'stepping on it' : 'pressing E'),
+          }),
+        },
+      ],
+      // needs a name, and one no other door on this map has, so doors can lead to it
+      canConfirm: ([name]) => name.trim() !== '' && !map.doors.some((other) => other !== door && other.name === name.trim()),
+      onConfirm: ([name, to, toDoor, activate]) => {
+        Object.assign(door, { name: name.trim(), to, toDoor: to ? toDoor : '', activate });
+      },
+    });
+  },
+
   // where a character's body would be if it stood on this tile, as a box (standingOnTile() is in
   // character.js, the same as Character.placeFeetOnTile() uses)
   characterBodyOnTile(type, col, row) {
@@ -541,13 +622,15 @@ const Editor = {
 
   // ---------- drawing ----------
 
-  // marks the spawn point, and shows what a click would do under the mouse.
-  // uses world positions, so draw it before camera.end()
+  // marks the spawn point and doors, and shows what a click would do under the mouse.
+  // uses world positions, so draw it before camera.end(). it's drawn after the characters, so
+  // these markers show on top of everything
   drawCursor(map, camera, aim) {
     // same trick as the grid: divide by zoom so lines stay the same thickness on screen
     const px = 1 / camera.zoom;
 
-    // the spawn point: a ring where the player's feet will be
+    // every door (doors.js), and the spawn point: a ring where the player's feet will be
+    for (const door of map.doors) drawDoorMarker(door, px);
     drawSpawnRing(map.spawn.x, map.spawn.y + feetBelowCentre(PLAYER), px);
 
     if (!aim || !Input.mouse.inside || UI.hovered) return;
@@ -714,9 +797,12 @@ class PaletteSwatch extends Button {
         strokeWeight(3);
         line(middleX - 8, middleY - 8, middleX + 8, middleY + 8);
         line(middleX + 8, middleY - 8, middleX - 8, middleY + 8);
-      } else if (this.kind === 'trigger') {
-        // the spawn is the only trigger so far, drawn like its ring on the map
+      } else if (this.name === 'spawn') {
+        // drawn like its ring on the map
         drawSpawnRing(middleX, middleY);
+      } else if (this.name === 'door') {
+        // drawn like its square on the map (doors.js)
+        drawDoorSquare(middleX - 12, middleY - 12, 24, DOOR_COLOURS.edge, false);
       } else {
         // objects and characters are shrunk to fit but keep their shape, so a 2 x 1 table
         // looks twice as wide as it is tall
@@ -790,9 +876,9 @@ class SettingsPanel extends UIElement {
 }
 
 // ---------- the form box ----------
-// a box in the middle of the screen that asks for a few things (New map, Resize map and Export),
-// in the game rather than in the browser's own prompt(). click a box to type into it, Tab goes to
-// the next one, Enter or the right button says yes, Escape or Cancel closes it
+// a box in the middle of the screen that asks for a few things (New map, Resize map, Export and a
+// door's settings), in the game rather than in the browser's own prompt(). click a box to type
+// into it, Tab goes to the next one, Enter or the right button says yes, Escape or Cancel closes it
 
 // the box's width, and the space each thing it asks for gets, in screen pixels
 const FORM_BOX = { width: 300, rowHeight: 44 };
@@ -813,7 +899,7 @@ const FormBox = {
 
   // options: { title, hint, confirmLabel, rows, canConfirm(values), onConfirm(values) }
   //   rows        one per thing to ask for: { label, field, after }. field is the ui element it's
-  //               typed or picked in (a TextField, NumberField or TilePicker), with its width set.
+  //               typed or picked in (a TextField, NumberField or Picker), with its width set.
   //               after is a word to show after it, like 'tiles' (can be left out)
   //   hint        a line of writing under the rows (can be left out)
   //   values      what's in each row's field, in the same order as rows
@@ -943,18 +1029,29 @@ class FormBoxBackdrop extends UIElement {
   }
 }
 
-// picks a tile in the form box (what New map is filled with). click the left half to go back
-// through the tiles, the right half to go forward. after the last tile comes empty (no tile)
-class TilePicker extends UIElement {
+// picks one of a list of choices in the form box, like what New map is filled with, or which map a
+// door goes to. click the left half to go back through them, the right half to go forward.
+//   choices   the list to pick from (any values: names, null...)
+//   value     the one picked to start with (the first choice if it isn't one of them)
+//   label     turns a choice into the words shown for it
+//   art       draws a little picture of a choice, (choice, x, y, size) => { ... }. can be left out
+//   onChange  runs with the new choice whenever it changes. can be left out
+class Picker extends UIElement {
   constructor(options) {
     super(options);
-    // every tile in tiles.js, then null for empty
-    this.choices = [...Object.keys(TILE_TYPES), null];
-    // which one is picked, starting on options.value (the first tile if it isn't one)
-    this.index = Math.max(0, this.choices.indexOf(options.value ?? null));
+    this.label = options.label;
+    this.art = options.art ?? null;
+    this.onChange = options.onChange ?? null;
+    this.setChoices(options.choices, options.value);
   }
 
-  // the picked tile's name, or null for empty
+  // a new list to pick from, starting on value (the first choice if it isn't one of them)
+  setChoices(choices, value) {
+    this.choices = choices;
+    this.index = Math.max(0, choices.indexOf(value));
+  }
+
+  // the picked choice
   get value() {
     return this.choices[this.index];
   }
@@ -970,6 +1067,7 @@ class TilePicker extends UIElement {
     const count = this.choices.length;
     // + count stops it going negative, % wraps it round, like the bar's pages
     this.index = (this.index + (this.mouseOnLeft() ? -1 : 1) + count) % count;
+    if (this.onChange) this.onChange(this.value);
   }
 
   draw() {
@@ -988,16 +1086,33 @@ class TilePicker extends UIElement {
     fill(this.hovered && !this.mouseOnLeft() ? 255 : 120);
     text('›', this.x + this.w - 12, middleY - 2);
 
-    // the tile (just an outline for empty), then its name
-    const name = this.value;
-    if (name) drawTypeArt(TILE_TYPES[name], this.x + 26, middleY - 10, 20, 20);
-    noFill();
-    stroke(90);
-    strokeWeight(1);
-    rect(this.x + 26, middleY - 10, 20, 20);
+    // its picture (if it has one), then its words
+    let textX = this.x + 26;
+    if (this.art) {
+      this.art(this.value, this.x + 26, middleY - 10, 20);
+      textX += 28;
+    }
     noStroke();
     fill(255);
     setText(14, BOLD, LEFT, CENTER);
-    text(name ?? 'empty', this.x + 54, middleY);
+    text(this.label(this.value), textX, middleY);
   }
+}
+
+// a Picker for tiles (what New map is filled with): every tile in tiles.js, then null for empty,
+// each with its picture (just an outline for empty)
+function tilePicker(value) {
+  return new Picker({
+    w: 180,
+    choices: [...Object.keys(TILE_TYPES), null],
+    value,
+    label: (name) => name ?? 'empty',
+    art: (name, x, y, size) => {
+      if (name) drawTypeArt(TILE_TYPES[name], x, y, size, size);
+      noFill();
+      stroke(90);
+      strokeWeight(1);
+      rect(x, y, size, size);
+    },
+  });
 }
