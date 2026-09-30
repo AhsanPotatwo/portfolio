@@ -62,7 +62,7 @@ const EDITOR_BAR = {
   // each square, and the space each one gets (square + gap + room for its name)
   swatchSize: 44,
   slotWidth: 60,
-  // where the squares start and stop across the bar. the rest is the Erase button and arrows
+  // where the squares start and stop across the bar. the rest is the Erase square and arrows
   swatchesLeft: 110,
   swatchesRight: GAME_W - 44,
   // the tabs sitting on top of the bar, and the gap between them
@@ -154,7 +154,6 @@ const Editor = {
 
   // the editor's ui elements that it changes later, made once in init()
   swatches: [],
-  eraseButton: null,
   prevButton: null,
   nextButton: null,
   settingsButton: null,
@@ -180,11 +179,15 @@ const Editor = {
     const add = (element) => UI.add(Object.assign(element, { group: 'editor' }));
     add(new EditorBar({ x: 0, y: barY, w: GAME_W, h: EDITOR_BAR.height }));
 
-    // a toggle, so it can show when erasing is picked (update() keeps button.on matching)
-    this.eraseButton = add(new Button({
-      x: 10, y: barY + 10, w: 56, h: 44, label: 'Erase',
-      style: { textSize: 13, onFill: '#c94545' },
-      toggle: true,
+    // Erase, a square like the rest, in the middle of its own slot at the left end of the bar.
+    // it's on every tab, so it isn't in swatches (showPage() only shows the open tab's)
+    add(new PaletteSwatch({
+      x: 10 + (EDITOR_BAR.slotWidth - EDITOR_BAR.swatchSize) / 2,
+      y: barY + 10,
+      w: EDITOR_BAR.swatchSize,
+      h: EDITOR_BAR.swatchSize,
+      kind: 'erase',
+      name: 'erase',
       onClick: () => { this.selected = null; },
     }));
 
@@ -422,9 +425,6 @@ const Editor = {
       FormBox.update();
       return;
     }
-
-    // Erase is a toggle, which flips itself when clicked, so set it to match what's really picked
-    this.eraseButton.on = this.selected === null;
 
     const dir = Input.direction();
 
@@ -680,19 +680,23 @@ class EditorTab extends Button {
   }
 }
 
-// one tile, object, enemy or npc in the bar. a Button, so clicking works the same, but it draws
-// the thing itself instead of a box
+// one tile, object, enemy, npc or trigger in the bar, or the Erase square. a Button, so clicking
+// works the same, but it draws the thing itself instead of a box
 class PaletteSwatch extends Button {
   constructor(options) {
     super(options);
-    // its kind (from EDITOR_TABS), its name, and which page of the bar it's on
+    // its kind (from EDITOR_TABS, or 'erase'), its name, and which page of the bar it's on
     this.kind = options.kind;
     this.name = options.name;
     this.page = options.page;
   }
 
   draw() {
-    const selected = Editor.isSelected(this.kind, this.name);
+    const erase = this.kind === 'erase';
+    // Erase is picked when nothing else is (Editor.selected is null)
+    const selected = erase ? Editor.selected === null : Editor.isSelected(this.kind, this.name);
+    // the edge and name colour when it's picked: red for Erase, like its outline on the map
+    const pickedColour = erase ? '#ff6b6b' : '#ffd23f';
     const y = this.y + (this.pressed && this.hovered ? 1 : 0);
 
     if (this.kind === 'tile') {
@@ -702,9 +706,17 @@ class PaletteSwatch extends Button {
       noStroke();
       fill(42, 45, 54);
       rect(this.x, y, this.w, this.h);
-      if (this.kind === 'trigger') {
+      const middleX = this.x + this.w / 2;
+      const middleY = y + this.h / 2;
+      if (erase) {
+        // a red cross
+        stroke('#ff6b6b');
+        strokeWeight(3);
+        line(middleX - 8, middleY - 8, middleX + 8, middleY + 8);
+        line(middleX + 8, middleY - 8, middleX - 8, middleY + 8);
+      } else if (this.kind === 'trigger') {
         // the spawn is the only trigger so far, drawn like its ring on the map
-        drawSpawnRing(this.x + this.w / 2, y + this.h / 2);
+        drawSpawnRing(middleX, middleY);
       } else {
         // objects and characters are shrunk to fit but keep their shape, so a 2 x 1 table
         // looks twice as wide as it is tall
@@ -716,10 +728,10 @@ class PaletteSwatch extends Button {
       }
     }
 
-    // yellow edge for the one that's picked, white when the mouse is over it
+    // a coloured edge for the one that's picked, white when the mouse is over it
     noFill();
     if (selected) {
-      stroke('#ffd23f');
+      stroke(pickedColour);
       strokeWeight(3);
     } else {
       stroke(this.hovered ? 255 : 90);
@@ -729,7 +741,7 @@ class PaletteSwatch extends Button {
 
     // its name underneath
     noStroke();
-    fill(selected ? '#ffd23f' : 220);
+    fill(selected ? pickedColour : 220);
     setText(11);
     text(this.name, this.x + this.w / 2, this.y + this.h + 12);
   }
