@@ -30,21 +30,23 @@ const WARP_GRAPH = {
   nodeHeight: 42,
   // the space between boxes side by side, and between one row and the next
   gapX: 24,
-  gapY: 60,
+  gapY: 72,
   // the lines and arrowheads between warps
   lineColour: [150, 155, 170],
+  // how rounded the corners of the lines are, in pixels
+  cornerRadius: 8,
   // the most children side by side under one warp. any more wrap onto rows further down. even,
   // so a row splits evenly either side of the line down through it (see warpFamily())
   maxPerRow: 6,
   // how far it can zoom out and in
   minZoom: 0.2,
+  maxZoom: 2,
   // it starts zoomed out to fit on screen, but no further out than this, so the writing can still
   // be read. anything that doesn't fit is a drag away
   startZoom: 0.75,
   // zoomed out further than this, the boxes are drawn without their writing, which would be too
   // small to read (hovering over one still shows where it is)
   wordsZoom: 0.3,
-  maxZoom: 2,
   // the window onto a warp's map that shows while hovering over its box, in screen pixels, and how
   // zoomed in it is. zoomed out a bit from normal play, so there's enough around the warp to tell
   // where it is (the whole inside of the hut fits)
@@ -55,11 +57,12 @@ const WARP_GRAPH = {
 
 // every warp linked to the warp called warpName on the map mapName, however far away, laid out
 // like a family tree. gives back { nodes, links }:
-//   nodes  one per warp: { key, map, name, missing, start, parent, fromParent, toParent, x, y }.
-//          name is '' for a map's spawn point, missing is true if it doesn't exist, start is true
-//          for the one it started from, parent is the key of the warp above it in the tree (null
-//          for the start), fromParent and toParent are whether its parent leads to it and it leads
-//          to its parent, and x, y is the middle of its box
+//   nodes  one per warp: { key, map, name, missing, start, parent, onlyChild, fromParent,
+//          toParent, x, y }. name is '' for a map's spawn point, missing is true if it doesn't
+//          exist, start is true for the one it started from, parent is the key of the warp above it
+//          in the tree (null for the start), onlyChild is true if it's the only warp under its
+//          parent, fromParent and toParent are whether its parent leads to it and it leads to its
+//          parent, and x, y is the middle of its box
 //   links  every other link, the ones that aren't between a warp and its parent: { from, to },
 //          each a node's key
 function warpFamily(mapName, warpName) {
@@ -165,6 +168,7 @@ function warpFamily(mapName, warpName) {
       ...found[key],
       start: key === startKey,
       parent: parent[key],
+      onlyChild: children[parent[key]]?.length === 1,
       fromParent: false,
       toParent: false,
       x: across[key] * (g.nodeWidth + g.gapX),
@@ -407,42 +411,72 @@ function drawWarpNode(node, words) {
 }
 
 // the line from a warp down to one of its children, like a family tree: straight down from the
-// middle of the parent, across the gap just above the child's row, then down into the child. its
-// brothers and sisters share the parts down from the parent and across, drawn over each other.
-// arrowheads say which way it leads: down into the child if the parent leads to it, and up out of
-// the child (and into the parent) if the child leads to the parent
+// middle of the parent, across the gap just above the child's row, then down into the child, with
+// rounded corners. its brothers and sisters share the parts down from the parent and across,
+// drawn over each other, so the lines branch off one another like railway tracks.
+//
+// each way the link goes gets one arrowhead, where it arrives: into the top of the child if the
+// parent leads to it, and into the parent if the child leads there, so only a link that goes both
+// ways has two. an only child has the line to itself, so its arrowhead goes right up against the
+// parent. brothers and sisters share the end at the parent, where an arrowhead couldn't say which
+// of them it's for, so theirs goes at the top of their own bit of line instead, just below where
+// it branches off
 function drawWarpBranch(parent, child) {
   const { nodeHeight: h, gapY } = WARP_GRAPH;
-  const acrossY = child.y - h / 2 - gapY / 2;
+  const top = child.y - h / 2;
+  const bottom = parent.y + h / 2;
+  const acrossY = top - gapY / 2;
+  // no bigger than half the distance across, or two corners close together would overlap
+  const radius = Math.min(WARP_GRAPH.cornerRadius, Math.abs(child.x - parent.x) / 2);
+
+  // drawn straight onto the canvas, since p5 has nothing for rounded corners on a line.
+  // arcTo() goes towards a corner and turns along to the next point, rounding it off
   stroke(WARP_GRAPH.lineColour);
   strokeWeight(2);
-  line(parent.x, parent.y + h / 2, parent.x, acrossY);
-  line(parent.x, acrossY, child.x, acrossY);
-  line(child.x, acrossY, child.x, child.y - h / 2);
-  if (child.fromParent) drawArrowhead(child.x, child.y - h / 2, Math.PI / 2);
-  if (child.toParent) {
-    drawArrowhead(child.x, acrossY, -Math.PI / 2);
-    drawArrowhead(parent.x, parent.y + h / 2, -Math.PI / 2);
-  }
+  const pen = drawingContext;
+  pen.beginPath();
+  pen.moveTo(parent.x, bottom);
+  pen.arcTo(parent.x, acrossY, child.x, acrossY, radius);
+  pen.arcTo(child.x, acrossY, child.x, top, radius);
+  pen.lineTo(child.x, top);
+  pen.stroke();
+
+  if (child.fromParent) drawArrowhead(child.x, top, Math.PI / 2);
+  if (child.toParent) drawArrowhead(child.x, child.onlyChild ? bottom : acrossY + radius, -Math.PI / 2);
 }
 
-// a dashed arrow straight from one warp's box to another's, for a link that isn't part of the
-// tree. it points at the edge of the box it leads to, rather than its middle, so the arrowhead
-// isn't hidden under it
+// a dashed arrow from one warp's box to another's, for a link that isn't part of the tree. it
+// curves smoothly out of the side of one box facing the other, and into the side of the other
+// facing back, with its arrowhead against that edge rather than hidden under the box. boxes in
+// the same row are joined side to side, otherwise bottom to top (or top to bottom)
 function drawWarpLink(from, to) {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  // how far back from the middle the edge of the box is, along the line
-  const back = Math.min(WARP_GRAPH.nodeWidth / 2 / Math.abs(dx), WARP_GRAPH.nodeHeight / 2 / Math.abs(dy));
-  const endX = to.x - dx * back;
-  const endY = to.y - dy * back;
-
+  const { nodeWidth: w, nodeHeight: h } = WARP_GRAPH;
+  let startX = from.x;
+  let startY = from.y;
+  let endX = to.x;
+  let endY = to.y;
+  let angle;
+  noFill();
   stroke(WARP_GRAPH.lineColour);
   strokeWeight(2);
   drawingContext.setLineDash([7, 6]);
-  line(from.x, from.y, endX, endY);
+  if (Math.abs(to.y - from.y) < h) {
+    const way = Math.sign(to.x - from.x);
+    startX += way * w / 2;
+    endX -= way * w / 2;
+    const middleX = (startX + endX) / 2;
+    bezier(startX, startY, middleX, startY, middleX, endY, endX, endY);
+    angle = way > 0 ? 0 : Math.PI;
+  } else {
+    const way = Math.sign(to.y - from.y);
+    startY += way * h / 2;
+    endY -= way * h / 2;
+    const middleY = (startY + endY) / 2;
+    bezier(startX, startY, startX, middleY, endX, middleY, endX, endY);
+    angle = way > 0 ? Math.PI / 2 : -Math.PI / 2;
+  }
   drawingContext.setLineDash([]);
-  drawArrowhead(endX, endY, Math.atan2(dy, dx));
+  drawArrowhead(endX, endY, angle);
 }
 
 // an arrowhead with its point at x, y: a triangle turned to point angle radians (0 is right)
