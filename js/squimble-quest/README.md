@@ -62,6 +62,8 @@ This README and the comments in the code are the project's only notes. There's n
   - Empty and off-map tiles count as solid.
   - `resize()` and `usedArea()` do the map resizing.
   - `SPAWN_KINDS` connects enemies and NPCs to their lists and their names in map files.
+  - Tiles are drawn straight onto screen pixels, with every edge rounded to a whole pixel and shared by the tiles either side, so there's never a faint grid at any zoom. See the comment above `drawTiles()`.
+- **Dual grid tiles** (`tileset` in `tiles.js`): ground like grass that blends into its neighbours with rounded edges. Maps and the editor don't know about it: a tile is still just `'grass'`, only drawing changes. `drawTiles()` draws the normal tiles first, then a second grid half a tile across and down, where each piece picks from the tileset by which of the four tiles meeting there are grass (`DUAL_TILESET_LAYOUT`). The see-through edges show a normal tile from the same corner underneath. When two dual grid tiles meet, the one defined further down `tiles.js` goes on top (`layer`), so order them lowest first (e.g. dirt before grass). The tileset is cut into 16 separate pictures when it loads, because drawing part of one big picture can pick up a line of the piece next to it at some zooms.
 - **Every map remembers its characters.** When the player leaves a map, `loadMap` keeps its live `enemies` and `npcs` on `map.characters`, and hands them back when the player returns. So defeated enemies stay gone, hurt ones stay hurt, and everyone stays where they were, until the page reloads.
   - The spawn lists (`enemySpawns`, `npcSpawns`) are the design and never change when an enemy dies, so Export always saves every one.
   - `spawnCharacters()` makes everyone fresh from the spawn lists. It runs on a map's first visit and whenever the editor opens, closes or changes characters. Opening the editor is a quick way to reset enemies while testing.
@@ -119,7 +121,8 @@ Only build these when they're needed.
 - **Nothing stops a warp being placed on a solid tile.** Arriving there leaves the player inside a wall. Put arrival warps on floor.
 - **The spawn can end up on an empty tile.** Erasing the tile under it, or making a new map filled with `empty`, leaves the player stuck there. Nothing checks for this.
 - **The New map fill picker steps one tile at a time.** Fine for now, but slow once there are lots of tiles.
-- **The art is placeholders:** coloured rectangles until sprites exist. Every catalogue already has an `image` setting.
+- **The art is placeholders:** coloured rectangles until sprites exist. Every catalogue already has an `image` setting. Grass has a test dual grid tileset (`assets/squimble-quest/maps/tilesets/grass_tileset.png`).
+- **Pixel art at in-between zooms:** art is drawn without blurring (`noSmooth()` in `sketch.js`), so at a zoom like 1.35 some art pixels come out a screen pixel wider than others. That's normal for pixel art that isn't at a whole-number size, and there are no gaps or lines between tiles.
 
 ## Checking changes
 
