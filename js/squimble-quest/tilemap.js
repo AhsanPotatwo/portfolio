@@ -45,7 +45,7 @@ class TileMap {
     this.npcSpawns = [];
 
     // warps: tiles that take the player to another map, or somewhere else on this one. each is
-    // { name, col, row, to, toWarp, activate }, all explained at the top of warps.js
+    // { name, col, row, to, toWarp, activate, enemies }, all explained at the top of warps.js
     this.warps = [];
 
     // the enemies and npcs as they were when the player last left this map, { enemies, npcs }, so

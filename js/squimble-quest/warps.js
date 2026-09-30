@@ -9,7 +9,7 @@
 //
 // on a map, each warp is:
 //
-//   { name, col, row, to, toWarp, activate }
+//   { name, col, row, to, toWarp, activate, enemies }
 //
 //   name      what it's called, so other warps can lead to it. each warp on a map has its own name
 //   col, row  the tile it's on. it can share the tile with objects, enemies and npcs
@@ -18,6 +18,7 @@
 //   toWarp    the name of the warp on that map to arrive at. '' arrives at that map's spawn point
 //   activate  'step' opens it when the player steps onto its tile.
 //             'interact' opens it when the player's close enough and presses E (KEYS in config.js)
+//   enemies   true lets enemies chasing the player follow them through it (see sendFollowers())
 //
 // every warp is both a way out and a place to arrive, so a house needs two: one on the town map
 // leading to the one inside, and one inside leading back out. warps link by name rather than by
@@ -42,6 +43,10 @@
 // warp's tile is one you can't walk onto
 const WARP_REACH = 40;
 
+// how long an enemy following the player takes to open an 'interact' warp once it's walked there,
+// in seconds, like the player taking a moment to press E
+const WARP_ENEMY_OPEN_TIME = 1;
+
 // how warps look in the map editor. they're invisible while playing, the map's tiles and objects
 // are what show where they are
 const WARP_COLOURS = {
@@ -59,6 +64,9 @@ const Warps = {
   // the 'interact' warp close enough to open with E this frame, or null. worked out in sketch.js
   // every frame while playing, and drawn with an E over it
   reachable: null,
+  // enemies following the player through a warp to another map, on their way there. they're on
+  // neither map until they come out (see sendFollowers())
+  followers: [],
 
   // run by loadMap() (sketch.js) once the player's been put on the new map. whatever tile they've
   // arrived on counts as already stepped on, so a 'step' warp there doesn't send them straight back
@@ -106,7 +114,64 @@ const Warps = {
       console.warn(`The warp "${warp.name}" is broken: ${problem}.`);
       return;
     }
+    if (warp.enemies) this.sendFollowers(warp);
     loadMap(warp.to, warp.toWarp); // in sketch.js
+  },
+
+  // the enemies chasing the player follow them through a warp that lets enemies through. each
+  // takes as long as it would to walk to the warp in a straight line, plus WARP_ENEMY_OPEN_TIME
+  // if it opens with E, then comes out where the warp leads (comeOut()).
+  // on a warp to another spot on the same map, they really walk to it (Enemy.update() in
+  // enemy.js). on a warp to another map they can't, because a map the player isn't on stands
+  // still, so they leave it straight away and wait in followers instead.
+  // ponytail: any enemy with an ai counts as chasing inside its sightRange (chasePlayer in
+  // enemies.js), give ais their own "am I chasing" answer once there are ones that don't chase.
+  // enemies, player and worldMap are the game's (sketch.js)
+  sendFollowers(warp) {
+    const x = (warp.col + 0.5) * TILE;
+    const y = (warp.row + 0.5) * TILE;
+    const open = warp.activate === 'interact' ? WARP_ENEMY_OPEN_TIME : 0;
+    const chasing = enemies.filter((enemy) => !enemy.following && enemy.settings.ai && enemy.speed > 0
+      && Math.hypot(player.x - enemy.x, player.y - enemy.y) <= enemy.type.sightRange);
+    for (const enemy of chasing) {
+      const walk = Math.hypot(x - enemy.x, y - (enemy.y + feetBelowCentre(enemy.settings))) / enemy.speed;
+      enemy.following = { warp, time: walk + open };
+    }
+    if (getMap(warp.to) === worldMap) return;
+    this.followers.push(...chasing);
+    enemies = enemies.filter((enemy) => !chasing.includes(enemy));
+  },
+
+  // run every frame while playing: counts down the followers on their way to another map, and
+  // brings out the ones that have got there
+  update(dt) {
+    for (const enemy of this.followers) {
+      enemy.following.time -= dt;
+      if (enemy.following.time <= 0) this.comeOut(enemy);
+    }
+  },
+
+  // an enemy following the player comes out where its warp leads, like the player would. if the
+  // player's on that map it joins its enemies, otherwise the ones the map keeps for when they
+  // come back (loadMap() in sketch.js)
+  comeOut(enemy) {
+    const warp = enemy.following.warp;
+    enemy.following = null;
+    this.followers = this.followers.filter((other) => other !== enemy);
+    const map = getMap(warp.to);
+    const arrive = map.warp(warp.toWarp);
+    if (arrive) {
+      enemy.placeFeetOnTile(arrive.col, arrive.row);
+    } else {
+      // the spawn point is where the player's centre goes, so find the tile under their feet
+      enemy.placeFeetOnTile(map.colAt(map.spawn.x), map.rowAt(map.spawn.y + feetBelowCentre(PLAYER)));
+    }
+    if (map === worldMap) {
+      if (!enemies.includes(enemy)) enemies.push(enemy);
+    } else {
+      // a map opened from a file since has no kept characters yet, and will make its own
+      map.characters?.enemies.push(enemy);
+    }
   },
 
   // an E over the warp that can be opened right now. uses world positions, so draw it before

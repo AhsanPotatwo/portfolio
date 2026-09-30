@@ -92,6 +92,7 @@ A warp is a tile that takes the player somewhere else: a door into a house, a ca
    - **Goes to**: the map it leads to. **nowhere** means it only works as a place to arrive.
    - **Arrive at**: where the player turns up on that map. That's its **spawn point**, or any warp on it.
    - **Opens by**: **stepping on it**, or **pressing E** when close enough. A warp that opens with E works from the tile in front too, so it can go on a wall or under a solid object.
+   - **Enemies**: whether enemies chasing the player **follow you** through it, or **don't follow**. A follower takes about as long as it would to walk to the warp, plus a second to open it if it opens with E, then comes out where the player arrived. On a warp to the same map you can watch them walk to it. On a warp to another map they turn up a moment after you.
    - **Show links**: shows every warp linked to this one, then every warp linked to those, and so on, like a family tree (see below).
 3. Click the right half of a choice for the next one, or the left half to go back. Then click **Save**.
 
@@ -187,7 +188,7 @@ You can open a map in any text editor. It looks like this:
 - **`legend`**: which code means which tile (the names in `tiles.js`). `..` is always empty. The editor makes a 2-character code for each tile when it exports, from the tile's name where it can: `gr` for grass, then `wt` for water because `wa` is already wall. There are thousands of possible codes, so they won't run out however many tiles you add.
 - **`objects`**: everything placed on the tiles. `type` is the object's name in `objects.js`, and `col`, `row` is the tile its top-left corner is on. They're drawn in list order, so later ones go on top.
 - **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is the name in `enemies.js` or `npcs.js`, and `col`, `row` is the tile it stands on. Maps without these lists just have none.
-- **`warps`**: see [Warps](#warps). `name` is the warp's name, and `col`, `row` is its tile. `to` is the map it leads to (`""` for nowhere), and `toWarp` is the warp to arrive at on that map (`""` for its spawn point). `activate` is `"step"` or `"interact"` (press E). Maps without this list just have no warps.
+- **`warps`**: see [Warps](#warps). `name` is the warp's name, and `col`, `row` is its tile. `to` is the map it leads to (`""` for nowhere), and `toWarp` is the warp to arrive at on that map (`""` for its spawn point). `activate` is `"step"` or `"interact"` (press E). `enemies` is `true` if enemies chasing the player follow them through it (left out means `false`). Maps without this list just have no warps.
 - **`left`, `top`**: the tile column and row of the map's top-left corner. Tile `(0, 0)` is at the middle of the world, so `-5, -2` puts the middle of a 10 × 5 map there.
 - **`spawn`**: where the player starts, in pixels (the centre of the player). Easiest to set with **spawn** in the editor's **Triggers** tab.
 

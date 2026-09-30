@@ -551,14 +551,15 @@ const Editor = {
       let number = 1;
       while (map.warp(`warp${number}`)) number++;
       // goes nowhere and opens by stepping on it, until its settings say otherwise
-      warp = { name: `warp${number}`, col, row, to: '', toWarp: '', activate: 'step' };
+      warp = { name: `warp${number}`, col, row, to: '', toWarp: '', activate: 'step', enemies: false };
       map.warps.push(warp);
     }
     this.editWarp(map, warp);
   },
 
   // a box for changing a warp's settings: its name, which map it goes to, which warp on that map
-  // it arrives at, and whether it opens by stepping on it or pressing E. the warp changes when
+  // it arrives at, whether it opens by stepping on it or pressing E, and whether enemies chasing
+  // the player can follow them through it. the warp changes when
   // the box is confirmed, Cancel leaves it how it was. Show links opens the warp graph over it
   // (warpgraph.js), which shows the warp as it was last saved
   editWarp(map, warp) {
@@ -601,6 +602,15 @@ const Editor = {
             label: (how) => (how === 'step' ? 'stepping on it' : 'pressing E'),
           }),
         },
+        {
+          label: 'Enemies',
+          field: new Picker({
+            w: 180,
+            choices: [false, true],
+            value: warp.enemies,
+            label: (follow) => (follow ? 'follow you' : "don't follow"),
+          }),
+        },
         // last, so it doesn't move the others in the values onConfirm gets (a button has no value)
         {
           label: 'Links',
@@ -609,8 +619,8 @@ const Editor = {
       ],
       // needs a name, and one no other warp on this map has, so warps can lead to it
       canConfirm: ([name]) => name.trim() !== '' && !map.warps.some((other) => other !== warp && other.name === name.trim()),
-      onConfirm: ([name, to, toWarp, activate]) => {
-        Object.assign(warp, { name: name.trim(), to, toWarp: to ? toWarp : '', activate });
+      onConfirm: ([name, to, toWarp, activate, enemies]) => {
+        Object.assign(warp, { name: name.trim(), to, toWarp: to ? toWarp : '', activate, enemies });
       },
     });
   },
