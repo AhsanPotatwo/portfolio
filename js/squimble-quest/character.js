@@ -1,5 +1,5 @@
-// anything that walks about, has health and can fight. the player (player.js) and enemies
-// (enemy.js) are both built on this, so they walk, bump into walls, get hurt and attack the same way.
+// anything that walks about, has health and can fight. the player (player.js), enemies (enemy.js)
+// and npcs (npc.js) are all built on this, so they walk, bump into walls, get hurt and attack the same way.
 //
 // every frame a character is given "controls", the three things that decide what it does:
 //
@@ -15,7 +15,27 @@
 // settings come from PLAYER (config.js) for the player, ENEMY_TYPES (enemies.js) for enemies,
 // and NPC_TYPES (npcs.js) for npcs:
 //   width, height, feetWidth, feetHeight, speed, maxHealth, weapon (enemies),
-//   colour, outline, hurtColour, hurtFlashTime
+//   colour, outline, hurtColour, hurtFlashTime, healthBarColour, ai (enemies and npcs)
+//
+// "world" (given to update() and to ais) is everything a character might need to know about:
+//   { map, player, enemies, npcs, characters }
+// characters is the player, enemies and npcs all in one list (made in sketch.js)
+
+// the controls for a character with no ai (or an ai that's decided to wait): do nothing
+const STAND_STILL = { move: { x: 0, y: 0 }, aim: null, attack: false };
+
+// how far below a character's centre the middle of its feet is. settings are any character's
+// (PLAYER, or a type from enemies.js or npcs.js)
+function feetBelowCentre(settings) {
+  return settings.height / 2 - settings.feetHeight / 2;
+}
+
+// where a character's centre is when it stands with its feet in the middle of a tile.
+// used to place enemies, npcs and the player's spawn point on tiles
+function standingOnTile(settings, col, row) {
+  return { x: (col + 0.5) * TILE, y: (row + 0.5) * TILE - feetBelowCentre(settings) };
+}
+
 class Character {
   constructor(x, y, settings) {
     this.settings = settings;
@@ -60,7 +80,7 @@ class Character {
   // ---------- every frame ----------
 
   // controls: what to do this frame (see the top of this file). dt: seconds since the last frame.
-  // world: { map, player, enemies, npcs }, everything it might need to know about
+  // world: everything it might need to know about (see the top of this file)
   update(controls, dt, world) {
     this.walk(controls.move, dt, world);
     this.aimAt(controls.aim);
@@ -79,6 +99,12 @@ class Character {
   // who this character's attacks can hurt. the player and enemies each say who (see their files)
   targets(world) {
     return [];
+  }
+
+  // the controls its ai (from enemies.js or npcs.js) picks for this frame, or STAND_STILL if it
+  // hasn't got one. enemies and npcs use this, the player's controls come from the keyboard instead
+  think(world, dt) {
+    return this.settings.ai ? this.settings.ai(this, world, dt) : STAND_STILL;
   }
 
   // ---------- moving ----------
@@ -105,11 +131,10 @@ class Character {
     // across first, then down, like map.moveBox() does, so walking into a wall or someone at an
     // angle slides along them. each time: the map says how far the feet can go before a wall,
     // then that's cut short again if another character's feet are in the way
-    const others = this.bumpsInto(world);
     const feet = this.feetBox();
-    const moveX = this.stopAtOthers(others, feet, 'x', map.moveAlongX(feet, dx * speed * dt));
+    const moveX = this.stopAtOthers(world, feet, 'x', map.moveAlongX(feet, dx * speed * dt));
     feet.x += moveX;
-    const moveY = this.stopAtOthers(others, feet, 'y', map.moveAlongY(feet, dy * speed * dt));
+    const moveY = this.stopAtOthers(world, feet, 'y', map.moveAlongY(feet, dy * speed * dt));
     this.x += moveX;
     this.y += moveY;
 
@@ -121,20 +146,17 @@ class Character {
     if (edges.bottom - edges.top >= this.h && this.y < headLimit) this.y = headLimit;
   }
 
-  // everyone it can't walk through: every other character that's still alive
-  bumpsInto(world) {
-    return [world.player, ...(world.enemies ?? []), ...(world.npcs ?? [])]
-      .filter((other) => other && other !== this && !other.dead);
-  }
-
   // how far the feet can move along one axis ('x' or 'y') before they'd walk into another
   // character's feet. amount is how far they want to go, and it's cut short to stop flush against
   // whoever's in the way. only the feet bump, like with walls, so heads and bodies can still
-  // overlap from this angle (someone standing in front of someone else)
-  stopAtOthers(others, feet, axis, amount) {
+  // overlap from this angle (someone standing in front of someone else).
+  // every other character that's still alive is in the way. it goes through world.characters
+  // directly rather than making a new list of them, because every character does this every frame
+  stopAtOthers(world, feet, axis, amount) {
     if (amount === 0) return 0;
     const size = axis === 'x' ? 'w' : 'h';
-    for (const other of others) {
+    for (const other of world.characters) {
+      if (other === this || other.dead) continue;
       const theirs = other.feetBox();
       // already overlapping (e.g. one was teleported onto the other): let them walk apart,
       // rather than both being stuck
@@ -170,9 +192,9 @@ class Character {
 
   // stands it with its feet in the middle of a tile
   placeFeetOnTile(col, row) {
-    const feetBelowCentre = this.h / 2 - this.settings.feetHeight / 2;
-    this.x = (col + 0.5) * TILE;
-    this.y = (row + 0.5) * TILE - feetBelowCentre;
+    const centre = standingOnTile(this.settings, col, row);
+    this.x = centre.x;
+    this.y = centre.y;
   }
 
   // which tile it's standing on (the one under the middle of its feet),
@@ -246,6 +268,15 @@ class Character {
   }
 
   // ---------- drawing ----------
+
+  // uses world positions, so it's drawn between camera.begin() and camera.end().
+  // the player and enemies draw like this, npcs change it (npc.js)
+  draw() {
+    this.drawBody();
+    // once it's been hurt, a health bar over its head
+    if (this.health < this.maxHealth) this.drawHealthBar();
+    if (this.swing) this.swing.draw();
+  }
 
   // a bar over its head showing how much health it has left, in its settings' healthBarColour.
   // the player and enemies draw it once they've been hurt

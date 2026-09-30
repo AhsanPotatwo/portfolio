@@ -16,6 +16,14 @@ const HOTBAR_SIZE = 5;
 // trackpads send lots of small amounts, so this stops them racing through the slots
 const HOTBAR_SCROLL_STEP = 60;
 
+// layout of the hotbar, in screen pixels: each slot's size, the gap between them, and how far
+// the bottom of the slots is from the bottom of the screen
+const HOTBAR_LAYOUT = {
+  slotSize: 44,
+  gap: 6,
+  bottom: 10,
+};
+
 class Inventory {
   constructor(size) {
     // each slot is an item, or null for empty
@@ -73,11 +81,11 @@ const Hotbar = {
     // the game uses the mouse wheel now, so while you're playing it stops scrolling the page
     Input.captureWheel = true;
 
-    const size = 44;
-    const gap = 6;
+    // the slots in a row, centred along the bottom of the screen
+    const { slotSize: size, gap, bottom } = HOTBAR_LAYOUT;
     const width = inventory.size * size + (inventory.size - 1) * gap;
     const left = (GAME_W - width) / 2;
-    const top = GAME_H - size - 10;
+    const top = GAME_H - size - bottom;
 
     for (let i = 0; i < inventory.size; i++) {
       UI.add(new HotbarSlot({
@@ -115,16 +123,13 @@ const Hotbar = {
   // what's being held, written above the hotbar. uses screen positions
   drawLabel() {
     const item = this.inventory.held();
-    noStroke();
     fill(255);
-    textFont('Quicksand');
-    textStyle(BOLD);
-    textSize(14);
-    textAlign(CENTER, BOTTOM);
+    setText(14, BOLD, CENTER, BOTTOM);
     // a dark edge round the letters so it shows up on any ground
     stroke(0, 0, 0, 170);
     strokeWeight(3);
-    text(item ? item.type.label : 'Empty hands', GAME_W / 2, GAME_H - 44 - 16);
+    // just above the slots
+    text(item ? item.type.label : 'Empty hands', GAME_W / 2, GAME_H - HOTBAR_LAYOUT.slotSize - 16);
   },
 };
 
@@ -156,10 +161,7 @@ class HotbarSlot extends Button {
         fill(item.type.fill);
         rect(this.x + pad, this.y + pad, this.w - pad * 2, this.h - pad * 2, 4);
         fill(20);
-        textFont('Quicksand');
-        textStyle(BOLD);
-        textSize(16);
-        textAlign(CENTER, CENTER);
+        setText(16);
         text(item.type.label[0], this.x + this.w / 2, this.y + this.h / 2 + 1);
       }
     }
@@ -167,10 +169,7 @@ class HotbarSlot extends Button {
     // its number, top left
     noStroke();
     fill(selected ? '#ffd23f' : 200);
-    textFont('Quicksand');
-    textStyle(BOLD);
-    textSize(10);
-    textAlign(LEFT, TOP);
+    setText(10, BOLD, LEFT, TOP);
     text(this.slot + 1, this.x + 4, this.y + 2);
   }
 }

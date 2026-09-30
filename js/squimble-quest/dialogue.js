@@ -154,26 +154,21 @@ class DialogueBox extends UIElement {
     // their name and what they're saying, wrapped to fit next to the portrait
     const textX = px + size + pad;
     const textW = this.x + this.w - textX - pad;
+    const line = Dialogue.currentLine();
     noStroke();
     fill(npc.type.colour);
-    textFont('Quicksand');
-    textStyle(BOLD);
-    textSize(18);
-    textAlign(LEFT, TOP);
+    setText(18, BOLD, LEFT, TOP);
     text(npc.type.label, textX, this.y + pad);
 
     fill(240);
-    textStyle(NORMAL);
-    textSize(17);
-    text(Dialogue.currentLine().slice(0, Math.floor(Dialogue.shown)), textX, this.y + pad + 30, textW, this.h - pad * 2 - 30);
+    setText(17, NORMAL, LEFT, TOP);
+    text(line.slice(0, Math.floor(Dialogue.shown)), textX, this.y + pad + 30, textW, this.h - pad * 2 - 30);
 
     // once the line's finished, a hint for what to press
-    if (Dialogue.shown >= Dialogue.currentLine().length) {
+    if (Dialogue.shown >= line.length) {
       const last = Dialogue.line >= npc.type.dialogue.length - 1;
       fill(255, 255, 255, 150);
-      textSize(12);
-      textStyle(BOLD);
-      textAlign(RIGHT, BOTTOM);
+      setText(12, BOLD, RIGHT, BOTTOM);
       text(last ? 'E  close' : 'E  next', this.x + this.w - pad, this.y + this.h - 10);
     }
   }

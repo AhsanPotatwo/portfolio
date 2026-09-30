@@ -76,9 +76,8 @@ const Debug = {
 
     // puts the player's feet on the mouse. not onto solid tiles or off the map, they'd be stuck
     if (Input.wasPressed('teleport') && aim && !map.isSolid(map.colAt(aim.x), map.rowAt(aim.y))) {
-      const feet = player.feetBox();
       player.x = aim.x;
-      player.y = aim.y - (feet.y + feet.h / 2 - player.y);
+      player.y = aim.y - feetBelowCentre(player.settings); // character.js
     }
   },
 
@@ -86,13 +85,14 @@ const Debug = {
   draw(player, camera, map, aim) {
     if (!this.enabled) return;
 
+    const held = player.inventory.held();
     const lines = [
       'DEV MODE     ` or Ctrl+D to hide',
       `fps     ${Math.round(this.fps)}`,
       `map     ${map.name}`,
       `player  ${formatPoint(player)}`,
       `health  ${Math.ceil(player.health)} / ${PLAYER.maxHealth}`,
-      `holding ${player.inventory.held() ? player.inventory.held().type.name : 'nothing'}`,
+      `holding ${held ? held.type.name : 'nothing'}`,
       `tile    ${player.tile ? `${player.tile.name} (${player.tileCol}, ${player.tileRow})` : '-'}`,
       `mouse   ${aim ? formatPoint(aim) : '-'}`,
       `camera  ${formatPoint(camera)}  zoom ${camera.zoom.toFixed(2)}`,
@@ -103,18 +103,8 @@ const Debug = {
       'B  map editor',
     ];
 
-    const lineHeight = 18;
-    noStroke();
-    fill(0, 0, 0, 160);
-    rect(8, 8, 300, lines.length * lineHeight + 12, 6);
-
-    fill(255);
-    // courier prime is already loaded by the page. monospace so the numbers don't jiggle about
-    textFont('Courier Prime');
-    textStyle(NORMAL);
-    textSize(14);
-    textAlign(LEFT, TOP);
-    lines.forEach((row, i) => text(row, 16, 14 + i * lineHeight));
+    // hud.js
+    drawPanel(8, 8, 300, lines, 14);
   },
 };
 

@@ -1,31 +1,34 @@
 // squimble quest, a top down rpg.
 // this file runs the game loop. the other files in this folder hold the pieces it uses,
 // and squimble-quest.html loads them in this order before this one:
-//   config.js   settings: sizes, speeds, controls, the size of the world
-//   utils.js    small maths helpers
-//   input.js    the keyboard and mouse
-//   camera.js   which part of the world is on screen, and world ↔ screen positions
-//   tiles.js    every kind of tile and what it does (grass, walls, lava...)
-//   objects.js  every kind of object that sits on the tiles (furniture, decorations...)
-//   enemies.js  every kind of enemy, and its ai
-//   weapons.js  every weapon, and the swings they make
-//   items.js    every kind of item that can be carried (a sword, an axe...)
-//   tilemap.js  a map made of tiles: storing, drawing, and collision with solid tiles
-//   maps.js     the list of map files to load, and the map the game starts on
-//   mapfile.js  saving and loading maps as files
-//   world.js    draws the world (the map, plus dev mode lines)
-//   character.js  what the player and enemies share: walking, health, attacking
-//   player.js   the player (needs character.js loaded first)
-//   enemy.js    an enemy in the game (needs character.js loaded first)
-//   npcs.js     every kind of friendly npc, and what they say
-//   npc.js      an npc in the game (needs character.js loaded first)
-//   ui.js       the ui system: UIElement and the UI manager
-//   button.js   buttons (needs ui.js loaded first, because Button builds on UIElement)
-//   hud.js      things drawn over the game that aren't ui elements (crosshair, messages)
+//   config.js     settings: sizes, speeds, controls, button styles
+//   utils.js      small helpers (maths, text settings)
+//   input.js      the keyboard and mouse
+//   camera.js     which part of the world is on screen, and world ↔ screen positions
+//   tiles.js      every kind of tile and what it does (grass, walls, lava...)
+//   objects.js    every kind of object that sits on the tiles (furniture, decorations...)
+//   enemies.js    every kind of enemy, and its ai
+//   npcs.js       every kind of friendly npc, and what they say
+//   weapons.js    every weapon, and the swings they make
+//   items.js      every kind of item that can be carried (a sword, an axe...)
+//   tilemap.js    a map made of tiles: storing, drawing, and collision with solid tiles
+//   maps.js       the list of map files to load, and the map the game starts on
+//   mapfile.js    saving and loading maps as files
+//   world.js      draws the world (the map, plus dev mode lines)
+//   character.js  what the player, enemies and npcs share: walking, health, attacking, drawing
+//   player.js     the player (needs character.js loaded first)
+//   enemy.js      an enemy in the game (needs character.js loaded first)
+//   npc.js        an npc in the game (needs character.js loaded first)
+//   ui.js         the ui system: UIElement and the UI manager
+//   button.js     buttons (needs ui.js loaded first, because Button builds on UIElement)
+//   hud.js        things drawn over the game that aren't ui elements (crosshair, messages, panels)
 //   inventory.js  inventories, and the hotbar (needs button.js loaded first)
 //   dialogue.js   talking to npcs: who's in range, and the text box
-//   editor.js   the map editor, opened from dev mode (needs button.js loaded first)
-//   debug.js    developer mode, hidden testing tools (press ` or Ctrl + D while playing)
+//   editor.js     the map editor, opened from dev mode (needs button.js loaded first)
+//   debug.js      developer mode, hidden testing tools (press ` or Ctrl + D while playing)
+//
+// the catalogue files (tiles, objects, enemies, npcs, weapons, items) are where new things get
+// added, each has a "how to make one" guide at the top
 
 let player;
 // not just "camera", because p5 already has a function called camera() for 3D
@@ -165,8 +168,9 @@ function draw() {
     // talking to someone pauses the game. E moves the conversation on
     Dialogue.update(dt);
   } else {
-    // everything the player, enemies and npcs might need to know about
-    const world = { map: worldMap, player, enemies, npcs };
+    // everything the player, enemies and npcs might need to know about (see the top of character.js).
+    // characters is everyone in one list, made once here rather than by each of them every frame
+    const world = { map: worldMap, player, enemies, npcs, characters: [player, ...enemies, ...npcs] };
 
     // number keys and the mouse wheel change what the player's holding
     Hotbar.update();
@@ -183,10 +187,11 @@ function draw() {
     for (const enemy of enemies) enemy.update(dt, world);
     // defeated enemies are gone, and so is the spawn they came from, otherwise closing the map
     // editor (which remakes everyone from their spawns) would bring them back
-    for (const enemy of enemies) {
-      if (enemy.dead && enemy.spawn) worldMap.removeSpawn('enemy', enemy.spawn);
-    }
-    enemies = enemies.filter((enemy) => !enemy.dead);
+    enemies = enemies.filter((enemy) => {
+      if (!enemy.dead) return true;
+      if (enemy.spawn) worldMap.removeSpawn('enemy', enemy.spawn);
+      return false;
+    });
     for (const npc of npcs) npc.update(dt, world);
 
     // the npc close enough to talk to (if any) shows an E over its head, and E starts talking

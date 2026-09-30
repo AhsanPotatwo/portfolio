@@ -51,11 +51,4 @@ class Player extends Character {
     this.tileCol = null;
     this.tileRow = null;
   }
-
-  draw() {
-    this.drawBody();
-    // once it's been hurt, a health bar over its head (character.js)
-    if (this.health < this.maxHealth) this.drawHealthBar();
-    if (this.swing) this.swing.draw();
-  }
 }

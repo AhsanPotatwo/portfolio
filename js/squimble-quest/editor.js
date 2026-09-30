@@ -41,7 +41,6 @@ const EDITOR_HELP = {
     'P: player spawns here',
   ],
   width: 330,
-  lineHeight: 18,
 };
 
 // layout of the bar along the bottom, in screen pixels
@@ -58,7 +57,8 @@ const EDITOR_BAR = {
   tabHeight: 26,
 };
 
-// the tabs above the bar, left to right. each one shows everything of its kind
+// the tabs above the bar, left to right. each one shows everything of its kind.
+// a new kind of thing to place needs a tab here and its catalogue in EDITOR_CATALOGUES below
 const EDITOR_TABS = [
   { kind: 'tile', label: 'Tiles' },
   // furniture, decorations, chests... everything in objects.js
@@ -67,10 +67,8 @@ const EDITOR_TABS = [
   { kind: 'npc', label: 'NPCs' },
 ];
 
-// where each tab's things are defined
-function editorCatalogue(kind) {
-  return { tile: TILE_TYPES, object: OBJECT_TYPES, enemy: ENEMY_TYPES, npc: NPC_TYPES }[kind];
-}
+// where each tab's things are defined, by kind
+const EDITOR_CATALOGUES = { tile: TILE_TYPES, object: OBJECT_TYPES, enemy: ENEMY_TYPES, npc: NPC_TYPES };
 
 // is this tab's kind a character that gets placed standing on a tile (an enemy or npc)?
 function isCharacterKind(kind) {
@@ -79,10 +77,10 @@ function isCharacterKind(kind) {
 
 const Editor = {
   active: false,
-  // what's picked in the bar: { kind: 'tile' or 'object', name }, or null for Erase
+  // what's picked in the bar: { kind, name } (kind is one of the EDITOR_TABS), or null for Erase
   selected: null,
-  // which tab is showing ('tile' or 'object'), and for each tab, which page it's on and how many
-  // pages it has. each tab remembers its own page, so switching back finds it where you left it
+  // which tab is showing (a kind from EDITOR_TABS), and for each tab, which page it's on and how
+  // many pages it has. each tab remembers its own page, so switching back finds it where you left it
   tab: 'tile',
   pages: {},
   pageCounts: {},
@@ -107,7 +105,7 @@ const Editor = {
 
     // what goes in each tab, and how many pages each one needs (at least 1, even if it's empty)
     const names = {};
-    for (const { kind } of EDITOR_TABS) names[kind] = Object.keys(editorCatalogue(kind));
+    for (const { kind } of EDITOR_TABS) names[kind] = Object.keys(EDITOR_CATALOGUES[kind]);
     for (const { kind } of EDITOR_TABS) {
       this.pages[kind] = 0;
       this.pageCounts[kind] = Math.max(1, Math.ceil(names[kind].length / perPage));
@@ -147,7 +145,7 @@ const Editor = {
       onClick: () => this.showTab(kind),
     })));
 
-    // one square per tile and object. each knows its tab and page, only the open ones are shown
+    // one square per tile, object, enemy and npc. each knows its tab and page, only the open ones are shown
     this.swatches = [];
     for (const { kind } of EDITOR_TABS) {
       names[kind].forEach((name, i) => {
@@ -165,10 +163,10 @@ const Editor = {
       });
     }
 
-    // New map, Export and Open, in a row under the controls box. worldMap, player and gameCamera
-    // are the game's (sketch.js)
+    // New map, Export and Open, in a row 8px under the controls box (its height is explained at
+    // drawPanel() in hud.js). worldMap is the game's (sketch.js)
     const helpLeft = GAME_W - 8 - EDITOR_HELP.width;
-    const buttonsY = 8 + EDITOR_HELP.lines.length * EDITOR_HELP.lineHeight + 12 + 8;
+    const buttonsY = 8 + EDITOR_HELP.lines.length * PANEL_LINE_HEIGHT + 12 + 8;
     const third = (EDITOR_HELP.width - 16) / 3;
     add(new Button({
       x: helpLeft, y: buttonsY, w: third, h: 32, label: 'New map',
@@ -222,7 +220,7 @@ const Editor = {
 
   // ---------- tabs and pages ----------
 
-  // switches the bar to a tab ('tile' or 'object'), on whichever page it was last on
+  // switches the bar to a tab (a kind from EDITOR_TABS), on whichever page it was last on
   showTab(kind) {
     this.tab = kind;
     this.showPage(this.pages[kind]);
@@ -245,7 +243,7 @@ const Editor = {
     this.nextButton.enabled = morePages;
   },
 
-  // is this tile or object the one picked in the bar?
+  // is this the one picked in the bar?
   isSelected(kind, name) {
     return this.selected !== null && this.selected.kind === kind && this.selected.name === name;
   },
@@ -370,10 +368,11 @@ const Editor = {
     spawnCharacters();
   },
 
-  // where a character's body would be if it stood on this tile (like Character.placeFeetOnTile())
+  // where a character's body would be if it stood on this tile, as a box (standingOnTile() is in
+  // character.js, the same as Character.placeFeetOnTile() uses)
   characterBodyOnTile(type, col, row) {
-    const centreY = (row + 0.5) * TILE - (type.height / 2 - type.feetHeight / 2);
-    return { x: (col + 0.5) * TILE - type.width / 2, y: centreY - type.height / 2, w: type.width, h: type.height };
+    const centre = standingOnTile(type, col, row);
+    return { x: centre.x - type.width / 2, y: centre.y - type.height / 2, w: type.width, h: type.height };
   },
 
   // runs action(col, row) for every tile along a line. a fast drag can jump several tiles between
@@ -396,15 +395,15 @@ const Editor = {
     // same trick as the grid: divide by zoom so lines stay the same thickness on screen
     const px = 1 / camera.zoom;
 
-    // the spawn point: a yellow ring where the player's feet will be
-    const feetBelowCentre = PLAYER.height / 2 - PLAYER.feetHeight / 2;
+    // the spawn point: a yellow ring (on a dark one) where the player's feet will be
+    const spawnFeetY = map.spawn.y + feetBelowCentre(PLAYER);
     noFill();
     stroke(0, 0, 0, 160);
     strokeWeight(4 * px);
-    circle(map.spawn.x, map.spawn.y + feetBelowCentre, 20);
+    circle(map.spawn.x, spawnFeetY, 20);
     stroke('#ffd23f');
     strokeWeight(2 * px);
-    circle(map.spawn.x, map.spawn.y + feetBelowCentre, 20);
+    circle(map.spawn.x, spawnFeetY, 20);
 
     if (!aim || !Input.mouse.inside || UI.hovered) return;
     const col = map.colAt(aim.x);
@@ -420,7 +419,7 @@ const Editor = {
 
     // an enemy or npc: a see-through preview of it, standing on the tile
     if (this.selected && isCharacterKind(this.selected.kind)) {
-      const type = editorCatalogue(this.selected.kind)[this.selected.name];
+      const type = EDITOR_CATALOGUES[this.selected.kind][this.selected.name];
       const body = this.characterBodyOnTile(type, col, row);
       this.drawGhost(type, body.x, body.y, body.w, body.h, px);
       return;
@@ -435,7 +434,7 @@ const Editor = {
       }
       for (const kind of Object.keys(SPAWN_KINDS)) {
         for (const spawn of map.spawnsAt(kind, col, row)) {
-          const body = this.characterBodyOnTile(editorCatalogue(kind)[spawn.type], col, row);
+          const body = this.characterBodyOnTile(EDITOR_CATALOGUES[kind][spawn.type], col, row);
           this.outline(body.x, body.y, body.w, body.h, '#ff6b6b', px);
         }
       }
@@ -476,17 +475,8 @@ const Editor = {
   // a reminder of the controls, top right (the text is in EDITOR_HELP at the top of this file).
   // uses screen positions, so draw it after camera.end()
   drawHelp() {
-    const { lines, width, lineHeight } = EDITOR_HELP;
-    noStroke();
-    fill(0, 0, 0, 160);
-    rect(GAME_W - width - 8, 8, width, lines.length * lineHeight + 12, 6);
-
-    fill(255);
-    textFont('Courier Prime');
-    textStyle(NORMAL);
-    textSize(13);
-    textAlign(LEFT, TOP);
-    lines.forEach((row, i) => text(row, GAME_W - width, 14 + i * lineHeight));
+    // hud.js
+    drawPanel(GAME_W - EDITOR_HELP.width - 8, 8, EDITOR_HELP.width, EDITOR_HELP.lines, 13);
   },
 };
 
@@ -503,21 +493,18 @@ class EditorBar extends UIElement {
 
     // which page, under the › arrow
     fill(255, 255, 255, 150);
-    textFont('Quicksand');
-    textStyle(BOLD);
-    textSize(11);
-    textAlign(CENTER, CENTER);
+    setText(11);
     text(`${Editor.pages[Editor.tab] + 1} / ${Editor.pageCounts[Editor.tab]}`, GAME_W - 24, this.y + 66);
     text('or right click', 38, this.y + 66);
   }
 }
 
-// one tile, object or enemy in the bar. a Button, so clicking works the same, but it draws the
-// thing itself instead of a box
+// one tile, object, enemy or npc in the bar. a Button, so clicking works the same, but it draws
+// the thing itself instead of a box
 class PaletteSwatch extends Button {
   constructor(options) {
     super(options);
-    // 'tile', 'object' or 'enemy', its name, and which page of the bar it's on
+    // its kind (from EDITOR_TABS), its name, and which page of the bar it's on
     this.kind = options.kind;
     this.name = options.name;
     this.page = options.page;
@@ -530,9 +517,9 @@ class PaletteSwatch extends Button {
     if (this.kind === 'tile') {
       this.drawArt(TILE_TYPES[this.name], this.x, y, this.w, this.h);
     } else {
-      // objects and enemies sit on a dark square, shrunk to fit but keeping their shape,
+      // objects and characters sit on a dark square, shrunk to fit but keeping their shape,
       // so a 2 x 1 table looks twice as wide as it is tall
-      const type = editorCatalogue(this.kind)[this.name];
+      const type = EDITOR_CATALOGUES[this.kind][this.name];
       noStroke();
       fill(42, 45, 54);
       rect(this.x, y, this.w, this.h);
@@ -556,10 +543,7 @@ class PaletteSwatch extends Button {
     // its name underneath
     noStroke();
     fill(selected ? '#ffd23f' : 220);
-    textFont('Quicksand');
-    textStyle(BOLD);
-    textSize(11);
-    textAlign(CENTER, CENTER);
+    setText(11);
     text(this.name, this.x + this.w / 2, this.y + this.h + 12);
   }
 

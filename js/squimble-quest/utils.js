@@ -1,4 +1,4 @@
-// small maths helpers that more than one part of the game can use
+// small helpers that more than one part of the game can use
 
 // do two boxes ({ x, y, w, h }) overlap? boxes that only touch along an edge don't count
 function boxesOverlap(a, b) {
@@ -41,4 +41,15 @@ function directionFromAngle(angle) {
     x: Math.round(Math.cos(snapped)),
     y: Math.round(Math.sin(snapped)),
   };
+}
+
+// sets up how text() looks in one go, instead of 4 or 5 lines every time something's written.
+// style is NORMAL, BOLD or ITALIC, alignX LEFT / CENTER / RIGHT, alignY TOP / CENTER / BOTTOM.
+// quicksand and courier prime are already loaded by the page, so the canvas can use them too.
+// e.g. setText(14, BOLD, CENTER, BOTTOM) or setText(13, NORMAL, LEFT, TOP, 'Courier Prime')
+function setText(size, style = BOLD, alignX = CENTER, alignY = CENTER, font = 'Quicksand') {
+  textFont(font);
+  textStyle(style);
+  textSize(size);
+  textAlign(alignX, alignY);
 }

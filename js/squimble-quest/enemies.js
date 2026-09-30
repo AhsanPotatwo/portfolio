@@ -34,7 +34,8 @@
 //
 //   ai: (enemy, world, dt) => ({ move: { x, y }, aim: { x, y }, attack: true or false }),
 //
-// world has { map, player, enemies, npcs } in it, so it can see where the player is.
+// world has { map, player, enemies, npcs, characters } in it (see the top of character.js), so it
+// can see where the player is. if it decides to do nothing, it can give back STAND_STILL.
 // chasePlayer below is a complete example: the grunt uses it, and any other enemy can too
 // (ai: chasePlayer), or you can write a new one next to it.
 //
