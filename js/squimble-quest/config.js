@@ -145,6 +145,8 @@ const KEYS = {
   zoomIn:    ['Equal', 'NumpadAdd'],
   zoomOut:   ['Minus', 'NumpadSubtract'],
   zoomReset: ['Digit0', 'Numpad0'],
+  // shows or hides the tile grid and the lines through (0, 0), to see the tiles on their own
+  grid:      ['KeyG'],
   teleport:  ['KeyT'],
   nextMap:   ['KeyM'],
   // B for build. not E, that's for talking to people
