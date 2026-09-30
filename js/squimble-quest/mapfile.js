@@ -180,8 +180,8 @@ function registerMap(name, data) {
     console.warn(`Couldn't use the map "${name}": ${err.message}`);
     return false;
   }
-  // built fresh from the file's data every time you go to it
-  MAPS[name] = () => mapFromData(data);
+  // built from the file's data the first time you go to it (maps.js)
+  addMap(name, () => mapFromData(data));
   return true;
 }
 
@@ -220,7 +220,7 @@ function loadMapFiles() {
 
 // saves a map as a file (the browser downloads it). asks for a name first, which becomes the
 // file name. the map also takes that name for the rest of this visit, so dev mode's M key
-// brings back the saved version rather than rebuilding the original
+// comes back to this map as it is now, rather than rebuilding the original
 function exportMap(map) {
   const typed = prompt('Name this map (letters, numbers, - and _):', map.name);
   // cancelled
@@ -233,6 +233,8 @@ function exportMap(map) {
 
   const data = mapToData(map);
   registerMap(name, data);
+  // registerMap() forgets any visited map with this name, and this one is it now
+  VISITED_MAPS[name] = map;
   map.name = name;
 
   downloadTextFile(`${name}.json`, mapDataToText(data));

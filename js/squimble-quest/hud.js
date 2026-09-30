@@ -4,18 +4,23 @@
 // the gap between lines in drawPanel()
 const PANEL_LINE_HEIGHT = 18;
 
-// a see-through dark box with lines of text in it, e.g. the dev mode panel (debug.js) and the map
-// editor's controls (editor.js). x, y is the box's top left corner. it's
-// lines.length * PANEL_LINE_HEIGHT + 12 tall, so anything placed under it can work out where it ends
+// a see-through dark box with lines of text in it, e.g. the dev mode panels (debug.js).
+// x, y is the box's top left corner. panelHeight() below says how tall it is, so anything placed
+// under it can work out where it ends
 function drawPanel(x, y, width, lines, size) {
   noStroke();
   fill(0, 0, 0, 160);
-  rect(x, y, width, lines.length * PANEL_LINE_HEIGHT + 12, 6);
+  rect(x, y, width, panelHeight(lines), 6);
 
   fill(255);
   // courier prime is monospace, so numbers that change don't make the text jiggle about
   setText(size, NORMAL, LEFT, TOP, 'Courier Prime');
   lines.forEach((line, i) => text(line, x + 8, y + 6 + i * PANEL_LINE_HEIGHT));
+}
+
+// how tall drawPanel() makes a box for these lines
+function panelHeight(lines) {
+  return lines.length * PANEL_LINE_HEIGHT + 12;
 }
 
 // shown for a moment when the game starts, while the map files load

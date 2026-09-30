@@ -140,6 +140,8 @@ const KEYS = {
   // not every keyboard has a ` key, so Ctrl + D does the same.
   // the rest do nothing unless dev mode is on
   devMode:   ['Backquote', 'Control+KeyD'],
+  // shows or hides the list of dev mode (and map editor) keys
+  devKeys:   ['KeyH'],
   zoomIn:    ['Equal', 'NumpadAdd'],
   zoomOut:   ['Minus', 'NumpadSubtract'],
   zoomReset: ['Digit0', 'Numpad0'],
