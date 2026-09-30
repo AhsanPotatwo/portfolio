@@ -1,5 +1,5 @@
 // the item catalogue: every kind of thing that can be carried in an inventory (inventory.js).
-// works like tiles.js and objects.js.
+// works like objects.js.
 //
 // an item isn't part of whoever's carrying it. createItem() makes one, it goes in an inventory
 // slot, and it can be taken back out again, so it can be passed around, dropped, picked up...

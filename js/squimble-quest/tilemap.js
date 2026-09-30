@@ -5,7 +5,7 @@
 // in other words: column = floor(world x / TILE), row = floor(world y / TILE)
 //
 // the map only stores tile names ('grass', 'wall'...). what each one looks like and does
-// lives in tiles.js. it also keeps a list of objects on top of the tiles (see objects.js),
+// lives in TILE_TYPES (tiles.js, loaded from tiles.json). it also keeps a list of objects on top of the tiles (see objects.js),
 // where each enemy and npc starts, and its warps (see warps.js)
 
 // the kinds of character that can be placed on a map: which list on the map they're kept in,
@@ -76,10 +76,11 @@ class TileMap {
     return TILE_TYPES[this.tiles[this.index(col, row)]] ?? null;
   }
 
-  // name is a tile from tiles.js, or null to empty the tile (nothing there, like off the map)
+  // name is a tile's name (TILE_TYPES in tiles.js), or null to empty the tile (nothing there, like
+  // off the map)
   set(col, row, name) {
     if (name !== null && !TILE_TYPES[name]) {
-      console.warn(`There's no tile called "${name}", add it in tiles.js`);
+      console.warn(`There's no tile called "${name}". Make it with + New tile in the map editor's Tiles tab`);
       return;
     }
     if (this.inside(col, row)) this.tiles[this.index(col, row)] = name;
@@ -362,8 +363,9 @@ class TileMap {
   // one rect instead of one each. it looks exactly the same (they'd share edges anyway), but a big
   // field of grass is a handful of rects rather than thousands, which matters when zoomed out.
   //
-  // dual grid tiles (tileset in tiles.js) are skipped in the first go, then drawn over the top on
-  // the second grid, half a tile across and down (drawDualCorner() in dualgrid.js)
+  // dual grid tiles (dualGrid in tiles.json) are skipped in the first go, then drawn over the top on
+  // the second grid, half a tile across and down (drawDualCorner() in dualgrid.js). one without its
+  // pieces (no texture, or it didn't load) has no dualTiles, so it's drawn in the first go in its colour
   drawTiles(camera) {
     const view = camera.view();
     const firstCol = Math.max(this.left, this.colAt(view.left));
@@ -384,6 +386,8 @@ class TileMap {
     for (let half = 2 * firstCol - 1; half <= 2 * lastCol + 3; half++) xs.push(toPixel(camera.drawnPosition(half * TILE / 2, 0).x));
     const ys = [];
     for (let half = 2 * firstRow - 1; half <= 2 * lastRow + 3; half++) ys.push(toPixel(camera.drawnPosition(0, half * TILE / 2).y));
+    // an edge by its half tile number. xs[0] is half number 2 * firstCol - 1, so taking that away
+    // gives its place in xs
     const x = (half) => xs[half - 2 * firstCol + 1];
     const y = (half) => ys[half - 2 * firstRow + 1];
 

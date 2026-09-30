@@ -12,8 +12,13 @@
 // a tile can't be renamed or deleted here: maps store tile names, so either would lose it from every
 // map that uses it. tiles.json can still be changed by hand for that
 
-// the tile editor's limits: speed is a percentage of normal, damage is per second or per step
-const TILE_EDITOR_LIMITS = { speed: 500, damage: 9999 };
+// the most the tile editor's number boxes go up to, so a typo can't make something silly
+const TILE_EDITOR_LIMITS = {
+  // as a percentage of normal walking speed, so 500 is five times as fast
+  speed: 500,
+  // for both damage boxes, per second and per step
+  damage: 9999,
+};
 
 // what a tile's colour has to look like: # then 6 hex digits, e.g. #6fae4f
 const TILE_COLOUR_PATTERN = /^#[0-9a-f]{6}$/i;
@@ -39,13 +44,18 @@ const TileEditor = {
     // the box is saved
     let chosen = null;
 
+    // the fields for each row of the box. they're kept in variables rather than read from the values
+    // FormBox hands to onConfirm, because the Name row is only there for new tiles, which moves every
+    // other row along one
     const nameField = new TextField({ w: 180, value: '' });
+    // false is normal and true is dual grid, the same as dualGrid in tiles.json
     const kindPicker = new Picker({
       w: 180,
       choices: [false, true],
       value: type?.dualGrid ?? false,
       label: (dual) => (dual ? 'dual grid' : 'normal'),
     });
+    // only # and the hex digits can be typed. a new tile starts grey
     const colourField = new TextField({ w: 180, value: type?.colour ?? '#8a8f99', maxLength: 7, allowed: /^[#0-9a-fA-F]$/ });
     // none, or the texture's file name. Choose picture (beside the rows) swaps in a new one
     const texturePicker = new Picker({
@@ -56,6 +66,8 @@ const TileEditor = {
       label: (file) => (!file ? 'none, just colour' : file.length > 18 ? `${file.slice(0, 17)}…` : file),
     });
     const solidBox = new Checkbox({ w: 180, value: type?.solid ?? false, label: "can't walk on it" });
+    // shown as a percentage, since NumberField only does whole numbers: a speed of 0.8 shows as 80.
+    // at least 1%, because 0 would leave anyone who stepped on it stuck there
     const speedField = new NumberField({ w: 90, value: Math.round((type?.speed ?? 1) * 100), min: 1, max: TILE_EDITOR_LIMITS.speed });
     const damagePerSecondField = new NumberField({ w: 90, value: type?.damagePerSecond ?? 0, max: TILE_EDITOR_LIMITS.damage });
     const damagePerStepField = new NumberField({ w: 90, value: type?.damagePerStep ?? 0, max: TILE_EDITOR_LIMITS.damage });
@@ -71,6 +83,8 @@ const TileEditor = {
     // what's stopping it being saved, as words to show, or null if nothing is. Save is greyed out
     // while there's something
     const problem = () => {
+      // tile names follow the same rules as map names (cleanMapName() in mapfile.js): lowercase,
+      // - for spaces, and nothing a file name can't have, since maps store them
       const name = cleanMapName(nameField.value);
       if (isNew && !name) return 'It needs a name';
       if (isNew && TILE_TYPES[name]) return `There's already a tile called ${name}`;
@@ -132,6 +146,8 @@ const TileEditor = {
           damagePerStep: damagePerStepField.value,
         }, picture());
 
+        // a changed tile's square in the bar draws itself from the tile every frame, so it's already
+        // up to date. only a new tile needs a square making
         if (isNew) {
           // a square for it in the bar, picked and ready to paint with (editor.js)
           Editor.makeSwatches();
@@ -231,16 +247,20 @@ class TilePreview extends UIElement {
     y += 16;
     backing(y);
     if (img) {
+      // shrunk (or grown) to fit the square, keeping its shape, and centred in it
       const scale = Math.min(size / img.width, size / img.height);
       const w = img.width * scale;
       const h = img.height * scale;
-      image(img, left + (size - w) / 2, y + (size - h) / 2, w, h);
+      const imgLeft = left + (size - w) / 2;
+      const imgTop = y + (size - h) / 2;
+      image(img, imgLeft, imgTop, w, h);
       if (dualGrid) {
+        // 3 lines each way split it into its 4 x 4 pieces
         stroke(255, 255, 255, 50);
         strokeWeight(1);
         for (let i = 1; i < 4; i++) {
-          line(left + (size - w) / 2 + (w * i) / 4, y + (size - h) / 2, left + (size - w) / 2 + (w * i) / 4, y + (size + h) / 2);
-          line(left + (size - w) / 2, y + (size - h) / 2 + (h * i) / 4, left + (size + w) / 2, y + (size - h) / 2 + (h * i) / 4);
+          line(imgLeft + (w * i) / 4, imgTop, imgLeft + (w * i) / 4, imgTop + h);
+          line(imgLeft, imgTop + (h * i) / 4, imgLeft + w, imgTop + (h * i) / 4);
         }
       }
     } else {

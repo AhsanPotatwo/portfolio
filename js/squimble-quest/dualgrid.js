@@ -73,6 +73,7 @@ function drawDualCorner(map, col, row, x, y) {
   let lowest = null;
   for (const type of dualAround) {
     if (!type) continue;
+    // ??= only sets it if it's still null, so it keeps the first normal tile it finds
     if (!type.dualTiles) under ??= type;
     else if (!lowest || type.layer < lowest.layer) lowest = type;
   }
@@ -116,6 +117,8 @@ function drawDualCorner(map, col, row, x, y) {
     for (let i = 0; i < 4; i++) {
       const other = dualAround[i];
       if (!other?.dualTiles || other.layer < type.layer) continue;
+      // switches on this tile's 1 in which. >> moves the 1 along: 0b1000 for up left (i = 0),
+      // 0b0100 for up right, 0b0010 for down left, 0b0001 for down right. |= adds it to the others
       which |= 0b1000 >> i;
       if (other.layer > type.layer && (!next || other.layer < next.layer)) next = other;
     }

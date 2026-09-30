@@ -1,4 +1,4 @@
-// the enemy catalogue: every kind of enemy, and how it behaves. works like tiles.js and objects.js.
+// the enemy catalogue: every kind of enemy, and how it behaves. works like objects.js.
 // enemies are placed on maps in the map editor (the Enemies tab), and each one appears where it
 // was placed the first time you go to the map. after that the map remembers it as it was left:
 // once defeated it stays gone, and a hurt one stays hurt, until the page is reloaded or the map
