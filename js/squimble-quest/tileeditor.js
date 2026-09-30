@@ -46,9 +46,6 @@ const TILE_BEHAVIOURS = [
 // the box is always this tall, which leaves room for the pictures beside the rows
 const TILE_EDITOR_ROWS = 7;
 
-// what a tile's colour has to look like: # then 6 hex digits, e.g. #6fae4f
-const TILE_COLOUR_PATTERN = /^#[0-9a-f]{6}$/i;
-
 // a 2 x 2 patch of a dual grid tile is 3 x 3 pieces, each saying which of the four tiles around it
 // are the tile (like DUAL_TILESET_LAYOUT in dualgrid.js). the box's "on the map" picture draws these
 const DUAL_PREVIEW_PATCH = [
@@ -81,8 +78,8 @@ const TileEditor = {
       value: type?.dualGrid ?? false,
       label: (dual) => (dual ? 'dual grid' : 'normal'),
     });
-    // only # and the hex digits can be typed. a new tile starts grey
-    const colourField = new TextField({ w: 180, value: type?.colour ?? '#8a8f99', maxLength: 7, allowed: /^[#0-9a-fA-F]$/ });
+    // a new tile starts grey. its square opens the colour picker, and hex or rgb can be pasted in
+    const colourField = new ColourField({ w: 180, value: type?.colour ?? '#8a8f99' });
     // none, or the texture's file name. Choose picture (beside the rows) swaps in a new one
     const texturePicker = new Picker({
       w: 180,
@@ -122,7 +119,7 @@ const TileEditor = {
       const name = cleanMapName(nameField.value);
       if (isNew && !name) return 'It needs a name';
       if (isNew && TILE_TYPES[name]) return `There's already a tile called ${name}`;
-      if (!TILE_COLOUR_PATTERN.test(colourField.value)) return 'The colour needs to look like #6fae4f';
+      if (!HEX_COLOUR.test(colourField.value)) return 'The colour needs to look like #6fae4f';
       const img = picture();
       const tilesetProblem = kindPicker.value && img ? dualTilesetProblem(img) : null;
       if (tilesetProblem) return `Can't be a dual grid tileset: ${tilesetProblem}`;
@@ -251,7 +248,7 @@ class TilePreview extends UIElement {
   draw() {
     const { dualGrid, colour, img, problem } = this.look();
     // black until the colour's a whole colour, e.g. while it's being typed
-    const fillColour = TILE_COLOUR_PATTERN.test(colour) ? colour : '#000000';
+    const fillColour = HEX_COLOUR.test(colour) ? colour : '#000000';
     // the two pictures are squares, leaving room under them for the problem. a multiple of 6 whole
     // pixels, so the patch's halves (normal) and thirds (dual grid) meet exactly, without faint lines
     const size = Math.floor(Math.min(this.w, (this.h - 130) / 2) / 6) * 6;

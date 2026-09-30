@@ -15,7 +15,7 @@ Every tile in the game is one line in `tiles.json`, in this folder. The game loa
 3. Set it up. The pictures on the right show the texture file and how the tile looks on the map as you go. The tabs along the top switch between groups of settings:
    - **Look**
      - **Kind**: **normal**, or **dual grid**.
-     - **Colour**: what it looks like without a texture, e.g. `#6fae4f`.
+     - **Colour**: what it looks like without a texture, e.g. `#6fae4f`. Click the square at the end of the box for a colour picker, or paste one in with **Ctrl + V** (hex like `#6fae4f`, or rgb like `rgb(111, 174, 79)`).
      - **Texture**: click **Choose picture** to pick one from your computer, or set it back to **none, just colour**. A texture always covers the colour.
    - **Behaviours**
      - **Solid**: nothing can walk onto it.
