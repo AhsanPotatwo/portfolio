@@ -2,7 +2,8 @@
 // on the map you're on. open it from dev mode: press ` (or Ctrl + D) for dev mode, then B (for build).
 //
 // while it's open:
-//   - everyone stops, and WASD / the arrow keys move the camera around instead
+//   - everyone stops, and WASD / the arrow keys move the camera around instead. the ui fades out
+//     while you move, so you can see the map, and comes back when you stop
 //   - pick something from the bar at the bottom. the tabs above it switch between
 //     tiles, objects, enemies and npcs (‹ › for more pages once there are lots)
 //   - tiles: left click or drag to paint, replacing whatever tile was there
@@ -11,17 +12,19 @@
 //   - right click or drag to erase (or pick Erase in the bar). if you start on an object, enemy
 //     or npc it removes those, otherwise it empties tiles. empty tiles are like off the edge of
 //     the map: nothing's drawn there and nothing can walk on them
-//   - closing the editor puts every enemy and npc back where it was placed, with full health.
-//     defeated enemies stay defeated (their spawn is taken off the map when they die)
+//   - opening the editor brings back every enemy placed on the map, including defeated ones, so
+//     you always see the whole design. closing it puts every enemy and npc back where it was
+//     placed, with full health. (outside the editor, defeated enemies stay defeated, see sketch.js)
 //   - P puts the player's spawn point on the tile under the mouse (marked with a yellow ring)
 //   - New map makes a blank map of any size, Export saves the map as a file, Open file loads one
-//   - the dev mode keys still work (zoom, teleport, next map)
+//     (the buttons in the top right)
+//   - the dev mode keys still work (zoom, teleport, next map), and H lists them all
 //
 // everything in tiles.js, objects.js, enemies.js and npcs.js shows up in the bar by itself.
 //
-// changes are made to the map you're on, so you can walk around on them straight away.
-// Export them to keep them: going to another map (M) or reloading builds maps fresh
-// from their files. the full guide is in assets/squimble-quest/maps/README.md
+// changes are made to the map you're on, so you can walk around on them straight away. going to
+// another map (M) and back keeps them, but reloading the page builds every map fresh from its
+// file, so Export them to keep them. the full guide is in assets/squimble-quest/maps/README.md
 
 // how fast WASD moves the camera, in screen pixels a second (so it feels the same at any zoom)
 const EDITOR_PAN_SPEED = 600;
@@ -32,15 +35,23 @@ const EDITOR_MAX_MAP_SIZE = 500;
 // what a map made with New map is called until it's exported with a name of its own
 const NEW_MAP_NAME = 'new-map';
 
-// the controls box in the top right, and the New / Export / Open buttons under it
-const EDITOR_HELP = {
-  lines: [
-    'MAP EDITOR   B to close',
-    'left click: paint / place   right: erase',
-    'WASD: move   - = / wheel: zoom',
-    'P: player spawns here',
-  ],
-  width: 330,
+// the editor's keys, in the list dev mode's H shows (under dev mode's own, see debug.js)
+const EDITOR_KEYS = [
+  'MAP EDITOR KEYS',
+  'left click  paint / place',
+  'right click erase',
+  'WASD        move around',
+  'wheel       zoom',
+  'P           player spawns here',
+  'B           close the editor',
+];
+
+// the ui fading out while WASD moves the camera
+const EDITOR_UI_FADE = {
+  // how long after you stop moving before it comes back, in seconds
+  showDelay: 0.3,
+  // how quickly it fades out and back in. higher is quicker, like CAMERA.followSpeed
+  speed: 14,
 };
 
 // layout of the bar along the bottom, in screen pixels
@@ -52,10 +63,27 @@ const EDITOR_BAR = {
   // where the squares start and stop across the bar. the rest is the Erase button and arrows
   swatchesLeft: 110,
   swatchesRight: GAME_W - 44,
-  // the tabs sitting on top of the bar
+  // the tabs sitting on top of the bar, and the gap between them
   tabWidth: 96,
-  tabHeight: 26,
+  tabHeight: 28,
+  tabGap: 2,
 };
+
+// the bar's colours
+const EDITOR_COLOURS = {
+  // the bar and the open tab, the same colour so they look like one piece
+  bar: '#1f232b',
+  // a thin line along the top of the bar. the open tab covers it, so it looks joined on
+  edge: '#3a404c',
+  // tabs that aren't open are darker, and lighten when the mouse is over them
+  tab: '#14171c',
+  tabHover: '#2a2f39',
+  // the strip along the top of the open tab
+  accent: '#4a7bd8',
+};
+
+// New map, Export and Open file, in a row in the top right corner
+const EDITOR_FILE_BUTTONS = { width: 96, height: 30, gap: 6 };
 
 // the tabs above the bar, left to right. each one shows everything of its kind.
 // a new kind of thing to place needs a tab here and its catalogue in EDITOR_CATALOGUES below
@@ -90,10 +118,13 @@ const Editor = {
   lastPaint: null,
   // whether the current erase drag is removing objects and enemies (true) or emptying tiles (false)
   erasingThings: false,
+  // how see-through the ui is, 1 solid to 0 gone. it fades out while WASD moves the camera
+  // (sketch.js draws the ui with it). stillFor is how long since the camera last moved, in seconds
+  uiAlpha: 1,
+  stillFor: 0,
 
   // the bar's ui elements, made once in init()
   swatches: [],
-  tabButtons: [],
   eraseButton: null,
   prevButton: null,
   nextButton: null,
@@ -127,21 +158,19 @@ const Editor = {
     }));
 
     // page arrows. they go round, so › on the last page goes back to the first.
-    // showPage() switches them off when the tab only has one page
+    // showPage() hides them when the tab only has one page
     const arrows = { style: { textSize: 20 } };
     this.prevButton = add(new Button({ ...arrows, x: 74, y: barY + 10, w: 28, h: 44, label: '‹', onClick: () => this.turnPage(-1) }));
     this.nextButton = add(new Button({ ...arrows, x: GAME_W - 38, y: barY + 10, w: 28, h: 44, label: '›', onClick: () => this.turnPage(1) }));
 
-    // the tabs, sitting on top of the bar. toggles, so the open one looks switched on
-    // (update() keeps button.on matching)
-    this.tabButtons = EDITOR_TABS.map(({ kind, label }, i) => add(new Button({
-      x: 10 + i * (EDITOR_BAR.tabWidth + 6),
+    // the tabs, sitting on top of the bar like tabs in a web browser
+    EDITOR_TABS.forEach(({ kind, label }, i) => add(new EditorTab({
+      x: 10 + i * (EDITOR_BAR.tabWidth + EDITOR_BAR.tabGap),
       y: barY - EDITOR_BAR.tabHeight,
       w: EDITOR_BAR.tabWidth,
       h: EDITOR_BAR.tabHeight,
       label,
-      style: { textSize: 13, radius: 6, onFill: '#4a7bd8', pressOffset: 0 },
-      toggle: true,
+      kind,
       onClick: () => this.showTab(kind),
     })));
 
@@ -163,23 +192,17 @@ const Editor = {
       });
     }
 
-    // New map, Export and Open, in a row 8px under the controls box (its height is explained at
-    // drawPanel() in hud.js). worldMap is the game's (sketch.js)
-    const helpLeft = GAME_W - 8 - EDITOR_HELP.width;
-    const buttonsY = 8 + EDITOR_HELP.lines.length * PANEL_LINE_HEIGHT + 12 + 8;
-    const third = (EDITOR_HELP.width - 16) / 3;
-    add(new Button({
-      x: helpLeft, y: buttonsY, w: third, h: 32, label: 'New map',
-      onClick: () => this.newMap(),
-    }));
-    add(new Button({
-      x: helpLeft + third + 8, y: buttonsY, w: third, h: 32, label: 'Export', style: 'primary',
-      onClick: () => exportMap(worldMap),
-    }));
-    add(new Button({
-      x: helpLeft + (third + 8) * 2, y: buttonsY, w: third, h: 32, label: 'Open file',
-      onClick: () => openMapFile(),
-    }));
+    // New map, Export and Open file, in the top right. worldMap is the game's (sketch.js)
+    const { width, height, gap } = EDITOR_FILE_BUTTONS;
+    const fileButtons = [
+      { label: 'New map', onClick: () => this.newMap() },
+      { label: 'Export', style: 'primary', onClick: () => exportMap(worldMap) },
+      { label: 'Open file', onClick: () => openMapFile() },
+    ];
+    const buttonsLeft = GAME_W - 8 - fileButtons.length * (width + gap) + gap;
+    fileButtons.forEach((options, i) => add(new Button({
+      x: buttonsLeft + i * (width + gap), y: 8, w: width, h: height, ...options,
+    })));
 
     UI.showGroup('editor', false);
   },
@@ -198,10 +221,17 @@ const Editor = {
     this.active = true;
     // stop any conversation first, its text box would be in the way (dialogue.js)
     if (Dialogue.active) Dialogue.close();
+    // every enemy placed on the map comes back, defeated or not, so you see the whole design
+    // (and it's a quick way to reset them while testing). worldMap is the game's (sketch.js)
+    worldMap.defeated.clear();
+    spawnCharacters();
     // start looking at wherever the camera already is, and follow the editor's view instead of the
     // player. follow() also stops the conversation's camera glide
     this.view = { x: camera.x, y: camera.y };
     camera.follow(this.view);
+    // the ui starts showing, rather than fading in
+    this.uiAlpha = 1;
+    this.stillFor = EDITOR_UI_FADE.showDelay;
     UI.showGroup('editor', true);
     // the editor's bar goes where the hotbar is (inventory.js)
     Hotbar.show(false);
@@ -239,8 +269,8 @@ const Editor = {
       swatch.visible = swatch.kind === this.tab && swatch.page === page;
     }
     const morePages = this.pageCounts[this.tab] > 1;
-    this.prevButton.enabled = morePages;
-    this.nextButton.enabled = morePages;
+    this.prevButton.visible = morePages;
+    this.nextButton.visible = morePages;
   },
 
   // is this the one picked in the bar?
@@ -279,8 +309,8 @@ const Editor = {
     if (this.selected === null) fillWith = null;
     else if (this.selected.kind === 'tile') fillWith = this.selected.name;
 
-    // added to MAPS like any other map, so dev mode's M key can come back to it
-    MAPS[NEW_MAP_NAME] = () => makeBlankMap(cols, rows, fillWith);
+    // added to MAPS like any other map, so dev mode's M key can come back to it (maps.js)
+    addMap(NEW_MAP_NAME, () => makeBlankMap(cols, rows, fillWith));
     loadMap(NEW_MAP_NAME); // in sketch.js
   },
 
@@ -288,12 +318,19 @@ const Editor = {
 
   // aim is the mouse's world position, or null
   update(map, camera, aim, dt) {
-    // toggles flip themselves when clicked, so set them to match what's really picked and open
+    // Erase is a toggle, which flips itself when clicked, so set it to match what's really picked
     this.eraseButton.on = this.selected === null;
-    this.tabButtons.forEach((button, i) => { button.on = EDITOR_TABS[i].kind === this.tab; });
+
+    const dir = Input.direction();
+
+    // moving fades the ui out so you can see the map, and it fades back in once you've stopped for
+    // a moment. while it's hidden it can't be clicked, so clicks go through to the map behind it
+    this.stillFor = dir.x === 0 && dir.y === 0 ? this.stillFor + dt : 0;
+    const showUI = this.stillFor >= EDITOR_UI_FADE.showDelay;
+    this.uiAlpha = approach(this.uiAlpha, showUI ? 1 : 0, EDITOR_UI_FADE.speed, dt);
+    for (const el of UI.group('editor')) el.interactive = showUI;
 
     // move the view with WASD. dividing by zoom keeps it the same speed on screen at any zoom
-    const dir = Input.direction();
     const speed = EDITOR_PAN_SPEED / camera.zoom;
     const bounds = map.bounds();
     this.view.x = constrain(this.view.x + dir.x * speed * dt, bounds.left, bounds.right);
@@ -471,13 +508,6 @@ const Editor = {
     strokeWeight(1.5 * px);
     rect(x, y, w, h);
   },
-
-  // a reminder of the controls, top right (the text is in EDITOR_HELP at the top of this file).
-  // uses screen positions, so draw it after camera.end()
-  drawHelp() {
-    // hud.js
-    drawPanel(GAME_W - EDITOR_HELP.width - 8, 8, EDITOR_HELP.width, EDITOR_HELP.lines, 13);
-  },
 };
 
 // ---------- the bar's ui elements ----------
@@ -488,14 +518,51 @@ const Editor = {
 class EditorBar extends UIElement {
   draw() {
     noStroke();
-    fill(20, 22, 28);
+    fill(EDITOR_COLOURS.bar);
     rect(this.x, this.y, this.w, this.h);
+    // the line along the top. the open tab is drawn over it (EditorTab below)
+    fill(EDITOR_COLOURS.edge);
+    rect(this.x, this.y, this.w, 1);
 
-    // which page, under the › arrow
-    fill(255, 255, 255, 150);
-    setText(11);
-    text(`${Editor.pages[Editor.tab] + 1} / ${Editor.pageCounts[Editor.tab]}`, GAME_W - 24, this.y + 66);
-    text('or right click', 38, this.y + 66);
+    // which page, under the › arrow, when there's more than one
+    const pages = Editor.pageCounts[Editor.tab];
+    if (pages > 1) {
+      fill(255, 255, 255, 150);
+      setText(11);
+      text(`${Editor.pages[Editor.tab] + 1} / ${pages}`, GAME_W - 24, this.y + 66);
+    }
+  }
+}
+
+// one of the tabs on top of the bar (Tiles, Objects...). a Button, so clicking works the same, but
+// it's drawn like a tab in a web browser: the open one is the bar's colour and joins onto it,
+// the others are darker and sit behind
+class EditorTab extends Button {
+  constructor(options) {
+    super(options);
+    // which tab it is, a kind from EDITOR_TABS
+    this.kind = options.kind;
+  }
+
+  draw() {
+    const open = Editor.tab === this.kind;
+    noStroke();
+
+    // p5's rect() can take a radius for each corner: top left, top right, bottom right, bottom left.
+    // the open tab goes 1px lower, over the line along the top of the bar, so they look like one piece
+    if (open) fill(EDITOR_COLOURS.bar);
+    else fill(this.hovered ? EDITOR_COLOURS.tabHover : EDITOR_COLOURS.tab);
+    rect(this.x, this.y, this.w, this.h + (open ? 1 : 0), 6, 6, 0, 0);
+
+    // kept inside the rounded corners, so it doesn't poke out past them
+    if (open) {
+      fill(EDITOR_COLOURS.accent);
+      rect(this.x + 6, this.y, this.w - 12, 2, 1);
+    }
+
+    fill(open ? 255 : this.hovered ? 220 : 140);
+    setText(13);
+    text(this.label, this.x + this.w / 2, this.y + this.h / 2 + 1);
   }
 }
 

@@ -6,7 +6,7 @@ A map is made of:
 
 - **Tiles**: the ground. Every spot has exactly one tile (grass, wall, water…), or is empty. Tiles are defined in [`js/squimble-quest/tiles.js`](../../../js/squimble-quest/tiles.js).
 - **Objects**: things placed on top, like furniture and decorations. One object can cover several tiles (a 2 × 1 table), and several can share a tile (a table on a rug). Objects are defined in [`js/squimble-quest/objects.js`](../../../js/squimble-quest/objects.js).
-- **Enemies**: where each enemy starts. They appear there with full health whenever the map loads. Enemies are defined in [`js/squimble-quest/enemies.js`](../../../js/squimble-quest/enemies.js).
+- **Enemies**: where each enemy starts. They appear there with full health the first time you go to the map. Defeated enemies stay defeated if you leave and come back, until the page is reloaded. Enemies are defined in [`js/squimble-quest/enemies.js`](../../../js/squimble-quest/enemies.js).
 - **NPCs**: where each friendly character starts. Walk up to one and press **E** to talk. NPCs, and what they say, are defined in [`js/squimble-quest/npcs.js`](../../../js/squimble-quest/npcs.js).
 
 ## The maps in this folder
@@ -50,14 +50,15 @@ Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything 
 | Left click (enemy or NPC chosen) | Place it, standing on the tile under the mouse |
 | Right click / drag, or **Erase** | Delete. Starting on an object, enemy or NPC removes those; starting on bare ground empties tiles |
 | **P** | The player spawns on the tile under the mouse (yellow ring) |
-| **WASD** | Move around the map |
+| **WASD** | Move around the map. The editor's buttons and panels fade out while you move, so you can see the map, and come back when you stop |
 | **−** **=** or mouse wheel | Zoom out and in (**0** resets) |
 | **M** | Go to the next map |
+| **H** | Show or hide the list of keys (top left) |
 | **B** | Close the editor |
 
 Empty tiles show the dark background and can't be walked on, like the edge of the map.
 
-While the editor's open, everyone stands still. Closing it puts every enemy and NPC back where it was placed, with full health. Enemies you've defeated stay gone: they're removed from the map when they die, so they won't be in the file if you export afterwards. Reloading the map (or switching to it with **M**) brings back the enemies saved in its file.
+While the editor's open, everyone stands still. Opening it brings back every enemy placed on the map, including ones you've defeated, so you always see the whole design (it's also a quick way to reset them while testing). Closing it puts every enemy and NPC back where it was placed, with full health. Defeating an enemy never removes it from the map, so it's still in the file when you export.
 
 ### New maps
 
@@ -97,7 +98,7 @@ The **M** key goes through every map in this order:
 
 Opening or exporting a map with the same name as one that's already loaded replaces it until you reload the page.
 
-Changes you make in the editor are lost when you go to a different map or reload, unless you export them first.
+Going to a different map and back keeps the changes you made in the editor, but reloading the page loses them, so export them first.
 
 If `START_MAP` doesn't load (e.g. its file is missing), the game starts on the first map that did, and the browser console says so.
 

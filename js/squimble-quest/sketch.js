@@ -74,7 +74,7 @@ function setup() {
     // not one map file loaded, so use the blank stand-in map (maps.js) so there's something to play on
     if (Object.keys(MAPS).length === 0) {
       console.warn('No map files could be loaded, so the game is on a blank stand-in map.');
-      MAPS[FALLBACK_MAP] = buildFallbackMap;
+      addMap(FALLBACK_MAP, buildFallbackMap);
     }
 
     let first = START_MAP;
@@ -101,10 +101,12 @@ function setup() {
   if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) noLoop();
 }
 
-// go to a map, by its name in MAPS (maps.js). builds it fresh, puts the player at its spawn point
-// (where they'll respawn too), and moves the camera straight there. dev mode's M key uses this
+// go to a map, by its name in MAPS (maps.js). the first visit builds it from its file, after that
+// it's the same map as it was left (see VISITED_MAPS in maps.js). puts the player at its spawn
+// point (where they'll respawn too), and moves the camera straight there. dev mode's M key uses this
 function loadMap(name) {
-  worldMap = MAPS[name]();
+  VISITED_MAPS[name] ??= MAPS[name]();
+  worldMap = VISITED_MAPS[name];
   worldMap.name = name;
 
   player.placeAt(worldMap.spawn.x, worldMap.spawn.y);
@@ -123,18 +125,20 @@ function loadMap(name) {
 }
 
 // makes the map's enemies and npcs, each where it was placed and with full health. runs when a map
-// loads, and when the map editor changes them or closes.
-// enemies that have been defeated aren't made again: their spawn was taken off the map when they
-// died (see draw() below), so they only come back if the map's loaded fresh from its file
+// loads, and when the map editor opens, closes or changes them.
+// enemies that have been defeated aren't made again (see worldMap.defeated in tilemap.js), so
+// leaving an area and coming back doesn't bring them back. opening the map editor does (editor.js)
 function spawnCharacters() {
   // the npc you're talking to is about to be replaced, so the conversation ends
   if (Dialogue.active) Dialogue.close();
-  enemies = worldMap.enemySpawns.map((spawn) => {
-    const enemy = new Enemy(spawn.type, spawn.col, spawn.row);
-    // remember which spawn it came from, so it can be taken off the map when it's defeated
-    enemy.spawn = spawn;
-    return enemy;
-  });
+  enemies = worldMap.enemySpawns
+    .filter((spawn) => !worldMap.defeated.has(spawn))
+    .map((spawn) => {
+      const enemy = new Enemy(spawn.type, spawn.col, spawn.row);
+      // remember which spawn it came from, so it can be marked defeated when it dies
+      enemy.spawn = spawn;
+      return enemy;
+    });
   npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row));
 }
 
@@ -185,11 +189,10 @@ function draw() {
 
     // each enemy's and npc's ai decides what it does
     for (const enemy of enemies) enemy.update(dt, world);
-    // defeated enemies are gone, and so is the spawn they came from, otherwise closing the map
-    // editor (which remakes everyone from their spawns) would bring them back
+    // defeated enemies are gone, and the map remembers their spawn so they stay gone
     enemies = enemies.filter((enemy) => {
       if (!enemy.dead) return true;
-      if (enemy.spawn) worldMap.removeSpawn('enemy', enemy.spawn);
+      if (enemy.spawn) worldMap.defeated.add(enemy.spawn);
       return false;
     });
     for (const npc of npcs) npc.update(dt, world);
@@ -214,11 +217,14 @@ function draw() {
   if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
   gameCamera.end();
 
-  // ui on top, in screen positions
+  // ui on top, in screen positions. the map editor fades it out while you move around (editor.js).
+  // globalAlpha fades everything drawn after it, and pop() puts it back
+  push();
+  if (Editor.active) drawingContext.globalAlpha = Editor.uiAlpha;
   Debug.draw(player, gameCamera, worldMap, aim);
-  if (Editor.active) Editor.drawHelp();
-  else if (!Dialogue.active) Hotbar.drawLabel();
+  if (!Editor.active && !Dialogue.active) Hotbar.drawLabel();
   UI.draw();
+  pop();
   if (worldMap.name === FALLBACK_MAP) drawNoMapsMessage();
   if (Input.focused) {
     drawCrosshair(Input.mouse, Input.mouseHeld('left'), UI.hovered !== null);

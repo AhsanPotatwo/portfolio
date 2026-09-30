@@ -19,8 +19,21 @@ const START_MAP = 'example';
 
 // every map, by name. filled in from MAP_FILES when the game starts (see loadMapFiles() in
 // mapfile.js), plus any map opened or exported in the editor. each one is a function that
-// builds the map, so it starts fresh every time you go to it (see loadMap() in sketch.js)
+// builds the map fresh from its file. add maps with addMap() below
 const MAPS = {};
+
+// the maps that have been gone to since the page loaded, by name. the first visit builds the map
+// from MAPS, then going back finds it how it was left: defeated enemies stay defeated, and changes
+// made in the map editor are still there (see loadMap() in sketch.js). reloading the page starts
+// every map fresh from its file again
+const VISITED_MAPS = {};
+
+// puts a map in MAPS, or replaces the one with that name. build is a function that makes the map.
+// forgets the visited copy, so the next visit builds it fresh with the new version
+function addMap(name, build) {
+  MAPS[name] = build;
+  delete VISITED_MAPS[name];
+}
 
 // a new map, cols tiles wide and rows tall, every tile fillWith (a tile name, or null for empty).
 // tile (0, 0) is in its middle, which is where the player spawns. the map editor's New map uses this

@@ -158,9 +158,10 @@ class Button extends UIElement {
     // sinks a little while held down (only while the mouse is still over it)
     const y = this.y + (this.pressed && this.hovered ? this.style.pressOffset : 0);
 
-    // push/pop keeps the fading below from affecting anything drawn after the button
+    // push/pop keeps the fading below from affecting anything drawn after the button.
+    // *= rather than =, so it fades on top of any fading already going on (e.g. the map editor's)
     push();
-    if (!this.enabled) drawingContext.globalAlpha = this.style.disabledAlpha;
+    if (!this.enabled) drawingContext.globalAlpha *= this.style.disabledAlpha;
 
     if (this.image) {
       this.drawImage(y);

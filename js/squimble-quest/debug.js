@@ -2,8 +2,9 @@
 // press ` (the key under Esc) or Ctrl + D while playing to switch it on or off.
 //
 // while it's on:
-//   - a panel in the top left shows fps, which map you're on, the player's health and tile,
-//     and where the player, mouse and camera are
+//   - a small panel in the top left shows fps, which map you're on, the player's health and tile,
+//     and where the player, mouse (and the tile it's over) and camera are
+//   - H shows or hides the list of keys under it (the map editor's keys too, while it's open)
 //   - the tile grid and lines through (0, 0) show on the world
 //   - - and = zoom, 0 resets the zoom. in the map editor the mouse wheel zooms too
 //     (the rest of the time the wheel changes hotbar slot)
@@ -15,7 +16,7 @@
 // players never see any of it unless they press the key.
 //
 // to add a new tool: give it a key in KEYS in config.js, check for it in update() below
-// (after the "if (!this.enabled) return"), and add a line to the help in draw()
+// (after the "if (!this.enabled) return"), and add a line to DEV_KEYS
 
 // how fast holding a zoom key zooms
 const DEV_KEY_ZOOM_RATE = 1;
@@ -23,9 +24,23 @@ const DEV_KEY_ZOOM_RATE = 1;
 const DEV_WHEEL_ZOOM_RATE = 0.0015;
 // name it's saved under in the browser
 const DEV_STORAGE_KEY = 'sq-dev-mode';
+// how wide the panels in the top left are, in screen pixels
+const DEV_PANEL_WIDTH = 280;
+
+// the list H shows. the map editor adds its keys under these while it's open (EDITOR_KEYS in editor.js)
+const DEV_KEYS = [
+  'DEV MODE KEYS',
+  '` / Ctrl+D  dev mode on / off',
+  '- = 0       zoom out, in, reset',
+  'T           teleport to mouse',
+  'M           next map',
+  'B           map editor',
+];
 
 const Debug = {
   enabled: false,
+  // whether the list of keys is showing (H)
+  showKeys: false,
   // smoothed, so the number doesn't flicker every frame
   fps: 60,
 
@@ -52,6 +67,7 @@ const Debug = {
     if (!this.enabled) return;
 
     if (Input.wasPressed('editor')) Editor.toggle(player, camera);
+    if (Input.wasPressed('devKeys')) this.showKeys = !this.showKeys;
 
     this.fps = approach(this.fps, frameRate(), 4, dt);
 
@@ -81,30 +97,27 @@ const Debug = {
     }
   },
 
-  // the panel in the top left. uses screen positions, so draw it after camera.end()
+  // the panels in the top left. uses screen positions, so draw it after camera.end().
+  // the text is courier prime, where every letter is the same width, so padStart() and spaces line things up
   draw(player, camera, map, aim) {
     if (!this.enabled) return;
 
-    const held = player.inventory.held();
-    const lines = [
-      'DEV MODE     ` or Ctrl+D to hide',
-      `fps     ${Math.round(this.fps)}`,
+    const mouse = aim ? `${formatPoint(aim)}  (${map.colAt(aim.x)}, ${map.rowAt(aim.y)})` : '-';
+    const status = [
+      `DEV MODE${`${Math.round(this.fps)} fps`.padStart(23)}`,
       `map     ${map.name}`,
-      `player  ${formatPoint(player)}`,
-      `health  ${Math.ceil(player.health)} / ${PLAYER.maxHealth}`,
-      `holding ${held ? held.type.name : 'nothing'}`,
+      `player  ${formatPoint(player)}  hp ${Math.ceil(player.health)}/${PLAYER.maxHealth}`,
       `tile    ${player.tile ? `${player.tile.name} (${player.tileCol}, ${player.tileRow})` : '-'}`,
-      `mouse   ${aim ? formatPoint(aim) : '-'}`,
+      `mouse   ${mouse}`,
       `camera  ${formatPoint(camera)}  zoom ${camera.zoom.toFixed(2)}`,
-      '',
-      '- =  zoom   0  reset',
-      'T  teleport to mouse',
-      'M  next map',
-      'B  map editor',
+      `H  ${this.showKeys ? 'hide' : 'show'} keys`,
     ];
-
     // hud.js
-    drawPanel(8, 8, 300, lines, 14);
+    drawPanel(8, 8, DEV_PANEL_WIDTH, status, 13);
+
+    if (!this.showKeys) return;
+    const keys = Editor.active ? [...DEV_KEYS, '', ...EDITOR_KEYS] : DEV_KEYS;
+    drawPanel(8, 8 + panelHeight(status) + 8, DEV_PANEL_WIDTH, keys, 13);
   },
 };
 

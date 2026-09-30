@@ -43,6 +43,11 @@ class TileMap {
     // loads (spawnCharacters() in sketch.js)
     this.enemySpawns = [];
     this.npcSpawns = [];
+
+    // the enemy spawns whose enemy has been defeated, so spawnCharacters() doesn't make them again.
+    // it's game progress, not part of the map's design: the spawns stay in their list (the editor
+    // still shows them, and Export still saves them), they're just skipped while they're in here
+    this.defeated = new Set();
   }
 
   // ---------- reading and changing tiles ----------
@@ -162,13 +167,6 @@ class TileMap {
     const before = this[list].length;
     this[list] = this[list].filter((spawn) => spawn.col !== col || spawn.row !== row);
     return this[list].length !== before;
-  }
-
-  // removes one particular spawn (the actual { type, col, row } from the list), e.g. the one a
-  // defeated enemy came from, so it doesn't come back
-  removeSpawn(kind, spawn) {
-    const list = SPAWN_KINDS[kind].list;
-    this[list] = this[list].filter((other) => other !== spawn);
   }
 
   // ---------- solid objects ----------
