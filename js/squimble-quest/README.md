@@ -45,20 +45,24 @@ This README and the comments in the code are the project's only notes. There's n
 - **Maps** (`maps.js`, `mapfile.js`, `tilemap.js`):
   - Each map is one JSON file in `assets/squimble-quest/maps/`, listed in `MAP_FILES`. The file format is at the top of `mapfile.js`.
   - `MAPS[name]` is a function that builds the map fresh. Always add maps with `addMap()`, which also forgets any visited copy.
-  - `getMap(name)` (maps.js) builds a map the first time it's needed and keeps it in `VISITED_MAPS`. That keeps defeated enemies gone and editor changes in place until the page reloads. `loadMap(name, doorName)` (sketch.js) goes to a map through it.
-- **Doors** (`doors.js`): tiles that take the player to another map, or somewhere else on the same one (houses, caves, the next room of a castle).
-  - Each map has a `doors` list of `{ name, col, row, to, toDoor, activate }`. Every door is both a way out and a place to arrive, so a house needs one door outside and one inside, each leading to the other.
-  - Doors link by **name**, not position: `to` is a map name and `toDoor` a door name on that map (`''` means that map's spawn point). Moving a door never breaks links to it, but renaming it does.
-  - `activate` is `step` (opens when stepped onto) or `interact` (press E within `DOOR_REACH`, which is more than a tile, so it works from the tile in front).
-  - **Arriving on a step door doesn't bounce you back.** Step doors fire only when the player's tile *changes* onto them. `Doors.arrived()` marks the tile you land on as already stepped on. `loadMap` and `Player.respawn` call it, since you respawn where you arrived.
-  - `doorProblem(door)` says what's wrong with where a door leads. It's used when going through a door (in-game message via `showMessage()` in hud.js), for red markers in the editor, and by `checkAllDoors()`, which warns in the console once the maps have loaded.
-  - Doors are separate from tiles and objects, because those have nowhere to store where they lead. To make a door, trapdoor or manhole *look* like one, put an object on the same tile. An `interact` door works under a solid object, because E reaches it from the next tile.
+  - `getMap(name)` (maps.js) builds a map the first time it's needed and keeps it in `VISITED_MAPS`. That keeps editor changes in place until the page reloads. `loadMap(name, warpName)` (sketch.js) goes to a map through it.
+- **Warps** (`warps.js`): tiles that take the player to another map, or somewhere else on the same one. Doors, cave entrances, manholes, trapdoors, secret passages and teleporters are all warps. "Warp" is the usual game name for this, and doesn't tie it to doors. A warp to the same map is a teleport: only the player moves.
+  - Warps only move the player. Something you press E at that does anything else (a sign, a chest, a lever) should be its own kind of trigger, and can copy how `Warps.inReach()` works.
+  - Each map has a `warps` list of `{ name, col, row, to, toWarp, activate }`. Every warp is both a way out and a place to arrive, so a house needs one warp outside and one inside, each leading to the other.
+  - Warps link by **name**, not position: `to` is a map name and `toWarp` a warp name on that map (`''` means that map's spawn point). Moving a warp never breaks links to it, but renaming it does.
+  - `activate` is `step` (opens when stepped onto) or `interact` (press E within `WARP_REACH`, which is more than a tile, so it works from the tile in front).
+  - **Arriving on a step warp doesn't bounce you back.** Step warps fire only when the player's tile *changes* onto them. `Warps.arrived()` marks the tile you land on as already stepped on. `loadMap` and `Player.respawn` call it, since you respawn where you arrived.
+  - `warpProblem(warp)` says what's wrong with where a warp leads. It's used when going through a warp (in-game message via `showMessage()` in hud.js), for red markers in the editor, and by `checkAllWarps()`, which warns in the console once the maps have loaded.
+  - Warps are separate from tiles and objects, because those have nowhere to store where they lead. To make a warp *look* like a door, trapdoor or manhole, put an object on the same tile. An `interact` warp works under a solid object, because E reaches it from the next tile.
 - **TileMap** (`tilemap.js`):
-  - Holds `tiles` (tile names, `null` for empty), `objects`, `enemySpawns` and `npcSpawns` (each `{ type, col, row }`), `doors`, `spawn` (the player's spawn, in world pixels) and `defeated`.
+  - Holds `tiles` (tile names, `null` for empty), `objects`, `enemySpawns` and `npcSpawns` (each `{ type, col, row }`), `warps`, `spawn` (the player's spawn, in world pixels) and `characters`.
   - Empty and off-map tiles count as solid.
   - `resize()` and `usedArea()` do the map resizing.
   - `SPAWN_KINDS` connects enemies and NPCs to their lists and their names in map files.
-- **Enemies:** when one dies, its spawn goes into `map.defeated`. Its spawn stays in the list, so Export always saves it. `spawnCharacters()` skips defeated ones. Opening the editor clears `defeated`, so the editor shows the whole design, and it's a quick way to reset enemies while testing.
+- **Every map remembers its characters.** When the player leaves a map, `loadMap` keeps its live `enemies` and `npcs` on `map.characters`, and hands them back when the player returns. So defeated enemies stay gone, hurt ones stay hurt, and everyone stays where they were, until the page reloads.
+  - The spawn lists (`enemySpawns`, `npcSpawns`) are the design and never change when an enemy dies, so Export always saves every one.
+  - `spawnCharacters()` makes everyone fresh from the spawn lists. It runs on a map's first visit and whenever the editor opens, closes or changes characters. Opening the editor is a quick way to reset enemies while testing.
+  - This used to be a `defeated` set of spawns. Keeping the characters themselves replaced it, and also fixed hurt enemies healing when you left and came back.
 - **Characters** (`character.js`):
   - The player, enemies and NPCs all take the same controls, `{ move, aim, attack }`. For the player they come from the keyboard and mouse. For enemies and NPCs they come from an `ai(entity, world, dt)` function.
   - Tiles' `onEnter` and `onStand` behaviours run for all characters.
@@ -70,11 +74,11 @@ This README and the comments in the code are the project's only notes. There's n
   - `Input.typing = true` sends keys to `Input.typed` instead of the game. `TextField` and `NumberField` work with it: whatever owns the box decides which one is focused and calls `field.type(key)` for each key.
 - **Editor** (`editor.js`):
   - The bottom bar has browser-style tabs for things to place: Tiles, Objects, Enemies, NPCs and Triggers. The tabs are only for things you place on the map; settings for the whole map go in the Map settings panel.
-  - **Triggers** are things on the map that make something happen: the player's spawn and doors (`TRIGGER_TYPES`). They're placed by their own code in `Editor.update()`, not from a catalogue file. Placing a door opens its settings box.
-  - **Right click** opens the settings of whatever's under the mouse (`editDoor()` for doors, the only thing with settings so far). Anything that gets settings later hooks in at the same spot in `Editor.update()`.
+  - **Triggers** are things on the map that make something happen: the player's spawn and warps (`TRIGGER_TYPES`). They're placed by their own code in `Editor.update()`, not from a catalogue file. Placing a warp opens its settings box.
+  - **Right click** opens the settings of whatever's under the mouse (`editWarp()` for warps, the only thing with settings so far). Anything that gets settings later hooks in at the same spot in `Editor.update()`.
   - **Erase** sits at the left end of the bar on every tab. `Editor.selected` is `null` while it's picked. It's the only way to delete (right click used to erase too).
   - The **Map settings** button in the top right opens a panel with Resize map, New map, Open file and Export.
-  - `FormBox` is the in-game box that asks for things: sizes for New map and Resize map, the fill tile for New map, the name for Export, and a door's settings. Give it a title and a list of rows, and it lays itself out. `Picker` is its "choose one of these" field (`tilePicker()` makes one for tiles).
+  - `FormBox` is the in-game box that asks for things: sizes for New map and Resize map, the fill tile for New map, the name for Export, and a warp's settings. Give it a title and a list of rows, and it lays itself out. `Picker` is its "choose one of these" field (`tilePicker()` makes one for tiles).
   - While WASD pans the camera, the editor UI and dev panels fade out (`Editor.uiAlpha`, applied in `sketch.js`).
 - **Dev mode** (`debug.js`): a compact status panel in the top left. The key lists are `DEV_KEYS` and `EDITOR_KEYS`, and **H** toggles them.
 
@@ -82,23 +86,22 @@ This README and the comments in the code are the project's only notes. There's n
 
 Only build these when they're needed.
 
-- **Doors:**
-  - objects that are doors (a door, trapdoor or manhole object that opens its door, see the end of the doors notes above)
-  - a "back where you came from" target, for interiors that several doors share
+- **Warps:**
+  - objects that are warps (a door, trapdoor or manhole object that opens its warp, see the end of the warps notes above)
+  - a "back where you came from" target, for interiors that several warps share
   - a fade between maps
   - locked doors
-  - an editor key to go through the door under the mouse
+  - an editor key to go through the warp under the mouse
   - loading map files by name, instead of listing every one in `MAP_FILES`
 
 ## Known issues and loose ends
 
 - **Open file uses the browser's file picker.** That has to stay, since only the browser can read files from the computer.
 - **`TileMap.moveBox()` isn't used anywhere.** Characters call `moveAlongX`/`moveAlongY` directly. Its comment says so.
-- **Hurt enemies come back at full health.** If an enemy was hurt but not killed, it's back in its starting spot at full health when you leave the area and return. Only defeated enemies are remembered.
 - **Dying is a placeholder:** the player jumps back to their spawn with full health.
-- **Renaming a door breaks doors leading to it.** Links go by name, so doors on other maps keep the old name. They show red in the editor, and the console lists them when the game loads.
-- **Going through a door to the same map resets its characters.** `loadMap` runs `spawnCharacters()`, so living enemies go back to their spots (defeated ones stay gone).
-- **Nothing stops a door being placed on a solid tile.** Arriving there leaves the player inside a wall. Put arrival doors on floor.
+- **Map progress only lasts until the page reloads.** Defeated enemies and everything else come back on a reload, because there's no saving yet.
+- **Renaming a warp breaks warps leading to it.** Links go by name, so warps on other maps keep the old name. They show red in the editor, and the console lists them when the game loads.
+- **Nothing stops a warp being placed on a solid tile.** Arriving there leaves the player inside a wall. Put arrival warps on floor.
 - **The spawn can end up on an empty tile.** Erasing the tile under it, or making a new map filled with `empty`, leaves the player stuck there. Nothing checks for this.
 - **The New map fill picker steps one tile at a time.** Fine for now, but slow once there are lots of tiles.
 - **The art is placeholders:** coloured rectangles until sprites exist. Every catalogue already has an `image` setting.

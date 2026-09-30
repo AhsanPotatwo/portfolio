@@ -10,15 +10,16 @@
 //   - objects: left click to place one, its top left corner on the tile under the mouse
 //   - enemies and npcs: left click to place one, standing on the tile under the mouse
 //   - pick Erase in the bar, then left click or drag to erase. if you start on an object, enemy,
-//     npc or door it removes those, otherwise it empties tiles. empty tiles are like off the edge
+//     npc or warp it removes those, otherwise it empties tiles. empty tiles are like off the edge
 //     of the map: nothing's drawn there and nothing can walk on them
-//   - right click something to change its settings. only doors have any so far
+//   - right click something to change its settings. only warps have any so far
 //   - opening the editor brings back every enemy placed on the map, including defeated ones, so
 //     you always see the whole design. closing it puts every enemy and npc back where it was
-//     placed, with full health. (outside the editor, defeated enemies stay defeated, see sketch.js)
+//     placed, with full health. (outside the editor, each map remembers its enemies and npcs as
+//     they were left, see loadMap() in sketch.js)
 //   - triggers: left click to place one.
 //       spawn: the player's spawn point (a yellow ring), which moves to the tile under the mouse
-//       door:  a way to another map (doors.js), a purple square. placing one opens a box to pick
+//       warp:  a way to another map (warps.js), a purple square. placing one opens a box to pick
 //              its name, where it leads and how it opens. right click it to change those later
 //   - Map settings (top right) opens a panel for the whole map: Resize map changes its size
 //     (never smaller than the area with tiles in it), New map makes a map of any size filled
@@ -45,7 +46,7 @@ const NEW_MAP_NAME = 'new-map';
 const EDITOR_KEYS = [
   'MAP EDITOR KEYS',
   'left click  paint / place',
-  'right click change settings (doors)',
+  'right click change settings (warps)',
   'WASD        move around',
   'wheel       zoom',
   'B           close the editor',
@@ -105,7 +106,7 @@ const EDITOR_TABS = [
   { kind: 'object', label: 'Objects' },
   { kind: 'enemy', label: 'Enemies' },
   { kind: 'npc', label: 'NPCs' },
-  // things on the map that make something happen, like where the player spawns and doors
+  // things on the map that make something happen, like where the player spawns and warps
   { kind: 'trigger', label: 'Triggers' },
 ];
 
@@ -115,8 +116,8 @@ const TRIGGER_TYPES = {
   // where the player starts on this map, and comes back to after dying. there's only one, so
   // placing it moves it
   spawn: {},
-  // a way to another map, or somewhere else on this one (doors.js). one per tile
-  door: {},
+  // a way to another map, or somewhere else on this one (warps.js). one per tile
+  warp: {},
 };
 
 // where each tab's things are defined, by kind
@@ -150,7 +151,7 @@ const Editor = {
   view: { x: 0, y: 0 },
   // where the mouse was last frame while dragging, so fast drags can fill in the gap
   lastPaint: null,
-  // whether the current erase drag is removing objects, characters and doors (true) or emptying tiles (false)
+  // whether the current erase drag is removing objects, characters and warps (true) or emptying tiles (false)
   erasingThings: false,
   // how see-through the ui is, 1 solid to 0 gone. it fades out while WASD moves the camera
   // (sketch.js draws the ui with it). stillFor is how long since the camera last moved, in seconds
@@ -292,9 +293,8 @@ const Editor = {
     this.active = true;
     // stop any conversation first, its text box would be in the way (dialogue.js)
     if (Dialogue.active) Dialogue.close();
-    // every enemy placed on the map comes back, defeated or not, so you see the whole design
-    // (and it's a quick way to reset them while testing). worldMap is the game's (sketch.js)
-    worldMap.defeated.clear();
+    // every enemy placed on the map comes back where it was placed, defeated or not, so you see the
+    // whole design (and it's a quick way to reset them while testing). sketch.js
     spawnCharacters();
     // start looking at wherever the camera already is, and follow the editor's view instead of the
     // player. follow() also stops the conversation's camera glide
@@ -458,14 +458,14 @@ const Editor = {
       if (kind === 'object') this.placeObject(map, name, over.col, over.row);
       if (isCharacterKind(kind)) this.placeCharacter(map, kind, name, over.col, over.row);
       if (kind === 'trigger' && name === 'spawn') this.placeSpawn(map, over.col, over.row);
-      if (kind === 'trigger' && name === 'door') this.placeDoor(map, over.col, over.row);
+      if (kind === 'trigger' && name === 'warp') this.placeWarp(map, over.col, over.row);
     }
 
-    // right click changes the settings of whatever's there. only doors have any so far, anything
+    // right click changes the settings of whatever's there. only warps have any so far, anything
     // else that gets settings later can be added here
     if (over && Input.mousePressed('right')) {
-      const door = map.doorAt(over.col, over.row);
-      if (door) this.editDoor(map, door);
+      const warp = map.warpAt(over.col, over.row);
+      if (warp) this.editWarp(map, warp);
     }
 
     // tiles and erasing: keep going while the button's held
@@ -473,7 +473,7 @@ const Editor = {
     const painting = this.selected?.kind === 'tile' && Input.mouseHeld('left');
 
     if (over && (painting || erasing)) {
-      // an erase drag that starts on an object, enemy, npc or door only removes those, otherwise it
+      // an erase drag that starts on an object, enemy, npc or warp only removes those, otherwise it
       // only empties tiles. stops one drag removing a table and then the floor it was standing on
       if (!this.lastPaint) this.erasingThings = erasing && this.thingsAt(map, over.col, over.row);
 
@@ -483,7 +483,7 @@ const Editor = {
           map.set(col, row, this.selected.name);
         } else if (this.erasingThings) {
           map.removeObjectsAt(col, row);
-          map.removeDoorAt(col, row);
+          map.removeWarpAt(col, row);
           for (const kind of Object.keys(SPAWN_KINDS)) {
             if (map.removeSpawnsAt(kind, col, row)) removedCharacter = true;
           }
@@ -499,9 +499,9 @@ const Editor = {
     }
   },
 
-  // is there an object, enemy, npc or door on this tile?
+  // is there an object, enemy, npc or warp on this tile?
   thingsAt(map, col, row) {
-    if (map.objectsAt(col, row).length > 0 || map.doorAt(col, row)) return true;
+    if (map.objectsAt(col, row).length > 0 || map.warpAt(col, row)) return true;
     return Object.keys(SPAWN_KINDS).some((kind) => map.spawnsAt(kind, col, row).length > 0);
   },
 
@@ -533,54 +533,54 @@ const Editor = {
     player.spawnY = map.spawn.y;
   },
 
-  // puts a door on col, row (doors.js), then opens its settings. it can go on any tile of the map,
-  // even under an object or npc. clicking a door that's already there opens its settings instead
-  placeDoor(map, col, row) {
+  // puts a warp on col, row (warps.js), then opens its settings. it can go on any tile of the map,
+  // even under an object or npc. clicking a warp that's already there opens its settings instead
+  placeWarp(map, col, row) {
     if (!map.inside(col, row)) return;
-    let door = map.doorAt(col, row);
-    if (!door) {
-      // named door1, door2... whichever's free first, until it's given a better name
+    let warp = map.warpAt(col, row);
+    if (!warp) {
+      // named warp1, warp2... whichever's free first, until it's given a better name
       let number = 1;
-      while (map.door(`door${number}`)) number++;
+      while (map.warp(`warp${number}`)) number++;
       // goes nowhere and opens by stepping on it, until its settings say otherwise
-      door = { name: `door${number}`, col, row, to: '', toDoor: '', activate: 'step' };
-      map.doors.push(door);
+      warp = { name: `warp${number}`, col, row, to: '', toWarp: '', activate: 'step' };
+      map.warps.push(warp);
     }
-    this.editDoor(map, door);
+    this.editWarp(map, warp);
   },
 
-  // a box for changing a door's settings: its name, which map it goes to, which door on that map
-  // it arrives at, and whether it opens by stepping on it or pressing E. the door changes when
+  // a box for changing a warp's settings: its name, which map it goes to, which warp on that map
+  // it arrives at, and whether it opens by stepping on it or pressing E. the warp changes when
   // the box is confirmed, Cancel leaves it how it was
-  editDoor(map, door) {
-    // the doors it can arrive at on the map it goes to. '' is that map's spawn point
-    const arriveChoices = (mapName) => ['', ...doorNamesOn(mapName)];
-    // a map or door it leads to that doesn't exist any more still shows in the list, marked
+  editWarp(map, warp) {
+    // the warps it can arrive at on the map it goes to. '' is that map's spawn point
+    const arriveChoices = (mapName) => ['', ...warpNamesOn(mapName)];
+    // a map or warp it leads to that doesn't exist any more still shows in the list, marked
     // missing, so opening the box doesn't quietly change where it leads
     const withCurrent = (choices, current) => (choices.includes(current) ? choices : [...choices, current]);
     const missing = (name, exists) => (exists ? name : `${name} (missing)`);
 
     const arrivePicker = new Picker({
       w: 180,
-      choices: withCurrent(arriveChoices(door.to), door.toDoor),
-      value: door.toDoor,
-      label: (name) => (name ? missing(name, getMap(mapPicker.value)?.door(name)) : 'spawn point'),
+      choices: withCurrent(arriveChoices(warp.to), warp.toWarp),
+      value: warp.toWarp,
+      label: (name) => (name ? missing(name, getMap(mapPicker.value)?.warp(name)) : 'spawn point'),
     });
     const mapPicker = new Picker({
       w: 180,
-      choices: withCurrent(['', ...Object.keys(MAPS)], door.to),
-      value: door.to,
+      choices: withCurrent(['', ...Object.keys(MAPS)], warp.to),
+      value: warp.to,
       label: (name) => (name ? missing(name, MAPS[name]) : 'nowhere'),
-      // a different map has different doors, so start again from its spawn point
+      // a different map has different warps, so start again from its spawn point
       onChange: (name) => arrivePicker.setChoices(arriveChoices(name), ''),
     });
 
     FormBox.open({
-      title: 'Door',
+      title: 'Warp',
       hint: 'Click the right of a choice for the next one',
       confirmLabel: 'Save',
       rows: [
-        { label: 'Name', field: new TextField({ w: 180, value: door.name }) },
+        { label: 'Name', field: new TextField({ w: 180, value: warp.name }) },
         { label: 'Goes to', field: mapPicker },
         { label: 'Arrive at', field: arrivePicker },
         {
@@ -588,15 +588,15 @@ const Editor = {
           field: new Picker({
             w: 180,
             choices: ['step', 'interact'],
-            value: door.activate,
+            value: warp.activate,
             label: (how) => (how === 'step' ? 'stepping on it' : 'pressing E'),
           }),
         },
       ],
-      // needs a name, and one no other door on this map has, so doors can lead to it
-      canConfirm: ([name]) => name.trim() !== '' && !map.doors.some((other) => other !== door && other.name === name.trim()),
-      onConfirm: ([name, to, toDoor, activate]) => {
-        Object.assign(door, { name: name.trim(), to, toDoor: to ? toDoor : '', activate });
+      // needs a name, and one no other warp on this map has, so warps can lead to it
+      canConfirm: ([name]) => name.trim() !== '' && !map.warps.some((other) => other !== warp && other.name === name.trim()),
+      onConfirm: ([name, to, toWarp, activate]) => {
+        Object.assign(warp, { name: name.trim(), to, toWarp: to ? toWarp : '', activate });
       },
     });
   },
@@ -622,15 +622,15 @@ const Editor = {
 
   // ---------- drawing ----------
 
-  // marks the spawn point and doors, and shows what a click would do under the mouse.
+  // marks the spawn point and warps, and shows what a click would do under the mouse.
   // uses world positions, so draw it before camera.end(). it's drawn after the characters, so
   // these markers show on top of everything
   drawCursor(map, camera, aim) {
     // same trick as the grid: divide by zoom so lines stay the same thickness on screen
     const px = 1 / camera.zoom;
 
-    // every door (doors.js), and the spawn point: a ring where the player's feet will be
-    for (const door of map.doors) drawDoorMarker(door, px);
+    // every warp (warps.js), and the spawn point: a ring where the player's feet will be
+    for (const warp of map.warps) drawWarpMarker(warp, px);
     drawSpawnRing(map.spawn.x, map.spawn.y + feetBelowCentre(PLAYER), px);
 
     if (!aim || !Input.mouse.inside || UI.hovered) return;
@@ -800,9 +800,9 @@ class PaletteSwatch extends Button {
       } else if (this.name === 'spawn') {
         // drawn like its ring on the map
         drawSpawnRing(middleX, middleY);
-      } else if (this.name === 'door') {
-        // drawn like its square on the map (doors.js)
-        drawDoorSquare(middleX - 12, middleY - 12, 24, DOOR_COLOURS.edge, false);
+      } else if (this.name === 'warp') {
+        // drawn like its square on the map (warps.js)
+        drawWarpSquare(middleX - 12, middleY - 12, 24, WARP_COLOURS.edge, false);
       } else {
         // objects and characters are shrunk to fit but keep their shape, so a 2 x 1 table
         // looks twice as wide as it is tall
@@ -877,7 +877,7 @@ class SettingsPanel extends UIElement {
 
 // ---------- the form box ----------
 // a box in the middle of the screen that asks for a few things (New map, Resize map, Export and a
-// door's settings), in the game rather than in the browser's own prompt(). click a box to type
+// warp's settings), in the game rather than in the browser's own prompt(). click a box to type
 // into it, Tab goes to the next one, Enter or the right button says yes, Escape or Cancel closes it
 
 // the box's width, and the space each thing it asks for gets, in screen pixels
@@ -1030,7 +1030,7 @@ class FormBoxBackdrop extends UIElement {
 }
 
 // picks one of a list of choices in the form box, like what New map is filled with, or which map a
-// door goes to. click the left half to go back through them, the right half to go forward.
+// warp goes to. click the left half to go back through them, the right half to go forward.
 //   choices   the list to pick from (any values: names, null...)
 //   value     the one picked to start with (the first choice if it isn't one of them)
 //   label     turns a choice into the words shown for it

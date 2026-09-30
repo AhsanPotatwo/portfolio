@@ -28,7 +28,7 @@
 //   hud.js        things drawn over the game that aren't ui elements (crosshair, messages, panels)
 //   inventory.js  inventories, and the hotbar (needs button.js loaded first)
 //   dialogue.js   talking to npcs: who's in range, and the text box
-//   doors.js      doors between maps: going through them, and checking where they lead
+//   warps.js      warps (doors, caves, teleporters...): going through them, checking where they lead
 //   editor.js     the map editor, opened from dev mode (needs button.js and textfield.js first)
 //   debug.js      developer mode, hidden testing tools (press ` or Ctrl + D while playing)
 //
@@ -88,8 +88,8 @@ function setup() {
       console.warn(`START_MAP is "${START_MAP}", but that map didn't load. Starting on "${first}" instead.`);
     }
     loadMap(first);
-    // warns in the browser console about doors leading to maps or doors that don't exist (doors.js)
-    checkAllDoors();
+    // warns in the browser console about warps leading to maps or warps that don't exist (warps.js)
+    checkAllWarps();
     mapsReady = true;
   });
 
@@ -108,22 +108,38 @@ function setup() {
   if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) noLoop();
 }
 
-// go to a map, by its name in MAPS (maps.js). the first visit builds it from its file, after that
-// it's the same map as it was left (see getMap() in maps.js). puts the player on the door called
-// doorName (doors.js), or at the map's spawn point without one, and they'll respawn there too.
-// moves the camera straight there. doors and dev mode's M key use this
-function loadMap(name, doorName = '') {
+// go to a map, by its name in MAPS (maps.js). puts the player on the warp called warpName
+// (warps.js), or at the map's spawn point without one, and they'll respawn there too. moves the
+// camera straight there. warps and dev mode's M key use this.
+//
+// every map is kept how it was left, until the page reloads: its tiles and editor changes (see
+// getMap() in maps.js), and its enemies and npcs, which are put away on the map when the player
+// leaves and brought back out when they return. so a defeated enemy stays gone, a hurt one is still
+// hurt, and everyone's where they were. going to the same map (a warp to another spot on it) puts
+// the same characters straight back, so it's just a teleport: only the player moves
+function loadMap(name, warpName = '') {
+  // going anywhere ends a conversation
+  if (Dialogue.active) Dialogue.close();
+  // worldMap is undefined when the game first starts
+  if (worldMap) worldMap.characters = { enemies, npcs };
   worldMap = getMap(name);
 
-  // a door that isn't there (doorProblem() in doors.js catches that before a door gets here)
+  // a warp that isn't there (warpProblem() in warps.js catches that before a warp gets here)
   // arrives at the spawn point instead
-  const door = doorName ? worldMap.door(doorName) : null;
-  const arrive = door ? standingOnTile(PLAYER, door.col, door.row) : worldMap.spawn;
+  const warp = warpName ? worldMap.warp(warpName) : null;
+  const arrive = warp ? standingOnTile(PLAYER, warp.col, warp.row) : worldMap.spawn;
   player.placeAt(arrive.x, arrive.y);
-  // the tile they've arrived on counts as already stepped on, so a door there doesn't send them
-  // straight back (doors.js)
-  Doors.arrived(player, worldMap);
-  spawnCharacters();
+  // the tile they've arrived on counts as already stepped on, so a warp there doesn't send them
+  // straight back (warps.js)
+  Warps.arrived(player, worldMap);
+
+  // the first visit makes its characters fresh. the map editor always shows everyone where they
+  // were placed (see Editor.open() in editor.js), so it makes them fresh too
+  if (worldMap.characters && !Editor.active) {
+    ({ enemies, npcs } = worldMap.characters);
+  } else {
+    spawnCharacters();
+  }
 
   // the camera stops at the edges of the map
   gameCamera.bounds = worldMap.bounds();
@@ -137,21 +153,13 @@ function loadMap(name, doorName = '') {
   gameCamera.snap();
 }
 
-// makes the map's enemies and npcs, each where it was placed and with full health. runs when a map
-// loads, and when the map editor opens, closes or changes them.
-// enemies that have been defeated aren't made again (see worldMap.defeated in tilemap.js), so
-// leaving an area and coming back doesn't bring them back. opening the map editor does (editor.js)
+// makes every one of the map's enemies and npcs fresh, where it was placed and with full health,
+// including enemies that were defeated. runs the first time a map is visited, and when the map
+// editor opens, closes or changes them (so opening the editor is a quick way to reset them)
 function spawnCharacters() {
   // the npc you're talking to is about to be replaced, so the conversation ends
   if (Dialogue.active) Dialogue.close();
-  enemies = worldMap.enemySpawns
-    .filter((spawn) => !worldMap.defeated.has(spawn))
-    .map((spawn) => {
-      const enemy = new Enemy(spawn.type, spawn.col, spawn.row);
-      // remember which spawn it came from, so it can be marked defeated when it dies
-      enemy.spawn = spawn;
-      return enemy;
-    });
+  enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row));
   npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row));
 }
 
@@ -202,28 +210,25 @@ function draw() {
 
     // each enemy's and npc's ai decides what it does
     for (const enemy of enemies) enemy.update(dt, world);
-    // defeated enemies are gone, and the map remembers their spawn so they stay gone
-    enemies = enemies.filter((enemy) => {
-      if (!enemy.dead) return true;
-      if (enemy.spawn) worldMap.defeated.add(enemy.spawn);
-      return false;
-    });
+    // defeated enemies are gone. this list is what the map keeps when the player leaves, so they
+    // stay gone (see loadMap())
+    enemies = enemies.filter((enemy) => !enemy.dead);
     for (const npc of npcs) npc.update(dt, world);
 
     // the npc close enough to talk to (if any) shows an E over its head, and E starts talking.
-    // otherwise, a door that opens with E (if one's in reach) does the same (doors.js)
+    // otherwise, a warp that opens with E (if one's in reach) does the same (warps.js)
     const talkTo = Dialogue.npcInRange(player, npcs);
     for (const npc of npcs) npc.canTalk = npc === talkTo;
-    Doors.reachable = talkTo ? null : Doors.inReach(player, worldMap);
+    Warps.reachable = talkTo ? null : Warps.inReach(player, worldMap);
     if (talkTo && Input.wasPressed('interact')) {
       talkTo.canTalk = false;
       Dialogue.open(talkTo, player, gameCamera);
-    } else if (Doors.reachable && Input.wasPressed('interact')) {
-      Doors.use(Doors.reachable);
+    } else if (Warps.reachable && Input.wasPressed('interact')) {
+      Warps.use(Warps.reachable);
     } else {
-      // a door that opens when it's stepped onto. after the E door, which might have just gone to
+      // a warp that opens when it's stepped onto. after the E warp, which might have just gone to
       // another map, so this doesn't look at the new map in the same frame
-      Doors.checkStep(player, worldMap);
+      Warps.checkStep(player, worldMap);
     }
   }
   gameCamera.update(dt);
@@ -235,7 +240,7 @@ function draw() {
   // whoever's standing further down the screen is in front, so sort by where their feet are
   const characters = [player, ...enemies, ...npcs].sort((a, b) => (a.y + a.h / 2) - (b.y + b.h / 2));
   for (const character of characters) character.draw();
-  if (!Editor.active && !Dialogue.active) Doors.drawPrompt();
+  if (!Editor.active && !Dialogue.active) Warps.drawPrompt();
   if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
   gameCamera.end();
 

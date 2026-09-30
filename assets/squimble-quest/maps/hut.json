@@ -30,7 +30,7 @@
   "npcs": [
     { "type": "villager", "col": 3, "row": -1 }
   ],
-  "doors": [
-    { "name": "exit", "col": 0, "row": 3, "to": "example", "toDoor": "hut", "activate": "step" }
+  "warps": [
+    { "name": "exit", "col": 0, "row": 3, "to": "example", "toWarp": "hut", "activate": "step" }
   ]
 }

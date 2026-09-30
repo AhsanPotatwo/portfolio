@@ -1,7 +1,8 @@
 // the enemy catalogue: every kind of enemy, and how it behaves. works like tiles.js and objects.js.
 // enemies are placed on maps in the map editor (the Enemies tab), and each one appears where it
-// was placed when the map loads. once defeated, it stays gone until the page is reloaded or the
-// map editor is opened (see spawnCharacters() in sketch.js).
+// was placed the first time you go to the map. after that the map remembers it as it was left:
+// once defeated it stays gone, and a hurt one stays hurt, until the page is reloaded or the map
+// editor is opened (see loadMap() in sketch.js).
 //
 // ============================== how to make an enemy ==============================
 //
