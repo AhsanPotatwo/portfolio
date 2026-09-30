@@ -26,7 +26,10 @@ Every tile in the game is one line in `tiles.json`, in this folder. The game loa
      - **Slippery**: how much you slide about, 0% is normal and 90% is ice. You keep going the way you were until you bump into something.
      - **Push** and **Push by**: pushes anything on it that way, this many tiles a second (conveyor belts, river currents, wind). Walking is 5 tiles a second.
 
-   Every setting works on enemies and NPCs too.
+   - **Dual grid**
+     - **Blends**: which dual grid tiles (like grass) round off onto this tile. **every dual grid tile** includes ones made later. **only the ticked ones** lets you untick the ones that look wrong: they stop in a straight line at this tile's edge instead. Good for planks, walls and roofs; leave it on for natural ground like dirt.
+
+   Every Behaviours and Effects setting works on enemies and NPCs too.
 4. Click **Save**. It's in the game straight away, so you can paint with it and walk on it.
 5. Click **Export tiles**. It downloads `tiles.json`, and the picture too if you chose a new one. The message on screen says where each goes:
    - drag `tiles.json` into this folder in VS Code, replacing the old one
