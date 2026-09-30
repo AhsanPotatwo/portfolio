@@ -21,7 +21,7 @@ The tile grid shows on every map while developer mode is on, and never outside i
 ## Quick start
 
 1. Open the game, click it, press **`** or **Ctrl + D** (developer mode), then **B** (map editor).
-2. Click **New map** and type a size, e.g. `40x24`. Or just edit the map you're on.
+2. In the **Level settings** tab, click **New map** and type a size, e.g. `40x24`. Or just edit the map you're on.
 3. Paint tiles and place objects.
 4. Click **Export**, give it a name, and it downloads as `yourname.json`.
 5. Move the file into this folder (`assets/squimble-quest/maps/`).
@@ -44,6 +44,7 @@ Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything 
 | Control | What it does |
 |---|---|
 | **Tiles** / **Objects** / **Enemies** / **NPCs** tabs above the bar | Switch between the ground tiles, objects (furniture, decorations…), enemies and friendly NPCs |
+| **Level settings** tab | The map's name and size, and the **Resize map**, **New map**, **Open file** and **Export** buttons |
 | Click something in the bottom bar | Choose it (**‹ ›** for more pages) |
 | Left click / drag (tile chosen) | Paint that tile, replacing the one there |
 | Left click (object chosen) | Place the object, its top-left corner on the tile under the mouse. A see-through preview shows where it'll go |
@@ -72,6 +73,12 @@ The new map is filled with whatever is chosen in the bar:
 **Rooms that aren't rectangles** (L-shapes, crosses, rooms joined by corridors): choose **Erase**, make a new map big enough to fit the whole shape, then paint the floor in the shape you want. Everything you don't paint stays empty, and empty tiles work like walls. Remember to put the spawn point (**P**) on the floor.
 
 A new map is called `new-map` until you export it with a name of its own.
+
+### Resizing a map
+
+In the **Level settings** tab, click **Resize map** and type the new size (same format as **New map**). The map grows or shrinks around its middle, and any new space is empty, ready to paint.
+
+It can't be made smaller than the area with tiles in it: the box asking for the size says what the smallest is, and asking for less gives you that. So a 10 × 10 map made 20 × 20 can go back to 10 × 10, but if you've painted one tile past the old edge on the right and bottom, the smallest is 11 × 11. Objects, enemies and NPCs on any part that's cut off are removed.
 
 ### Changing a map you've already made
 

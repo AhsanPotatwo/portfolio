@@ -94,6 +94,47 @@ class TileMap {
     this.fill(col + w - 1, row, 1, h, name);  // right
   }
 
+  // the smallest rectangle holding every tile that isn't empty: { left, top, right, bottom }, the
+  // first and last column and row. null if every tile is empty. the map editor won't resize a map
+  // smaller than this
+  usedArea() {
+    let area = null;
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        if (this.tiles[r * this.cols + c] === null) continue;
+        const col = this.left + c;
+        const row = this.top + r;
+        if (!area) area = { left: col, top: row, right: col, bottom: row };
+        area.left = Math.min(area.left, col);
+        area.right = Math.max(area.right, col);
+        area.top = Math.min(area.top, row);
+        area.bottom = Math.max(area.bottom, row);
+      }
+    }
+    return area;
+  }
+
+  // makes the map cols x rows, with its top left tile at left, top. every tile stays where it is in
+  // the world, new space is empty, and tiles, objects, enemies and npcs on any part that's gone are dropped
+  resize(left, top, cols, rows) {
+    const tiles = new Array(cols * rows).fill(null);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        // this.inside() and this.index() still go by the old size here
+        if (this.inside(left + c, top + r)) tiles[r * cols + c] = this.tiles[this.index(left + c, top + r)];
+      }
+    }
+    Object.assign(this, { left, top, cols, rows, tiles });
+
+    // now inside() goes by the new size
+    this.objects = this.objects.filter((obj) => this.inside(obj.col, obj.row));
+    for (const info of Object.values(SPAWN_KINDS)) {
+      this[info.list] = this[info.list].filter((spawn) => this.inside(spawn.col, spawn.row));
+    }
+    // index() gives different numbers now the size has changed, so solidCells has to be redone
+    this.updateSolidCells();
+  }
+
   // off the map and empty tiles count as solid, so nothing can walk out of the world or into a hole.
   // so do tiles with a solid object on them. (get() only finds a tile when it's on the map, so
   // index() is safe to use after it)
