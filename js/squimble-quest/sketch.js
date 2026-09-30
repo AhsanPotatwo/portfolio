@@ -247,7 +247,7 @@ function draw() {
   // the world under it. a big map with lots of warps is slow to draw, and would slow the graph down
   if (!WarpGraph.active) {
     gameCamera.begin();
-    drawWorld(gameCamera, worldMap, Debug.enabled);
+    drawWorld(gameCamera, worldMap, Debug.enabled && Debug.showGrid);
     // whoever's standing further down the screen is in front, so sort by where their feet are
     const characters = [player, ...enemies, ...npcs].sort((a, b) => (a.y + a.h / 2) - (b.y + b.h / 2));
     for (const character of characters) character.draw();

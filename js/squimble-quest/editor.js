@@ -858,6 +858,21 @@ function drawTypeArt(type, x, y, w, h, radius = 0) {
     fill(type.fill);
     rect(x, y, w, h, radius);
   }
+  // dual grid tiles (tileset in tiles.js) get a badge in the top right corner
+  if (type.tileset) drawDualBadge(x + w - 15, y + 3);
+}
+
+// two little squares, one half across and down from the other, like the two grids a dual grid
+// tile is drawn on. on a dark square so it shows up on any tile. x, y is its top left
+function drawDualBadge(x, y) {
+  noStroke();
+  fill(0, 0, 0, 150);
+  rect(x, y, 12, 12, 3);
+  noFill();
+  stroke(255);
+  strokeWeight(1);
+  rect(x + 2, y + 2, 5, 5);
+  rect(x + 5, y + 5, 5, 5);
 }
 
 // the spawn point's marker: a yellow ring on a dark one, so it shows up on anything. px is one

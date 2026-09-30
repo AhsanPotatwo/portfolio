@@ -19,7 +19,7 @@ A map is made of:
 | `hut.json` | Inside the hut on `example`: a room with a rug, a table and a villager. Walk back out through the gap in the bottom wall |
 | `node-test.json` | For trying out the warp graph (**Show links**, see [Warps](#warps)). Warps that teleport around the same map, each on a coloured tile so you can see it without the editor: a family on dirt that branches like a tree, a family on sand that goes round in a loop, a village on grass to the right (20 doors leading to one `square`, some with a back room and a cellar, for testing a warp with lots of links), and two on planks that aren't linked to the others (one leads nowhere, one leads to the spawn point). Press **E** on one to use it |
 
-The tile grid shows on every map while developer mode is on, and never outside it.
+The tile grid shows on every map while developer mode is on, and never outside it. **G** hides it (and shows it again), to see the tiles on their own while zooming.
 
 ## Quick start
 
@@ -49,7 +49,7 @@ Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything 
 | **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** tabs above the bar | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs and triggers (the player's spawn point, and warps) |
 | **Map settings** (top right) | Opens a panel with the map's name and size, and the **Resize map**, **New map**, **Open file** and **Export** buttons. Click it again (or move with **WASD**) to close it |
 | Click something in the bottom bar | Choose it (**‹ ›** for more pages) |
-| Left click / drag (tile chosen) | Paint that tile, replacing the one there |
+| Left click / drag (tile chosen) | Paint that tile, replacing the one there. Tiles with a little badge of two overlapping squares in the corner are dual grid tiles (like grass): their edges round off and blend into the tiles next to them by themselves (see `tileset` in `tiles.js`) |
 | Left click (object chosen) | Place the object, its top-left corner on the tile under the mouse. A see-through preview shows where it'll go |
 | Left click (enemy or NPC chosen) | Place it, standing on the tile under the mouse |
 | Left click (**spawn** chosen, in **Triggers**) | The player spawns on this tile (yellow ring). There's only one, so it moves here |
@@ -59,6 +59,7 @@ Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything 
 | **WASD** | Move around the map. The editor's buttons and panels fade out while you move, so you can see the map, and come back when you stop |
 | **−** **=** or mouse wheel | Zoom out and in (**0** resets) |
 | **M** | Go to the next map |
+| **G** | Show or hide the tile grid |
 | **H** | Show or hide the list of keys (top left) |
 | **B** | Close the editor |
 

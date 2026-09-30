@@ -5,7 +5,8 @@
 //   - a small panel in the top left shows fps, which map you're on, the player's health and tile,
 //     and where the player, mouse (and the tile it's over) and camera are
 //   - H shows or hides the list of keys under it (the map editor's keys too, while it's open)
-//   - the tile grid and lines through (0, 0) show on the world
+//   - the tile grid and lines through (0, 0) show on the world. G hides them, e.g. to check
+//     how tiles look while zooming
 //   - - and = zoom, 0 resets the zoom. in the map editor the mouse wheel zooms too
 //     (the rest of the time the wheel changes hotbar slot)
 //   - T teleports the player to the mouse (if it's pointing at somewhere you can stand)
@@ -32,6 +33,7 @@ const DEV_KEYS = [
   'DEV MODE KEYS',
   '` / Ctrl+D  dev mode on / off',
   '- = 0       zoom out, in, reset',
+  'G           grid on / off',
   'T           teleport to mouse',
   'M           next map',
   'B           map editor',
@@ -41,6 +43,8 @@ const Debug = {
   enabled: false,
   // whether the list of keys is showing (H)
   showKeys: false,
+  // whether the tile grid and lines through (0, 0) show (G). sketch.js reads it
+  showGrid: true,
   // smoothed, so the number doesn't flicker every frame
   fps: 60,
 
@@ -68,6 +72,7 @@ const Debug = {
 
     if (Input.wasPressed('editor')) Editor.toggle(player, camera);
     if (Input.wasPressed('devKeys')) this.showKeys = !this.showKeys;
+    if (Input.wasPressed('grid')) this.showGrid = !this.showGrid;
 
     this.fps = approach(this.fps, frameRate(), 4, dt);
 
