@@ -5,7 +5,7 @@
 // this file runs the game loop. the other files in this folder hold the pieces it uses,
 // and squimble-quest.html loads them in this order before this one:
 //   config.js     settings: sizes, speeds, controls, button styles
-//   utils.js      small helpers (maths, text settings)
+//   utils.js      small helpers (maths, text settings, catalogues, loading and downloading files)
 //   input.js      the keyboard and mouse
 //   camera.js     which part of the world is on screen, and world ↔ screen positions
 //   tiles.js      every kind of tile and what it does (grass, walls, lava...), loaded from tiles.json
@@ -26,6 +26,7 @@
 //   ui.js         the ui system: UIElement and the UI manager
 //   button.js     buttons (needs ui.js loaded first, because Button builds on UIElement)
 //   textfield.js  boxes you type words or numbers into (needs ui.js loaded first)
+//   formbox.js    the box that asks for things in the editors, and its Picker and Checkbox fields
 //   hud.js        things drawn over the game that aren't ui elements (crosshair, messages, panels)
 //   inventory.js  inventories, and the hotbar (needs button.js loaded first)
 //   dialogue.js   talking to npcs: who's in range, and the text box

@@ -133,17 +133,17 @@ class Character {
     const speed = this.speed * (tile ? tile.speed : 1);
 
     // the way it wants to go, plus any push from the tile (conveyor belts). pushSpeed is in tiles
-    const push = PUSH_DIRECTIONS[tile?.pushDirection] ?? { x: 0, y: 0 };
-    const pushSpeed = (tile?.pushSpeed ?? 0) * TILE;
+    const push = PUSH_DIRECTIONS[tile?.pushDirection];
+    const pushSpeed = push ? tile.pushSpeed * TILE : 0;
     // it goes that way straight away, except on slippery tiles (ice), where it only slowly turns
     // from the way it was going, so it slides (SLIPPERY_GRIP in tiles.js)
     const grip = tile?.slippery ? SLIPPERY_GRIP * (1 - tile.slippery) : Infinity;
-    this.velocity.x = approach(this.velocity.x, dx * speed + push.x * pushSpeed, grip, dt);
-    this.velocity.y = approach(this.velocity.y, dy * speed + push.y * pushSpeed, grip, dt);
+    this.velocity.x = approach(this.velocity.x, dx * speed + (push ? push.x * pushSpeed : 0), grip, dt);
+    this.velocity.y = approach(this.velocity.y, dy * speed + (push ? push.y * pushSpeed : 0), grip, dt);
 
-    // across first, then down, like map.moveBox() does, so walking into a wall or someone at an
-    // angle slides along them. each time: the map says how far the feet can go before a wall,
-    // then that's cut short again if another character's feet are in the way
+    // across first, then down, so walking into a wall or someone at an angle slides along them.
+    // each time: the map says how far the feet can go before a wall (tilemap.js), then that's cut
+    // short again if another character's feet are in the way
     const feet = this.feetBox();
     const moveX = this.stopAtOthers(world, feet, 'x', map.moveAlongX(feet, this.velocity.x * dt));
     feet.x += moveX;
@@ -151,7 +151,10 @@ class Character {
     this.x += moveX;
     this.y += moveY;
     // bumping into something stops it sliding that way
-    if (dt > 0) this.velocity = { x: moveX / dt, y: moveY / dt };
+    if (dt > 0) {
+      this.velocity.x = moveX / dt;
+      this.velocity.y = moveY / dt;
+    }
 
     // the feet stop at the edge of the map, but the head sticks up above them and could poke
     // off the top. this stops the character once its head reaches the top edge.

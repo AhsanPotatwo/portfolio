@@ -53,8 +53,9 @@ const NPC_DEFAULTS = {
 // every npc, by name. filled in by defineNpc() below
 const NPC_TYPES = {};
 
+// defineType() is in utils.js
 function defineNpc(name, settings) {
-  NPC_TYPES[name] = { ...NPC_DEFAULTS, ...settings, name };
+  defineType(NPC_TYPES, NPC_DEFAULTS, 'npc', name, settings);
 }
 
 // ---------- the npcs ----------

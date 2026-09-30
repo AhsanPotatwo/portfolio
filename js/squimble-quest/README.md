@@ -39,7 +39,7 @@ This README and the comments in the code are the project's only notes. There's n
   - no jargon without explaining it
   - every constant and object property gets a comment saying what it's for
   - when one file uses another file's global, the comment names that file, e.g. `// worldMap is the game's (sketch.js)`
-- **The catalogue pattern:** things are defined with `defineObject/Enemy/Npc/Weapon/Item(name, settings)`, which fills in defaults. The map editor picks up new ones by itself. Tiles are the exception: they're data in `tiles.json`, filled in with `TILE_DEFAULTS` the same way.
+- **The catalogue pattern:** things are defined with `defineObject/Enemy/Npc/Weapon/Item(name, settings)`, which all go through `defineType()` (utils.js) to fill in defaults. A setting that isn't in the defaults gets a console warning, since it's usually a typo, so a genuinely new setting needs its normal value adding to the defaults. The map editor picks up new ones by itself. Tiles are the exception: they're data in `tiles.json`, filled in with `TILE_DEFAULTS` the same way (unknown keys there are dropped).
 
 ## How it fits together
 
@@ -80,7 +80,7 @@ This README and the comments in the code are the project's only notes. There's n
   - The player, enemies and NPCs all take the same controls, `{ move, aim, attack }`. For the player they come from the keyboard and mouse. For enemies and NPCs they come from an `ai(entity, world, dt)` function.
   - Tiles' settings work for all characters: `speed`, `slippery` and the push in `walk()`, damage and healing in `checkTile()`. `velocity` is only kept for slippery tiles; everywhere else it's replaced every frame.
   - `player.spawnX`/`spawnY` is where the player respawns. `loadMap` sets it to where they arrived (the warp they came in by, or the map's spawn), and so does placing the spawn in the editor.
-- **UI** (`ui.js`, `button.js`, `textfield.js`):
+- **UI** (`ui.js`, `button.js`, `textfield.js`, `formbox.js`):
   - Every element extends `UIElement`.
   - Groups let elements be shown, hidden and removed together.
   - A click that lands on UI is claimed, so gameplay never sees it.
@@ -91,10 +91,28 @@ This README and the comments in the code are the project's only notes. There's n
   - **Right click** opens the settings of whatever's under the mouse (`editWarp()` for warps, the only thing with settings so far). Anything that gets settings later hooks in at the same spot in `Editor.update()`.
   - **Erase** sits at the left end of the bar on every tab. `Editor.selected` is `null` while it's picked. It's the only way to delete (right click used to erase too).
   - The **Map settings** button in the top right opens a panel with Resize map, New map, Open file and Export.
-  - `FormBox` is the in-game box that asks for things: sizes for New map and Resize map, the fill tile for New map, the name for Export, a warp's settings and a tile's. Give it a title and a list of rows (or `tabs`, each with its own rows), and it lays itself out. `side` adds a column of extra elements beside the rows (the tile editor's pictures). `Picker` is its "choose one of these" field (`tilePicker()` makes one for tiles).
+  - `FormBox` (formbox.js, with its `Picker` and `Checkbox` fields) is the in-game box that asks for things: sizes for New map and Resize map, the fill tile for New map, the name for Export, a warp's settings and a tile's. Give it a title and a list of rows (or `tabs`, each with its own rows), and it lays itself out. `side` adds a column of extra elements beside the rows (the tile editor's pictures). `Picker` is its "choose one of these" field (`tilePicker()` in editor.js makes one for tiles). A row's field can be any UI element with a `value`.
   - The bar's squares are made by `Editor.makeSwatches()`, once the tiles have loaded and again whenever a tile is added. **Right click** on a tile's square opens the tile editor (`PaletteSwatch.update()`). **+ New tile** and **Export tiles** sit to the right of the tabs, only on the Tiles tab.
   - While WASD pans the camera, the editor UI and dev panels fade out (`Editor.uiAlpha`, applied in `sketch.js`).
 - **Dev mode** (`debug.js`): a compact status panel in the top left. The key lists are `DEV_KEYS` and `EDITOR_KEYS`, and **H** toggles them.
+
+## Where to add things
+
+The quickest route for common additions. Each file's own header has the details.
+
+| To add | Do this |
+|---|---|
+| An object, enemy, NPC, weapon or item | A `defineX()` line at the bottom of its catalogue file. New settings need a default in its `X_DEFAULTS`. |
+| An enemy or NPC behaviour | An `ai(entity, world, dt)` function returning `{ move, aim, attack }`, next to `chasePlayer` in enemies.js. |
+| A tile | In the game: map editor, Tiles tab, **+ New tile**, then **Export tiles**. |
+| A tile setting | Its default in `TILE_DEFAULTS` (tiles.js), what it does in `walk()` or `checkTile()` (character.js), and one line in `TILE_BEHAVIOURS` (tileeditor.js), which gives it an editor row and tab. |
+| A map | Export it from the editor into `assets/squimble-quest/maps/`, and add the file to `MAP_FILES` (maps.js). |
+| A key | Its action in `KEYS` (config.js), then `Input.isDown/wasPressed('action')`. A dev tool also goes in `DEV_KEYS` (debug.js). |
+| A kind of thing to place in the editor | A line in `EDITOR_TABS` (editor.js), and placing it in `Editor.update()`. A new kind of character also needs `SPAWN_KINDS` (tilemap.js). |
+| A box that asks for things | `FormBox.open({ title, rows, onConfirm })` (formbox.js). Use `tabs` instead of `rows` for lots of settings. |
+| A new kind of UI element | A class extending `UIElement`, see the guide at the top of ui.js. Buttons: the guide in button.js. |
+| Loading or saving a file | `fetchJson()`, `pickFile()`, `downloadTextFile()` and `downloadData()` in utils.js. |
+| A new file | Its `<script>` tag in `squimble-quest.html` (order matters) and a line in the list at the top of sketch.js. |
 
 ## Rules to keep when changing things
 
@@ -123,7 +141,7 @@ Only build these when they're needed.
 ## Known issues and loose ends
 
 - **Open file uses the browser's file picker.** That has to stay, since only the browser can read files from the computer. If a file won't open, the game says so with `showMessage()`, and the reason goes in the browser console.
-- **`TileMap.moveBox()` isn't used anywhere.** Characters call `moveAlongX`/`moveAlongY` directly. Its comment says so.
+- **NPCs can be hurt by tiles.** Damage tiles hurt everyone, and an NPC that runs out of health is marked `dead` but keeps standing there: it can still be talked to, and others walk through it. Nothing places NPCs on damage tiles yet. When NPCs can die properly, handle it in `Npc` (npc.js), like `Enemy.die()`.
 - **Dying is a placeholder:** the player jumps back to their spawn with full health.
 - **Map progress only lasts until the page reloads.** Defeated enemies and everything else come back on a reload, because there's no saving yet.
 - **Renaming a warp breaks warps leading to it.** Links go by name, so warps on other maps keep the old name. They show red in the editor, and the console lists them when the game loads.
@@ -142,3 +160,4 @@ Only build these when they're needed.
   - The game is always 960 × 540, so work out click positions from the canvas's bounding box.
   - The first click on the canvas only gives it focus.
   - Use `page.keyboard.down/up` for held keys.
+- For a refactor that shouldn't change anything, compare before and after: in `page.evaluate`, call `noLoop()`, then call `draw()` yourself with `window.deltaTime = 1000 / 60` and `Input.held` set to the keys you want, and record positions, health and a hash of the canvas pixels at checkpoints. Pin `window.frameRate = () => 60` first, or the dev panel's fps makes frames differ. `mapsReady`, `worldMap` and the other `let` globals aren't on `window`, so read them by name.

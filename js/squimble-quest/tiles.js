@@ -170,11 +170,8 @@ function useTexture(type, img) {
 // it's all loaded or failed.
 // like map files, a problem never stops the game: it's a warning in the browser console
 function loadTileFile() {
-  return fetch(TILE_FILE)
-    .then((response) => {
-      if (!response.ok) throw new Error(`the file wasn't found (${response.status})`);
-      return response.json();
-    })
+  // fetchJson() is in utils.js
+  return fetchJson(TILE_FILE)
     .then((data) => {
       if (!Array.isArray(data?.tiles)) throw new Error("it doesn't look like a Squimble Quest tiles file");
       const textures = [];
@@ -194,10 +191,7 @@ function loadTileFile() {
       return Promise.all(textures);
     })
     .catch((err) => {
-      const hint = location.protocol === 'file:'
-        ? ' It only loads when the site is run through a local server, see the README in the maps folder.'
-        : '';
-      console.warn(`Couldn't load the tiles file "${TILE_FILE}": ${err.message}.${hint}`);
+      console.warn(`Couldn't load the tiles file "${TILE_FILE}": ${err.message}.`);
     })
     // this last step runs whether the file loaded or not, because catch() above handled any problem
     .then(() => {
@@ -227,32 +221,4 @@ function tilesDataToText(data) {
   // one line, with spaces after the colons and commas
   const lines = data.tiles.map((tile) => `    ${JSON.stringify(tile, null, 1).replace(/\n\s*/g, ' ')}`);
   return `{\n  "format": "${data.format}",\n  "version": ${data.version},\n  "tiles": [\n${lines.join(',\n')}\n  ]\n}\n`;
-}
-
-// ---------- art for everything else ----------
-
-// run from preload() in sketch.js, before the game starts, for objects (objects.js), enemies, items
-// and npcs (tiles load theirs in setTile() above):
-//   prepareArt(OBJECT_TYPES, 'object')
-// loads their images, and turns colours into p5 colours once now rather than every time
-// something's drawn (thousands of times a second). kind is only used in the warning
-function prepareArt(types, kind) {
-  for (const type of Object.values(types)) {
-    type.fill = color(type.colour);
-    type.img = null;
-    if (type.image) {
-      type.img = loadImage(type.image, undefined, () => {
-        console.warn(`Couldn't load "${type.image}" for the ${type.name} ${kind}, using its colour instead`);
-        type.img = null;
-      });
-    }
-    // npcs can have a portrait for the text box too (npcs.js)
-    type.portraitImg = null;
-    if (type.portrait) {
-      type.portraitImg = loadImage(type.portrait, undefined, () => {
-        console.warn(`Couldn't load "${type.portrait}" for the ${type.name} ${kind}'s portrait, using a placeholder instead`);
-        type.portraitImg = null;
-      });
-    }
-  }
 }

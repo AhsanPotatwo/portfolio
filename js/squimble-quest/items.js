@@ -32,8 +32,9 @@ const ITEM_DEFAULTS = {
 // every item, by name. filled in by defineItem() below
 const ITEM_TYPES = {};
 
+// defineType() is in utils.js
 function defineItem(name, settings) {
-  ITEM_TYPES[name] = { ...ITEM_DEFAULTS, ...settings, name };
+  defineType(ITEM_TYPES, ITEM_DEFAULTS, 'item', name, settings);
 }
 
 // makes one of an item, ready to go in an inventory. each one is its own separate thing, so later

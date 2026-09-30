@@ -134,15 +134,17 @@
   <script src="js/squimble-quest/ui.js"></script>
   <script src="js/squimble-quest/button.js"></script>
   <script src="js/squimble-quest/textfield.js"></script>
+  <!-- after textfield.js, the form box's rows are TextFields and Buttons -->
+  <script src="js/squimble-quest/formbox.js"></script>
   <script src="js/squimble-quest/hud.js"></script>
   <!-- after button.js, the hotbar's slots are built on Button -->
   <script src="js/squimble-quest/inventory.js"></script>
   <script src="js/squimble-quest/dialogue.js"></script>
   <script src="js/squimble-quest/warps.js"></script>
   <script src="js/squimble-quest/warpgraph.js"></script>
-  <!-- after button.js and textfield.js, the editor's tile squares are built on Button and its form box uses TextField and NumberField -->
+  <!-- after button.js and formbox.js, the editor's tile squares are built on Button and its boxes are FormBoxes -->
   <script src="js/squimble-quest/editor.js"></script>
-  <!-- after editor.js, the tile editor's box is a FormBox with a Picker and Checkbox from there -->
+  <!-- the map editor's box for making and changing tiles, opened from its bar (editor.js) -->
   <script src="js/squimble-quest/tileeditor.js"></script>
   <script src="js/squimble-quest/debug.js"></script>
   <script src="js/squimble-quest/sketch.js"></script>
