@@ -34,17 +34,17 @@ class Player extends Character {
   }
 
   // back to the start with full health. a placeholder until there's a proper death screen.
-  // the start is often the door they came in by, so this counts as arriving there, or a 'step'
-  // door would send them straight back out (doors.js). worldMap is the game's (sketch.js)
+  // the start is often the warp they came in by, so this counts as arriving there, or a 'step'
+  // warp would send them straight back out (warps.js). worldMap is the game's (sketch.js)
   respawn() {
     this.health = this.maxHealth;
     this.x = this.spawnX;
     this.y = this.spawnY;
-    Doors.arrived(this, worldMap);
+    Warps.arrived(this, worldMap);
   }
 
   // jump straight to a spot and make it where you respawn. for starting on a map, or arriving
-  // through a door (loadMap() in sketch.js)
+  // through a warp (loadMap() in sketch.js)
   placeAt(x, y) {
     this.x = x;
     this.y = y;

@@ -6,9 +6,9 @@ A map is made of:
 
 - **Tiles**: the ground. Every spot has exactly one tile (grass, wall, water…), or is empty. Tiles are defined in [`js/squimble-quest/tiles.js`](../../../js/squimble-quest/tiles.js).
 - **Objects**: things placed on top, like furniture and decorations. One object can cover several tiles (a 2 × 1 table), and several can share a tile (a table on a rug). Objects are defined in [`js/squimble-quest/objects.js`](../../../js/squimble-quest/objects.js).
-- **Enemies**: where each enemy starts. They appear there with full health the first time you go to the map. Defeated enemies stay defeated if you leave and come back, until the page is reloaded. Enemies are defined in [`js/squimble-quest/enemies.js`](../../../js/squimble-quest/enemies.js).
+- **Enemies**: where each enemy starts. They appear there with full health the first time you go to the map. After that, each map remembers its enemies and NPCs as you left them: defeated enemies stay defeated and hurt ones stay hurt, until the page is reloaded. Enemies are defined in [`js/squimble-quest/enemies.js`](../../../js/squimble-quest/enemies.js).
 - **NPCs**: where each friendly character starts. Walk up to one and press **E** to talk. NPCs, and what they say, are defined in [`js/squimble-quest/npcs.js`](../../../js/squimble-quest/npcs.js).
-- **Doors**: tiles that take the player to another map, or somewhere else on the same one. That's how you get into houses, caves, and other rooms. See [Doors](#doors) below, and [`js/squimble-quest/doors.js`](../../../js/squimble-quest/doors.js).
+- **Warps**: tiles that take the player to another map, or somewhere else on the same one. That's how doors, cave entrances, manholes, trapdoors, secret passages and teleporters work. See [Warps](#warps) below, and [`js/squimble-quest/warps.js`](../../../js/squimble-quest/warps.js).
 
 ## The maps in this folder
 
@@ -45,16 +45,16 @@ Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything 
 
 | Control | What it does |
 |---|---|
-| **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** tabs above the bar | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs and triggers (the player's spawn point, and doors) |
+| **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** tabs above the bar | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs and triggers (the player's spawn point, and warps) |
 | **Map settings** (top right) | Opens a panel with the map's name and size, and the **Resize map**, **New map**, **Open file** and **Export** buttons. Click it again (or move with **WASD**) to close it |
 | Click something in the bottom bar | Choose it (**‹ ›** for more pages) |
 | Left click / drag (tile chosen) | Paint that tile, replacing the one there |
 | Left click (object chosen) | Place the object, its top-left corner on the tile under the mouse. A see-through preview shows where it'll go |
 | Left click (enemy or NPC chosen) | Place it, standing on the tile under the mouse |
 | Left click (**spawn** chosen, in **Triggers**) | The player spawns on this tile (yellow ring). There's only one, so it moves here |
-| Left click (**door** chosen, in **Triggers**) | Put a door on this tile (purple square), and open its settings. See [Doors](#doors) |
-| Right click | Change the settings of what's under the mouse. Only doors have settings so far |
-| **Erase**, then left click / drag | Delete. Starting on an object, enemy, NPC or door removes those; starting on bare ground empties tiles |
+| Left click (**warp** chosen, in **Triggers**) | Put a warp on this tile (purple square), and open its settings. See [Warps](#warps) |
+| Right click | Change the settings of what's under the mouse. Only warps have settings so far |
+| **Erase**, then left click / drag | Delete. Starting on an object, enemy, NPC or warp removes those; starting on bare ground empties tiles |
 | **WASD** | Move around the map. The editor's buttons and panels fade out while you move, so you can see the map, and come back when you stop |
 | **−** **=** or mouse wheel | Zoom out and in (**0** resets) |
 | **M** | Go to the next map |
@@ -81,23 +81,23 @@ Click **Map settings**, then **Resize map**, and type the new width and height i
 
 It can't be made smaller than the area with tiles in it: the box says what the smallest is, and won't go any lower. So a 10 × 10 map made 20 × 20 can go back to 10 × 10, but if you've painted one tile past the old edge on the right and bottom, the smallest is 11 × 11. Objects, enemies and NPCs on any part that's cut off are removed.
 
-### Doors
+### Warps
 
-A door is a tile that takes the player somewhere else: into a house, down a cave, through to the next room. Every door is both a way out and a place to arrive, so a house needs two doors: one on the town map that leads to the one inside, and one inside that leads back out. The hut on `example` is set up this way.
+A warp is a tile that takes the player somewhere else: a door into a house, a cave entrance, a manhole, a secret passage, a teleporter. A warp to another spot on the same map is a teleport, and everything else on the map carries on as it was. Every warp is both a way out and a place to arrive, so a house needs two warps: one on the town map that leads to the one inside, and one inside that leads back out. The hut on `example` is set up this way.
 
-1. Choose **door** in the **Triggers** tab and click a tile. A door can go on any tile, including one with an object, enemy or NPC on it. Its marker always shows on top.
-2. A box opens with the door's settings. Right click the door any time to change them.
-   - **Name**: what other doors use to lead here. Each door on a map needs its own name.
+1. Choose **warp** in the **Triggers** tab and click a tile. A warp can go on any tile, including one with an object, enemy or NPC on it. Its marker always shows on top.
+2. A box opens with the warp's settings. Right click the warp any time to change them.
+   - **Name**: what other warps use to lead here. Each warp on a map needs its own name.
    - **Goes to**: the map it leads to. **nowhere** means it only works as a place to arrive.
-   - **Arrive at**: where the player turns up on that map. That's its **spawn point**, or any door on it.
-   - **Opens by**: **stepping on it**, or **pressing E** when close enough. A door that opens with E works from the tile in front too, so it can go on a wall or under a solid object.
+   - **Arrive at**: where the player turns up on that map. That's its **spawn point**, or any warp on it.
+   - **Opens by**: **stepping on it**, or **pressing E** when close enough. A warp that opens with E works from the tile in front too, so it can go on a wall or under a solid object.
 3. Click the right half of a choice for the next one, or the left half to go back. Then click **Save**.
 
-In the editor, doors that open with E have an **E** on their marker. A door shows **red** when it leads to a map or door that doesn't exist. Going through one of those shows a message and the player stays where they are, and the browser console lists them all when the game loads.
+In the editor, warps that open with E have an **E** on their marker. A warp shows **red** when it leads to a map or warp that doesn't exist. Going through one of those shows a message and the player stays where they are, and the browser console lists them all when the game loads.
 
-Arriving on a door that opens by stepping on it doesn't send you straight back. It only opens when you step onto it from another tile.
+Arriving on a warp that opens by stepping on it doesn't send you straight back. It only opens when you step onto it from another tile.
 
-Doors link by name, so you can move a door around freely. **Renaming a door breaks every door that leads to it**, so change those too. Both maps have to be exported for a link to work after a reload.
+Warps link by name, so you can move a warp around freely. **Renaming a warp breaks every warp that leads to it**, so change those too. Both maps have to be exported for a link to work after a reload.
 
 ### Changing a map you've already made
 
@@ -173,8 +173,8 @@ You can open a map in any text editor. It looks like this:
   "npcs": [
     { "type": "villager", "col": -3, "row": 0 }
   ],
-  "doors": [
-    { "name": "front", "col": 0, "row": 2, "to": "house", "toDoor": "exit", "activate": "interact" }
+  "warps": [
+    { "name": "front", "col": 0, "row": 2, "to": "house", "toWarp": "exit", "activate": "interact" }
   ]
 }
 ```
@@ -183,7 +183,7 @@ You can open a map in any text editor. It looks like this:
 - **`legend`**: which code means which tile (the names in `tiles.js`). `..` is always empty. The editor makes a 2-character code for each tile when it exports, from the tile's name where it can: `gr` for grass, then `wt` for water because `wa` is already wall. There are thousands of possible codes, so they won't run out however many tiles you add.
 - **`objects`**: everything placed on the tiles. `type` is the object's name in `objects.js`, and `col`, `row` is the tile its top-left corner is on. They're drawn in list order, so later ones go on top.
 - **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is the name in `enemies.js` or `npcs.js`, and `col`, `row` is the tile it stands on. Maps without these lists just have none.
-- **`doors`**: see [Doors](#doors). `name` is the door's name, and `col`, `row` is its tile. `to` is the map it leads to (`""` for nowhere), and `toDoor` is the door to arrive at on that map (`""` for its spawn point). `activate` is `"step"` or `"interact"` (press E). Maps without this list just have no doors.
+- **`warps`**: see [Warps](#warps). `name` is the warp's name, and `col`, `row` is its tile. `to` is the map it leads to (`""` for nowhere), and `toWarp` is the warp to arrive at on that map (`""` for its spawn point). `activate` is `"step"` or `"interact"` (press E). Maps without this list just have no warps.
 - **`left`, `top`**: the tile column and row of the map's top-left corner. Tile `(0, 0)` is at the middle of the world, so `-5, -2` puts the middle of a 10 × 5 map there.
 - **`spawn`**: where the player starts, in pixels (the centre of the player). Easiest to set with **spawn** in the editor's **Triggers** tab.
 
@@ -196,6 +196,6 @@ Maps saved before objects were added (version 1, one character per tile with no 
 ## If something goes wrong
 
 - **The map isn't in the M list:** check the file is in this folder, its name is in `MAP_FILES` with `.json` on the end, and the game is running through a local server. The browser console (F12) says which file failed and why.
-- **"This door is broken" when using a door:** it leads to a map that isn't loaded, or to a door name that map doesn't have. Right click the door in the editor to fix it. Check that the map is in `MAP_FILES`, and that the door on the other map wasn't renamed.
+- **"This warp is broken" when using a warp:** it leads to a map that isn't loaded, or to a warp name that map doesn't have. Right click the warp in the editor to fix it. Check that the map is in `MAP_FILES`, and that the warp on the other map wasn't renamed.
 - **Some tiles, objects, enemies or NPCs are missing:** the map uses a name the game doesn't know, maybe because it was renamed in `tiles.js`, `objects.js`, `enemies.js` or `npcs.js`, or a code that isn't in the `legend`. The console lists everything it left out. Add it back, or fix the name in the file.
 - **"This doesn't look like a Squimble Quest map file":** the file isn't a map, or it's been damaged. It needs a `legend` and `rows` at least.

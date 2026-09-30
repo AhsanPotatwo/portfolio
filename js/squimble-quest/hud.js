@@ -30,8 +30,8 @@ const MESSAGE_TIME = 4;
 // away at. null when there isn't one
 let hudMessage = null;
 
-// shows a line of writing along the top of the screen for a few seconds, e.g. when a door leads
-// somewhere that doesn't exist (doors.js). a new one replaces whatever was showing
+// shows a line of writing along the top of the screen for a few seconds, e.g. when a warp leads
+// somewhere that doesn't exist (warps.js). a new one replaces whatever was showing
 function showMessage(text) {
   hudMessage = { text, until: millis() + MESSAGE_TIME * 1000 };
 }

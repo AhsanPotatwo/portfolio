@@ -7,9 +7,6 @@ class Enemy extends Character {
     super(0, 0, ENEMY_TYPES[type]);
     this.type = ENEMY_TYPES[type];
     this.placeFeetOnTile(col, row);
-    // the spawn on the map it came from ({ type, col, row }), set by spawnCharacters() in sketch.js.
-    // when it's defeated, the map marks that spawn as defeated so it doesn't come back
-    this.spawn = null;
   }
 
   update(dt, world) {

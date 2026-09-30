@@ -24,14 +24,14 @@ const START_MAP = 'example';
 const MAPS = {};
 
 // every map that's been built since the page loaded, by name (see getMap() below). the first visit
-// builds the map from MAPS, then going back finds it how it was left: defeated enemies stay
-// defeated, and changes made in the map editor are still there. reloading the page starts every
-// map fresh from its file again
+// builds the map from MAPS, then going back finds it how it was left: changes made in the map
+// editor are still there, and so are its enemies and npcs as they were (see loadMap() in
+// sketch.js). reloading the page starts every map fresh from its file again
 const VISITED_MAPS = {};
 
 // the map called name: built from MAPS the first time it's needed, then the same one every time
 // after, so it keeps its changes. null if there's no map called that. loadMap() (sketch.js) uses
-// it to go to a map, and doors (doors.js) use it to look inside the map they lead to
+// it to go to a map, and warps (warps.js) use it to look inside the map they lead to
 function getMap(name) {
   if (!MAPS[name]) return null;
   VISITED_MAPS[name] ??= MAPS[name]();
