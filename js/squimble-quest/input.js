@@ -10,7 +10,7 @@
 const TYPING_KEYS = ['Backspace', 'Delete', 'Enter', 'Escape', 'Tab'];
 
 const Input = {
-  // true while the game canvas has focus, ui.js shows "click to play" when it doesn't
+  // true while the game canvas has focus. "click to play" shows when it doesn't (hud.js)
   focused: false,
 
   // ---------- keyboard ----------

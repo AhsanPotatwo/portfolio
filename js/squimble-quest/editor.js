@@ -142,14 +142,15 @@ const Editor = {
   uiAlpha: 1,
   stillFor: 0,
 
-  // the bar's ui elements, made once in init()
+  // the editor's ui elements that it changes later, made once in init()
   swatches: [],
   eraseButton: null,
   prevButton: null,
   nextButton: null,
   settingsButton: null,
 
-  // call once from setup(). makes the bar and buttons (hidden until the editor opens)
+  // call once from setup(). makes the bar, the tabs, the Map settings button and its panel, and
+  // the size box (all hidden until they're needed)
   init() {
     const barY = GAME_H - EDITOR_BAR.height;
     const perPage = Math.floor((EDITOR_BAR.swatchesRight - EDITOR_BAR.swatchesLeft) / EDITOR_BAR.slotWidth);
@@ -240,6 +241,7 @@ const Editor = {
       y: panelY + s.headerHeight + i * s.rowHeight,
       w: s.panelWidth - 16,
       h: s.rowHeight - 8,
+      // a little smaller text than normal, plus the named style (Export's 'primary') if it has one
       style: { textSize: 14, ...(options.style && BUTTON_STYLES[options.style]) },
       label: options.label,
       onClick: () => {
@@ -433,7 +435,8 @@ const Editor = {
       player.spawnY = map.spawn.y;
     }
 
-    // objects, enemies and npcs: one per click. mousePressed() ignores clicks that landed on the bar (see input.js)
+    // objects, enemies and npcs: one per click. mousePressed() ignores clicks that landed on the
+    // editor's ui, like the bar or the Map settings panel (see input.js)
     if (over && Input.mousePressed('left') && this.selected) {
       const { kind, name } = this.selected;
       if (kind === 'object') this.placeObject(map, name, over.col, over.row);

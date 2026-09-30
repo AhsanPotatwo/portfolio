@@ -1,5 +1,6 @@
-// weapons, and the attacks they make. the same code works for anyone who attacks: the player now,
-// enemies later (give an enemy a weapon in enemies.js and have its ai attack).
+// weapons, and the attacks they make. the same code works for anyone who attacks: the player
+// (with whatever item they're holding, items.js) and enemies (the weapon setting in enemies.js,
+// e.g. the grunt's claws).
 //
 // ============================== how to make a weapon ==============================
 //
@@ -95,7 +96,7 @@ class MeleeSwing {
   }
 
   // targets is everyone this swing is allowed to hurt (the player's swing hurts enemies,
-  // an enemy's would hurt the player)
+  // an enemy's hurts the player)
   update(dt, targets) {
     this.time += dt;
     for (const target of targets) {

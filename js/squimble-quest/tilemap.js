@@ -261,7 +261,8 @@ class TileMap {
   // a "box" is { x, y, w, h }: top left corner and size, in world positions
 
   // tries to move a box by dx, dy, stopping it against solid tiles.
-  // gives back how far it really moved, { x, y }. anything that moves (player, enemies later) uses this
+  // gives back how far it really moved, { x, y }. nothing uses this right now: characters call
+  // moveAlongX() and moveAlongY() themselves (character.js), so they can stop at each other in between
   moveBox(box, dx, dy) {
     // x first, then y from wherever x ended up. doing them one at a time is what lets you
     // slide along a wall when walking into it at an angle, instead of sticking to it

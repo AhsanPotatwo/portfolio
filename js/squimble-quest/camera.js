@@ -24,7 +24,8 @@ class Camera {
     this.zoomSpeed = CAMERA.zoomSpeed;
 
     // the area the camera has to stay inside, so you never see past the edge of the world.
-    // loadMap() in sketch.js sets it to the map's edges. null lets it go anywhere
+    // loadMap() in sketch.js sets it to the map's edges (and the map editor, when it resizes a map).
+    // null lets it go anywhere
     this.bounds = null;
 
     // a timed glide in progress (see focusOn() and release()), or null.

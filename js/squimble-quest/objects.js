@@ -23,7 +23,7 @@
 //                   stretched to cover its tiles (a 2 x 1 object is drawn 64 x 32)
 //   solid           true stops the player walking through it
 //
-// it shows up in the map editor's bar by itself, after the tiles.
+// it shows up in the map editor's Objects tab by itself.
 // later, objects could get behaviours like tiles have (e.g. onInteract for opening a chest)
 //
 // ====================================================================================

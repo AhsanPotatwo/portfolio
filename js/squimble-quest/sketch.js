@@ -11,8 +11,8 @@
 //   npcs.js       every kind of friendly npc, and what they say
 //   weapons.js    every weapon, and the swings they make
 //   items.js      every kind of item that can be carried (a sword, an axe...)
-//   tilemap.js    a map made of tiles: storing, drawing, and collision with solid tiles
-//   maps.js       the list of map files to load, and the map the game starts on
+//   tilemap.js    a map made of tiles: storing, drawing, resizing, and collision with solid tiles
+//   maps.js       the list of map files to load, the map the game starts on, and visited maps
 //   mapfile.js    saving and loading maps as files
 //   world.js      draws the world (the map, plus dev mode lines)
 //   character.js  what the player, enemies and npcs share: walking, health, attacking, drawing
@@ -21,11 +21,11 @@
 //   npc.js        an npc in the game (needs character.js loaded first)
 //   ui.js         the ui system: UIElement and the UI manager
 //   button.js     buttons (needs ui.js loaded first, because Button builds on UIElement)
-//   numberfield.js  a box you type a number into (needs ui.js loaded first)
+//   numberfield.js a box you type a number into (needs ui.js loaded first)
 //   hud.js        things drawn over the game that aren't ui elements (crosshair, messages, panels)
 //   inventory.js  inventories, and the hotbar (needs button.js loaded first)
 //   dialogue.js   talking to npcs: who's in range, and the text box
-//   editor.js     the map editor, opened from dev mode (needs button.js loaded first)
+//   editor.js     the map editor, opened from dev mode (needs button.js and numberfield.js first)
 //   debug.js      developer mode, hidden testing tools (press ` or Ctrl + D while playing)
 //
 // the catalogue files (tiles, objects, enemies, npcs, weapons, items) are where new things get
