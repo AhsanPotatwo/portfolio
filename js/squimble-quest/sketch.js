@@ -109,8 +109,9 @@ function setup() {
 }
 
 // go to a map, by its name in MAPS (maps.js). puts the player on the warp called warpName
-// (warps.js), or at the map's spawn point without one, and they'll respawn there too. moves the
-// camera straight there. warps and dev mode's M key use this.
+// (warps.js), or at the map's spawn point without one, and they'll respawn there too. the camera
+// jumps straight there on a new map, and glides there on the same one. warps and dev mode's M key
+// use this.
 //
 // every map is kept how it was left, until the page reloads: its tiles and editor changes (see
 // getMap() in maps.js), and its enemies and npcs, which are put away on the map when the player
@@ -122,6 +123,7 @@ function loadMap(name, warpName = '') {
   if (Dialogue.active) Dialogue.close();
   // worldMap is undefined when the game first starts
   if (worldMap) worldMap.characters = { enemies, npcs };
+  const sameMap = worldMap === getMap(name);
   worldMap = getMap(name);
 
   // a warp that isn't there (warpProblem() in warps.js catches that before a warp gets here)
@@ -149,8 +151,10 @@ function loadMap(name, warpName = '') {
     Editor.view.x = arrive.x;
     Editor.view.y = arrive.y;
   }
-  // jump there, rather than gliding across from wherever it was
-  gameCamera.snap();
+  // on a new map, jump there: gliding from a spot on the last map across this one would look
+  // wrong. on the same map, the camera glides over to them like it does after dying, since it
+  // already follows the player (or the editor's view)
+  if (!sameMap) gameCamera.snap();
 }
 
 // makes every one of the map's enemies and npcs fresh, where it was placed and with full health,
