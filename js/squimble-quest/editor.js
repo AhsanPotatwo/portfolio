@@ -952,9 +952,9 @@ class SettingsPanel extends UIElement {
 // warp's settings), in the game rather than in the browser's own prompt(). click a box to type
 // into it, Tab goes to the next one, Enter or the right button says yes, Escape or Cancel closes it
 
-// the box's width, the space each thing it asks for gets, and how much wider a side column makes it
-// (see side in FormBox.open()), in screen pixels
-const FORM_BOX = { width: 300, rowHeight: 44, sideWidth: 180 };
+// the box's width, the space each thing it asks for gets, how much wider a side column makes it
+// (see side in FormBox.open()), and the size of its tabs (see tabs), in screen pixels
+const FORM_BOX = { width: 300, rowHeight: 44, sideWidth: 180, tabHeight: 28, tabWidth: 100, tabGap: 4 };
 
 // a box for a map's width or height, starting at value. it won't go below min or above
 // EDITOR_MAX_MAP_SIZE (NumberField is in textfield.js)
@@ -966,16 +966,28 @@ const FormBox = {
   active: false,
   // what open() was given
   options: null,
-  // the rows' boxes that can be typed into, and the button that says yes
+  // the open tab's boxes that can be typed into, and the button that says yes
   fields: [],
   confirmButton: null,
+  // every tab ({ label, rows }, a box without tabs is one), which one's open, and its button for each
+  tabs: [],
+  tab: 0,
+  tabButtons: [],
+  // how far down the box the rows start, and how many rows the box has room for
+  rowsTop: 52,
+  mostRows: 0,
 
-  // options: { title, hint, confirmLabel, rows, canConfirm(values), onConfirm(values) }
+  // options: { title, hint, confirmLabel, rows, tabs, canConfirm(values), onConfirm(values) }
   //   rows        one per thing to ask for: { label, field, after }. field is the ui element it's
   //               typed, picked or ticked in (a TextField, NumberField, Picker or Checkbox), with
   //               its width set. after is a word to show after it, like 'tiles' (can be left out)
+  //   tabs        instead of rows, for a box with too much to fit at once: [{ label, rows }]. a row
+  //               of tabs goes under the title and only the open tab's rows show. the box is tall
+  //               enough for the tab with the most rows, so it doesn't jump about when switching
+  //   minRows     makes the box at least this many rows tall, e.g. to give side more room (can be
+  //               left out)
   //   hint        a line of writing under the rows (can be left out)
-  //   values      what's in each row's field, in the same order as rows
+  //   values      what's in each row's field, in the same order as rows (every tab's, in order)
   //   canConfirm  whether the values are ok to say yes to. without it, anything is
   //   side        (x, y, w, h) => [ui elements], things for a column beside the rows, like the tile
   //               editor's pictures. x, y, w, h is the space they have (can be left out)
@@ -986,17 +998,32 @@ const FormBox = {
     Input.typing = true;
 
     // made fresh each time, since each one asks for different things. tall enough to fit them
-    const rows = options.rows;
+    this.tabs = options.tabs ?? [{ rows: options.rows }];
+    const tabbed = Boolean(options.tabs);
+    this.rowsTop = 52 + (tabbed ? FORM_BOX.tabHeight + 8 : 0);
+    this.mostRows = Math.max(options.minRows ?? 0, ...this.tabs.map(({ rows }) => rows.length));
     const w = FORM_BOX.width + (options.side ? FORM_BOX.sideWidth : 0);
-    const h = 114 + rows.length * FORM_BOX.rowHeight + (options.hint ? 28 : 0);
+    const h = this.rowsTop + 62 + this.mostRows * FORM_BOX.rowHeight + (options.hint ? 28 : 0);
     const x = (GAME_W - w) / 2;
     const y = (GAME_H - h) / 2;
     const add = (element) => UI.add(Object.assign(element, { group: 'form-box' }));
 
     // covers the whole screen, so nothing behind it can be clicked while it's open
     add(new FormBoxBackdrop({ x: 0, y: 0, w: GAME_W, h: GAME_H, box: { x, y, w, h } }));
-    rows.forEach(({ field }, i) => add(Object.assign(field, { x: x + 100, y: y + 52 + i * FORM_BOX.rowHeight, h: 32 })));
-    // between the rows and the right edge, above the buttons: the rows start 52 down, and the
+    // the tabs, under the title and above the rows. they shrink to fit if there are lots
+    const tabW = Math.min(FORM_BOX.tabWidth, (FORM_BOX.width - 40 - FORM_BOX.tabGap * (this.tabs.length - 1)) / this.tabs.length);
+    this.tabButtons = tabbed ? this.tabs.map(({ label }, i) => add(new Button({
+      x: x + 20 + i * (tabW + FORM_BOX.tabGap), y: y + 48, w: tabW, h: FORM_BOX.tabHeight, label,
+      style: { textSize: 12, onFill: EDITOR_COLOURS.accent },
+      // a toggle so the open one's lit up. showTab() puts them all right after the click flips it
+      toggle: true,
+      onClick: () => this.showTab(i),
+    }))) : [];
+    // every tab's rows in the same places, showTab() hides all but the open tab's
+    for (const { rows } of this.tabs) {
+      rows.forEach(({ field }, i) => add(Object.assign(field, { x: x + 100, y: y + this.rowsTop + i * FORM_BOX.rowHeight, h: 32 })));
+    }
+    // between the rows (and tabs) and the right edge, from under the title to above the buttons: the
     // bottom 66 is where Cancel and the confirm button go
     if (options.side) options.side(x + FORM_BOX.width, y + 52, FORM_BOX.sideWidth - 20, h - 52 - 66).forEach(add);
     add(new Button({ x: x + 20, y: y + h - 56, w: 124, h: 38, label: 'Cancel', onClick: () => this.close() }));
@@ -1005,8 +1032,24 @@ const FormBox = {
       onClick: () => this.confirm(),
     }));
 
-    this.fields = rows.map(({ field }) => field).filter((field) => field instanceof TextField);
-    this.focus(this.fields[0]);
+    this.fields = [];
+    this.showTab(0);
+  },
+
+  // the open tab's rows
+  rows() {
+    return this.tabs[this.tab].rows;
+  },
+
+  // shows one tab's rows (by its place in tabs) and hides the rest. typing goes to its first box
+  showTab(index) {
+    for (const field of this.fields) field.blur();
+    this.tab = index;
+    this.tabButtons.forEach((button, i) => { button.on = i === index; });
+    this.tabs.forEach(({ rows }, i) => rows.forEach(({ field }) => { field.visible = i === index; }));
+    this.fields = this.rows().map(({ field }) => field).filter((field) => field instanceof TextField);
+    // a tab of only tick boxes and pickers has nothing to type into
+    if (this.fields.length > 0) this.focus(this.fields[0]);
   },
 
   close() {
@@ -1015,9 +1058,9 @@ const FormBox = {
     UI.removeGroup('form-box');
   },
 
-  // what's in each row's field, in the same order as the rows
+  // what's in each row's field, in the same order as the rows (every tab's, not just the open one)
   values() {
-    return this.options.rows.map(({ field }) => field.value);
+    return this.tabs.flatMap(({ rows }) => rows).map(({ field }) => field.value);
   },
 
   canConfirm() {
@@ -1050,6 +1093,8 @@ const FormBox = {
     for (const key of Input.typed) {
       if (key === 'Enter') return this.confirm();
       if (key === 'Escape') return this.close();
+      // nothing to type into on this tab
+      if (this.fields.length === 0) continue;
       const focused = this.fields.find((field) => field.focused);
       if (key === 'Tab') this.focus(this.fields[(this.fields.indexOf(focused) + 1) % this.fields.length]);
       else focused.type(key);
@@ -1070,7 +1115,8 @@ class FormBoxBackdrop extends UIElement {
 
   draw() {
     const { x, y, w, h } = this.box;
-    const { title, rows, hint } = FormBox.options;
+    const { title, hint } = FormBox.options;
+    const { rowsTop, mostRows } = FormBox;
 
     noStroke();
     fill(0, 0, 0, 110);
@@ -1086,9 +1132,9 @@ class FormBoxBackdrop extends UIElement {
     setText(18, BOLD, LEFT, CENTER);
     text(title, x + 20, y + 28);
 
-    // each row's label, lined up with the middle of its box, and its word after it
-    rows.forEach(({ label, field, after }, i) => {
-      const middleY = y + 68 + i * FORM_BOX.rowHeight;
+    // each of the open tab's rows' label, lined up with the middle of its box, and its word after it
+    FormBox.rows().forEach(({ label, field, after }, i) => {
+      const middleY = y + rowsTop + 16 + i * FORM_BOX.rowHeight;
       fill(220);
       setText(14, BOLD, LEFT, CENTER);
       text(label, x + 20, middleY);
@@ -1102,7 +1148,7 @@ class FormBoxBackdrop extends UIElement {
     if (hint) {
       fill(255, 255, 255, 150);
       setText(13, NORMAL, LEFT, CENTER);
-      text(hint, x + 20, y + 60 + rows.length * FORM_BOX.rowHeight);
+      text(hint, x + 20, y + rowsTop + 8 + mostRows * FORM_BOX.rowHeight);
     }
   }
 }

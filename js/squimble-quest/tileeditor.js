@@ -2,6 +2,8 @@
 // (tiles.js) never has to be opened by hand.
 //   - + New tile, on the right of the editor's tabs, opens a box for a new tile
 //   - right clicking a tile in the bar opens the same box for that tile, with all its settings
+//   - the box has tabs: Look for how it looks, then the tabs from TILE_BEHAVIOURS below for what it
+//     does (Behaviours, Effects...)
 //   - the box shows the tile's texture file, and a patch of the tile as it'd look on the map, which
 //     change as you change the settings
 //   - Save changes the tile in the game straight away, so you can paint with it and walk on it
@@ -12,13 +14,37 @@
 // a tile can't be renamed or deleted here: maps store tile names, so either would lose it from every
 // map that uses it. tiles.json can still be changed by hand for that
 
-// the most the tile editor's number boxes go up to, so a typo can't make something silly
-const TILE_EDITOR_LIMITS = {
-  // as a percentage of normal walking speed, so 500 is five times as fast
-  speed: 500,
-  // for both damage boxes, per second and per step
-  damage: 9999,
-};
+// every setting a tile has besides how it looks (TILE_DEFAULTS in tiles.js), each a row in the tile
+// editor's box, on its tab. the tabs come after Look, in the order they're first mentioned here, so a
+// new tab name makes a new tab. see "adding a new kind of tile setting" at the top of tiles.js.
+//   key    its name in TILE_DEFAULTS and tiles.json
+//   tab    which tab it's on
+//   label  the words before its box
+//   after  the words after its box (can be left out)
+//   field  makes its box, starting on value: (value) => a NumberField, Checkbox or Picker. number
+//          boxes have a max, so a typo can't make something silly
+//   scale  what the setting's multiplied by to show in its box, e.g. 100 shows a speed of 0.8 as 80
+//          (%), since NumberField only does whole numbers (can be left out)
+const TILE_BEHAVIOURS = [
+  { tab: 'Behaviours', key: 'solid', label: 'Solid', field: (value) => new Checkbox({ w: 180, value, label: "can't walk on it" }) },
+  // at least 1%, because 0 would leave anyone who stepped on it stuck there. 500 is five times as fast
+  { tab: 'Behaviours', key: 'speed', label: 'Speed', after: '% of normal', scale: 100, field: (value) => new NumberField({ w: 90, value, min: 1, max: 500 }) },
+  { tab: 'Behaviours', key: 'damagePerSecond', label: 'Damage', after: 'a second', field: (value) => new NumberField({ w: 90, value, max: 9999 }) },
+  { tab: 'Behaviours', key: 'damagePerStep', label: 'Damage', after: 'per step', field: (value) => new NumberField({ w: 90, value, max: 9999 }) },
+
+  { tab: 'Effects', key: 'healPerSecond', label: 'Heal', after: 'a second', field: (value) => new NumberField({ w: 90, value, max: 9999 }) },
+  // 95% at most: at 100 anyone stood still on it could never get moving
+  { tab: 'Effects', key: 'slippery', label: 'Slippery', after: '%', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 95 }) },
+  {
+    tab: 'Effects', key: 'pushDirection', label: 'Push',
+    field: (value) => new Picker({ w: 180, choices: [null, ...Object.keys(PUSH_DIRECTIONS)], value, label: (way) => way ?? 'nowhere' }),
+  },
+  { tab: 'Effects', key: 'pushSpeed', label: 'Push by', after: 'tiles a second', field: (value) => new NumberField({ w: 90, value, max: 20 }) },
+];
+
+// the most rows a tab of the tile editor has. a tab with more carries on in another tab ("Effects 2").
+// the box is always this tall, which leaves room for the pictures beside the rows
+const TILE_EDITOR_ROWS = 7;
 
 // what a tile's colour has to look like: # then 6 hex digits, e.g. #6fae4f
 const TILE_COLOUR_PATTERN = /^#[0-9a-f]{6}$/i;
@@ -65,12 +91,20 @@ const TileEditor = {
       // long file names are cut short to fit in the box
       label: (file) => (!file ? 'none, just colour' : file.length > 18 ? `${file.slice(0, 17)}…` : file),
     });
-    const solidBox = new Checkbox({ w: 180, value: type?.solid ?? false, label: "can't walk on it" });
-    // shown as a percentage, since NumberField only does whole numbers: a speed of 0.8 shows as 80.
-    // at least 1%, because 0 would leave anyone who stepped on it stuck there
-    const speedField = new NumberField({ w: 90, value: Math.round((type?.speed ?? 1) * 100), min: 1, max: TILE_EDITOR_LIMITS.speed });
-    const damagePerSecondField = new NumberField({ w: 90, value: type?.damagePerSecond ?? 0, max: TILE_EDITOR_LIMITS.damage });
-    const damagePerStepField = new NumberField({ w: 90, value: type?.damagePerStep ?? 0, max: TILE_EDITOR_LIMITS.damage });
+    // a row for each of TILE_BEHAVIOURS, starting on the tile's setting (or the normal one, for a new tile)
+    const behaviourRows = TILE_BEHAVIOURS.map((b) => {
+      const value = type?.[b.key] ?? TILE_DEFAULTS[b.key];
+      return { ...b, field: b.field(b.scale ? Math.round(value * b.scale) : value) };
+    });
+    // the tabs: Look, then each tab named in TILE_BEHAVIOURS, cut into TILE_EDITOR_ROWS sized pieces
+    const tabs = [];
+    for (const name of new Set(TILE_BEHAVIOURS.map((b) => b.tab))) {
+      const rows = behaviourRows.filter((row) => row.tab === name);
+      for (let i = 0; i < rows.length; i += TILE_EDITOR_ROWS) {
+        const page = i / TILE_EDITOR_ROWS;
+        tabs.push({ label: page ? `${name} ${page + 1}` : name, rows: rows.slice(i, i + TILE_EDITOR_ROWS) });
+      }
+    }
 
     // the texture picked right now as a picture: the one just chosen, or the tile's own. null for
     // none, or if the tile's own file couldn't be loaded
@@ -99,17 +133,20 @@ const TileEditor = {
       title: isNew ? 'New tile' : `Tile: ${type.name}`,
       hint: 'Save to try it out, Export tiles to keep it',
       confirmLabel: 'Save',
-      rows: [
-        // a tile can't be renamed, see the top of this file
-        ...(isNew ? [{ label: 'Name', field: nameField }] : []),
-        { label: 'Kind', field: kindPicker },
-        { label: 'Colour', field: colourField },
-        { label: 'Texture', field: texturePicker },
-        { label: 'Solid', field: solidBox },
-        { label: 'Speed', field: speedField, after: '% of normal' },
-        { label: 'Damage', field: damagePerSecondField, after: 'a second' },
-        { label: 'Damage', field: damagePerStepField, after: 'per step' },
+      tabs: [
+        {
+          label: 'Look',
+          rows: [
+            // a tile can't be renamed, see the top of this file
+            ...(isNew ? [{ label: 'Name', field: nameField }] : []),
+            { label: 'Kind', field: kindPicker },
+            { label: 'Colour', field: colourField },
+            { label: 'Texture', field: texturePicker },
+          ],
+        },
+        ...tabs,
       ],
+      minRows: TILE_EDITOR_ROWS,
       // the pictures, and the button for choosing one from the computer under them
       side: (x, y, w, h) => [
         new TilePreview({
@@ -135,16 +172,9 @@ const TileEditor = {
 
         // tiles.js. the picture's used straight away, rather than loaded from its folder, where it
         // might not be yet
-        setTile({
-          name,
-          colour: colourField.value.toLowerCase(),
-          dualGrid: kindPicker.value,
-          texture,
-          solid: solidBox.value,
-          speed: speedField.value / 100,
-          damagePerSecond: damagePerSecondField.value,
-          damagePerStep: damagePerStepField.value,
-        }, picture());
+        const settings = { name, colour: colourField.value.toLowerCase(), dualGrid: kindPicker.value, texture };
+        for (const row of behaviourRows) settings[row.key] = row.scale ? row.field.value / row.scale : row.field.value;
+        setTile(settings, picture());
 
         // a changed tile's square in the bar draws itself from the tile every frame, so it's already
         // up to date. only a new tile needs a square making

@@ -46,6 +46,9 @@ class Character {
     this.w = settings.width;
     this.h = settings.height;
     this.speed = settings.speed;
+    // how fast it's going, in pixels a second. only matters on slippery tiles, where it carries on
+    // going the same way (see walk())
+    this.velocity = { x: 0, y: 0 };
 
     this.maxHealth = settings.maxHealth;
     this.health = this.maxHealth;
@@ -126,17 +129,29 @@ class Character {
 
     // some tiles slow you down (sand). speed is per second, so multiplying by dt makes it
     // the same speed at any frame rate
-    const speed = this.speed * (this.tile ? this.tile.speed : 1);
+    const tile = this.tile;
+    const speed = this.speed * (tile ? tile.speed : 1);
+
+    // the way it wants to go, plus any push from the tile (conveyor belts). pushSpeed is in tiles
+    const push = PUSH_DIRECTIONS[tile?.pushDirection] ?? { x: 0, y: 0 };
+    const pushSpeed = (tile?.pushSpeed ?? 0) * TILE;
+    // it goes that way straight away, except on slippery tiles (ice), where it only slowly turns
+    // from the way it was going, so it slides (SLIPPERY_GRIP in tiles.js)
+    const grip = tile?.slippery ? SLIPPERY_GRIP * (1 - tile.slippery) : Infinity;
+    this.velocity.x = approach(this.velocity.x, dx * speed + push.x * pushSpeed, grip, dt);
+    this.velocity.y = approach(this.velocity.y, dy * speed + push.y * pushSpeed, grip, dt);
 
     // across first, then down, like map.moveBox() does, so walking into a wall or someone at an
     // angle slides along them. each time: the map says how far the feet can go before a wall,
     // then that's cut short again if another character's feet are in the way
     const feet = this.feetBox();
-    const moveX = this.stopAtOthers(world, feet, 'x', map.moveAlongX(feet, dx * speed * dt));
+    const moveX = this.stopAtOthers(world, feet, 'x', map.moveAlongX(feet, this.velocity.x * dt));
     feet.x += moveX;
-    const moveY = this.stopAtOthers(world, feet, 'y', map.moveAlongY(feet, dy * speed * dt));
+    const moveY = this.stopAtOthers(world, feet, 'y', map.moveAlongY(feet, this.velocity.y * dt));
     this.x += moveX;
     this.y += moveY;
+    // bumping into something stops it sliding that way
+    if (dt > 0) this.velocity = { x: moveX / dt, y: moveY / dt };
 
     // the feet stop at the edge of the map, but the head sticks up above them and could poke
     // off the top. this stops the character once its head reaches the top edge.
@@ -197,8 +212,9 @@ class Character {
     this.y = centre.y;
   }
 
-  // which tile it's standing on (the one under the middle of its feet), and the damage it does
-  // (damagePerStep and damagePerSecond in tiles.js). everyone gets hurt, so lava hurts enemies too
+  // which tile it's standing on (the one under the middle of its feet), and the damage or healing it
+  // does (damagePerStep, damagePerSecond and healPerSecond in tiles.js). it's the same for everyone,
+  // so lava hurts enemies too
   checkTile(map, dt) {
     const feet = this.feetBox();
     const col = map.colAt(feet.x + feet.w / 2);
@@ -214,6 +230,7 @@ class Character {
 
     // dt is seconds since the last frame, so this adds up to damagePerSecond each second
     if (this.tile?.damagePerSecond) this.hurt(this.tile.damagePerSecond * dt);
+    if (this.tile?.healPerSecond) this.heal(this.tile.healPerSecond * dt);
   }
 
   // ---------- aiming and attacking ----------
@@ -261,6 +278,12 @@ class Character {
       this.health = 0;
       this.die();
     }
+  }
+
+  // get health back, up to its most. anything can call this: tiles, potions...
+  heal(amount) {
+    if (this.dead) return;
+    this.health = Math.min(this.maxHealth, this.health + amount);
   }
 
   // what happens at 0 health. the player and enemies each change this (see their files)

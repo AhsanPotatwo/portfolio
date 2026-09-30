@@ -29,8 +29,14 @@
 //   speed            how fast you walk on it compared to normal. 1 is normal, 0.5 is half speed
 //   damagePerSecond  hurts anything standing on it this much a second (lava)
 //   damagePerStep    hurts anything this much each time it steps onto one (spikes)
+//   healPerSecond    heals anything standing on it this much a second, up to its most (healing spring)
+//   slippery         0 to 0.95, how much you slide about. 0 is normal, 0.9 is ice. you keep going
+//                    the way you were and only slowly turn, until you bump into something
+//   pushDirection    "up", "down", "left" or "right" (PUSH_DIRECTIONS below): pushes anything on it
+//                    that way, pushSpeed tiles a second (conveyor belts, currents, wind)
+//   pushSpeed        how hard it pushes, in tiles a second. walking speed is 5. 0 doesn't push
 //
-// damage and speed work for everyone: the player, enemies and npcs (checkTile() in character.js).
+// these work for everyone: the player, enemies and npcs (walk() and checkTile() in character.js).
 // the order of the tiles is the order in the editor's bar, and where two dual grid tiles meet, the one
 // further down the file goes on top, so put the ones underneath first (dirt before grass)
 //
@@ -42,8 +48,8 @@
 //      TILE_DEFAULTS is ignored)
 //   2. whatever it changes, e.g. checkTile() in character.js for things that happen to whoever's
 //      standing on the tile
-//   3. a row for it in the tile editor's box (TileEditor.open() in tileeditor.js), read in its
-//      onConfirm and handed to setTile() with the rest
+//   3. a line for it in TILE_BEHAVIOURS at the top of tileeditor.js, which gives it a row in the
+//      tile editor's box, on whichever tab it says (a new tab name makes a new tab)
 // older tiles.json files still load fine, a tile without the new setting just gets its normal value
 //
 // =================================================================================
@@ -73,7 +79,26 @@ const TILE_DEFAULTS = {
   // doesn't hurt anyone
   damagePerSecond: 0,
   damagePerStep: 0,
+  // doesn't heal anyone
+  healPerSecond: 0,
+  // not slippery at all
+  slippery: 0,
+  // doesn't push anyone anywhere
+  pushDirection: null,
+  pushSpeed: 0,
 };
+
+// the ways a tile can push (pushDirection), as x and y
+const PUSH_DIRECTIONS = {
+  up: { x: 0, y: -1 },
+  down: { x: 0, y: 1 },
+  left: { x: -1, y: 0 },
+  right: { x: 1, y: 0 },
+};
+
+// how quickly you can change direction on a slippery tile before its slipperiness is taken off. the
+// same speed approach() in utils.js takes: bigger turns quicker. 0.9 slippery leaves a tenth of it
+const SLIPPERY_GRIP = 10;
 
 // every tile, by name. filled in from tiles.json by loadTileFile(), and by the tile editor
 // (tileeditor.js). each is its settings, plus:
