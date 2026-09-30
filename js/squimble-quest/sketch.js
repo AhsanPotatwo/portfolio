@@ -1,4 +1,7 @@
 // squimble quest, a top down rpg.
+// new to the project? start with README.md in this folder: how it all fits together, what's
+// planned, known issues, and how to keep those notes up to date when you change things.
+//
 // this file runs the game loop. the other files in this folder hold the pieces it uses,
 // and squimble-quest.html loads them in this order before this one:
 //   config.js     settings: sizes, speeds, controls, button styles
