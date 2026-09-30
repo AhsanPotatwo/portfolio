@@ -3,7 +3,84 @@
   --sq-green:  #7bd88f;
   --sq-leaf:   #3f8f52;
   --sq-moss:   #1b2a1f;
+  /* the night sky, darkest at the top and lighter down towards the trees */
+  --sq-sky-top: #070e0b;
+  --sq-sky-low: #13291f;
+  --sq-firefly: #eaff9a;
+
+  /* overrides for styles.css, so this page is a night forest instead of the site's purple */
+  --bg: var(--sq-sky-top);
+  --muted: #9fb3a5;
+  --dim: #6d8274;
+  --nav-purple: var(--sq-green);
+  --accent-text: var(--sq-green);
+  /* colour of the "Back to all projects" link (.page-back in styles.css) */
   --page-accent: var(--sq-green);
+  background:linear-gradient(var(--sq-sky-top), var(--sq-sky-low)) fixed;
+}
+html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
+.sq-page ::selection{ background:rgba(123,216,143,.35); color:#fff; }
+.sq-page .site-header{
+  background:rgba(8,16,12,.88);
+  border-bottom-color:rgba(123,216,143,.14);
+}
+.sq-page .brand:hover{ color:#a8ecb5; }
+.sq-page .nav-link:hover{ color:#d4f7da; }
+.sq-page .site-footer{ border-top-color:rgba(123,216,143,.12); }
+@media (max-width:820px){
+  .sq-page .nav{ background:#0c1812; }
+}
+
+/* ---------- page backdrop ----------
+   the site's background glows recoloured (moonlight, the forest, a warm firefly glow), then a row
+   of pixel trees along the bottom and fireflies drifting in front of them. all behind the page */
+.sq-page .bg-nebula-1{ background:radial-gradient(circle at 40% 40%, rgba(170,220,200,.10), transparent 70%); }
+.sq-page .bg-nebula-2{ background:radial-gradient(circle at 60% 60%, rgba(63,143,82,.30), transparent 70%); }
+.sq-page .bg-nebula-3{ background:radial-gradient(circle at 50% 50%, rgba(240,200,110,.07), transparent 72%); }
+
+.sq-forest{
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  overflow:hidden;
+  pointer-events:none;
+}
+/* one row of trees and bushes along the bottom, a repeating strip. the picture is 40 pixels tall,
+   drawn at --px screen pixels per pixel so it looks like pixel art like the game */
+.sq-trees{
+  --px:4px;
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height:calc(40 * var(--px));
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 40' shape-rendering='crispEdges' fill='%230b1812'%3E%3Crect y='36' width='150' height='4'/%3E%3Cpath transform='translate(4 18)' d='M4 0H6V3H7V6H8V9H9V12H10V14H0V12H1V9H2V6H3V3H4Z'/%3E%3Crect x='8' y='32' width='2' height='4'/%3E%3Cpath transform='translate(19 22)' d='M3 0H9V1H11V3H12V7H11V9H9V10H3V9H1V7H0V3H1V1H3Z'/%3E%3Crect x='24' y='32' width='2' height='4'/%3E%3Cpath transform='translate(33 32)' d='M2 0H6V1H8V4H0V1H2Z'/%3E%3Cpath transform='translate(47 15)' d='M2 0H4V4H5V9H6V16H0V9H1V4H2Z'/%3E%3Crect x='49' y='31' width='2' height='5'/%3E%3Cpath transform='translate(58 20)' d='M4 0H6V3H7V6H8V9H9V12H10V14H0V12H1V9H2V6H3V3H4Z'/%3E%3Crect x='62' y='34' width='2' height='2'/%3E%3Cpath transform='translate(79 32)' d='M2 0H6V1H8V4H0V1H2Z'/%3E%3Cpath transform='translate(94 23)' d='M3 0H9V1H11V3H12V7H11V9H9V10H3V9H1V7H0V3H1V1H3Z'/%3E%3Crect x='99' y='33' width='2' height='3'/%3E%3Cpath transform='translate(112 16)' d='M4 0H6V3H7V6H8V9H9V12H10V14H0V12H1V9H2V6H3V3H4Z'/%3E%3Crect x='116' y='30' width='2' height='6'/%3E%3Cpath transform='translate(125 32)' d='M2 0H6V1H8V4H0V1H2Z'/%3E%3Cpath transform='translate(138 17)' d='M2 0H4V4H5V9H6V16H0V9H1V4H2Z'/%3E%3Crect x='140' y='33' width='2' height='3'/%3E%3C/svg%3E");
+  background-size:calc(150 * var(--px)) 100%;
+  background-repeat:repeat-x;
+  background-position:left bottom;
+  image-rendering:pixelated;
+}
+@media (max-width:600px){
+  .sq-trees{ --px:3px; }
+}
+
+/* fireflies: square, like pixels, blinking as they wander. where each one is (--x, --y), how long
+   its wander takes (--t) and how far through it starts (--d) are set on it in the html */
+.sq-firefly{
+  position:absolute;
+  left:var(--x); top:var(--y);
+  width:3px; height:3px;
+  background:var(--sq-firefly);
+  box-shadow:0 0 6px 2px rgba(214,255,120,.55);
+  opacity:0;
+  animation:sqFirefly var(--t, 9s) ease-in-out var(--d, 0s) infinite;
+}
+@keyframes sqFirefly{
+  0%, 100%{ translate:0 0;       opacity:.1; }
+  25%     { translate:18px -22px; opacity:1; }
+  45%     { translate:4px -40px;  opacity:.2; }
+  70%     { translate:-16px -18px; opacity:.9; }
+}
+@media (prefers-reduced-motion: reduce){
+  .sq-firefly{ animation:none; opacity:.6; }
 }
 
 /* ---------- hero ---------- */
