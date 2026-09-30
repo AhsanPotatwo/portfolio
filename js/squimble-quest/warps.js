@@ -63,16 +63,14 @@ const Warps = {
   // run by loadMap() (sketch.js) once the player's been put on the new map. whatever tile they've
   // arrived on counts as already stepped on, so a 'step' warp there doesn't send them straight back
   arrived(player, map) {
-    this.lastCol = map.colAt(player.x);
-    this.lastRow = map.rowAt(player.y + feetBelowCentre(player.settings));
+    [this.lastCol, this.lastRow] = feetTile(player, map);
     this.reachable = null;
   },
 
-  // run every frame while playing, after the player has moved. opens a 'step' warp if they've
-  // just stepped onto one. player.tileCol and tileRow are the tile under their feet (character.js)
+  // run every frame while playing, after everyone has moved. opens a 'step' warp if the player's
+  // just stepped onto one
   checkStep(player, map) {
-    const col = player.tileCol;
-    const row = player.tileRow;
+    const [col, row] = feetTile(player, map);
     if (col === this.lastCol && row === this.lastRow) return;
     this.lastCol = col;
     this.lastRow = row;
@@ -118,6 +116,15 @@ const Warps = {
     if (warp) drawKeyPrompt((warp.col + 0.5) * TILE, warp.row * TILE - 4); // npc.js
   },
 };
+
+// the tile under the middle of the player's feet right now, as [col, row]. the same tile as
+// player.tileCol and tileRow (character.js), but worked out from where they are this moment.
+// those are only updated when the player moves, so if they die partway through a frame (lava,
+// an enemy) and respawn, they'd still say the tile they died on until the next frame, and the
+// respawn tile would look freshly stepped onto, sending them through the warp they arrived by
+function feetTile(player, map) {
+  return [map.colAt(player.x), map.rowAt(player.y + feetBelowCentre(player.settings))];
+}
 
 // what's wrong with where a warp leads, as a sentence to show, or null if nothing is. used when
 // going through a warp, to mark broken warps red in the editor, and to check every warp once the

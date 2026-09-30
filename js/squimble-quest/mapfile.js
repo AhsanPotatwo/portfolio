@@ -243,7 +243,8 @@ function loadMapFiles() {
 // saves a map as a file (the browser downloads it). typedName becomes the file name, tidied up by
 // cleanMapName() (the map editor's Export asks for it in the game). the map also takes that name
 // for the rest of this visit, so dev mode's M key comes back to this map as it is now, rather
-// than rebuilding the original
+// than rebuilding the original. a new name works like "save as": this map is the new one now, and
+// the old name goes back to being built from its own file next time
 function exportMap(map, typedName) {
   const name = cleanMapName(typedName);
   // the editor doesn't let a name like that through, this is just in case
@@ -251,7 +252,9 @@ function exportMap(map, typedName) {
 
   const data = mapToData(map);
   registerMap(name, data);
-  // registerMap() forgets any visited map with this name, and this one is it now
+  // registerMap() forgets any visited map with this name, and this one is it now. without
+  // forgetting the old name too, both names would be this one map (maps.js)
+  if (map.name !== name && VISITED_MAPS[map.name] === map) delete VISITED_MAPS[map.name];
   VISITED_MAPS[name] = map;
   map.name = name;
 
@@ -272,7 +275,11 @@ function openMapFile() {
         if (!registerMap(name, JSON.parse(text))) throw new Error('see the browser console for why');
         loadMap(name); // in sketch.js
       })
-      .catch((err) => alert(`Couldn't open ${file.name}: ${err.message}`));
+      // shown in the game (hud.js), and in the browser console in case it's too long to read there
+      .catch((err) => {
+        showMessage(`Couldn't open ${file.name}`);
+        console.warn(`Couldn't open ${file.name}: ${err.message}`);
+      });
   });
   picker.click();
 }
