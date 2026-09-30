@@ -360,7 +360,10 @@ class TileMap {
   //
   // tiles without an image are drawn in runs: a row of neighbouring tiles of the same colour is
   // one rect instead of one each. it looks exactly the same (they'd share edges anyway), but a big
-  // field of grass is a handful of rects rather than thousands, which matters when zoomed out
+  // field of grass is a handful of rects rather than thousands, which matters when zoomed out.
+  //
+  // dual grid tiles (tileset in tiles.js) are skipped in the first go, then drawn over the top on
+  // the second grid, half a tile across and down (drawDualCorner() below)
   drawTiles(camera) {
     const view = camera.view();
     const firstCol = Math.max(this.left, this.colAt(view.left));
@@ -373,12 +376,16 @@ class TileMap {
     const density = pixelDensity();
     const toPixel = (value) => Math.round(value * density) / density;
 
-    // where every column's left edge and every row's top edge land on screen, plus one more for the
-    // far edge of the last one. a tile runs from its edge to the next one's
+    // where every half tile's edge lands on screen, from half a tile before the first column to half
+    // a tile after the last (the dual grid pieces there hang half off). x(2 * col) is a column's left
+    // edge and x(2 * col + 1) its middle, which is where dual grid pieces start and end. everything
+    // uses these same rounded edges, so the two grids line up exactly with no gaps or overlap
     const xs = [];
-    for (let col = firstCol; col <= lastCol + 1; col++) xs.push(toPixel(camera.drawnPosition(col * TILE, 0).x));
+    for (let half = 2 * firstCol - 1; half <= 2 * lastCol + 3; half++) xs.push(toPixel(camera.drawnPosition(half * TILE / 2, 0).x));
     const ys = [];
-    for (let row = firstRow; row <= lastRow + 1; row++) ys.push(toPixel(camera.drawnPosition(0, row * TILE).y));
+    for (let half = 2 * firstRow - 1; half <= 2 * lastRow + 3; half++) ys.push(toPixel(camera.drawnPosition(0, half * TILE / 2).y));
+    const x = (half) => xs[half - 2 * firstCol + 1];
+    const y = (half) => ys[half - 2 * firstRow + 1];
 
     // draw in screen positions for this part: resetMatrix() undoes the camera's move and zoom,
     // and pop() puts them back for everything drawn after
@@ -386,8 +393,8 @@ class TileMap {
     resetMatrix();
     noStroke();
     for (let row = firstRow; row <= lastRow; row++) {
-      const top = ys[row - firstRow];
-      const h = ys[row - firstRow + 1] - top;
+      const top = y(2 * row);
+      const h = y(2 * row + 2) - top;
       // the tile type at a column on this row. the columns are already limited to the map, so this
       // skips get()'s is-it-on-the-map check. undefined for an empty tile
       const rowStart = this.index(this.left, row) - this.left;
@@ -395,22 +402,75 @@ class TileMap {
 
       for (let col = firstCol; col <= lastCol; col++) {
         const type = typeAt(col);
-        // empty, nothing to draw (the background shows through)
-        if (!type) continue;
-        const left = xs[col - firstCol];
+        // empty, nothing to draw (the background shows through). dual grid tiles come after
+        if (!type || type.dualTiles) continue;
+        const left = x(2 * col);
         if (type.img) {
-          image(type.img, left, top, xs[col - firstCol + 1] - left, h);
+          image(type.img, left, top, x(2 * col + 2) - left, h);
           continue;
         }
         // carry on along the row while the next tile is the same, then draw them all as one rect
         let end = col;
         while (end < lastCol && typeAt(end + 1) === type) end++;
         fill(type.fill);
-        rect(left, top, xs[end - firstCol + 1] - left, h);
+        rect(left, top, x(2 * end + 2) - left, h);
         col = end;
       }
     }
+
+    // every corner where four tiles meet, including the far edges of the last column and row
+    for (let row = firstRow; row <= lastRow + 1; row++) {
+      for (let col = firstCol; col <= lastCol + 1; col++) {
+        this.drawDualCorner(col, row, [x(2 * col - 1), x(2 * col), x(2 * col + 1)], [y(2 * row - 1), y(2 * row), y(2 * row + 1)]);
+      }
+    }
     pop();
+  }
+
+  // the dual grid piece(s) on the corner at the top left of tile col, row. xs and ys are the piece's
+  // left, middle and right edges on screen, and its top, middle and bottom. uses screen positions,
+  // so only drawTiles() calls it
+  drawDualCorner(col, row, xs, ys) {
+    // the four tiles meeting here: up left, up right, down left, down right. null if empty or off the map
+    const around = [this.get(col - 1, row - 1), this.get(col, row - 1), this.get(col - 1, row), this.get(col, row)];
+    const duals = around.filter((type) => type?.dualTiles);
+    if (duals.length === 0) return;
+
+    // each piece fills a quarter of each of the four tiles. the pieces have see-through edges, so
+    // first the dual grid tiles' quarters get a normal tile from next to them, as if that ground
+    // carries on underneath. (the normal tiles drew their own quarters already.) all four empty or
+    // dual grid means nothing's needed: the lowest dual grid piece covers them
+    const under = around.find((type) => type && !type.dualTiles);
+    if (under) {
+      fill(under.fill);
+      around.forEach((type, i) => {
+        if (!type?.dualTiles) return;
+        // which quarter: 0 left or top, 1 right or bottom
+        const across = i % 2;
+        const down = Math.floor(i / 2);
+        const left = xs[across];
+        const top = ys[down];
+        const w = xs[across + 1] - left;
+        const h = ys[down + 1] - top;
+        const img = under.img;
+        // the matching quarter of its picture: this piece's up left quarter is the bottom right of a tile
+        if (img) image(img, left, top, w, h, (1 - across) * img.width / 2, (1 - down) * img.height / 2, img.width / 2, img.height / 2);
+        else rect(left, top, w, h);
+      });
+    }
+
+    // then each dual grid tile here draws its piece, lowest layer first (see layer in tiles.js). a
+    // piece covers its own tiles' corners and any higher layer's too, so the higher one is drawn over
+    // it rather than next to it, and there's never a gap between them
+    const layers = [...new Set(duals)].sort((a, b) => a.layer - b.layer);
+    for (const type of layers) {
+      // which of the four are covered, as the 1s and 0s DUAL_TILESET_LAYOUT (tiles.js) uses
+      let which = 0;
+      around.forEach((other, i) => {
+        if (other?.dualTiles && other.layer >= type.layer) which |= 0b1000 >> i;
+      });
+      image(type.dualTiles[which], xs[0], ys[0], xs[2] - xs[0], ys[2] - ys[0]);
+    }
   }
 
   // in the order they were placed, so later ones are drawn on top
