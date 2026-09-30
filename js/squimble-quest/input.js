@@ -18,7 +18,7 @@ const Input = {
   held: new Set(),
   // keys that went down since the last frame. only lasts one frame, see update()
   keysPressed: new Set(),
-  // true while something is being typed into, like a number box (numberfield.js). the keyboard
+  // true while something is being typed into, like a number box (textfield.js). the keyboard
   // then only types: no key counts for the game (so W doesn't walk), they go in typed instead
   typing: false,
   // what was typed since the last frame while typing is on, as e.key names: '7', 'Backspace',

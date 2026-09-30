@@ -21,9 +21,9 @@ The tile grid shows on every map while developer mode is on, and never outside i
 ## Quick start
 
 1. Open the game, click it, press **`** or **Ctrl + D** (developer mode), then **B** (map editor).
-2. Click **Map settings** (top right), then **New map**, and type a width and height. Or just edit the map you're on.
+2. Click **Map settings** (top right), then **New map**, type a width and height, and choose what to fill it with. Or just edit the map you're on.
 3. Paint tiles and place objects.
-4. Click **Export**, give it a name, and it downloads as `yourname.json`.
+4. Click **Map settings**, then **Export**, type a name, and it downloads as `yourname.json`.
 5. Move the file into this folder (`assets/squimble-quest/maps/`).
 6. Add its file name to `MAP_FILES` in [`js/squimble-quest/maps.js`](../../../js/squimble-quest/maps.js):
 
@@ -43,14 +43,14 @@ Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything 
 
 | Control | What it does |
 |---|---|
-| **Tiles** / **Objects** / **Enemies** / **NPCs** tabs above the bar | Switch between the ground tiles, objects (furniture, decorations…), enemies and friendly NPCs |
+| **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** tabs above the bar | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs and triggers (for now, just the player's spawn point) |
 | **Map settings** (top right) | Opens a panel with the map's name and size, and the **Resize map**, **New map**, **Open file** and **Export** buttons. Click it again (or move with **WASD**) to close it |
 | Click something in the bottom bar | Choose it (**‹ ›** for more pages) |
 | Left click / drag (tile chosen) | Paint that tile, replacing the one there |
 | Left click (object chosen) | Place the object, its top-left corner on the tile under the mouse. A see-through preview shows where it'll go |
 | Left click (enemy or NPC chosen) | Place it, standing on the tile under the mouse |
+| Left click (**spawn** chosen, in **Triggers**) | The player spawns on this tile (yellow ring). There's only one, so it moves here |
 | Right click / drag, or **Erase** | Delete. Starting on an object, enemy or NPC removes those; starting on bare ground empties tiles |
-| **P** | The player spawns on the tile under the mouse (yellow ring) |
 | **WASD** | Move around the map. The editor's buttons and panels fade out while you move, so you can see the map, and come back when you stop |
 | **−** **=** or mouse wheel | Zoom out and in (**0** resets) |
 | **M** | Go to the next map |
@@ -65,12 +65,9 @@ While the editor's open, everyone stands still. Opening it brings back every ene
 
 Click **Map settings**, then **New map**. A box asks for the width and height in tiles: click a number (or press **Tab**) to type into it, then press **Enter** or **Make map** (**Escape** or **Cancel** closes it). The smallest is 1 × 1 and the biggest is 500 × 500. Tile `(0, 0)` is in the middle of the new map, and that's where the player spawns.
 
-The new map is filled with whatever is chosen in the bar:
+**Fill** is what every tile starts as. It starts on `blank` (plain white). Click its right half to go forward through the tiles, or its left half to go back. After the last tile comes **empty**: the map starts with no tiles at all.
 
-- **A tile**: every tile starts as that, e.g. all grass.
-- **Erase**: the map starts completely empty.
-
-**Rooms that aren't rectangles** (L-shapes, crosses, rooms joined by corridors): choose **Erase**, make a new map big enough to fit the whole shape, then paint the floor in the shape you want. Everything you don't paint stays empty, and empty tiles work like walls. Remember to put the spawn point (**P**) on the floor.
+**Rooms that aren't rectangles** (L-shapes, crosses, rooms joined by corridors): fill with **empty**, make the map big enough to fit the whole shape, then paint the floor in the shape you want. Everything you don't paint stays empty, and empty tiles work like walls. Remember to put the spawn point (**Triggers** tab) on the floor.
 
 A new map is called `new-map` until you export it with a name of its own.
 
@@ -162,7 +159,7 @@ You can open a map in any text editor. It looks like this:
 - **`objects`**: everything placed on the tiles. `type` is the object's name in `objects.js`, and `col`, `row` is the tile its top-left corner is on. They're drawn in list order, so later ones go on top.
 - **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is the name in `enemies.js` or `npcs.js`, and `col`, `row` is the tile it stands on. Maps without these lists just have none.
 - **`left`, `top`**: the tile column and row of the map's top-left corner. Tile `(0, 0)` is at the middle of the world, so `-5, -2` puts the middle of a 10 × 5 map there.
-- **`spawn`**: where the player starts, in pixels (the centre of the player). Easiest to set with **P** in the editor.
+- **`spawn`**: where the player starts, in pixels (the centre of the player). Easiest to set with **spawn** in the editor's **Triggers** tab.
 
 Older map files may also have a `"showGrid"` line. It isn't used any more and can be left in or deleted.
 

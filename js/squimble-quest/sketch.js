@@ -21,11 +21,11 @@
 //   npc.js        an npc in the game (needs character.js loaded first)
 //   ui.js         the ui system: UIElement and the UI manager
 //   button.js     buttons (needs ui.js loaded first, because Button builds on UIElement)
-//   numberfield.js a box you type a number into (needs ui.js loaded first)
+//   textfield.js  boxes you type words or numbers into (needs ui.js loaded first)
 //   hud.js        things drawn over the game that aren't ui elements (crosshair, messages, panels)
 //   inventory.js  inventories, and the hotbar (needs button.js loaded first)
 //   dialogue.js   talking to npcs: who's in range, and the text box
-//   editor.js     the map editor, opened from dev mode (needs button.js and numberfield.js first)
+//   editor.js     the map editor, opened from dev mode (needs button.js and textfield.js first)
 //   debug.js      developer mode, hidden testing tools (press ` or Ctrl + D while playing)
 //
 // the catalogue files (tiles, objects, enemies, npcs, weapons, items) are where new things get

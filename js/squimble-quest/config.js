@@ -149,8 +149,6 @@ const KEYS = {
   nextMap:   ['KeyM'],
   // B for build. not E, that's for talking to people
   editor:    ['KeyB'],
-  // map editor only
-  setSpawn:  ['KeyP'],
 };
 
 // the browser numbers mouse buttons, this gives them names. the middle button is left out

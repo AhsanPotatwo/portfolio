@@ -218,18 +218,14 @@ function loadMapFiles() {
 
 // ---------- export and open (the buttons in the map editor) ----------
 
-// saves a map as a file (the browser downloads it). asks for a name first, which becomes the
-// file name. the map also takes that name for the rest of this visit, so dev mode's M key
-// comes back to this map as it is now, rather than rebuilding the original
-function exportMap(map) {
-  const typed = prompt('Name this map (letters, numbers, - and _):', map.name);
-  // cancelled
-  if (typed === null) return;
-  const name = cleanMapName(typed);
-  if (!name) {
-    alert('That name has no letters or numbers in it, so the map wasn\'t saved.');
-    return;
-  }
+// saves a map as a file (the browser downloads it). typedName becomes the file name, tidied up by
+// cleanMapName() (the map editor's Export asks for it in the game). the map also takes that name
+// for the rest of this visit, so dev mode's M key comes back to this map as it is now, rather
+// than rebuilding the original
+function exportMap(map, typedName) {
+  const name = cleanMapName(typedName);
+  // the editor doesn't let a name like that through, this is just in case
+  if (!name) return;
 
   const data = mapToData(map);
   registerMap(name, data);

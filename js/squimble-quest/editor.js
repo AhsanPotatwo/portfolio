@@ -5,7 +5,7 @@
 //   - everyone stops, and WASD / the arrow keys move the camera around instead. the ui fades out
 //     while you move, so you can see the map, and comes back when you stop
 //   - pick something from the bar at the bottom. the tabs above it switch between
-//     tiles, objects, enemies and npcs (‹ › for more pages once there are lots)
+//     tiles, objects, enemies, npcs and triggers (‹ › for more pages once there are lots)
 //   - tiles: left click or drag to paint, replacing whatever tile was there
 //   - objects: left click to place one, its top left corner on the tile under the mouse
 //   - enemies and npcs: left click to place one, standing on the tile under the mouse
@@ -15,11 +15,12 @@
 //   - opening the editor brings back every enemy placed on the map, including defeated ones, so
 //     you always see the whole design. closing it puts every enemy and npc back where it was
 //     placed, with full health. (outside the editor, defeated enemies stay defeated, see sketch.js)
-//   - P puts the player's spawn point on the tile under the mouse (marked with a yellow ring)
+//   - triggers: left click to place one. just the player's spawn point for now (a yellow ring),
+//     which moves to the tile under the mouse
 //   - Map settings (top right) opens a panel for the whole map: Resize map changes its size
-//     (never smaller than the area with tiles in it), New map makes a blank map of any size,
-//     Open file loads one and Export saves the map as a file. both sizes are typed into a box
-//     in the game (SizeBox, at the bottom of this file)
+//     (never smaller than the area with tiles in it), New map makes a map of any size filled
+//     with any tile, Open file loads one and Export saves the map as a file. sizes, the fill and
+//     the name are all asked for in a box in the game (FormBox, at the bottom of this file)
 //   - the dev mode keys still work (zoom, teleport, next map), and H lists them all
 //
 // everything in tiles.js, objects.js, enemies.js and npcs.js shows up in the bar by itself.
@@ -44,7 +45,6 @@ const EDITOR_KEYS = [
   'right click erase',
   'WASD        move around',
   'wheel       zoom',
-  'P           player spawns here',
   'B           close the editor',
 ];
 
@@ -102,10 +102,20 @@ const EDITOR_TABS = [
   { kind: 'object', label: 'Objects' },
   { kind: 'enemy', label: 'Enemies' },
   { kind: 'npc', label: 'NPCs' },
+  // things on the map that make something happen, like where the player spawns
+  { kind: 'trigger', label: 'Triggers' },
 ];
 
+// everything in the Triggers tab. unlike the other tabs, these aren't in a catalogue file of their
+// own, each one is placed by its own code in Editor.update() and drawn by PaletteSwatch
+const TRIGGER_TYPES = {
+  // where the player starts on this map, and comes back to after dying. there's only one, so
+  // placing it moves it
+  spawn: {},
+};
+
 // where each tab's things are defined, by kind
-const EDITOR_CATALOGUES = { tile: TILE_TYPES, object: OBJECT_TYPES, enemy: ENEMY_TYPES, npc: NPC_TYPES };
+const EDITOR_CATALOGUES = { tile: TILE_TYPES, object: OBJECT_TYPES, enemy: ENEMY_TYPES, npc: NPC_TYPES, trigger: TRIGGER_TYPES };
 
 // is this tab's kind a character that gets placed standing on a tile (an enemy or npc)?
 function isCharacterKind(kind) {
@@ -149,8 +159,8 @@ const Editor = {
   nextButton: null,
   settingsButton: null,
 
-  // call once from setup(). makes the bar, the tabs, the Map settings button and its panel, and
-  // the size box (all hidden until they're needed)
+  // call once from setup(). makes the bar, the tabs, and the Map settings button and its panel
+  // (all hidden until they're needed)
   init() {
     const barY = GAME_H - EDITOR_BAR.height;
     const perPage = Math.floor((EDITOR_BAR.swatchesRight - EDITOR_BAR.swatchesLeft) / EDITOR_BAR.slotWidth);
@@ -223,12 +233,12 @@ const Editor = {
     }));
 
     // the panel it opens, in its own group so it can be shown and hidden on its own. each button
-    // closes the panel, then does its thing. worldMap is the game's (sketch.js)
+    // closes the panel, then does its thing
     const actions = [
       { label: 'Resize map', onClick: () => this.resizeMap() },
       { label: 'New map', onClick: () => this.newMap() },
       { label: 'Open file', onClick: () => openMapFile() },
-      { label: 'Export', style: 'primary', onClick: () => exportMap(worldMap) },
+      { label: 'Export', style: 'primary', onClick: () => this.askToExport() },
     ];
     const panelX = GAME_W - 8 - s.panelWidth;
     const panelY = 8 + s.buttonHeight + 6;
@@ -252,7 +262,6 @@ const Editor = {
 
     UI.showGroup('editor', false);
     this.showSettings(false);
-    SizeBox.init();
   },
 
   // opens or closes the Map settings panel
@@ -301,7 +310,7 @@ const Editor = {
     UI.showGroup('editor', false);
     this.showSettings(false);
     // Ctrl + D still works while typing, so dev mode (and the editor) can close with the box open
-    if (SizeBox.active) SizeBox.close();
+    if (FormBox.active) FormBox.close();
     Hotbar.show(true);
   },
 
@@ -335,23 +344,21 @@ const Editor = {
     return this.selected !== null && this.selected.kind === kind && this.selected.name === name;
   },
 
-  // ---------- new map and resizing ----------
+  // ---------- new map, resizing and exporting ----------
 
-  // asks for a size, then makes a blank map that size and goes to it. it's filled with the tile
-  // picked in the bar, or starts empty if Erase is picked (handy for rooms that aren't rectangles:
-  // start empty, then paint the floor in whatever shape you like)
+  // asks for a size and what to fill it with, then makes a new map like that and goes to it.
+  // it starts as blank tiles, but can be any tile, or empty (handy for rooms that aren't
+  // rectangles: start empty, then paint the floor in whatever shape you like)
   newMap() {
-    let fillWith = 'blank';
-    if (this.selected === null) fillWith = null;
-    else if (this.selected.kind === 'tile') fillWith = this.selected.name;
-
-    SizeBox.open({
+    FormBox.open({
       title: 'New map',
-      hint: fillWith ? `Filled with ${fillWith}` : 'Starts empty (Erase is picked)',
       confirmLabel: 'Make map',
-      cols: 40,
-      rows: 24,
-      onConfirm: (cols, rows) => {
+      rows: [
+        { label: 'Width', field: sizeField(40), after: 'tiles' },
+        { label: 'Height', field: sizeField(24), after: 'tiles' },
+        { label: 'Fill', field: new TilePicker({ w: 180, value: 'blank' }) },
+      ],
+      onConfirm: ([cols, rows, fillWith]) => {
         // added to MAPS like any other map, so dev mode's M key can come back to it (maps.js)
         addMap(NEW_MAP_NAME, () => makeBlankMap(cols, rows, fillWith));
         loadMap(NEW_MAP_NAME); // in sketch.js
@@ -369,16 +376,16 @@ const Editor = {
     const minCols = used ? used.right - used.left + 1 : 1;
     const minRows = used ? used.bottom - used.top + 1 : 1;
 
-    SizeBox.open({
+    FormBox.open({
       title: 'Resize map',
       hint: `Smallest it can be: ${minCols} x ${minRows}`,
       confirmLabel: 'Resize',
-      cols: map.cols,
-      rows: map.rows,
-      // the boxes won't go below these, so asking for less gives the smallest it can be
-      minCols,
-      minRows,
-      onConfirm: (cols, rows) => {
+      // the boxes won't go below the smallest, so asking for less gives the smallest it can be
+      rows: [
+        { label: 'Width', field: sizeField(map.cols, minCols), after: 'tiles' },
+        { label: 'Height', field: sizeField(map.rows, minRows), after: 'tiles' },
+      ],
+      onConfirm: ([cols, rows]) => {
         map.resize(
           resizedStart(map.left, map.cols, cols, used?.left, used?.right),
           resizedStart(map.top, map.rows, rows, used?.top, used?.bottom),
@@ -392,13 +399,27 @@ const Editor = {
     });
   },
 
+  // asks for a name, then saves the map you're on as a file with that name (exportMap() and
+  // cleanMapName() are in mapfile.js, worldMap is the game's in sketch.js)
+  askToExport() {
+    FormBox.open({
+      title: 'Export map',
+      hint: 'Letters, numbers, - and _',
+      confirmLabel: 'Export',
+      rows: [{ label: 'Name', field: new TextField({ w: 180, value: worldMap.name }) }],
+      // no name, no file name (only spaces counts as none)
+      canConfirm: ([name]) => cleanMapName(name) !== '',
+      onConfirm: ([name]) => exportMap(worldMap, name),
+    });
+  },
+
   // ---------- every frame, while open ----------
 
   // aim is the mouse's world position, or null
   update(map, camera, aim, dt) {
-    // while the size box is open, it's all that happens
-    if (SizeBox.active) {
-      SizeBox.update();
+    // while the form box is open, it's all that happens
+    if (FormBox.active) {
+      FormBox.update();
       return;
     }
 
@@ -425,22 +446,14 @@ const Editor = {
     // the tile under the mouse, or null if the mouse isn't over the game
     const over = aim && Input.mouse.inside ? { col: map.colAt(aim.x), row: map.rowAt(aim.y) } : null;
 
-    // P: the player will start with their feet in the middle of the tile under the mouse.
-    // not on solid or empty tiles, they'd be stuck
-    if (Input.wasPressed('setSpawn') && over && !map.isSolid(over.col, over.row)) {
-      map.setSpawnTile(over.col, over.row);
-      // the player only copies the map's spawn point when the map loads (player.js), so they
-      // respawn here now too, not just the next time the map loads. player is the game's (sketch.js)
-      player.spawnX = map.spawn.x;
-      player.spawnY = map.spawn.y;
-    }
-
-    // objects, enemies and npcs: one per click. mousePressed() ignores clicks that landed on the
-    // editor's ui, like the bar or the Map settings panel (see input.js)
+    // objects, enemies, npcs and triggers: one per click. mousePressed() ignores clicks that landed
+    // on the editor's ui, like the bar or the Map settings panel (see input.js)
     if (over && Input.mousePressed('left') && this.selected) {
       const { kind, name } = this.selected;
       if (kind === 'object') this.placeObject(map, name, over.col, over.row);
       if (isCharacterKind(kind)) this.placeCharacter(map, kind, name, over.col, over.row);
+      // the spawn is the only trigger so far
+      if (kind === 'trigger') this.placeSpawn(map, over.col, over.row);
     }
 
     // tiles and erasing: keep going while the button's held
@@ -496,6 +509,17 @@ const Editor = {
     spawnCharacters();
   },
 
+  // the player will start with their feet in the middle of this tile. not on solid or empty
+  // tiles, they'd be stuck
+  placeSpawn(map, col, row) {
+    if (map.isSolid(col, row)) return;
+    map.setSpawnTile(col, row);
+    // the player only copies the map's spawn point when the map loads (player.js), so they
+    // respawn here now too, not just the next time the map loads. player is the game's (sketch.js)
+    player.spawnX = map.spawn.x;
+    player.spawnY = map.spawn.y;
+  },
+
   // where a character's body would be if it stood on this tile, as a box (standingOnTile() is in
   // character.js, the same as Character.placeFeetOnTile() uses)
   characterBodyOnTile(type, col, row) {
@@ -523,20 +547,19 @@ const Editor = {
     // same trick as the grid: divide by zoom so lines stay the same thickness on screen
     const px = 1 / camera.zoom;
 
-    // the spawn point: a yellow ring (on a dark one) where the player's feet will be
-    const spawnFeetY = map.spawn.y + feetBelowCentre(PLAYER);
-    noFill();
-    stroke(0, 0, 0, 160);
-    strokeWeight(4 * px);
-    circle(map.spawn.x, spawnFeetY, 20);
-    stroke('#ffd23f');
-    strokeWeight(2 * px);
-    circle(map.spawn.x, spawnFeetY, 20);
+    // the spawn point: a ring where the player's feet will be
+    drawSpawnRing(map.spawn.x, map.spawn.y + feetBelowCentre(PLAYER), px);
 
     if (!aim || !Input.mouse.inside || UI.hovered) return;
     const col = map.colAt(aim.x);
     const row = map.rowAt(aim.y);
     if (!map.inside(col, row)) return;
+
+    // the spawn: where its ring would go, as well as the tile outline below
+    if (this.isSelected('trigger', 'spawn')) {
+      const feet = standingOnTile(PLAYER, col, row);
+      drawSpawnRing(feet.x, feet.y + feetBelowCentre(PLAYER), px);
+    }
 
     // an object: a see-through preview of it, covering the tiles it would
     if (this.selected?.kind === 'object') {
@@ -673,18 +696,24 @@ class PaletteSwatch extends Button {
     const y = this.y + (this.pressed && this.hovered ? 1 : 0);
 
     if (this.kind === 'tile') {
-      this.drawArt(TILE_TYPES[this.name], this.x, y, this.w, this.h);
+      drawTypeArt(TILE_TYPES[this.name], this.x, y, this.w, this.h);
     } else {
-      // objects and characters sit on a dark square, shrunk to fit but keeping their shape,
-      // so a 2 x 1 table looks twice as wide as it is tall
-      const type = EDITOR_CATALOGUES[this.kind][this.name];
+      // everything else sits on a dark square
       noStroke();
       fill(42, 45, 54);
       rect(this.x, y, this.w, this.h);
-      const scale = Math.min(this.w / type.width, this.h / type.height) * 0.8;
-      const w = type.width * scale;
-      const h = type.height * scale;
-      this.drawArt(type, this.x + (this.w - w) / 2, y + (this.h - h) / 2, w, h, 4);
+      if (this.kind === 'trigger') {
+        // the spawn is the only trigger so far, drawn like its ring on the map
+        drawSpawnRing(this.x + this.w / 2, y + this.h / 2);
+      } else {
+        // objects and characters are shrunk to fit but keep their shape, so a 2 x 1 table
+        // looks twice as wide as it is tall
+        const type = EDITOR_CATALOGUES[this.kind][this.name];
+        const scale = Math.min(this.w / type.width, this.h / type.height) * 0.8;
+        const w = type.width * scale;
+        const h = type.height * scale;
+        drawTypeArt(type, this.x + (this.w - w) / 2, y + (this.h - h) / 2, w, h, 4);
+      }
     }
 
     // yellow edge for the one that's picked, white when the mouse is over it
@@ -704,17 +733,29 @@ class PaletteSwatch extends Button {
     setText(11);
     text(this.name, this.x + this.w / 2, this.y + this.h + 12);
   }
+}
 
-  // a tile's or object's picture, or its colour if it hasn't got one
-  drawArt(type, x, y, w, h, radius = 0) {
-    if (type.img) {
-      image(type.img, x, y, w, h);
-    } else {
-      noStroke();
-      fill(type.fill);
-      rect(x, y, w, h, radius);
-    }
+// a tile's, object's or character's picture, or its colour if it hasn't got one
+function drawTypeArt(type, x, y, w, h, radius = 0) {
+  if (type.img) {
+    image(type.img, x, y, w, h);
+  } else {
+    noStroke();
+    fill(type.fill);
+    rect(x, y, w, h, radius);
   }
+}
+
+// the spawn point's marker: a yellow ring on a dark one, so it shows up on anything. px is one
+// screen pixel, so on the zoomed map the lines stay the same thickness (see drawCursor())
+function drawSpawnRing(x, y, px = 1) {
+  noFill();
+  stroke(0, 0, 0, 160);
+  strokeWeight(4 * px);
+  circle(x, y, 20);
+  stroke('#ffd23f');
+  strokeWeight(2 * px);
+  circle(x, y, 20);
 }
 
 // the Map settings panel's background, with the map's name and size at the top. its buttons are
@@ -736,77 +777,83 @@ class SettingsPanel extends UIElement {
   }
 }
 
-// ---------- the size box ----------
-// asks for a map's width and height (New map and Resize map) in the game, rather than in the
-// browser's own prompt(). click a number to type into it, Tab swaps between them, Enter or the
-// right button says yes, Escape or Cancel closes it
+// ---------- the form box ----------
+// a box in the middle of the screen that asks for a few things (New map, Resize map and Export),
+// in the game rather than in the browser's own prompt(). click a box to type into it, Tab goes to
+// the next one, Enter or the right button says yes, Escape or Cancel closes it
 
-// the box's size, in the middle of the screen
-const SIZE_BOX = { width: 300, height: 230 };
+// the box's width, and the space each thing it asks for gets, in screen pixels
+const FORM_BOX = { width: 300, rowHeight: 44 };
 
-const SizeBox = {
+// a box for a map's width or height, starting at value. it won't go below min or above
+// EDITOR_MAX_MAP_SIZE (NumberField is in textfield.js)
+function sizeField(value, min = 1) {
+  return new NumberField({ w: 90, value, min, max: EDITOR_MAX_MAP_SIZE });
+}
+
+const FormBox = {
   active: false,
   // what open() was given
   options: null,
-  // the width and height number boxes, and the button that says yes
+  // the rows' boxes that can be typed into, and the button that says yes
   fields: [],
   confirmButton: null,
 
-  // call once, from Editor.init(), so it's on top of the editor's ui
-  init() {
-    const w = SIZE_BOX.width;
-    const h = SIZE_BOX.height;
-    const x = (GAME_W - w) / 2;
-    const y = (GAME_H - h) / 2;
-    const add = (element) => UI.add(Object.assign(element, { group: 'size-box' }));
-
-    // covers the whole screen, so nothing behind it can be clicked while it's open
-    add(new SizeBoxBackdrop({ x: 0, y: 0, w: GAME_W, h: GAME_H, box: { x, y, w, h } }));
-    this.fields = [0, 1].map((i) => add(new NumberField({
-      x: x + 100, y: y + 52 + i * 44, w: 90, h: 32, min: 1, max: EDITOR_MAX_MAP_SIZE,
-    })));
-    add(new Button({ x: x + 20, y: y + h - 56, w: 124, h: 38, label: 'Cancel', onClick: () => this.close() }));
-    this.confirmButton = add(new Button({
-      x: x + w - 144, y: y + h - 56, w: 124, h: 38, style: 'primary', onClick: () => this.confirm(),
-    }));
-
-    UI.showGroup('size-box', false);
-  },
-
-  // options: { title, hint, confirmLabel, cols, rows, minCols, minRows, onConfirm(cols, rows) }.
-  // cols and rows are what the boxes start with. they can't go below minCols and minRows (1 if
-  // left out) or above EDITOR_MAX_MAP_SIZE
+  // options: { title, hint, confirmLabel, rows, canConfirm(values), onConfirm(values) }
+  //   rows        one per thing to ask for: { label, field, after }. field is the ui element it's
+  //               typed or picked in (a TextField, NumberField or TilePicker), with its width set.
+  //               after is a word to show after it, like 'tiles' (can be left out)
+  //   hint        a line of writing under the rows (can be left out)
+  //   values      what's in each row's field, in the same order as rows
+  //   canConfirm  whether the values are ok to say yes to. without it, anything is
   open(options) {
     this.options = options;
     this.active = true;
     // the keyboard types into the boxes now, rather than moving the camera and so on (input.js)
     Input.typing = true;
 
-    const [width, height] = this.fields;
-    width.min = options.minCols ?? 1;
-    height.min = options.minRows ?? 1;
-    width.value = options.cols;
-    height.value = options.rows;
-    this.confirmButton.label = options.confirmLabel;
+    // made fresh each time, since each one asks for different things. tall enough to fit them
+    const rows = options.rows;
+    const w = FORM_BOX.width;
+    const h = 114 + rows.length * FORM_BOX.rowHeight + (options.hint ? 28 : 0);
+    const x = (GAME_W - w) / 2;
+    const y = (GAME_H - h) / 2;
+    const add = (element) => UI.add(Object.assign(element, { group: 'form-box' }));
 
-    UI.showGroup('size-box', true);
-    this.focus(width);
+    // covers the whole screen, so nothing behind it can be clicked while it's open
+    add(new FormBoxBackdrop({ x: 0, y: 0, w: GAME_W, h: GAME_H, box: { x, y, w, h } }));
+    rows.forEach(({ field }, i) => add(Object.assign(field, { x: x + 100, y: y + 52 + i * FORM_BOX.rowHeight, h: 32 })));
+    add(new Button({ x: x + 20, y: y + h - 56, w: 124, h: 38, label: 'Cancel', onClick: () => this.close() }));
+    this.confirmButton = add(new Button({
+      x: x + w - 144, y: y + h - 56, w: 124, h: 38, label: options.confirmLabel, style: 'primary',
+      onClick: () => this.confirm(),
+    }));
+
+    this.fields = rows.map(({ field }) => field).filter((field) => field instanceof TextField);
+    this.focus(this.fields[0]);
   },
 
   close() {
     this.active = false;
     Input.typing = false;
-    for (const field of this.fields) field.blur();
-    UI.showGroup('size-box', false);
+    UI.removeGroup('form-box');
+  },
+
+  // what's in each row's field, in the same order as the rows
+  values() {
+    return this.options.rows.map(({ field }) => field.value);
+  },
+
+  canConfirm() {
+    return !this.options.canConfirm || this.options.canConfirm(this.values());
   },
 
   confirm() {
-    const [width, height] = this.fields;
-    const cols = width.value;
-    const rows = height.value;
+    if (!this.canConfirm()) return;
+    const values = this.values();
     // closed first, since saying yes can go to a new map
     this.close();
-    this.options.onConfirm(cols, rows);
+    this.options.onConfirm(values);
   },
 
   // types into this box from now on
@@ -818,7 +865,7 @@ const SizeBox = {
   },
 
   // run every frame while it's open, from Editor.update(). keys are gone through in the order they
-  // were typed, so a quick "20 Tab 12" still puts 20 in one box and 12 in the other
+  // were typed, so a quick "20 Tab 12" still puts 20 in one box and 12 in the next
   update() {
     if (Input.buttonsPressed.has('left')) {
       const clicked = this.fields.find((field) => field.hovered);
@@ -827,15 +874,18 @@ const SizeBox = {
     for (const key of Input.typed) {
       if (key === 'Enter') return this.confirm();
       if (key === 'Escape') return this.close();
-      if (key === 'Tab') this.focus(this.fields.find((field) => !field.focused));
-      else this.fields.find((field) => field.focused).type(key);
+      const focused = this.fields.find((field) => field.focused);
+      if (key === 'Tab') this.focus(this.fields[(this.fields.indexOf(focused) + 1) % this.fields.length]);
+      else focused.type(key);
     }
+    // greyed out while it can't be said yes to, e.g. Export with no name
+    this.confirmButton.enabled = this.canConfirm();
   },
 };
 
-// the size box's background: dims everything behind it, then draws the box and its writing.
-// the number boxes and buttons are separate ui elements on top (see SizeBox.init())
-class SizeBoxBackdrop extends UIElement {
+// the form box's background: dims everything behind it, then draws the box and its writing.
+// the rows' boxes and the buttons are separate ui elements on top (see FormBox.open())
+class FormBoxBackdrop extends UIElement {
   constructor(options) {
     super(options);
     // where the box itself is: { x, y, w, h }
@@ -844,7 +894,7 @@ class SizeBoxBackdrop extends UIElement {
 
   draw() {
     const { x, y, w, h } = this.box;
-    const options = SizeBox.options;
+    const { title, rows, hint } = FormBox.options;
 
     noStroke();
     fill(0, 0, 0, 110);
@@ -858,17 +908,84 @@ class SizeBoxBackdrop extends UIElement {
     noStroke();
     fill(255);
     setText(18, BOLD, LEFT, CENTER);
-    text(options.title, x + 20, y + 28);
+    text(title, x + 20, y + 28);
 
-    // lined up with the middle of each number box
-    fill(220);
+    // each row's label, lined up with the middle of its box, and its word after it
+    rows.forEach(({ label, field, after }, i) => {
+      const middleY = y + 68 + i * FORM_BOX.rowHeight;
+      fill(220);
+      setText(14, BOLD, LEFT, CENTER);
+      text(label, x + 20, middleY);
+      if (after) {
+        fill(255, 255, 255, 150);
+        setText(13, NORMAL, LEFT, CENTER);
+        text(after, field.x + field.w + 12, middleY);
+      }
+    });
+
+    if (hint) {
+      fill(255, 255, 255, 150);
+      setText(13, NORMAL, LEFT, CENTER);
+      text(hint, x + 20, y + 60 + rows.length * FORM_BOX.rowHeight);
+    }
+  }
+}
+
+// picks a tile in the form box (what New map is filled with). click the left half to go back
+// through the tiles, the right half to go forward. after the last tile comes empty (no tile)
+class TilePicker extends UIElement {
+  constructor(options) {
+    super(options);
+    // every tile in tiles.js, then null for empty
+    this.choices = [...Object.keys(TILE_TYPES), null];
+    // which one is picked, starting on options.value (the first tile if it isn't one)
+    this.index = Math.max(0, this.choices.indexOf(options.value ?? null));
+  }
+
+  // the picked tile's name, or null for empty
+  get value() {
+    return this.choices[this.index];
+  }
+
+  // is the mouse over the left half, the one that goes back?
+  mouseOnLeft() {
+    return Input.mouse.x < this.x + this.w / 2;
+  }
+
+  update(hovered) {
+    this.hovered = hovered;
+    if (!hovered || !Input.buttonsPressed.has('left')) return;
+    const count = this.choices.length;
+    // + count stops it going negative, % wraps it round, like the bar's pages
+    this.index = (this.index + (this.mouseOnLeft() ? -1 : 1) + count) % count;
+  }
+
+  draw() {
+    const middleY = this.y + this.h / 2;
+    // a dark box, like the typing boxes
+    fill(20, 22, 28);
+    stroke(this.hovered ? 140 : 80);
+    strokeWeight(1.5);
+    rect(this.x, this.y, this.w, this.h, 5);
+
+    // the arrows at each end, the one the mouse is on lit up
+    noStroke();
+    setText(20, BOLD, CENTER, CENTER);
+    fill(this.hovered && this.mouseOnLeft() ? 255 : 120);
+    text('‹', this.x + 12, middleY - 2);
+    fill(this.hovered && !this.mouseOnLeft() ? 255 : 120);
+    text('›', this.x + this.w - 12, middleY - 2);
+
+    // the tile (just an outline for empty), then its name
+    const name = this.value;
+    if (name) drawTypeArt(TILE_TYPES[name], this.x + 26, middleY - 10, 20, 20);
+    noFill();
+    stroke(90);
+    strokeWeight(1);
+    rect(this.x + 26, middleY - 10, 20, 20);
+    noStroke();
+    fill(255);
     setText(14, BOLD, LEFT, CENTER);
-    text('Width', x + 20, y + 68);
-    text('Height', x + 20, y + 112);
-    fill(255, 255, 255, 150);
-    setText(13, NORMAL, LEFT, CENTER);
-    text('tiles', x + 202, y + 68);
-    text('tiles', x + 202, y + 112);
-    text(options.hint, x + 20, y + 148);
+    text(name ?? 'empty', this.x + 54, middleY);
   }
 }
