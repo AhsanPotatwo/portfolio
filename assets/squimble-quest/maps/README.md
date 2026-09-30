@@ -92,7 +92,7 @@ A warp is a tile that takes the player somewhere else: a door into a house, a ca
    - **Goes to**: the map it leads to. **nowhere** means it only works as a place to arrive.
    - **Arrive at**: where the player turns up on that map. That's its **spawn point**, or any warp on it.
    - **Opens by**: **stepping on it**, or **pressing E** when close enough. A warp that opens with E works from the tile in front too, so it can go on a wall or under a solid object.
-   - **Enemies**: whether enemies chasing the player **follow you** through it, or **don't follow**. A follower takes about as long as it would to walk to the warp, plus a second to open it if it opens with E, then comes out where the player arrived. On a warp to the same map you can watch them walk to it. On a warp to another map they turn up a moment after you.
+   - **Enemies**: tick **follow you through** to let enemies chasing the player follow them through it. A follower takes about as long as it would to walk to the warp, plus a second to open it if it opens with E, then comes out where the player arrived. On a warp to the same map you can watch them walk to it. On a warp to another map they turn up a moment after you.
    - **Show links**: shows every warp linked to this one, then every warp linked to those, and so on, like a family tree (see below).
 3. Click the right half of a choice for the next one, or the left half to go back. Then click **Save**.
 

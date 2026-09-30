@@ -602,15 +602,7 @@ const Editor = {
             label: (how) => (how === 'step' ? 'stepping on it' : 'pressing E'),
           }),
         },
-        {
-          label: 'Enemies',
-          field: new Picker({
-            w: 180,
-            choices: [false, true],
-            value: warp.enemies,
-            label: (follow) => (follow ? 'follow you' : "don't follow"),
-          }),
-        },
+        { label: 'Enemies', field: new Checkbox({ w: 180, value: warp.enemies, label: 'follow you through' }) },
         // last, so it doesn't move the others in the values onConfirm gets (a button has no value)
         {
           label: 'Links',
@@ -923,8 +915,8 @@ const FormBox = {
 
   // options: { title, hint, confirmLabel, rows, canConfirm(values), onConfirm(values) }
   //   rows        one per thing to ask for: { label, field, after }. field is the ui element it's
-  //               typed or picked in (a TextField, NumberField or Picker), with its width set.
-  //               after is a word to show after it, like 'tiles' (can be left out)
+  //               typed, picked or ticked in (a TextField, NumberField, Picker or Checkbox), with
+  //               its width set. after is a word to show after it, like 'tiles' (can be left out)
   //   hint        a line of writing under the rows (can be left out)
   //   values      what's in each row's field, in the same order as rows
   //   canConfirm  whether the values are ok to say yes to. without it, anything is
@@ -1120,6 +1112,48 @@ class Picker extends UIElement {
     fill(255);
     setText(14, BOLD, LEFT, CENTER);
     text(this.label(this.value), textX, middleY);
+  }
+}
+
+// a tick box in the form box, for a setting that's only on or off, like whether enemies can follow
+// the player through a warp. clicking anywhere on it (the box or its words) flips it.
+//   value  true to start ticked
+//   label  the words next to the box
+class Checkbox extends UIElement {
+  constructor(options) {
+    super(options);
+    this.value = options.value ?? false;
+    this.label = options.label;
+  }
+
+  update(hovered) {
+    this.hovered = hovered;
+    if (hovered && Input.buttonsPressed.has('left')) this.value = !this.value;
+  }
+
+  draw() {
+    const size = 20;
+    const left = this.x + 6;
+    const top = this.y + (this.h - size) / 2;
+    // a dark box, like the typing boxes
+    fill(20, 22, 28);
+    stroke(this.hovered ? 140 : 80);
+    strokeWeight(1.5);
+    rect(left, top, size, size, 4);
+
+    // a tick in it while it's on
+    if (this.value) {
+      noFill();
+      stroke(255);
+      strokeWeight(2.5);
+      line(left + 5, top + 10, left + 9, top + 14);
+      line(left + 9, top + 14, left + 15, top + 6);
+    }
+
+    noStroke();
+    fill(255);
+    setText(14, BOLD, LEFT, CENTER);
+    text(this.label, left + size + 10, this.y + this.h / 2);
   }
 }
 
