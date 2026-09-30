@@ -13,6 +13,7 @@ const MAP_FILES = [
   'default.json',
   'example.json',
   'hut.json',
+  'node-test.json',
 ];
 
 // the map the game starts on, by name

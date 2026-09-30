@@ -29,6 +29,7 @@
 //   inventory.js  inventories, and the hotbar (needs button.js loaded first)
 //   dialogue.js   talking to npcs: who's in range, and the text box
 //   warps.js      warps (doors, caves, teleporters...): going through them, checking where they lead
+//   warpgraph.js  the map editor's picture of every warp linked to a warp (needs button.js first)
 //   editor.js     the map editor, opened from dev mode (needs button.js and textfield.js first)
 //   debug.js      developer mode, hidden testing tools (press ` or Ctrl + D while playing)
 //
