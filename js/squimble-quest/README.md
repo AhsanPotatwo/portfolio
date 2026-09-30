@@ -52,6 +52,7 @@ This README and the comments in the code are the project's only notes. There's n
   - Warps link by **name**, not position: `to` is a map name and `toWarp` a warp name on that map (`''` means that map's spawn point). Moving a warp never breaks links to it, but renaming it does.
   - `activate` is `step` (opens when stepped onto) or `interact` (press E within `WARP_REACH`, which is more than a tile, so it works from the tile in front).
   - **Arriving on a step warp doesn't bounce you back.** Step warps fire only when the player's tile *changes* onto them. `Warps.arrived()` marks the tile you land on as already stepped on. `loadMap` and `Player.respawn` call it, since you respawn where you arrived.
+  - Warps keep track of the player's tile themselves (`feetTile()`), rather than reading `player.tileCol`/`tileRow`. Those are a frame late when the player dies and respawns in the middle of a frame, and that used to send them back out through the warp they'd arrived by.
   - `warpProblem(warp)` says what's wrong with where a warp leads. It's used when going through a warp (in-game message via `showMessage()` in hud.js), for red markers in the editor, and by `checkAllWarps()`, which warns in the console once the maps have loaded.
   - Warps are separate from tiles and objects, because those have nowhere to store where they lead. To make a warp *look* like a door, trapdoor or manhole, put an object on the same tile. An `interact` warp works under a solid object, because E reaches it from the next tile.
 - **TileMap** (`tilemap.js`):
@@ -66,7 +67,7 @@ This README and the comments in the code are the project's only notes. There's n
 - **Characters** (`character.js`):
   - The player, enemies and NPCs all take the same controls, `{ move, aim, attack }`. For the player they come from the keyboard and mouse. For enemies and NPCs they come from an `ai(entity, world, dt)` function.
   - Tiles' `onEnter` and `onStand` behaviours run for all characters.
-  - `player.spawnX`/`spawnY` is where the player respawns. `loadMap` sets it, and so does placing the spawn in the editor.
+  - `player.spawnX`/`spawnY` is where the player respawns. `loadMap` sets it to where they arrived (the warp they came in by, or the map's spawn), and so does placing the spawn in the editor.
 - **UI** (`ui.js`, `button.js`, `textfield.js`):
   - Every element extends `UIElement`.
   - Groups let elements be shown, hidden and removed together.
@@ -82,6 +83,18 @@ This README and the comments in the code are the project's only notes. There's n
   - While WASD pans the camera, the editor UI and dev panels fade out (`Editor.uiAlpha`, applied in `sketch.js`).
 - **Dev mode** (`debug.js`): a compact status panel in the top left. The key lists are `DEV_KEYS` and `EDITOR_KEYS`, and **H** toggles them.
 
+## Rules to keep when changing things
+
+These aren't obvious from any one file, and breaking them causes bugs that are hard to trace.
+
+- **Change maps only with `loadMap(name, warpName)`.** It puts the old map's characters away, gets the new map's out (or makes them on a first visit), places the player, tells warps they've arrived, and sets up the camera. Setting `worldMap` any other way skips all of that.
+- **Anything that moves the player without walking must call `Warps.arrived(player, worldMap)` afterwards.** That's teleports, cutscenes, being carried or pushed. Otherwise a step warp on the tile they land on fires. `loadMap` and `Player.respawn` already do. Dev mode's **T** deliberately doesn't, so you can teleport onto a warp to test it.
+- **The live characters are the globals `enemies` and `npcs`.** `map.characters` is only up to date for maps the player *isn't* on (it's written when they leave). Anything that looks at another map's characters reads `map.characters`. Anything about the current map uses the globals.
+- **One map, one name.** `getMap()` names a map when it builds it, and only Export gives it a new name (the old name goes back to its file). Never let two names in `VISITED_MAPS` point at the same map. Warps, dev mode's **M** and Export all go by `map.name`.
+- **Design and progress are kept apart.** Tiles, objects, spawn lists, warps and `spawn` are the design, and they're what Export saves. Progress (`map.characters`, the player's health and inventory) only lives in memory. A save system would need to store progress on its own, next to the map files rather than inside them.
+- **The editor always shows the design.** Opening it, closing it, or changing characters runs `spawnCharacters()`, which resets the current map's enemies and NPCs to their spawns. Keep it that way, or the editor would show a half-played map as if it were the design.
+- **A map's name is its file name,** and warps lead to maps by name. Renaming a map file breaks every warp that leads to it (they show red, and the console lists them).
+
 ## Ideas for later
 
 Only build these when they're needed.
@@ -96,7 +109,7 @@ Only build these when they're needed.
 
 ## Known issues and loose ends
 
-- **Open file uses the browser's file picker.** That has to stay, since only the browser can read files from the computer.
+- **Open file uses the browser's file picker.** That has to stay, since only the browser can read files from the computer. If a file won't open, the game says so with `showMessage()`, and the reason goes in the browser console.
 - **`TileMap.moveBox()` isn't used anywhere.** Characters call `moveAlongX`/`moveAlongY` directly. Its comment says so.
 - **Dying is a placeholder:** the player jumps back to their spawn with full health.
 - **Map progress only lasts until the page reloads.** Defeated enemies and everything else come back on a reload, because there's no saving yet.

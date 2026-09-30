@@ -122,7 +122,7 @@ The **M** key goes through every map in this order:
 1. The files in `MAP_FILES`, in the order they're listed
 2. Any maps made, opened or exported since the page loaded
 
-Opening or exporting a map with the same name as one that's already loaded replaces it until you reload the page.
+Opening or exporting a map with the same name as one that's already loaded replaces it until you reload the page. Exporting under a **new** name works like "save as": the map you're on becomes the new one, and the old name goes back to its own file (without your unsaved changes).
 
 Going to a different map and back keeps the changes you made in the editor, but reloading the page loses them, so export them first.
 

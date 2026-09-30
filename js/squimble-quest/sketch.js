@@ -123,8 +123,9 @@ function loadMap(name, warpName = '') {
   if (Dialogue.active) Dialogue.close();
   // worldMap is undefined when the game first starts
   if (worldMap) worldMap.characters = { enemies, npcs };
-  const sameMap = worldMap === getMap(name);
-  worldMap = getMap(name);
+  const map = getMap(name);
+  const sameMap = map === worldMap;
+  worldMap = map;
 
   // a warp that isn't there (warpProblem() in warps.js catches that before a warp gets here)
   // arrives at the spawn point instead

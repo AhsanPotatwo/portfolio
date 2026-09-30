@@ -34,8 +34,10 @@ const VISITED_MAPS = {};
 // it to go to a map, and warps (warps.js) use it to look inside the map they lead to
 function getMap(name) {
   if (!MAPS[name]) return null;
-  VISITED_MAPS[name] ??= MAPS[name]();
-  VISITED_MAPS[name].name = name;
+  if (!VISITED_MAPS[name]) {
+    VISITED_MAPS[name] = MAPS[name]();
+    VISITED_MAPS[name].name = name;
+  }
   return VISITED_MAPS[name];
 }
 
