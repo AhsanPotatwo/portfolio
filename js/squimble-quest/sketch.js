@@ -21,6 +21,7 @@
 //   npc.js        an npc in the game (needs character.js loaded first)
 //   ui.js         the ui system: UIElement and the UI manager
 //   button.js     buttons (needs ui.js loaded first, because Button builds on UIElement)
+//   numberfield.js  a box you type a number into (needs ui.js loaded first)
 //   hud.js        things drawn over the game that aren't ui elements (crosshair, messages, panels)
 //   inventory.js  inventories, and the hotbar (needs button.js loaded first)
 //   dialogue.js   talking to npcs: who's in range, and the text box
