@@ -1,5 +1,6 @@
 // the object catalogue: things placed on top of the tiles, like furniture, chests, barrels,
-// pots and decorations. works the same way as tiles.js.
+// pots and decorations. the other catalogues (enemies.js, npcs.js, items.js...) work the same way.
+// tiles are the one exception: they're made in the map editor and kept in tiles.json (tiles.js).
 //
 // how objects are different from tiles:
 //   - every spot on the map has exactly one tile, but objects are a list, so several can share

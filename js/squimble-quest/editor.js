@@ -124,7 +124,8 @@ const TRIGGER_TYPES = {
   warp: {},
 };
 
-// where each tab's things are defined, by kind
+// where each tab's things are defined, by kind. TILE_TYPES starts empty and fills in from tiles.json
+// (tiles.js), which is why the bar's squares are made later, in makeSwatches()
 const EDITOR_CATALOGUES = { tile: TILE_TYPES, object: OBJECT_TYPES, enemy: ENEMY_TYPES, npc: NPC_TYPES, trigger: TRIGGER_TYPES };
 
 // is this tab's kind a character that gets placed standing on a tile (an enemy or npc)?
@@ -279,6 +280,7 @@ const Editor = {
       this.pages[kind] = Math.min(this.pages[kind] ?? 0, this.pageCounts[kind] - 1);
       names.forEach((name, i) => {
         const slot = i % perPage;
+        // in the 'editor' group like everything init() makes, so they show, hide and fade with it
         this.swatches.push(UI.add(new PaletteSwatch({
           x: EDITOR_BAR.swatchesLeft + slot * EDITOR_BAR.slotWidth + (EDITOR_BAR.slotWidth - EDITOR_BAR.swatchSize) / 2,
           y: barY + 10,
@@ -298,6 +300,7 @@ const Editor = {
       this.selected = { kind: 'tile', name: Object.keys(TILE_TYPES)[0] };
     }
 
+    // new ui elements start visible, so with the editor closed they're hidden until it opens
     if (this.active) this.showPage(this.pages[this.tab]);
     else for (const swatch of this.swatches) swatch.visible = false;
   },
@@ -819,7 +822,8 @@ class PaletteSwatch extends Button {
     this.page = options.page;
   }
 
-  // like any button, and right clicking a tile opens the tile editor on it (tileeditor.js)
+  // like any button, and right clicking a tile opens the tile editor on it (tileeditor.js). the ui
+  // claims any click on it (ui.js), so the right click doesn't also reach the map behind
   update(hovered) {
     super.update(hovered);
     if (this.kind === 'tile' && this.hovered && Input.buttonsPressed.has('right')) TileEditor.open(TILE_TYPES[this.name]);
@@ -992,7 +996,8 @@ const FormBox = {
     // covers the whole screen, so nothing behind it can be clicked while it's open
     add(new FormBoxBackdrop({ x: 0, y: 0, w: GAME_W, h: GAME_H, box: { x, y, w, h } }));
     rows.forEach(({ field }, i) => add(Object.assign(field, { x: x + 100, y: y + 52 + i * FORM_BOX.rowHeight, h: 32 })));
-    // between the rows and the right edge, above the buttons
+    // between the rows and the right edge, above the buttons: the rows start 52 down, and the
+    // bottom 66 is where Cancel and the confirm button go
     if (options.side) options.side(x + FORM_BOX.width, y + 52, FORM_BOX.sideWidth - 20, h - 52 - 66).forEach(add);
     add(new Button({ x: x + 20, y: y + h - 56, w: 124, h: 38, label: 'Cancel', onClick: () => this.close() }));
     this.confirmButton = add(new Button({
@@ -1214,7 +1219,7 @@ class Checkbox extends UIElement {
   }
 }
 
-// a Picker for tiles (what New map is filled with): every tile in tiles.js, then null for empty,
+// a Picker for tiles (what New map is filled with): every tile (TILE_TYPES), then null for empty,
 // each with its picture (just an outline for empty)
 function tilePicker(value) {
   return new Picker({

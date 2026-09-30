@@ -130,7 +130,7 @@ function mapFromData(data) {
   if (data.spawn) map.spawn = { x: data.spawn.x, y: data.spawn.y };
   // older files might also have "showGrid", which isn't used any more (the grid is dev mode only)
 
-  // anything the game doesn't recognise (e.g. a tile that was renamed in tiles.js) is left out,
+  // anything the game doesn't recognise (e.g. a tile that was renamed in tiles.json) is left out,
   // with one warning listing them all rather than one per tile
   const unknown = new Set();
 

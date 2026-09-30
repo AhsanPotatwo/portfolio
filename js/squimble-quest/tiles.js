@@ -34,6 +34,18 @@
 // the order of the tiles is the order in the editor's bar, and where two dual grid tiles meet, the one
 // further down the file goes on top, so put the ones underneath first (dirt before grass)
 //
+// ---------- adding a new kind of tile setting ----------
+//
+// e.g. "slippery" for ice. every place that needs to know about it:
+//   1. TILE_DEFAULTS below: add it with its normal value. tiles that don't mention it get that, and
+//      it's also what lets it load from tiles.json and save back into it (anything that isn't in
+//      TILE_DEFAULTS is ignored)
+//   2. whatever it changes, e.g. checkTile() in character.js for things that happen to whoever's
+//      standing on the tile
+//   3. a row for it in the tile editor's box (TileEditor.open() in tileeditor.js), read in its
+//      onConfirm and handed to setTile() with the rest
+// older tiles.json files still load fine, a tile without the new setting just gets its normal value
+//
 // =================================================================================
 
 // the tiles file, and where textures live, from the site's main folder
@@ -50,10 +62,15 @@ const TILES_VERSION = 1;
 const TILE_DEFAULTS = {
   // bright pink, so a tile that forgot its colour is easy to spot
   colour: '#ff00ff',
+  // a normal tile, one square each
   dualGrid: false,
+  // no texture, just the colour
   texture: null,
+  // can be walked on
   solid: false,
+  // normal walking speed
   speed: 1,
+  // doesn't hurt anyone
   damagePerSecond: 0,
   damagePerStep: 0,
 };
@@ -75,11 +92,15 @@ const TILE_TYPES = {};
 function setTile(settings, picture = null) {
   // a changed tile keeps its place in the list, a new one goes on the end
   const type = TILE_TYPES[settings.name] ?? { layer: Object.keys(TILE_TYPES).length };
+  // the defaults first, then its own settings over the top. so a setting that's left out goes back
+  // to normal, rather than keeping whatever the tile had before
   Object.assign(type, TILE_DEFAULTS, settings);
   TILE_TYPES[type.name] = type;
   type.fill = color(type.colour);
 
   useTexture(type, picture);
+  // nothing to load. Promise.resolve() is a promise that's already finished, so anything waiting
+  // on this carries straight on
   if (picture || !type.texture) return Promise.resolve();
   // just the colour until the texture's loaded
   return new Promise((done) => {
@@ -142,6 +163,7 @@ function loadTileFile() {
         : '';
       console.warn(`Couldn't load the tiles file "${TILE_FILE}": ${err.message}.${hint}`);
     })
+    // this last step runs whether the file loaded or not, because catch() above handled any problem
     .then(() => {
       // with no tiles at all, the blank stand-in map (maps.js) still needs its floor
       if (Object.keys(TILE_TYPES).length === 0) setTile({ name: 'blank', colour: '#ffffff' });
