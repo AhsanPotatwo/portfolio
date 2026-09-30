@@ -425,8 +425,12 @@ const Editor = {
 
   // aim is the mouse's world position, or null
   update(map, camera, aim, dt) {
-    // while the form box is open, it's all that happens
+    // while the form box is open, it's all that happens. it's ui too, so it fades with the rest:
+    // bring everything straight back, or a box opened while the ui was faded out (placing a warp
+    // just after moving) would be invisible, and nothing but Enter or Escape would work
     if (FormBox.active) {
+      this.uiAlpha = 1;
+      this.stillFor = EDITOR_UI_FADE.showDelay;
       FormBox.update();
       return;
     }
