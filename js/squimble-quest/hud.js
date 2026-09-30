@@ -1,5 +1,5 @@
-// things drawn on top of the game that aren't ui elements: messages, text panels and the crosshair
-// now, health bars and quest text later. all of it uses screen positions, so draw it after camera.end()
+// things drawn on top of the game that aren't ui elements: messages (including showMessage()), text
+// panels and the crosshair now, health bars and quest text later. all of it uses screen positions, so draw it after camera.end()
 
 // the gap between lines in drawPanel()
 const PANEL_LINE_HEIGHT = 18;
@@ -21,6 +21,31 @@ function drawPanel(x, y, width, lines, size) {
 // how tall drawPanel() makes a box for these lines
 function panelHeight(lines) {
   return lines.length * PANEL_LINE_HEIGHT + 12;
+}
+
+// how long a message from showMessage() stays on screen, in seconds
+const MESSAGE_TIME = 4;
+
+// the message showing along the top right now: { text, until }, until being the millis() it goes
+// away at. null when there isn't one
+let hudMessage = null;
+
+// shows a line of writing along the top of the screen for a few seconds, e.g. when a door leads
+// somewhere that doesn't exist (doors.js). a new one replaces whatever was showing
+function showMessage(text) {
+  hudMessage = { text, until: millis() + MESSAGE_TIME * 1000 };
+}
+
+// draws the message from showMessage(), if there is one. run every frame (sketch.js)
+function drawMessage() {
+  if (!hudMessage || millis() > hudMessage.until) return;
+  setText(15);
+  const w = textWidth(hudMessage.text) + 32;
+  noStroke();
+  fill(0, 0, 0, 190);
+  rect((GAME_W - w) / 2, 48, w, 34, 6);
+  fill(255);
+  text(hudMessage.text, GAME_W / 2, 65);
 }
 
 // shown for a moment when the game starts, while the map files load

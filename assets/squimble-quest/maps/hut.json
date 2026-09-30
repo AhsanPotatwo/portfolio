@@ -1,0 +1,36 @@
+{
+  "format": "squimble-quest-map",
+  "version": 2,
+  "left": -6,
+  "top": -4,
+  "spawn": {
+    "x": 16,
+    "y": 59
+  },
+  "legend": {
+    "..": null,
+    "wa": "wall",
+    "pl": "planks"
+  },
+  "rows": [
+    "wa wa wa wa wa wa wa wa wa wa wa wa",
+    "wa pl pl pl pl pl pl pl pl pl pl wa",
+    "wa pl pl pl pl pl pl pl pl pl pl wa",
+    "wa pl pl pl pl pl pl pl pl pl pl wa",
+    "wa pl pl pl pl pl pl pl pl pl pl wa",
+    "wa pl pl pl pl pl pl pl pl pl pl wa",
+    "wa pl pl pl pl pl pl pl pl pl pl wa",
+    "wa wa wa wa wa wa pl wa wa wa wa wa"
+  ],
+  "objects": [
+    { "type": "rug", "col": -4, "row": -2 },
+    { "type": "table", "col": -2, "row": -2 }
+  ],
+  "enemies": [],
+  "npcs": [
+    { "type": "villager", "col": 3, "row": -1 }
+  ],
+  "doors": [
+    { "name": "exit", "col": 0, "row": 3, "to": "example", "toDoor": "hut", "activate": "step" }
+  ]
+}

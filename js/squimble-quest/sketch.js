@@ -28,6 +28,7 @@
 //   hud.js        things drawn over the game that aren't ui elements (crosshair, messages, panels)
 //   inventory.js  inventories, and the hotbar (needs button.js loaded first)
 //   dialogue.js   talking to npcs: who's in range, and the text box
+//   doors.js      doors between maps: going through them, and checking where they lead
 //   editor.js     the map editor, opened from dev mode (needs button.js and textfield.js first)
 //   debug.js      developer mode, hidden testing tools (press ` or Ctrl + D while playing)
 //
@@ -87,6 +88,8 @@ function setup() {
       console.warn(`START_MAP is "${START_MAP}", but that map didn't load. Starting on "${first}" instead.`);
     }
     loadMap(first);
+    // warns in the browser console about doors leading to maps or doors that don't exist (doors.js)
+    checkAllDoors();
     mapsReady = true;
   });
 
@@ -106,23 +109,29 @@ function setup() {
 }
 
 // go to a map, by its name in MAPS (maps.js). the first visit builds it from its file, after that
-// it's the same map as it was left (see VISITED_MAPS in maps.js). puts the player at its spawn
-// point (where they'll respawn too), and moves the camera straight there. dev mode's M key uses this
-function loadMap(name) {
-  VISITED_MAPS[name] ??= MAPS[name]();
-  worldMap = VISITED_MAPS[name];
-  worldMap.name = name;
+// it's the same map as it was left (see getMap() in maps.js). puts the player on the door called
+// doorName (doors.js), or at the map's spawn point without one, and they'll respawn there too.
+// moves the camera straight there. doors and dev mode's M key use this
+function loadMap(name, doorName = '') {
+  worldMap = getMap(name);
 
-  player.placeAt(worldMap.spawn.x, worldMap.spawn.y);
+  // a door that isn't there (doorProblem() in doors.js catches that before a door gets here)
+  // arrives at the spawn point instead
+  const door = doorName ? worldMap.door(doorName) : null;
+  const arrive = door ? standingOnTile(PLAYER, door.col, door.row) : worldMap.spawn;
+  player.placeAt(arrive.x, arrive.y);
+  // the tile they've arrived on counts as already stepped on, so a door there doesn't send them
+  // straight back (doors.js)
+  Doors.arrived(player, worldMap);
   spawnCharacters();
 
   // the camera stops at the edges of the map
   gameCamera.bounds = worldMap.bounds();
   // if the map editor's open, the camera's following its view rather than the player,
-  // so move that to the new map's spawn point too
+  // so move that to where the player arrived too
   if (Editor.active) {
-    Editor.view.x = worldMap.spawn.x;
-    Editor.view.y = worldMap.spawn.y;
+    Editor.view.x = arrive.x;
+    Editor.view.y = arrive.y;
   }
   // jump there, rather than gliding across from wherever it was
   gameCamera.snap();
@@ -201,12 +210,20 @@ function draw() {
     });
     for (const npc of npcs) npc.update(dt, world);
 
-    // the npc close enough to talk to (if any) shows an E over its head, and E starts talking
+    // the npc close enough to talk to (if any) shows an E over its head, and E starts talking.
+    // otherwise, a door that opens with E (if one's in reach) does the same (doors.js)
     const talkTo = Dialogue.npcInRange(player, npcs);
     for (const npc of npcs) npc.canTalk = npc === talkTo;
+    Doors.reachable = talkTo ? null : Doors.inReach(player, worldMap);
     if (talkTo && Input.wasPressed('interact')) {
       talkTo.canTalk = false;
       Dialogue.open(talkTo, player, gameCamera);
+    } else if (Doors.reachable && Input.wasPressed('interact')) {
+      Doors.use(Doors.reachable);
+    } else {
+      // a door that opens when it's stepped onto. after the E door, which might have just gone to
+      // another map, so this doesn't look at the new map in the same frame
+      Doors.checkStep(player, worldMap);
     }
   }
   gameCamera.update(dt);
@@ -218,6 +235,7 @@ function draw() {
   // whoever's standing further down the screen is in front, so sort by where their feet are
   const characters = [player, ...enemies, ...npcs].sort((a, b) => (a.y + a.h / 2) - (b.y + b.h / 2));
   for (const character of characters) character.draw();
+  if (!Editor.active && !Dialogue.active) Doors.drawPrompt();
   if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
   gameCamera.end();
 
@@ -229,6 +247,7 @@ function draw() {
   if (!Editor.active && !Dialogue.active) Hotbar.drawLabel();
   UI.draw();
   pop();
+  drawMessage();
   if (worldMap.name === FALLBACK_MAP) drawNoMapsMessage();
   if (Input.focused) {
     drawCrosshair(Input.mouse, Input.mouseHeld('left'), UI.hovered !== null);

@@ -16,16 +16,17 @@
     "pl": "planks",
     "wt": "water",
     "la": "lava",
-    "sp": "spikes"
+    "sp": "spikes",
+    "ro": "roof"
   },
   "rows": [
     "wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa",
     "wa gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
     "wa gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
     "wa gr gr gr gr gr wa wa wa wa wa wa wa gr gr gr gr gr gr di di gr gr gr gr sa sa sa sa sa sa sa sa gr gr gr gr gr gr wa",
-    "wa gr gr gr gr gr wa pl pl pl pl pl wa gr gr gr gr gr gr di di gr gr gr gr sa wt wt wt wt wt wt sa gr gr gr gr gr gr wa",
-    "wa gr gr gr gr gr wa pl pl pl pl pl wa gr gr gr gr gr gr di di gr gr gr gr sa wt wt wt wt wt wt sa gr gr gr gr gr gr wa",
-    "wa gr gr gr gr gr wa pl pl pl pl pl wa gr gr gr gr gr gr di di gr gr gr gr sa wt wt wt wt wt wt sa gr gr gr gr gr gr wa",
+    "wa gr gr gr gr gr wa ro ro ro ro ro wa gr gr gr gr gr gr di di gr gr gr gr sa wt wt wt wt wt wt sa gr gr gr gr gr gr wa",
+    "wa gr gr gr gr gr wa ro ro ro ro ro wa gr gr gr gr gr gr di di gr gr gr gr sa wt wt wt wt wt wt sa gr gr gr gr gr gr wa",
+    "wa gr gr gr gr gr wa ro ro ro ro ro wa gr gr gr gr gr gr di di gr gr gr gr sa wt wt wt wt wt wt sa gr gr gr gr gr gr wa",
     "wa gr gr gr gr gr wa wa wa pl wa wa wa gr gr gr gr gr gr di di gr gr gr gr sa wt wt wt wt wt wt sa gr gr gr gr gr gr wa",
     "wa gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr sa sa sa sa sa sa sa sa gr gr gr gr gr gr wa",
     "wa gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
@@ -45,8 +46,6 @@
     "wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa"
   ],
   "objects": [
-    { "type": "rug", "col": -13, "row": -8 },
-    { "type": "table", "col": -11, "row": -8 },
     { "type": "table", "col": 2, "row": 2 },
     { "type": "rug", "col": -4, "row": 2 }
   ],
@@ -56,5 +55,8 @@
   ],
   "npcs": [
     { "type": "villager", "col": -3, "row": -3 }
+  ],
+  "doors": [
+    { "name": "hut", "col": -11, "row": -5, "to": "hut", "toDoor": "exit", "activate": "interact" }
   ]
 }
