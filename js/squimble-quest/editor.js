@@ -6,13 +6,15 @@
 //     while you move, so you can see the map, and comes back when you stop
 //   - pick something from the bar at the bottom. the tabs above it switch between
 //     tiles, objects, enemies, npcs and triggers (‹ › for more pages once there are lots)
-//   - tiles: left click or drag to paint, replacing whatever tile was there
+//   - tiles: left click or drag to paint, replacing whatever tile was there. + New tile (next to the
+//     tabs) makes a tile, right clicking one in the bar changes it, and Export tiles saves them all
+//     as tiles.json (the tile editor, tileeditor.js)
 //   - objects: left click to place one, its top left corner on the tile under the mouse
 //   - enemies and npcs: left click to place one, standing on the tile under the mouse
 //   - pick Erase in the bar, then left click or drag to erase. if you start on an object, enemy,
 //     npc or warp it removes those, otherwise it empties tiles. empty tiles are like off the edge
 //     of the map: nothing's drawn there and nothing can walk on them
-//   - right click something to change its settings. only warps have any so far
+//   - right click something to change its settings: a warp on the map, or a tile in the bar
 //   - opening the editor brings back every enemy placed on the map, including defeated ones, so
 //     you always see the whole design. closing it puts every enemy and npc back where it was
 //     placed, with full health. (outside the editor, each map remembers its enemies and npcs as
@@ -28,7 +30,8 @@
 //     the name are all asked for in a box in the game (FormBox, at the bottom of this file)
 //   - the dev mode keys still work (zoom, teleport, next map), and H lists them all
 //
-// everything in tiles.js, objects.js, enemies.js and npcs.js shows up in the bar by itself.
+// every tile (tiles.json), and everything in objects.js, enemies.js and npcs.js, shows up in the bar
+// by itself.
 //
 // changes are made to the map you're on, so you can walk around on them straight away. going to
 // another map (M) and back keeps them, but reloading the page builds every map fresh from its
@@ -47,7 +50,7 @@ const NEW_MAP_NAME = 'new-map';
 const EDITOR_KEYS = [
   'MAP EDITOR KEYS',
   'left click  paint / place',
-  'right click change settings (warps)',
+  'right click change settings (warps, tiles in the bar)',
   'WASD        move around',
   'wheel       zoom',
   'B           close the editor',
@@ -141,8 +144,9 @@ function resizedStart(start, length, newLength, first, last) {
 
 const Editor = {
   active: false,
-  // what's picked in the bar: { kind, name } (kind is one of the EDITOR_TABS), or null for Erase
-  selected: null,
+  // what's picked in the bar: { kind, name } (kind is one of the EDITOR_TABS), or null for Erase.
+  // starts on a tile that isn't there, so makeSwatches() picks the first tile once they've loaded
+  selected: { kind: 'tile', name: '' },
   // which tab is showing (a kind from EDITOR_TABS), and for each tab, which page it's on and how
   // many pages it has. each tab remembers its own page, so switching back finds it where you left it
   tab: 'tile',
@@ -159,26 +163,18 @@ const Editor = {
   uiAlpha: 1,
   stillFor: 0,
 
-  // the editor's ui elements that it changes later, made once in init()
+  // the editor's ui elements that it changes later, made in init() (the squares in makeSwatches())
   swatches: [],
   prevButton: null,
   nextButton: null,
   settingsButton: null,
+  // + New tile and Export tiles, only shown on the Tiles tab
+  tileButtons: [],
 
   // call once from setup(). makes the bar, the tabs, and the Map settings button and its panel
-  // (all hidden until they're needed)
+  // (all hidden until they're needed). the squares in the bar come later, from makeSwatches()
   init() {
     const barY = GAME_H - EDITOR_BAR.height;
-    const perPage = Math.floor((EDITOR_BAR.swatchesRight - EDITOR_BAR.swatchesLeft) / EDITOR_BAR.slotWidth);
-
-    // what goes in each tab, and how many pages each one needs (at least 1, even if it's empty)
-    const names = {};
-    for (const { kind } of EDITOR_TABS) names[kind] = Object.keys(EDITOR_CATALOGUES[kind]);
-    for (const { kind } of EDITOR_TABS) {
-      this.pages[kind] = 0;
-      this.pageCounts[kind] = Math.max(1, Math.ceil(names[kind].length / perPage));
-    }
-    this.selected = { kind: 'tile', name: names.tile[0] };
 
     // everything's in the 'editor' group, so it can be shown and hidden together.
     // the bar goes first so it's underneath the rest, and it blocks clicks between the buttons
@@ -215,23 +211,16 @@ const Editor = {
       onClick: () => this.showTab(kind),
     })));
 
-    // one square per tile, object, enemy and npc. each knows its tab and page, only the open ones are shown
-    this.swatches = [];
-    for (const { kind } of EDITOR_TABS) {
-      names[kind].forEach((name, i) => {
-        const slot = i % perPage;
-        this.swatches.push(add(new PaletteSwatch({
-          x: EDITOR_BAR.swatchesLeft + slot * EDITOR_BAR.slotWidth + (EDITOR_BAR.slotWidth - EDITOR_BAR.swatchSize) / 2,
-          y: barY + 10,
-          w: EDITOR_BAR.swatchSize,
-          h: EDITOR_BAR.swatchSize,
-          kind,
-          name,
-          page: Math.floor(i / perPage),
-          onClick: () => { this.selected = { kind, name }; },
-        })));
-      });
-    }
+    // the tile editor's buttons (tileeditor.js), on the right of the tabs. showPage() only shows them
+    // on the Tiles tab
+    const tileButton = (label, right, onClick) => add(new Button({
+      x: GAME_W - right, y: barY - EDITOR_BAR.tabHeight + 2, w: 110, h: EDITOR_BAR.tabHeight - 4,
+      label, style: { textSize: 13 }, onClick,
+    }));
+    this.tileButtons = [
+      tileButton('+ New tile', 240, () => TileEditor.open(null)),
+      tileButton('Export tiles', 124, () => TileEditor.exportTiles()),
+    ];
 
     // Map settings, top right. a toggle, so it looks switched on while its panel is open
     const s = EDITOR_SETTINGS;
@@ -272,6 +261,45 @@ const Editor = {
 
     UI.showGroup('editor', false);
     this.showSettings(false);
+  },
+
+  // makes the squares in the bar: one per tile, object, enemy and npc, each knowing its tab and page.
+  // run once the tiles have loaded (sketch.js), and again whenever the tile editor adds a tile,
+  // which throws away the old squares first
+  makeSwatches() {
+    for (const swatch of this.swatches) UI.remove(swatch);
+    const barY = GAME_H - EDITOR_BAR.height;
+    const perPage = Math.floor((EDITOR_BAR.swatchesRight - EDITOR_BAR.swatchesLeft) / EDITOR_BAR.slotWidth);
+
+    this.swatches = [];
+    for (const { kind } of EDITOR_TABS) {
+      const names = Object.keys(EDITOR_CATALOGUES[kind]);
+      // how many pages it needs (at least 1, even if it's empty). a tab stays on its page if it can
+      this.pageCounts[kind] = Math.max(1, Math.ceil(names.length / perPage));
+      this.pages[kind] = Math.min(this.pages[kind] ?? 0, this.pageCounts[kind] - 1);
+      names.forEach((name, i) => {
+        const slot = i % perPage;
+        this.swatches.push(UI.add(new PaletteSwatch({
+          x: EDITOR_BAR.swatchesLeft + slot * EDITOR_BAR.slotWidth + (EDITOR_BAR.slotWidth - EDITOR_BAR.swatchSize) / 2,
+          y: barY + 10,
+          w: EDITOR_BAR.swatchSize,
+          h: EDITOR_BAR.swatchSize,
+          group: 'editor',
+          kind,
+          name,
+          page: Math.floor(i / perPage),
+          onClick: () => { this.selected = { kind, name }; },
+        })));
+      });
+    }
+
+    // the picked thing is gone (or nothing's been picked yet), so pick the first tile. null is Erase
+    if (this.selected && !EDITOR_CATALOGUES[this.selected.kind][this.selected.name]) {
+      this.selected = { kind: 'tile', name: Object.keys(TILE_TYPES)[0] };
+    }
+
+    if (this.active) this.showPage(this.pages[this.tab]);
+    else for (const swatch of this.swatches) swatch.visible = false;
   },
 
   // opens or closes the Map settings panel
@@ -347,6 +375,7 @@ const Editor = {
     const morePages = this.pageCounts[this.tab] > 1;
     this.prevButton.visible = morePages;
     this.nextButton.visible = morePages;
+    for (const button of this.tileButtons) button.visible = this.tab === 'tile';
   },
 
   // is this the one picked in the bar?
@@ -790,6 +819,12 @@ class PaletteSwatch extends Button {
     this.page = options.page;
   }
 
+  // like any button, and right clicking a tile opens the tile editor on it (tileeditor.js)
+  update(hovered) {
+    super.update(hovered);
+    if (this.kind === 'tile' && this.hovered && Input.buttonsPressed.has('right')) TileEditor.open(TILE_TYPES[this.name]);
+  }
+
   draw() {
     const erase = this.kind === 'erase';
     // Erase is picked when nothing else is (Editor.selected is null)
@@ -849,17 +884,19 @@ class PaletteSwatch extends Button {
   }
 }
 
-// a tile's, object's or character's picture, or its colour if it hasn't got one
+// a tile's, object's or character's picture, or its colour if it hasn't got one. a dual grid tile
+// shows the piece from the middle of a patch of it (dualgrid.js)
 function drawTypeArt(type, x, y, w, h, radius = 0) {
-  if (type.img) {
-    image(type.img, x, y, w, h);
+  const img = type.img ?? type.dualTiles?.[0b1111];
+  if (img) {
+    image(img, x, y, w, h);
   } else {
     noStroke();
     fill(type.fill);
     rect(x, y, w, h, radius);
   }
-  // dual grid tiles (tileset in tiles.js) get a badge in the top right corner
-  if (type.tileset) drawDualBadge(x + w - 15, y + 3);
+  // dual grid tiles (tiles.js) get a badge in the top right corner
+  if (type.dualGrid) drawDualBadge(x + w - 15, y + 3);
 }
 
 // two little squares, one half across and down from the other, like the two grids a dual grid
@@ -911,8 +948,9 @@ class SettingsPanel extends UIElement {
 // warp's settings), in the game rather than in the browser's own prompt(). click a box to type
 // into it, Tab goes to the next one, Enter or the right button says yes, Escape or Cancel closes it
 
-// the box's width, and the space each thing it asks for gets, in screen pixels
-const FORM_BOX = { width: 300, rowHeight: 44 };
+// the box's width, the space each thing it asks for gets, and how much wider a side column makes it
+// (see side in FormBox.open()), in screen pixels
+const FORM_BOX = { width: 300, rowHeight: 44, sideWidth: 180 };
 
 // a box for a map's width or height, starting at value. it won't go below min or above
 // EDITOR_MAX_MAP_SIZE (NumberField is in textfield.js)
@@ -935,6 +973,8 @@ const FormBox = {
   //   hint        a line of writing under the rows (can be left out)
   //   values      what's in each row's field, in the same order as rows
   //   canConfirm  whether the values are ok to say yes to. without it, anything is
+  //   side        (x, y, w, h) => [ui elements], things for a column beside the rows, like the tile
+  //               editor's pictures. x, y, w, h is the space they have (can be left out)
   open(options) {
     this.options = options;
     this.active = true;
@@ -943,7 +983,7 @@ const FormBox = {
 
     // made fresh each time, since each one asks for different things. tall enough to fit them
     const rows = options.rows;
-    const w = FORM_BOX.width;
+    const w = FORM_BOX.width + (options.side ? FORM_BOX.sideWidth : 0);
     const h = 114 + rows.length * FORM_BOX.rowHeight + (options.hint ? 28 : 0);
     const x = (GAME_W - w) / 2;
     const y = (GAME_H - h) / 2;
@@ -952,6 +992,8 @@ const FormBox = {
     // covers the whole screen, so nothing behind it can be clicked while it's open
     add(new FormBoxBackdrop({ x: 0, y: 0, w: GAME_W, h: GAME_H, box: { x, y, w, h } }));
     rows.forEach(({ field }, i) => add(Object.assign(field, { x: x + 100, y: y + 52 + i * FORM_BOX.rowHeight, h: 32 })));
+    // between the rows and the right edge, above the buttons
+    if (options.side) options.side(x + FORM_BOX.width, y + 52, FORM_BOX.sideWidth - 20, h - 52 - 66).forEach(add);
     add(new Button({ x: x + 20, y: y + h - 56, w: 124, h: 38, label: 'Cancel', onClick: () => this.close() }));
     this.confirmButton = add(new Button({
       x: x + w - 144, y: y + h - 56, w: 124, h: 38, label: options.confirmLabel, style: 'primary',

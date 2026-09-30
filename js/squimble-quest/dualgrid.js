@@ -1,6 +1,6 @@
 // dual grid tiles: ground like grass, dirt or sand that blends into the tiles next to it with rounded
-// edges, drawn from a tileset instead of one picture per tile. a tile becomes one by giving it a
-// tileset in tiles.js (the guide at the top of tiles.js says how). everything else about them is here.
+// edges, drawn from a tileset instead of one picture per tile. a tile is one when it has "dualGrid"
+// in tiles.json (made in the tile editor, tileeditor.js). everything about drawing them is here.
 //
 // maps and the editor don't know about any of this: you still paint 'grass' onto tiles, and a map
 // still stores 'grass'. only the drawing changes. a normal tile is drawn as one square on its own. a
@@ -10,10 +10,9 @@
 //
 // what's here, and what to use if the editor (or anything else) wants to do more with tilesets later:
 //   DUAL_TILESET_LAYOUT  which piece is where in a tileset picture
-//   loadDualTileset()    loads a tile's tileset and cuts it up. runs for every tile in preload(), and
-//                        can run again any time: change type.tileset, call it, and the map shows the
-//                        new pieces as soon as they've loaded
-//   cutDualTileset()     cuts any tileset picture into its pieces, e.g. one opened from a file
+//   dualTilesetProblem() what's wrong with a picture as a tileset, if anything (the tile editor shows it)
+//   cutDualTileset()     cuts a tileset picture into its pieces. useTexture() (tiles.js) runs it
+//                        whenever a dual grid tile gets a texture, from its file or the tile editor
 //   drawDualCorner()     draws the pieces where four tiles meet. only drawTiles() (tilemap.js) calls it
 
 // which piece is where in a tileset, left to right, top row first. each number says which of the four
@@ -27,31 +26,26 @@ const DUAL_TILESET_LAYOUT = [
   0b0000, 0b0001, 0b0110, 0b1000,
 ];
 
-// loads type.tileset (a tile's settings from tiles.js) into type.dualTiles, the tileset cut into its
-// pieces. type.dualTiles is null until then, and stays null if it can't load, which draws the tile as
-// a normal one in its colour. in preload(), p5 waits for it before the game starts (sketch.js)
-function loadDualTileset(type) {
-  type.dualTiles = null;
-  if (!type.tileset) return;
-  loadImage(type.tileset, (sheet) => {
-    type.dualTiles = cutDualTileset(sheet, type.tileset);
-  }, () => {
-    console.warn(`Couldn't load "${type.tileset}" for the ${type.name} tile, using its colour instead`);
-  });
+// what's wrong with a picture (a p5 image) as a tileset, as words to show, or null if it's fine.
+// it has to be a square that splits into 4 x 4 whole pieces
+function dualTilesetProblem(sheet) {
+  if (sheet.width === sheet.height && sheet.width % 4 === 0) return null;
+  return `it's ${sheet.width} x ${sheet.height}, it has to be a square of 4 x 4 pieces, like 64 x 64`;
 }
 
 // cuts a tileset picture (a p5 image) into its 16 pieces: pieces[which] is the piece for which of the
 // four tiles, the numbers in DUAL_TILESET_LAYOUT. label is only for the warning. gives back null, with
-// a warning, if the picture isn't a square that splits into 4 x 4 whole pieces.
+// a warning, if dualTilesetProblem() finds something wrong with it.
 //
 // cut into separate pictures rather than drawing part of the big one, because drawing part of a
 // picture can pick up a line of the piece next to it at some zooms, which shows as a faint grid
 function cutDualTileset(sheet, label) {
-  const size = sheet.width / 4;
-  if (sheet.width !== sheet.height || !Number.isInteger(size)) {
-    console.warn(`"${label}" is ${sheet.width} x ${sheet.height}, but a dual grid tileset has to be a square of 4 x 4 pieces (e.g. 64 x 64 with 16 x 16 pieces), so the tile's using its colour instead`);
+  const problem = dualTilesetProblem(sheet);
+  if (problem) {
+    console.warn(`Can't use "${label}" as a dual grid tileset: ${problem}. The tile's using its colour instead`);
     return null;
   }
+  const size = sheet.width / 4;
   const pieces = [];
   DUAL_TILESET_LAYOUT.forEach((which, i) => {
     pieces[which] = sheet.get((i % 4) * size, Math.floor(i / 4) * size, size, size);

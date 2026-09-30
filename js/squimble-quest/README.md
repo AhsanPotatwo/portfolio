@@ -17,7 +17,7 @@ This README and the comments in the code are the project's only notes. There's n
 
 - **`sketch.js`** has the game loop, and its header lists every file and what it does. Read that first.
 - **[`assets/squimble-quest/maps/README.md`](../../assets/squimble-quest/maps/README.md)** is the map editor guide and the map file format.
-- **The catalogue files** (`tiles.js`, `objects.js`, `enemies.js`, `npcs.js`, `weapons.js`, `items.js`) each start with a "how to make one" guide.
+- **The catalogue files** (`tiles.js`, `objects.js`, `enemies.js`, `npcs.js`, `weapons.js`, `items.js`) each start with a "how to make one" guide. Tiles are made in the map editor instead of in code, see the tiles notes below.
 
 **Running it:** map files are loaded with `fetch`, so the page needs a local server (see "Running the game locally" in the maps README). For example, run `py -m http.server 8765` from the portfolio root, then open `http://localhost:8765/squimble-quest.html`. Opened straight from the file (`file://`), the game falls back to a blank stand-in map.
 
@@ -39,7 +39,7 @@ This README and the comments in the code are the project's only notes. There's n
   - no jargon without explaining it
   - every constant and object property gets a comment saying what it's for
   - when one file uses another file's global, the comment names that file, e.g. `// worldMap is the game's (sketch.js)`
-- **The catalogue pattern:** things are defined with `defineTile/Object/Enemy/Npc/Weapon/Item(name, settings)`, which fills in defaults. The map editor picks up new ones by itself.
+- **The catalogue pattern:** things are defined with `defineObject/Enemy/Npc/Weapon/Item(name, settings)`, which fills in defaults. The map editor picks up new ones by itself. Tiles are the exception: they're data in `tiles.json`, filled in with `TILE_DEFAULTS` the same way.
 
 ## How it fits together
 
@@ -64,15 +64,21 @@ This README and the comments in the code are the project's only notes. There's n
   - `resize()` and `usedArea()` do the map resizing.
   - `SPAWN_KINDS` connects enemies and NPCs to their lists and their names in map files.
   - Tiles are drawn straight onto screen pixels, with every edge rounded to a whole pixel and shared by the tiles either side, so there's never a faint grid at any zoom. See the comment above `drawTiles()`.
-- **Tile art** lives in `assets/squimble-quest/tiles/`: `normal/` for one picture per tile, `dual-grid/` for dual grid tilesets. A tile's `image` or `tileset` is just the file name, and `defineTile()` adds the folder. That folder's README and the guide at the top of `tiles.js` say how to add one.
-- **Dual grid tiles** (`dualgrid.js`, switched on by `tileset` in `tiles.js`): ground like grass that blends into its neighbours with rounded edges. Maps and the editor don't know about it: a tile is still just `'grass'`, only drawing changes (the editor marks them with a badge, `drawDualBadge()`). `drawTiles()` draws the normal tiles first, then calls `drawDualCorner()` for every corner on a second grid half a tile across and down, where each piece picks from the tileset by which of the four tiles meeting there are grass (`DUAL_TILESET_LAYOUT`). The see-through edges show a normal tile from the same corner underneath. When two dual grid tiles meet, the one defined further down `tiles.js` goes on top (`layer`), so order them lowest first (e.g. dirt before grass). The tileset is cut into 16 separate pictures when it loads (`cutDualTileset()`), because drawing part of one big picture can pick up a line of the piece next to it at some zooms. `loadDualTileset(type)` works any time, not only in `preload()`, so changing a tile's tileset from the editor later is: set `type.tileset`, call it.
+- **Tiles** (`tiles.js`, `tileeditor.js`):
+  - Every tile is one line in `assets/squimble-quest/tiles/tiles.json`: its name, colour, whether it's dual grid, its texture file, solid, speed, `damagePerSecond` and `damagePerStep`. The order is the editor bar's order, and the dual grid layer order.
+  - `loadTileFile()` loads it with `fetch` before the maps (`sketch.js`), because loading a map checks its tiles exist. It waits for the textures too, so nothing flashes plain colour at the start. Like map files, a missing or broken file is a console warning and never stops the game: with no tiles at all there's just `blank`, for the stand-in map.
+  - `setTile(settings, picture)` adds or changes a tile, and is the only way tiles get into `TILE_TYPES`. `tilesToData()` and `tilesDataToText()` turn them back into the file, and exporting without changing anything gives exactly the same file.
+  - Textures live in `assets/squimble-quest/tiles/`: `normal/` for one picture per tile, `dual-grid/` for dual grid tilesets. `texture` is just the file name, and `texturePath()` adds the folder from `dualGrid`.
+  - **The tile editor** (`tileeditor.js`) is a `FormBox` with a side column (`TilePreview` and **Choose picture**). **Save** calls `setTile()` with the chosen picture, so a tile works straight away even before its picture is in the folder. **Export tiles** downloads `tiles.json`, plus any picture chosen since the page loaded (`TileEditor.newPictures`), because the game can only load textures from its own folders. It can't rename or delete tiles: maps store tile names, so either would lose the tile from every map using it.
+  - Tiles are data, not code, so they can't run their own code the way `onEnter`/`onStand` used to. Damage and speed cover what tiles did. Something new (e.g. a tile that teleports you) would need a new setting in `TILE_DEFAULTS`, handled in `checkTile()` (`character.js`) and given a row in the tile editor.
+- **Dual grid tiles** (`dualgrid.js`, switched on by `dualGrid` in `tiles.json`): ground like grass that blends into its neighbours with rounded edges. Maps and the editor don't know about it: a tile is still just `'grass'`, only drawing changes (the editor marks them with a badge, `drawDualBadge()`). `drawTiles()` draws the normal tiles first, then calls `drawDualCorner()` for every corner on a second grid half a tile across and down, where each piece picks from the tileset by which of the four tiles meeting there are grass (`DUAL_TILESET_LAYOUT`). The see-through edges show a normal tile from the same corner underneath. When two dual grid tiles meet, the one further down `tiles.json` goes on top (`layer`), so order them lowest first (e.g. dirt before grass). New tiles go on the end, so they're on top. The tileset is cut into 16 separate pictures whenever a tile gets it (`useTexture()` in `tiles.js`, `cutDualTileset()`), because drawing part of one big picture can pick up a line of the piece next to it at some zooms. `dualTilesetProblem()` says why a picture can't be a tileset, for the tile editor.
 - **Every map remembers its characters.** When the player leaves a map, `loadMap` keeps its live `enemies` and `npcs` on `map.characters`, and hands them back when the player returns. So defeated enemies stay gone, hurt ones stay hurt, and everyone stays where they were, until the page reloads.
   - The spawn lists (`enemySpawns`, `npcSpawns`) are the design and never change when an enemy dies, so Export always saves every one.
   - `spawnCharacters()` makes everyone fresh from the spawn lists. It runs on a map's first visit and whenever the editor opens, closes or changes characters. Opening the editor is a quick way to reset enemies while testing.
   - This used to be a `defeated` set of spawns. Keeping the characters themselves replaced it, and also fixed hurt enemies healing when you left and came back.
 - **Characters** (`character.js`):
   - The player, enemies and NPCs all take the same controls, `{ move, aim, attack }`. For the player they come from the keyboard and mouse. For enemies and NPCs they come from an `ai(entity, world, dt)` function.
-  - Tiles' `onEnter` and `onStand` behaviours run for all characters.
+  - Tiles' `damagePerStep`, `damagePerSecond` and `speed` work for all characters (`checkTile()`).
   - `player.spawnX`/`spawnY` is where the player respawns. `loadMap` sets it to where they arrived (the warp they came in by, or the map's spawn), and so does placing the spawn in the editor.
 - **UI** (`ui.js`, `button.js`, `textfield.js`):
   - Every element extends `UIElement`.
@@ -85,7 +91,8 @@ This README and the comments in the code are the project's only notes. There's n
   - **Right click** opens the settings of whatever's under the mouse (`editWarp()` for warps, the only thing with settings so far). Anything that gets settings later hooks in at the same spot in `Editor.update()`.
   - **Erase** sits at the left end of the bar on every tab. `Editor.selected` is `null` while it's picked. It's the only way to delete (right click used to erase too).
   - The **Map settings** button in the top right opens a panel with Resize map, New map, Open file and Export.
-  - `FormBox` is the in-game box that asks for things: sizes for New map and Resize map, the fill tile for New map, the name for Export, and a warp's settings. Give it a title and a list of rows, and it lays itself out. `Picker` is its "choose one of these" field (`tilePicker()` makes one for tiles).
+  - `FormBox` is the in-game box that asks for things: sizes for New map and Resize map, the fill tile for New map, the name for Export, a warp's settings and a tile's. Give it a title and a list of rows, and it lays itself out. `side` adds a column of extra elements beside the rows (the tile editor's pictures). `Picker` is its "choose one of these" field (`tilePicker()` makes one for tiles).
+  - The bar's squares are made by `Editor.makeSwatches()`, once the tiles have loaded and again whenever a tile is added. **Right click** on a tile's square opens the tile editor (`PaletteSwatch.update()`). **+ New tile** and **Export tiles** sit to the right of the tabs, only on the Tiles tab.
   - While WASD pans the camera, the editor UI and dev panels fade out (`Editor.uiAlpha`, applied in `sketch.js`).
 - **Dev mode** (`debug.js`): a compact status panel in the top left. The key lists are `DEV_KEYS` and `EDITOR_KEYS`, and **H** toggles them.
 
@@ -123,7 +130,9 @@ Only build these when they're needed.
 - **Nothing stops a warp being placed on a solid tile.** Arriving there leaves the player inside a wall. Put arrival warps on floor.
 - **The spawn can end up on an empty tile.** Erasing the tile under it, or making a new map filled with `empty`, leaves the player stuck there. Nothing checks for this.
 - **The New map fill picker steps one tile at a time.** Fine for now, but slow once there are lots of tiles.
-- **The art is placeholders:** coloured rectangles until sprites exist. Every catalogue already has an `image` setting. Grass has a test dual grid tileset (`assets/squimble-quest/tiles/dual-grid/grass_tileset.png`).
+- **The art is placeholders:** coloured rectangles until sprites exist. Every catalogue already has an `image` setting (`texture` for tiles). Grass has a test dual grid tileset (`assets/squimble-quest/tiles/dual-grid/grass_tileset.png`).
+- **Normal tiles are one picture each.** A normal tile's texture is stretched over every tile of that kind. Variations (a few pictures picked at random so a big floor doesn't look repeated) or animated tiles would build on `useTexture()` in `tiles.js`.
+- **The tile editor can't rename, delete or reorder tiles.** Do those in `tiles.json` by hand. Renaming or deleting a tile loses it from every map that uses it.
 - **Pixel art at in-between zooms:** art is drawn without blurring (`noSmooth()` in `sketch.js`), so at a zoom like 1.35 some art pixels come out a screen pixel wider than others. That's normal for pixel art that isn't at a whole-number size, and there are no gaps or lines between tiles.
 
 ## Checking changes
