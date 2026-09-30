@@ -197,15 +197,21 @@ function mapFromData(data) {
 // adds a map to MAPS (maps.js) from file data, so loadMap() and dev mode's M key can use it.
 // a map with the same name as an existing one replaces it. gives back true if it worked
 function registerMap(name, data) {
+  // built once now, to check the data is ok
+  let checked;
   try {
-    // build it once now, just to check the data is ok
-    mapFromData(data);
+    checked = mapFromData(data);
   } catch (err) {
     console.warn(`Couldn't use the map "${name}": ${err.message}`);
     return false;
   }
-  // built from the file's data the first time you go to it (maps.js)
-  addMap(name, () => mapFromData(data));
+  // the first time the map's needed (maps.js) it's that one, rather than building it all over again
+  // (and warning about anything it's missing twice). any time after that it's built fresh from the data
+  addMap(name, () => {
+    const map = checked ?? mapFromData(data);
+    checked = null;
+    return map;
+  });
   return true;
 }
 
@@ -215,21 +221,12 @@ function registerMap(name, data) {
 // gives back a promise, which finishes once every file has loaded or failed. a file that
 // can't be loaded is skipped with a warning in the browser console, it never stops the game
 function loadMapFiles() {
-  // all the files download at the same time. each gives back its data, or null if it failed
-  const loads = MAP_FILES.map((file) => {
-    return fetch(MAP_FOLDER + file)
-      .then((response) => {
-        if (!response.ok) throw new Error(`the file wasn't found (${response.status})`);
-        return response.json();
-      })
-      .catch((err) => {
-        const hint = location.protocol === 'file:'
-          ? ' Map files only load when the site is run through a local server, see the README in the maps folder.'
-          : '';
-        console.warn(`Couldn't load the map file "${file}": ${err.message}.${hint}`);
-        return null;
-      });
-  });
+  // all the files download at the same time (fetchJson() is in utils.js). each gives back its data,
+  // or null if it failed
+  const loads = MAP_FILES.map((file) => fetchJson(MAP_FOLDER + file).catch((err) => {
+    console.warn(`Couldn't load the map file "${file}": ${err.message}.`);
+    return null;
+  }));
 
   // added to MAPS once they've all arrived, in MAP_FILES order rather than whichever finished
   // downloading first, so dev mode's M key always goes through them in the same order
@@ -263,14 +260,9 @@ function exportMap(map, typedName) {
   downloadTextFile(`${name}.json`, mapDataToText(data));
 }
 
-// asks for a map file from the computer, then goes straight to that map
+// asks for a map file from the computer (pickFile() is in utils.js), then goes straight to that map
 function openMapFile() {
-  const picker = document.createElement('input');
-  picker.type = 'file';
-  picker.accept = '.json,application/json';
-  picker.addEventListener('change', () => {
-    const file = picker.files[0];
-    if (!file) return;
+  pickFile('.json,application/json', (file) => {
     file.text()
       .then((text) => {
         const name = mapNameFromFile(file.name);
@@ -283,7 +275,6 @@ function openMapFile() {
         console.warn(`Couldn't open ${file.name}: ${err.message}`);
       });
   });
-  picker.click();
 }
 
 // ---------- small helpers ----------
@@ -312,20 +303,3 @@ function mapNameFromFile(fileName) {
   return cleanMapName(fileName.replace(/\.json$/i, ''));
 }
 
-// makes the browser download some text as a file
-function downloadTextFile(fileName, text) {
-  downloadData(fileName, new Blob([text], { type: 'application/json' }));
-}
-
-// makes the browser download a file. data is a Blob, the browser's name for a file's contents, e.g. a
-// picture chosen in the tile editor (tileeditor.js). not called downloadFile(): p5 already has one,
-// and in global mode p5's would replace it
-function downloadData(fileName, data) {
-  const url = URL.createObjectURL(data);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  link.click();
-  // give the download a moment to start before tidying up
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}

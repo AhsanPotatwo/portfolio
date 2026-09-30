@@ -188,7 +188,7 @@ function warpFamily(mapName, warpName) {
 }
 
 const WarpGraph = {
-  // true while the graph is showing. it sits over the warp's settings box (FormBox in editor.js),
+  // true while the graph is showing. it sits over the warp's settings box (FormBox in formbox.js),
   // which comes back when it closes
   active: false,
 
@@ -218,8 +218,10 @@ const WarpGraph = {
 class WarpGraphView extends UIElement {
   constructor(options) {
     super(options);
-    // what warpFamily() gave back, and the words along the top
+    // what warpFamily() gave back, its nodes by key (for finding the ends of lines), and the words
+    // along the top
     this.family = options.family;
+    this.byKey = Object.fromEntries(this.family.nodes.map((node) => [node.key, node]));
     this.title = options.title;
     // where the graph's (0, 0) is on screen, and how zoomed in it is. it starts in the middle of
     // the space under the title, zoomed out to fit if it's too big (but never zoomed in, and never
@@ -287,8 +289,7 @@ class WarpGraphView extends UIElement {
     push();
     translate(this.panX, this.panY);
     scale(this.zoom);
-    const byKey = {};
-    for (const node of this.family.nodes) byKey[node.key] = node;
+    const byKey = this.byKey;
     // only what's on screen is drawn, which keeps a graph of hundreds of warps smooth. a box
     // around two boxes' middles, stretched by a box's size, covers them and everything between
     const { nodeWidth: w, nodeHeight: h } = WARP_GRAPH;

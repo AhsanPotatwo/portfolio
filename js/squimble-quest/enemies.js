@@ -69,8 +69,9 @@ const ENEMY_DEFAULTS = {
 // every enemy, by name. filled in by defineEnemy() below
 const ENEMY_TYPES = {};
 
+// defineType() is in utils.js
 function defineEnemy(name, settings) {
-  ENEMY_TYPES[name] = { ...ENEMY_DEFAULTS, ...settings, name };
+  defineType(ENEMY_TYPES, ENEMY_DEFAULTS, 'enemy', name, settings);
 }
 
 // ---------- ais ----------

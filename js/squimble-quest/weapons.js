@@ -35,8 +35,9 @@ const WEAPON_DEFAULTS = {
 // every weapon, by name. filled in by defineWeapon() below
 const WEAPONS = {};
 
+// defineType() is in utils.js
 function defineWeapon(name, settings) {
-  WEAPONS[name] = { ...WEAPON_DEFAULTS, ...settings, name };
+  defineType(WEAPONS, WEAPON_DEFAULTS, 'weapon', name, settings);
 }
 
 // ---------- the weapons ----------

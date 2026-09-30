@@ -50,7 +50,7 @@ function drawMessage() {
 
 // shown for a moment when the game starts, while the map files load
 function drawLoading() {
-  background('#2b2b30');
+  background(WORLD_COLOURS.outside); // world.js
   noStroke();
   fill(255);
   setText(22);

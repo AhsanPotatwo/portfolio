@@ -41,8 +41,9 @@ const OBJECT_DEFAULTS = {
 // every object, by name. filled in by defineObject() below
 const OBJECT_TYPES = {};
 
+// defineType() is in utils.js
 function defineObject(name, settings) {
-  OBJECT_TYPES[name] = { ...OBJECT_DEFAULTS, ...settings, name };
+  defineType(OBJECT_TYPES, OBJECT_DEFAULTS, 'object', name, settings);
 }
 
 // ---------- the objects ----------

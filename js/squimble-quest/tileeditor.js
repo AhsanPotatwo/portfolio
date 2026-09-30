@@ -217,15 +217,10 @@ const TileEditor = {
     return type.dualGrid ? 'dual-grid' : 'normal';
   },
 
-  // asks for a picture from the computer (like Open file does for maps, mapfile.js), then gives it to
-  // onLoad as (file, img): the File, and a p5 image of it
+  // asks for a picture from the computer (pickFile() is in utils.js), then gives it to onLoad as
+  // (file, img): the File, and a p5 image of it
   choosePicture(onLoad) {
-    const picker = document.createElement('input');
-    picker.type = 'file';
-    picker.accept = 'image/png,image/*';
-    picker.addEventListener('change', () => {
-      const file = picker.files[0];
-      if (!file) return;
+    pickFile('image/png,image/*', (file) => {
       // a temporary address for the file, so p5 can load it like any other picture
       const url = URL.createObjectURL(file);
       loadImage(url, (img) => {
@@ -236,13 +231,12 @@ const TileEditor = {
         showMessage(`Couldn't open ${file.name} as a picture`);
       });
     });
-    picker.click();
   },
 
   // downloads tiles.json with every tile in it (tiles.js), and any picture a tile uses that was
-  // chosen since the page loaded, then says where they go
+  // chosen since the page loaded, then says where they go (downloadTextFile() is in utils.js)
   exportTiles() {
-    downloadTextFile('tiles.json', tilesDataToText(tilesToData())); // mapfile.js
+    downloadTextFile('tiles.json', tilesDataToText(tilesToData()));
     const pictures = [];
     for (const type of Object.values(TILE_TYPES)) {
       const file = this.newPictures[type.texture];

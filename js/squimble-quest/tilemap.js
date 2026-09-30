@@ -5,12 +5,14 @@
 // in other words: column = floor(world x / TILE), row = floor(world y / TILE)
 //
 // the map only stores tile names ('grass', 'wall'...). what each one looks like and does
-// lives in TILE_TYPES (tiles.js, loaded from tiles.json). it also keeps a list of objects on top of the tiles (see objects.js),
-// where each enemy and npc starts, and its warps (see warps.js)
+// lives in TILE_TYPES (tiles.js, loaded from tiles.json). it also keeps a list of objects on top of
+// the tiles (see objects.js), where each enemy and npc starts, and its warps (see warps.js)
 
 // the kinds of character that can be placed on a map: which list on the map they're kept in,
-// where they're defined, and what they're called in map files. adding another kind (e.g. animals)
-// would be a new line here, a list in the constructor, and a tab in the map editor
+// where they're defined, and what they're called in map files. saving, loading, resizing and the
+// editor's erasing all go through this. adding another kind (e.g. animals) would be a new line here,
+// its list in the constructor, a tab in the map editor (EDITOR_TABS in editor.js), and a global list
+// of them made, updated and drawn in sketch.js like enemies and npcs are
 const SPAWN_KINDS = {
   enemy: { list: 'enemySpawns', types: ENEMY_TYPES, file: 'enemies.js', fileKey: 'enemies' },
   npc:   { list: 'npcSpawns',   types: NPC_TYPES,   file: 'npcs.js',    fileKey: 'npcs' },
@@ -84,21 +86,6 @@ class TileMap {
       return;
     }
     if (this.inside(col, row)) this.tiles[this.index(col, row)] = name;
-  }
-
-  // fill a rectangle of tiles, w wide and h tall, starting at col, row
-  fill(col, row, w, h, name) {
-    for (let r = row; r < row + h; r++) {
-      for (let c = col; c < col + w; c++) this.set(c, r, name);
-    }
-  }
-
-  // just the edge of a rectangle, e.g. the walls of a room
-  outline(col, row, w, h, name) {
-    this.fill(col, row, w, 1, name);          // top
-    this.fill(col, row + h - 1, w, 1, name);  // bottom
-    this.fill(col, row, 1, h, name);          // left
-    this.fill(col + w - 1, row, 1, h, name);  // right
   }
 
   // the smallest rectangle holding every tile that isn't empty: { left, top, right, bottom }, the
@@ -271,11 +258,6 @@ class TileMap {
     return Math.floor(y / TILE);
   }
 
-  // the tile type at a world position, or null if it's off the map
-  typeAt(x, y) {
-    return this.get(this.colAt(x), this.rowAt(y));
-  }
-
   // the edges of the whole map, in world positions
   bounds() {
     return {
@@ -289,18 +271,9 @@ class TileMap {
   // ---------- collision ----------
   // a "box" is { x, y, w, h }: top left corner and size, in world positions
 
-  // tries to move a box by dx, dy, stopping it against solid tiles.
-  // gives back how far it really moved, { x, y }. nothing uses this right now: characters call
-  // moveAlongX() and moveAlongY() themselves (character.js), so they can stop at each other in between
-  moveBox(box, dx, dy) {
-    // x first, then y from wherever x ended up. doing them one at a time is what lets you
-    // slide along a wall when walking into it at an angle, instead of sticking to it
-    const x = this.moveAlongX(box, dx);
-    const y = this.moveAlongY({ ...box, x: box.x + x }, dy);
-    return { x, y };
-  }
-
-  // how far the box can move sideways. only checks the column its leading edge ends up in,
+  // how far a box can move sideways (dx) before it's stopped flush against a solid tile. characters
+  // move across with this then down with moveAlongY(), which is what lets them slide along a wall
+  // when walking into it at an angle, instead of sticking to it (walk() in character.js). only checks the column its leading edge ends up in,
   // so it relies on nothing moving more than a tile in one frame (MAX_DT in config.js keeps it small)
   moveAlongX(box, dx) {
     if (dx === 0) return 0;
