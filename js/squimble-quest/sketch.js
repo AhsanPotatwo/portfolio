@@ -9,6 +9,7 @@
 //   input.js      the keyboard and mouse
 //   camera.js     which part of the world is on screen, and world ↔ screen positions
 //   tiles.js      every kind of tile and what it does (grass, walls, lava...)
+//   dualgrid.js   dual grid tiles: ground like grass that blends into the tiles next to it
 //   objects.js    every kind of object that sits on the tiles (furniture, decorations...)
 //   enemies.js    every kind of enemy, and its ai
 //   npcs.js       every kind of friendly npc, and what they say
