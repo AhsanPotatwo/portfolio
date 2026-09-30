@@ -22,7 +22,8 @@ const Input = {
   // then only types: no key counts for the game (so W doesn't walk), they go in typed instead
   typing: false,
   // what was typed since the last frame while typing is on, as e.key names: '7', 'Backspace',
-  // 'Enter', 'Escape', 'Tab'... only lasts one frame, like keysPressed
+  // 'Enter', 'Escape', 'Tab'... and { paste: 'the text' } for Ctrl + V. only lasts one frame,
+  // like keysPressed
   typed: [],
 
   // ---------- mouse ----------
@@ -89,6 +90,14 @@ const Input = {
       // holding a key down makes the browser repeat keydown over and over.
       // those repeats aren't new presses, so only the first one counts
       if (!e.repeat) this._pendingKeys.add(name);
+    });
+
+    // Ctrl + V isn't typed above (Ctrl is held), so the browser pastes, and this catches it.
+    // on the document, because that's where it ends up whatever has focus
+    document.addEventListener('paste', (e) => {
+      if (!this.typing) return;
+      e.preventDefault();
+      this._pendingTyped.push({ paste: e.clipboardData.getData('text') });
     });
 
     el.addEventListener('keyup', (e) => {

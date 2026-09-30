@@ -1097,6 +1097,7 @@ const FormBox = {
       if (this.fields.length === 0) continue;
       const focused = this.fields.find((field) => field.focused);
       if (key === 'Tab') this.focus(this.fields[(this.fields.indexOf(focused) + 1) % this.fields.length]);
+      else if (key.paste !== undefined) focused.paste(key.paste);
       else focused.type(key);
     }
     // greyed out while it can't be said yes to, e.g. Export with no name

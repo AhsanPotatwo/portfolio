@@ -84,7 +84,7 @@ This README and the comments in the code are the project's only notes. There's n
   - Every element extends `UIElement`.
   - Groups let elements be shown, hidden and removed together.
   - A click that lands on UI is claimed, so gameplay never sees it.
-  - `Input.typing = true` sends keys to `Input.typed` instead of the game. `TextField` and `NumberField` work with it: whatever owns the box decides which one is focused and calls `field.type(key)` for each key.
+  - `Input.typing = true` sends keys to `Input.typed` instead of the game. `TextField` and `NumberField` work with it: whatever owns the box decides which one is focused and calls `field.type(key)` for each key. Ctrl + V arrives as `{ paste: text }` in `Input.typed` and goes to `field.paste(text)`. `ColourField` takes pasted hex or rgb and has a square that opens the browser's own colour picker (`<input type="color">`).
 - **Editor** (`editor.js`):
   - The bottom bar has browser-style tabs for things to place: Tiles, Objects, Enemies, NPCs and Triggers. The tabs are only for things you place on the map; settings for the whole map go in the Map settings panel.
   - **Triggers** are things on the map that make something happen: the player's spawn and warps (`TRIGGER_TYPES`). They're placed by their own code in `Editor.update()`, not from a catalogue file. Placing a warp opens its settings box.
