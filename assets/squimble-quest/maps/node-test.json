@@ -1,0 +1,61 @@
+{
+  "format": "squimble-quest-map",
+  "version": 2,
+  "left": -18,
+  "top": -10,
+  "spawn": {
+    "x": 16,
+    "y": -5
+  },
+  "legend": {
+    "..": null,
+    "bl": "blank",
+    "di": "dirt",
+    "sa": "sand",
+    "pl": "planks"
+  },
+  "rows": [
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl di bl bl bl bl bl di bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl pl bl bl pl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl di bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl sa bl bl bl bl bl bl sa bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl di bl bl bl bl di bl bl bl bl di bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl sa bl bl bl bl bl bl sa bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl di bl bl bl bl bl bl bl bl bl di bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl sa bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl di bl bl bl bl bl bl bl bl bl bl bl bl bl sa bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl",
+    "bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl bl"
+  ],
+  "objects": [],
+  "enemies": [],
+  "npcs": [],
+  "warps": [
+    { "name": "hub", "col": -10, "row": 0, "to": "node-test", "toWarp": "north", "activate": "interact" },
+    { "name": "north", "col": -10, "row": -5, "to": "node-test", "toWarp": "hub", "activate": "interact" },
+    { "name": "east", "col": -5, "row": 0, "to": "node-test", "toWarp": "hub", "activate": "interact" },
+    { "name": "west", "col": -15, "row": 0, "to": "node-test", "toWarp": "hub", "activate": "interact" },
+    { "name": "north-1", "col": -13, "row": -8, "to": "node-test", "toWarp": "north", "activate": "interact" },
+    { "name": "north-2", "col": -7, "row": -8, "to": "node-test", "toWarp": "north", "activate": "interact" },
+    { "name": "east-1", "col": -5, "row": 4, "to": "node-test", "toWarp": "east", "activate": "interact" },
+    { "name": "east-1a", "col": -5, "row": 7, "to": "node-test", "toWarp": "east-1", "activate": "interact" },
+    { "name": "west-1", "col": -15, "row": 4, "to": "node-test", "toWarp": "west", "activate": "interact" },
+    { "name": "to-spawn", "col": 3, "row": -7, "to": "node-test", "toWarp": "", "activate": "interact" },
+    { "name": "ring-1", "col": 5, "row": -4, "to": "node-test", "toWarp": "ring-2", "activate": "interact" },
+    { "name": "ring-2", "col": 12, "row": -4, "to": "node-test", "toWarp": "ring-3", "activate": "interact" },
+    { "name": "ring-3", "col": 12, "row": 2, "to": "node-test", "toWarp": "ring-4", "activate": "interact" },
+    { "name": "ring-4", "col": 5, "row": 2, "to": "node-test", "toWarp": "ring-1", "activate": "interact" },
+    { "name": "ring-5", "col": 15, "row": 6, "to": "node-test", "toWarp": "ring-3", "activate": "interact" },
+    { "name": "ring-6", "col": 9, "row": 7, "to": "node-test", "toWarp": "ring-5", "activate": "interact" },
+    { "name": "alone", "col": 0, "row": -7, "to": "", "toWarp": "", "activate": "interact" }
+  ]
+}

@@ -17,6 +17,7 @@ A map is made of:
 | `default.json` | A blank white map (80 × 50 tiles) |
 | `example.json` | The testing map: a bit of every tile (hut, pond, lava, spikes), tables and rugs, two training dummies to hit, and a villager to talk to (walk up and press **E**). Press **E** at the hut's door to go inside. The game starts here (`START_MAP` in `maps.js`) |
 | `hut.json` | Inside the hut on `example`: a room with a rug, a table and a villager. Walk back out through the gap in the bottom wall |
+| `node-test.json` | For trying out the warp graph (**Show links**, see [Warps](#warps)). Warps that teleport around the same map, each on a coloured tile so you can see it without the editor: a family on dirt that branches like a tree, a family on sand that goes round in a loop, and two on planks that aren't linked to the others (one leads nowhere, one leads to the spawn point). Press **E** on one to use it |
 
 The tile grid shows on every map while developer mode is on, and never outside it.
 
@@ -91,11 +92,14 @@ A warp is a tile that takes the player somewhere else: a door into a house, a ca
    - **Goes to**: the map it leads to. **nowhere** means it only works as a place to arrive.
    - **Arrive at**: where the player turns up on that map. That's its **spawn point**, or any warp on it.
    - **Opens by**: **stepping on it**, or **pressing E** when close enough. A warp that opens with E works from the tile in front too, so it can go on a wall or under a solid object.
+   - **Show links**: shows every warp linked to this one, then every warp linked to those, and so on, like a family tree (see below).
 3. Click the right half of a choice for the next one, or the left half to go back. Then click **Save**.
 
 In the editor, warps that open with E have an **E** on their marker. A warp shows **red** when it leads to a map or warp that doesn't exist. Going through one of those shows a message and the player stays where they are, and the browser console lists them all when the game loads.
 
 Arriving on a warp that opens by stepping on it doesn't send you straight back. It only opens when you step onto it from another tile.
+
+**Show links** opens the warp graph. The warp you're editing is at the top with a yellow edge, and under it is every warp linked to it, whichever way round, on any map. Each box shows a warp's name and its map, and the arrows point the way each warp leads, so a door and its way back out have an arrow at both ends. A warp that leads to a spawn point shows that spawn point as a box, and one leading to a warp that doesn't exist shows a red box. Drag to move around it and use the mouse wheel to zoom. **Close** or **Escape** goes back to the warp's settings. It shows the warp as it was last saved, so **Save** changes first to see them in the graph.
 
 Warps link by name, so you can move a warp around freely. **Renaming a warp breaks every warp that leads to it**, so change those too. Both maps have to be exported for a link to work after a reload.
 

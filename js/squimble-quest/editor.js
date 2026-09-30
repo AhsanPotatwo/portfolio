@@ -20,7 +20,8 @@
 //   - triggers: left click to place one.
 //       spawn: the player's spawn point (a yellow ring), which moves to the tile under the mouse
 //       warp:  a way to another map (warps.js), a purple square. placing one opens a box to pick
-//              its name, where it leads and how it opens. right click it to change those later
+//              its name, where it leads and how it opens. right click it to change those later.
+//              Show links in that box draws every warp linked to it (warpgraph.js)
 //   - Map settings (top right) opens a panel for the whole map: Resize map changes its size
 //     (never smaller than the area with tiles in it), New map makes a map of any size filled
 //     with any tile, Open file loads one and Export saves the map as a file. sizes, the fill and
@@ -318,6 +319,7 @@ const Editor = {
     UI.showGroup('editor', false);
     this.showSettings(false);
     // Ctrl + D still works while typing, so dev mode (and the editor) can close with the box open
+    if (WarpGraph.active) WarpGraph.close();
     if (FormBox.active) FormBox.close();
     Hotbar.show(true);
   },
@@ -427,11 +429,13 @@ const Editor = {
   update(map, camera, aim, dt) {
     // while the form box is open, it's all that happens. it's ui too, so it fades with the rest:
     // bring everything straight back, or a box opened while the ui was faded out (placing a warp
-    // just after moving) would be invisible, and nothing but Enter or Escape would work
+    // just after moving) would be invisible, and nothing but Enter or Escape would work.
+    // the warp graph opens over a warp's form box, and takes over from it until it closes (warpgraph.js)
     if (FormBox.active) {
       this.uiAlpha = 1;
       this.stillFor = EDITOR_UI_FADE.showDelay;
-      FormBox.update();
+      if (WarpGraph.active) WarpGraph.update();
+      else FormBox.update();
       return;
     }
 
@@ -555,7 +559,8 @@ const Editor = {
 
   // a box for changing a warp's settings: its name, which map it goes to, which warp on that map
   // it arrives at, and whether it opens by stepping on it or pressing E. the warp changes when
-  // the box is confirmed, Cancel leaves it how it was
+  // the box is confirmed, Cancel leaves it how it was. Show links opens the warp graph over it
+  // (warpgraph.js), which shows the warp as it was last saved
   editWarp(map, warp) {
     // the warps it can arrive at on the map it goes to. '' is that map's spawn point
     const arriveChoices = (mapName) => ['', ...warpNamesOn(mapName)];
@@ -595,6 +600,11 @@ const Editor = {
             value: warp.activate,
             label: (how) => (how === 'step' ? 'stepping on it' : 'pressing E'),
           }),
+        },
+        // last, so it doesn't move the others in the values onConfirm gets (a button has no value)
+        {
+          label: 'Links',
+          field: new Button({ w: 180, label: 'Show links', style: { textSize: 14 }, onClick: () => WarpGraph.open(map.name, warp.name) }),
         },
       ],
       // needs a name, and one no other warp on this map has, so warps can lead to it
