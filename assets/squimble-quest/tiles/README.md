@@ -12,13 +12,21 @@ Every tile in the game is one line in `tiles.json`, in this folder. The game loa
 
 1. Open the map editor: **`** (or **Ctrl + D**) for dev mode, then **B**.
 2. On the **Tiles** tab, click **+ New tile**, or **right click** a tile in the bar to change it.
-3. Set it up. The pictures on the right show the texture file and how the tile looks on the map as you go.
-   - **Kind**: **normal**, or **dual grid**.
-   - **Colour**: what it looks like without a texture, e.g. `#6fae4f`.
-   - **Texture**: click **Choose picture** to pick one from your computer, or set it back to **none, just colour**. A texture always covers the colour.
-   - **Solid**: nothing can walk onto it.
-   - **Speed**: how fast you walk on it, 100% is normal.
-   - **Damage**: how much it hurts a second while standing on it (like lava), and each time you step onto one (like spikes). Both hurt enemies and NPCs too.
+3. Set it up. The pictures on the right show the texture file and how the tile looks on the map as you go. The tabs along the top switch between groups of settings:
+   - **Look**
+     - **Kind**: **normal**, or **dual grid**.
+     - **Colour**: what it looks like without a texture, e.g. `#6fae4f`.
+     - **Texture**: click **Choose picture** to pick one from your computer, or set it back to **none, just colour**. A texture always covers the colour.
+   - **Behaviours**
+     - **Solid**: nothing can walk onto it.
+     - **Speed**: how fast you walk on it, 100% is normal.
+     - **Damage**: how much it hurts a second while standing on it (like lava), and each time you step onto one (like spikes).
+   - **Effects**
+     - **Heal**: how much health it gives back a second while standing on it (like a healing spring).
+     - **Slippery**: how much you slide about, 0% is normal and 90% is ice. You keep going the way you were until you bump into something.
+     - **Push** and **Push by**: pushes anything on it that way, this many tiles a second (conveyor belts, river currents, wind). Walking is 5 tiles a second.
+
+   Every setting works on enemies and NPCs too.
 4. Click **Save**. It's in the game straight away, so you can paint with it and walk on it.
 5. Click **Export tiles**. It downloads `tiles.json`, and the picture too if you chose a new one. The message on screen says where each goes:
    - drag `tiles.json` into this folder in VS Code, replacing the old one
