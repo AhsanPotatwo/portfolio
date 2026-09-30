@@ -220,6 +220,8 @@ function draw() {
     // stay gone (see loadMap())
     enemies = enemies.filter((enemy) => !enemy.dead);
     for (const npc of npcs) npc.update(dt, world);
+    // enemies following the player to another map come out once they've got there (warps.js)
+    Warps.update(dt);
 
     // the npc close enough to talk to (if any) shows an E over its head, and E starts talking.
     // otherwise, a warp that opens with E (if one's in reach) does the same (warps.js)

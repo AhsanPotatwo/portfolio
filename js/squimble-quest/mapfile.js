@@ -31,7 +31,7 @@
 //       { "type": "villager", "col": -3, "row": -3 }
 //     ],
 //     "warps": [                            tiles that take the player somewhere else (warps.js)
-//       { "name": "hut", "col": -11, "row": -5, "to": "hut", "toWarp": "exit", "activate": "interact" }
+//       { "name": "hut", "col": -11, "row": -5, "to": "hut", "toWarp": "exit", "activate": "interact", "enemies": true }
 //     ]
 //   }
 //
@@ -90,7 +90,7 @@ function mapToData(map) {
   for (const info of Object.values(SPAWN_KINDS)) {
     data[info.fileKey] = map[info.list].map((spawn) => ({ type: spawn.type, col: spawn.col, row: spawn.row }));
   }
-  data.warps = map.warps.map(({ name, col, row, to, toWarp, activate }) => ({ name, col, row, to, toWarp, activate }));
+  data.warps = map.warps.map(({ name, col, row, to, toWarp, activate, enemies }) => ({ name, col, row, to, toWarp, activate, enemies }));
   return data;
 }
 
@@ -170,7 +170,8 @@ function mapFromData(data) {
 
   // the "warps" list, also missing from older maps. a warp needs a name and a tile, the rest can
   // be left out: no "to" goes nowhere (only somewhere to arrive), no "toWarp" arrives at the
-  // spawn point, and anything but "interact" opens by stepping on it (see warps.js)
+  // spawn point, anything but "interact" opens by stepping on it, and enemies only follow the
+  // player through it with "enemies": true (see warps.js)
   for (const warp of data.warps ?? []) {
     if (typeof warp.name !== 'string' || !Number.isInteger(warp.col) || !Number.isInteger(warp.row)) {
       unknown.add(`a warp without a name, col or row`);
@@ -183,6 +184,7 @@ function mapFromData(data) {
       to: warp.to ?? '',
       toWarp: warp.toWarp ?? '',
       activate: warp.activate === 'interact' ? 'interact' : 'step',
+      enemies: warp.enemies === true,
     });
   }
 

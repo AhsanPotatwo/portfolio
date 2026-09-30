@@ -87,12 +87,17 @@ function chasePlayer(enemy, world) {
   if (distance > enemy.type.sightRange) return STAND_STILL;
 
   return {
-    // -1, 0 or 1 each way, towards the player. 0 once it's within a few pixels on that side,
-    // otherwise when it's level with the player it would flick between up and down every frame
-    move: { x: Math.abs(dx) > 4 ? Math.sign(dx) : 0, y: Math.abs(dy) > 4 ? Math.sign(dy) : 0 },
+    move: towards(dx, dy),
     aim: { x: player.x, y: player.y },
     attack: distance < enemy.type.attackRange,
   };
+}
+
+// which way to walk to go dx across and dy down: -1, 0 or 1 each way. 0 once it's within a few
+// pixels on that side, otherwise when it's level with where it's going it would flick between up
+// and down every frame
+function towards(dx, dy) {
+  return { x: Math.abs(dx) > 4 ? Math.sign(dx) : 0, y: Math.abs(dy) > 4 ? Math.sign(dy) : 0 };
 }
 
 // ---------- the enemies ----------

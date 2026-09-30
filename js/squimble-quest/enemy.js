@@ -7,11 +7,30 @@ class Enemy extends Character {
     super(0, 0, ENEMY_TYPES[type]);
     this.type = ENEMY_TYPES[type];
     this.placeFeetOnTile(col, row);
+    // { warp, time } while it's following the player through a warp: the warp, and seconds until
+    // it comes out the other side (Warps.sendFollowers() in warps.js). null the rest of the time
+    this.following = null;
   }
 
   update(dt, world) {
-    // its ai decides what to do, the same way the keyboard and mouse decide for the player
-    super.update(this.think(world, dt), dt, world);
+    // its ai decides what to do, the same way the keyboard and mouse decide for the player,
+    // unless it's following the player through a warp
+    const controls = this.following ? this.followThroughWarp(dt) : this.think(world, dt);
+    super.update(controls, dt, world);
+  }
+
+  // walks to the warp it's following the player through, and comes out the other side when its
+  // time's up (Warps.comeOut() in warps.js). the time is how long the walk should take, so one
+  // stuck behind a wall still gets through, the same as one following to another map would
+  followThroughWarp(dt) {
+    this.following.time -= dt;
+    if (this.following.time <= 0) {
+      Warps.comeOut(this);
+      return STAND_STILL;
+    }
+    const x = (this.following.warp.col + 0.5) * TILE;
+    const y = (this.following.warp.row + 0.5) * TILE;
+    return { move: towards(x - this.x, y - (this.y + feetBelowCentre(this.settings))), aim: { x, y }, attack: false };
   }
 
   // an enemy's attacks hurt the player
