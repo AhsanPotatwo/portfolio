@@ -3,7 +3,8 @@
 //   - + New tile, on the right of the editor's tabs, opens a box for a new tile
 //   - right clicking a tile in the bar opens the same box for that tile, with all its settings
 //   - the box has tabs: Look for how it looks, then the tabs from TILE_BEHAVIOURS below for what it
-//     does (Behaviours, Effects...)
+//     does (Behaviours, Effects...), then Dual grid for which dual grid tiles round off onto it
+//     (blendsWith in tiles.js)
 //   - the box shows the tile's texture file, and a patch of the tile as it'd look on the map, which
 //     change as you change the settings
 //   - Save changes the tile in the game straight away, so you can paint with it and walk on it
@@ -93,10 +94,33 @@ const TileEditor = {
       const value = type?.[b.key] ?? TILE_DEFAULTS[b.key];
       return { ...b, field: b.field(b.scale ? Math.round(value * b.scale) : value) };
     });
-    // the tabs: Look, then each tab named in TILE_BEHAVIOURS, cut into TILE_EDITOR_ROWS sized pieces
+    // which dual grid tiles round off onto this one (blendsWith in tiles.js): all of them, even ones
+    // made later, or only the ticked ones. a tick box for every other dual grid tile
+    const blendPicker = new Picker({
+      w: 180,
+      choices: [true, false],
+      value: !type?.blendsWith,
+      label: (all) => (all ? 'every dual grid tile' : 'only the ticked ones'),
+      onChange: (all) => blendBoxes.forEach((box) => { box.enabled = !all; }),
+    });
+    const blendBoxes = Object.values(TILE_TYPES)
+      .filter((other) => other.dualGrid && other !== type)
+      .map((other) => new Checkbox({
+        w: 180, label: other.name, enabled: !blendPicker.value,
+        value: !type?.blendsWith || type.blendsWith.includes(other.name),
+      }));
+    const blendRows = [
+      { label: 'Blends', field: blendPicker },
+      ...blendBoxes.map((field) => ({ label: '', field })),
+    ];
+
+    // the tabs: Look, then each tab named in TILE_BEHAVIOURS, then Dual grid, cut into
+    // TILE_EDITOR_ROWS sized pieces
+    const sections = [...new Set(TILE_BEHAVIOURS.map((b) => b.tab))]
+      .map((name) => [name, behaviourRows.filter((row) => row.tab === name)]);
+    sections.push(['Dual grid', blendRows]);
     const tabs = [];
-    for (const name of new Set(TILE_BEHAVIOURS.map((b) => b.tab))) {
-      const rows = behaviourRows.filter((row) => row.tab === name);
+    for (const [name, rows] of sections) {
       for (let i = 0; i < rows.length; i += TILE_EDITOR_ROWS) {
         const page = i / TILE_EDITOR_ROWS;
         tabs.push({ label: page ? `${name} ${page + 1}` : name, rows: rows.slice(i, i + TILE_EDITOR_ROWS) });
@@ -171,6 +195,7 @@ const TileEditor = {
         // might not be yet
         const settings = { name, colour: colourField.value.toLowerCase(), dualGrid: kindPicker.value, texture };
         for (const row of behaviourRows) settings[row.key] = row.scale ? row.field.value / row.scale : row.field.value;
+        settings.blendsWith = blendPicker.value ? null : blendBoxes.filter((box) => box.value).map((box) => box.label);
         setTile(settings, picture());
 
         // a changed tile's square in the bar draws itself from the tile every frame, so it's already

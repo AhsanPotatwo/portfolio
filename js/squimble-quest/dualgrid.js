@@ -68,17 +68,22 @@ function drawDualCorner(map, col, row, x, y) {
   dualAround[2] = map.get(col - 1, row);
   dualAround[3] = map.get(col, row);
 
-  // the first normal tile here, and the dual grid tile on the lowest layer (see layer in tiles.js)
-  let under = null;
+  // the dual grid tile on the lowest layer (see layer in tiles.js)
   let lowest = null;
   for (const type of dualAround) {
-    if (!type) continue;
-    // ??= only sets it if it's still null, so it keeps the first normal tile it finds
-    if (!type.dualTiles) under ??= type;
-    else if (!lowest || type.layer < lowest.layer) lowest = type;
+    if (type?.dualTiles && (!lowest || type.layer < lowest.layer)) lowest = type;
   }
   // no dual grid tiles on this corner, the normal tiles have already drawn it all
   if (!lowest) return;
+  // the first normal tile here that a dual grid tile here rounds off onto (blendsWith in tiles.js).
+  // one that none of them do only meets them in straight lines, so it never shows under their edges
+  let under = null;
+  for (const type of dualAround) {
+    if (!type || type.dualTiles || under) continue;
+    for (const dual of dualAround) {
+      if (dual?.dualTiles && blendsOnto(type, dual)) under = type;
+    }
+  }
 
   // the piece's left, middle and right edges on screen, and its top, middle and bottom
   const xs = [x(2 * col - 1), x(2 * col), x(2 * col + 1)];
@@ -111,18 +116,38 @@ function drawDualCorner(map, col, row, x, y) {
   // and there's never a gap between them
   let type = lowest;
   while (type) {
-    // which of the four this piece covers, and the next layer up to draw after it
+    // which of the four this piece covers, and the next layer up to draw after it.
+    // a tile it doesn't round off onto (blendsWith) counts as covered too, so the piece goes straight
+    // up to it, but that quarter's left out (cut) so the tile itself still shows there
     let which = 0;
+    let cut = 0;
     let next = null;
     for (let i = 0; i < 4; i++) {
       const other = dualAround[i];
-      if (!other?.dualTiles || other.layer < type.layer) continue;
-      // switches on this tile's 1 in which. >> moves the 1 along: 0b1000 for up left (i = 0),
-      // 0b0100 for up right, 0b0010 for down left, 0b0001 for down right. |= adds it to the others
-      which |= 0b1000 >> i;
-      if (other.layer > type.layer && (!next || other.layer < next.layer)) next = other;
+      if (!other) continue;
+      // >> moves the 1 along: 0b1000 for up left (i = 0), 0b0100 for up right, 0b0010 for down left,
+      // 0b0001 for down right. |= adds it to the others
+      if (other.dualTiles && other.layer >= type.layer) {
+        which |= 0b1000 >> i;
+        if (other.layer > type.layer && (!next || other.layer < next.layer)) next = other;
+      } else if (!blendsOnto(other, type)) {
+        which |= 0b1000 >> i;
+        cut |= 0b1000 >> i;
+      }
     }
-    image(type.dualTiles[which], xs[0], ys[0], xs[2] - xs[0], ys[2] - ys[0]);
+    const piece = type.dualTiles[which];
+    if (!cut) {
+      image(piece, xs[0], ys[0], xs[2] - xs[0], ys[2] - ys[0]);
+    } else {
+      // just the quarters that aren't cut, each from the matching quarter of the piece
+      for (let i = 0; i < 4; i++) {
+        if (cut & (0b1000 >> i)) continue;
+        const across = i % 2;
+        const down = Math.floor(i / 2);
+        const half = piece.width / 2;
+        image(piece, xs[across], ys[down], xs[across + 1] - xs[across], ys[down + 1] - ys[down], across * half, down * half, half, half);
+      }
+    }
     type = next;
   }
 }

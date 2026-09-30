@@ -954,7 +954,7 @@ class SettingsPanel extends UIElement {
 
 // the box's width, the space each thing it asks for gets, how much wider a side column makes it
 // (see side in FormBox.open()), and the size of its tabs (see tabs), in screen pixels
-const FORM_BOX = { width: 300, rowHeight: 44, sideWidth: 180, tabHeight: 28, tabWidth: 100, tabGap: 4 };
+const FORM_BOX = { width: 300, rowHeight: 44, sideWidth: 180, tabHeight: 28, tabGap: 4 };
 
 // a box for a map's width or height, starting at value. it won't go below min or above
 // EDITOR_MAX_MAP_SIZE (NumberField is in textfield.js)
@@ -1010,15 +1010,24 @@ const FormBox = {
 
     // covers the whole screen, so nothing behind it can be clicked while it's open
     add(new FormBoxBackdrop({ x: 0, y: 0, w: GAME_W, h: GAME_H, box: { x, y, w, h } }));
-    // the tabs, under the title and above the rows. they shrink to fit if there are lots
-    const tabW = Math.min(FORM_BOX.tabWidth, (FORM_BOX.width - 40 - FORM_BOX.tabGap * (this.tabs.length - 1)) / this.tabs.length);
-    this.tabButtons = tabbed ? this.tabs.map(({ label }, i) => add(new Button({
-      x: x + 20 + i * (tabW + FORM_BOX.tabGap), y: y + 48, w: tabW, h: FORM_BOX.tabHeight, label,
-      style: { textSize: 12, onFill: EDITOR_COLOURS.accent },
-      // a toggle so the open one's lit up. showTab() puts them all right after the click flips it
-      toggle: true,
-      onClick: () => this.showTab(i),
-    }))) : [];
+    // the tabs, under the title and above the rows, each as wide as its label. they all shrink to fit
+    // if there are lots
+    setText(12, BOLD, CENTER, CENTER, BUTTON_STYLES.default.font);
+    const tabWidths = this.tabs.map(({ label }) => textWidth(label ?? '') + 16);
+    const room = FORM_BOX.width - 40 - FORM_BOX.tabGap * (this.tabs.length - 1);
+    const squash = Math.min(1, room / tabWidths.reduce((a, b) => a + b, 0));
+    let tabX = x + 20;
+    this.tabButtons = tabbed ? this.tabs.map(({ label }, i) => {
+      const button = add(new Button({
+        x: tabX, y: y + 48, w: tabWidths[i] * squash, h: FORM_BOX.tabHeight, label,
+        style: { textSize: 12, onFill: EDITOR_COLOURS.accent },
+        // a toggle so the open one's lit up. showTab() puts them all right after the click flips it
+        toggle: true,
+        onClick: () => this.showTab(i),
+      }));
+      tabX += button.w + FORM_BOX.tabGap;
+      return button;
+    }) : [];
     // every tab's rows in the same places, showTab() hides all but the open tab's
     for (const { rows } of this.tabs) {
       rows.forEach(({ field }, i) => add(Object.assign(field, { x: x + 100, y: y + this.rowsTop + i * FORM_BOX.rowHeight, h: 32 })));
@@ -1226,8 +1235,9 @@ class Picker extends UIElement {
 
 // a tick box in the form box, for a setting that's only on or off, like whether enemies can follow
 // the player through a warp. clicking anywhere on it (the box or its words) flips it.
-//   value  true to start ticked
-//   label  the words next to the box
+//   value    true to start ticked
+//   label    the words next to the box
+//   enabled  false greys it out and stops it being clicked, like a Button
 class Checkbox extends UIElement {
   constructor(options) {
     super(options);
@@ -1236,11 +1246,18 @@ class Checkbox extends UIElement {
   }
 
   update(hovered) {
-    this.hovered = hovered;
-    if (hovered && Input.buttonsPressed.has('left')) this.value = !this.value;
+    this.hovered = hovered && this.enabled;
+    if (this.hovered && Input.buttonsPressed.has('left')) this.value = !this.value;
   }
 
   draw() {
+    push();
+    if (!this.enabled) drawingContext.globalAlpha *= BUTTON_STYLES.default.disabledAlpha;
+    this.drawBox();
+    pop();
+  }
+
+  drawBox() {
     const size = 20;
     const left = this.x + 6;
     const top = this.y + (this.h - size) / 2;

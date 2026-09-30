@@ -35,6 +35,9 @@
 //   pushDirection    "up", "down", "left" or "right" (PUSH_DIRECTIONS below): pushes anything on it
 //                    that way, pushSpeed tiles a second (conveyor belts, currents, wind)
 //   pushSpeed        how hard it pushes, in tiles a second. walking speed is 5. 0 doesn't push
+//   blendsWith       which dual grid tiles round off onto it, e.g. ["grass"]. left out, they all do.
+//                    [] is none. the ones that don't stop in a straight line at its edge instead,
+//                    which looks better for things like planks and walls
 //
 // these work for everyone: the player, enemies and npcs (walk() and checkTile() in character.js).
 // the order of the tiles is the order in the editor's bar, and where two dual grid tiles meet, the one
@@ -86,7 +89,15 @@ const TILE_DEFAULTS = {
   // doesn't push anyone anywhere
   pushDirection: null,
   pushSpeed: 0,
+  // every dual grid tile rounds off onto it
+  blendsWith: null,
 };
+
+// does this dual grid tile round off onto tile (see blendsWith above)? if not, it stops in a straight
+// line at tile's edge (drawDualCorner() in dualgrid.js)
+function blendsOnto(tile, dual) {
+  return !tile.blendsWith || tile.blendsWith.includes(dual.name);
+}
 
 // the ways a tile can push (pushDirection), as x and y
 const PUSH_DIRECTIONS = {
