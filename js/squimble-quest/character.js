@@ -197,8 +197,8 @@ class Character {
     this.y = centre.y;
   }
 
-  // which tile it's standing on (the one under the middle of its feet),
-  // and runs that tile's behaviours from tiles.js (e.g. lava hurts enemies too)
+  // which tile it's standing on (the one under the middle of its feet), and the damage it does
+  // (damagePerStep and damagePerSecond in tiles.js). everyone gets hurt, so lava hurts enemies too
   checkTile(map, dt) {
     const feet = this.feetBox();
     const col = map.colAt(feet.x + feet.w / 2);
@@ -209,10 +209,11 @@ class Character {
       this.tileCol = col;
       this.tileRow = row;
       this.tile = map.get(col, row);
-      if (this.tile && this.tile.onEnter) this.tile.onEnter(this);
+      if (this.tile?.damagePerStep) this.hurt(this.tile.damagePerStep);
     }
 
-    if (this.tile && this.tile.onStand) this.tile.onStand(this, dt);
+    // dt is seconds since the last frame, so this adds up to damagePerSecond each second
+    if (this.tile?.damagePerSecond) this.hurt(this.tile.damagePerSecond * dt);
   }
 
   // ---------- aiming and attacking ----------

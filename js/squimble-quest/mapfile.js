@@ -314,7 +314,14 @@ function mapNameFromFile(fileName) {
 
 // makes the browser download some text as a file
 function downloadTextFile(fileName, text) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+  downloadData(fileName, new Blob([text], { type: 'application/json' }));
+}
+
+// makes the browser download a file. data is a Blob, the browser's name for a file's contents, e.g. a
+// picture chosen in the tile editor (tileeditor.js). not called downloadFile(): p5 already has one,
+// and in global mode p5's would replace it
+function downloadData(fileName, data) {
+  const url = URL.createObjectURL(data);
   const link = document.createElement('a');
   link.href = url;
   link.download = fileName;

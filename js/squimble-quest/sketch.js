@@ -8,7 +8,7 @@
 //   utils.js      small helpers (maths, text settings)
 //   input.js      the keyboard and mouse
 //   camera.js     which part of the world is on screen, and world ↔ screen positions
-//   tiles.js      every kind of tile and what it does (grass, walls, lava...)
+//   tiles.js      every kind of tile and what it does (grass, walls, lava...), loaded from tiles.json
 //   dualgrid.js   dual grid tiles: ground like grass that blends into the tiles next to it
 //   objects.js    every kind of object that sits on the tiles (furniture, decorations...)
 //   enemies.js    every kind of enemy, and its ai
@@ -32,6 +32,7 @@
 //   warps.js      warps (doors, caves, teleporters...): going through them, checking where they lead
 //   warpgraph.js  the map editor's picture of every warp linked to a warp (needs button.js first)
 //   editor.js     the map editor, opened from dev mode (needs button.js and textfield.js first)
+//   tileeditor.js the map editor's box for making and changing tiles (needs editor.js first)
 //   debug.js      developer mode, hidden testing tools (press ` or Ctrl + D while playing)
 //
 // the catalogue files (tiles, objects, enemies, npcs, weapons, items) are where new things get
@@ -45,13 +46,13 @@ let worldMap;
 // the enemies and npcs on it right now (see spawnCharacters())
 let enemies = [];
 let npcs = [];
-// false until the map files have loaded, the game shows a loading message until then
+// false until the tiles and map files have loaded, the game shows a loading message until then
 let mapsReady = false;
 
 // runs before setup(). p5 waits for everything started here (like images) to finish loading
 // before it starts the game. load images for buttons and anything else in here too
+// (tiles load in setup(), with the maps)
 function preload() {
-  prepareArt(TILE_TYPES, 'tile');
   prepareArt(OBJECT_TYPES, 'object');
   prepareArt(ENEMY_TYPES, 'enemy');
   prepareArt(ITEM_TYPES, 'item');
@@ -74,10 +75,13 @@ function setup() {
   // the hotbar along the bottom shows the player's inventory
   Hotbar.init(player.inventory);
 
-  // the map files load in the background (see mapfile.js), then the game starts on START_MAP (maps.js).
-  // they're loaded here rather than in preload() because a missing file in preload() would stop
-  // the game ever starting, and this way it's just skipped
-  loadMapFiles().then(() => {
+  // the tiles (tiles.js) and map files (mapfile.js) load in the background, then the game starts on
+  // START_MAP (maps.js). tiles first, because loading a map checks every tile on it is one the game
+  // knows. they're loaded here rather than in preload() because a missing file in preload() would
+  // stop the game ever starting, and this way it's just skipped
+  loadTileFile().then(loadMapFiles).then(() => {
+    // the editor's bar has a square for every tile, so it's made now there are some
+    Editor.makeSwatches();
     // not one map file loaded, so use the blank stand-in map (maps.js) so there's something to play on
     if (Object.keys(MAPS).length === 0) {
       console.warn('No map files could be loaded, so the game is on a blank stand-in map.');

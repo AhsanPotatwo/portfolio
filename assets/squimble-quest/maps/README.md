@@ -4,7 +4,7 @@ Every map in the game is one `.json` file in this folder. The file name is the m
 
 A map is made of:
 
-- **Tiles**: the ground. Every spot has exactly one tile (grass, wall, water…), or is empty. Tiles are defined in [`js/squimble-quest/tiles.js`](../../../js/squimble-quest/tiles.js).
+- **Tiles**: the ground. Every spot has exactly one tile (grass, wall, water…), or is empty. Tiles are made in the editor's tile editor and kept in [`tiles/tiles.json`](../tiles/README.md).
 - **Objects**: things placed on top, like furniture and decorations. One object can cover several tiles (a 2 × 1 table), and several can share a tile (a table on a rug). Objects are defined in [`js/squimble-quest/objects.js`](../../../js/squimble-quest/objects.js).
 - **Enemies**: where each enemy starts. They appear there with full health the first time you go to the map. After that, each map remembers its enemies and NPCs as you left them: defeated enemies stay defeated and hurt ones stay hurt, until the page is reloaded. Enemies are defined in [`js/squimble-quest/enemies.js`](../../../js/squimble-quest/enemies.js).
 - **NPCs**: where each friendly character starts. Walk up to one and press **E** to talk. NPCs, and what they say, are defined in [`js/squimble-quest/npcs.js`](../../../js/squimble-quest/npcs.js).
@@ -49,7 +49,8 @@ Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything 
 | **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** tabs above the bar | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs and triggers (the player's spawn point, and warps) |
 | **Map settings** (top right) | Opens a panel with the map's name and size, and the **Resize map**, **New map**, **Open file** and **Export** buttons. Click it again (or move with **WASD**) to close it |
 | Click something in the bottom bar | Choose it (**‹ ›** for more pages) |
-| Left click / drag (tile chosen) | Paint that tile, replacing the one there. Tiles with a little badge of two overlapping squares in the corner are dual grid tiles (like grass): their edges round off and blend into the tiles next to them by themselves (see `tileset` in `tiles.js`) |
+| Left click / drag (tile chosen) | Paint that tile, replacing the one there. Tiles with a little badge of two overlapping squares in the corner are dual grid tiles (like grass): their edges round off and blend into the tiles next to them by themselves |
+| **+ New tile** / right click a tile in the bar (**Tiles** tab) | Make a tile, or see and change everything about one. **Export tiles** saves them all. See the [tiles README](../tiles/README.md) |
 | Left click (object chosen) | Place the object, its top-left corner on the tile under the mouse. A see-through preview shows where it'll go |
 | Left click (enemy or NPC chosen) | Place it, standing on the tile under the mouse |
 | Left click (**spawn** chosen, in **Triggers**) | The player spawns on this tile (yellow ring). There's only one, so it moves here |
@@ -186,7 +187,7 @@ You can open a map in any text editor. It looks like this:
 ```
 
 - **`rows`**: the tiles, one line per row, top row first, with a code for each tile separated by spaces.
-- **`legend`**: which code means which tile (the names in `tiles.js`). `..` is always empty. The editor makes a 2-character code for each tile when it exports, from the tile's name where it can: `gr` for grass, then `wt` for water because `wa` is already wall. There are thousands of possible codes, so they won't run out however many tiles you add.
+- **`legend`**: which code means which tile (the names in `tiles.json`). `..` is always empty. The editor makes a 2-character code for each tile when it exports, from the tile's name where it can: `gr` for grass, then `wt` for water because `wa` is already wall. There are thousands of possible codes, so they won't run out however many tiles you add.
 - **`objects`**: everything placed on the tiles. `type` is the object's name in `objects.js`, and `col`, `row` is the tile its top-left corner is on. They're drawn in list order, so later ones go on top.
 - **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is the name in `enemies.js` or `npcs.js`, and `col`, `row` is the tile it stands on. Maps without these lists just have none.
 - **`warps`**: see [Warps](#warps). `name` is the warp's name, and `col`, `row` is its tile. `to` is the map it leads to (`""` for nowhere), and `toWarp` is the warp to arrive at on that map (`""` for its spawn point). `activate` is `"step"` or `"interact"` (press E). `enemies` is `true` if enemies chasing the player follow them through it (left out means `false`). Maps without this list just have no warps.
@@ -203,5 +204,5 @@ Maps saved before objects were added (version 1, one character per tile with no 
 
 - **The map isn't in the M list:** check the file is in this folder, its name is in `MAP_FILES` with `.json` on the end, and the game is running through a local server. The browser console (F12) says which file failed and why.
 - **"This warp is broken" when using a warp:** it leads to a map that isn't loaded, or to a warp name that map doesn't have. Right click the warp in the editor to fix it. Check that the map is in `MAP_FILES`, and that the warp on the other map wasn't renamed.
-- **Some tiles, objects, enemies or NPCs are missing:** the map uses a name the game doesn't know, maybe because it was renamed in `tiles.js`, `objects.js`, `enemies.js` or `npcs.js`, or a code that isn't in the `legend`. The console lists everything it left out. Add it back, or fix the name in the file.
+- **Some tiles, objects, enemies or NPCs are missing:** the map uses a name the game doesn't know, maybe because it was renamed in `tiles.json`, `objects.js`, `enemies.js` or `npcs.js`, or a code that isn't in the `legend`. The console lists everything it left out. Add it back, or fix the name in the file.
 - **"This doesn't look like a Squimble Quest map file":** the file isn't a map, or it's been damaged. It needs a `legend` and `rows` at least.

@@ -26,7 +26,7 @@
 // (but renaming it does, see warpProblem()).
 //
 // arriving on a 'step' warp doesn't send you straight back through it. a step warp only opens
-// when you step onto its tile from another tile, the same way tile onEnter works (character.js),
+// when you step onto its tile from another tile, the same way a tile's damagePerStep works (character.js),
 // and the tile you arrive on counts as already stepped on.
 //
 // a warp is on the map rather than part of a tile or object, because a tile or object has nowhere
