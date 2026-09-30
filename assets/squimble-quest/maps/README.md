@@ -21,7 +21,7 @@ The tile grid shows on every map while developer mode is on, and never outside i
 ## Quick start
 
 1. Open the game, click it, press **`** or **Ctrl + D** (developer mode), then **B** (map editor).
-2. In the **Level settings** tab, click **New map** and type a size, e.g. `40x24`. Or just edit the map you're on.
+2. Click **Map settings** (top right), then **New map**, and type a width and height. Or just edit the map you're on.
 3. Paint tiles and place objects.
 4. Click **Export**, give it a name, and it downloads as `yourname.json`.
 5. Move the file into this folder (`assets/squimble-quest/maps/`).
@@ -44,7 +44,7 @@ Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything 
 | Control | What it does |
 |---|---|
 | **Tiles** / **Objects** / **Enemies** / **NPCs** tabs above the bar | Switch between the ground tiles, objects (furniture, decorations…), enemies and friendly NPCs |
-| **Level settings** tab | The map's name and size, and the **Resize map**, **New map**, **Open file** and **Export** buttons |
+| **Map settings** (top right) | Opens a panel with the map's name and size, and the **Resize map**, **New map**, **Open file** and **Export** buttons. Click it again (or move with **WASD**) to close it |
 | Click something in the bottom bar | Choose it (**‹ ›** for more pages) |
 | Left click / drag (tile chosen) | Paint that tile, replacing the one there |
 | Left click (object chosen) | Place the object, its top-left corner on the tile under the mouse. A see-through preview shows where it'll go |
@@ -63,7 +63,7 @@ While the editor's open, everyone stands still. Opening it brings back every ene
 
 ### New maps
 
-Click **New map** and type the size in tiles as width x height: `40x24`, `40 x 24` and `40,24` all work. The smallest is `1x1` and the biggest is `500x500`. Tile `(0, 0)` is in the middle of the new map, and that's where the player spawns.
+Click **Map settings**, then **New map**. A box asks for the width and height in tiles: click a number (or press **Tab**) to type into it, then press **Enter** or **Make map** (**Escape** or **Cancel** closes it). The smallest is 1 × 1 and the biggest is 500 × 500. Tile `(0, 0)` is in the middle of the new map, and that's where the player spawns.
 
 The new map is filled with whatever is chosen in the bar:
 
@@ -76,9 +76,9 @@ A new map is called `new-map` until you export it with a name of its own.
 
 ### Resizing a map
 
-In the **Level settings** tab, click **Resize map** and type the new size (same format as **New map**). The map grows or shrinks around its middle, and any new space is empty, ready to paint.
+Click **Map settings**, then **Resize map**, and type the new width and height into the box (it works like the **New map** one). The map grows or shrinks around its middle, and any new space is empty, ready to paint.
 
-It can't be made smaller than the area with tiles in it: the box asking for the size says what the smallest is, and asking for less gives you that. So a 10 × 10 map made 20 × 20 can go back to 10 × 10, but if you've painted one tile past the old edge on the right and bottom, the smallest is 11 × 11. Objects, enemies and NPCs on any part that's cut off are removed.
+It can't be made smaller than the area with tiles in it: the box says what the smallest is, and won't go any lower. So a 10 × 10 map made 20 × 20 can go back to 10 × 10, but if you've painted one tile past the old edge on the right and bottom, the smallest is 11 × 11. Objects, enemies and NPCs on any part that's cut off are removed.
 
 ### Changing a map you've already made
 

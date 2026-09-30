@@ -16,9 +16,10 @@
 //     you always see the whole design. closing it puts every enemy and npc back where it was
 //     placed, with full health. (outside the editor, defeated enemies stay defeated, see sketch.js)
 //   - P puts the player's spawn point on the tile under the mouse (marked with a yellow ring)
-//   - the Level settings tab has the buttons for the whole map: Resize map changes its size
+//   - Map settings (top right) opens a panel for the whole map: Resize map changes its size
 //     (never smaller than the area with tiles in it), New map makes a blank map of any size,
-//     Open file loads one and Export saves the map as a file
+//     Open file loads one and Export saves the map as a file. both sizes are typed into a box
+//     in the game (SizeBox, at the bottom of this file)
 //   - the dev mode keys still work (zoom, teleport, next map), and H lists them all
 //
 // everything in tiles.js, objects.js, enemies.js and npcs.js shows up in the bar by itself.
@@ -65,7 +66,7 @@ const EDITOR_BAR = {
   swatchesLeft: 110,
   swatchesRight: GAME_W - 44,
   // the tabs sitting on top of the bar, and the gap between them
-  tabWidth: 108,
+  tabWidth: 96,
   tabHeight: 28,
   tabGap: 2,
 };
@@ -83,8 +84,15 @@ const EDITOR_COLOURS = {
   accent: '#4a7bd8',
 };
 
-// the buttons in the Level settings tab, in a row along the right of the bar
-const EDITOR_SETTINGS_BUTTONS = { width: 110, height: 40, gap: 8 };
+// the Map settings button in the top right corner, and the panel it opens underneath it
+const EDITOR_SETTINGS = {
+  buttonWidth: 120,
+  buttonHeight: 30,
+  panelWidth: 200,
+  // the map's name and size go at the top of the panel, then a button every rowHeight
+  headerHeight: 56,
+  rowHeight: 40,
+};
 
 // the tabs above the bar, left to right. each one shows everything of its kind.
 // a new kind of thing to place needs a tab here and its catalogue in EDITOR_CATALOGUES below
@@ -94,8 +102,6 @@ const EDITOR_TABS = [
   { kind: 'object', label: 'Objects' },
   { kind: 'enemy', label: 'Enemies' },
   { kind: 'npc', label: 'NPCs' },
-  // not things to place, but buttons for the whole map (resize, new, open, export)
-  { kind: 'settings', label: 'Level settings' },
 ];
 
 // where each tab's things are defined, by kind
@@ -104,31 +110,6 @@ const EDITOR_CATALOGUES = { tile: TILE_TYPES, object: OBJECT_TYPES, enemy: ENEMY
 // is this tab's kind a character that gets placed standing on a tile (an enemy or npc)?
 function isCharacterKind(kind) {
   return kind in SPAWN_KINDS;
-}
-
-// asks for a map size, e.g. "40x24", "40 x 24" or "40,24". gives back { cols, rows }, or null if
-// it was cancelled or isn't a size that can be used (after saying why)
-function askForSize(message, suggestion) {
-  const typed = prompt(message, suggestion);
-  // cancelled
-  if (typed === null) return null;
-
-  const match = typed.match(/^\s*(\d+)\s*[x×*,]\s*(\d+)\s*$/i);
-  if (!match) {
-    alert('Type the size as width x height, e.g. 40x24');
-    return null;
-  }
-  const cols = Number(match[1]);
-  const rows = Number(match[2]);
-  if (cols < 1 || rows < 1) {
-    alert('The smallest a map can be is 1x1.');
-    return null;
-  }
-  if (cols > EDITOR_MAX_MAP_SIZE || rows > EDITOR_MAX_MAP_SIZE) {
-    alert(`The biggest a map can be is ${EDITOR_MAX_MAP_SIZE}x${EDITOR_MAX_MAP_SIZE}.`);
-    return null;
-  }
-  return { cols, rows };
 }
 
 // where a resized map's left column (or top row) goes, one direction at a time. start and length
@@ -166,17 +147,16 @@ const Editor = {
   eraseButton: null,
   prevButton: null,
   nextButton: null,
-  settingsButtons: [],
+  settingsButton: null,
 
   // call once from setup(). makes the bar and buttons (hidden until the editor opens)
   init() {
     const barY = GAME_H - EDITOR_BAR.height;
     const perPage = Math.floor((EDITOR_BAR.swatchesRight - EDITOR_BAR.swatchesLeft) / EDITOR_BAR.slotWidth);
 
-    // what goes in each tab, and how many pages each one needs (at least 1, even if it's empty).
-    // the settings tab has no catalogue, so it's empty
+    // what goes in each tab, and how many pages each one needs (at least 1, even if it's empty)
     const names = {};
-    for (const { kind } of EDITOR_TABS) names[kind] = Object.keys(EDITOR_CATALOGUES[kind] ?? {});
+    for (const { kind } of EDITOR_TABS) names[kind] = Object.keys(EDITOR_CATALOGUES[kind]);
     for (const { kind } of EDITOR_TABS) {
       this.pages[kind] = 0;
       this.pageCounts[kind] = Math.max(1, Math.ceil(names[kind].length / perPage));
@@ -232,25 +212,51 @@ const Editor = {
       });
     }
 
-    // the Level settings tab's buttons, along the right of the bar. showTab() only shows them on
-    // that tab (EditorBar writes the map's name and size on the left). worldMap is the game's (sketch.js)
-    const { width, height, gap } = EDITOR_SETTINGS_BUTTONS;
-    const settings = [
+    // Map settings, top right. a toggle, so it looks switched on while its panel is open
+    const s = EDITOR_SETTINGS;
+    this.settingsButton = add(new Button({
+      x: GAME_W - 8 - s.buttonWidth, y: 8, w: s.buttonWidth, h: s.buttonHeight, label: 'Map settings',
+      style: { textSize: 13, onFill: EDITOR_COLOURS.accent },
+      toggle: true,
+      onClick: (button) => this.showSettings(button.on),
+    }));
+
+    // the panel it opens, in its own group so it can be shown and hidden on its own. each button
+    // closes the panel, then does its thing. worldMap is the game's (sketch.js)
+    const actions = [
       { label: 'Resize map', onClick: () => this.resizeMap() },
       { label: 'New map', onClick: () => this.newMap() },
       { label: 'Open file', onClick: () => openMapFile() },
       { label: 'Export', style: 'primary', onClick: () => exportMap(worldMap) },
     ];
-    const settingsLeft = GAME_W - 10 - settings.length * (width + gap) + gap;
-    this.settingsButtons = settings.map((options, i) => add(new Button({
-      x: settingsLeft + i * (width + gap),
-      y: barY + (EDITOR_BAR.height - height) / 2,
-      w: width,
-      h: height,
-      ...options,
+    const panelX = GAME_W - 8 - s.panelWidth;
+    const panelY = 8 + s.buttonHeight + 6;
+    const inPanel = (element) => UI.add(Object.assign(element, { group: 'editor-settings' }));
+    inPanel(new SettingsPanel({
+      x: panelX, y: panelY, w: s.panelWidth, h: s.headerHeight + actions.length * s.rowHeight + 4,
+    }));
+    actions.forEach(({ onClick, ...options }, i) => inPanel(new Button({
+      x: panelX + 8,
+      y: panelY + s.headerHeight + i * s.rowHeight,
+      w: s.panelWidth - 16,
+      h: s.rowHeight - 8,
+      style: { textSize: 14, ...(options.style && BUTTON_STYLES[options.style]) },
+      label: options.label,
+      onClick: () => {
+        this.showSettings(false);
+        onClick();
+      },
     })));
 
     UI.showGroup('editor', false);
+    this.showSettings(false);
+    SizeBox.init();
+  },
+
+  // opens or closes the Map settings panel
+  showSettings(open) {
+    this.settingsButton.on = open;
+    UI.showGroup('editor-settings', open);
   },
 
   // ---------- opening and closing ----------
@@ -291,6 +297,9 @@ const Editor = {
     // every enemy and npc back where it was placed, with full health (sketch.js)
     spawnCharacters();
     UI.showGroup('editor', false);
+    this.showSettings(false);
+    // Ctrl + D still works while typing, so dev mode (and the editor) can close with the box open
+    if (SizeBox.active) SizeBox.close();
     Hotbar.show(true);
   },
 
@@ -299,10 +308,6 @@ const Editor = {
   // switches the bar to a tab (a kind from EDITOR_TABS), on whichever page it was last on
   showTab(kind) {
     this.tab = kind;
-    // the settings tab has its buttons instead of Erase
-    const settings = kind === 'settings';
-    for (const button of this.settingsButtons) button.visible = settings;
-    this.eraseButton.visible = !settings;
     this.showPage(this.pages[kind]);
   },
 
@@ -334,17 +339,22 @@ const Editor = {
   // picked in the bar, or starts empty if Erase is picked (handy for rooms that aren't rectangles:
   // start empty, then paint the floor in whatever shape you like)
   newMap() {
-    const size = askForSize('Size of the new map in tiles, width x height:', '40x24');
-    if (!size) return;
-    const { cols, rows } = size;
-
     let fillWith = 'blank';
     if (this.selected === null) fillWith = null;
     else if (this.selected.kind === 'tile') fillWith = this.selected.name;
 
-    // added to MAPS like any other map, so dev mode's M key can come back to it (maps.js)
-    addMap(NEW_MAP_NAME, () => makeBlankMap(cols, rows, fillWith));
-    loadMap(NEW_MAP_NAME); // in sketch.js
+    SizeBox.open({
+      title: 'New map',
+      hint: fillWith ? `Filled with ${fillWith}` : 'Starts empty (Erase is picked)',
+      confirmLabel: 'Make map',
+      cols: 40,
+      rows: 24,
+      onConfirm: (cols, rows) => {
+        // added to MAPS like any other map, so dev mode's M key can come back to it (maps.js)
+        addMap(NEW_MAP_NAME, () => makeBlankMap(cols, rows, fillWith));
+        loadMap(NEW_MAP_NAME); // in sketch.js
+      },
+    });
   },
 
   // asks for a new size for the map you're on. it can't be made smaller than the area with tiles
@@ -357,41 +367,52 @@ const Editor = {
     const minCols = used ? used.right - used.left + 1 : 1;
     const minRows = used ? used.bottom - used.top + 1 : 1;
 
-    const size = askForSize(
-      `Map size in tiles, width x height. It's ${map.cols}x${map.rows} now, and the smallest it can be ` +
-      `is ${minCols}x${minRows} (the area with tiles in it).`,
-      `${map.cols}x${map.rows}`
-    );
-    if (!size) return;
-    const cols = Math.max(size.cols, minCols);
-    const rows = Math.max(size.rows, minRows);
-
-    map.resize(
-      resizedStart(map.left, map.cols, cols, used?.left, used?.right),
-      resizedStart(map.top, map.rows, rows, used?.top, used?.bottom),
-      cols,
-      rows
-    );
-    gameCamera.bounds = map.bounds();
-    // anyone whose spawn was on the part that's gone disappears
-    spawnCharacters();
+    SizeBox.open({
+      title: 'Resize map',
+      hint: `Smallest it can be: ${minCols} x ${minRows}`,
+      confirmLabel: 'Resize',
+      cols: map.cols,
+      rows: map.rows,
+      // the boxes won't go below these, so asking for less gives the smallest it can be
+      minCols,
+      minRows,
+      onConfirm: (cols, rows) => {
+        map.resize(
+          resizedStart(map.left, map.cols, cols, used?.left, used?.right),
+          resizedStart(map.top, map.rows, rows, used?.top, used?.bottom),
+          cols,
+          rows
+        );
+        gameCamera.bounds = map.bounds();
+        // anyone whose spawn was on the part that's gone disappears
+        spawnCharacters();
+      },
+    });
   },
 
   // ---------- every frame, while open ----------
 
   // aim is the mouse's world position, or null
   update(map, camera, aim, dt) {
+    // while the size box is open, it's all that happens
+    if (SizeBox.active) {
+      SizeBox.update();
+      return;
+    }
+
     // Erase is a toggle, which flips itself when clicked, so set it to match what's really picked
     this.eraseButton.on = this.selected === null;
 
     const dir = Input.direction();
 
     // moving fades the ui out so you can see the map, and it fades back in once you've stopped for
-    // a moment. while it's hidden it can't be clicked, so clicks go through to the map behind it
+    // a moment. while it's hidden it can't be clicked, so clicks go through to the map behind it.
+    // moving closes the Map settings panel too
     this.stillFor = dir.x === 0 && dir.y === 0 ? this.stillFor + dt : 0;
     const showUI = this.stillFor >= EDITOR_UI_FADE.showDelay;
     this.uiAlpha = approach(this.uiAlpha, showUI ? 1 : 0, EDITOR_UI_FADE.speed, dt);
     for (const el of UI.group('editor')) el.interactive = showUI;
+    if (!showUI && this.settingsButton.on) this.showSettings(false);
 
     // move the view with WASD. dividing by zoom keeps it the same speed on screen at any zoom
     const speed = EDITOR_PAN_SPEED / camera.zoom;
@@ -591,17 +612,6 @@ class EditorBar extends UIElement {
     fill(EDITOR_COLOURS.edge);
     rect(this.x, this.y, this.w, 1);
 
-    // the settings tab: which map this is and how big, on the left (its buttons are on the right).
-    // worldMap is the game's (sketch.js)
-    if (Editor.tab === 'settings') {
-      fill(255);
-      setText(16, BOLD, LEFT, CENTER);
-      text(worldMap.name, 20, this.y + 32);
-      fill(255, 255, 255, 150);
-      setText(13, NORMAL, LEFT, CENTER);
-      text(`${worldMap.cols} x ${worldMap.rows} tiles`, 20, this.y + 54);
-    }
-
     // which page, under the › arrow, when there's more than one
     const pages = Editor.pageCounts[Editor.tab];
     if (pages > 1) {
@@ -701,5 +711,161 @@ class PaletteSwatch extends Button {
       fill(type.fill);
       rect(x, y, w, h, radius);
     }
+  }
+}
+
+// the Map settings panel's background, with the map's name and size at the top. its buttons are
+// separate ui elements on top of it (see init()). worldMap is the game's (sketch.js)
+class SettingsPanel extends UIElement {
+  draw() {
+    fill(EDITOR_COLOURS.bar);
+    stroke(EDITOR_COLOURS.edge);
+    strokeWeight(1.5);
+    rect(this.x, this.y, this.w, this.h, 8);
+
+    noStroke();
+    fill(255);
+    setText(15, BOLD, LEFT, CENTER);
+    text(worldMap.name, this.x + 12, this.y + 18);
+    fill(255, 255, 255, 150);
+    setText(13, NORMAL, LEFT, CENTER);
+    text(`${worldMap.cols} x ${worldMap.rows} tiles`, this.x + 12, this.y + 38);
+  }
+}
+
+// ---------- the size box ----------
+// asks for a map's width and height (New map and Resize map) in the game, rather than in the
+// browser's own prompt(). click a number to type into it, Tab swaps between them, Enter or the
+// right button says yes, Escape or Cancel closes it
+
+// the box's size, in the middle of the screen
+const SIZE_BOX = { width: 300, height: 230 };
+
+const SizeBox = {
+  active: false,
+  // what open() was given
+  options: null,
+  // the width and height number boxes, and the button that says yes
+  fields: [],
+  confirmButton: null,
+
+  // call once, from Editor.init(), so it's on top of the editor's ui
+  init() {
+    const w = SIZE_BOX.width;
+    const h = SIZE_BOX.height;
+    const x = (GAME_W - w) / 2;
+    const y = (GAME_H - h) / 2;
+    const add = (element) => UI.add(Object.assign(element, { group: 'size-box' }));
+
+    // covers the whole screen, so nothing behind it can be clicked while it's open
+    add(new SizeBoxBackdrop({ x: 0, y: 0, w: GAME_W, h: GAME_H, box: { x, y, w, h } }));
+    this.fields = [0, 1].map((i) => add(new NumberField({
+      x: x + 100, y: y + 52 + i * 44, w: 90, h: 32, min: 1, max: EDITOR_MAX_MAP_SIZE,
+    })));
+    add(new Button({ x: x + 20, y: y + h - 56, w: 124, h: 38, label: 'Cancel', onClick: () => this.close() }));
+    this.confirmButton = add(new Button({
+      x: x + w - 144, y: y + h - 56, w: 124, h: 38, style: 'primary', onClick: () => this.confirm(),
+    }));
+
+    UI.showGroup('size-box', false);
+  },
+
+  // options: { title, hint, confirmLabel, cols, rows, minCols, minRows, onConfirm(cols, rows) }.
+  // cols and rows are what the boxes start with. they can't go below minCols and minRows (1 if
+  // left out) or above EDITOR_MAX_MAP_SIZE
+  open(options) {
+    this.options = options;
+    this.active = true;
+    // the keyboard types into the boxes now, rather than moving the camera and so on (input.js)
+    Input.typing = true;
+
+    const [width, height] = this.fields;
+    width.min = options.minCols ?? 1;
+    height.min = options.minRows ?? 1;
+    width.value = options.cols;
+    height.value = options.rows;
+    this.confirmButton.label = options.confirmLabel;
+
+    UI.showGroup('size-box', true);
+    this.focus(width);
+  },
+
+  close() {
+    this.active = false;
+    Input.typing = false;
+    for (const field of this.fields) field.blur();
+    UI.showGroup('size-box', false);
+  },
+
+  confirm() {
+    const [width, height] = this.fields;
+    const cols = width.value;
+    const rows = height.value;
+    // closed first, since saying yes can go to a new map
+    this.close();
+    this.options.onConfirm(cols, rows);
+  },
+
+  // types into this box from now on
+  focus(field) {
+    for (const other of this.fields) {
+      if (other !== field && other.focused) other.blur();
+    }
+    field.focus();
+  },
+
+  // run every frame while it's open, from Editor.update(). keys are gone through in the order they
+  // were typed, so a quick "20 Tab 12" still puts 20 in one box and 12 in the other
+  update() {
+    if (Input.buttonsPressed.has('left')) {
+      const clicked = this.fields.find((field) => field.hovered);
+      if (clicked) this.focus(clicked);
+    }
+    for (const key of Input.typed) {
+      if (key === 'Enter') return this.confirm();
+      if (key === 'Escape') return this.close();
+      if (key === 'Tab') this.focus(this.fields.find((field) => !field.focused));
+      else this.fields.find((field) => field.focused).type(key);
+    }
+  },
+};
+
+// the size box's background: dims everything behind it, then draws the box and its writing.
+// the number boxes and buttons are separate ui elements on top (see SizeBox.init())
+class SizeBoxBackdrop extends UIElement {
+  constructor(options) {
+    super(options);
+    // where the box itself is: { x, y, w, h }
+    this.box = options.box;
+  }
+
+  draw() {
+    const { x, y, w, h } = this.box;
+    const options = SizeBox.options;
+
+    noStroke();
+    fill(0, 0, 0, 110);
+    rect(0, 0, GAME_W, GAME_H);
+
+    fill(EDITOR_COLOURS.bar);
+    stroke(EDITOR_COLOURS.edge);
+    strokeWeight(1.5);
+    rect(x, y, w, h, 8);
+
+    noStroke();
+    fill(255);
+    setText(18, BOLD, LEFT, CENTER);
+    text(options.title, x + 20, y + 28);
+
+    // lined up with the middle of each number box
+    fill(220);
+    setText(14, BOLD, LEFT, CENTER);
+    text('Width', x + 20, y + 68);
+    text('Height', x + 20, y + 112);
+    fill(255, 255, 255, 150);
+    setText(13, NORMAL, LEFT, CENTER);
+    text('tiles', x + 202, y + 68);
+    text('tiles', x + 202, y + 112);
+    text(options.hint, x + 20, y + 148);
   }
 }

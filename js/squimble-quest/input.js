@@ -5,6 +5,10 @@
 // player while you're playing, and still scroll the page normally the rest of the time.
 //
 // properties starting with _ are only meant to be used inside this file
+
+// keys with longer names that count as typing while Input.typing is on (single characters always do)
+const TYPING_KEYS = ['Backspace', 'Delete', 'Enter', 'Escape', 'Tab'];
+
 const Input = {
   // true while the game canvas has focus, ui.js shows "click to play" when it doesn't
   focused: false,
@@ -14,6 +18,12 @@ const Input = {
   held: new Set(),
   // keys that went down since the last frame. only lasts one frame, see update()
   keysPressed: new Set(),
+  // true while something is being typed into, like a number box (numberfield.js). the keyboard
+  // then only types: no key counts for the game (so W doesn't walk), they go in typed instead
+  typing: false,
+  // what was typed since the last frame while typing is on, as e.key names: '7', 'Backspace',
+  // 'Enter', 'Escape', 'Tab'... only lasts one frame, like keysPressed
+  typed: [],
 
   // ---------- mouse ----------
   // where the mouse is on screen, in game pixels (0-960 across, 0-540 down) no matter how big the canvas
@@ -38,6 +48,7 @@ const Input = {
   _clientY: null,
   // keys, clicks and wheel turns that have happened but the game hasn't seen yet
   _pendingKeys: new Set(),
+  _pendingTyped: [],
   _pendingClicks: new Set(),
   _pendingReleases: new Set(),
   _pendingWheel: 0,
@@ -55,6 +66,15 @@ const Input = {
     const gameKeys = new Set(Object.values(KEYS).flat());
 
     el.addEventListener('keydown', (e) => {
+      // while typing, a letter, number or symbol (e.key is one character), or one of these keys,
+      // is typed rather than used by the game. anything else (F5, F12...) still works like normal
+      if (this.typing && !e.ctrlKey && (e.key.length === 1 || TYPING_KEYS.includes(e.key))) {
+        // e.g. stops Tab moving focus off the game
+        e.preventDefault();
+        this._pendingTyped.push(e.key);
+        return;
+      }
+
       // with Ctrl held, a Ctrl combination the game uses (e.g. 'Control+KeyD') counts on its own,
       // not as the plain key too, so Ctrl + D doesn't also walk right. otherwise it's just the key
       // (e.g. 'KeyD'). only keys the game uses count (see KEYS in config.js)
@@ -126,6 +146,7 @@ const Input = {
       this.held.clear();
       this.buttonsHeld.clear();
       this._pendingKeys.clear();
+      this._pendingTyped = [];
       this._pendingClicks.clear();
       this._pendingReleases.clear();
       this._pendingWheel = 0;
@@ -143,6 +164,8 @@ const Input = {
     // that's what lets wasPressed() and mousePressed() be true for exactly one frame per press
     this.keysPressed = this._pendingKeys;
     this._pendingKeys = new Set();
+    this.typed = this._pendingTyped;
+    this._pendingTyped = [];
     this.buttonsPressed = this._pendingClicks;
     this._pendingClicks = new Set();
     this.buttonsReleased = this._pendingReleases;
