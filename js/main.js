@@ -221,6 +221,49 @@
     });
   }
 
+  // copy the email address. if the clipboard is blocked (old browser, page opened from file://),
+  // select the address instead so it's one Ctrl+C away
+  var copyEmail = document.querySelector('.copy-email');
+  var copyStatus = document.getElementById('copyEmailStatus');
+  if (copyEmail && copyStatus) {
+    var copyLabel = copyEmail.querySelector('.copy-email-label');
+    var copyReset = null;
+
+    var selectAddress = function () {
+      var range = document.createRange();
+      range.selectNodeContents(copyEmail.querySelector('.copy-email-address'));
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      copyStatus.textContent = 'Address selected. Press Ctrl+C (or Cmd+C) to copy it.';
+    };
+
+    var showCopied = function () {
+      copyLabel.textContent = 'Copied';
+      copyStatus.textContent = 'Email address copied. Speak soon!';
+      copyEmail.classList.add('is-copied');
+      // restart the burst even on a quick second click
+      copyEmail.classList.remove('is-bursting');
+      void copyEmail.offsetWidth;
+      copyEmail.classList.add('is-bursting');
+      clearTimeout(copyReset);
+      copyReset = setTimeout(function () {
+        copyLabel.textContent = 'Copy';
+        copyEmail.classList.remove('is-copied', 'is-bursting');
+        copyStatus.textContent = '';
+      }, 2600);
+    };
+
+    copyEmail.addEventListener('click', function () {
+      var address = copyEmail.getAttribute('data-copy');
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(address).then(showCopied, selectAddress);
+      } else {
+        selectAddress();
+      }
+    });
+  }
+
   // shooting stars (particles.js)
   if (window.PortfolioFX) window.PortfolioFX.initShootingStars();
 
