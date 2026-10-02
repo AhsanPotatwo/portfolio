@@ -24,9 +24,9 @@ The tile grid shows on every map while developer mode is on, and never outside i
 ## Quick start
 
 1. Open the game, click it, press **`** or **Ctrl + D** (developer mode), then **B** (map editor).
-2. Click **Map settings** (top right), then **New map**, type a width and height, and choose what to fill it with. Or just edit the map you're on.
+2. Click **New** in the toolbar along the top, type a width and height, and choose what to fill it with. Or just edit the map you're on.
 3. Paint tiles and place objects.
-4. Click **Map settings**, then **Export**, type a name, and it downloads as `yourname.json`.
+4. Click **Export** in the toolbar, type a name, and it downloads as `yourname.json`.
 5. Move the file into this folder (`assets/squimble-quest/maps/`).
 6. Add its file name to `MAP_FILES` in [`js/squimble-quest/maps.js`](../../../js/squimble-quest/maps.js):
 
@@ -42,21 +42,23 @@ The tile grid shows on every map while developer mode is on, and never outside i
 
 ## Making a map
 
-Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything you do changes the map you're on, so you can close the editor (**B**) and walk around it straight away.
+Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything you do changes the map you're on, so you can close the editor (**B**, or **Play** in the toolbar) and walk around it straight away.
+
+It's laid out like a game engine: a **toolbar** along the top (the map's buttons, the Paint and Erase tools, Grid, Keys and Play, and the map's name and size on the right), a **dock** on the right (the **palette** of things to place, and the **inspector** under it showing what's picked), and a **status bar** along the bottom (the tile under the mouse, what a click does, and the zoom).
 
 | Control | What it does |
 |---|---|
-| **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** tabs above the bar | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs and triggers (the player's spawn point, and warps) |
-| **Map settings** (top right) | Opens a panel with the map's name and size, and the **Resize map**, **New map**, **Open file** and **Export** buttons. Click it again (or move with **WASD**) to close it |
-| Click something in the bottom bar | Choose it (**‹ ›** for more pages) |
+| **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** tabs at the top of the palette | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs and triggers (the player's spawn point, and warps) |
+| **New** / **Open** / **Resize** / **Export** (toolbar) | Make a new map, open a map file, change this map's size, or save it as a file |
+| Click something in the palette | Choose it, and switch to the **Paint** tool. Hover over one to see its name. The mouse wheel scrolls the palette while the mouse is over it |
 | Left click / drag (tile chosen) | Paint that tile, replacing the one there. Tiles with a little badge of two overlapping squares in the corner are dual grid tiles (like grass): their edges round off and blend into the tiles next to them by themselves |
-| **+ New tile** / right click a tile in the bar (**Tiles** tab) | Make a tile, or see and change everything about one. **Export tiles** saves them all. See the [tiles README](../tiles/README.md) |
+| **New** / **Edit** in the inspector, or right click a tile in the palette (**Tiles** tab) | Make a tile, or see and change everything about one. **Export** (next to them) saves them all. See the [tiles README](../tiles/README.md) |
 | Left click (object chosen) | Place the object, its top-left corner on the tile under the mouse. A see-through preview shows where it'll go |
 | Left click (enemy or NPC chosen) | Place it, standing on the tile under the mouse |
 | Left click (**spawn** chosen, in **Triggers**) | The player spawns on this tile (yellow ring). There's only one, so it moves here |
 | Left click (**warp** chosen, in **Triggers**) | Put a warp on this tile (purple square), and open its settings. See [Warps](#warps) |
 | Right click | Change the settings of what's under the mouse. Only warps have settings so far |
-| **Erase**, then left click / drag | Delete. Starting on an object, enemy, NPC or warp removes those; starting on bare ground empties tiles |
+| **Erase** (toolbar), then left click / drag | Delete. Starting on an object, enemy, NPC or warp removes those; starting on bare ground empties tiles |
 | **WASD** | Move around the map. The editor's buttons and panels fade out while you move, so you can see the map, and come back when you stop |
 | **−** **=** or mouse wheel | Zoom out and in (**0** resets) |
 | **M** | Go to the next map |
@@ -70,7 +72,7 @@ While the editor's open, everyone stands still. Opening it brings back every ene
 
 ### New maps
 
-Click **Map settings**, then **New map**. A box asks for the width and height in tiles: click a number (or press **Tab**) to type into it, then press **Enter** or **Make map** (**Escape** or **Cancel** closes it). The smallest is 1 × 1 and the biggest is 500 × 500. Tile `(0, 0)` is in the middle of the new map, and that's where the player spawns.
+Click **New** in the toolbar. A box asks for the width and height in tiles: click a number (or press **Tab**) to type into it, then press **Enter** or **Make map** (**Escape** or **Cancel** closes it). The smallest is 1 × 1 and the biggest is 500 × 500. Tile `(0, 0)` is in the middle of the new map, and that's where the player spawns.
 
 **Fill** is what every tile starts as. It starts on `blank` (plain white). Click its right half to go forward through the tiles, or its left half to go back. After the last tile comes **empty**: the map starts with no tiles at all.
 
@@ -80,7 +82,7 @@ A new map is called `new-map` until you export it with a name of its own.
 
 ### Resizing a map
 
-Click **Map settings**, then **Resize map**, and type the new width and height into the box (it works like the **New map** one). The map grows or shrinks around its middle, and any new space is empty, ready to paint.
+Click **Resize** in the toolbar, and type the new width and height into the box (it works like the **New map** one). The map grows or shrinks around its middle, and any new space is empty, ready to paint.
 
 It can't be made smaller than the area with tiles in it: the box says what the smallest is, and won't go any lower. So a 10 × 10 map made 20 × 20 can go back to 10 × 10, but if you've painted one tile past the old edge on the right and bottom, the smallest is 11 × 11. Objects, enemies and NPCs on any part that's cut off are removed.
 

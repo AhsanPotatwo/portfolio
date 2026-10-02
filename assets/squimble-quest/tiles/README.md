@@ -11,7 +11,7 @@ Every tile in the game is one line in `tiles.json`, in this folder. The game loa
 ## Making or changing a tile
 
 1. Open the map editor: **`** (or **Ctrl + D**) for dev mode, then **B**.
-2. On the **Tiles** tab, click **+ New tile**, or **right click** a tile in the bar to change it.
+2. On the palette's **Tiles** tab, click **New** in the inspector, or **right click** a tile in the palette (or pick it and click **Edit**) to change it.
 3. Set it up. The pictures on the right show the texture file and how the tile looks on the map as you go. The tabs along the top switch between groups of settings:
    - **Look**
      - **Kind**: **normal**, or **dual grid**.
@@ -52,7 +52,7 @@ Each tile only needs the settings that are different from normal (`TILE_DEFAULTS
 
 Do these by hand, since the tile editor doesn't:
 
-- **Reorder tiles**: the order is the order in the editor's bar. Where two dual grid tiles meet, the one further down goes on top, so put the ones underneath first (dirt before grass).
+- **Reorder tiles**: the order is the order in the editor's palette. Where two dual grid tiles meet, the one further down goes on top, so put the ones underneath first (dirt before grass).
 - **Rename or delete a tile**: maps store tile names, so this loses the tile from every map that uses it. The browser console lists what went missing.
 
 If a texture can't be found, the tile is drawn in its colour and the browser console says why.

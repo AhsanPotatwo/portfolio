@@ -97,13 +97,13 @@ This README and the comments in the code are the project's only notes. There's n
   - A click that lands on UI is claimed, so gameplay never sees it.
   - `Input.typing = true` sends keys to `Input.typed` instead of the game. `TextField` and `NumberField` work with it: whatever owns the box decides which one is focused and calls `field.type(key)` for each key. Ctrl + V arrives as `{ paste: text }` in `Input.typed` and goes to `field.paste(text)`. `ColourField` takes pasted hex or rgb and has a square that opens the browser's own colour picker (`<input type="color">`).
 - **Editor** (`editor.js`):
-  - The bottom bar has browser-style tabs for things to place: Tiles, Objects, Enemies, NPCs and Triggers. The tabs are only for things you place on the map; settings for the whole map go in the Map settings panel.
+  - It's laid out like a game engine: `EditorToolbar` along the top (New, Open, Resize, Export, the Paint and Erase tools, Grid, Keys and Play), `EditorDock` on the right (the palette's tabs, `PaletteGrid`, and the inspector) and `EditorStatusBar` along the bottom. Sizes are in `EDITOR_LAYOUT`, colours in `EDITOR_COLOURS`, and its buttons use the compact `editor` / `editorPrimary` styles in `BUTTON_STYLES`.
+  - The palette's tabs are only for things you place on the map; whole-map actions are in the toolbar.
   - **Triggers** are things on the map that make something happen: the player's spawn and warps (`TRIGGER_TYPES`). They're placed by their own code in `Editor.update()`, not from a catalogue file. Placing a warp opens its settings box.
   - **Right click** opens the settings of whatever's under the mouse (`editWarp()` for warps, the only thing with settings so far). Anything that gets settings later hooks in at the same spot in `Editor.update()`.
-  - **Erase** sits at the left end of the bar on every tab. `Editor.selected` is `null` while it's picked. It's the only way to delete (right click used to erase too).
-  - The **Map settings** button in the top right opens a panel with Resize map, New map, Open file and Export.
+  - **Erase** is a tool in the toolbar. `Editor.selected` is `null` while it's picked, and **Paint** goes back to `Editor.lastPicked`. It's the only way to delete (right click used to erase too).
   - `FormBox` (formbox.js, with its `Picker` and `Checkbox` fields) is the in-game box that asks for things: sizes for New map and Resize map, the fill tile for New map, the name for Export, a warp's settings and a tile's. Give it a title and a list of rows (or `tabs`, each with its own rows), and it lays itself out. `side` adds a column of extra elements beside the rows (the tile editor's pictures). `Picker` is its "choose one of these" field (`tilePicker()` in editor.js makes one for tiles). A row's field can be any UI element with a `value`.
-  - The bar's squares are made by `Editor.makeSwatches()`, once the tiles have loaded and again whenever a tile is added. **Right click** on a tile's square opens the tile editor (`PaletteSwatch.update()`). **+ New tile** and **Export tiles** sit to the right of the tabs, only on the Tiles tab.
+  - `PaletteGrid` is one UI element that draws and hit-tests every square itself, reading the catalogues each frame, so a new tile shows up by itself. It scrolls (clipped to the palette) and uses up `Input.wheel` while hovered, so the camera doesn't zoom too. **Right click** on a tile's square opens the tile editor. The inspector's **New** and **Export** only show on the Tiles tab, **Edit** while a tile is picked.
   - While WASD pans the camera, the editor UI and dev panels fade out (`Editor.uiAlpha`, applied in `sketch.js`).
 - **Dev mode** (`debug.js`): a compact status panel in the top left. The key lists are `DEV_KEYS` and `EDITOR_KEYS`, and **H** toggles them.
 
@@ -115,7 +115,7 @@ The quickest route for common additions. Each file's own header has the details.
 |---|---|
 | An object, enemy, NPC, weapon or item | A `defineX()` line at the bottom of its catalogue file. New settings need a default in its `X_DEFAULTS`. |
 | An enemy or NPC behaviour | An `ai(entity, world, dt)` function returning `{ move, aim, attack }`, next to `chasePlayer` in enemies.js. |
-| A tile | In the game: map editor, Tiles tab, **+ New tile**, then **Export tiles**. |
+| A tile | In the game: map editor, Tiles tab, **New** in the inspector, then **Export**. |
 | A tile setting | Its default in `TILE_DEFAULTS` (tiles.js), what it does in `walk()` or `checkTile()` (character.js), and one line in `TILE_BEHAVIOURS` (tileeditor.js), which gives it an editor row and tab. |
 | A map | Export it from the editor into `assets/squimble-quest/maps/`, and add the file to `MAP_FILES` (maps.js). |
 | A key | Its action in `KEYS` (config.js), then `Input.isDown/wasPressed('action')`. A dev tool also goes in `DEV_KEYS` (debug.js). |

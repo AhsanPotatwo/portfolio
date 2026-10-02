@@ -1,14 +1,15 @@
 // the tile editor: making and changing tiles from inside the map editor (editor.js), so tiles.json
 // (tiles.js) never has to be opened by hand.
-//   - + New tile, on the right of the editor's tabs, opens a box for a new tile
-//   - right clicking a tile in the bar opens the same box for that tile, with all its settings
+//   - New, in the map editor's inspector on the Tiles tab, opens a box for a new tile
+//   - right clicking a tile in the palette (or Edit in the inspector) opens the same box for that
+//     tile, with all its settings
 //   - the box has tabs: Look for how it looks, then the tabs from TILE_BEHAVIOURS below for what it
 //     does (Behaviours, Effects...), then Dual grid for which dual grid tiles round off onto it
 //     (blendsWith in tiles.js)
 //   - the box shows the tile's texture file, and a patch of the tile as it'd look on the map, which
 //     change as you change the settings
 //   - Save changes the tile in the game straight away, so you can paint with it and walk on it
-//   - Export tiles downloads tiles.json with every tile in it. put it in assets/squimble-quest/tiles/,
+//   - Export (next to New) downloads tiles.json with every tile in it. put it in assets/squimble-quest/tiles/,
 //     replacing the old one, and the tiles are in the game for good. a picture chosen since the page
 //     loaded is downloaded too, and the message says which folder it goes in
 //
@@ -171,11 +172,11 @@ const TileEditor = {
       // the pictures, and the button for choosing one from the computer under them
       side: (x, y, w, h) => [
         new TilePreview({
-          x, y, w, h: h - 40,
+          x, y, w, h: h - 32,
           look: () => ({ dualGrid: kindPicker.value, colour: colourField.value, img: picture(), problem: problem() }),
         }),
         new Button({
-          x, y: y + h - 32, w, h: 32, label: 'Choose picture', style: { textSize: 14 },
+          x, y: y + h - 24, w, h: 24, label: 'Choose picture', style: 'editor',
           onClick: () => this.choosePicture((file, img) => {
             chosen = { file, img };
             texturePicker.setChoices([null, file.name], file.name);
@@ -198,13 +199,9 @@ const TileEditor = {
         settings.blendsWith = blendPicker.value ? null : blendBoxes.filter((box) => box.value).map((box) => box.label);
         setTile(settings, picture());
 
-        // a changed tile's square in the bar draws itself from the tile every frame, so it's already
-        // up to date. only a new tile needs a square making
-        if (isNew) {
-          // a square for it in the bar, picked and ready to paint with (editor.js)
-          Editor.makeSwatches();
-          Editor.selected = { kind: 'tile', name };
-        }
+        // the palette draws itself from TILE_TYPES every frame, so it's already up to date. a new
+        // tile is picked, ready to paint with (editor.js)
+        if (isNew) Editor.pick({ kind: 'tile', name });
         showMessage(moved
           ? `Saved ${name}. Move ${texture} into tiles/${this.folderName(TILE_TYPES[name])}/ too`
           : `Saved ${name}. Export tiles to keep it`);
@@ -268,37 +265,39 @@ class TilePreview extends UIElement {
     const { dualGrid, colour, img, problem } = this.look();
     // black until the colour's a whole colour, e.g. while it's being typed
     const fillColour = HEX_COLOUR.test(colour) ? colour : '#000000';
-    // the two pictures are squares, leaving room under them for the problem. a multiple of 6 whole
-    // pixels, so the patch's halves (normal) and thirds (dual grid) meet exactly, without faint lines
-    const size = Math.floor(Math.min(this.w, (this.h - 130) / 2) / 6) * 6;
-    const left = Math.round(this.x + (this.w - size) / 2);
+    // the two pictures are squares side by side, leaving room under them for the problem. a multiple
+    // of 6 whole pixels, so the patch's halves (normal) and thirds (dual grid) meet exactly, without
+    // faint lines
+    const gap = 8;
+    const size = Math.floor(Math.min((this.w - gap) / 2, this.h - 70) / 6) * 6;
+    const firstLeft = Math.round(this.x + (this.w - size * 2 - gap) / 2);
+    const secondLeft = firstLeft + size + gap;
+    const top = this.y + 16;
 
-    const label = (words, y) => {
+    const label = (words, left) => {
       noStroke();
-      fill(255, 255, 255, 150);
-      setText(12, BOLD, CENTER, CENTER);
-      text(words, this.x + this.w / 2, y);
+      fill(EDITOR_COLOURS.dimText);
+      setText(11, BOLD, CENTER, CENTER);
+      text(words, left + size / 2, this.y + 6);
     };
     // a dark square for a picture to go on
-    const backing = (y) => {
+    const backing = (left) => {
       noStroke();
       fill(WORLD_COLOURS.outside); // world.js
-      rect(left, y, size, size);
+      rect(left, top, size, size);
     };
 
     // 1. the texture file, as big as fits without stretching it. a tileset gets faint lines between
     // its pieces. no texture shows the colour
-    let y = this.y;
-    label(img ? 'Texture file' : 'Colour', y + 6);
-    y += 16;
-    backing(y);
+    label(img ? 'Texture file' : 'Colour', firstLeft);
+    backing(firstLeft);
     if (img) {
       // shrunk (or grown) to fit the square, keeping its shape, and centred in it
       const scale = Math.min(size / img.width, size / img.height);
       const w = img.width * scale;
       const h = img.height * scale;
-      const imgLeft = left + (size - w) / 2;
-      const imgTop = y + (size - h) / 2;
+      const imgLeft = firstLeft + (size - w) / 2;
+      const imgTop = top + (size - h) / 2;
       image(img, imgLeft, imgTop, w, h);
       if (dualGrid) {
         // 3 lines each way split it into its 4 x 4 pieces
@@ -311,32 +310,30 @@ class TilePreview extends UIElement {
       }
     } else {
       fill(fillColour);
-      rect(left, y, size, size);
+      rect(firstLeft, top, size, size);
     }
 
     // 2. a 2 x 2 patch of it on the map. a dual grid tile rounds off at the edges like on the map
-    y += size + 14;
-    label('On the map', y + 6);
-    y += 16;
-    backing(y);
+    label('On the map', secondLeft);
+    backing(secondLeft);
     const pieces = dualGrid && img ? this.piecesOf(img) : null;
     if (pieces) {
       const piece = size / 3;
       DUAL_PREVIEW_PATCH.forEach((row, r) => row.forEach((which, c) => {
-        image(pieces[which], left + c * piece, y + r * piece, piece, piece);
+        image(pieces[which], secondLeft + c * piece, top + r * piece, piece, piece);
       }));
     } else {
       // normal tiles, or a dual grid tile without a tileset that works: four squares like the map
       const half = size / 2;
       for (let i = 0; i < 4; i++) {
-        const x = left + (i % 2) * half;
-        const top = y + Math.floor(i / 2) * half;
+        const x = secondLeft + (i % 2) * half;
+        const y = top + Math.floor(i / 2) * half;
         if (img && !dualGrid) {
-          image(img, x, top, half, half);
+          image(img, x, y, half, half);
         } else {
           noStroke();
           fill(fillColour);
-          rect(x, top, half, half);
+          rect(x, y, half, half);
         }
       }
     }
@@ -344,9 +341,9 @@ class TilePreview extends UIElement {
     // 3. what's stopping it being saved, in red, wrapped to fit the column
     if (problem) {
       noStroke();
-      fill('#ff6b6b');
-      setText(12, BOLD, LEFT, TOP);
-      text(problem, this.x, y + size + 10, this.w, this.y + this.h - (y + size + 10));
+      fill(EDITOR_COLOURS.erase);
+      setText(11, BOLD, LEFT, TOP);
+      text(problem, this.x, top + size + 10, this.w, this.y + this.h - (top + size + 10));
     }
   }
 

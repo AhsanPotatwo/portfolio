@@ -7,8 +7,8 @@
 //   - H shows or hides the list of keys under it (the map editor's keys too, while it's open)
 //   - the tile grid and lines through (0, 0) show on the world. G hides them, e.g. to check
 //     how tiles look while zooming
-//   - - and = zoom, 0 resets the zoom. in the map editor the mouse wheel zooms too
-//     (the rest of the time the wheel changes hotbar slot)
+//   - - and = zoom, 0 resets the zoom. in the map editor the mouse wheel zooms too, except over
+//     its palette, which it scrolls (the rest of the time the wheel changes hotbar slot)
 //   - T teleports the player to the mouse (if it's pointing at somewhere you can stand)
 //   - M goes to the next map (the maps are listed in maps.js)
 //   - B opens the map editor (see editor.js)
@@ -118,12 +118,13 @@ const Debug = {
       `camera  ${formatPoint(camera)}  zoom ${camera.zoom.toFixed(2)}`,
       `H  ${this.showKeys ? 'hide' : 'show'} keys`,
     ];
-    // hud.js
-    drawPanel(8, 8, DEV_PANEL_WIDTH, status, 13);
+    // under the map editor's toolbar while it's open. hud.js
+    const top = Editor.active ? EDITOR_LAYOUT.toolbarHeight + 8 : 8;
+    drawPanel(8, top, DEV_PANEL_WIDTH, status, 13);
 
     if (!this.showKeys) return;
     const keys = Editor.active ? [...DEV_KEYS, '', ...EDITOR_KEYS] : DEV_KEYS;
-    drawPanel(8, 8 + panelHeight(status) + 8, DEV_PANEL_WIDTH, keys, 13);
+    drawPanel(8, top + panelHeight(status) + 8, DEV_PANEL_WIDTH, keys, 13);
   },
 };
 

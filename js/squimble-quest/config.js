@@ -114,6 +114,29 @@ const BUTTON_STYLES = {
     border:      '#ffffff',
     borderWeight: 1.5,
   },
+  // the map editor's small flat buttons, like a game engine's toolbar (editor.js, formbox.js)
+  editor: {
+    fill:        '#2b303a',
+    hoverFill:   '#373d49',
+    pressedFill: '#22262e',
+    onFill:      '#3d5f9e',
+    border:      '#3a404c',
+    borderWeight: 1,
+    radius:      3,
+    textSize:    12,
+    pressOffset: 0,
+  },
+  editorPrimary: {
+    fill:        '#4a7bd8',
+    hoverFill:   '#5b8ae3',
+    pressedFill: '#3d69bd',
+    onFill:      '#4a7bd8',
+    border:      '#5b8ae3',
+    borderWeight: 1,
+    radius:      3,
+    textSize:    12,
+    pressOffset: 0,
+  },
 };
 
 // ---------- controls ----------
