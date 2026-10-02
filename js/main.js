@@ -208,6 +208,19 @@
     });
   }
 
+  // pause the decorative loops (orbits, glows, card idles) in any section that's off screen.
+  // a section that loads off screen also holds its entrance, e.g. the hero rings, until it's seen
+  if ('IntersectionObserver' in window) {
+    var loopWatcher = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        entry.target.classList.toggle('loops-paused', !entry.isIntersecting);
+      });
+    });
+    document.querySelectorAll('.hero, .projects, .about, .skills').forEach(function (section) {
+      loopWatcher.observe(section);
+    });
+  }
+
   // shooting stars (particles.js)
   if (window.PortfolioFX) window.PortfolioFX.initShootingStars();
 
