@@ -32,6 +32,12 @@ This README and the comments in the code are the project's only notes. There's n
 ## How the code is written
 
 - **Keep things simple.** Build the smallest thing that works. Don't add features, settings or layers "for later".
+- **Keep multiplayer possible.** It isn't planned, only a maybe (see [Ideas for later](#ideas-for-later)), so don't build anything for it. But when adding a feature, think about whether it would still work with more than one player, and prefer the way that would when it costs nothing extra:
+  - only `sketch.js` reads the keyboard and mouse. Everything else gets `{ move, aim, attack }` controls or is told what happened
+  - AIs and triggers find "the nearest player" through one small helper, rather than reading `world.player` all over
+  - game state is plain numbers, strings and lists: no p5 colours or images in it (like tiles keep `fill` and `img` apart from their settings)
+  - nothing in the gameplay depends on the whole world pausing (dialogue and the editor do now, see the note)
+  - any randomness goes through one shared function, not `Math.random()` scattered about
 - **UI goes inside the game.** Use the game's own UI (`ui.js`, `button.js`, `textfield.js`) rather than the browser's `prompt()` and `alert()` boxes.
 - **Comments follow one style**, and they're a big part of the codebase:
   - lowercase, in plain everyday words a beginner could follow, explaining *why*
@@ -137,6 +143,11 @@ Only build these when they're needed.
   - locked doors
   - an editor key to go through the warp under the mouse
   - loading map files by name, instead of listing every one in `MAP_FILES`
+- **Multiplayer, maybe.** Only a possibility, not a decision. The idea is a small social game: a group of friends, up to about a classroom (20–40 players), playtesting and hanging out together, never hundreds. If it ever happens:
+  - **What already helps:** every character runs on `{ move, aim, attack }` controls, so another player is just a `Player` whose controls come over the network. Maps and tiles are data files a server can load too. Progress is already kept apart from the design. Nothing is random.
+  - **What's in the way:** the game assumes one player and one running map (the globals `player`, `worldMap`, `enemies`, `npcs`, and `loadMap()` swapping the world). With players on different maps, each map with players on it would have to keep running, so maps become "rooms". Also single-player: the warp step tracking (`Warps.lastCol`), enemies following through warps, `chasePlayer` and enemy `targets()` only knowing `world.player`, dialogue and the editor pausing everything, and some rules code needing p5 (`color()` in `MeleeSwing` and `setTile()`).
+  - **At that size it needs a small server** (Node and WebSockets, cheap to host), not one player's browser hosting: a host's upload and a hidden tab slowing down would stall everyone, and school networks often block browser-to-browser connections. The server would run the game's rules without p5, so rules and drawing would need separating first. Each player only needs updates about the map they're on.
+  - **Social parts on top:** names over heads, chat (and filtering it, if younger players might join), emotes, and hangout maps sized for a crowd.
 
 ## Known issues and loose ends
 
