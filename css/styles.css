@@ -329,25 +329,47 @@ a{ color:inherit; text-decoration:none; }
   position:absolute; top:50%; left:50%;
   width:var(--d); aspect-ratio:1;
   border-radius:50%;
-  border:1px solid var(--ring);
   transform:translate(-50%,-50%) rotateZ(var(--turn)) rotateX(var(--lean));
   transform-style:preserve-3d;
 }
-.hc-ring-1{ --d:max(128%,520px); --turn:-12deg; --ring:rgba(198,163,255,.45); }
-.hc-ring-2{ --d:max(146%,600px); --turn:9deg; --ring:rgba(77,155,227,.36); }
-.hc-ring-3{ --d:max(112%,470px); --turn:-3deg; --ring:rgba(49,250,150,.28); }
+/* the ring line. on load it draws itself round from where its star rests (the right-hand side),
+   while the code types. it's a separate layer because a mask on the ring itself would flatten
+   the star riding it */
+@property --sweep{ syntax:'<angle>'; inherits:false; initial-value:360deg; }
+.hc-ring::before{
+  content:"";
+  position:absolute; inset:0;
+  border-radius:50%;
+  border:1px solid var(--ring);
+  -webkit-mask:conic-gradient(from 90deg, #000 var(--sweep), transparent 0);
+  mask:conic-gradient(from 90deg, #000 var(--sweep), transparent 0);
+  animation:hcRingDraw 1.3s cubic-bezier(.16,1,.3,1) var(--delay) both;
+}
+@keyframes hcRingDraw{ from{ --sweep:0deg; } to{ --sweep:360deg; } }
+.hc-ring-1{ --d:max(128%,520px); --turn:-12deg; --ring:rgba(198,163,255,.45); --delay:.35s; }
+.hc-ring-2{ --d:max(146%,600px); --turn:9deg; --ring:rgba(77,155,227,.36); --delay:.75s; }
+.hc-ring-3{ --d:max(112%,470px); --turn:-3deg; --ring:rgba(49,250,150,.28); --delay:1.15s; }
 /* the orbit layer fills the ring and spins about its centre; the arm puts the star on the ring's edge */
 .hc-orbit{
   position:absolute; inset:0;
   transform-style:preserve-3d;
-  animation:hcSpin var(--period) linear infinite;
+  /* waits for its ring to close, so the star sets off from the point where the line joined up */
+  animation:hcSpin var(--period) linear calc(var(--delay) + 1.1s) infinite;
 }
 .hc-arm{ position:absolute; top:50%; left:100%; transform-style:preserve-3d; }
 .hc-ring i{
   position:absolute; top:0; left:0;
   border-radius:50%;
   transform:rotateZ(0deg) rotateX(calc(-1 * var(--lean))) rotateZ(calc(-1 * var(--turn)));
-  animation:hcFace var(--period) linear infinite;
+  animation:
+    hcFace var(--period) linear calc(var(--delay) + 1.1s) infinite,
+    hcIgnite .6s ease-out calc(var(--delay) + .95s) both;
+}
+/* the star lights up as its ring closes */
+@keyframes hcIgnite{
+  0%{ opacity:0; filter:brightness(1); }
+  45%{ opacity:1; filter:brightness(2.4); }
+  100%{ opacity:1; filter:brightness(1); }
 }
 .hc-ring-1{ --period:11s; }
 .hc-ring-2{ --period:17s; }
@@ -621,6 +643,9 @@ a{ color:inherit; text-decoration:none; }
   0%,100%{ box-shadow:0 0 0 0 rgba(49,250,150,0); }
   50%{ box-shadow:0 0 10px 2px rgba(49,250,150,.4); }
 }
+
+/* decorative loops pause while their section is off screen, see main.js */
+.loops-paused, .loops-paused *, .loops-paused *::before, .loops-paused *::after{ animation-play-state:paused !important; }
 
 /* section headings */
 .about-copy h2,
@@ -1629,6 +1654,7 @@ a{ color:inherit; text-decoration:none; }
 @media (prefers-reduced-motion:reduce){
   html{ scroll-behavior:auto; }
   *{ transition-duration:.01ms !important; animation-duration:.01ms !important; }
+  .hc-ring::before{ animation:none; }
   .reveal{ opacity:1; transform:none; }
   .hero-aura, .hc-orbit, .hc-ring i, .hero-card-pulse, .hero-card-spark, .hero-card-caret{ animation:none; }
   .bg-nebula-1, .bg-nebula-2, .bg-nebula-3, .shooting-star{ animation:none; }
