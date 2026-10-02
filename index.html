@@ -43,9 +43,9 @@
 
       <nav class="nav" id="primaryNav" aria-label="Primary">
         <a href="#home" class="nav-link is-active">Home</a>
+        <a href="#projects" class="nav-link">Projects</a>
         <a href="#about" class="nav-link">About</a>
         <a href="#skills" class="nav-link">Skills</a>
-        <a href="#projects" class="nav-link">Projects</a>
         <a href="#contact" class="nav-link">Contact</a>
       </nav>
     </div>
@@ -121,6 +121,107 @@
             </li>
           </ul>
         </div>
+      </div>
+    </section>
+
+    <!-- projects -->
+    <section class="projects" id="projects">
+      <div class="container">
+        <h2 class="section-title">My projects</h2>
+        <ul class="project-grid">
+          <li class="project">
+            <div class="project-card project-card-wizard">
+              <a class="project-card-link" href="wizard-battles.html" aria-describedby="pj-wizard">
+                <span class="wizard-robe wizard-robe-a" aria-hidden="true"></span>
+                <span class="wizard-robe wizard-robe-b" aria-hidden="true"></span>
+                <span class="wizard-wand wizard-wand-a" aria-hidden="true">
+                  <span class="wand-stick"></span>
+                  <span class="wand-tip"></span>
+                </span>
+                <span class="wizard-wand wizard-wand-b" aria-hidden="true">
+                  <span class="wand-stick"></span>
+                  <span class="wand-tip"></span>
+                </span>
+                <span class="wizard-title">Wizard Battles</span>
+              </a>
+            </div>
+            <div class="project-info" id="pj-wizard">
+              <p class="project-hook">A turn-based duel that measured players' risk-taking. My dissertation project.</p>
+              <ul class="project-tags"><li>p5.js</li><li>Node.js</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Play in browser</li></ul>
+            </div>
+          </li>
+          <li class="project">
+            <div class="project-card project-card-cli">
+              <a class="project-card-link" href="cli-battleships.html" aria-describedby="pj-cli">
+              <span class="cli-grid" aria-hidden="true">
+                <span class="cli-vline" style="left:12.5%"></span>
+                <span class="cli-vline" style="left:25%"></span>
+                <span class="cli-vline" style="left:37.5%"></span>
+                <span class="cli-vline" style="left:50%"></span>
+                <span class="cli-vline" style="left:62.5%"></span>
+                <span class="cli-vline" style="left:75%"></span>
+                <span class="cli-vline" style="left:87.5%"></span>
+                <span class="cli-hline" style="top:33.333%"></span>
+                <span class="cli-hline" style="top:66.667%"></span>
+                <span class="cli-ping cli-ping-a" aria-hidden="true"></span>
+                <span class="cli-ping cli-ping-b" aria-hidden="true"></span>
+                <span class="cli-ping cli-ping-c" aria-hidden="true"></span>
+                <span class="cli-ping cli-ping-d" aria-hidden="true"></span>
+                <span class="cli-ping cli-ping-e" aria-hidden="true"></span>
+              </span>
+              <span class="cli-frame" aria-hidden="true"></span>
+              <span class="cli-title">CLI Battleships</span>
+              <span class="cli-scan" aria-hidden="true"></span>
+              </a>
+            </div>
+            <div class="project-info" id="pj-cli">
+              <p class="project-hook">One game of battleships written three times, to compare programming paradigms.</p>
+              <ul class="project-tags"><li>Python</li><li>C</li><li>Rust</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Play in browser</li></ul>
+            </div>
+          </li>
+          <li class="project">
+            <div class="project-card project-card-pantry">
+              <a class="project-card-link" href="pantry-wizard.html" aria-describedby="pj-pantry">
+                <span class="pantry-orb" aria-hidden="true">
+                  <img src="assets/pantry-crystalball.svg" alt="" draggable="false">
+                </span>
+                <span class="pantry-food pantry-food-bread" aria-hidden="true">
+                  <span class="pantry-food-inner"><img src="assets/pantry-bread.svg" alt="" draggable="false"></span>
+                </span>
+                <span class="pantry-food pantry-food-drumstick" aria-hidden="true">
+                  <span class="pantry-food-inner"><img src="assets/pantry-drumstick.svg" alt="" draggable="false"></span>
+                </span>
+                <span class="pantry-food pantry-food-kiwi" aria-hidden="true">
+                  <span class="pantry-food-inner"><img src="assets/pantry-kiwi.svg" alt="" draggable="false"></span>
+                </span>
+                <span class="pantry-food pantry-food-apple" aria-hidden="true">
+                  <span class="pantry-food-inner"><img src="assets/pantry-apple.svg" alt="" draggable="false"></span>
+                </span>
+                <span class="pantry-title">Pantry Wizard</span>
+              </a>
+            </div>
+            <div class="project-info" id="pj-pantry">
+              <p class="project-hook">A mobile pantry tracker that uses the phone's camera, GPS, vibration and speech.</p>
+              <ul class="project-tags"><li>C#</li><li>.NET MAUI</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Try the web version</li></ul>
+            </div>
+          </li>
+          <li class="project">
+            <!-- placeholder art until the card is designed in figma -->
+            <div class="project-card project-card-squimble">
+              <a class="project-card-link" href="squimble-quest.html" aria-describedby="pj-squimble">
+                <span class="squimble-title">Squimble Quest</span>
+              </a>
+              <span class="wip-ribbon" aria-hidden="true">WIP</span>
+            </div>
+            <div class="project-info" id="pj-squimble">
+              <p class="project-hook">A top-down RPG of quests and combat, with its own map and tile editor.</p>
+              <ul class="project-tags"><li>p5.js</li><li class="project-tag-wip">In development</li></ul>
+            </div>
+          </li>
+        </ul>
+        <p class="projects-more">More projects are brewing.
+          <a href="https://github.com/AhsanPotatwo" target="_blank" rel="noopener">Follow along on GitHub<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
+        </p>
       </div>
     </section>
 
@@ -341,106 +442,6 @@
             </ol>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- projects -->
-    <section class="projects" id="projects">
-      <div class="container">
-        <h2 class="section-title">My projects</h2>
-        <ul class="project-grid">
-          <li class="project">
-            <div class="project-card project-card-wizard">
-              <a class="project-card-link" href="wizard-battles.html" aria-describedby="pj-wizard">
-                <span class="wizard-robe wizard-robe-a" aria-hidden="true"></span>
-                <span class="wizard-robe wizard-robe-b" aria-hidden="true"></span>
-                <span class="wizard-wand wizard-wand-a" aria-hidden="true">
-                  <span class="wand-stick"></span>
-                  <span class="wand-tip"></span>
-                </span>
-                <span class="wizard-wand wizard-wand-b" aria-hidden="true">
-                  <span class="wand-stick"></span>
-                  <span class="wand-tip"></span>
-                </span>
-                <span class="wizard-title">Wizard Battles</span>
-              </a>
-            </div>
-            <div class="project-info" id="pj-wizard">
-              <p class="project-hook">A turn-based duel that measured players' risk-taking. My dissertation project.</p>
-              <ul class="project-tags"><li>p5.js</li><li>Node.js</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Play in browser</li></ul>
-            </div>
-          </li>
-          <li class="project">
-            <div class="project-card project-card-cli">
-              <a class="project-card-link" href="cli-battleships.html" aria-describedby="pj-cli">
-              <span class="cli-grid" aria-hidden="true">
-                <span class="cli-vline" style="left:12.5%"></span>
-                <span class="cli-vline" style="left:25%"></span>
-                <span class="cli-vline" style="left:37.5%"></span>
-                <span class="cli-vline" style="left:50%"></span>
-                <span class="cli-vline" style="left:62.5%"></span>
-                <span class="cli-vline" style="left:75%"></span>
-                <span class="cli-vline" style="left:87.5%"></span>
-                <span class="cli-hline" style="top:33.333%"></span>
-                <span class="cli-hline" style="top:66.667%"></span>
-                <span class="cli-ping cli-ping-a" aria-hidden="true"></span>
-                <span class="cli-ping cli-ping-b" aria-hidden="true"></span>
-                <span class="cli-ping cli-ping-c" aria-hidden="true"></span>
-                <span class="cli-ping cli-ping-d" aria-hidden="true"></span>
-                <span class="cli-ping cli-ping-e" aria-hidden="true"></span>
-              </span>
-              <span class="cli-frame" aria-hidden="true"></span>
-              <span class="cli-title">CLI Battleships</span>
-              <span class="cli-scan" aria-hidden="true"></span>
-              </a>
-            </div>
-            <div class="project-info" id="pj-cli">
-              <p class="project-hook">One game of battleships written three times, to compare programming paradigms.</p>
-              <ul class="project-tags"><li>Python</li><li>C</li><li>Rust</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Play in browser</li></ul>
-            </div>
-          </li>
-          <li class="project">
-            <div class="project-card project-card-pantry">
-              <a class="project-card-link" href="pantry-wizard.html" aria-describedby="pj-pantry">
-                <span class="pantry-orb" aria-hidden="true">
-                  <img src="assets/pantry-crystalball.svg" alt="" draggable="false">
-                </span>
-                <span class="pantry-food pantry-food-bread" aria-hidden="true">
-                  <span class="pantry-food-inner"><img src="assets/pantry-bread.svg" alt="" draggable="false"></span>
-                </span>
-                <span class="pantry-food pantry-food-drumstick" aria-hidden="true">
-                  <span class="pantry-food-inner"><img src="assets/pantry-drumstick.svg" alt="" draggable="false"></span>
-                </span>
-                <span class="pantry-food pantry-food-kiwi" aria-hidden="true">
-                  <span class="pantry-food-inner"><img src="assets/pantry-kiwi.svg" alt="" draggable="false"></span>
-                </span>
-                <span class="pantry-food pantry-food-apple" aria-hidden="true">
-                  <span class="pantry-food-inner"><img src="assets/pantry-apple.svg" alt="" draggable="false"></span>
-                </span>
-                <span class="pantry-title">Pantry Wizard</span>
-              </a>
-            </div>
-            <div class="project-info" id="pj-pantry">
-              <p class="project-hook">A mobile pantry tracker that uses the phone's camera, GPS, vibration and speech.</p>
-              <ul class="project-tags"><li>C#</li><li>.NET MAUI</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Try the web version</li></ul>
-            </div>
-          </li>
-          <li class="project">
-            <!-- placeholder art until the card is designed in figma -->
-            <div class="project-card project-card-squimble">
-              <a class="project-card-link" href="squimble-quest.html" aria-describedby="pj-squimble">
-                <span class="squimble-title">Squimble Quest</span>
-              </a>
-              <span class="wip-ribbon" aria-hidden="true">WIP</span>
-            </div>
-            <div class="project-info" id="pj-squimble">
-              <p class="project-hook">A top-down RPG of quests and combat, with its own map and tile editor.</p>
-              <ul class="project-tags"><li>p5.js</li><li class="project-tag-wip">In development</li></ul>
-            </div>
-          </li>
-          <li class="project-card project-card-soon">More coming soon</li>
-          <li class="project-card project-card-soon">More coming soon</li>
-        </ul>
       </div>
     </section>
 
