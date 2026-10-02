@@ -17,7 +17,7 @@ This README and the comments in the code are the project's only notes. There's n
 
 - **`sketch.js`** has the game loop, and its header lists every file and what it does. Read that first.
 - **[`assets/squimble-quest/maps/README.md`](../../assets/squimble-quest/maps/README.md)** is the map editor guide and the map file format.
-- **The catalogue files** (`tiles.js`, `objects.js`, `enemies.js`, `npcs.js`, `weapons.js`, `items.js`) each start with a "how to make one" guide. Tiles are made in the map editor instead of in code, see the tiles notes below.
+- **The catalogue files** (`tiles.js`, `objects.js`, `enemies.js`, `npcs.js`, `weapons.js`, `items.js`) each start with a "how to make one" guide. Tiles, weapons and items are data files the map editor can change and export instead of code, see the tiles and inventory notes below.
 
 **Running it:** map files are loaded with `fetch`, so the page needs a local server (see "Running the game locally" in the maps README). For example, run `py -m http.server 8765` from the portfolio root, then open `http://localhost:8765/squimble-quest.html`. Opened straight from the file (`file://`), the game falls back to a blank stand-in map.
 
@@ -45,7 +45,7 @@ This README and the comments in the code are the project's only notes. There's n
   - no jargon without explaining it
   - every constant and object property gets a comment saying what it's for
   - when one file uses another file's global, the comment names that file, e.g. `// worldMap is the game's (sketch.js)`
-- **The catalogue pattern:** things are defined with `defineObject/Enemy/Npc/Weapon/Item(name, settings)`, which all go through `defineType()` (utils.js) to fill in defaults. A setting that isn't in the defaults gets a console warning, since it's usually a typo, so a genuinely new setting needs its normal value adding to the defaults. The map editor picks up new ones by itself. Tiles are the exception: they're data in `tiles.json`, filled in with `TILE_DEFAULTS` the same way (unknown keys there are dropped).
+- **The catalogue pattern:** things are defined with `defineObject/Enemy/Npc/Weapon/Item(name, settings)`, which all go through `defineType()` (utils.js) to fill in defaults. A setting that isn't in the defaults gets a console warning, since it's usually a typo, so a genuinely new setting needs its normal value adding to the defaults. The map editor picks up new ones by itself. Tiles are the exception: they're data in `tiles.json`, filled in with `TILE_DEFAULTS` the same way (unknown keys there are dropped). Weapons and items are data too, in `assets/squimble-quest/items/items.json`, but go through `defineWeapon()` / `defineItem()` as they load (`loadItemFile()`), so unknown keys warn like code ones. Both files are written back one entry per line with only the non-default settings (`typeToData()` and `jsonLine()` in utils.js).
 
 ## How it fits together
 
@@ -92,6 +92,7 @@ This README and the comments in the code are the project's only notes. There's n
   - **Q** drops the held item. Dropped items are thrown about `DROP_DISTANCE` roughly the way the player's aiming, with a small random spread (`DROP_SPREAD`). A drop tries a few random spots and keeps the first `DROP_GAP` clear of other items, so they don't pile up. They're moved with the map's collision so they stop at walls. Each map keeps its own in `map.drops` (progress, like `map.characters`).
   - A dropped item can't be picked up until the player has been out of `PICKUP_RANGE` of it. That stops it being picked straight back up, and makes "inventory full" show once per walk up to it rather than every frame.
   - Each item has a `category` (`ITEM_CATEGORIES` in items.js), which only decides its editor tab, and a `rarity` (`RARITIES`), whose colour is its glow on the ground, in slots and in the palette (`drawItemGlow()`), and the held item's name above the hotbar. Both lists are placeholders: a new line in either is all a new category or rarity needs. Rarity is per item type for now, not per item.
+  - Weapons and items load from `items.json` alongside the tiles, so there are none until it's loaded: the player's `PLAYER.startingItems` are given once it has (`giveStartingItems()`), and the editor's item tabs read `ITEMS_BY_CATEGORY`, which fills in as they load. If the file doesn't load, there are no weapons or items (a console warning), and nobody can attack.
 - **UI** (`ui.js`, `button.js`, `textfield.js`, `formbox.js`):
   - Every element extends `UIElement`.
   - Groups let elements be shown, hidden and removed together.
@@ -100,7 +101,7 @@ This README and the comments in the code are the project's only notes. There's n
 - **Editor** (`editor.js`):
   - It's laid out like a game engine: `EditorToolbar` along the top (New, Open, Resize, Export, the Paint and Erase tools, Grid, Keys and Play), `EditorDock` on the right (the palette's tabs, `PaletteGrid`, and the inspector) and `EditorStatusBar` along the bottom. Sizes are in `EDITOR_LAYOUT`, colours in `EDITOR_COLOURS`, and its buttons use the compact `editor` / `editorPrimary` styles in `BUTTON_STYLES`.
   - The palette's tabs are only for things you place on the map; whole-map actions are in the toolbar. `EditorTabStrip` draws them at their natural width and scrolls (wheel, or the **‹ ›** that appear when they don't fit), so `EDITOR_TABS` can grow. **Sounds** and **Lights** are empty example tabs.
-  - **Weapons** and **Items** get one tab per `ITEM_CATEGORIES` entry. Clicking the map puts the item on the ground as a drop (`Drops.place()`), so like any drop it's progress, not saved by Export. **Give** adds one to the inventory, and **Edit** (or right click in the palette) changes its name, rarity, colour and weapon numbers in memory, until reload.
+  - **Weapons** and **Items** get one tab per `ITEM_CATEGORIES` entry. Clicking the map puts the item on the ground as a drop (`Drops.place()`), so like any drop it's progress, not saved by Export. **Give** adds one to the inventory, and **Edit** (or right click in the palette) changes its name, rarity, colour and weapon numbers straight away. **Export** on those tabs downloads `items.json` with every weapon and item in it (`itemsToText()`), to replace the one in `assets/squimble-quest/items/`. It can't add, rename or delete them: do that in `items.json` by hand.
   - **Triggers** are things on the map that make something happen: the player's spawn and warps (`TRIGGER_TYPES`). They're placed by their own code in `Editor.update()`, not from a catalogue file. Placing a warp opens its settings box.
   - **Right click** opens the settings of whatever's under the mouse (`editWarp()` for warps, the only thing with settings so far). Anything that gets settings later hooks in at the same spot in `Editor.update()`.
   - **Erase** is a tool in the toolbar. `Editor.selected` is `null` while it's picked, and **Paint** goes back to `Editor.lastPicked`. It's the only way to delete (right click used to erase too).
@@ -115,7 +116,8 @@ The quickest route for common additions. Each file's own header has the details.
 
 | To add | Do this |
 |---|---|
-| An object, enemy, NPC, weapon or item | A `defineX()` line at the bottom of its catalogue file. New settings need a default in its `X_DEFAULTS`. |
+| An object, enemy or NPC | A `defineX()` line at the bottom of its catalogue file. New settings need a default in its `X_DEFAULTS`. |
+| A weapon or item | A line in `assets/squimble-quest/items/items.json` (guides at the top of `weapons.js` and `items.js`). New settings need a default in `WEAPON_DEFAULTS` / `ITEM_DEFAULTS`, which is also what exports them. |
 | An enemy or NPC behaviour | An `ai(entity, world, dt)` function returning `{ move, aim, attack }`, next to `chasePlayer` in enemies.js. |
 | A tile | In the game: map editor, Tiles tab, **New** in the inspector, then **Export**. |
 | A tile setting | Its default in `TILE_DEFAULTS` (tiles.js), what it does in `walk()` or `checkTile()` (character.js), and one line in `TILE_BEHAVIOURS` (tileeditor.js), which gives it an editor row and tab. |
@@ -153,9 +155,9 @@ Only build these when they're needed.
 - **Items:**
   - stacking (arrows, potions), which would need a count on each item
   - items placed in the editor aren't saved in the map file. That would need a list of them in the map file, like `spawns`, and a decision on whether picked-up ones come back
-  - item edits made in the editor are lost on reload. Copy the numbers into `items.js` / `weapons.js` by hand for now
+  - making new weapons and items in the editor, like the tile editor's **New**. For now they're added to `items.json` by hand
+  - weapons only enemies use (the grunt's `claws`) can only be changed in `items.json` by hand, since the editor edits weapons through their item
   - Speedy Shoes do nothing yet
-  - items as data files, like `tiles.json`. They're code in `items.js` for now, like weapons and enemies, because nothing makes them in the game. Files would only be worth it with an in-game item editor. Their art already goes in its own folder (`image: 'assets/squimble-quest/items/axe.png'`).
 - **Multiplayer, maybe.** Only a possibility, not a decision. The idea is a small social game: a group of friends, up to about a classroom (20–40 players), playtesting and hanging out together, never hundreds. If it ever happens:
   - **What already helps:** every character runs on `{ move, aim, attack }` controls, so another player is just a `Player` whose controls come over the network. Maps and tiles are data files a server can load too. Progress is already kept apart from the design. The only randomness (where dropped items land) goes through `randomBetween()` in utils.js.
   - **What's in the way:** the game assumes one player and one running map (the globals `player`, `worldMap`, `enemies`, `npcs`, and `loadMap()` swapping the world). With players on different maps, each map with players on it would have to keep running, so maps become "rooms". Also single-player: the warp step tracking (`Warps.lastCol`), enemies following through warps, `chasePlayer` and enemy `targets()` only knowing `world.player`, dialogue and the editor pausing everything, and some rules code needing p5 (`color()` in `MeleeSwing` and `setTile()`).

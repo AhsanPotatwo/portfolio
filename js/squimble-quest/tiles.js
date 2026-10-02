@@ -203,22 +203,16 @@ function loadTileFile() {
 // every tile as plain data, ready to save as tiles.json. each only has the settings that are different
 // from TILE_DEFAULTS, plus its colour, so every line says what the tile looks like
 function tilesToData() {
+  // typeToData() is in utils.js
   const tiles = Object.values(TILE_TYPES)
     .sort((a, b) => a.layer - b.layer)
-    .map((type) => {
-      const entry = { name: type.name };
-      for (const [key, value] of Object.entries(TILE_DEFAULTS)) {
-        if (key === 'colour' || type[key] !== value) entry[key] = type[key];
-      }
-      return entry;
-    });
+    .map((type) => typeToData(type, TILE_DEFAULTS));
   return { format: TILES_FORMAT, version: TILES_VERSION, tiles };
 }
 
-// the text that goes in tiles.json: one tile per line, so the file reads like a list
+// the text that goes in tiles.json: one tile per line, so the file reads like a list (jsonLine() is
+// in utils.js)
 function tilesDataToText(data) {
-  // indenting by 1 then swapping each line break (and its indent) for a space squashes a tile onto
-  // one line, with spaces after the colons and commas
-  const lines = data.tiles.map((tile) => `    ${JSON.stringify(tile, null, 1).replace(/\n\s*/g, ' ')}`);
+  const lines = data.tiles.map(jsonLine);
   return `{\n  "format": "${data.format}",\n  "version": ${data.version},\n  "tiles": [\n${lines.join(',\n')}\n  ]\n}\n`;
 }

@@ -1,5 +1,9 @@
 // the item catalogue: every kind of thing that can be carried in an inventory (inventory.js).
-// works like objects.js.
+//
+// the items, and the weapons they swing (weapons.js), are in one file,
+// assets/squimble-quest/items/items.json, loaded when the game starts. this file loads it, keeps the
+// items in ITEM_TYPES (and the weapons in WEAPONS), and turns them all back into a file. it works
+// like tiles.json does for tiles (tiles.js).
 //
 // an item isn't part of whoever's carrying it. createItem() makes one, it goes in an inventory
 // slot, and it can be taken back out again, so it can be passed around, dropped, picked up...
@@ -7,26 +11,36 @@
 //
 // ============================== how to make an item ==============================
 //
-// add a defineItem() at the bottom of this file:
+// in the map editor (dev mode, then B), right click an item in the Weapons or Items tab (or pick it
+// and click Edit) to change its name, rarity, colour and its weapon's numbers. changes show straight
+// away, then Export in the inspector downloads a new items.json: put it in assets/squimble-quest/items/
+// (replacing the old one) and the changes are in the game for good.
 //
-//   defineItem('axe', { label: 'Axe', category: 'weapon', weapon: 'axe', rarity: 'rare', colour: '#b0773a' });
+// to add a new item, add a line to the "items" list in items.json. each only needs the settings that
+// are different from ITEM_DEFAULTS below:
 //
-// the settings (anything left out comes from ITEM_DEFAULTS):
+//   { "name": "axe", "label": "Axe", "category": "weapon", "weapon": "axe", "rarity": "rare", "colour": "#b0773a" }
 //
+//   name      what everything else calls it (PLAYER.startingItems in config.js). renaming it loses it
+//             from anywhere that uses the old name
 //   label     its name as the player sees it
 //   category  a name from ITEM_CATEGORIES below. sorts it into a tab of the map editor's palette
-//   weapon    a name from WEAPONS (weapons.js), if holding it lets you attack. null if it doesn't
+//   weapon    a name from the "weapons" list, if holding it lets you attack. null if it doesn't
 //   rarity    a name from RARITIES below. colours its glow on the ground and in the inventory
 //   colour    placeholder colour for its hotbar picture, until there's art
-//   image     a picture for it, e.g. image: 'assets/squimble-quest/items/axe.png'
+//   image     a picture for it, e.g. "image": "assets/squimble-quest/items/axe.png"
 //
-// the map editor can change these (and its weapon's damage, reach...) while the game's running, and
-// place items on the map or give them to the player. the changes go when the page reloads, so copy
-// any numbers you want to keep into the defineItem() / defineWeapon() lines
-//
-// later items could have other settings, e.g. heal for a potion, or stackable for arrows
+// later items could have other settings, e.g. heal for a potion, or stackable for arrows. a new
+// setting needs its normal value adding to ITEM_DEFAULTS, which is also what saves it into items.json
 //
 // ====================================================================================
+
+// the items file, from the site's main folder
+const ITEM_FILE = 'assets/squimble-quest/items/items.json';
+
+// written at the top of items.json, like tiles.json's (tiles.js)
+const ITEMS_FORMAT = 'squimble-quest-items';
+const ITEMS_VERSION = 1;
 
 // every category of item, and the name of its tab in the map editor's palette (editor.js). a new
 // category is a new line here, and its tab shows up by itself
@@ -55,10 +69,15 @@ const ITEM_DEFAULTS = {
   image: null,
 };
 
-// every item, by name. filled in by defineItem() below
+// every item, by name. filled in from items.json by defineItem() (loadItemFile() below)
 const ITEM_TYPES = {};
 
-// defineType() is in utils.js
+// the same items split up by category, e.g. ITEMS_BY_CATEGORY.weapon.sword. the map editor's tabs
+// show these (editor.js)
+const ITEMS_BY_CATEGORY = Object.fromEntries(Object.keys(ITEM_CATEGORIES).map((category) => [category, {}]));
+
+// defineType() is in utils.js. a category or rarity that doesn't exist goes back to the default, so
+// a typo in items.json can't break the game
 function defineItem(name, settings) {
   defineType(ITEM_TYPES, ITEM_DEFAULTS, 'item', name, settings);
   const type = ITEM_TYPES[name];
@@ -66,11 +85,12 @@ function defineItem(name, settings) {
     console.warn(`The item "${name}" has a rarity "${type.rarity}" that isn't in RARITIES, so it's ${ITEM_DEFAULTS.rarity}`);
     type.rarity = ITEM_DEFAULTS.rarity;
   }
-}
-
-// every item in a category, by name, e.g. itemsOfCategory('weapon'). for the map editor's tabs
-function itemsOfCategory(category) {
-  return Object.fromEntries(Object.entries(ITEM_TYPES).filter(([, type]) => type.category === category));
+  if (!ITEM_CATEGORIES[type.category]) {
+    console.warn(`The item "${name}" has a category "${type.category}" that isn't in ITEM_CATEGORIES, so it's ${ITEM_DEFAULTS.category}`);
+    type.category = ITEM_DEFAULTS.category;
+  }
+  if (type.weapon && !WEAPONS[type.weapon]) console.warn(`The item "${name}" has a weapon "${type.weapon}" that isn't in ${ITEM_FILE}, so it can't attack`);
+  ITEMS_BY_CATEGORY[type.category][name] = type;
 }
 
 // an item's rarity, from RARITIES: { label, colour }
@@ -83,16 +103,41 @@ function itemRarity(item) {
 // every other sword
 function createItem(name) {
   if (!ITEM_TYPES[name]) {
-    console.warn(`There's no item called "${name}", add it in items.js`);
+    console.warn(`There's no item called "${name}", add it in ${ITEM_FILE}`);
     return null;
   }
   return { type: ITEM_TYPES[name] };
 }
 
-// ---------- the items ----------
+// ---------- items.json ----------
 
-defineItem('sword', { label: 'Sword', category: 'weapon', weapon: 'sword', rarity: 'common', colour: '#c9d1d9' });
-defineItem('axe',   { label: 'Axe',   category: 'weapon', weapon: 'axe',   rarity: 'rare',   colour: '#b0773a' });
+// loads every weapon and item from ITEM_FILE, weapons first since items use them. run once when the
+// game starts (sketch.js). gives back a promise that finishes when it's loaded or failed.
+// like the tiles file, a problem never stops the game: it's a warning in the browser console
+function loadItemFile() {
+  // fetchJson() is in utils.js
+  return fetchJson(ITEM_FILE)
+    .then((data) => {
+      if (!Array.isArray(data?.weapons) || !Array.isArray(data?.items)) throw new Error("it doesn't look like a Squimble Quest items file");
+      for (const [list, define] of [[data.weapons, defineWeapon], [data.items, defineItem]]) {
+        for (const { name, ...settings } of list) {
+          if (typeof name === 'string' && name !== '') define(name, settings);
+          else console.warn(`Something in ${ITEM_FILE} has no name, so it's been left out`);
+        }
+      }
+      // their colours and pictures (utils.js)
+      prepareArt(ITEM_TYPES, 'item');
+    })
+    .catch((err) => {
+      console.warn(`Couldn't load the items file "${ITEM_FILE}": ${err.message}.`);
+    });
+}
 
-// does nothing yet. one day it could make the player faster while it's held
-defineItem('speedy-shoes', { label: 'Speedy Shoes', rarity: 'uncommon', colour: '#e05a4f' });
+// the text that goes in items.json: every weapon then every item, one per line, each with only the
+// settings that are different from the defaults (typeToData() and jsonLine() are in utils.js)
+function itemsToText() {
+  const lines = (types, defaults) => Object.values(types).map((type) => jsonLine(typeToData(type, defaults))).join(',\n');
+  return `{\n  "format": "${ITEMS_FORMAT}",\n  "version": ${ITEMS_VERSION},\n` +
+    `  "weapons": [\n${lines(WEAPONS, WEAPON_DEFAULTS)}\n  ],\n` +
+    `  "items": [\n${lines(ITEM_TYPES, ITEM_DEFAULTS)}\n  ]\n}\n`;
+}

@@ -4,10 +4,15 @@
 //
 // ============================== how to make a weapon ==============================
 //
-// add a defineWeapon() at the bottom of this file. then either make an item for it (items.js), so
-// the player can hold it, or give it to an enemy with weapon: 'axe' (enemies.js):
+// the weapons are in assets/squimble-quest/items/items.json, with the items, loaded when the game
+// starts (loadItemFile() in items.js). add a line to its "weapons" list, then either make an item
+// for it in the same file, so the player can hold it, or give it to an enemy with weapon: 'axe'
+// (enemies.js):
 //
-//   defineWeapon('axe', { damage: 35, reach: 64, arc: 150, swingTime: 0.25, cooldown: 0.6 });
+//   { "name": "axe", "damage": 35, "reach": 64, "arc": 150, "swingTime": 0.25, "cooldown": 0.6 }
+//
+// an item's weapon can also be changed in the map editor (Edit on the item, Weapon tab), then
+// Export in the inspector downloads a new items.json to replace the old one.
 //
 // the settings (anything left out comes from WEAPON_DEFAULTS):
 //
@@ -32,43 +37,13 @@ const WEAPON_DEFAULTS = {
   colour: '#ffffff',
 };
 
-// every weapon, by name. filled in by defineWeapon() below
+// every weapon, by name. filled in from items.json by defineWeapon() (loadItemFile() in items.js)
 const WEAPONS = {};
 
 // defineType() is in utils.js
 function defineWeapon(name, settings) {
   defineType(WEAPONS, WEAPON_DEFAULTS, 'weapon', name, settings);
 }
-
-// ---------- the weapons ----------
-
-defineWeapon('sword', {
-  damage: 20,
-  reach: 60,
-  arc: 120,
-  swingTime: 0.15,
-  cooldown: 0.3,
-});
-
-// what the grunt (enemies.js) attacks with. weak and slow, so a few of them are a fair fight
-defineWeapon('claws', {
-  damage: 8,
-  reach: 44,
-  arc: 90,
-  swingTime: 0.2,
-  cooldown: 1,
-  colour: '#ff8a8a',
-});
-
-// slower than the sword, but hits harder, reaches further and swings wider
-defineWeapon('axe', {
-  damage: 35,
-  reach: 68,
-  arc: 160,
-  swingTime: 0.25,
-  cooldown: 0.65,
-  colour: '#ffd9a0',
-});
 
 // ---------- a melee swing ----------
 

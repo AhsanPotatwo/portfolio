@@ -19,7 +19,8 @@
 //   - enemies and npcs: left click to place one, standing on the tile under the mouse
 //   - weapons and items (a tab for each category in items.js): left click to put one on the ground,
 //     like a dropped item (so Export doesn't save it). Give puts one in the player's inventory, and
-//     right clicking one in the palette (or Edit) changes its name, rarity, colour and weapon numbers
+//     right clicking one in the palette (or Edit) changes its name, rarity, colour and weapon numbers.
+//     Export in the inspector saves them all as items.json (items.js)
 //   - pick Erase in the toolbar, then left click or drag to erase. if you start on an object, enemy,
 //     npc, item or warp it removes those, otherwise it empties tiles. empty tiles are like off the
 //     edge of the map: nothing's drawn there and nothing can walk on them
@@ -137,7 +138,7 @@ const EDITOR_TABS = [
   { kind: 'trigger', label: 'Triggers', types: TRIGGER_TYPES },
   // a tab for each category of item (ITEM_CATEGORIES in items.js), its kind the category's name.
   // they're all placed on the ground the same way, and all edited by Editor.editItem()
-  ...Object.entries(ITEM_CATEGORIES).map(([kind, label]) => ({ kind, label, types: itemsOfCategory(kind) })),
+  ...Object.entries(ITEM_CATEGORIES).map(([kind, label]) => ({ kind, label, types: ITEMS_BY_CATEGORY[kind] })),
   // examples of more tabs, empty for now, so they show "Nothing here yet". to fill one, give it a
   // catalogue and place it in Editor.update(), like objects. when there are more tabs than fit, they
   // scroll (EditorTabStrip)
@@ -197,9 +198,11 @@ const Editor = {
   stillFor: 0,
 
   // the palette's tabs, and the inspector's buttons, made in init(). showTab() only shows New and
-  // Export on the Tiles tab. Edit is for a picked tile or item, Give for a picked item
+  // Export on the Tiles tab, and the items' Export on the item tabs. Edit is for a picked tile or
+  // item, Give for a picked item
   tabStrip: null,
   tileButtons: [],
+  exportItemsButton: null,
   editButton: null,
   giveButton: null,
 
@@ -268,6 +271,11 @@ const Editor = {
     ];
     // where New is on the Tiles tab, so it's never shown there (see update())
     this.giveButton = inspectorButton(1, 'Give', () => this.giveItem(this.selected.name));
+    // saves every weapon and item, with any changes, as items.json (items.js)
+    this.exportItemsButton = inspectorButton(2, 'Export', () => {
+      downloadTextFile('items.json', itemsToText());
+      showMessage('Exported! Put items.json in assets/squimble-quest/items/');
+    });
 
     UI.showGroup('editor', false);
   },
@@ -337,6 +345,7 @@ const Editor = {
     this.tab = kind;
     this.tabStrip.reveal(kind);
     for (const button of this.tileButtons) button.visible = kind === 'tile';
+    this.exportItemsButton.visible = isItemKind(kind);
   },
 
   // is this the one picked?
@@ -530,8 +539,8 @@ const Editor = {
   },
 
   // a box for changing an item's settings (items.js): its name, rarity and colour, and for a weapon
-  // its weapon's numbers too, on a second tab (weapons.js). they change when the box is confirmed,
-  // and stay changed until the page reloads
+  // its weapon's numbers too, on a second tab (weapons.js). they change when the box is confirmed.
+  // Export on the item tabs saves them into items.json, otherwise they go when the page reloads
   editItem(name) {
     const type = ITEM_TYPES[name];
     const weapon = WEAPONS[type.weapon];
@@ -565,7 +574,7 @@ const Editor = {
 
     FormBox.open({
       title: `Item: ${name}`,
-      hint: 'Changes last until the page reloads',
+      hint: 'Export in the inspector to keep changes',
       confirmLabel: 'Save',
       ...(weapon ? { tabs: [{ label: 'Item', rows: itemRows }, { label: 'Weapon', rows: weaponRows }] } : { rows: itemRows }),
       canConfirm: ([label, , colour]) => label.trim() !== '' && HEX_COLOUR.test(colour),

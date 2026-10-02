@@ -14,7 +14,8 @@
 //   enemies.js    every kind of enemy, and its ai
 //   npcs.js       every kind of friendly npc, and what they say
 //   weapons.js    every weapon, and the swings they make
-//   items.js      every kind of item that can be carried (a sword, an axe...)
+//   items.js      every kind of item that can be carried (a sword, an axe...), and loading the
+//                 weapons and items from items.json
 //   tilemap.js    a map made of tiles: storing, drawing, resizing, and collision with solid tiles
 //   maps.js       the list of map files to load, the map the game starts on, and visited maps
 //   mapfile.js    saving and loading maps as files
@@ -36,8 +37,8 @@
 //   tileeditor.js the map editor's box for making and changing tiles (needs editor.js first)
 //   debug.js      developer mode, hidden testing tools (press ` or Ctrl + D while playing)
 //
-// the catalogue files (tiles, objects, enemies, npcs, weapons, items) are where new things get
-// added, each has a "how to make one" guide at the top
+// the catalogue files (tiles, objects, enemies, npcs, weapons, items) each have a "how to make one"
+// guide at the top. tiles, weapons and items are made in data files the map editor can export
 
 let player;
 // not just "camera", because p5 already has a function called camera() for 3D
@@ -52,11 +53,10 @@ let mapsReady = false;
 
 // runs before setup(). p5 waits for everything started here (like images) to finish loading
 // before it starts the game. load images for buttons and anything else in here too
-// (tiles load in setup(), with the maps)
+// (tiles and items load in setup(), with the maps)
 function preload() {
   prepareArt(OBJECT_TYPES, 'object');
   prepareArt(ENEMY_TYPES, 'enemy');
-  prepareArt(ITEM_TYPES, 'item');
   prepareArt(NPC_TYPES, 'npc');
 }
 
@@ -78,11 +78,13 @@ function setup() {
   // and E or I opens the whole of it (hidden until then)
   InventoryScreen.init(player.inventory);
 
-  // the tiles (tiles.js) and map files (mapfile.js) load in the background, then the game starts on
-  // START_MAP (maps.js). tiles first, because loading a map checks every tile on it is one the game
-  // knows. they're loaded here rather than in preload() because a missing file in preload() would
-  // stop the game ever starting, and this way it's just skipped
-  loadTileFile().then(loadMapFiles).then(() => {
+  // the tiles (tiles.js), map files (mapfile.js), and weapons and items (items.js) load in the
+  // background, then the game starts on START_MAP (maps.js). tiles before maps, because loading a map
+  // checks every tile on it is one the game knows. items load alongside them. they're loaded here
+  // rather than in preload() because a missing file in preload() would stop the game ever starting,
+  // and this way it's just skipped
+  Promise.all([loadTileFile().then(loadMapFiles), loadItemFile()]).then(() => {
+    player.giveStartingItems();
     // the editor starts on the first tile, so it picks it now there are some
     Editor.checkSelected();
     // not one map file loaded, so use the blank stand-in map (maps.js) so there's something to play on
