@@ -41,6 +41,7 @@ Range plus craft. He builds real, playable things across many stacks (p5.js game
 
 - **Wizard persona is core identity and must be kept**: "Full Stack Wizard", the crystal orb, Pantry Wizard and Wizard Battles naming, and the playful, warm voice ("Made by pondering my crystal orb").
 - Brand mark is `[Ahsan]` in brackets.
+- **The home page keeps its celestial/space theme** (night sky, stars, constellations, nebula) and the code card in the hero. The wizard persona lives in project names, project pages and the voice, not the home page visuals. A crystal-orb hero and a star-chart hero were both tried and rejected as out of place (2026-10-02).
 - Figma-first: surfaces are designed in Figma before being built. Figma file: https://www.figma.com/design/8I7CBDkn3dz2HJuaapmHwE/Portfolio-website-design
 
 ## Evidence on Hand
