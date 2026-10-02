@@ -30,12 +30,24 @@ class Player extends Character {
     this.respawn();
   }
 
-  // back to the spawn point of the map they're on, with full health. a placeholder until there's a
-  // proper death screen. always the map's spawn, never the warp they came in by, so going through a
-  // door and back doesn't move where you respawn. this counts as arriving there, so a 'step' warp
-  // on the spawn doesn't send them straight off (warps.js). worldMap is the game's (sketch.js)
+  // back to life with full health, somewhere safe. a placeholder until there's a proper death screen.
+  //
+  // ponytail: where you respawn isn't decided yet (see "Respawning" in README.md's known issues).
+  // for now it's the spawn point of whichever map you're on. everything about where you come back is
+  // in this one function, so changing it later only means changing this. some ways it could work:
+  //   - the spawn of the map you're on (what it does now). dying in the hut puts you in the hut
+  //   - always the game's start: loadMap(START_MAP) instead of the lines below (START_MAP is in
+  //     maps.js). loadMap() (sketch.js) places the player and calls Warps.arrived() itself
+  //   - where you last came in through a warp, as it used to work: loadMap() would need to save
+  //     where you arrived for this to read. going into a building and out again moves your respawn
+  //     to its door, which felt like a bug
+  //   - checkpoints, like a bed or a campfire: a new kind of trigger (copy how warps.js works) that
+  //     saves its map and spot when touched, and this goes there with loadMap(map) then placeAt()
+  // whatever it becomes, anything that moves the player without walking must call Warps.arrived()
+  // afterwards, so a 'step' warp under where they land doesn't send them straight off (warps.js)
   respawn() {
     this.health = this.maxHealth;
+    // worldMap is the game's (sketch.js)
     this.x = worldMap.spawn.x;
     this.y = worldMap.spawn.y;
     Warps.arrived(this, worldMap);
