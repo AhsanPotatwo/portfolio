@@ -56,6 +56,9 @@ class TileMap {
     // progress, not part of the map's design: the spawns above never change (the editor still shows
     // every one, and Export still saves them)
     this.characters = null;
+    // items lying on the ground, each { item, x, y, ready } (Drops in inventory.js). progress too,
+    // like characters: the editor doesn't show them and Export doesn't save them
+    this.drops = [];
   }
 
   // ---------- reading and changing tiles ----------

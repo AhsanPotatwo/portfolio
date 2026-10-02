@@ -39,7 +39,7 @@ const PLAYER = {
   feetWidth: 24,
   feetHeight: 14,
   maxHealth: 100,
-  // what's in the hotbar at the start, from slot 1 along (names from items.js). the rest start empty.
+  // what's in the inventory at the start, from hotbar slot 1 along (names from items.js). the rest start empty.
   // the player attacks with whatever's in the picked slot (left click), empty hands can't attack
   startingItems: ['sword', 'axe'],
   colour: '#4a7bd8',
@@ -135,6 +135,11 @@ const KEYS = {
 
   // talk to an npc when you're next to them, and move the conversation on (see dialogue.js)
   interact: ['KeyE'],
+  // open and close the inventory (inventory.js). E only does it when there's nobody to talk to and
+  // no warp in reach, so I always works
+  inventory: ['KeyE', 'KeyI'],
+  // drop what you're holding on the ground (inventory.js)
+  drop: ['KeyQ'],
 
   // developer mode (see debug.js). ` is the key under Esc, it switches dev mode on and off.
   // not every keyboard has a ` key, so Ctrl + D does the same.
