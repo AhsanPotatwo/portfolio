@@ -289,6 +289,8 @@ a{ color:inherit; text-decoration:none; }
 }
 .hero-card-inner{
   position:relative;
+  transform:perspective(900px);
+  transform-style:preserve-3d; /* so the rings can pass behind and in front of the card */
   transition:transform .2s ease-out;
   will-change:transform;
 }
@@ -318,18 +320,46 @@ a{ color:inherit; text-decoration:none; }
   0%,100%{ opacity:0; transform:scale(.4); }
   50%{ opacity:1; transform:scale(1.2); }
 }
-.hero-card-orbits{ position:absolute; inset:0; }
-.hc-orbit{ position:absolute; top:50%; left:50%; width:0; height:0; }
-.hc-orbit i{ position:absolute; top:0; left:0; border-radius:50%; }
-.hc-orbit-1{ animation:hcOrbit1 11s linear infinite; }
-.hc-orbit-1 i{ width:8px; height:8px; margin:-4px 0 0 -4px; background:#c6a3ff; box-shadow:0 0 10px 2px rgba(198,163,255,.75); }
-.hc-orbit-2{ animation:hcOrbit2 17s linear infinite; }
-.hc-orbit-2 i{ width:6px; height:6px; margin:-3px 0 0 -3px; background:#4d9be3; box-shadow:0 0 9px 2px rgba(77,155,227,.75); }
-.hc-orbit-3{ animation:hcOrbit3 8s linear infinite; }
-.hc-orbit-3 i{ width:6px; height:6px; margin:-3px 0 0 -3px; background:#31fa96; box-shadow:0 0 8px 2px rgba(49,250,150,.75); }
-@keyframes hcOrbit1{ from{ transform:rotate(0deg) translateX(150px); } to{ transform:rotate(360deg) translateX(150px); } }
-@keyframes hcOrbit2{ from{ transform:rotate(0deg) translateX(190px); } to{ transform:rotate(-360deg) translateX(190px); } }
-@keyframes hcOrbit3{ from{ transform:rotate(90deg) translateX(115px); } to{ transform:rotate(450deg) translateX(115px); } }
+/* orbital rings. each ring is a circle laid back in 3d (--lean) and turned (--turn), so it reads as
+   an ellipse around the card. its star spins in the ring's plane and is turned back to face the
+   viewer, which keeps it round instead of squashed */
+.hero-card-orbits{ position:absolute; inset:0; transform-style:preserve-3d; pointer-events:none; }
+.hc-ring{
+  --lean:66deg; /* shallow enough that the near arc clears the code, the far arc hides behind the card */
+  position:absolute; top:50%; left:50%;
+  width:var(--d); aspect-ratio:1;
+  border-radius:50%;
+  border:1px solid var(--ring);
+  transform:translate(-50%,-50%) rotateZ(var(--turn)) rotateX(var(--lean));
+  transform-style:preserve-3d;
+}
+.hc-ring-1{ --d:max(128%,520px); --turn:-12deg; --ring:rgba(198,163,255,.45); }
+.hc-ring-2{ --d:max(146%,600px); --turn:9deg; --ring:rgba(77,155,227,.36); }
+.hc-ring-3{ --d:max(112%,470px); --turn:-3deg; --ring:rgba(49,250,150,.28); }
+/* the orbit layer fills the ring and spins about its centre; the arm puts the star on the ring's edge */
+.hc-orbit{
+  position:absolute; inset:0;
+  transform-style:preserve-3d;
+  animation:hcSpin var(--period) linear infinite;
+}
+.hc-arm{ position:absolute; top:50%; left:100%; transform-style:preserve-3d; }
+.hc-ring i{
+  position:absolute; top:0; left:0;
+  border-radius:50%;
+  transform:rotateZ(0deg) rotateX(calc(-1 * var(--lean))) rotateZ(calc(-1 * var(--turn)));
+  animation:hcFace var(--period) linear infinite;
+}
+.hc-ring-1{ --period:11s; }
+.hc-ring-2{ --period:17s; }
+.hc-ring-3{ --period:8s; }
+.hc-ring-1 i{ width:8px; height:8px; margin:-4px 0 0 -4px; background:#c6a3ff; box-shadow:0 0 10px 2px rgba(198,163,255,.75); }
+.hc-ring-2 i{ width:6px; height:6px; margin:-3px 0 0 -3px; background:#4d9be3; box-shadow:0 0 9px 2px rgba(77,155,227,.75); }
+.hc-ring-3 i{ width:6px; height:6px; margin:-3px 0 0 -3px; background:#31fa96; box-shadow:0 0 8px 2px rgba(49,250,150,.75); }
+@keyframes hcSpin{ to{ transform:rotate(360deg); } }
+@keyframes hcFace{
+  from{ transform:rotateZ(0deg) rotateX(calc(-1 * var(--lean))) rotateZ(calc(-1 * var(--turn))); }
+  to{ transform:rotateZ(-360deg) rotateX(calc(-1 * var(--lean))) rotateZ(calc(-1 * var(--turn))); }
+}
 .hero-card-body{
   position:relative;
   background:rgba(30,28,33,.82);
@@ -1599,7 +1629,7 @@ a{ color:inherit; text-decoration:none; }
   html{ scroll-behavior:auto; }
   *{ transition-duration:.01ms !important; animation-duration:.01ms !important; }
   .reveal{ opacity:1; transform:none; }
-  .hero-aura, .hc-orbit-1, .hc-orbit-2, .hc-orbit-3, .hero-card-pulse, .hero-card-spark, .hero-card-caret{ animation:none; }
+  .hero-aura, .hc-orbit, .hc-ring i, .hero-card-pulse, .hero-card-spark, .hero-card-caret{ animation:none; }
   .bg-nebula-1, .bg-nebula-2, .bg-nebula-3, .shooting-star{ animation:none; }
   .avatar-halo, .av-orbit-1, .av-orbit-2, .badge-open{ animation:none; }
   .figma-tag{ animation:none; }
