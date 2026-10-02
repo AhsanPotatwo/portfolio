@@ -72,28 +72,28 @@ class TextField extends UIElement {
   draw() {
     const s = BUTTON_STYLES.default;
     // a dark box, with a blue edge while it's being typed into
-    fill(20, 22, 28);
-    stroke(this.focused ? BUTTON_STYLES.primary.fill : this.hovered ? 140 : 80);
-    strokeWeight(this.focused ? 2 : 1.5);
-    rect(this.x, this.y, this.w, this.h, 5);
+    fill(EDITOR_COLOURS.well);
+    stroke(this.focused ? BUTTON_STYLES.primary.fill : this.hovered ? 140 : EDITOR_COLOURS.edge);
+    strokeWeight(this.focused ? 1.5 : 1);
+    rect(this.x, this.y, this.w, this.h, 3);
 
     const middleX = this.x + this.w / 2;
     const middleY = this.y + this.h / 2;
-    setText(16, BOLD, CENTER, CENTER, s.font);
+    setText(13, BOLD, CENTER, CENTER, s.font);
     noStroke();
 
     // selected: a blue highlight behind the text, like a text box with everything selected
     const width = textWidth(this.text);
     if (this.selected && this.text) {
       fill(BUTTON_STYLES.primary.fill);
-      rect(middleX - width / 2 - 2, middleY - 10, width + 4, 20, 2);
+      rect(middleX - width / 2 - 2, middleY - 8, width + 4, 16, 2);
     }
     fill(s.textColour);
     text(this.text, middleX, middleY);
 
     // the blinking line where typing goes, half a second on, half off
     if (this.focused && !this.selected && millis() % 1000 < 500) {
-      rect(middleX + width / 2 + 2, middleY - 9, 1.5, 18);
+      rect(middleX + width / 2 + 2, middleY - 7, 1.5, 14);
     }
   }
 }

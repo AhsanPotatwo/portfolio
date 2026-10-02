@@ -9,9 +9,10 @@
 // the typing fields (TextField, NumberField, ColourField) are in textfield.js. it's drawn in the map
 // editor's colours (EDITOR_COLOURS in editor.js)
 
-// the box's width, the space each thing it asks for gets, how much wider a side column makes it
-// (see side in FormBox.open()), and the size of its tabs (see tabs), in screen pixels
-const FORM_BOX = { width: 300, rowHeight: 44, sideWidth: 180, tabHeight: 28, tabGap: 4 };
+// the box's width, the space each thing it asks for gets and how tall its box is, the title bar along
+// the top and the strip along the bottom with the buttons, how much wider a side column makes it (see
+// side in FormBox.open()), and the size of its tabs (see tabs), in screen pixels
+const FORM_BOX = { width: 300, rowHeight: 30, fieldHeight: 24, titleHeight: 28, footerHeight: 40, sideWidth: 180, tabHeight: 22, tabGap: 2 };
 
 const FormBox = {
   active: false,
@@ -25,7 +26,7 @@ const FormBox = {
   tab: 0,
   tabButtons: [],
   // how far down the box the rows start, and how many rows the box has room for
-  rowsTop: 52,
+  rowsTop: 0,
   mostRows: 0,
 
   // options: { title, hint, confirmLabel, rows, tabs, canConfirm(values), onConfirm(values) }
@@ -51,10 +52,10 @@ const FormBox = {
     // made fresh each time, since each one asks for different things. tall enough to fit them
     this.tabs = options.tabs ?? [{ rows: options.rows }];
     const tabbed = Boolean(options.tabs);
-    this.rowsTop = 52 + (tabbed ? FORM_BOX.tabHeight + 8 : 0);
+    this.rowsTop = FORM_BOX.titleHeight + 12 + (tabbed ? FORM_BOX.tabHeight + 8 : 0);
     this.mostRows = Math.max(options.minRows ?? 0, ...this.tabs.map(({ rows }) => rows.length));
     const w = FORM_BOX.width + (options.side ? FORM_BOX.sideWidth : 0);
-    const h = this.rowsTop + 62 + this.mostRows * FORM_BOX.rowHeight + (options.hint ? 28 : 0);
+    const h = this.rowsTop + this.mostRows * FORM_BOX.rowHeight + (options.hint ? 20 : 0) + FORM_BOX.footerHeight;
     const x = (GAME_W - w) / 2;
     const y = (GAME_H - h) / 2;
     const add = (element) => UI.add(Object.assign(element, { group: 'form-box' }));
@@ -63,15 +64,15 @@ const FormBox = {
     add(new FormBoxBackdrop({ x: 0, y: 0, w: GAME_W, h: GAME_H, box: { x, y, w, h } }));
     // the tabs, under the title and above the rows, each as wide as its label. they all shrink to fit
     // if there are lots
-    setText(12, BOLD, CENTER, CENTER, BUTTON_STYLES.default.font);
-    const tabWidths = this.tabs.map(({ label }) => textWidth(label ?? '') + 16);
-    const room = FORM_BOX.width - 40 - FORM_BOX.tabGap * (this.tabs.length - 1);
+    setText(11, BOLD, CENTER, CENTER, BUTTON_STYLES.default.font);
+    const tabWidths = this.tabs.map(({ label }) => textWidth(label ?? '') + 14);
+    const room = FORM_BOX.width - 32 - FORM_BOX.tabGap * (this.tabs.length - 1);
     const squash = Math.min(1, room / tabWidths.reduce((a, b) => a + b, 0));
-    let tabX = x + 20;
+    let tabX = x + 16;
     this.tabButtons = tabbed ? this.tabs.map(({ label }, i) => {
       const button = add(new Button({
-        x: tabX, y: y + 48, w: tabWidths[i] * squash, h: FORM_BOX.tabHeight, label,
-        style: { textSize: 12, onFill: EDITOR_COLOURS.accent },
+        x: tabX, y: y + FORM_BOX.titleHeight + 10, w: tabWidths[i] * squash, h: FORM_BOX.tabHeight, label,
+        style: { ...BUTTON_STYLES.editor, textSize: 11 },
         // a toggle so the open one's lit up. showTab() puts them all right after the click flips it
         toggle: true,
         onClick: () => this.showTab(i),
@@ -81,14 +82,17 @@ const FormBox = {
     }) : [];
     // every tab's rows in the same places, showTab() hides all but the open tab's
     for (const { rows } of this.tabs) {
-      rows.forEach(({ field }, i) => add(Object.assign(field, { x: x + 100, y: y + this.rowsTop + i * FORM_BOX.rowHeight, h: 32 })));
+      rows.forEach(({ field }, i) => add(Object.assign(field, { x: x + 100, y: y + this.rowsTop + i * FORM_BOX.rowHeight, h: FORM_BOX.fieldHeight })));
     }
-    // between the rows (and tabs) and the right edge, from under the title to above the buttons: the
-    // bottom 66 is where Cancel and the confirm button go
-    if (options.side) options.side(x + FORM_BOX.width, y + 52, FORM_BOX.sideWidth - 20, h - 52 - 66).forEach(add);
-    add(new Button({ x: x + 20, y: y + h - 56, w: 124, h: 38, label: 'Cancel', onClick: () => this.close() }));
+    // between the rows (and tabs) and the right edge, from under the title bar to above the strip
+    // along the bottom, where Cancel and the confirm button go
+    const sideTop = FORM_BOX.titleHeight + 12;
+    if (options.side) options.side(x + FORM_BOX.width, y + sideTop, FORM_BOX.sideWidth - 16, h - sideTop - FORM_BOX.footerHeight - 6).forEach(add);
+    // in the bottom right corner, like most programs' boxes
+    const buttonY = y + h - (FORM_BOX.footerHeight + 24) / 2;
+    add(new Button({ x: x + w - 182, y: buttonY, w: 80, h: 24, label: 'Cancel', style: 'editor', onClick: () => this.close() }));
     this.confirmButton = add(new Button({
-      x: x + w - 144, y: y + h - 56, w: 124, h: 38, label: options.confirmLabel, style: 'primary',
+      x: x + w - 96, y: buttonY, w: 80, h: 24, label: options.confirmLabel, style: 'editorPrimary',
       onClick: () => this.confirm(),
     }));
 
@@ -183,33 +187,42 @@ class FormBoxBackdrop extends UIElement {
     fill(0, 0, 0, 110);
     rect(0, 0, GAME_W, GAME_H);
 
-    fill(EDITOR_COLOURS.bar);
-    stroke(EDITOR_COLOURS.edge);
-    strokeWeight(1.5);
-    rect(x, y, w, h, 8);
+    const C = EDITOR_COLOURS;
+    const { titleHeight, footerHeight } = FORM_BOX;
+    fill(C.bar);
+    stroke(C.edge);
+    strokeWeight(1);
+    rect(x, y, w, h, 4);
 
+    // the title bar and the strip along the bottom, a little darker, like a window
     noStroke();
-    fill(255);
-    setText(18, BOLD, LEFT, CENTER);
-    text(title, x + 20, y + 28);
+    fill(C.header);
+    rect(x + 1, y + 1, w - 2, titleHeight - 1, 4, 4, 0, 0);
+    rect(x + 1, y + h - footerHeight, w - 2, footerHeight - 1, 0, 0, 4, 4);
+    fill(C.edge);
+    rect(x, y + titleHeight, w, 1);
+    rect(x, y + h - footerHeight, w, 1);
+    fill(C.text);
+    setText(13, BOLD, LEFT, CENTER);
+    text(title, x + 12, y + titleHeight / 2);
 
     // each of the open tab's rows' label, lined up with the middle of its box, and its word after it
     FormBox.rows().forEach(({ label, field, after }, i) => {
-      const middleY = y + rowsTop + 16 + i * FORM_BOX.rowHeight;
-      fill(220);
-      setText(14, BOLD, LEFT, CENTER);
-      text(label, x + 20, middleY);
+      const middleY = y + rowsTop + FORM_BOX.fieldHeight / 2 + i * FORM_BOX.rowHeight;
+      fill(C.text);
+      setText(12, BOLD, LEFT, CENTER);
+      text(label, x + 16, middleY);
       if (after) {
-        fill(255, 255, 255, 150);
-        setText(13, NORMAL, LEFT, CENTER);
-        text(after, field.x + field.w + 12, middleY);
+        fill(C.dimText);
+        setText(11, BOLD, LEFT, CENTER);
+        text(after, field.x + field.w + 8, middleY);
       }
     });
 
     if (hint) {
-      fill(255, 255, 255, 150);
-      setText(13, NORMAL, LEFT, CENTER);
-      text(hint, x + 20, y + rowsTop + 8 + mostRows * FORM_BOX.rowHeight);
+      fill(C.dimText);
+      setText(11, BOLD, LEFT, CENTER);
+      text(hint, x + 16, y + rowsTop + 6 + mostRows * FORM_BOX.rowHeight);
     }
   }
 }
@@ -258,28 +271,28 @@ class Picker extends UIElement {
   draw() {
     const middleY = this.y + this.h / 2;
     // a dark box, like the typing boxes
-    fill(20, 22, 28);
-    stroke(this.hovered ? 140 : 80);
-    strokeWeight(1.5);
-    rect(this.x, this.y, this.w, this.h, 5);
+    fill(EDITOR_COLOURS.well);
+    stroke(this.hovered ? 140 : EDITOR_COLOURS.edge);
+    strokeWeight(1);
+    rect(this.x, this.y, this.w, this.h, 3);
 
     // the arrows at each end, the one the mouse is on lit up
     noStroke();
-    setText(20, BOLD, CENTER, CENTER);
+    setText(16, BOLD, CENTER, CENTER);
     fill(this.hovered && this.mouseOnLeft() ? 255 : 120);
-    text('‹', this.x + 12, middleY - 2);
+    text('‹', this.x + 10, middleY - 2);
     fill(this.hovered && !this.mouseOnLeft() ? 255 : 120);
-    text('›', this.x + this.w - 12, middleY - 2);
+    text('›', this.x + this.w - 10, middleY - 2);
 
     // its picture (if it has one), then its words
-    let textX = this.x + 26;
+    let textX = this.x + 22;
     if (this.art) {
-      this.art(this.value, this.x + 26, middleY - 10, 20);
-      textX += 28;
+      this.art(this.value, this.x + 22, middleY - 8, 16);
+      textX += 22;
     }
     noStroke();
     fill(255);
-    setText(14, BOLD, LEFT, CENTER);
+    setText(12, BOLD, LEFT, CENTER);
     text(this.label(this.value), textX, middleY);
   }
 }
@@ -309,27 +322,27 @@ class Checkbox extends UIElement {
   }
 
   drawBox() {
-    const size = 20;
-    const left = this.x + 6;
+    const size = 16;
+    const left = this.x + 4;
     const top = this.y + (this.h - size) / 2;
     // a dark box, like the typing boxes
-    fill(20, 22, 28);
-    stroke(this.hovered ? 140 : 80);
-    strokeWeight(1.5);
-    rect(left, top, size, size, 4);
+    fill(EDITOR_COLOURS.well);
+    stroke(this.hovered ? 140 : EDITOR_COLOURS.edge);
+    strokeWeight(1);
+    rect(left, top, size, size, 3);
 
     // a tick in it while it's on
     if (this.value) {
       noFill();
       stroke(255);
-      strokeWeight(2.5);
-      line(left + 5, top + 10, left + 9, top + 14);
-      line(left + 9, top + 14, left + 15, top + 6);
+      strokeWeight(2);
+      line(left + 4, top + 8, left + 7, top + 11);
+      line(left + 7, top + 11, left + 12, top + 5);
     }
 
     noStroke();
     fill(255);
-    setText(14, BOLD, LEFT, CENTER);
-    text(this.label, left + size + 10, this.y + this.h / 2);
+    setText(12, BOLD, LEFT, CENTER);
+    text(this.label, left + size + 8, this.y + this.h / 2);
   }
 }

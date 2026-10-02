@@ -1,20 +1,26 @@
 // the map editor. a simple way to build maps: paint tiles, and place objects, enemies and npcs,
 // on the map you're on. open it from dev mode: press ` (or Ctrl + D) for dev mode, then B (for build).
 //
+// it's laid out like a game engine (unity, godot...):
+//   - a toolbar along the top: New, Open, Resize and Export for the map, the Paint and Erase tools,
+//     Grid and Keys (the same as G and H), Play (closes the editor), and the map's name and size
+//   - a dock on the right: the palette, with tabs for tiles, objects, enemies, npcs and triggers
+//     (the mouse wheel scrolls it), and under it the inspector, showing what's picked
+//   - a status bar along the bottom: the tile under the mouse, what a click does, and the zoom
+//
 // while it's open:
 //   - everyone stops, and WASD / the arrow keys move the camera around instead. the ui fades out
 //     while you move, so you can see the map, and comes back when you stop
-//   - pick something from the bar at the bottom. the tabs above it switch between
-//     tiles, objects, enemies, npcs and triggers (‹ › for more pages once there are lots)
-//   - tiles: left click or drag to paint, replacing whatever tile was there. + New tile (next to the
-//     tabs) makes a tile, right clicking one in the bar changes it, and Export tiles saves them all
+//   - pick something in the palette (hover over one for its name), and it's what Paint uses
+//   - tiles: left click or drag to paint, replacing whatever tile was there. New in the inspector
+//     makes a tile, right clicking one in the palette (or Edit) changes it, and Export saves them all
 //     as tiles.json (the tile editor, tileeditor.js)
 //   - objects: left click to place one, its top left corner on the tile under the mouse
 //   - enemies and npcs: left click to place one, standing on the tile under the mouse
-//   - pick Erase in the bar, then left click or drag to erase. if you start on an object, enemy,
+//   - pick Erase in the toolbar, then left click or drag to erase. if you start on an object, enemy,
 //     npc or warp it removes those, otherwise it empties tiles. empty tiles are like off the edge
 //     of the map: nothing's drawn there and nothing can walk on them
-//   - right click something to change its settings: a warp on the map, or a tile in the bar
+//   - right click something to change its settings: a warp on the map, or a tile in the palette
 //   - opening the editor brings back every enemy placed on the map, including defeated ones, so
 //     you always see the whole design. closing it puts every enemy and npc back where it was
 //     placed, with full health. (outside the editor, each map remembers its enemies and npcs as
@@ -24,14 +30,14 @@
 //       warp:  a way to another map (warps.js), a purple square. placing one opens a box to pick
 //              its name, where it leads and how it opens. right click it to change those later.
 //              Show links in that box draws every warp linked to it (warpgraph.js)
-//   - Map settings (top right) opens a panel for the whole map: Resize map changes its size
-//     (never smaller than the area with tiles in it), New map makes a map of any size filled
-//     with any tile, Open file loads one and Export saves the map as a file. sizes, the fill and
-//     the name are all asked for in a box in the game (FormBox, formbox.js)
+//   - the toolbar's map buttons: Resize changes its size (never smaller than the area with tiles in
+//     it), New makes a map of any size filled with any tile, Open loads one from a file and Export
+//     saves the map as a file. sizes, the fill and the name are all asked for in a box in the game
+//     (FormBox, formbox.js)
 //   - the dev mode keys still work (zoom, teleport, next map), and H lists them all
 //
-// every tile (tiles.json), and everything in objects.js, enemies.js and npcs.js, shows up in the bar
-// by itself.
+// every tile (tiles.json), and everything in objects.js, enemies.js and npcs.js, shows up in the
+// palette by itself.
 //
 // changes are made to the map you're on, so you can walk around on them straight away. going to
 // another map (M) and back keeps them, but reloading the page builds every map fresh from its
@@ -50,7 +56,7 @@ const NEW_MAP_NAME = 'new-map';
 const EDITOR_KEYS = [
   'MAP EDITOR KEYS',
   'left click  paint / place',
-  'right click change settings (warps, tiles in the bar)',
+  'right click change settings (warps, palette tiles)',
   'WASD        move around',
   'wheel       zoom',
   'B           close the editor',
@@ -64,46 +70,46 @@ const EDITOR_UI_FADE = {
   speed: 14,
 };
 
-// layout of the bar along the bottom, in screen pixels
-const EDITOR_BAR = {
-  height: 84,
-  // each square, and the space each one gets (square + gap + room for its name)
-  swatchSize: 44,
-  slotWidth: 60,
-  // where the squares start and stop across the bar. the rest is the Erase square and arrows
-  swatchesLeft: 110,
-  swatchesRight: GAME_W - 44,
-  // the tabs sitting on top of the bar, and the gap between them
-  tabWidth: 96,
-  tabHeight: 28,
-  tabGap: 2,
+// where everything goes, in screen pixels (see the top of this file)
+const EDITOR_LAYOUT = {
+  toolbarHeight: 28,
+  statusHeight: 20,
+  // the dock on the right, its row of tabs, and the inspector at the bottom of it
+  dockWidth: 224,
+  tabHeight: 22,
+  inspectorHeight: 150,
+  // each square in the palette, and the space it gets (the square and a gap)
+  swatchSize: 36,
+  cellSize: 40,
+  // the gap between the palette's squares and the dock's edges, and the scrollbar beside them
+  padding: 6,
+  scrollbarWidth: 4,
+  // how far one notch of the mouse wheel (about 100) scrolls the palette: about a row
+  scrollRate: 0.4,
 };
 
-// the bar's colours
+// the editor's colours, darkest to lightest, like most game engines' dark themes. the form box and
+// warp graph use them too
 const EDITOR_COLOURS = {
-  // the bar and the open tab, the same colour so they look like one piece
+  // the dock's and form box's background
   bar: '#1f232b',
-  // a thin line along the top of the bar. the open tab covers it, so it looks joined on
+  // the toolbar, status bar, panel headers, and tabs that aren't open
+  header: '#171a20',
+  // behind the palette's objects and characters, and inside text boxes
+  well: '#14171c',
+  // lines between things, and outlines
   edge: '#3a404c',
-  // tabs that aren't open are darker, and lighten when the mouse is over them
-  tab: '#14171c',
   tabHover: '#2a2f39',
-  // the strip along the top of the open tab
+  // the open tab, and what's picked
   accent: '#4a7bd8',
-};
-
-// the Map settings button in the top right corner, and the panel it opens underneath it
-const EDITOR_SETTINGS = {
-  buttonWidth: 120,
-  buttonHeight: 30,
-  panelWidth: 200,
-  // the map's name and size go at the top of the panel, then a button every rowHeight
-  headerHeight: 56,
-  rowHeight: 40,
+  picked: '#ffd23f',
+  erase: '#ff6b6b',
+  text: '#e6e8ec',
+  dimText: '#8b92a0',
 };
 
 // everything in the Triggers tab. unlike the other tabs, these aren't in a catalogue file of their
-// own, each one is placed by its own code in Editor.update() and drawn by PaletteSwatch
+// own, each one is placed by its own code in Editor.update() and drawn by drawPaletteArt()
 const TRIGGER_TYPES = {
   // where the player starts on this map, and comes back to after dying. there's only one, so
   // placing it moves it
@@ -112,10 +118,10 @@ const TRIGGER_TYPES = {
   warp: {},
 };
 
-// the tabs above the bar, left to right. each one shows everything in its catalogue (types), and
+// the palette's tabs, left to right. each one shows everything in its catalogue (types), and
 // kind is what the editor calls one of them. a new kind of thing to place is a new line here, then
 // placing it in Editor.update(). TILE_TYPES starts empty and fills in from tiles.json (tiles.js),
-// which is why the bar's squares are made later, in makeSwatches()
+// so the palette reads the catalogues as it draws, rather than once
 const EDITOR_TABS = [
   { kind: 'tile', label: 'Tiles', types: TILE_TYPES },
   // furniture, decorations, chests... everything in objects.js
@@ -152,16 +158,17 @@ function resizedStart(start, length, newLength, first, last) {
 
 const Editor = {
   active: false,
-  // what's picked in the bar: { kind, name } (kind is one of the EDITOR_TABS), or null for Erase.
-  // starts on a tile that isn't there, so makeSwatches() picks the first tile once they've loaded
+  // what's picked: { kind, name } (kind is one of the EDITOR_TABS), or null for Erase.
+  // starts on a tile that isn't there, so checkSelected() picks the first tile once they've loaded
   selected: { kind: 'tile', name: '' },
-  // which tab is showing (a kind from EDITOR_TABS), and for each tab, which page it's on and how
-  // many pages it has. each tab remembers its own page, so switching back finds it where you left it
+  // the last thing picked in the palette, so the Paint tool can go back to it after Erase
+  lastPicked: null,
+  // which tab of the palette is showing (a kind from EDITOR_TABS)
   tab: 'tile',
-  pages: {},
-  pageCounts: {},
   // what the camera looks at while editing. WASD moves this, the camera follows it
   view: { x: 0, y: 0 },
+  // the tile under the mouse, { col, row }, or null. the status bar shows it
+  over: null,
   // where the mouse was last frame while dragging, so fast drags can fill in the gap
   lastPaint: null,
   // whether the current erase drag is removing objects, characters and warps (true) or emptying tiles (false)
@@ -171,151 +178,95 @@ const Editor = {
   uiAlpha: 1,
   stillFor: 0,
 
-  // the editor's ui elements that it changes later, made in init() (the squares in makeSwatches())
-  swatches: [],
-  prevButton: null,
-  nextButton: null,
-  settingsButton: null,
-  // + New tile and Export tiles, only shown on the Tiles tab
+  // the inspector's buttons for tiles, made in init(). showTab() only shows New and Export on the Tiles tab
   tileButtons: [],
+  editTileButton: null,
 
-  // call once from setup(). makes the bar, the tabs, and the Map settings button and its panel
-  // (all hidden until they're needed). the squares in the bar come later, from makeSwatches()
+  // call once from setup(). makes the toolbar, the dock (palette and inspector) and the status bar,
+  // all hidden until the editor opens
   init() {
-    const barY = GAME_H - EDITOR_BAR.height;
+    const L = EDITOR_LAYOUT;
+    const dockX = GAME_W - L.dockWidth;
+    const dockY = L.toolbarHeight;
+    const dockH = GAME_H - L.toolbarHeight - L.statusHeight;
+    const inspectorY = dockY + dockH - L.inspectorHeight;
 
-    // everything's in the 'editor' group, so it can be shown and hidden together.
-    // the bar goes first so it's underneath the rest, and it blocks clicks between the buttons
-    // from painting the map behind it
+    // everything's in the 'editor' group, so it can be shown and hidden together. backgrounds go
+    // first so they're underneath the rest, and they stop clicks between the buttons painting the map
     const add = (element) => UI.add(Object.assign(element, { group: 'editor' }));
-    add(new EditorBar({ x: 0, y: barY, w: GAME_W, h: EDITOR_BAR.height }));
+    const toolbar = add(new EditorToolbar({ x: 0, y: 0, w: GAME_W, h: L.toolbarHeight }));
+    add(new EditorStatusBar({ x: 0, y: GAME_H - L.statusHeight, w: GAME_W, h: L.statusHeight }));
+    add(new EditorDock({ x: dockX, y: dockY, w: L.dockWidth, h: dockH, inspectorY }));
 
-    // Erase, a square like the rest, in the middle of its own slot at the left end of the bar.
-    // it's on every tab, so it isn't in swatches (showPage() only shows the open tab's)
-    add(new PaletteSwatch({
-      x: 10 + (EDITOR_BAR.slotWidth - EDITOR_BAR.swatchSize) / 2,
-      y: barY + 10,
-      w: EDITOR_BAR.swatchSize,
-      h: EDITOR_BAR.swatchSize,
-      kind: 'erase',
-      name: 'erase',
-      onClick: () => { this.selected = null; },
+    // the toolbar's buttons, left to right, each as wide as its label. a gap between groups gets a
+    // line down the middle (EditorToolbar draws them)
+    setText(12, BOLD, CENTER, CENTER, BUTTON_STYLES.default.font);
+    let x = 6;
+    const button = (label, options) => {
+      const w = Math.ceil(textWidth(label)) + 18;
+      const made = add(new EditorButton({ x, y: 4, w, h: L.toolbarHeight - 8, label, ...options }));
+      x += w + 4;
+      return made;
+    };
+    const separator = () => {
+      toolbar.separators.push(x + 2);
+      x += 8;
+    };
+    button('New', { onClick: () => this.newMap() });
+    button('Open', { onClick: () => openMapFile() });
+    button('Resize', { onClick: () => this.resizeMap() });
+    button('Export', { style: 'editorPrimary', onClick: () => this.askToExport() });
+    separator();
+    button('Paint', { isOn: () => this.selected !== null, onClick: () => { this.selected = this.lastPicked; } });
+    button('Erase', { isOn: () => this.selected === null, onClick: () => { this.selected = null; } });
+    separator();
+    button('Grid', { isOn: () => Debug.showGrid, onClick: () => { Debug.showGrid = !Debug.showGrid; } });
+    button('Keys', { isOn: () => Debug.showKeys, onClick: () => { Debug.showKeys = !Debug.showKeys; } });
+    // Play in the middle, like a game engine's. it closes the editor, back to playing (sketch.js)
+    x = Math.max(x + 16, (GAME_W - 64) / 2);
+    button('▶  Play', { style: 'editorPrimary', onClick: () => this.close(player, gameCamera) });
+
+    // the palette's tabs along the top of the dock, each as wide as its label, all squashed a bit to
+    // fit if they need to be
+    setText(11, BOLD, CENTER, CENTER, BUTTON_STYLES.default.font);
+    const widths = EDITOR_TABS.map(({ label }) => textWidth(label) + 14);
+    const squash = Math.min(1, L.dockWidth / widths.reduce((a, b) => a + b, 0));
+    let tabX = dockX;
+    EDITOR_TABS.forEach(({ kind, label }, i) => {
+      const w = widths[i] * squash;
+      add(new EditorTab({ x: tabX, y: dockY, w, h: L.tabHeight, label, kind, onClick: () => this.showTab(kind) }));
+      tabX += w;
+    });
+
+    // the palette between the tabs and the inspector
+    add(new PaletteGrid({ x: dockX, y: dockY + L.tabHeight, w: L.dockWidth, h: inspectorY - dockY - L.tabHeight }));
+
+    // the inspector's buttons along its bottom, for tiles (the tile editor, tileeditor.js)
+    const buttonW = (L.dockWidth - L.padding * 2 - 8) / 3;
+    const tileButton = (i, label, onClick) => add(new EditorButton({
+      x: dockX + L.padding + i * (buttonW + 4), y: GAME_H - L.statusHeight - 28, w: buttonW, h: 22, label, onClick,
     }));
-
-    // page arrows. they go round, so › on the last page goes back to the first.
-    // showPage() hides them when the tab only has one page
-    const arrows = { style: { textSize: 20 } };
-    this.prevButton = add(new Button({ ...arrows, x: 74, y: barY + 10, w: 28, h: 44, label: '‹', onClick: () => this.turnPage(-1) }));
-    this.nextButton = add(new Button({ ...arrows, x: GAME_W - 38, y: barY + 10, w: 28, h: 44, label: '›', onClick: () => this.turnPage(1) }));
-
-    // the tabs, sitting on top of the bar like tabs in a web browser
-    EDITOR_TABS.forEach(({ kind, label }, i) => add(new EditorTab({
-      x: 10 + i * (EDITOR_BAR.tabWidth + EDITOR_BAR.tabGap),
-      y: barY - EDITOR_BAR.tabHeight,
-      w: EDITOR_BAR.tabWidth,
-      h: EDITOR_BAR.tabHeight,
-      label,
-      kind,
-      onClick: () => this.showTab(kind),
-    })));
-
-    // the tile editor's buttons (tileeditor.js), on the right of the tabs. showPage() only shows them
-    // on the Tiles tab
-    const tileButton = (label, right, onClick) => add(new Button({
-      x: GAME_W - right, y: barY - EDITOR_BAR.tabHeight + 2, w: 110, h: EDITOR_BAR.tabHeight - 4,
-      label, style: { textSize: 13 }, onClick,
-    }));
+    this.editTileButton = tileButton(0, 'Edit', () => TileEditor.open(TILE_TYPES[this.selected.name]));
     this.tileButtons = [
-      tileButton('+ New tile', 240, () => TileEditor.open(null)),
-      tileButton('Export tiles', 124, () => TileEditor.exportTiles()),
+      tileButton(1, 'New', () => TileEditor.open(null)),
+      tileButton(2, 'Export', () => TileEditor.exportTiles()),
     ];
-
-    // Map settings, top right. a toggle, so it looks switched on while its panel is open
-    const s = EDITOR_SETTINGS;
-    this.settingsButton = add(new Button({
-      x: GAME_W - 8 - s.buttonWidth, y: 8, w: s.buttonWidth, h: s.buttonHeight, label: 'Map settings',
-      style: { textSize: 13, onFill: EDITOR_COLOURS.accent },
-      toggle: true,
-      onClick: (button) => this.showSettings(button.on),
-    }));
-
-    // the panel it opens, in its own group so it can be shown and hidden on its own. each button
-    // closes the panel, then does its thing
-    const actions = [
-      { label: 'Resize map', onClick: () => this.resizeMap() },
-      { label: 'New map', onClick: () => this.newMap() },
-      { label: 'Open file', onClick: () => openMapFile() },
-      { label: 'Export', style: 'primary', onClick: () => this.askToExport() },
-    ];
-    const panelX = GAME_W - 8 - s.panelWidth;
-    const panelY = 8 + s.buttonHeight + 6;
-    const inPanel = (element) => UI.add(Object.assign(element, { group: 'editor-settings' }));
-    inPanel(new SettingsPanel({
-      x: panelX, y: panelY, w: s.panelWidth, h: s.headerHeight + actions.length * s.rowHeight + 4,
-    }));
-    actions.forEach(({ onClick, ...options }, i) => inPanel(new Button({
-      x: panelX + 8,
-      y: panelY + s.headerHeight + i * s.rowHeight,
-      w: s.panelWidth - 16,
-      h: s.rowHeight - 8,
-      // a little smaller text than normal, plus the named style (Export's 'primary') if it has one
-      style: { textSize: 14, ...(options.style && BUTTON_STYLES[options.style]) },
-      label: options.label,
-      onClick: () => {
-        this.showSettings(false);
-        onClick();
-      },
-    })));
 
     UI.showGroup('editor', false);
-    this.showSettings(false);
   },
 
-  // makes the squares in the bar: one per tile, object, enemy and npc, each knowing its tab and page.
-  // run once the tiles have loaded (sketch.js), and again whenever the tile editor adds a tile,
-  // which throws away the old squares first
-  makeSwatches() {
-    for (const swatch of this.swatches) UI.remove(swatch);
-    const barY = GAME_H - EDITOR_BAR.height;
-    const perPage = Math.floor((EDITOR_BAR.swatchesRight - EDITOR_BAR.swatchesLeft) / EDITOR_BAR.slotWidth);
-
-    this.swatches = [];
-    for (const { kind, types } of EDITOR_TABS) {
-      const names = Object.keys(types);
-      // how many pages it needs (at least 1, even if it's empty). a tab stays on its page if it can
-      this.pageCounts[kind] = Math.max(1, Math.ceil(names.length / perPage));
-      this.pages[kind] = Math.min(this.pages[kind] ?? 0, this.pageCounts[kind] - 1);
-      names.forEach((name, i) => {
-        const slot = i % perPage;
-        // in the 'editor' group like everything init() makes, so they show, hide and fade with it
-        this.swatches.push(UI.add(new PaletteSwatch({
-          x: EDITOR_BAR.swatchesLeft + slot * EDITOR_BAR.slotWidth + (EDITOR_BAR.slotWidth - EDITOR_BAR.swatchSize) / 2,
-          y: barY + 10,
-          w: EDITOR_BAR.swatchSize,
-          h: EDITOR_BAR.swatchSize,
-          group: 'editor',
-          kind,
-          name,
-          page: Math.floor(i / perPage),
-          onClick: () => { this.selected = { kind, name }; },
-        })));
-      });
-    }
-
-    // the picked thing is gone (or nothing's been picked yet), so pick the first tile. null is Erase
+  // picks the first tile if what's picked is gone (or nothing's been picked yet). run once the tiles
+  // have loaded (sketch.js)
+  checkSelected() {
     if (this.selected && !EDITOR_CATALOGUES[this.selected.kind][this.selected.name]) {
-      this.selected = { kind: 'tile', name: Object.keys(TILE_TYPES)[0] };
+      this.pick({ kind: 'tile', name: Object.keys(TILE_TYPES)[0] });
     }
-
-    // new ui elements start visible, so with the editor closed they're hidden until it opens
-    if (this.active) this.showPage(this.pages[this.tab]);
-    else for (const swatch of this.swatches) swatch.visible = false;
   },
 
-  // opens or closes the Map settings panel
-  showSettings(open) {
-    this.settingsButton.on = open;
-    UI.showGroup('editor-settings', open);
+  // picks something from the palette ({ kind, name }) for the Paint tool
+  pick(thing) {
+    this.selected = thing;
+    this.lastPicked = thing;
   },
 
   // ---------- opening and closing ----------
@@ -343,7 +294,7 @@ const Editor = {
     this.uiAlpha = 1;
     this.stillFor = EDITOR_UI_FADE.showDelay;
     UI.showGroup('editor', true);
-    // the editor's bar goes where the hotbar is (inventory.js)
+    // the editor's status bar goes where the hotbar is (inventory.js)
     if (InventoryScreen.active) InventoryScreen.show(false);
     Hotbar.show(false);
     this.showTab(this.tab);
@@ -356,40 +307,21 @@ const Editor = {
     // every enemy and npc back where it was placed, with full health (sketch.js)
     spawnCharacters();
     UI.showGroup('editor', false);
-    this.showSettings(false);
     // Ctrl + D still works while typing, so dev mode (and the editor) can close with the box open
     if (WarpGraph.active) WarpGraph.close();
     if (FormBox.active) FormBox.close();
     Hotbar.show(true);
   },
 
-  // ---------- tabs and pages ----------
+  // ---------- tabs ----------
 
-  // switches the bar to a tab (a kind from EDITOR_TABS), on whichever page it was last on
+  // switches the palette to a tab (a kind from EDITOR_TABS). the tile buttons only show on Tiles
   showTab(kind) {
     this.tab = kind;
-    this.showPage(this.pages[kind]);
+    for (const button of this.tileButtons) button.visible = kind === 'tile';
   },
 
-  turnPage(step) {
-    const count = this.pageCounts[this.tab];
-    // + count stops it going negative, % wraps it round
-    this.showPage((this.pages[this.tab] + step + count) % count);
-  },
-
-  // shows one page of the open tab
-  showPage(page) {
-    this.pages[this.tab] = page;
-    for (const swatch of this.swatches) {
-      swatch.visible = swatch.kind === this.tab && swatch.page === page;
-    }
-    const morePages = this.pageCounts[this.tab] > 1;
-    this.prevButton.visible = morePages;
-    this.nextButton.visible = morePages;
-    for (const button of this.tileButtons) button.visible = this.tab === 'tile';
-  },
-
-  // is this the one picked in the bar?
+  // is this the one picked?
   isSelected(kind, name) {
     return this.selected !== null && this.selected.kind === kind && this.selected.name === name;
   },
@@ -482,13 +414,13 @@ const Editor = {
     const dir = Input.direction();
 
     // moving fades the ui out so you can see the map, and it fades back in once you've stopped for
-    // a moment. while it's hidden it can't be clicked, so clicks go through to the map behind it.
-    // moving closes the Map settings panel too
+    // a moment. while it's hidden it can't be clicked, so clicks go through to the map behind it
     this.stillFor = dir.x === 0 && dir.y === 0 ? this.stillFor + dt : 0;
     const showUI = this.stillFor >= EDITOR_UI_FADE.showDelay;
     this.uiAlpha = approach(this.uiAlpha, showUI ? 1 : 0, EDITOR_UI_FADE.speed, dt);
     for (const el of UI.group('editor')) el.interactive = showUI;
-    if (!showUI && this.settingsButton.on) this.showSettings(false);
+    // Edit is for the picked tile, so it's only there while one is
+    this.editTileButton.visible = this.selected?.kind === 'tile';
 
     // move the view with WASD. dividing by zoom keeps it the same speed on screen at any zoom
     const speed = EDITOR_PAN_SPEED / camera.zoom;
@@ -498,9 +430,11 @@ const Editor = {
 
     // the tile under the mouse, or null if the mouse isn't over the game
     const over = aim && Input.mouse.inside ? { col: map.colAt(aim.x), row: map.rowAt(aim.y) } : null;
+    // the status bar shows it, unless the mouse is on the ui
+    this.over = UI.hovered ? null : over;
 
     // objects, enemies, npcs and triggers: one per click. mousePressed() ignores clicks that landed
-    // on the editor's ui, like the bar or the Map settings panel (see input.js)
+    // on the editor's ui, like the toolbar or the dock (see input.js)
     if (over && Input.mousePressed('left') && this.selected) {
       const { kind, name } = this.selected;
       if (kind === 'object') this.placeObject(map, name, over.col, over.row);
@@ -642,7 +576,7 @@ const Editor = {
         // last, so it doesn't move the others in the values onConfirm gets (a button has no value)
         {
           label: 'Links',
-          field: new Button({ w: 180, label: 'Show links', style: { textSize: 14 }, onClick: () => WarpGraph.open(map.name, warp.name) }),
+          field: new Button({ w: 180, label: 'Show links', style: 'editor', onClick: () => WarpGraph.open(map.name, warp.name) }),
         },
       ],
       // needs a name, and one no other warp on this map has, so warps can lead to it
@@ -759,33 +693,207 @@ const Editor = {
   },
 };
 
-// ---------- the bar's ui elements ----------
-// both build on the ui system (ui.js / button.js), see "making a new kind of ui element" in ui.js
+// ---------- the editor's ui elements ----------
+// all build on the ui system (ui.js / button.js), see "making a new kind of ui element" in ui.js
 
-// the dark strip along the bottom. doesn't do anything when clicked, but as a ui element it
-// stops clicks on it reaching the map behind
-class EditorBar extends UIElement {
+// a small flat button, for the toolbar and the inspector. isOn (can be left out) says whether it's lit
+// up, like a toggle, but worked out every frame, e.g. Paint is lit up while something's picked
+class EditorButton extends Button {
+  constructor(options) {
+    super({ style: 'editor', ...options });
+    this.isOn = options.isOn ?? null;
+  }
+
   draw() {
+    if (this.isOn) {
+      this.toggle = true;
+      this.on = this.isOn();
+    }
+    super.draw();
+  }
+}
+
+// the strip along the top that the toolbar's buttons sit on, with the map's name and size on the
+// right. separators are the x of each line between groups of buttons (Editor.init() adds them)
+class EditorToolbar extends UIElement {
+  constructor(options) {
+    super(options);
+    this.separators = [];
+  }
+
+  draw() {
+    const C = EDITOR_COLOURS;
     noStroke();
-    fill(EDITOR_COLOURS.bar);
+    fill(C.header);
     rect(this.x, this.y, this.w, this.h);
-    // the line along the top. the open tab is drawn over it (EditorTab below)
-    fill(EDITOR_COLOURS.edge);
+    fill(C.edge);
+    rect(this.x, this.y + this.h - 1, this.w, 1);
+    for (const x of this.separators) rect(x, this.y + 6, 1, this.h - 12);
+
+    // worldMap is the game's (sketch.js)
+    const middleY = this.y + this.h / 2;
+    const size = `${worldMap.cols} × ${worldMap.rows}`;
+    fill(C.dimText);
+    setText(12, BOLD, RIGHT, CENTER);
+    text(size, this.x + this.w - 10, middleY);
+    fill(C.text);
+    text(worldMap.name, this.x + this.w - 18 - textWidth(size), middleY);
+  }
+}
+
+// the strip along the bottom: the tile under the mouse on the left, what clicking does in the
+// middle, and the zoom on the right
+class EditorStatusBar extends UIElement {
+  draw() {
+    const C = EDITOR_COLOURS;
+    noStroke();
+    fill(C.header);
+    rect(this.x, this.y, this.w, this.h);
+    fill(C.edge);
     rect(this.x, this.y, this.w, 1);
 
-    // which page, under the › arrow, when there's more than one
-    const pages = Editor.pageCounts[Editor.tab];
-    if (pages > 1) {
-      fill(255, 255, 255, 150);
-      setText(11);
-      text(`${Editor.pages[Editor.tab] + 1} / ${pages}`, GAME_W - 24, this.y + 66);
+    const middleY = this.y + this.h / 2 + 1;
+    const over = Editor.over;
+    let where = '';
+    if (over) {
+      const tile = worldMap.get(over.col, over.row);
+      where = `(${over.col}, ${over.row})  ${worldMap.inside(over.col, over.row) ? tile?.name ?? 'empty' : 'off the map'}`;
+    }
+    const s = Editor.selected;
+    const click = s === null ? 'erase' : `${s.kind === 'tile' ? 'paint' : 'place'} ${s.name}`;
+
+    setText(11, BOLD, LEFT, CENTER);
+    fill(C.text);
+    text(where, this.x + 10, middleY);
+    fill(C.dimText);
+    text(`Left click: ${click}   ·   Right click: settings   ·   WASD: move   ·   Wheel: zoom`, this.x + 180, middleY);
+    textAlign(RIGHT, CENTER);
+    text(`Zoom ${Math.round(gameCamera.zoom * 100)}%`, this.x + this.w - 10, middleY);
+  }
+}
+
+// the dock on the right: its background, the strip its tabs sit in, and the inspector at the bottom,
+// showing what's picked. the tabs, palette and inspector's buttons are ui elements on top of it
+// (see Editor.init()). inspectorY is where the inspector starts
+class EditorDock extends UIElement {
+  constructor(options) {
+    super(options);
+    this.inspectorY = options.inspectorY;
+  }
+
+  draw() {
+    const L = EDITOR_LAYOUT;
+    const C = EDITOR_COLOURS;
+    noStroke();
+    fill(C.bar);
+    rect(this.x, this.y, this.w, this.h);
+    // the tabs' strip. the open tab covers the line under it, so it looks joined on (EditorTab)
+    fill(C.header);
+    rect(this.x, this.y, this.w, L.tabHeight);
+    fill(C.edge);
+    rect(this.x, this.y + L.tabHeight - 1, this.w, 1);
+
+    // the inspector's header
+    const y = this.inspectorY;
+    fill(C.header);
+    rect(this.x, y, this.w, 20);
+    fill(C.edge);
+    rect(this.x, y, this.w, 1);
+    rect(this.x, y + 19, this.w, 1);
+    fill(C.dimText);
+    setText(10, BOLD, LEFT, CENTER);
+    text('INSPECTOR', this.x + L.padding + 2, y + 10);
+    this.drawInspector(y + 20);
+
+    // a line down its left edge, between it and the map
+    fill(C.edge);
+    rect(this.x, this.y, 1, this.h);
+  }
+
+  // what's picked: its picture, name and kind, then a few of its settings, or a note about it
+  drawInspector(top) {
+    const L = EDITOR_LAYOUT;
+    const C = EDITOR_COLOURS;
+    const x = this.x + L.padding + 2;
+    const s = Editor.selected;
+    const info = inspectorInfo(s);
+    const size = L.swatchSize;
+
+    drawPaletteArt(s ? s.kind : 'erase', s ? s.name : '', x, top + 6, size);
+    noFill();
+    stroke(C.edge);
+    strokeWeight(1);
+    rect(x, top + 6, size, size);
+    noStroke();
+    fill(C.text);
+    setText(13, BOLD, LEFT, CENTER);
+    text(info.title, x + size + 10, top + 17);
+    fill(C.dimText);
+    setText(11, BOLD, LEFT, CENTER);
+    text(info.kind, x + size + 10, top + 33);
+
+    // the rows and note stop above the inspector's buttons
+    let y = top + size + 12;
+    for (const [label, value] of info.rows) {
+      fill(C.dimText);
+      text(label, x, y + 7);
+      fill(C.text);
+      text(String(value), x + 64, y + 7);
+      y += 15;
+    }
+    if (info.note) {
+      fill(C.dimText);
+      setText(11, BOLD, LEFT, TOP);
+      text(info.note, x, y, this.w - (L.padding + 2) * 2, GAME_H - EDITOR_LAYOUT.statusHeight - 32 - y);
     }
   }
 }
 
-// one of the tabs on top of the bar (Tiles, Objects...). a Button, so clicking works the same, but
-// it's drawn like a tab in a web browser: the open one is the bar's colour and joins onto it,
-// the others are darker and sit behind
+// what the inspector shows for what's picked (null is Erase): { title, kind, rows, note }. rows are
+// [label, value] pairs, and note is a line of writing under them (can be left out)
+function inspectorInfo(selected) {
+  if (selected === null) {
+    return { title: 'Erase', kind: 'Tool', rows: [], note: 'Drag over the map. Starting on an object, enemy, npc or warp removes those, otherwise it empties tiles' };
+  }
+  const { kind, name } = selected;
+  const type = EDITOR_CATALOGUES[kind][name];
+  const yesNo = (on) => (on ? 'yes' : 'no');
+  if (kind === 'tile') {
+    const look = type.texture ?? type.colour;
+    return {
+      title: name,
+      kind: type.dualGrid ? 'Tile · dual grid' : 'Tile',
+      rows: [
+        ['Solid', yesNo(type.solid)],
+        ['Speed', `${Math.round(type.speed * 100)}%`],
+        // long file names are cut short to fit
+        [type.texture ? 'Texture' : 'Colour', look.length > 20 ? `${look.slice(0, 19)}…` : look],
+      ],
+    };
+  }
+  if (kind === 'object') {
+    return { title: name, kind: 'Object', rows: [['Size', `${type.width} × ${type.height} tiles`], ['Solid', yesNo(type.solid)]] };
+  }
+  if (isCharacterKind(kind)) {
+    return {
+      title: name,
+      kind: kind === 'enemy' ? 'Enemy' : 'NPC',
+      rows: [
+        ['Health', type.maxHealth],
+        ['Speed', type.speed],
+        kind === 'npc' ? ['Name', type.label] : ['Weapon', type.weapon ?? 'none'],
+      ],
+    };
+  }
+  if (name === 'spawn') {
+    return { title: 'spawn', kind: 'Trigger', rows: [], note: "Where the player starts on this map. There's only one, so placing it moves it" };
+  }
+  return { title: 'warp', kind: 'Trigger', rows: [], note: 'A way to another map. Placing one opens its settings, right click it on the map to change them later' };
+}
+
+// one of the palette's tabs (Tiles, Objects...). a Button, so clicking works the same, but it's drawn
+// like a game engine's panel tab: the open one is the dock's colour with a line along its top, and
+// joins onto the palette under it
 class EditorTab extends Button {
   constructor(options) {
     super(options);
@@ -794,101 +902,189 @@ class EditorTab extends Button {
   }
 
   draw() {
+    const C = EDITOR_COLOURS;
     const open = Editor.tab === this.kind;
     noStroke();
-
-    // p5's rect() can take a radius for each corner: top left, top right, bottom right, bottom left.
-    // the open tab goes 1px lower, over the line along the top of the bar, so they look like one piece
-    if (open) fill(EDITOR_COLOURS.bar);
-    else fill(this.hovered ? EDITOR_COLOURS.tabHover : EDITOR_COLOURS.tab);
-    rect(this.x, this.y, this.w, this.h + (open ? 1 : 0), 6, 6, 0, 0);
-
-    // kept inside the rounded corners, so it doesn't poke out past them
     if (open) {
-      fill(EDITOR_COLOURS.accent);
-      rect(this.x + 6, this.y, this.w - 12, 2, 1);
+      fill(C.bar);
+      rect(this.x, this.y, this.w, this.h);
+      fill(C.accent);
+      rect(this.x, this.y, this.w, 2);
+    } else if (this.hovered) {
+      fill(C.tabHover);
+      rect(this.x, this.y, this.w, this.h - 1);
     }
-
-    fill(open ? 255 : this.hovered ? 220 : 140);
-    setText(13);
+    fill(open ? C.text : this.hovered ? 220 : C.dimText);
+    setText(11, BOLD, CENTER, CENTER);
     text(this.label, this.x + this.w / 2, this.y + this.h / 2 + 1);
   }
 }
 
-// one tile, object, enemy, npc or trigger in the bar, or the Erase square. a Button, so clicking
-// works the same, but it draws the thing itself instead of a box
-class PaletteSwatch extends Button {
+// the palette: a grid of squares, one for everything in the open tab's catalogue. click one to pick
+// it, right click a tile to change it (tileeditor.js), hover for its name. the mouse wheel scrolls it
+// while the mouse is over it, instead of zooming (debug.js). it reads the catalogues as it goes, so
+// a new tile shows up by itself
+class PaletteGrid extends UIElement {
   constructor(options) {
     super(options);
-    // its kind (from EDITOR_TABS, or 'erase'), its name, and which page of the bar it's on
-    this.kind = options.kind;
-    this.name = options.name;
-    this.page = options.page;
+    // how far each tab's scrolled down, in pixels, so switching back finds it where you left it
+    this.scroll = {};
+    // the name of the square the mouse is over, or null
+    this.hoveredName = null;
   }
 
-  // like any button, and right clicking a tile opens the tile editor on it (tileeditor.js). the ui
-  // claims any click on it (ui.js), so the right click doesn't also reach the map behind
+  names() {
+    return Object.keys(EDITOR_CATALOGUES[Editor.tab]);
+  }
+
+  columns() {
+    const L = EDITOR_LAYOUT;
+    return Math.floor((this.w - L.padding * 2 - L.scrollbarWidth) / L.cellSize);
+  }
+
+  // how far it can scroll for this many squares (0 if they all fit)
+  maxScroll(count) {
+    const L = EDITOR_LAYOUT;
+    return Math.max(0, Math.ceil(count / this.columns()) * L.cellSize + L.padding * 2 - this.h);
+  }
+
+  // where square number i's top left corner is on screen. the squares are centred in the room
+  // left beside the scrollbar
+  cell(i) {
+    const L = EDITOR_LAYOUT;
+    const columns = this.columns();
+    const gap = (L.cellSize - L.swatchSize) / 2;
+    const left = this.x + (this.w - L.scrollbarWidth - columns * L.cellSize) / 2;
+    return {
+      x: left + (i % columns) * L.cellSize + gap,
+      y: this.y + L.padding + Math.floor(i / columns) * L.cellSize + gap - (this.scroll[Editor.tab] ?? 0),
+    };
+  }
+
   update(hovered) {
-    super.update(hovered);
-    if (this.kind === 'tile' && this.hovered && Input.buttonsPressed.has('right')) TileEditor.open(TILE_TYPES[this.name]);
+    this.hovered = hovered;
+    const tab = Editor.tab;
+    const names = this.names();
+    const size = EDITOR_LAYOUT.swatchSize;
+
+    // used up here, so the camera doesn't zoom too
+    let scroll = this.scroll[tab] ?? 0;
+    if (hovered && Input.wheel !== 0) {
+      scroll += Input.wheel * EDITOR_LAYOUT.scrollRate;
+      Input.wheel = 0;
+    }
+    // kept in range every frame, as a tab can lose squares
+    this.scroll[tab] = constrain(scroll, 0, this.maxScroll(names.length));
+
+    // the square under the mouse. the gaps between them don't count
+    const { x, y } = Input.mouse;
+    this.hoveredName = !hovered ? null : names.find((name, i) => {
+      const cell = this.cell(i);
+      return x >= cell.x && x < cell.x + size && y >= cell.y && y < cell.y + size;
+    }) ?? null;
+    if (!this.hoveredName) return;
+    if (Input.buttonsPressed.has('left')) Editor.pick({ kind: tab, name: this.hoveredName });
+    if (tab === 'tile' && Input.buttonsPressed.has('right')) TileEditor.open(TILE_TYPES[this.hoveredName]);
   }
 
   draw() {
-    const erase = this.kind === 'erase';
-    // Erase is picked when nothing else is (Editor.selected is null)
-    const selected = erase ? Editor.selected === null : Editor.isSelected(this.kind, this.name);
-    // the edge and name colour when it's picked: red for Erase, like its outline on the map
-    const pickedColour = erase ? '#ff6b6b' : '#ffd23f';
-    const y = this.y + (this.pressed && this.hovered ? 1 : 0);
+    const L = EDITOR_LAYOUT;
+    const C = EDITOR_COLOURS;
+    const names = this.names();
+    const size = L.swatchSize;
 
-    if (this.kind === 'tile') {
-      drawTypeArt(TILE_TYPES[this.name], this.x, y, this.w, this.h);
-    } else {
-      // everything else sits on a dark square
-      noStroke();
-      fill(42, 45, 54);
-      rect(this.x, y, this.w, this.h);
-      const middleX = this.x + this.w / 2;
-      const middleY = y + this.h / 2;
-      if (erase) {
-        // a red cross
-        stroke('#ff6b6b');
-        strokeWeight(3);
-        line(middleX - 8, middleY - 8, middleX + 8, middleY + 8);
-        line(middleX + 8, middleY - 8, middleX - 8, middleY + 8);
-      } else if (this.name === 'spawn') {
-        // drawn like its ring on the map
-        drawSpawnRing(middleX, middleY);
-      } else if (this.name === 'warp') {
-        // drawn like its square on the map (warps.js)
-        drawWarpSquare(middleX - 12, middleY - 12, 24, WARP_COLOURS.edge, false);
+    // squares scrolled partly past the top or bottom are cut off at the edge. clip() is the
+    // canvas's own, it stops anything drawn outside the rectangle until restore()
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.rect(this.x, this.y, this.w, this.h);
+    drawingContext.clip();
+    names.forEach((name, i) => {
+      const { x, y } = this.cell(i);
+      if (y + size < this.y || y > this.y + this.h) return;
+      drawPaletteArt(Editor.tab, name, x, y, size);
+      // a yellow edge for the one that's picked, white for the one under the mouse
+      noFill();
+      if (Editor.isSelected(Editor.tab, name)) {
+        stroke(C.picked);
+        strokeWeight(2);
       } else {
-        // objects and characters are shrunk to fit but keep their shape, so a 2 x 1 table
-        // looks twice as wide as it is tall
-        const type = EDITOR_CATALOGUES[this.kind][this.name];
-        const scale = Math.min(this.w / type.width, this.h / type.height) * 0.8;
-        const w = type.width * scale;
-        const h = type.height * scale;
-        drawTypeArt(type, this.x + (this.w - w) / 2, y + (this.h - h) / 2, w, h, 4);
+        stroke(name === this.hoveredName ? 255 : C.edge);
+        strokeWeight(1);
       }
-    }
+      rect(x, y, size, size);
+    });
+    drawingContext.restore();
 
-    // a coloured edge for the one that's picked, white when the mouse is over it
-    noFill();
-    if (selected) {
-      stroke(pickedColour);
-      strokeWeight(3);
-    } else {
-      stroke(this.hovered ? 255 : 90);
-      strokeWeight(1.5);
-    }
-    rect(this.x, y, this.w, this.h);
-
-    // its name underneath
     noStroke();
-    fill(selected ? pickedColour : 220);
-    setText(11);
-    text(this.name, this.x + this.w / 2, this.y + this.h + 12);
+    if (names.length === 0) {
+      fill(C.dimText);
+      setText(11, BOLD, CENTER, CENTER);
+      text('Nothing here yet', this.x + this.w / 2, this.y + 30);
+    }
+
+    // the scrollbar, when there's more than fits
+    const max = this.maxScroll(names.length);
+    if (max > 0) {
+      const trackX = this.x + this.w - L.scrollbarWidth - 3;
+      const track = this.h - 6;
+      const thumb = Math.max(20, track * this.h / (this.h + max));
+      fill(C.well);
+      rect(trackX, this.y + 3, L.scrollbarWidth, track, 2);
+      fill(this.hovered ? '#5d6575' : '#474e5c');
+      rect(trackX, this.y + 3 + (track - thumb) * (this.scroll[Editor.tab] / max), L.scrollbarWidth, thumb, 2);
+    }
+
+    // the name of the square under the mouse, just above it (below it on the top row)
+    if (this.hoveredName) {
+      const cell = this.cell(names.indexOf(this.hoveredName));
+      setText(11, BOLD, CENTER, CENTER);
+      const w = textWidth(this.hoveredName) + 12;
+      const x = constrain(cell.x + size / 2 - w / 2, this.x + 2, this.x + this.w - w - 2);
+      const y = cell.y - 22 < this.y ? cell.y + size + 4 : cell.y - 22;
+      fill(0, 0, 0, 220);
+      rect(x, y, w, 18, 3);
+      fill(255);
+      text(this.hoveredName, x + w / 2, y + 9);
+    }
+  }
+}
+
+// a picture of something in the palette (a kind from EDITOR_TABS and its name), or of the Erase tool
+// (kind 'erase'), size pixels square with its top left corner at x, y. tiles fill the square,
+// everything else sits on a dark one
+function drawPaletteArt(kind, name, x, y, size) {
+  if (kind === 'tile') {
+    drawTypeArt(TILE_TYPES[name], x, y, size, size);
+    return;
+  }
+  noStroke();
+  fill(EDITOR_COLOURS.well);
+  rect(x, y, size, size);
+  const middleX = x + size / 2;
+  const middleY = y + size / 2;
+  if (kind === 'erase') {
+    // a red cross
+    const r = size * 0.2;
+    stroke(EDITOR_COLOURS.erase);
+    strokeWeight(2.5);
+    line(middleX - r, middleY - r, middleX + r, middleY + r);
+    line(middleX + r, middleY - r, middleX - r, middleY + r);
+  } else if (kind === 'trigger' && name === 'spawn') {
+    // drawn like its ring on the map
+    drawSpawnRing(middleX, middleY);
+  } else if (kind === 'trigger') {
+    // a warp, drawn like its square on the map (warps.js)
+    const w = size * 0.6;
+    drawWarpSquare(middleX - w / 2, middleY - w / 2, w, WARP_COLOURS.edge, false);
+  } else {
+    // objects and characters are shrunk to fit but keep their shape, so a 2 x 1 table looks twice
+    // as wide as it is tall
+    const type = EDITOR_CATALOGUES[kind][name];
+    const scale = Math.min(size / type.width, size / type.height) * 0.8;
+    const w = type.width * scale;
+    const h = type.height * scale;
+    drawTypeArt(type, x + (size - w) / 2, y + (size - h) / 2, w, h, 3);
   }
 }
 
@@ -930,25 +1126,6 @@ function drawSpawnRing(x, y, px = 1) {
   stroke('#ffd23f');
   strokeWeight(2 * px);
   circle(x, y, 20);
-}
-
-// the Map settings panel's background, with the map's name and size at the top. its buttons are
-// separate ui elements on top of it (see init()). worldMap is the game's (sketch.js)
-class SettingsPanel extends UIElement {
-  draw() {
-    fill(EDITOR_COLOURS.bar);
-    stroke(EDITOR_COLOURS.edge);
-    strokeWeight(1.5);
-    rect(this.x, this.y, this.w, this.h, 8);
-
-    noStroke();
-    fill(255);
-    setText(15, BOLD, LEFT, CENTER);
-    text(worldMap.name, this.x + 12, this.y + 18);
-    fill(255, 255, 255, 150);
-    setText(13, NORMAL, LEFT, CENTER);
-    text(`${worldMap.cols} x ${worldMap.rows} tiles`, this.x + 12, this.y + 38);
-  }
 }
 
 // a Picker for tiles (what New map is filled with): every tile (TILE_TYPES), then null for empty,

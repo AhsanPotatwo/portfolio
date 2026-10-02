@@ -83,8 +83,8 @@ function setup() {
   // knows. they're loaded here rather than in preload() because a missing file in preload() would
   // stop the game ever starting, and this way it's just skipped
   loadTileFile().then(loadMapFiles).then(() => {
-    // the editor's bar has a square for every tile, so it's made now there are some
-    Editor.makeSwatches();
+    // the editor starts on the first tile, so it picks it now there are some
+    Editor.checkSelected();
     // not one map file loaded, so use the blank stand-in map (maps.js) so there's something to play on
     if (Object.keys(MAPS).length === 0) {
       console.warn('No map files could be loaded, so the game is on a blank stand-in map.');

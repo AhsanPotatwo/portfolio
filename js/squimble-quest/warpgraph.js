@@ -199,7 +199,7 @@ const WarpGraph = {
     const family = warpFamily(mapName, warpName);
     const title = `Warps linked to ${warpName} (${family.nodes.length - 1})`;
     add(new WarpGraphView({ x: 0, y: 0, w: GAME_W, h: GAME_H, title, family }));
-    add(new Button({ x: GAME_W - 108, y: 12, w: 96, h: 32, label: 'Close', style: { textSize: 14 }, onClick: () => this.close() }));
+    add(new Button({ x: GAME_W - 88, y: 12, w: 76, h: 24, label: 'Close', style: 'editor', onClick: () => this.close() }));
   },
 
   close() {

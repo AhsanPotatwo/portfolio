@@ -85,7 +85,7 @@ class TileMap {
   // off the map)
   set(col, row, name) {
     if (name !== null && !TILE_TYPES[name]) {
-      console.warn(`There's no tile called "${name}". Make it with + New tile in the map editor's Tiles tab`);
+      console.warn(`There's no tile called "${name}". Make it with New in the map editor's inspector (Tiles tab)`);
       return;
     }
     if (this.inside(col, row)) this.tiles[this.index(col, row)] = name;

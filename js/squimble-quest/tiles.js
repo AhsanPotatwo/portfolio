@@ -6,8 +6,8 @@
 //
 // ============================== how to make a tile ==============================
 //
-// in the map editor (dev mode, then B), open the Tiles tab and click + New tile. right click a tile
-// in the bar to change it. changes show straight away, then Export tiles downloads a new tiles.json:
+// in the map editor (dev mode, then B), open the Tiles tab and click New in the inspector. right
+// click a tile in the palette to change it. changes show straight away, then Export tiles downloads a new tiles.json:
 // put it in assets/squimble-quest/tiles/ (replacing the old one) and the tile's in the game for good.
 // if you gave it a picture, that goes in the folder too (the message after exporting says where).
 // the full guide is assets/squimble-quest/tiles/README.md.
