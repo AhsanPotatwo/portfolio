@@ -42,12 +42,15 @@
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var makeParticleField = window.PortfolioFX && window.PortfolioFX.makeParticleField;
 
-  // fade sections in as they scroll into view
+  // fade sections in the first time they scroll into view. once only, so scrolling back up
+  // doesn't make everything fade out and in again
   if (!reduced && 'IntersectionObserver' in window) {
     var targets = document.querySelectorAll('.about-panel, .skill-groups, .timeline-col, .project-grid, .contact-inner, .skills .section-title, .projects .section-title, [data-reveal]');
     var revealer = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
-        entry.target.classList.toggle('is-visible', entry.isIntersecting);
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        revealer.unobserve(entry.target);
       });
     }, { threshold: 0.08 });
 
