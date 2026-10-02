@@ -57,7 +57,7 @@ class TileMap {
     // every one, and Export still saves them)
     this.characters = null;
     // items lying on the ground, each { item, x, y, ready, from, flight } (Drops in inventory.js). progress too,
-    // like characters: the editor doesn't show them and Export doesn't save them
+    // like characters: Export doesn't save them, even ones the editor placed
     this.drops = [];
   }
 

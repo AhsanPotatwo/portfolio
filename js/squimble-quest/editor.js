@@ -4,7 +4,7 @@
 // it's laid out like a game engine (unity, godot...):
 //   - a toolbar along the top: New, Open, Resize and Export for the map, the Paint and Erase tools,
 //     Grid and Keys (the same as G and H), Play (closes the editor), and the map's name and size
-//   - a dock on the right: the palette, with tabs for tiles, objects, enemies, npcs and triggers
+//   - a dock on the right: the palette, with tabs for tiles, objects, enemies, npcs, triggers and items
 //     (the mouse wheel scrolls it), and under it the inspector, showing what's picked
 //   - a status bar along the bottom: the tile under the mouse, what a click does, and the zoom
 //
@@ -17,10 +17,13 @@
 //     as tiles.json (the tile editor, tileeditor.js)
 //   - objects: left click to place one, its top left corner on the tile under the mouse
 //   - enemies and npcs: left click to place one, standing on the tile under the mouse
+//   - weapons and items (a tab for each category in items.js): left click to put one on the ground,
+//     like a dropped item (so Export doesn't save it). Give puts one in the player's inventory, and
+//     right clicking one in the palette (or Edit) changes its name, rarity, colour and weapon numbers
 //   - pick Erase in the toolbar, then left click or drag to erase. if you start on an object, enemy,
-//     npc or warp it removes those, otherwise it empties tiles. empty tiles are like off the edge
-//     of the map: nothing's drawn there and nothing can walk on them
-//   - right click something to change its settings: a warp on the map, or a tile in the palette
+//     npc, item or warp it removes those, otherwise it empties tiles. empty tiles are like off the
+//     edge of the map: nothing's drawn there and nothing can walk on them
+//   - right click something to change its settings: a warp on the map, or a tile or item in the palette
 //   - opening the editor brings back every enemy placed on the map, including defeated ones, so
 //     you always see the whole design. closing it puts every enemy and npc back where it was
 //     placed, with full health. (outside the editor, each map remembers its enemies and npcs as
@@ -56,7 +59,7 @@ const NEW_MAP_NAME = 'new-map';
 const EDITOR_KEYS = [
   'MAP EDITOR KEYS',
   'left click  paint / place',
-  'right click change settings (warps, palette tiles)',
+  'right click change settings (warps, palette tiles and items)',
   'WASD        move around',
   'wheel       zoom',
   'B           close the editor',
@@ -132,10 +135,12 @@ const EDITOR_TABS = [
   { kind: 'npc', label: 'NPCs', types: NPC_TYPES },
   // things on the map that make something happen, like where the player spawns and warps
   { kind: 'trigger', label: 'Triggers', types: TRIGGER_TYPES },
+  // a tab for each category of item (ITEM_CATEGORIES in items.js), its kind the category's name.
+  // they're all placed on the ground the same way, and all edited by Editor.editItem()
+  ...Object.entries(ITEM_CATEGORIES).map(([kind, label]) => ({ kind, label, types: itemsOfCategory(kind) })),
   // examples of more tabs, empty for now, so they show "Nothing here yet". to fill one, give it a
-  // catalogue (e.g. ITEM_TYPES from items.js) and place it in Editor.update(), like objects. when
-  // there are more tabs than fit, they scroll (EditorTabStrip)
-  { kind: 'item', label: 'Items', types: {} },
+  // catalogue and place it in Editor.update(), like objects. when there are more tabs than fit, they
+  // scroll (EditorTabStrip)
   { kind: 'sound', label: 'Sounds', types: {} },
   { kind: 'light', label: 'Lights', types: {} },
 ];
@@ -152,6 +157,11 @@ function sizeField(value, min = 1) {
 // is this tab's kind a character that gets placed standing on a tile (an enemy or npc)?
 function isCharacterKind(kind) {
   return kind in SPAWN_KINDS;
+}
+
+// is this tab's kind a category of item (ITEM_CATEGORIES in items.js), placed on the ground?
+function isItemKind(kind) {
+  return kind in ITEM_CATEGORIES;
 }
 
 // where a resized map's left column (or top row) goes, one direction at a time. start and length
@@ -186,11 +196,12 @@ const Editor = {
   uiAlpha: 1,
   stillFor: 0,
 
-  // the palette's tabs, and the inspector's buttons for tiles, made in init(). showTab() only shows
-  // New and Export on the Tiles tab
+  // the palette's tabs, and the inspector's buttons, made in init(). showTab() only shows New and
+  // Export on the Tiles tab. Edit is for a picked tile or item, Give for a picked item
   tabStrip: null,
   tileButtons: [],
-  editTileButton: null,
+  editButton: null,
+  giveButton: null,
 
   // call once from setup(). makes the toolbar, the dock (palette and inspector) and the status bar,
   // all hidden until the editor opens
@@ -242,16 +253,21 @@ const Editor = {
     // the palette between the tabs and the inspector
     add(new PaletteGrid({ x: dockX, y: dockY + L.tabHeight, w: L.dockWidth, h: inspectorY - dockY - L.tabHeight }));
 
-    // the inspector's buttons along its bottom, for tiles (the tile editor, tileeditor.js)
+    // the inspector's buttons along its bottom, for tiles (the tile editor, tileeditor.js) and items
     const buttonW = (L.dockWidth - L.padding * 2 - 8) / 3;
-    const tileButton = (i, label, onClick) => add(new EditorButton({
+    const inspectorButton = (i, label, onClick) => add(new EditorButton({
       x: dockX + L.padding + i * (buttonW + 4), y: GAME_H - L.statusHeight - 28, w: buttonW, h: 22, label, onClick,
     }));
-    this.editTileButton = tileButton(0, 'Edit', () => TileEditor.open(TILE_TYPES[this.selected.name]));
+    this.editButton = inspectorButton(0, 'Edit', () => {
+      if (this.selected.kind === 'tile') TileEditor.open(TILE_TYPES[this.selected.name]);
+      else this.editItem(this.selected.name);
+    });
     this.tileButtons = [
-      tileButton(1, 'New', () => TileEditor.open(null)),
-      tileButton(2, 'Export', () => TileEditor.exportTiles()),
+      inspectorButton(1, 'New', () => TileEditor.open(null)),
+      inspectorButton(2, 'Export', () => TileEditor.exportTiles()),
     ];
+    // where New is on the Tiles tab, so it's never shown there (see update())
+    this.giveButton = inspectorButton(1, 'Give', () => this.giveItem(this.selected.name));
 
     UI.showGroup('editor', false);
   },
@@ -421,8 +437,11 @@ const Editor = {
     const showUI = this.stillFor >= EDITOR_UI_FADE.showDelay;
     this.uiAlpha = approach(this.uiAlpha, showUI ? 1 : 0, EDITOR_UI_FADE.speed, dt);
     for (const el of UI.group('editor')) el.interactive = showUI;
-    // Edit is for the picked tile, so it's only there while one is
-    this.editTileButton.visible = this.selected?.kind === 'tile';
+    // Edit is for the picked tile or item, and Give for the picked item, so they're only there while
+    // one is. Give shares its spot with the Tiles tab's New
+    const itemPicked = isItemKind(this.selected?.kind);
+    this.editButton.visible = this.selected?.kind === 'tile' || itemPicked;
+    this.giveButton.visible = itemPicked && this.tab !== 'tile';
 
     // move the view with WASD. dividing by zoom keeps it the same speed on screen at any zoom
     const speed = EDITOR_PAN_SPEED / camera.zoom;
@@ -435,12 +454,13 @@ const Editor = {
     // the status bar shows it, unless the mouse is on the ui
     this.over = UI.hovered ? null : over;
 
-    // objects, enemies, npcs and triggers: one per click. mousePressed() ignores clicks that landed
-    // on the editor's ui, like the toolbar or the dock (see input.js)
+    // objects, enemies, npcs, items and triggers: one per click. mousePressed() ignores clicks that
+    // landed on the editor's ui, like the toolbar or the dock (see input.js)
     if (over && Input.mousePressed('left') && this.selected) {
       const { kind, name } = this.selected;
       if (kind === 'object') this.placeObject(map, name, over.col, over.row);
       if (isCharacterKind(kind)) this.placeCharacter(map, kind, name, over.col, over.row);
+      if (isItemKind(kind)) this.placeItem(map, name, over.col, over.row);
       if (kind === 'trigger' && name === 'spawn') this.placeSpawn(map, over.col, over.row);
       if (kind === 'trigger' && name === 'warp') this.placeWarp(map, over.col, over.row);
     }
@@ -457,8 +477,8 @@ const Editor = {
     const painting = this.selected?.kind === 'tile' && Input.mouseHeld('left');
 
     if (over && (painting || erasing)) {
-      // an erase drag that starts on an object, enemy, npc or warp only removes those, otherwise it
-      // only empties tiles. stops one drag removing a table and then the floor it was standing on
+      // an erase drag that starts on an object, enemy, npc, item or warp only removes those, otherwise
+      // it only empties tiles. stops one drag removing a table and then the floor it was standing on
       if (!this.lastPaint) this.erasingThings = erasing && this.thingsAt(map, over.col, over.row);
 
       let removedCharacter = false;
@@ -468,6 +488,8 @@ const Editor = {
         } else if (this.erasingThings) {
           map.removeObjectsAt(col, row);
           map.removeWarpAt(col, row);
+          const items = this.dropsAt(map, col, row);
+          map.drops = map.drops.filter((drop) => !items.includes(drop));
           for (const kind of Object.keys(SPAWN_KINDS)) {
             if (map.removeSpawnsAt(kind, col, row)) removedCharacter = true;
           }
@@ -483,10 +505,76 @@ const Editor = {
     }
   },
 
-  // is there an object, enemy, npc or warp on this tile?
+  // is there an object, enemy, npc, item or warp on this tile?
   thingsAt(map, col, row) {
-    if (map.objectsAt(col, row).length > 0 || map.warpAt(col, row)) return true;
+    if (map.objectsAt(col, row).length > 0 || map.warpAt(col, row) || this.dropsAt(map, col, row).length > 0) return true;
     return Object.keys(SPAWN_KINDS).some((kind) => map.spawnsAt(kind, col, row).length > 0);
+  },
+
+  // the items lying on this tile (Drops in inventory.js), going by where they touch the ground
+  dropsAt(map, col, row) {
+    return map.drops.filter((drop) => map.colAt(drop.x) === col && map.rowAt(drop.y) === row);
+  },
+
+  // puts an item on the ground in the middle of col, row, ready to pick up. not on solid or empty
+  // tiles, where it couldn't be reached. like a dropped item, Export doesn't save it (inventory.js)
+  placeItem(map, name, col, row) {
+    if (map.isSolid(col, row)) return;
+    if (this.dropsAt(map, col, row).some((drop) => drop.item.type.name === name)) return;
+    Drops.place(map, createItem(name), (col + 0.5) * TILE, (row + 0.5) * TILE);
+  },
+
+  // puts one of an item in the player's inventory (player is the game's, sketch.js)
+  giveItem(name) {
+    if (!player.inventory.add(createItem(name))) showMessage('No room, your inventory is full');
+  },
+
+  // a box for changing an item's settings (items.js): its name, rarity and colour, and for a weapon
+  // its weapon's numbers too, on a second tab (weapons.js). they change when the box is confirmed,
+  // and stay changed until the page reloads
+  editItem(name) {
+    const type = ITEM_TYPES[name];
+    const weapon = WEAPONS[type.weapon];
+    const itemRows = [
+      { label: 'Name', field: new TextField({ w: 180, value: type.label }) },
+      {
+        label: 'Rarity',
+        field: new Picker({
+          w: 180,
+          choices: Object.keys(RARITIES),
+          value: type.rarity,
+          label: (rarity) => RARITIES[rarity].label,
+          art: (rarity, x, y, size) => {
+            noStroke();
+            fill(RARITIES[rarity].colour);
+            circle(x + size / 2, y + size / 2, size * 0.8);
+          },
+        }),
+      },
+      { label: 'Colour', field: new ColourField({ w: 180, value: type.colour }) },
+    ];
+    // number boxes only take whole numbers, so times are in milliseconds
+    const number = (value, max) => new NumberField({ w: 90, value: Math.round(value), min: 1, max });
+    const weaponRows = weapon ? [
+      { label: 'Damage', field: number(weapon.damage, 9999) },
+      { label: 'Reach', field: number(weapon.reach, 999), after: 'pixels' },
+      { label: 'Arc', field: number(weapon.arc, 360), after: 'degrees' },
+      { label: 'Swing time', field: number(weapon.swingTime * 1000, 9999), after: 'ms' },
+      { label: 'Cooldown', field: number(weapon.cooldown * 1000, 9999), after: 'ms' },
+    ] : [];
+
+    FormBox.open({
+      title: `Item: ${name}`,
+      hint: 'Changes last until the page reloads',
+      confirmLabel: 'Save',
+      ...(weapon ? { tabs: [{ label: 'Item', rows: itemRows }, { label: 'Weapon', rows: weaponRows }] } : { rows: itemRows }),
+      canConfirm: ([label, , colour]) => label.trim() !== '' && HEX_COLOUR.test(colour),
+      onConfirm: ([label, rarity, colour, damage, reach, arc, swingTime, cooldown]) => {
+        // fill is the p5 colour it's drawn with (prepareArt() in utils.js)
+        Object.assign(type, { label: label.trim(), rarity, colour, fill: color(colour) });
+        if (weapon) Object.assign(weapon, { damage, reach, arc, swingTime: swingTime / 1000, cooldown: cooldown / 1000 });
+      },
+    });
   },
 
   // places an object with its top left corner on col, row
@@ -855,7 +943,7 @@ class EditorDock extends UIElement {
 // [label, value] pairs, and note is a line of writing under them (can be left out)
 function inspectorInfo(selected) {
   if (selected === null) {
-    return { title: 'Erase', kind: 'Tool', rows: [], note: 'Drag over the map. Starting on an object, enemy, npc or warp removes those, otherwise it empties tiles' };
+    return { title: 'Erase', kind: 'Tool', rows: [], note: 'Drag over the map. Starting on an object, enemy, npc, item or warp removes those, otherwise it empties tiles' };
   }
   const { kind, name } = selected;
   const type = EDITOR_CATALOGUES[kind][name];
@@ -885,6 +973,17 @@ function inspectorInfo(selected) {
         ['Speed', type.speed],
         kind === 'npc' ? ['Name', type.label] : ['Weapon', type.weapon ?? 'none'],
       ],
+    };
+  }
+  if (isItemKind(kind)) {
+    // e.g. "Weapon · Rare"
+    const category = `${type.category[0].toUpperCase()}${type.category.slice(1)} · ${RARITIES[type.rarity].label}`;
+    const weapon = WEAPONS[type.weapon];
+    if (!weapon) return { title: name, kind: category, rows: [], note: 'Click the map to place one. Give puts one in your inventory' };
+    return {
+      title: name,
+      kind: category,
+      rows: [['Damage', weapon.damage], ['Reach', `${weapon.reach} px`], ['Cooldown', `${weapon.cooldown} s`]],
     };
   }
   if (kind === 'trigger' && name === 'spawn') {
@@ -1086,6 +1185,7 @@ class PaletteGrid extends UIElement {
     if (!this.hoveredName) return;
     if (Input.buttonsPressed.has('left')) Editor.pick({ kind: tab, name: this.hoveredName });
     if (tab === 'tile' && Input.buttonsPressed.has('right')) TileEditor.open(TILE_TYPES[this.hoveredName]);
+    if (isItemKind(tab) && Input.buttonsPressed.has('right')) Editor.editItem(this.hoveredName);
   }
 
   draw() {
@@ -1178,6 +1278,11 @@ function drawPaletteArt(kind, name, x, y, size) {
     // a warp, drawn like its square on the map (warps.js)
     const w = size * 0.6;
     drawWarpSquare(middleX - w / 2, middleY - w / 2, w, WARP_COLOURS.edge, false);
+  } else if (isItemKind(kind)) {
+    // like in an inventory slot, glowing its rarity's colour (inventory.js)
+    const item = { type: ITEM_TYPES[name] };
+    drawItemGlow(item, middleX, middleY, size / 2);
+    drawItemIcon(item, x + size * 0.2, y + size * 0.2, size * 0.6);
   } else {
     // objects and characters are shrunk to fit but keep their shape, so a 2 x 1 table looks twice
     // as wide as it is tall
