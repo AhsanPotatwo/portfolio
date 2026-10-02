@@ -8,6 +8,8 @@
 //     (blendsWith in tiles.js)
 //   - the box shows the tile's texture file, and a patch of the tile as it'd look on the map, which
 //     change as you change the settings
+//   - changing a tile that's already on the map shows on the map as you go (drag the box out of the
+//     way to see it). Save keeps the changes, Cancel, Escape or × puts the tile back how it was
 //   - Save changes the tile in the game straight away, so you can paint with it and walk on it
 //   - Export (next to New) downloads tiles.json with every tile in it. put it in assets/squimble-quest/tiles/,
 //     replacing the old one, and the tiles are in the game for good. a picture chosen since the page
@@ -68,6 +70,10 @@ const TileEditor = {
     // the picture chosen in this box, { file, img } (img is a p5 image), or null. it's only kept if
     // the box is saved
     let chosen = null;
+    // the tile as it was, to put back if the box is closed without saving: its settings and picture.
+    // the changes are shown on the map as they're made, which changes the tile itself
+    const original = type && Object.fromEntries(['name', ...Object.keys(TILE_DEFAULTS)].map((key) => [key, type[key]]));
+    const ownImg = type?.textureImg ?? null;
 
     // the fields for each row of the box. they're kept in variables rather than read from the values
     // FormBox hands to onConfirm, because the Name row is only there for new tiles, which moves every
@@ -134,8 +140,24 @@ const TileEditor = {
       const file = texturePicker.value;
       if (!file) return null;
       if (chosen?.file.name === file) return chosen.img;
-      return type?.textureImg ?? null;
+      return ownImg;
     };
+    // the tile's settings as the box has them now, the same shape as tiles.json has them (tiles.js)
+    const settingsNow = () => {
+      const settings = {
+        name: isNew ? cleanMapName(nameField.value) : type.name,
+        colour: colourField.value.toLowerCase(),
+        dualGrid: kindPicker.value,
+        texture: texturePicker.value,
+      };
+      for (const row of behaviourRows) settings[row.key] = row.scale ? row.field.value / row.scale : row.field.value;
+      settings.blendsWith = blendPicker.value ? null : blendBoxes.filter((box) => box.value).map((box) => box.label);
+      return settings;
+    };
+    // what's showing on the map: the settings (as text, to tell when they change) and picture, and
+    // whether it's different from how the tile was
+    let shown = { settings: JSON.stringify(settingsNow()), img: picture() };
+    let changed = false;
     // what's stopping it being saved, as words to show, or null if nothing is. Save is greyed out
     // while there's something
     const problem = () => {
@@ -153,7 +175,7 @@ const TileEditor = {
 
     FormBox.open({
       title: isNew ? 'New tile' : `Tile: ${type.name}`,
-      hint: 'Save to try it out, Export tiles to keep it',
+      hint: isNew ? 'Save to try it out, Export tiles to keep it' : 'Changes show on the map as you make them',
       confirmLabel: 'Save',
       tabs: [
         {
@@ -184,19 +206,30 @@ const TileEditor = {
         }),
       ],
       canConfirm: () => problem() === null,
+      // a tile that's already on the map changes as the box does, whenever what's in it would save.
+      // a new tile isn't on the map yet, so there's nothing to show
+      onUpdate: () => {
+        if (isNew || problem() !== null) return;
+        const settings = settingsNow();
+        const now = { settings: JSON.stringify(settings), img: picture() };
+        if (now.settings === shown.settings && now.img === shown.img) return;
+        shown = now;
+        changed = true;
+        setTile(settings, now.img);
+      },
+      onCancel: () => {
+        if (changed) setTile(original, ownImg);
+      },
       onConfirm: () => {
-        const name = isNew ? cleanMapName(nameField.value) : type.name;
-        const texture = texturePicker.value;
+        const settings = settingsNow();
+        const { name, texture } = settings;
         const isChosen = chosen !== null && texture === chosen.file.name;
         if (isChosen) this.newPictures[texture] = chosen.file;
         // an old texture whose tile changed kind now belongs in the other folder
-        const moved = !isNew && !isChosen && texture && kindPicker.value !== type.dualGrid;
+        const moved = !isNew && !isChosen && texture && kindPicker.value !== original.dualGrid;
 
         // tiles.js. the picture's used straight away, rather than loaded from its folder, where it
         // might not be yet
-        const settings = { name, colour: colourField.value.toLowerCase(), dualGrid: kindPicker.value, texture };
-        for (const row of behaviourRows) settings[row.key] = row.scale ? row.field.value / row.scale : row.field.value;
-        settings.blendsWith = blendPicker.value ? null : blendBoxes.filter((box) => box.value).map((box) => box.label);
         setTile(settings, picture());
 
         // the palette draws itself from TILE_TYPES every frame, so it's already up to date. a new

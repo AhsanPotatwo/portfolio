@@ -1,7 +1,8 @@
 // the form box: a box in the middle of the screen that asks for a few things, in the game rather
 // than in the browser's own prompt(). the map editor uses it for New map, Resize map, Export and a
 // warp's settings (editor.js), and the tile editor for a tile's (tileeditor.js). click a box to type
-// into it, Tab goes to the next one, Enter or the right button says yes, Escape or Cancel closes it.
+// into it, Tab goes to the next one, Enter or the right button says yes, Escape, Cancel or the × in the
+// corner closes it. it's a window: drag its title bar to move it out of the way of the map behind.
 //
 //   FormBox   the box itself. FormBox.open({ title, rows, onConfirm... }) lays itself out, see open()
 //   Picker    a "choose one of these" field, clicked through with ‹ ›
@@ -28,6 +29,11 @@ const FormBox = {
   // how far down the box the rows start, and how many rows the box has room for
   rowsTop: 0,
   mostRows: 0,
+  // where the box is on screen, { x, y, w, h }, and its background (it moves when dragged)
+  box: null,
+  backdrop: null,
+  // where the mouse was while its title bar's being dragged, or null when it isn't
+  dragFrom: null,
 
   // options: { title, hint, confirmLabel, rows, tabs, canConfirm(values), onConfirm(values) }
   //   rows        one per thing to ask for: { label, field, after }. field is the ui element it's
@@ -43,6 +49,8 @@ const FormBox = {
   //   canConfirm  whether the values are ok to say yes to. without it, anything is
   //   side        (x, y, w, h) => [ui elements], things for a column beside the rows, like the tile
   //               editor's pictures. x, y, w, h is the space they have (can be left out)
+  //   onUpdate    runs every frame while it's open, e.g. to show changes as they're made (can be left out)
+  //   onCancel    runs when it closes without saying yes, e.g. to undo those changes (can be left out)
   open(options) {
     this.options = options;
     this.active = true;
@@ -58,10 +66,18 @@ const FormBox = {
     const h = this.rowsTop + this.mostRows * FORM_BOX.rowHeight + (options.hint ? 20 : 0) + FORM_BOX.footerHeight;
     const x = (GAME_W - w) / 2;
     const y = (GAME_H - h) / 2;
+    this.box = { x, y, w, h };
+    this.dragFrom = null;
     const add = (element) => UI.add(Object.assign(element, { group: 'form-box' }));
 
     // covers the whole screen, so nothing behind it can be clicked while it's open
-    add(new FormBoxBackdrop({ x: 0, y: 0, w: GAME_W, h: GAME_H, box: { x, y, w, h } }));
+    this.backdrop = add(new FormBoxBackdrop({ x: 0, y: 0, w: GAME_W, h: GAME_H, box: this.box }));
+    // the × in the title bar's corner, which lights up red like a window's close button
+    add(new Button({
+      x: x + w - 26, y: y + 4, w: 22, h: FORM_BOX.titleHeight - 8, label: '×',
+      style: { ...BUTTON_STYLES.editor, fill: 'rgba(0, 0, 0, 0)', border: 'rgba(0, 0, 0, 0)', hoverFill: BUTTON_STYLES.danger.fill, pressedFill: BUTTON_STYLES.danger.pressedFill, textSize: 16 },
+      onClick: () => this.close(),
+    }));
     // the tabs, under the title and above the rows, each as wide as its label. they all shrink to fit
     // if there are lots
     setText(11, BOLD, CENTER, CENTER, BUTTON_STYLES.default.font);
@@ -116,10 +132,12 @@ const FormBox = {
     if (this.fields.length > 0) this.focus(this.fields[0]);
   },
 
-  close() {
+  // confirmed is true when it's closing because it was said yes to, otherwise onCancel runs
+  close(confirmed = false) {
     this.active = false;
     Input.typing = false;
     UI.removeGroup('form-box');
+    if (!confirmed && this.options.onCancel) this.options.onCancel();
   },
 
   // what's in each row's field, in the same order as the rows (every tab's, not just the open one)
@@ -135,7 +153,7 @@ const FormBox = {
     if (!this.canConfirm()) return;
     const values = this.values();
     // closed first, since saying yes can go to a new map
-    this.close();
+    this.close(true);
     this.options.onConfirm(values);
   },
 
@@ -150,6 +168,7 @@ const FormBox = {
   // run every frame while it's open, from Editor.update(). keys are gone through in the order they
   // were typed, so a quick "20 Tab 12" still puts 20 in one box and 12 in the next
   update() {
+    this.drag();
     if (Input.buttonsPressed.has('left')) {
       const clicked = this.fields.find((field) => field.hovered);
       if (clicked) this.focus(clicked);
@@ -166,6 +185,33 @@ const FormBox = {
     }
     // greyed out while it can't be said yes to, e.g. Export with no name
     this.confirmButton.enabled = this.canConfirm();
+    if (this.options.onUpdate) this.options.onUpdate();
+  },
+
+  // pressing on the title bar picks the box up, and it follows the mouse until it's let go. it can't
+  // go off the screen, so its buttons can always be reached
+  drag() {
+    const { x, y } = Input.mouse;
+    const box = this.box;
+    const onTitle = x >= box.x && x < box.x + box.w && y >= box.y && y < box.y + FORM_BOX.titleHeight;
+    if (Input.buttonsPressed.has('left') && UI.hovered === this.backdrop && onTitle) this.dragFrom = { x, y };
+    if (!this.dragFrom) return;
+    if (!Input.buttonsHeld.has('left')) {
+      this.dragFrom = null;
+      return;
+    }
+    const dx = constrain(box.x + x - this.dragFrom.x, 0, GAME_W - box.w) - box.x;
+    const dy = constrain(box.y + y - this.dragFrom.y, 0, GAME_H - box.h) - box.y;
+    // everything in the box moves with it. the backdrop covers the whole screen, so it stays put
+    for (const el of UI.group('form-box')) {
+      if (el === this.backdrop) continue;
+      el.x += dx;
+      el.y += dy;
+    }
+    box.x += dx;
+    box.y += dy;
+    this.dragFrom.x += dx;
+    this.dragFrom.y += dy;
   },
 };
 
@@ -183,8 +229,9 @@ class FormBoxBackdrop extends UIElement {
     const { title, hint } = FormBox.options;
     const { rowsTop, mostRows } = FormBox;
 
+    // only a little darker behind, so changes made in the box can be seen on the map (tileeditor.js)
     noStroke();
-    fill(0, 0, 0, 110);
+    fill(0, 0, 0, 40);
     rect(0, 0, GAME_W, GAME_H);
 
     const C = EDITOR_COLOURS;

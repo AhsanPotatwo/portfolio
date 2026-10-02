@@ -11,7 +11,7 @@ Every tile in the game is one line in `tiles.json`, in this folder. The game loa
 ## Making or changing a tile
 
 1. Open the map editor: **`** (or **Ctrl + D**) for dev mode, then **B**.
-2. On the palette's **Tiles** tab, click **New** in the inspector, or **right click** a tile in the palette (or pick it and click **Edit**) to change it.
+2. On the palette's **Tiles** tab, click **New** in the inspector, or **right click** a tile in the palette (or pick it and click **Edit**) to change it. Changes to a tile that's already on the map show on the map as you make them; drag the box by its title bar to see behind it. **Save** keeps them, **Cancel** (or **×**, or **Escape**) puts the tile back.
 3. Set it up. The pictures on the right show the texture file and how the tile looks on the map as you go. The tabs along the top switch between groups of settings:
    - **Look**
      - **Kind**: **normal**, or **dual grid**.
