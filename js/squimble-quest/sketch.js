@@ -227,7 +227,7 @@ function draw() {
       attack: Input.mousePressed('left'),
     }, dt, world);
     // picks up items on the ground the player's walked up to (inventory.js)
-    Drops.update(worldMap, player);
+    Drops.update(worldMap, player, dt);
 
     // each enemy's and npc's ai decides what it does
     for (const enemy of enemies) enemy.update(dt, world);
@@ -265,11 +265,15 @@ function draw() {
   if (!WarpGraph.active) {
     gameCamera.begin();
     drawWorld(gameCamera, worldMap, Debug.enabled && Debug.showGrid);
-    // items on the ground, under everyone's feet. they're progress, so the editor doesn't show them
-    if (!Editor.active) Drops.draw(worldMap);
-    // whoever's standing further down the screen is in front, so sort by where their feet are
-    const characters = [player, ...enemies, ...npcs].sort((a, b) => (a.y + a.h / 2) - (b.y + b.h / 2));
-    for (const character of characters) character.draw();
+    // whoever's standing further down the screen is in front, so sort by where their feet are.
+    // items on the ground too, by where they touch the ground (their shadow, mid throw), so they're in
+    // front of anyone standing behind them. they're progress, so the editor doesn't show them
+    const things = [
+      ...[player, ...enemies, ...npcs].map((c) => ({ y: c.y + c.h / 2, draw: () => c.draw() })),
+      ...(Editor.active ? [] : worldMap.drops.map((d) => ({ y: Drops.where(d).y, draw: () => Drops.draw(d) }))),
+    ];
+    things.sort((a, b) => a.y - b.y);
+    for (const thing of things) thing.draw();
     if (!Editor.active && !Dialogue.active) Warps.drawPrompt();
     if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
     gameCamera.end();

@@ -337,13 +337,19 @@ const DROP_SPREAD = {
 // how far apart, in pixels, a dropped item tries to land from every other item on the ground.
 // about an item's width, so they don't cover each other
 const DROP_GAP = 20;
+// how long, in seconds, a dropped item is in the air before it lands
+const THROW_TIME = 0.4;
+// how high, in pixels, a thrown item goes above a straight line from the player's middle to the ground
+const THROW_HEIGHT = 24;
 
 // items lying on the ground. each map keeps its own in map.drops (tilemap.js), so they stay where
 // they were dropped until the page reloads. like map.characters that's progress, not the map's
 // design, so the map editor doesn't show them and Export doesn't save them.
-// each is { item, x, y, ready }: x, y is where it sits in the world. ready is false until the player
-// has been out of PICKUP_RANGE of it, so what you drop isn't picked straight back up, and a full
-// inventory says so once each time you walk up to it, rather than every frame
+// each is { item, x, y, ready, from, flight }: x, y is where it sits (or will land) in the world.
+// ready is false until the player has been out of PICKUP_RANGE of it, so what you drop isn't picked
+// straight back up, and a full inventory says so once each time you walk up to it, rather than every
+// frame. from is where under the player it was thrown from, and how high, and flight goes from 0 to 1
+// while it's in the air (THROW_TIME). it can't be picked up until it's landed
 const Drops = {
   // takes the item out of this slot of the player's inventory and throws it roughly the way they're
   // aiming. random throws can land on top of each other, so it tries a few, and keeps the first that
@@ -359,7 +365,12 @@ const Drops = {
       if (!best || spot.gap > best.gap) best = spot;
       if (best.gap >= DROP_GAP) break;
     }
-    map.drops.push({ item, x: best.x, y: best.y, ready: false });
+    const feet = player.feetBox();
+    map.drops.push({
+      item, x: best.x, y: best.y, ready: false,
+      from: { x: feet.x + feet.w / 2, y: feet.y + feet.h / 2, height: feetBelowCentre(player.settings) },
+      flight: 0,
+    });
   },
 
   // a random spot about DROP_DISTANCE from the player's feet, roughly the way they're aiming (DROP_SPREAD)
@@ -377,12 +388,29 @@ const Drops = {
     return { x: box.x + 4, y: box.y + 4 };
   },
 
-  // run every frame while playing. picks up anything the player is close enough to, if there's room
-  update(map, player) {
+  // where a drop is right now: x, y on the ground (where its shadow is), and how high above that it
+  // is. in the air it flies from the player's middle to where it lands, arcing up THROW_HEIGHT
+  where(drop) {
+    const t = drop.flight;
+    if (t >= 1) return { x: drop.x, y: drop.y, height: 0 };
+    return {
+      x: lerp(drop.from.x, drop.x, t),
+      y: lerp(drop.from.y, drop.y, t),
+      height: lerp(drop.from.height, 0, t) + 4 * THROW_HEIGHT * t * (1 - t),
+    };
+  },
+
+  // run every frame while playing. moves thrown items through the air, and picks up anything that's
+  // landed the player is close enough to, if there's room
+  update(map, player, dt) {
     const feet = player.feetBox();
     const fx = feet.x + feet.w / 2;
     const fy = feet.y + feet.h / 2;
     map.drops = map.drops.filter((drop) => {
+      if (drop.flight < 1) {
+        drop.flight = Math.min(1, drop.flight + dt / THROW_TIME);
+        return true;
+      }
       if (Math.hypot(drop.x - fx, drop.y - fy) > PICKUP_RANGE) {
         drop.ready = true;
         return true;
@@ -396,29 +424,39 @@ const Drops = {
     });
   },
 
-  // each item glowing and bobbing up and down above its shadow. uses world positions, so it's drawn
-  // between camera.begin() and camera.end()
-  draw(map) {
+  // one item, glowing and bobbing up and down above its shadow, or spinning through the air while
+  // it's being thrown. drawn one at a time so it can go behind or in front of characters (sketch.js).
+  // uses world positions, so it's drawn between camera.begin() and camera.end()
+  draw(drop) {
     const size = 20;
     const time = millis() / 1000;
-    for (const drop of map.drops) {
-      // adding x means items next to each other don't bob in step
-      const bob = Math.sin(time * 3 + drop.x) * 3;
-      const x = Math.round(drop.x);
-      const y = Math.round(drop.y - size / 2 - 6 + bob);
+    const landed = drop.flight >= 1;
+    const spot = this.where(drop);
+    // adding x means items next to each other don't bob in step
+    const bob = landed ? Math.sin(time * 3 + drop.x) * 3 : 0;
+    const x = Math.round(spot.x);
+    const y = Math.round(spot.y - size / 2 - 6 - spot.height + bob);
 
-      noStroke();
-      // the shadow shrinks as the item floats up
-      fill(0, 0, 0, 70);
-      ellipse(x, Math.round(drop.y), 16 + bob, 5);
-      // the glow, gently pulsing
-      const pulse = Math.sin(time * 2 + drop.x) * 3;
-      fill(255, 225, 120, 35);
-      circle(x, y, size * 2 + pulse);
-      fill(255, 225, 120, 55);
-      circle(x, y, size * 1.4 + pulse);
-
-      drawItemIcon(drop.item, x - size / 2, y - size / 2, size);
+    noStroke();
+    // the shadow shrinks as the item floats up
+    fill(0, 0, 0, 70);
+    ellipse(x, Math.round(spot.y), Math.max(4, 16 + bob - spot.height / 4), 5);
+    if (!landed) {
+      // one full turn on the way, spinning the way it's thrown
+      push();
+      translate(x, y);
+      rotate(drop.flight * TWO_PI * (drop.x < drop.from.x ? -1 : 1));
+      drawItemIcon(drop.item, -size / 2, -size / 2, size);
+      pop();
+      return;
     }
+    // the glow, gently pulsing
+    const pulse = Math.sin(time * 2 + drop.x) * 3;
+    fill(255, 225, 120, 35);
+    circle(x, y, size * 2 + pulse);
+    fill(255, 225, 120, 55);
+    circle(x, y, size * 1.4 + pulse);
+
+    drawItemIcon(drop.item, x - size / 2, y - size / 2, size);
   },
 };
