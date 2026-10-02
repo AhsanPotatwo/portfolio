@@ -96,6 +96,20 @@ function drawItemIcon(item, x, y, size) {
   text(item.type.label[0], x + size / 2, y + size / 2 + 1);
 }
 
+// the soft glow behind an item, in its rarity's colour (items.js), centred on x, y. it reaches size
+// pixels out from the middle
+function drawItemGlow(item, x, y, size) {
+  push();
+  noStroke();
+  fill(itemRarity(item).colour);
+  const alpha = drawingContext.globalAlpha;
+  drawingContext.globalAlpha = alpha * 0.14;
+  circle(x, y, size * 2);
+  drawingContext.globalAlpha = alpha * 0.22;
+  circle(x, y, size * 1.4);
+  pop();
+}
+
 // ---------- the hotbar ----------
 
 const Hotbar = {
@@ -157,7 +171,8 @@ const Hotbar = {
     // a dark edge round the letters so it shows up on any ground
     stroke(0, 0, 0, 170);
     strokeWeight(3);
-    // just above the slots
+    // just above the slots, in the colour of its rarity (items.js)
+    if (item) fill(itemRarity(item).colour);
     text(item ? item.type.label : 'Empty hands', GAME_W / 2, GAME_H - HOTBAR_LAYOUT.slotSize - 16);
   },
 };
@@ -187,6 +202,7 @@ class ItemSlot extends Button {
       const pad = 8;
       push();
       if (InventoryScreen.dragging === this.slot) drawingContext.globalAlpha *= 0.3;
+      drawItemGlow(item, this.x + this.w / 2, this.y + this.h / 2, this.w / 2);
       drawItemIcon(item, this.x + pad, this.y + pad, this.w - pad * 2);
       pop();
     }
@@ -344,7 +360,7 @@ const THROW_HEIGHT = 24;
 
 // items lying on the ground. each map keeps its own in map.drops (tilemap.js), so they stay where
 // they were dropped until the page reloads. like map.characters that's progress, not the map's
-// design, so the map editor doesn't show them and Export doesn't save them.
+// design, so Export doesn't save them, even ones the map editor placed (Drops.place()).
 // each is { item, x, y, ready, from, flight }: x, y is where it sits (or will land) in the world.
 // ready is false until the player has been out of PICKUP_RANGE of it, so what you drop isn't picked
 // straight back up, and a full inventory says so once each time you walk up to it, rather than every
@@ -371,6 +387,11 @@ const Drops = {
       from: { x: feet.x + feet.w / 2, y: feet.y + feet.h / 2, height: feetBelowCentre(player.settings) },
       flight: 0,
     });
+  },
+
+  // puts an item straight on the ground at x, y, already landed and ready to pick up. for the map editor
+  place(map, item, x, y) {
+    map.drops.push({ item, x, y, ready: true, from: null, flight: 1 });
   },
 
   // a random spot about DROP_DISTANCE from the player's feet, roughly the way they're aiming (DROP_SPREAD)
@@ -451,12 +472,7 @@ const Drops = {
       return;
     }
     // the glow, gently pulsing
-    const pulse = Math.sin(time * 2 + drop.x) * 3;
-    fill(255, 225, 120, 35);
-    circle(x, y, size * 2 + pulse);
-    fill(255, 225, 120, 55);
-    circle(x, y, size * 1.4 + pulse);
-
+    drawItemGlow(drop.item, x, y, size + Math.sin(time * 2 + drop.x) * 1.5);
     drawItemIcon(drop.item, x - size / 2, y - size / 2, size);
   },
 };
