@@ -76,8 +76,26 @@ function defineType(types, defaults, kind, name, settings) {
   types[name] = { ...defaults, ...settings, name };
 }
 
-// run from preload() in sketch.js, before the game starts, for objects, enemies, items and npcs
-// (tiles load theirs in setTile() in tiles.js):
+// a catalogue entry as plain data, for a file like tiles.json or items.json: its name, plus only the
+// settings that are different from defaults. its colour always goes in, so every line says what it
+// looks like
+function typeToData(type, defaults) {
+  const entry = { name: type.name };
+  for (const [key, value] of Object.entries(defaults)) {
+    if (key === 'colour' || type[key] !== value) entry[key] = type[key];
+  }
+  return entry;
+}
+
+// one entry of a list in a json file, squashed onto one indented line, so the file reads like a list.
+// indenting by 1 then swapping each line break (and its indent) for a space leaves spaces after the
+// colons and commas
+function jsonLine(entry) {
+  return `    ${JSON.stringify(entry, null, 1).replace(/\n\s*/g, ' ')}`;
+}
+
+// run from preload() in sketch.js, before the game starts, for objects, enemies and npcs, and once
+// items.json has loaded for items (items.js). tiles load theirs in setTile() in tiles.js:
 //   prepareArt(OBJECT_TYPES, 'object')
 // loads their images, and turns colours into p5 colours once now rather than every time
 // something's drawn (thousands of times a second). kind is only used in the warning

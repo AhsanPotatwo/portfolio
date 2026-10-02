@@ -7,9 +7,13 @@ class Player extends Character {
     // PLAYER is in config.js
     super(x, y, PLAYER);
 
-    // what it's carrying (inventory.js): the hotbar, then the bag. starting with
-    // PLAYER.startingItems from slot 1 along
+    // what it's carrying (inventory.js): the hotbar, then the bag. empty until giveStartingItems()
     this.inventory = new Inventory(HOTBAR_SIZE + BAG_SIZE);
+  }
+
+  // PLAYER.startingItems, from slot 1 along. run once items.json has loaded (sketch.js), since
+  // there are no items before that
+  giveStartingItems() {
     for (const name of PLAYER.startingItems) this.inventory.add(createItem(name));
   }
 
