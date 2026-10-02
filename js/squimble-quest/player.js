@@ -11,8 +11,9 @@ class Player extends Character {
     this.spawnX = x;
     this.spawnY = y;
 
-    // what it's carrying (inventory.js), starting with PLAYER.startingItems from slot 1 along
-    this.inventory = new Inventory(HOTBAR_SIZE);
+    // what it's carrying (inventory.js): the hotbar, then the bag. starting with
+    // PLAYER.startingItems from slot 1 along
+    this.inventory = new Inventory(HOTBAR_SIZE + BAG_SIZE);
     for (const name of PLAYER.startingItems) this.inventory.add(createItem(name));
   }
 

@@ -28,7 +28,7 @@
 //   textfield.js  boxes you type words or numbers into (needs ui.js loaded first)
 //   formbox.js    the box that asks for things in the editors, and its Picker and Checkbox fields
 //   hud.js        things drawn over the game that aren't ui elements (crosshair, messages, panels)
-//   inventory.js  inventories, and the hotbar (needs button.js loaded first)
+//   inventory.js  inventories, the hotbar, the inventory screen, and items on the ground (needs button.js loaded first)
 //   dialogue.js   talking to npcs: who's in range, and the text box
 //   warps.js      warps (doors, caves, teleporters...): going through them, checking where they lead
 //   warpgraph.js  the map editor's picture of every warp linked to a warp (needs button.js first)
@@ -75,6 +75,8 @@ function setup() {
   gameCamera.follow(player);
   // the hotbar along the bottom shows the player's inventory
   Hotbar.init(player.inventory);
+  // and E or I opens the whole of it (hidden until then)
+  InventoryScreen.init(player.inventory);
 
   // the tiles (tiles.js) and map files (mapfile.js) load in the background, then the game starts on
   // START_MAP (maps.js). tiles first, because loading a map checks every tile on it is one the game
@@ -209,16 +211,22 @@ function draw() {
     // characters is everyone in one list, made once here rather than by each of them every frame
     const world = { map: worldMap, player, enemies, npcs, characters: [player, ...enemies, ...npcs] };
 
-    // number keys and the mouse wheel change what the player's holding
+    // number keys and the mouse wheel change what the player's holding, and Q drops it.
+    // with the inventory open, items are dragged about in it (inventory.js)
     Hotbar.update();
+    if (Input.wasPressed('drop')) Drops.drop(worldMap, player, player.inventory.selected);
+    if (InventoryScreen.active) InventoryScreen.update(worldMap, player);
 
     // the keyboard and mouse decide what the player does (see the top of character.js).
-    // mousePressed() ignores clicks on buttons, so clicking the ui never swings the sword
-    player.update({
+    // mousePressed() ignores clicks on buttons, so clicking the ui never swings the sword.
+    // with the inventory open they stand still, so the mouse is only for moving items
+    player.update(InventoryScreen.active ? STAND_STILL : {
       move: Input.direction(),
       aim,
       attack: Input.mousePressed('left'),
     }, dt, world);
+    // picks up items on the ground the player's walked up to (inventory.js)
+    Drops.update(worldMap, player);
 
     // each enemy's and npc's ai decides what it does
     for (const enemy of enemies) enemy.update(dt, world);
@@ -230,16 +238,18 @@ function draw() {
     Warps.update(dt);
 
     // the npc close enough to talk to (if any) shows an E over its head, and E starts talking.
-    // otherwise, a warp that opens with E (if one's in reach) does the same (warps.js)
-    const talkTo = Dialogue.npcInRange(player, npcs);
+    // otherwise, a warp that opens with E (if one's in reach) does the same (warps.js).
+    // with neither, E opens or closes the inventory (I always does). nothing's in reach while it's open
+    const talkTo = InventoryScreen.active ? null : Dialogue.npcInRange(player, npcs);
     for (const npc of npcs) npc.canTalk = npc === talkTo;
-    Warps.reachable = talkTo ? null : Warps.inReach(player, worldMap);
+    Warps.reachable = talkTo || InventoryScreen.active ? null : Warps.inReach(player, worldMap);
     if (talkTo && Input.wasPressed('interact')) {
       talkTo.canTalk = false;
       Dialogue.open(talkTo, player, gameCamera);
     } else if (Warps.reachable && Input.wasPressed('interact')) {
       Warps.use(Warps.reachable);
     } else {
+      if (Input.wasPressed('inventory')) InventoryScreen.show(!InventoryScreen.active);
       // a warp that opens when it's stepped onto. after the E warp, which might have just gone to
       // another map, so this doesn't look at the new map in the same frame
       Warps.checkStep(player, worldMap);
@@ -254,6 +264,8 @@ function draw() {
   if (!WarpGraph.active) {
     gameCamera.begin();
     drawWorld(gameCamera, worldMap, Debug.enabled && Debug.showGrid);
+    // items on the ground, under everyone's feet. they're progress, so the editor doesn't show them
+    if (!Editor.active) Drops.draw(worldMap);
     // whoever's standing further down the screen is in front, so sort by where their feet are
     const characters = [player, ...enemies, ...npcs].sort((a, b) => (a.y + a.h / 2) - (b.y + b.h / 2));
     for (const character of characters) character.draw();
@@ -267,8 +279,9 @@ function draw() {
   push();
   if (Editor.active) drawingContext.globalAlpha = Editor.uiAlpha;
   Debug.draw(player, gameCamera, worldMap, aim);
-  if (!Editor.active && !Dialogue.active) Hotbar.drawLabel();
+  if (!Editor.active && !Dialogue.active && !InventoryScreen.active) Hotbar.drawLabel();
   UI.draw();
+  InventoryScreen.drawDragged();
   pop();
   drawMessage();
   if (worldMap.name === FALLBACK_MAP) drawNoMapsMessage();

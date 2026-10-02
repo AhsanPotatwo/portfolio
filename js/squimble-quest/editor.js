@@ -344,6 +344,7 @@ const Editor = {
     this.stillFor = EDITOR_UI_FADE.showDelay;
     UI.showGroup('editor', true);
     // the editor's bar goes where the hotbar is (inventory.js)
+    if (InventoryScreen.active) InventoryScreen.show(false);
     Hotbar.show(false);
     this.showTab(this.tab);
   },

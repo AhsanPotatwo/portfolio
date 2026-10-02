@@ -86,6 +86,11 @@ This README and the comments in the code are the project's only notes. There's n
   - The player, enemies and NPCs all take the same controls, `{ move, aim, attack }`. For the player they come from the keyboard and mouse. For enemies and NPCs they come from an `ai(entity, world, dt)` function.
   - Tiles' settings work for all characters: `speed`, `slippery` and the push in `walk()`, damage and healing in `checkTile()`. `velocity` is only kept for slippery tiles; everywhere else it's replaced every frame.
   - `player.spawnX`/`spawnY` is where the player respawns. `loadMap` sets it to where they arrived (the warp they came in by, or the map's spawn), and so does placing the spawn in the editor.
+- **Inventory** (`inventory.js`):
+  - The player's inventory is one row of slots: the first `HOTBAR_SIZE` are the hotbar, the next `BAG_SIZE` the bag. Only hotbar slots can be picked (held). `add()` fills the first empty slot, hotbar first.
+  - **E or I** opens the inventory screen (`InventoryScreen`). E only does it when there's no NPC to talk to or E warp in reach, so I always works. The game carries on while it's open, but the player stands still and nothing's in reach. Drag an item onto a slot to swap, or outside the box to drop it. The map editor closes it.
+  - **Q** drops the held item. Dropped items are thrown `DROP_DISTANCE` the way the player's aiming, moved with the map's collision so they stop at walls. Each map keeps its own in `map.drops` (progress, like `map.characters`).
+  - A dropped item can't be picked up until the player has been out of `PICKUP_RANGE` of it. That stops it being picked straight back up, and makes "inventory full" show once per walk up to it rather than every frame.
 - **UI** (`ui.js`, `button.js`, `textfield.js`, `formbox.js`):
   - Every element extends `UIElement`.
   - Groups let elements be shown, hidden and removed together.
@@ -128,7 +133,7 @@ These aren't obvious from any one file, and breaking them causes bugs that are h
 - **Anything that moves the player without walking must call `Warps.arrived(player, worldMap)` afterwards.** That's teleports, cutscenes, being carried or pushed. Otherwise a step warp on the tile they land on fires. `loadMap` and `Player.respawn` already do. Dev mode's **T** deliberately doesn't, so you can teleport onto a warp to test it.
 - **The live characters are the globals `enemies` and `npcs`.** `map.characters` is only up to date for maps the player *isn't* on (it's written when they leave). Anything that looks at another map's characters reads `map.characters`. Anything about the current map uses the globals.
 - **One map, one name.** `getMap()` names a map when it builds it, and only Export gives it a new name (the old name goes back to its file). Never let two names in `VISITED_MAPS` point at the same map. Warps, dev mode's **M** and Export all go by `map.name`.
-- **Design and progress are kept apart.** Tiles, objects, spawn lists, warps and `spawn` are the design, and they're what Export saves. Progress (`map.characters`, the player's health and inventory) only lives in memory. A save system would need to store progress on its own, next to the map files rather than inside them.
+- **Design and progress are kept apart.** Tiles, objects, spawn lists, warps and `spawn` are the design, and they're what Export saves. Progress (`map.characters`, `map.drops`, the player's health and inventory) only lives in memory. A save system would need to store progress on its own, next to the map files rather than inside them.
 - **The editor always shows the design.** Opening it, closing it, or changing characters runs `spawnCharacters()`, which resets the current map's enemies and NPCs to their spawns. Keep it that way, or the editor would show a half-played map as if it were the design.
 - **A map's name is its file name,** and warps lead to maps by name. Renaming a map file breaks every warp that leads to it (they show red, and the console lists them).
 
@@ -143,6 +148,9 @@ Only build these when they're needed.
   - locked doors
   - an editor key to go through the warp under the mouse
   - loading map files by name, instead of listing every one in `MAP_FILES`
+- **Items:**
+  - stacking (arrows, potions), which would need a count on each item
+  - items as data files, like `tiles.json`. They're code in `items.js` for now, like weapons and enemies, because nothing makes them in the game. Files would only be worth it with an in-game item editor. Their art already goes in its own folder (`image: 'assets/squimble-quest/items/axe.png'`).
 - **Multiplayer, maybe.** Only a possibility, not a decision. The idea is a small social game: a group of friends, up to about a classroom (20–40 players), playtesting and hanging out together, never hundreds. If it ever happens:
   - **What already helps:** every character runs on `{ move, aim, attack }` controls, so another player is just a `Player` whose controls come over the network. Maps and tiles are data files a server can load too. Progress is already kept apart from the design. Nothing is random.
   - **What's in the way:** the game assumes one player and one running map (the globals `player`, `worldMap`, `enemies`, `npcs`, and `loadMap()` swapping the world). With players on different maps, each map with players on it would have to keep running, so maps become "rooms". Also single-player: the warp step tracking (`Warps.lastCol`), enemies following through warps, `chasePlayer` and enemy `targets()` only knowing `world.player`, dialogue and the editor pausing everything, and some rules code needing p5 (`color()` in `MeleeSwing` and `setTile()`).
