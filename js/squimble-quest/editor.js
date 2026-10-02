@@ -83,6 +83,8 @@ const EDITOR_LAYOUT = {
   cellSize: 40,
   // the gap between the palette's squares and the dock's edges, and the scrollbar beside them
   padding: 6,
+  // each of the ‹ › arrows at the end of the tabs, when there are more tabs than fit
+  tabArrowWidth: 16,
   scrollbarWidth: 4,
   // how far one notch of the mouse wheel (about 100) scrolls the palette: about a row
   scrollRate: 0.4,
@@ -130,6 +132,12 @@ const EDITOR_TABS = [
   { kind: 'npc', label: 'NPCs', types: NPC_TYPES },
   // things on the map that make something happen, like where the player spawns and warps
   { kind: 'trigger', label: 'Triggers', types: TRIGGER_TYPES },
+  // examples of more tabs, empty for now, so they show "Nothing here yet". to fill one, give it a
+  // catalogue (e.g. ITEM_TYPES from items.js) and place it in Editor.update(), like objects. when
+  // there are more tabs than fit, they scroll (EditorTabStrip)
+  { kind: 'item', label: 'Items', types: {} },
+  { kind: 'sound', label: 'Sounds', types: {} },
+  { kind: 'light', label: 'Lights', types: {} },
 ];
 
 // each tab's catalogue by its kind, e.g. EDITOR_CATALOGUES.enemy is ENEMY_TYPES
@@ -178,7 +186,9 @@ const Editor = {
   uiAlpha: 1,
   stillFor: 0,
 
-  // the inspector's buttons for tiles, made in init(). showTab() only shows New and Export on the Tiles tab
+  // the palette's tabs, and the inspector's buttons for tiles, made in init(). showTab() only shows
+  // New and Export on the Tiles tab
+  tabStrip: null,
   tileButtons: [],
   editTileButton: null,
 
@@ -226,17 +236,8 @@ const Editor = {
     x = Math.max(x + 16, (GAME_W - 64) / 2);
     button('▶  Play', { style: 'editorPrimary', onClick: () => this.close(player, gameCamera) });
 
-    // the palette's tabs along the top of the dock, each as wide as its label, all squashed a bit to
-    // fit if they need to be
-    setText(11, BOLD, CENTER, CENTER, BUTTON_STYLES.default.font);
-    const widths = EDITOR_TABS.map(({ label }) => textWidth(label) + 14);
-    const squash = Math.min(1, L.dockWidth / widths.reduce((a, b) => a + b, 0));
-    let tabX = dockX;
-    EDITOR_TABS.forEach(({ kind, label }, i) => {
-      const w = widths[i] * squash;
-      add(new EditorTab({ x: tabX, y: dockY, w, h: L.tabHeight, label, kind, onClick: () => this.showTab(kind) }));
-      tabX += w;
-    });
+    // the palette's tabs along the top of the dock
+    this.tabStrip = add(new EditorTabStrip({ x: dockX, y: dockY, w: L.dockWidth, h: L.tabHeight }));
 
     // the palette between the tabs and the inspector
     add(new PaletteGrid({ x: dockX, y: dockY + L.tabHeight, w: L.dockWidth, h: inspectorY - dockY - L.tabHeight }));
@@ -318,6 +319,7 @@ const Editor = {
   // switches the palette to a tab (a kind from EDITOR_TABS). the tile buttons only show on Tiles
   showTab(kind) {
     this.tab = kind;
+    this.tabStrip.reveal(kind);
     for (const button of this.tileButtons) button.visible = kind === 'tile';
   },
 
@@ -787,7 +789,7 @@ class EditorDock extends UIElement {
     noStroke();
     fill(C.bar);
     rect(this.x, this.y, this.w, this.h);
-    // the tabs' strip. the open tab covers the line under it, so it looks joined on (EditorTab)
+    // the tabs' strip. the open tab covers the line under it, so it looks joined on (EditorTabStrip)
     fill(C.header);
     rect(this.x, this.y, this.w, L.tabHeight);
     fill(C.edge);
@@ -885,38 +887,137 @@ function inspectorInfo(selected) {
       ],
     };
   }
-  if (name === 'spawn') {
+  if (kind === 'trigger' && name === 'spawn') {
     return { title: 'spawn', kind: 'Trigger', rows: [], note: "Where the player starts on this map. There's only one, so placing it moves it" };
   }
-  return { title: 'warp', kind: 'Trigger', rows: [], note: 'A way to another map. Placing one opens its settings, right click it on the map to change them later' };
+  if (kind === 'trigger') {
+    return { title: 'warp', kind: 'Trigger', rows: [], note: 'A way to another map. Placing one opens its settings, right click it on the map to change them later' };
+  }
+  // anything in a tab added later: its name and which tab it's from
+  return { title: name, kind: EDITOR_TABS.find((tab) => tab.kind === kind).label, rows: [] };
 }
 
-// one of the palette's tabs (Tiles, Objects...). a Button, so clicking works the same, but it's drawn
-// like a game engine's panel tab: the open one is the dock's colour with a line along its top, and
-// joins onto the palette under it
-class EditorTab extends Button {
+// the palette's tabs (Tiles, Objects...), drawn like a game engine's panel tabs: the open one is the
+// dock's colour with a line along its top, and joins onto the palette under it. each is as wide as its
+// label. when there are more than fit, ‹ › at the end (or the mouse wheel over them) scrolls along,
+// and opening a tab scrolls it into view, so EDITOR_TABS can have as many as it likes
+class EditorTabStrip extends UIElement {
   constructor(options) {
     super(options);
-    // which tab it is, a kind from EDITOR_TABS
-    this.kind = options.kind;
+    // each tab's kind, label, and where it is along the strip before scrolling
+    setText(11, BOLD, CENTER, CENTER, BUTTON_STYLES.default.font);
+    let x = 0;
+    this.tabs = EDITOR_TABS.map(({ kind, label }) => {
+      const tab = { kind, label, x, w: Math.ceil(textWidth(label)) + 16 };
+      x += tab.w;
+      return tab;
+    });
+    this.length = x;
+    // how far along it's scrolled, in pixels
+    this.scroll = 0;
+    // what the mouse is over: a tab's kind, 'back' or 'forward' (the arrows), or null
+    this.under = null;
+  }
+
+  // the arrows only show when the tabs don't all fit
+  arrowsWidth() {
+    return this.length > this.w ? EDITOR_LAYOUT.tabArrowWidth * 2 : 0;
+  }
+
+  // how wide the part the tabs show in is
+  room() {
+    return this.w - this.arrowsWidth();
+  }
+
+  maxScroll() {
+    return Math.max(0, this.length - this.room());
+  }
+
+  // scrolls just far enough that this tab (a kind) is all showing
+  reveal(kind) {
+    const tab = this.tabs.find((t) => t.kind === kind);
+    this.scroll = constrain(constrain(this.scroll, tab.x + tab.w - this.room(), tab.x), 0, this.maxScroll());
+  }
+
+  update(hovered) {
+    this.hovered = hovered;
+    this.under = null;
+    if (!hovered) return;
+
+    // used up here, so the camera doesn't zoom too (like the palette)
+    if (Input.wheel !== 0) {
+      this.scroll = constrain(this.scroll + Input.wheel * 0.5, 0, this.maxScroll());
+      Input.wheel = 0;
+    }
+
+    const mouseX = Input.mouse.x;
+    const arrowsX = this.x + this.room();
+    if (mouseX >= arrowsX) {
+      this.under = mouseX < arrowsX + EDITOR_LAYOUT.tabArrowWidth ? 'back' : 'forward';
+    } else {
+      const along = mouseX - this.x + this.scroll;
+      this.under = this.tabs.find((t) => along >= t.x && along < t.x + t.w)?.kind ?? null;
+    }
+    if (!this.under || !Input.buttonsPressed.has('left')) return;
+
+    // the arrows go along a tab at a time: back to the start of the one cut off at the left, or on
+    // to the end of the one cut off at the right
+    if (this.under === 'back') {
+      const cut = this.tabs.filter((t) => t.x < this.scroll).pop();
+      if (cut) this.scroll = cut.x;
+    } else if (this.under === 'forward') {
+      const cut = this.tabs.find((t) => t.x + t.w > this.scroll + this.room());
+      if (cut) this.scroll = Math.min(this.maxScroll(), cut.x + cut.w - this.room());
+    } else {
+      Editor.showTab(this.under);
+    }
   }
 
   draw() {
     const C = EDITOR_COLOURS;
-    const open = Editor.tab === this.kind;
-    noStroke();
-    if (open) {
-      fill(C.bar);
-      rect(this.x, this.y, this.w, this.h);
-      fill(C.accent);
-      rect(this.x, this.y, this.w, 2);
-    } else if (this.hovered) {
-      fill(C.tabHover);
-      rect(this.x, this.y, this.w, this.h - 1);
-    }
-    fill(open ? C.text : this.hovered ? 220 : C.dimText);
+    const room = this.room();
+
+    // tabs scrolled partly out of view are cut off at the edge, like the palette's squares
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.rect(this.x, this.y, room, this.h);
+    drawingContext.clip();
     setText(11, BOLD, CENTER, CENTER);
-    text(this.label, this.x + this.w / 2, this.y + this.h / 2 + 1);
+    for (const tab of this.tabs) {
+      const x = this.x + tab.x - this.scroll;
+      if (x + tab.w < this.x || x > this.x + room) continue;
+      const open = Editor.tab === tab.kind;
+      const hovered = this.under === tab.kind;
+      noStroke();
+      if (open) {
+        fill(C.bar);
+        rect(x, this.y, tab.w, this.h);
+        fill(C.accent);
+        rect(x, this.y, tab.w, 2);
+      } else if (hovered) {
+        fill(C.tabHover);
+        rect(x, this.y, tab.w, this.h - 1);
+      }
+      fill(open ? C.text : hovered ? 220 : C.dimText);
+      text(tab.label, x + tab.w / 2, this.y + this.h / 2 + 1);
+    }
+    drawingContext.restore();
+
+    if (this.arrowsWidth() === 0) return;
+    // the arrows, greyed out when there's no further to go that way
+    const left = this.x + room;
+    const arrow = EDITOR_LAYOUT.tabArrowWidth;
+    noStroke();
+    fill(C.header);
+    rect(left, this.y, arrow * 2, this.h - 1);
+    fill(C.edge);
+    rect(left, this.y + 4, 1, this.h - 8);
+    setText(16, BOLD, CENTER, CENTER);
+    const arrows = [['back', '‹', this.scroll > 0], ['forward', '›', this.scroll < this.maxScroll()]];
+    arrows.forEach(([which, symbol, canGo], i) => {
+      fill(!canGo ? 70 : this.under === which ? 255 : C.dimText);
+      text(symbol, left + arrow * (i + 0.5), this.y + this.h / 2 - 1);
+    });
   }
 }
 

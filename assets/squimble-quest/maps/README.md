@@ -48,7 +48,7 @@ It's laid out like a game engine: a **toolbar** along the top (the map's buttons
 
 | Control | What it does |
 |---|---|
-| **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** tabs at the top of the palette | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs and triggers (the player's spawn point, and warps) |
+| **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** tabs at the top of the palette | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs and triggers (the player's spawn point, and warps). When there are more tabs than fit, **‹ ›** (or the mouse wheel over them) scrolls along. **Items**, **Sounds** and **Lights** are empty examples for now |
 | **New** / **Open** / **Resize** / **Export** (toolbar) | Make a new map, open a map file, change this map's size, or save it as a file |
 | Click something in the palette | Choose it, and switch to the **Paint** tool. Hover over one to see its name. The mouse wheel scrolls the palette while the mouse is over it |
 | Left click / drag (tile chosen) | Paint that tile, replacing the one there. Tiles with a little badge of two overlapping squares in the corner are dual grid tiles (like grass): their edges round off and blend into the tiles next to them by themselves |
