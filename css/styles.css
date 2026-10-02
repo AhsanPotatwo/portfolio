@@ -373,16 +373,29 @@ a{ color:inherit; text-decoration:none; }
   font-weight:500;
   margin-bottom:6px;
 }
+/* full name has to fit on one line left of the code card above 1150px, so it tops out lower than the old single-name size */
 .hero-name{
-  font-size:clamp(64px,11vw,128px);
+  font-size:clamp(52px,7.2vw,104px);
   font-weight:700;
   line-height:1.05;
   margin:0 0 8px;
+  text-wrap:balance;
 }
 .hero-role{
   font-size:clamp(26px,4vw,48px);
   font-weight:600;
+  margin-bottom:12px;
 }
+/* degree, location and availability, the facts a recruiter checks first */
+.hero-meta{
+  margin:0;
+  font-size:clamp(16px,1.5vw,20px);
+  font-weight:500;
+  line-height:1.5;
+  color:var(--muted);
+  max-width:560px;
+}
+.hero-open{ display:block; color:var(--open); }
 /* line under the hero text */
 .hero-rule{
   height:3px;
@@ -563,7 +576,8 @@ a{ color:inherit; text-decoration:none; }
 .v-loc{ color:var(--term-val); }
 .badge-open{
   display:inline-grid; place-items:center;
-  width:62px; height:24px;
+  height:24px;
+  padding-inline:8px;
   border:.5px solid #00c34d;
   border-radius:5px;
   background:rgba(0,161,64,.1);
@@ -1037,6 +1051,41 @@ a{ color:inherit; text-decoration:none; }
   justify-content:center;
   gap:clamp(24px,4vw,48px);
 }
+/* a project is the art card plus a caption under it */
+.project-grid{ align-items:start; }
+.project{ display:flex; flex-direction:column; gap:18px; }
+.project-info{ display:flex; flex-direction:column; gap:12px; padding-inline:4px; }
+.project-hook{
+  margin:0;
+  font-size:clamp(16px,1.25vw,18px);
+  font-weight:500;
+  line-height:1.45;
+  color:#e2dfea;
+}
+.project-tags{
+  display:flex; flex-wrap:wrap; gap:8px;
+  margin:0; padding:0; list-style:none;
+}
+.project-tags li{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:3px 10px;
+  border:1px solid rgba(164,139,255,.28);
+  border-radius:999px;
+  font-size:14px;
+  font-weight:600;
+  color:var(--muted);
+}
+.project-tags .project-tag-play{
+  border-color:rgba(49,250,150,.4);
+  background:rgba(0,161,64,.1);
+  color:var(--open);
+}
+.project-tag-play svg{ width:10px; height:10px; fill:currentColor; }
+.project-tags .project-tag-wip{
+  border-color:rgba(244,196,48,.45);
+  color:#f4c430;
+}
+
 .project-card{
   display:grid; place-items:center;
   height:145px;
@@ -1514,6 +1563,7 @@ a{ color:inherit; text-decoration:none; }
   :root{ --glyph:70px; }
   .hero{ padding-top:56px; text-align:center; }
   .hero-rule{ width:min(240px,100%); margin-inline:auto; }
+  .hero-meta{ margin-inline:auto; }
   .btn{ width:100%; max-width:320px; height:62px; }
   .hero-actions{ width:min(400px,100%); margin-inline:auto; justify-content:center; }
   .connect{ margin-top:56px; flex-direction:column; justify-content:center; }
