@@ -575,10 +575,6 @@ const Editor = {
   placeSpawn(map, col, row) {
     if (map.isSolid(col, row)) return;
     map.setSpawnTile(col, row);
-    // the player only copies the map's spawn point when the map loads (player.js), so they
-    // respawn here now too, not just the next time the map loads. player is the game's (sketch.js)
-    player.spawnX = map.spawn.x;
-    player.spawnY = map.spawn.y;
   },
 
   // puts a warp on col, row (warps.js), then opens its settings. it can go on any tile of the map,

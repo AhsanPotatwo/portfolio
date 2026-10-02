@@ -118,7 +118,8 @@ function setup() {
 }
 
 // go to a map, by its name in MAPS (maps.js). puts the player on the warp called warpName
-// (warps.js), or at the map's spawn point without one, and they'll respawn there too. the camera
+// (warps.js), or at the map's spawn point without one. dying always respawns them at the map's
+// spawn point, wherever they arrived (Player.respawn() in player.js). the camera
 // jumps straight there on a new map, and glides there on the same one. warps and dev mode's M key
 // use this.
 //

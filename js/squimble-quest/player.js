@@ -7,10 +7,6 @@ class Player extends Character {
     // PLAYER is in config.js
     super(x, y, PLAYER);
 
-    // where to go back to after dying
-    this.spawnX = x;
-    this.spawnY = y;
-
     // what it's carrying (inventory.js): the hotbar, then the bag. starting with
     // PLAYER.startingItems from slot 1 along
     this.inventory = new Inventory(HOTBAR_SIZE + BAG_SIZE);
@@ -34,23 +30,21 @@ class Player extends Character {
     this.respawn();
   }
 
-  // back to the start with full health. a placeholder until there's a proper death screen.
-  // the start is often the warp they came in by, so this counts as arriving there, or a 'step'
-  // warp would send them straight back out (warps.js). worldMap is the game's (sketch.js)
+  // back to the spawn point of the map they're on, with full health. a placeholder until there's a
+  // proper death screen. always the map's spawn, never the warp they came in by, so going through a
+  // door and back doesn't move where you respawn. this counts as arriving there, so a 'step' warp
+  // on the spawn doesn't send them straight off (warps.js). worldMap is the game's (sketch.js)
   respawn() {
     this.health = this.maxHealth;
-    this.x = this.spawnX;
-    this.y = this.spawnY;
+    this.x = worldMap.spawn.x;
+    this.y = worldMap.spawn.y;
     Warps.arrived(this, worldMap);
   }
 
-  // jump straight to a spot and make it where you respawn. for starting on a map, or arriving
-  // through a warp (loadMap() in sketch.js)
+  // jump straight to a spot, for starting on a map or arriving through a warp (loadMap() in sketch.js)
   placeAt(x, y) {
     this.x = x;
     this.y = y;
-    this.spawnX = x;
-    this.spawnY = y;
     // forget the last map's tile, so the tile here counts as freshly stepped on
     this.tile = null;
     this.tileCol = null;
