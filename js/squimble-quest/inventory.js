@@ -327,6 +327,16 @@ const PICKUP_RANGE = 28;
 // how far a dropped item is thrown from the middle of the player's feet, the way they're aiming, in
 // pixels. far enough to land clear of their body when it's thrown upwards, or it'd be hidden behind them
 const DROP_DISTANCE = 48;
+// a little randomness in where it lands, so things dropped from the same spot don't pile up on top
+// of each other: up to this many degrees either side of where they're aiming, and up to this many
+// pixels short of DROP_DISTANCE
+const DROP_SPREAD = {
+  angle: 35,
+  distance: 20,
+};
+// how far apart, in pixels, a dropped item tries to land from every other item on the ground.
+// about an item's width, so they don't cover each other
+const DROP_GAP = 20;
 
 // items lying on the ground. each map keeps its own in map.drops (tilemap.js), so they stay where
 // they were dropped until the page reloads. like map.characters that's progress, not the map's
@@ -335,19 +345,36 @@ const DROP_DISTANCE = 48;
 // has been out of PICKUP_RANGE of it, so what you drop isn't picked straight back up, and a full
 // inventory says so once each time you walk up to it, rather than every frame
 const Drops = {
-  // takes the item out of this slot of the player's inventory and throws it the way they're aiming
+  // takes the item out of this slot of the player's inventory and throws it roughly the way they're
+  // aiming. random throws can land on top of each other, so it tries a few, and keeps the first that
+  // lands DROP_GAP clear of every other item (or the clearest, if it's crowded)
   drop(map, player, slot) {
     const item = player.inventory.take(slot);
     if (!item) return;
+    let best = null;
+    for (let i = 0; i < 10; i++) {
+      const spot = this.throwSpot(map, player);
+      // Infinity when there's nothing else on the ground
+      spot.gap = Math.min(Infinity, ...map.drops.map((drop) => Math.hypot(drop.x - spot.x, drop.y - spot.y)));
+      if (!best || spot.gap > best.gap) best = spot;
+      if (best.gap >= DROP_GAP) break;
+    }
+    map.drops.push({ item, x: best.x, y: best.y, ready: false });
+  },
+
+  // a random spot about DROP_DISTANCE from the player's feet, roughly the way they're aiming (DROP_SPREAD)
+  throwSpot(map, player) {
+    const angle = player.aimAngle + radians(randomBetween(-DROP_SPREAD.angle, DROP_SPREAD.angle));
+    const distance = DROP_DISTANCE - randomBetween(0, DROP_SPREAD.distance);
     // a small box from their feet, moved like a character walks (tilemap.js), so it stops at walls
     // and can always be walked to. in two halves, because the map only checks a tile ahead at a time
     const feet = player.feetBox();
     const box = { x: feet.x + feet.w / 2 - 4, y: feet.y + feet.h / 2 - 4, w: 8, h: 8 };
     for (let i = 0; i < 2; i++) {
-      box.x += map.moveAlongX(box, Math.cos(player.aimAngle) * DROP_DISTANCE / 2);
-      box.y += map.moveAlongY(box, Math.sin(player.aimAngle) * DROP_DISTANCE / 2);
+      box.x += map.moveAlongX(box, Math.cos(angle) * distance / 2);
+      box.y += map.moveAlongY(box, Math.sin(angle) * distance / 2);
     }
-    map.drops.push({ item, x: box.x + 4, y: box.y + 4, ready: false });
+    return { x: box.x + 4, y: box.y + 4 };
   },
 
   // run every frame while playing. picks up anything the player is close enough to, if there's room

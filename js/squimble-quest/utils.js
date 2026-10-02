@@ -29,6 +29,13 @@ function approach(current, target, speed, dt) {
   return current + (target - current) * (1 - Math.exp(-speed * dt));
 }
 
+// a random number from min up to (not quite) max. everything random in the game goes through here,
+// so it's one place to change, e.g. to a seeded random that every player in a multiplayer game
+// would get the same answers from (see README.md)
+function randomBetween(min, max) {
+  return min + Math.random() * (max - min);
+}
+
 // turns an angle (in radians) into the nearest of the 8 directions, as x and y that are each
 // -1, 0 or 1 (the same shape as Input.direction()). e.g. 0 → right {x:1,y:0}, PI/2 → down {x:0,y:1}.
 // angles go clockwise from pointing right, because y goes down the screen in p5
