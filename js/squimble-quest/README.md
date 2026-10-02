@@ -85,7 +85,7 @@ This README and the comments in the code are the project's only notes. There's n
 - **Characters** (`character.js`):
   - The player, enemies and NPCs all take the same controls, `{ move, aim, attack }`. For the player they come from the keyboard and mouse. For enemies and NPCs they come from an `ai(entity, world, dt)` function.
   - Tiles' settings work for all characters: `speed`, `slippery` and the push in `walk()`, damage and healing in `checkTile()`. `velocity` is only kept for slippery tiles; everywhere else it's replaced every frame.
-  - Dying respawns the player at the current map's `spawn`, never where they arrived. This used to be where they arrived (the warp they came in by), so going into a building and back out moved your respawn to its door. Reading `worldMap.spawn` directly also means moving the spawn in the editor takes effect straight away.
+  - Dying respawns the player at the current map's `spawn`, never where they arrived. This used to be where they arrived (the warp they came in by), so going into a building and back out moved your respawn to its door. Reading `worldMap.spawn` directly also means moving the spawn in the editor takes effect straight away. How respawning should work isn't decided yet, see [Known issues](#known-issues-and-loose-ends).
 - **Inventory** (`inventory.js`):
   - The player's inventory is one row of slots: the first `HOTBAR_SIZE` are the hotbar, the next `BAG_SIZE` the bag. Only hotbar slots can be picked (held). `add()` fills the first empty slot, hotbar first.
   - **E or I** opens the inventory screen (`InventoryScreen`). E only does it when there's no NPC to talk to or E warp in reach, so I always works. The game carries on while it's open, but the player stands still and nothing's in reach. Drag an item onto a slot to swap, or outside the box to drop it. The map editor closes it.
@@ -161,7 +161,8 @@ Only build these when they're needed.
 
 - **Open file uses the browser's file picker.** That has to stay, since only the browser can read files from the computer. If a file won't open, the game says so with `showMessage()`, and the reason goes in the browser console.
 - **NPCs can be hurt by tiles.** Damage tiles hurt everyone, and an NPC that runs out of health is marked `dead` but keeps standing there: it can still be talked to, and others walk through it. Nothing places NPCs on damage tiles yet. When NPCs can die properly, handle it in `Npc` (npc.js), like `Enemy.die()`.
-- **Dying is a placeholder:** the player jumps back to their spawn with full health.
+- **Dying is a placeholder:** the player jumps back to a spawn point with full health.
+- **Respawning: where you come back isn't decided yet.** For now it's the spawn point of the map you died on, so dying in the hut puts you in the hut. Other options are always the game's start, the warp you last came in by (how it used to work), or checkpoints. Everything about it is in `Player.respawn()` (player.js), marked `ponytail:`, with notes on how to do each option, so changing it only means changing that one function.
 - **Map progress only lasts until the page reloads.** Defeated enemies and everything else come back on a reload, because there's no saving yet.
 - **Renaming a warp breaks warps leading to it.** Links go by name, so warps on other maps keep the old name. They show red in the editor, and the console lists them when the game loads.
 - **Nothing stops a warp being placed on a solid tile.** Arriving there leaves the player inside a wall. Put arrival warps on floor.
