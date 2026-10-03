@@ -7,8 +7,14 @@ class Enemy extends Character {
     super(0, 0, ENEMY_TYPES[type]);
     this.type = ENEMY_TYPES[type];
     this.ai = ai !== undefined ? ENEMY_AIS[ai] : this.type.ai;
-    // the pathfinders' current route (planPath() in pathfinding.js), else null
+    // the player it's after, and seconds since it last saw or heard them (sensePlayer() in enemies.js)
+    this.chasing = null;
+    this.unseen = 0;
+    // the pathfinders' (pathfinding.js): current route (planPath()), else null; the tile it started
+    // on, to go back to ({ map, col, row }, set on its first think); being stuck (checkStuck())
     this.plan = null;
+    this.home = null;
+    this.stuck = null;
     this.placeFeetOnTile(col, row);
     // { warp, time } while following the player through a warp: seconds until it comes out
     // (Warps.sendFollowers() in warps.js). else null

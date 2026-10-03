@@ -46,6 +46,8 @@ const TILE_DEFAULTS = {
   texture: null,
   // blocks walking (walls, deep water)
   solid: false,
+  // solid but not in the way of seeing (water): enemies spot you across it (clearLine() in tilemap.js)
+  seeThrough: false,
   // walking speed multiplier, 0.5 is half
   speed: 1,
   // hurts whoever's on it per second (lava), and per step onto it (spikes)

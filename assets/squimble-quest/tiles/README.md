@@ -19,6 +19,7 @@ Every tile in the game is one line in `tiles.json`, in this folder. The game loa
      - **Texture**: click **Choose picture** to pick one from your computer, or set it back to **none, just colour**. A texture always covers the colour.
    - **Behaviours**
      - **Solid**: nothing can walk onto it.
+     - **See over**: for solid tiles you can see across, like water. Enemies can spot you over it; other solid tiles (walls, roofs) block their view.
      - **Speed**: how fast you walk on it, 100% is normal.
      - **Damage**: how much it hurts a second while standing on it (like lava), and each time you step onto one (like spikes).
    - **Effects**

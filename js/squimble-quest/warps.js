@@ -96,16 +96,13 @@ const Warps = {
   // enemies chasing `player` follow them through: each takes its straight-line walk time plus WARP_ENEMY_OPEN_TIME
   // for E warps, then comes out at the target (comeOut()). same map: they really walk there
   // (Enemy.update() in enemy.js). another map: they can't (maps the player isn't on stand still), so
-  // they leave now and wait in followers.
-  // ponytail: any enemy with an ai within sightRange counts as chasing (chasePlayer in enemies.js);
-  // give ais their own "am I chasing" once some don't chase.
+  // they leave now and wait in followers. chasing: enemy.chasing (sensePlayer() in enemies.js).
   // enemies and worldMap are the game's (sketch.js)
   sendFollowers(warp, player) {
     const x = (warp.col + 0.5) * TILE;
     const y = (warp.row + 0.5) * TILE;
     const open = warp.activate === 'interact' ? WARP_ENEMY_OPEN_TIME : 0;
-    const chasing = enemies.filter((enemy) => !enemy.following && enemy.ai && enemy.speed > 0
-      && Math.hypot(player.x - enemy.x, player.y - enemy.y) <= enemy.type.sightRange);
+    const chasing = enemies.filter((enemy) => !enemy.following && enemy.chasing === player && enemy.speed > 0);
     for (const enemy of chasing) {
       const walk = Math.hypot(x - enemy.x, y - (enemy.y + feetBelowCentre(enemy.settings))) / enemy.speed;
       enemy.following = { warp, time: walk + open };

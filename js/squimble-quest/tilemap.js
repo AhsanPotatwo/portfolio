@@ -127,6 +127,18 @@ class TileMap {
     return !type || type.solid || this.solidCells.has(this.index(col, row));
   }
 
+  // can you see from one world point to the other? solid tiles block, unless seeThrough (water), and
+  // so do empty and off-map ones. objects don't: furniture is low. samples every quarter tile, so it
+  // can slip between two walls touching at a corner. enemies' sight (sensePlayer() in enemies.js)
+  clearLine(x1, y1, x2, y2) {
+    const steps = Math.ceil(Math.hypot(x2 - x1, y2 - y1) / (TILE / 4));
+    for (let i = 1; i < steps; i++) {
+      const type = this.get(this.colAt(x1 + (x2 - x1) * (i / steps)), this.rowAt(y1 + (y2 - y1) * (i / steps)));
+      if (!type || (type.solid && !type.seeThrough)) return false;
+    }
+    return true;
+  }
+
   // spawn with the player's feet mid-tile (spawn is their centre, above the feet; standingOnTile()
   // in character.js)
   setSpawnTile(col, row) {
