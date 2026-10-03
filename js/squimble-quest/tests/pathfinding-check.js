@@ -111,3 +111,13 @@ const door = plan([
   '#.#.#.###',
 ], 0.15, 60, new Map([[2 * 9 + 3, 4]]));
 assert(door.reached && !door.path.some(({ col, row }) => col === 3 && row === 2), 'goes round someone parked in a door');
+
+// right of way (goesFirst()): exactly one of two stuck enemies goes first, so they always agree
+const near = { plan: { path: [{}] } };
+const far = { plan: { path: [{}, {}] } };
+const tie = { plan: { path: [{}] } };
+const idle = {};
+const world = { enemies: [far, near, tie] };
+assert(game.goesFirst(near, far, world) && !game.goesFirst(far, near, world), 'nearer its goal goes first');
+assert(game.goesFirst(near, tie, world) !== game.goesFirst(tie, near, world), 'a tie still has one going first');
+assert(game.goesFirst(idle, near, world), "anyone without a plan goes first, since it won't step aside");
