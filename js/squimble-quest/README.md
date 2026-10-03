@@ -150,6 +150,11 @@ Only build these when needed.
 
 - **Open file uses the browser's file picker,** which must stay (only the browser can read local files). Failures show via `showMessage()`, with the reason in the console.
 - **NPCs can be hurt by tiles.** At 0 health an NPC is marked `dead` but keeps standing: still talkable, others walk through it. Nothing places NPCs on damage tiles yet. When NPCs can die properly, handle it in `Npc` (npc.js), like `Enemy.die()`.
+- **Enemy AI flaws** (pathfinding.js), each shown by a room on `ai-test` (maps README):
+  - **They ignore each other when planning,** so they queue single file behind the first, even in the open (Fork, Crowd), and can lock for ever: two meeting head on (Lava river), one needing to step sideways where another stands (Spike, long way round), or stuck behind one that gave up (Give up).
+  - **They brush harmful tiles beside their route.** A diagonal step only checks for walls at its corners, and moving on as soon as they're in a tile cuts corners; walls stop that, lava doesn't. A smart grunt planning 12 hp of lava takes 34, and the bridge costs careful 18.
+  - **A long way round loses you:** sight is a straight line through walls, so a detour taking them past 1.5 × `sightRange` makes them give up, and they stay put until you come within range again (Give up).
+  - **Dev mode labels overlap** when enemies bunch up (Island).
 - **Dying is a placeholder:** the player jumps to a spawn with full health.
 - **Respawn location is undecided.** Currently the spawn of the map you died on (die in the hut, respawn in the hut). Options: always the game's start, the last warp you came in by (the old way), or checkpoints. It's all in `Player.respawn()` (player.js), marked `ponytail:` with notes on each option, so only that function changes.
 - **Map progress lasts until reload.** No saving yet.

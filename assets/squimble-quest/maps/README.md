@@ -18,8 +18,35 @@ A map is made of:
 | `example.json` | The testing map: a bit of every tile (hut, pond, lava, spikes), tables and rugs, two training dummies to hit, and a villager to talk to (walk up and press **E**). Press **E** at the hut's door to go inside. The game starts here (`START_MAP` in `maps.js`) |
 | `hut.json` | Inside the hut on `example`: a room with a rug, a table and a villager. Walk back out through the gap in the bottom wall |
 | `node-test.json` | For trying out the warp graph (**Show links**, see [Warps](#warps)). Warps that teleport around the same map, each on a coloured tile so you can see it without the editor: a family on dirt that branches like a tree, a family on sand that goes round in a loop, a village on grass to the right (20 doors leading to one `square`, some with a back room and a cellar, for testing a warp with lots of links), and two on planks that aren't linked to the others (one leads nowhere, one leads to the spawn point). Press **E** on one to use it |
+| `ai-test.json` | Twelve rooms off one hallway for watching the enemy AIs (see [The AI test map](#the-ai-test-map)). Get there with dev mode's **M** |
 
 The tile grid shows on every map while developer mode is on, and never outside it. **G** hides it (and shows it again), to see the tiles on their own while zooming.
+
+### The AI test map
+
+`ai-test` is a hallway with six rooms above and six below. Each has grunts with different AIs (the label over each one in dev mode says which) and a **planks tile to stand on**: from there every grunt in that room notices you, and none from other rooms do (they notice you within about 9 tiles, through walls). Turn dev mode on to see their routes. They'll attack you, so walk away to stop a test. Opening and closing the editor (**B** twice) puts everyone back at the start.
+
+Rooms above the hallway, left to right:
+
+| Room | What should happen |
+|---|---|
+| **House** | **smart** walks round the house. **direct** (the old AI) walks into the wall and stays there |
+| **Maze** | Corridors with dead ends. Both find their way through to you in the middle |
+| **Fork** | Two equal ways round a block, one crossing lava. All take the safe side (**reckless** doesn't care, so it's a coin toss for it), then queue behind the first instead of coming at you from both sides (a known flaw) |
+| **Spike, long way round** | A wall with one spike in the gap and openings far off at the ends. **smart** and **reckless** take the spike, **careful** walks round |
+| **Spike, short way round** | The same with openings close by. Now **smart** walks round too; only **reckless** takes the spike |
+| **Pillars and tables** | An open room of pillars, two lava tiles and two tables. The pathfinders weave through; **direct** gets caught on a pillar |
+
+Rooms below, left to right:
+
+| Room | What should happen |
+|---|---|
+| **Lava river** | Too wide to cross without dying, with a bridge at the far right and one place on the left only one tile wide. **smart** and **reckless** cross the thin bit, **careful** uses the bridge, **direct** walks in and burns. Hit **smart** a few times first and it gets scared and uses the bridge. Known flaws show here: they brush the lava beside their route, losing more than planned (even on the bridge), and careful and reckless can meet head on and push against each other for ever |
+| **Island** | Step on the planks by the door to jump to the island (and on the island's planks to come back). Nobody can reach you, so they wait at the nearest shore with **(no way)** on their labels |
+| **Mud** | Poop (half speed) between you and them. **smart** walks round on grass and gets there first, **direct** wades through |
+| **Spike gauntlet** | Three spikes (45 hp) in a straight corridor, or a long zigzag. **smart** and **reckless** run the spikes, **careful** zigzags. A **smart** you've hurt zigzags |
+| **Crowd** | Six grunts behind a one-tile door, with a wider gap further along. They all queue at the door (a known flaw) |
+| **Give up** | A long wall with openings only at the ends. Going round takes them far enough away to lose you, so the first one round gives up (a known flaw) |
 
 ## Quick start
 
