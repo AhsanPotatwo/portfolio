@@ -26,7 +26,7 @@
 //
 // runs every frame, returning the same controls the player gets from input (top of character.js):
 //   ai: (enemy, world, dt) => ({ move: { x, y }, aim: { x, y }, attack: true or false }),
-// world is { map, player, enemies, npcs, characters }. STAND_STILL for nothing. chasePlayer below is
+// world is { map, players, enemies, npcs, characters }; find players with nearestPlayer() (character.js). STAND_STILL for nothing. chasePlayer below is
 // a full example (ai: chasePlayer); write new ones next to it. walls, collisions, damage, tiles and
 // swings already work; the ai only decides
 //
@@ -61,10 +61,11 @@ function defineEnemy(name, settings) {
 
 // ---------- ais ----------
 
-// heads straight at the player within sightRange, swings within attackRange, else waits. slides
-// along walls (no pathfinding)
+// heads straight at the nearest player (character.js) within sightRange, swings within attackRange,
+// else waits. slides along walls (no pathfinding)
 function chasePlayer(enemy, world) {
-  const player = world.player;
+  const player = nearestPlayer(world, enemy);
+  if (!player) return STAND_STILL;
   const dx = player.x - enemy.x;
   const dy = player.y - enemy.y;
   const distance = Math.hypot(dx, dy);

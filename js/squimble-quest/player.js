@@ -7,6 +7,9 @@ class Player extends Character {
 
     // hotbar then bag (inventory.js). empty until giveStartingItems()
     this.inventory = new Inventory(HOTBAR_SIZE + BAG_SIZE);
+    // [col, row] of the feet tile warps last saw (warps.js), so step warps only fire on stepping
+    // onto them. kept per player, so each player's steps are tracked separately
+    this.warpTile = null;
   }
 
   // PLAYER.startingItems from slot 1. run once items.json has loaded (sketch.js)

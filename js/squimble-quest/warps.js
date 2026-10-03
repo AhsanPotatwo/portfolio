@@ -40,9 +40,6 @@ const WARP_COLOURS = {
 };
 
 const Warps = {
-  // the player's feet tile last frame. a step warp fires when this changes onto it, not while standing
-  lastCol: null,
-  lastRow: null,
   // the 'interact' warp in E reach this frame, or null. set by sketch.js while playing, drawn with an E
   reachable: null,
   // enemies following to another map, in transit: on neither map until they come out (sendFollowers())
@@ -51,18 +48,19 @@ const Warps = {
   // by loadMap() (sketch.js) and Player.respawn() after placing the player: their tile counts as
   // stepped on, so a step warp there doesn't fire
   arrived(player, map) {
-    [this.lastCol, this.lastRow] = feetTile(player, map);
+    player.warpTile = feetTile(player, map);
     this.reachable = null;
   },
 
-  // every frame while playing, after movement: fires a step warp just stepped onto
+  // every frame while playing, after movement: fires a step warp the player just stepped onto.
+  // player.warpTile (player.js) is their feet tile last frame, so standing on one does nothing
   checkStep(player, map) {
     const [col, row] = feetTile(player, map);
-    if (col === this.lastCol && row === this.lastRow) return;
-    this.lastCol = col;
-    this.lastRow = row;
+    const [lastCol, lastRow] = player.warpTile ?? [];
+    if (col === lastCol && row === lastRow) return;
+    player.warpTile = [col, row];
     const warp = map.warpAt(col, row);
-    if (warp && warp.activate === 'step') this.use(warp);
+    if (warp && warp.activate === 'step') this.use(warp, player);
   },
 
   // closest 'interact' warp with a target within WARP_REACH of the feet, or null
@@ -82,8 +80,8 @@ const Warps = {
     return closest;
   },
 
-  // broken target: the player stays and a message says why
-  use(warp) {
+  // `player` goes through. broken target: they stay and a message says why
+  use(warp, player) {
     if (!warp.to) return;
     const problem = warpProblem(warp);
     if (problem) {
@@ -91,18 +89,18 @@ const Warps = {
       console.warn(`The warp "${warp.name}" is broken: ${problem}.`);
       return;
     }
-    if (warp.enemies) this.sendFollowers(warp);
+    if (warp.enemies) this.sendFollowers(warp, player);
     loadMap(warp.to, warp.toWarp); // in sketch.js
   },
 
-  // chasing enemies follow through: each takes its straight-line walk time plus WARP_ENEMY_OPEN_TIME
+  // enemies chasing `player` follow them through: each takes its straight-line walk time plus WARP_ENEMY_OPEN_TIME
   // for E warps, then comes out at the target (comeOut()). same map: they really walk there
   // (Enemy.update() in enemy.js). another map: they can't (maps the player isn't on stand still), so
   // they leave now and wait in followers.
   // ponytail: any enemy with an ai within sightRange counts as chasing (chasePlayer in enemies.js);
   // give ais their own "am I chasing" once some don't chase.
-  // enemies, player and worldMap are the game's (sketch.js)
-  sendFollowers(warp) {
+  // enemies and worldMap are the game's (sketch.js)
+  sendFollowers(warp, player) {
     const x = (warp.col + 0.5) * TILE;
     const y = (warp.row + 0.5) * TILE;
     const open = warp.activate === 'interact' ? WARP_ENEMY_OPEN_TIME : 0;

@@ -54,9 +54,6 @@ class MeleeSwing {
     this.time = 0;
     // already hit
     this.hit = new Set();
-    // see-through swoosh colour, made once
-    this.swooshColour = color(weapon.colour);
-    this.swooshColour.setAlpha(70);
   }
 
   get finished() {
@@ -110,9 +107,12 @@ class MeleeSwing {
     const start = this.backhand ? this.angle + halfArc : this.angle - halfArc;
     const blade = this.backhand ? start - progress * halfArc * 2 : start + progress * halfArc * 2;
 
-    // see-through pie from start to blade. arc() wants the smaller angle first
+    // see-through pie from start to blade. arc() wants the smaller angle first. the p5 colour is made
+    // here, not kept on the swing, so the swing stays plain data a server without p5 could run
+    const swoosh = color(this.weapon.colour);
+    swoosh.setAlpha(70);
     noStroke();
-    fill(this.swooshColour);
+    fill(swoosh);
     arc(ox, oy, this.weapon.reach * 2, this.weapon.reach * 2, Math.min(start, blade), Math.max(start, blade), PIE);
 
     // the blade
