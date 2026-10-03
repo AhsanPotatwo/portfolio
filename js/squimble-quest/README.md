@@ -21,7 +21,7 @@ This README and the code comments are the only notes. When you change something:
 
 **Running:** maps load with `fetch`, so serve it locally (see "Running the game locally" in the maps README), e.g. `py -m http.server 8765` from the portfolio root, then `http://localhost:8765/squimble-quest.html`. From `file://` it falls back to a blank stand-in map.
 
-**Dev mode:** **`** or **Ctrl + D**. Then **H** lists keys, **B** map editor, **M** next map, **T** teleport to mouse, **- = 0** zoom out/in/reset, **G** toggle tile grid.
+**Dev mode:** **`** or **Ctrl + D**. Then **H** lists keys, **B** map editor, **M** next map, **T** teleport to mouse, **- = 0** zoom out/in/reset, **G** toggle tile grid, **P** toggle enemy AI routes.
 
 ## How the code is written
 
@@ -74,6 +74,7 @@ This README and the code comments are the only notes. When you change something:
 - **Characters** (`character.js`):
   - Player, enemies and NPCs all take `{ move, aim, attack }`: from keyboard/mouse for the player, from `ai(entity, world, dt)` otherwise.
   - Tile settings apply to everyone: `speed`, `slippery` and push in `walk()`, damage and healing in `checkTile()`. `velocity` only persists on slippery tiles; elsewhere it's replaced each frame.
+  - **Enemy AI:** each spawn can pick one of `ENEMY_AIS` (enemies.js) in the editor (right click), saved as its `ai`; without one it uses its kind's. `Enemy.ai` is the one in use, so read that, not `settings.ai`. The pathfinders (`pathfinding.js`, whose header explains them) plan A* routes over tiles costing walking time plus hp lost × caution, so they go round walls and only take harm when the way round is much longer; hurt enemies get more careful, and a route that would kill is a wall. Dev mode draws each plan. `direct` is the old straight-line `chasePlayer`. `tests/pathfinding-check.js` (node) checks the choices on tiny maps.
   - Dying respawns at the current map's `spawn`, never where you arrived. (It used to be the arrival warp, so entering a building and leaving moved your respawn to its door.) Reading `worldMap.spawn` directly means moving the spawn in the editor applies at once. Undecided, see [Known issues](#known-issues-and-loose-ends).
 - **Inventory** (`inventory.js`):
   - One row of slots: the first `HOTBAR_SIZE` are the hotbar (the only pickable ones), the next `BAG_SIZE` the bag. `add()` fills the first empty slot, hotbar first.
@@ -105,7 +106,7 @@ Each file's header has the details.
 |---|---|
 | An object, enemy or NPC | A `defineX()` line at the bottom of its catalogue file. New settings need a default in its `X_DEFAULTS`. |
 | A weapon or item | A line in `assets/squimble-quest/items/items.json` (guides atop `weapons.js`, `items.js`). New settings need a default in `WEAPON_DEFAULTS` / `ITEM_DEFAULTS`, which also exports them. |
-| An enemy or NPC behaviour | An `ai(entity, world, dt)` returning `{ move, aim, attack }`, beside `chasePlayer` in enemies.js. |
+| An enemy or NPC behaviour | An `ai(entity, world, dt)` returning `{ move, aim, attack }`, beside `chasePlayer` in enemies.js, plus an `ENEMY_AIS` line so the editor can pick it. A pathfinder with other caution is just `pathfinder(seconds per hp)` there. |
 | A tile | In game: editor, Tiles tab, **New** in the inspector, then **Export**. |
 | A tile setting | Default in `TILE_DEFAULTS` (tiles.js), behaviour in `walk()` or `checkTile()` (character.js), a `TILE_BEHAVIOURS` line (tileeditor.js) for its editor row and tab. |
 | A map | Export into `assets/squimble-quest/maps/` and add it to `MAP_FILES` (maps.js). |
@@ -164,6 +165,7 @@ Only build these when needed.
 ## Checking changes
 
 - `node --check <file>` catches syntax errors.
+- `node js/squimble-quest/tests/pathfinding-check.js` checks the enemy pathfinder's route choices (no output means it passed).
 - Real behaviour: play it in the browser. To automate, install `playwright-core` in a scratch folder, launch Chrome through it (`executablePath`), serve the site, then click and type into the canvas. Globals (`worldMap`, `enemies`, `Editor`, `loadMap`, ...) are readable via `page.evaluate`. Notes:
   - the game is always 960 × 540; compute clicks from the canvas's bounding box
   - the first canvas click only focuses it

@@ -8,7 +8,8 @@
 //   tiles.js      tile kinds and what they do, loaded from tiles.json
 //   dualgrid.js   dual grid tiles: ground that blends into its neighbours
 //   objects.js    object kinds (furniture, decorations...)
-//   enemies.js    enemy kinds and their ai
+//   pathfinding.js enemy routes round walls and harm, and dev mode's view of them
+//   enemies.js    enemy kinds and their ai (after pathfinding.js)
 //   npcs.js       npc kinds and what they say
 //   weapons.js    weapons and their swings
 //   items.js      item kinds, and loading weapons + items from items.json
@@ -151,7 +152,7 @@ function loadMap(name, warpName = '') {
 function spawnCharacters() {
   // the npc being talked to is replaced
   if (Dialogue.active) Dialogue.close();
-  enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row));
+  enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row, spawn.ai));
   npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row));
 }
 
@@ -243,6 +244,8 @@ function draw() {
     ];
     things.sort((a, b) => a.y - b.y);
     for (const thing of things) thing.draw();
+    // dev mode: each enemy's ai and route (pathfinding.js)
+    if (Debug.enabled && Debug.showPaths) drawEnemyPlans(enemies, gameCamera);
     if (!Editor.active && !Dialogue.active) Warps.drawPrompt();
     if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
     gameCamera.end();

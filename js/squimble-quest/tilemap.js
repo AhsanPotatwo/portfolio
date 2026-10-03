@@ -34,8 +34,9 @@ class TileMap {
     // removeObjectsAt()
     this.solidCells = new Set();
 
-    // start points, each { type, col, row }: an enemies.js/npcs.js name and its tile. the real
-    // characters are made from these (spawnCharacters() in sketch.js)
+    // start points, each { type, col, row }: an enemies.js/npcs.js name and its tile, plus an
+    // enemy's ai if picked in the editor (ENEMY_AIS). the real characters are made from these
+    // (spawnCharacters() in sketch.js)
     this.enemySpawns = [];
     this.npcSpawns = [];
 
@@ -168,14 +169,19 @@ class TileMap {
   // ---------- where characters start ----------
   // kind is 'enemy' or 'npc' (SPAWN_KINDS)
 
-  // type: an enemies.js/npcs.js name. e.g. map.addSpawn('npc', 'villager', 3, -2)
-  addSpawn(kind, type, col, row) {
+  // type: an enemies.js/npcs.js name. e.g. map.addSpawn('npc', 'villager', 3, -2). ai: optional
+  // ENEMY_AIS name (enemies.js) instead of the kind's own, enemies only
+  addSpawn(kind, type, col, row, ai) {
     const info = SPAWN_KINDS[kind];
     if (!info.types[type]) {
       console.warn(`There's no ${kind} called "${type}", add it in ${info.file}`);
       return;
     }
-    this[info.list].push({ type, col, row });
+    if (ai !== undefined && (kind !== 'enemy' || !(ai in ENEMY_AIS))) {
+      console.warn(`There's no enemy ai called "${ai}", so this ${type} uses its own. They're in ENEMY_AIS (enemies.js)`);
+      ai = undefined;
+    }
+    this[info.list].push(ai === undefined ? { type, col, row } : { type, col, row, ai });
   }
 
   spawnsAt(kind, col, row) {

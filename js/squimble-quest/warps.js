@@ -104,7 +104,7 @@ const Warps = {
     const x = (warp.col + 0.5) * TILE;
     const y = (warp.row + 0.5) * TILE;
     const open = warp.activate === 'interact' ? WARP_ENEMY_OPEN_TIME : 0;
-    const chasing = enemies.filter((enemy) => !enemy.following && enemy.settings.ai && enemy.speed > 0
+    const chasing = enemies.filter((enemy) => !enemy.following && enemy.ai && enemy.speed > 0
       && Math.hypot(player.x - enemy.x, player.y - enemy.y) <= enemy.type.sightRange);
     for (const enemy of chasing) {
       const walk = Math.hypot(x - enemy.x, y - (enemy.y + feetBelowCentre(enemy.settings))) / enemy.speed;

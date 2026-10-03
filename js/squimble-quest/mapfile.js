@@ -20,8 +20,9 @@
 //     "objects": [                          each one's top left tile
 //       { "type": "table", "col": -1, "row": -11 }
 //     ],
-//     "enemies": [                          start tiles (enemies.js)
-//       { "type": "dummy", "col": 3, "row": -3 }
+//     "enemies": [                          start tiles (enemies.js), ai only if picked (ENEMY_AIS)
+//       { "type": "dummy", "col": 3, "row": -3 },
+//       { "type": "grunt", "col": 6, "row": -3, "ai": "careful" }
 //     ],
 //     "npcs": [                             start tiles (npcs.js)
 //       { "type": "villager", "col": -3, "row": -3 }
@@ -78,7 +79,8 @@ function mapToData(map) {
   };
   // "enemies" and "npcs" (SPAWN_KINDS in tilemap.js)
   for (const info of Object.values(SPAWN_KINDS)) {
-    data[info.fileKey] = map[info.list].map((spawn) => ({ type: spawn.type, col: spawn.col, row: spawn.row }));
+    // ai only when picked (undefined is left out)
+    data[info.fileKey] = map[info.list].map(({ type, col, row, ai }) => ({ type, col, row, ai }));
   }
   data.warps = map.warps.map(({ name, col, row, to, toWarp, activate, enemies }) => ({ name, col, row, to, toWarp, activate, enemies }));
   return data;
@@ -151,7 +153,7 @@ function mapFromData(data) {
         unknown.add(`${kind} "${spawn.type}"`);
         continue;
       }
-      map.addSpawn(kind, spawn.type, spawn.col, spawn.row);
+      map.addSpawn(kind, spawn.type, spawn.col, spawn.row, spawn.ai);
     }
   }
 
@@ -261,12 +263,8 @@ function openMapFile() {
 // onto one line so long lists stay readable
 function mapDataToText(data) {
   return JSON.stringify(data, null, 2)
-    .replace(
-      /\{\s+"type": ("[^"]*"),\s+"col": (-?\d+),\s+"row": (-?\d+)\s+\}/g,
-      '{ "type": $1, "col": $2, "row": $3 }'
-    )
-    // a warp: a { } starting with "name" holding only plain values
-    .replace(/\{\s+("name":[^{}[\]]*?)\s+\}/g, (match, inside) => `{ ${inside.replace(/,\s+/g, ', ')} }`)
+    // an object, character or warp: a { } starting with "type" or "name" holding only plain values
+    .replace(/\{\s+("(?:type|name)":[^{}[\]]*?)\s+\}/g, (match, inside) => `{ ${inside.replace(/,\s+/g, ', ')} }`)
     + '\n';
 }
 

@@ -4,6 +4,7 @@
 //   - the tile grid and (0, 0) lines show; G hides them (e.g. to check tiles while zooming)
 //   - - and = zoom, 0 resets. in the editor the wheel zooms too, except over the palette, which it
 //     scrolls (otherwise the wheel changes hotbar slot)
+//   - enemies show their ai and planned route (pathfinding.js); P hides them
 //   - T teleports the player to the mouse (if standable)
 //   - M next map (maps.js)
 //   - B map editor (editor.js)
@@ -27,6 +28,7 @@ const DEV_KEYS = [
   '` / Ctrl+D  dev mode on / off',
   '- = 0       zoom out, in, reset',
   'G           grid on / off',
+  'P           enemy ai routes on / off',
   'T           teleport to mouse',
   'M           next map',
   'B           map editor',
@@ -38,6 +40,8 @@ const Debug = {
   showKeys: false,
   // tile grid and (0, 0) lines showing (G); read by sketch.js
   showGrid: true,
+  // enemy ai labels and routes showing (P); read by sketch.js
+  showPaths: true,
   // smoothed so it doesn't flicker
   fps: 60,
 
@@ -66,6 +70,7 @@ const Debug = {
     if (Input.wasPressed('editor')) Editor.toggle(player, camera);
     if (Input.wasPressed('devKeys')) this.showKeys = !this.showKeys;
     if (Input.wasPressed('grid')) this.showGrid = !this.showGrid;
+    if (Input.wasPressed('enemyPaths')) this.showPaths = !this.showPaths;
 
     this.fps = approach(this.fps, frameRate(), 4, dt);
 
