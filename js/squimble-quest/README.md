@@ -1,190 +1,170 @@
 # Squimble Quest
 
-Squimble Quest is a top-down RPG built with p5.js (v1.11, global mode) and plain JavaScript. It's played at `squimble-quest.html`. It has no build step, no modules and no npm. `squimble-quest.html` loads every file in this folder with `<script>` tags, in a set order, and they share globals.
+Top-down RPG in p5.js (v1.11, global mode) and plain JavaScript, played at `squimble-quest.html`. No build step, modules or npm: the page loads every file here with `<script>` tags in a set order, sharing globals.
 
-## Keep this README and the comments up to date
+## Keep the notes true
 
-This README and the comments in the code are the project's only notes. There's no separate handover document, so whoever picks the project up next (after a break, or for the first time) starts from what's written here. Whenever you change something, leave the notes true:
+This README and the code comments are the only notes. When you change something:
 
-- **Changed how something works?** Update the comments next to it, and anything in this README or the maps README that describes it.
-- **Added a file?** Add it to the file list at the top of `sketch.js`, and to the `<script>` tags in `squimble-quest.html` (the order matters).
-- **Changed the map editor or the map file format?** Update the [maps README](../../assets/squimble-quest/maps/README.md). It's the guide to building maps.
-- **Made a choice that isn't obvious from the code?** That includes why something is done a certain way, or something you tried that didn't work. Write it in a comment where it matters, or here if it affects the whole game.
-- **Finished something under [Ideas for later](#ideas-for-later) or [Known issues](#known-issues-and-loose-ends)?** Take it off. **Found a problem, or left something half done?** Add it.
-- **Found a note that's no longer true?** Fix it or delete it. A wrong note is worse than no note.
+- **Changed how something works?** Update the comments beside it, and this README or the maps README where they describe it.
+- **Added a file?** Add it to the list atop `sketch.js` and the `<script>` tags in `squimble-quest.html` (order matters).
+- **Changed the map editor or map format?** Update the [maps README](../../assets/squimble-quest/maps/README.md) (the map-building guide).
+- **Made a non-obvious choice** (a why, or something tried that failed)? Comment it where it matters, or note it here if it's game-wide.
+- **Finished an [idea](#ideas-for-later) or [known issue](#known-issues-and-loose-ends)?** Remove it. **Found a problem or left something half done?** Add it.
+- **Found a stale note?** Fix or delete it. A wrong note is worse than none.
 
 ## Start here
 
-- **`sketch.js`** has the game loop, and its header lists every file and what it does. Read that first.
-- **[`assets/squimble-quest/maps/README.md`](../../assets/squimble-quest/maps/README.md)** is the map editor guide and the map file format.
-- **The catalogue files** (`tiles.js`, `objects.js`, `enemies.js`, `npcs.js`, `weapons.js`, `items.js`) each start with a "how to make one" guide. Tiles, weapons and items are data files the map editor can change and export instead of code, see the tiles and inventory notes below.
+- **`sketch.js`**: the game loop; its header lists every file. Read it first.
+- **[maps README](../../assets/squimble-quest/maps/README.md)**: map editor guide and map file format.
+- **Catalogue files** (`tiles.js`, `objects.js`, `enemies.js`, `npcs.js`, `weapons.js`, `items.js`) each open with a "how to make one" guide. Tiles, weapons and items are data files the editor can change and export (see Tiles and Inventory below).
 
-**Running it:** map files are loaded with `fetch`, so the page needs a local server (see "Running the game locally" in the maps README). For example, run `py -m http.server 8765` from the portfolio root, then open `http://localhost:8765/squimble-quest.html`. Opened straight from the file (`file://`), the game falls back to a blank stand-in map.
+**Running:** maps load with `fetch`, so serve it locally (see "Running the game locally" in the maps README), e.g. `py -m http.server 8765` from the portfolio root, then `http://localhost:8765/squimble-quest.html`. From `file://` it falls back to a blank stand-in map.
 
-**Dev mode:** press **`** or **Ctrl + D**. Then:
-- **H** lists the keys
-- **B** opens the map editor
-- **M** goes to the next map
-- **T** teleports to the mouse
-- **-**, **=** and **0** zoom out, zoom in and reset the zoom
-- **G** shows or hides the tile grid
+**Dev mode:** **`** or **Ctrl + D**. Then **H** lists keys, **B** map editor, **M** next map, **T** teleport to mouse, **- = 0** zoom out/in/reset, **G** toggle tile grid.
 
 ## How the code is written
 
-- **Keep things simple.** Build the smallest thing that works. Don't add features, settings or layers "for later".
-- **Keep multiplayer possible.** It isn't planned, only a maybe (see [Ideas for later](#ideas-for-later)), so don't build anything for it. But when adding a feature, think about whether it would still work with more than one player, and prefer the way that would when it costs nothing extra:
-  - only `sketch.js` reads the keyboard and mouse. Everything else gets `{ move, aim, attack }` controls or is told what happened
-  - AIs and triggers find "the nearest player" through one small helper, rather than reading `world.player` all over
-  - game state is plain numbers, strings and lists: no p5 colours or images in it (like tiles keep `fill` and `img` apart from their settings)
-  - nothing in the gameplay depends on the whole world pausing (dialogue and the editor do now, see the note)
-  - any randomness goes through one shared function, not `Math.random()` scattered about
-- **UI goes inside the game.** Use the game's own UI (`ui.js`, `button.js`, `textfield.js`) rather than the browser's `prompt()` and `alert()` boxes.
-- **Comments follow one style**, and they're a big part of the codebase:
-  - lowercase, in plain everyday words a beginner could follow, explaining *why*
-  - British spelling (`colour`)
-  - no jargon without explaining it
-  - every constant and object property gets a comment saying what it's for
-  - when one file uses another file's global, the comment names that file, e.g. `// worldMap is the game's (sketch.js)`
-- **The catalogue pattern:** things are defined with `defineObject/Enemy/Npc/Weapon/Item(name, settings)`, which all go through `defineType()` (utils.js) to fill in defaults. A setting that isn't in the defaults gets a console warning, since it's usually a typo, so a genuinely new setting needs its normal value adding to the defaults. The map editor picks up new ones by itself. Tiles are the exception: they're data in `tiles.json`, filled in with `TILE_DEFAULTS` the same way (unknown keys there are dropped). Weapons and items are data too, in `assets/squimble-quest/items/items.json`, but go through `defineWeapon()` / `defineItem()` as they load (`loadItemFile()`), so unknown keys warn like code ones. Both files are written back one entry per line with only the non-default settings (`typeToData()` and `jsonLine()` in utils.js).
+- **Keep it simple.** Build the smallest thing that works. No features, settings or layers "for later".
+- **Keep multiplayer possible** (only a maybe, see [Ideas](#ideas-for-later); don't build for it). Prefer the multiplayer-safe way when it costs nothing:
+  - only `sketch.js` reads keyboard and mouse; everything else gets `{ move, aim, attack }` controls or is told what happened
+  - AIs and triggers find "the nearest player" via one small helper, not `world.player` everywhere
+  - game state is plain numbers, strings and lists, no p5 colours or images (tiles keep `fill`/`img` apart from their settings)
+  - gameplay doesn't depend on the whole world pausing (dialogue and the editor do now)
+  - randomness goes through one shared function, not scattered `Math.random()`
+- **In-game UI** (`ui.js`, `button.js`, `textfield.js`), never `prompt()`/`alert()`.
+- **Comment style:** lowercase, British spelling (`colour`), concise: say *why*, or what isn't obvious from the code; don't restate it. Explain jargon. Constants and object properties get a short note on purpose or units unless the name says it all. Name the file of another file's global, e.g. `// worldMap is the game's (sketch.js)`.
+- **Catalogue pattern:** `defineObject/Enemy/Npc/Weapon/Item(name, settings)` all go through `defineType()` (utils.js), which fills defaults and warns on settings missing from them (usually typos), so a genuinely new setting needs a default. The editor picks new entries up automatically. Tiles are data in `tiles.json`, filled from `TILE_DEFAULTS` (unknown keys dropped). Weapons and items are data in `assets/squimble-quest/items/items.json` but load through `defineWeapon()`/`defineItem()` (`loadItemFile()`), so unknown keys warn. Both files are written back one entry per line, non-default settings only (`typeToData()`, `jsonLine()` in utils.js).
 
 ## How it fits together
 
 - **Maps** (`maps.js`, `mapfile.js`, `tilemap.js`):
-  - Each map is one JSON file in `assets/squimble-quest/maps/`, listed in `MAP_FILES`. The file format is at the top of `mapfile.js`.
-  - `MAPS[name]` is a function that builds the map fresh. Always add maps with `addMap()`, which also forgets any visited copy.
-  - `getMap(name)` (maps.js) builds a map the first time it's needed and keeps it in `VISITED_MAPS`. That keeps editor changes in place until the page reloads. `loadMap(name, warpName)` (sketch.js) goes to a map through it.
-- **Warps** (`warps.js`): tiles that take the player to another map, or somewhere else on the same one. Doors, cave entrances, manholes, trapdoors, secret passages and teleporters are all warps. "Warp" is the usual game name for this, and doesn't tie it to doors. A warp to the same map is a teleport: only the player moves, and the camera glides after them (a warp to another map jumps the camera there instead).
-  - Warps only move the player. Something you press E at that does anything else (a sign, a chest, a lever) should be its own kind of trigger, and can copy how `Warps.inReach()` works.
-  - Each map has a `warps` list of `{ name, col, row, to, toWarp, activate, enemies }`. Every warp is both a way out and a place to arrive, so a house needs one warp outside and one inside, each leading to the other.
-  - Warps link by **name**, not position: `to` is a map name and `toWarp` a warp name on that map (`''` means that map's spawn point). Moving a warp never breaks links to it, but renaming it does.
-  - `activate` is `step` (opens when stepped onto) or `interact` (press E within `WARP_REACH`, which is more than a tile, so it works from the tile in front).
-  - **Enemies can follow** through a warp with `enemies: true`. When the player goes through, every enemy with an ai and the player inside its `sightRange` gets `enemy.following = { warp, time }`, where time is a straight-line walk to the warp plus `WARP_ENEMY_OPEN_TIME` for an E warp. On a same-map warp the enemy really walks there (`Enemy.followThroughWarp()`); on another map it can't, because maps the player isn't on stand still, so it's taken off the map into `Warps.followers` and counted down by `Warps.update()`. Either way `Warps.comeOut()` puts it on the arrival tile when time's up, even if a wall stopped it walking there. Enemies never go through warps on their own, only after the player.
-  - **Arriving on a step warp doesn't bounce you back.** Step warps fire only when the player's tile *changes* onto them. `Warps.arrived()` marks the tile you land on as already stepped on. `loadMap` and `Player.respawn` call it, since the spawn point could be on a step warp.
-  - Warps keep track of the player's tile themselves (`feetTile()`), rather than reading `player.tileCol`/`tileRow`. Those are a frame late when the player dies and respawns in the middle of a frame, and that used to send them back out through the warp they'd arrived by.
-  - `warpProblem(warp)` says what's wrong with where a warp leads. It's used when going through a warp (in-game message via `showMessage()` in hud.js), for red markers in the editor, and by `checkAllWarps()`, which warns in the console once the maps have loaded.
-  - **The warp graph** (`warpgraph.js`): **Show links** in a warp's settings box draws every warp linked to it, both ways round, laid out like a family tree with arrows showing where each leads. `warpFamily()` works it out from every map's warps. A warp's children go in rows of up to `maxPerRow` (6), stacked downwards, so a hub with dozens of links stays readable instead of one huge row. Every row but the last is split either side of the line down from the parent, so lines never pass behind a box, and children without branches come first so they pack neatly. Links that aren't part of the tree (loops) are dashed. It starts at a readable zoom (`startZoom`) on the warp it was opened from, only draws what's on screen, drops the writing when zoomed right out, and the world isn't drawn under it (`sketch.js`), so it stays smooth with 100+ warps. `node-test`'s `square` (20 doors) is the test for this. Hovering over a box shows a window onto that warp's map, drawn by the game's own `drawWorld()` through a spare camera and clipped to the window. The camera always draws around the middle of the screen, so it's pointed off to the side by however far the window is from the middle. It sits over the settings box (which is still open underneath) and takes over its updates until it closes, and it uses the wheel, so dev mode's wheel zoom is off while a box is open.
-  - Warps are separate from tiles and objects, because those have nowhere to store where they lead. To make a warp *look* like a door, trapdoor or manhole, put an object on the same tile. An `interact` warp works under a solid object, because E reaches it from the next tile.
+  - One JSON file per map in `assets/squimble-quest/maps/`, listed in `MAP_FILES`. Format at the top of `mapfile.js`.
+  - `MAPS[name]` builds a map fresh. Always add maps with `addMap()`, which also drops any visited copy.
+  - `getMap(name)` builds on first need and keeps it in `VISITED_MAPS`, so editor changes last until reload. `loadMap(name, warpName)` (sketch.js) goes to a map through it.
+- **Warps** (`warps.js`, whose header has the full spec): tiles that move the player to another map or elsewhere on this one (doors, caves, manholes, trapdoors, passages, teleporters). A same-map warp is a teleport: only the player moves and the camera glides (another map snaps it).
+  - Warps only move the player. Other E-interactables (signs, chests, levers) should be their own trigger kind, copying `Warps.inReach()`.
+  - Each map's `warps`: `{ name, col, row, to, toWarp, activate, enemies }`. Every warp is both exit and arrival, so a house needs two, each leading to the other.
+  - Links go by **name**: `to` a map name, `toWarp` a warp name there (`''` = that map's spawn). Moving a warp is safe; renaming breaks links to it.
+  - `activate`: `step` (on stepping onto it) or `interact` (E within `WARP_REACH`, over a tile, so it works from the tile in front).
+  - **Enemies can follow** with `enemies: true`: on use, each enemy with an ai and the player in `sightRange` gets `enemy.following = { warp, time }` (straight-line walk time, plus `WARP_ENEMY_OPEN_TIME` for E warps). Same map: it really walks (`Enemy.followThroughWarp()`). Other map: maps the player isn't on stand still, so it moves into `Warps.followers` and `Warps.update()` counts down. Either way `Warps.comeOut()` places it on the arrival tile when due, even if a wall blocked it. Enemies never use warps on their own.
+  - **Arriving on a step warp doesn't bounce you back:** step warps fire only when the player's tile *changes* onto them, and `Warps.arrived()` marks the landing tile as stepped on (`loadMap` and `Player.respawn` call it).
+  - Warps track the player's tile themselves (`feetTile()`), not `player.tileCol`/`tileRow`, which lag a frame after a mid-frame death and respawn; that used to send players back out the warp they arrived by.
+  - `warpProblem(warp)` explains a broken target. Used when warping (`showMessage()`, hud.js), for red editor markers, and by `checkAllWarps()` (console warnings once maps load).
+  - **Warp graph** (`warpgraph.js`): **Show links** in a warp's settings draws every linked warp, both directions, as a family tree with arrows. `warpFamily()` builds it from every map's warps. Children go in rows of up to `maxPerRow` (6) stacked downwards so big hubs stay readable; every row but the last splits around the parent's line so lines never pass behind boxes, and leaf children come first to pack neatly. Non-tree links (loops) are dashed. It opens at `startZoom` on the source warp, draws only what's on screen, drops text when zoomed far out, and `sketch.js` skips drawing the world under it, so 100+ warps stay smooth (`node-test`'s `square`, 20 doors, is the test). Hovering a box shows a window onto that warp's map, drawn by `drawWorld()` through a spare camera and clipped; since cameras centre on the screen, it's offset by the window's distance from centre. It sits over the settings box (still open beneath), takes over its updates until closed, and uses the wheel, so dev mode's wheel zoom is off while a box is open.
+  - Warps are separate from tiles and objects (those can't store a target). To make one *look* like a door, put an object on its tile. An `interact` warp works under a solid object since E reaches from the next tile.
 - **TileMap** (`tilemap.js`):
-  - Holds `tiles` (tile names, `null` for empty), `objects`, `enemySpawns` and `npcSpawns` (each `{ type, col, row }`), `warps`, `spawn` (the player's spawn, in world pixels) and `characters`.
-  - Empty and off-map tiles count as solid.
-  - `resize()` and `usedArea()` do the map resizing.
-  - `SPAWN_KINDS` connects enemies and NPCs to their lists and their names in map files.
-  - Tiles are drawn straight onto screen pixels, with every edge rounded to a whole pixel and shared by the tiles either side, so there's never a faint grid at any zoom. See the comment above `drawTiles()`.
+  - Holds `tiles` (names, `null` empty), `objects`, `enemySpawns`, `npcSpawns` (each `{ type, col, row }`), `warps`, `spawn` (world pixels) and `characters`.
+  - Empty and off-map tiles are solid.
+  - `resize()` and `usedArea()` handle resizing. `SPAWN_KINDS` maps enemies/NPCs to their lists and file keys.
+  - Tiles draw on screen pixels with every edge rounded and shared by neighbours, so no faint grid at any zoom (see above `drawTiles()`).
 - **Tiles** (`tiles.js`, `tileeditor.js`):
-  - Every tile is one line in `assets/squimble-quest/tiles/tiles.json`: its name, colour, whether it's dual grid, its texture file, and what it does (solid, speed, `damagePerSecond`, `damagePerStep`, `healPerSecond`, `slippery`, `pushDirection`, `pushSpeed`), and `blendsWith`, which dual grid tiles round off onto it. The order is the editor bar's order, and the dual grid layer order.
-  - `loadTileFile()` loads it with `fetch` before the maps (`sketch.js`), because loading a map checks its tiles exist. It waits for the textures too, so nothing flashes plain colour at the start. Like map files, a missing or broken file is a console warning and never stops the game: with no tiles at all there's just `blank`, for the stand-in map.
-  - `setTile(settings, picture)` adds or changes a tile, and is the only way tiles get into `TILE_TYPES`. `tilesToData()` and `tilesDataToText()` turn them back into the file, and exporting without changing anything gives exactly the same file.
-  - Textures live in `assets/squimble-quest/tiles/`: `normal/` for one picture per tile, `dual-grid/` for dual grid tilesets. `texture` is just the file name, and `texturePath()` adds the folder from `dualGrid`.
-  - **The tile editor** (`tileeditor.js`) is a tabbed `FormBox` with a side column (`TilePreview` and **Choose picture**). The **Look** tab is built by hand; every other tab comes from `TILE_BEHAVIOURS`, one line per setting naming its tab, so a new setting or a whole new tab is one line there. A tab with more than `TILE_EDITOR_ROWS` rows carries on in a numbered tab. Changing a tile that's already on the map shows on the map as you go (`onUpdate` calls `setTile()` whenever the box's settings change and would save), and closing without saving puts the tile back from a copy taken when the box opened (`onCancel`). **Save** calls `setTile()` with the chosen picture, so a tile works straight away even before its picture is in the folder. **Export tiles** downloads `tiles.json`, plus any picture chosen since the page loaded (`TileEditor.newPictures`), because the game can only load textures from its own folders. It can't rename or delete tiles: maps store tile names, so either would lose the tile from every map using it.
-  - Tiles are data, not code, so they can't run their own code the way `onEnter`/`onStand` used to. Damage and speed cover what tiles did. Something new (e.g. a tile that teleports you) would need a new setting in `TILE_DEFAULTS`, handled in `walk()` or `checkTile()` (`character.js`) and given a line in `TILE_BEHAVIOURS`.
-- **Dual grid tiles** (`dualgrid.js`, switched on by `dualGrid` in `tiles.json`): ground like grass that blends into its neighbours with rounded edges. Maps and the editor don't know about it: a tile is still just `'grass'`, only drawing changes (the editor marks them with a badge, `drawDualBadge()`). `drawTiles()` draws the normal tiles first, then calls `drawDualCorner()` for every corner on a second grid half a tile across and down, where each piece picks from the tileset by which of the four tiles meeting there are grass (`DUAL_TILESET_LAYOUT`). The see-through edges show a normal tile from the same corner underneath. A tile whose `blendsWith` leaves a dual grid tile out counts as covered in that piece's 1s and 0s, so the piece runs straight up to it, and that quarter of the piece isn't drawn (`cut`), leaving the tile showing. When two dual grid tiles meet, the one further down `tiles.json` goes on top (`layer`), so order them lowest first (e.g. dirt before grass). New tiles go on the end, so they're on top. The tileset is cut into 16 separate pictures whenever a tile gets it (`useTexture()` in `tiles.js`, `cutDualTileset()`), because drawing part of one big picture can pick up a line of the piece next to it at some zooms. `dualTilesetProblem()` says why a picture can't be a tileset, for the tile editor.
-- **Every map remembers its characters.** When the player leaves a map, `loadMap` keeps its live `enemies` and `npcs` on `map.characters`, and hands them back when the player returns. So defeated enemies stay gone, hurt ones stay hurt, and everyone stays where they were, until the page reloads.
-  - The spawn lists (`enemySpawns`, `npcSpawns`) are the design and never change when an enemy dies, so Export always saves every one.
-  - `spawnCharacters()` makes everyone fresh from the spawn lists. It runs on a map's first visit and whenever the editor opens, closes or changes characters. Opening the editor is a quick way to reset enemies while testing.
-  - This used to be a `defeated` set of spawns. Keeping the characters themselves replaced it, and also fixed hurt enemies healing when you left and came back.
+  - One line per tile in `assets/squimble-quest/tiles/tiles.json`: name, colour, dual grid, texture, behaviour (`solid`, `speed`, `damagePerSecond`, `damagePerStep`, `healPerSecond`, `slippery`, `pushDirection`, `pushSpeed`) and `blendsWith` (which dual grid tiles round onto it). File order = editor bar order = dual grid layer order.
+  - `loadTileFile()` fetches it before the maps (`sketch.js`), since map loading checks tiles exist, and waits for textures so nothing flashes plain colour. A missing/broken file only warns; with no tiles there's just `blank`, for the stand-in map.
+  - `setTile(settings, picture)` adds or changes a tile, and is the only way into `TILE_TYPES`. `tilesToData()`/`tilesDataToText()` write the file back; exporting unchanged gives an identical file.
+  - Textures: `assets/squimble-quest/tiles/normal/` (one picture per tile) and `dual-grid/` (tilesets). `texture` is the file name; `texturePath()` adds the folder from `dualGrid`.
+  - **Tile editor** (`tileeditor.js`): a tabbed `FormBox` with a side column (`TilePreview`, **Choose picture**). **Look** is built by hand; other tabs come from `TILE_BEHAVIOURS` (one line per setting naming its tab), so a new setting or tab is one line. Tabs over `TILE_EDITOR_ROWS` rows continue in a numbered tab. Editing a placed tile previews live (`onUpdate` calls `setTile()` whenever the box would save); closing unsaved restores a copy taken on open (`onCancel`). **Save** calls `setTile()` with the chosen picture, so it works before the picture is in the folder. **Export tiles** downloads `tiles.json` plus any picture chosen since load (`TileEditor.newPictures`), since the game only loads textures from its folders. No rename or delete: maps store names.
+  - Tiles are data, so no per-tile code (the old `onEnter`/`onStand`); damage and speed cover it. New behaviour (e.g. a teleporting tile) = a `TILE_DEFAULTS` setting, handled in `walk()` or `checkTile()` (`character.js`), plus a `TILE_BEHAVIOURS` line.
+- **Dual grid tiles** (`dualgrid.js`, on via `dualGrid`): ground like grass that blends into neighbours with rounded edges. Maps and the editor just see `'grass'`; only drawing changes (the editor badges them, `drawDualBadge()`). `drawTiles()` draws normal tiles, then `drawDualCorner()` at every corner of a second grid offset half a tile, each piece chosen by which of the four meeting tiles are grass (`DUAL_TILESET_LAYOUT`). See-through edges show a normal tile from that corner beneath. A tile whose `blendsWith` excludes a dual grid tile counts as covered in that piece's bits, so the piece runs straight to it, and that quarter isn't drawn (`cut`), leaving the tile visible. Where two dual grid tiles meet, the later in `tiles.json` goes on top (`layer`), so list lowest first (dirt before grass); new tiles append, so they're on top. Tilesets are cut into 16 pictures whenever a tile gets one (`useTexture()` in `tiles.js`, `cutDualTileset()`), since drawing part of a big image can bleed a line of the neighbouring piece at some zooms. `dualTilesetProblem()` explains a bad tileset to the tile editor.
+- **Maps remember their characters.** Leaving a map stores its live `enemies` and `npcs` on `map.characters`; returning restores them, so defeated stay gone, hurt stay hurt, everyone stays put until reload.
+  - The spawn lists (`enemySpawns`, `npcSpawns`) are the design and never change on death, so Export saves all of them.
+  - `spawnCharacters()` makes everyone fresh from the spawn lists: on a map's first visit and whenever the editor opens, closes or changes characters (opening the editor is a quick enemy reset).
+  - This replaced a `defeated` set of spawns, and fixed hurt enemies healing when you left and returned.
 - **Characters** (`character.js`):
-  - The player, enemies and NPCs all take the same controls, `{ move, aim, attack }`. For the player they come from the keyboard and mouse. For enemies and NPCs they come from an `ai(entity, world, dt)` function.
-  - Tiles' settings work for all characters: `speed`, `slippery` and the push in `walk()`, damage and healing in `checkTile()`. `velocity` is only kept for slippery tiles; everywhere else it's replaced every frame.
-  - Dying respawns the player at the current map's `spawn`, never where they arrived. This used to be where they arrived (the warp they came in by), so going into a building and back out moved your respawn to its door. Reading `worldMap.spawn` directly also means moving the spawn in the editor takes effect straight away. How respawning should work isn't decided yet, see [Known issues](#known-issues-and-loose-ends).
+  - Player, enemies and NPCs all take `{ move, aim, attack }`: from keyboard/mouse for the player, from `ai(entity, world, dt)` otherwise.
+  - Tile settings apply to everyone: `speed`, `slippery` and push in `walk()`, damage and healing in `checkTile()`. `velocity` only persists on slippery tiles; elsewhere it's replaced each frame.
+  - Dying respawns at the current map's `spawn`, never where you arrived. (It used to be the arrival warp, so entering a building and leaving moved your respawn to its door.) Reading `worldMap.spawn` directly means moving the spawn in the editor applies at once. Undecided, see [Known issues](#known-issues-and-loose-ends).
 - **Inventory** (`inventory.js`):
-  - The player's inventory is one row of slots: the first `HOTBAR_SIZE` are the hotbar, the next `BAG_SIZE` the bag. Only hotbar slots can be picked (held). `add()` fills the first empty slot, hotbar first.
-  - **E or I** opens the inventory screen (`InventoryScreen`). E only does it when there's no NPC to talk to or E warp in reach, so I always works. The game carries on while it's open, but the player stands still and nothing's in reach. Drag an item onto a slot to swap, or outside the box to drop it. The map editor closes it.
-  - **Q** drops the held item. Dropped items are thrown about `DROP_DISTANCE` roughly the way the player's aiming, with a small random spread (`DROP_SPREAD`). A drop tries a few random spots and keeps the first `DROP_GAP` clear of other items, so they don't pile up. They're moved with the map's collision so they stop at walls. Each map keeps its own in `map.drops` (progress, like `map.characters`).
-  - A dropped item can't be picked up until the player has been out of `PICKUP_RANGE` of it. That stops it being picked straight back up, and makes "inventory full" show once per walk up to it rather than every frame.
-  - Each item has a `category` (`ITEM_CATEGORIES` in items.js), which only decides its editor tab, and a `rarity` (`RARITIES`), whose colour is its glow on the ground, in slots and in the palette (`drawItemGlow()`), and the held item's name above the hotbar. Both lists are placeholders: a new line in either is all a new category or rarity needs. Rarity is per item type for now, not per item.
-  - Weapons and items load from `items.json` alongside the tiles, so there are none until it's loaded: the player's `PLAYER.startingItems` are given once it has (`giveStartingItems()`), and the editor's item tabs read `ITEMS_BY_CATEGORY`, which fills in as they load. If the file doesn't load, there are no weapons or items (a console warning), and nobody can attack.
+  - One row of slots: the first `HOTBAR_SIZE` are the hotbar (the only pickable ones), the next `BAG_SIZE` the bag. `add()` fills the first empty slot, hotbar first.
+  - **E or I** opens `InventoryScreen` (E only with no NPC or E warp in reach, so I always works). The game runs on but the player stands still and nothing's in reach. Drag onto a slot to swap, outside the box to drop. The editor closes it.
+  - **Q** drops the held item, thrown about `DROP_DISTANCE` towards the aim with some spread (`DROP_SPREAD`). It tries a few random spots, keeping the first `DROP_GAP` clear of other items, and moves with map collision so it stops at walls. Each map keeps its own in `map.drops` (progress, like `map.characters`).
+  - A drop can't be picked up until the player has left `PICKUP_RANGE`, so it isn't grabbed straight back and "inventory full" shows once per approach, not every frame.
+  - Each item has a `category` (`ITEM_CATEGORIES`, items.js; only decides its editor tab) and a `rarity` (`RARITIES`), whose colour is its glow on the ground, in slots and the palette (`drawItemGlow()`), and the held item's name above the hotbar. Both are placeholders; a new line adds one. Rarity is per item type for now.
+  - Weapons and items load from `items.json` alongside tiles, so there are none until then: `PLAYER.startingItems` are given after (`giveStartingItems()`), and the editor's item tabs read `ITEMS_BY_CATEGORY`, which fills as they load. If the file fails, there are none (console warning) and nobody can attack.
 - **UI** (`ui.js`, `button.js`, `textfield.js`, `formbox.js`):
-  - Every element extends `UIElement`.
-  - Groups let elements be shown, hidden and removed together.
-  - A click that lands on UI is claimed, so gameplay never sees it.
-  - `Input.typing = true` sends keys to `Input.typed` instead of the game. `TextField` and `NumberField` work with it: whatever owns the box decides which one is focused and calls `field.type(key)` for each key. Ctrl + V arrives as `{ paste: text }` in `Input.typed` and goes to `field.paste(text)`. `ColourField` takes pasted hex or rgb and has a square that opens the browser's own colour picker (`<input type="color">`).
+  - Everything extends `UIElement`. Groups show, hide and remove together. A click on UI is claimed, so gameplay never sees it.
+  - `Input.typing = true` routes keys to `Input.typed` instead of the game. The box's owner picks the focused `TextField`/`NumberField` and calls `field.type(key)` per key; Ctrl + V arrives as `{ paste: text }` → `field.paste(text)`. `ColourField` accepts pasted hex or rgb, and its swatch opens the browser's colour picker (`<input type="color">`).
 - **Editor** (`editor.js`):
-  - It's laid out like a game engine: `EditorToolbar` along the top (New, Open, Resize, Export, the Paint and Erase tools, Grid, Keys and Play), `EditorDock` on the right (the palette's tabs, `PaletteGrid`, and the inspector) and `EditorStatusBar` along the bottom. Sizes are in `EDITOR_LAYOUT`, colours in `EDITOR_COLOURS`, and its buttons use the compact `editor` / `editorPrimary` styles in `BUTTON_STYLES`.
-  - The palette's tabs are only for things you place on the map; whole-map actions are in the toolbar. `EditorTabStrip` draws them at their natural width and scrolls (wheel, or the **‹ ›** that appear when they don't fit), so `EDITOR_TABS` can grow. **Sounds** and **Lights** are empty example tabs.
-  - **Weapons** and **Items** get one tab per `ITEM_CATEGORIES` entry. Clicking the map puts the item on the ground as a drop (`Drops.place()`), so like any drop it's progress, not saved by Export. **Give** adds one to the inventory, and **Edit** (or right click in the palette) changes its name, rarity, colour and weapon numbers straight away. **Export** on those tabs downloads `items.json` with every weapon and item in it (`itemsToText()`), to replace the one in `assets/squimble-quest/items/`. It can't add, rename or delete them: do that in `items.json` by hand.
-  - **Triggers** are things on the map that make something happen: the player's spawn and warps (`TRIGGER_TYPES`). They're placed by their own code in `Editor.update()`, not from a catalogue file. Placing a warp opens its settings box.
-  - **Right click** opens the settings of whatever's under the mouse (`editWarp()` for warps, the only thing with settings so far). Anything that gets settings later hooks in at the same spot in `Editor.update()`.
-  - **Erase** is a tool in the toolbar. `Editor.selected` is `null` while it's picked, and **Paint** goes back to `Editor.lastPicked`. It's the only way to delete (right click used to erase too).
-  - `FormBox` (formbox.js, with its `Picker` and `Checkbox` fields) is the in-game box that asks for things: sizes for New map and Resize map, the fill tile for New map, the name for Export, a warp's settings and a tile's. Give it a title and a list of rows (or `tabs`, each with its own rows), and it lays itself out. `side` adds a column of extra elements beside the rows (the tile editor's pictures). `Picker` is its "choose one of these" field (`tilePicker()` in editor.js makes one for tiles). A row's field can be any UI element with a `value`. It's a window: dragging the title bar moves every element in the `form-box` group, and the **×** closes it like Cancel. `onUpdate` runs every frame while it's open and `onCancel` when it closes without saying yes.
-  - `PaletteGrid` is one UI element that draws and hit-tests every square itself, reading the catalogues each frame, so a new tile shows up by itself. It scrolls (clipped to the palette) and uses up `Input.wheel` while hovered, so the camera doesn't zoom too. **Right click** on a tile's square opens the tile editor. The inspector's **New** and **Export** only show on the Tiles tab, **Edit** while a tile is picked.
-  - While WASD pans the camera, the editor UI and dev panels fade out (`Editor.uiAlpha`, applied in `sketch.js`).
-- **Dev mode** (`debug.js`): a compact status panel in the top left. The key lists are `DEV_KEYS` and `EDITOR_KEYS`, and **H** toggles them.
+  - Game-engine layout: `EditorToolbar` on top (New, Open, Resize, Export, Paint, Erase, Grid, Keys, Play), `EditorDock` on the right (palette tabs, `PaletteGrid`, inspector), `EditorStatusBar` at the bottom. Sizes in `EDITOR_LAYOUT`, colours in `EDITOR_COLOURS`, buttons use the compact `editor`/`editorPrimary` `BUTTON_STYLES`.
+  - Palette tabs are for placeable things only; whole-map actions are in the toolbar. `EditorTabStrip` draws tabs at natural width and scrolls (wheel, or **‹ ›** when they overflow), so `EDITOR_TABS` can grow. **Sounds** and **Lights** are empty examples.
+  - **Weapons** and **Items** get a tab per `ITEM_CATEGORIES` entry. Clicking the map drops one (`Drops.place()`; progress, not saved by Export). **Give** adds one to the inventory; **Edit** (or right click in the palette) changes name, rarity, colour and weapon numbers immediately. **Export** on those tabs downloads `items.json` with everything (`itemsToText()`) for `assets/squimble-quest/items/`. Adding, renaming or deleting is by hand in `items.json`.
+  - **Triggers** (spawn and warps, `TRIGGER_TYPES`) make things happen; placed by their own code in `Editor.update()`, not a catalogue. Placing a warp opens its settings.
+  - **Right click** opens settings for what's under the mouse (`editWarp()`, the only one so far); future settings hook in at the same spot in `Editor.update()`.
+  - **Erase** is a toolbar tool: `Editor.selected` is `null` while active, and **Paint** returns to `Editor.lastPicked`. It's the only way to delete (right click used to erase too).
+  - `FormBox` (formbox.js, with `Picker` and `Checkbox`) is the in-game ask box: New/Resize sizes, New's fill, Export's name, warp and tile settings. Give it a title and `rows` (or `tabs` of rows) and it lays out; `side` adds a column beside the rows (the tile editor's pictures). `Picker` is choose-one (`tilePicker()` in editor.js makes a tile one). Any UI element with a `value` can be a row field. It's a window: dragging the title moves the whole `form-box` group, **×** cancels. `onUpdate` runs every frame while open, `onCancel` on closing unconfirmed.
+  - `PaletteGrid` is one element that draws and hit-tests every square, reading catalogues each frame, so new tiles appear automatically. It scrolls (clipped) and consumes `Input.wheel` while hovered, so the camera doesn't zoom. **Right click** a tile square for the tile editor. The inspector's **New** and **Export** show only on Tiles, **Edit** while a tile is picked.
+  - While WASD pans, the editor UI and dev panels fade (`Editor.uiAlpha`, applied in `sketch.js`).
+- **Dev mode** (`debug.js`): compact status panel top left. Key lists are `DEV_KEYS` and `EDITOR_KEYS`, toggled with **H**.
 
 ## Where to add things
 
-The quickest route for common additions. Each file's own header has the details.
+Each file's header has the details.
 
 | To add | Do this |
 |---|---|
 | An object, enemy or NPC | A `defineX()` line at the bottom of its catalogue file. New settings need a default in its `X_DEFAULTS`. |
-| A weapon or item | A line in `assets/squimble-quest/items/items.json` (guides at the top of `weapons.js` and `items.js`). New settings need a default in `WEAPON_DEFAULTS` / `ITEM_DEFAULTS`, which is also what exports them. |
-| An enemy or NPC behaviour | An `ai(entity, world, dt)` function returning `{ move, aim, attack }`, next to `chasePlayer` in enemies.js. |
-| A tile | In the game: map editor, Tiles tab, **New** in the inspector, then **Export**. |
-| A tile setting | Its default in `TILE_DEFAULTS` (tiles.js), what it does in `walk()` or `checkTile()` (character.js), and one line in `TILE_BEHAVIOURS` (tileeditor.js), which gives it an editor row and tab. |
-| A map | Export it from the editor into `assets/squimble-quest/maps/`, and add the file to `MAP_FILES` (maps.js). |
-| A key | Its action in `KEYS` (config.js), then `Input.isDown/wasPressed('action')`. A dev tool also goes in `DEV_KEYS` (debug.js). |
-| A kind of thing to place in the editor | A line in `EDITOR_TABS` (editor.js), and placing it in `Editor.update()`. A new kind of character also needs `SPAWN_KINDS` (tilemap.js). |
-| A box that asks for things | `FormBox.open({ title, rows, onConfirm })` (formbox.js). Use `tabs` instead of `rows` for lots of settings. |
-| A new kind of UI element | A class extending `UIElement`, see the guide at the top of ui.js. Buttons: the guide in button.js. |
-| Loading or saving a file | `fetchJson()`, `pickFile()`, `downloadTextFile()` and `downloadData()` in utils.js. |
-| A new file | Its `<script>` tag in `squimble-quest.html` (order matters) and a line in the list at the top of sketch.js. |
+| A weapon or item | A line in `assets/squimble-quest/items/items.json` (guides atop `weapons.js`, `items.js`). New settings need a default in `WEAPON_DEFAULTS` / `ITEM_DEFAULTS`, which also exports them. |
+| An enemy or NPC behaviour | An `ai(entity, world, dt)` returning `{ move, aim, attack }`, beside `chasePlayer` in enemies.js. |
+| A tile | In game: editor, Tiles tab, **New** in the inspector, then **Export**. |
+| A tile setting | Default in `TILE_DEFAULTS` (tiles.js), behaviour in `walk()` or `checkTile()` (character.js), a `TILE_BEHAVIOURS` line (tileeditor.js) for its editor row and tab. |
+| A map | Export into `assets/squimble-quest/maps/` and add it to `MAP_FILES` (maps.js). |
+| A key | Its action in `KEYS` (config.js), then `Input.isDown/wasPressed('action')`. Dev tools also go in `DEV_KEYS` (debug.js). |
+| A placeable kind in the editor | A line in `EDITOR_TABS` (editor.js) and placing it in `Editor.update()`. A new character kind also needs `SPAWN_KINDS` (tilemap.js). |
+| A box that asks for things | `FormBox.open({ title, rows, onConfirm })` (formbox.js); `tabs` instead of `rows` for many settings. |
+| A new UI element kind | A class extending `UIElement` (guide atop ui.js). Buttons: guide in button.js. |
+| Loading or saving a file | `fetchJson()`, `pickFile()`, `downloadTextFile()`, `downloadData()` in utils.js. |
+| A new file | Its `<script>` tag in `squimble-quest.html` (order matters) and a line in sketch.js's file list. |
 
 ## Rules to keep when changing things
 
-These aren't obvious from any one file, and breaking them causes bugs that are hard to trace.
+Not obvious from any one file; breaking them causes hard-to-trace bugs.
 
-- **Change maps only with `loadMap(name, warpName)`.** It puts the old map's characters away, gets the new map's out (or makes them on a first visit), places the player, tells warps they've arrived, and sets up the camera. Setting `worldMap` any other way skips all of that.
-- **Anything that moves the player without walking must call `Warps.arrived(player, worldMap)` afterwards.** That's teleports, cutscenes, being carried or pushed. Otherwise a step warp on the tile they land on fires. `loadMap` and `Player.respawn` already do. Dev mode's **T** deliberately doesn't, so you can teleport onto a warp to test it.
-- **The live characters are the globals `enemies` and `npcs`.** `map.characters` is only up to date for maps the player *isn't* on (it's written when they leave). Anything that looks at another map's characters reads `map.characters`. Anything about the current map uses the globals.
-- **One map, one name.** `getMap()` names a map when it builds it, and only Export gives it a new name (the old name goes back to its file). Never let two names in `VISITED_MAPS` point at the same map. Warps, dev mode's **M** and Export all go by `map.name`.
-- **Design and progress are kept apart.** Tiles, objects, spawn lists, warps and `spawn` are the design, and they're what Export saves. Progress (`map.characters`, `map.drops`, the player's health and inventory) only lives in memory. A save system would need to store progress on its own, next to the map files rather than inside them.
-- **The editor always shows the design.** Opening it, closing it, or changing characters runs `spawnCharacters()`, which resets the current map's enemies and NPCs to their spawns. Keep it that way, or the editor would show a half-played map as if it were the design.
-- **A map's name is its file name,** and warps lead to maps by name. Renaming a map file breaks every warp that leads to it (they show red, and the console lists them).
+- **Change maps only with `loadMap(name, warpName)`.** It stores the old map's characters, restores or makes the new one's, places the player, calls `Warps.arrived()`, and sets up the camera. Setting `worldMap` directly skips all that.
+- **Anything moving the player without walking must call `Warps.arrived(player, worldMap)` after** (teleports, cutscenes, being carried or pushed), or a step warp under them fires. `loadMap` and `Player.respawn` already do. Dev mode's **T** deliberately doesn't, to test warps.
+- **The live characters are the globals `enemies` and `npcs`.** `map.characters` is current only for maps the player *isn't* on (written on leaving). Other maps: read `map.characters`. Current map: the globals.
+- **One map, one name.** `getMap()` names a map when building it; only Export renames it (the old name reverts to its file). Never let two `VISITED_MAPS` names point at one map. Warps, dev mode's **M** and Export all use `map.name`.
+- **Design and progress are separate.** Tiles, objects, spawn lists, warps and `spawn` are design (what Export saves). Progress (`map.characters`, `map.drops`, player health and inventory) is memory only; a save system would store it beside the map files, not in them.
+- **The editor always shows the design.** Opening, closing or changing characters runs `spawnCharacters()`, resetting the current map's enemies and NPCs. Keep it so, or the editor would show a half-played map as the design.
+- **A map's name is its file name,** and warps target maps by name. Renaming a map file breaks every warp to it (red in the editor, listed in the console).
 
 ## Ideas for later
 
-Only build these when they're needed.
+Only build these when needed.
 
-- **Warps:**
-  - objects that are warps (a door, trapdoor or manhole object that opens its warp, see the end of the warps notes above)
-  - a "back where you came from" target, for interiors that several warps share
-  - a fade between maps
-  - locked doors
-  - an editor key to go through the warp under the mouse
-  - loading map files by name, instead of listing every one in `MAP_FILES`
+- **Warps:** objects that are warps (a door/trapdoor/manhole object opening its warp, see the end of the Warps notes); a "back where you came from" target for shared interiors; a fade between maps; locked doors; an editor key to go through the warp under the mouse; loading map files by name instead of listing them in `MAP_FILES`.
 - **Items:**
-  - stacking (arrows, potions), which would need a count on each item
-  - items placed in the editor aren't saved in the map file. That would need a list of them in the map file, like `spawns`, and a decision on whether picked-up ones come back
-  - making new weapons and items in the editor, like the tile editor's **New**. For now they're added to `items.json` by hand
-  - weapons only enemies use (the grunt's `claws`) can only be changed in `items.json` by hand, since the editor edits weapons through their item
+  - stacking (arrows, potions), needing a count per item
+  - editor-placed items aren't saved in the map file; that needs a list in the file like `spawns`, and a decision on whether picked-up ones return
+  - making new weapons and items in the editor, like the tile editor's **New** (now by hand in `items.json`)
+  - enemy-only weapons (the grunt's `claws`) can only be changed in `items.json`, since the editor edits weapons through their item
   - Speedy Shoes do nothing yet
-- **Multiplayer, maybe.** Only a possibility, not a decision. The idea is a small social game: a group of friends, up to about a classroom (20–40 players), playtesting and hanging out together, never hundreds. If it ever happens:
-  - **What already helps:** every character runs on `{ move, aim, attack }` controls, so another player is just a `Player` whose controls come over the network. Maps and tiles are data files a server can load too. Progress is already kept apart from the design. The only randomness (where dropped items land) goes through `randomBetween()` in utils.js.
-  - **What's in the way:** the game assumes one player and one running map (the globals `player`, `worldMap`, `enemies`, `npcs`, and `loadMap()` swapping the world). With players on different maps, each map with players on it would have to keep running, so maps become "rooms". Also single-player: the warp step tracking (`Warps.lastCol`), enemies following through warps, `chasePlayer` and enemy `targets()` only knowing `world.player`, dialogue and the editor pausing everything, and some rules code needing p5 (`color()` in `MeleeSwing` and `setTile()`).
-  - **At that size it needs a small server** (Node and WebSockets, cheap to host), not one player's browser hosting: a host's upload and a hidden tab slowing down would stall everyone, and school networks often block browser-to-browser connections. The server would run the game's rules without p5, so rules and drawing would need separating first. Each player only needs updates about the map they're on.
-  - **Social parts on top:** names over heads, chat (and filtering it, if younger players might join), emotes, and hangout maps sized for a crowd.
+- **Multiplayer, maybe.** Not decided. The idea: a small social game for friends, up to about a classroom (20–40), playtesting and hanging out, never hundreds. If it happens:
+  - **Helps already:** every character runs on `{ move, aim, attack }`, so another player is a `Player` with networked controls. Maps and tiles are data a server can load. Progress is separate from design. The only randomness (drop spots) goes through `randomBetween()` in utils.js.
+  - **In the way:** one player and one running map are assumed (globals `player`, `worldMap`, `enemies`, `npcs`, and `loadMap()` swapping the world). Players on different maps need each occupied map running, so maps become "rooms". Also single-player: warp step tracking (`Warps.lastCol`), enemies following through warps, `chasePlayer` and enemy `targets()` only knowing `world.player`, dialogue and the editor pausing everything, and some rules code needing p5 (`color()` in `MeleeSwing` and `setTile()`).
+  - **Needs a small server** at that size (Node + WebSockets, cheap to host), not a player's browser hosting: the host's upload or a throttled hidden tab would stall everyone, and school networks often block browser-to-browser connections. The server runs the rules without p5, so rules and drawing need separating first. Each player only needs updates for their map.
+  - **Social layer:** names over heads, chat (filtered if younger players might join), emotes, hangout maps sized for a crowd.
 
 ## Known issues and loose ends
 
-- **Open file uses the browser's file picker.** That has to stay, since only the browser can read files from the computer. If a file won't open, the game says so with `showMessage()`, and the reason goes in the browser console.
-- **NPCs can be hurt by tiles.** Damage tiles hurt everyone, and an NPC that runs out of health is marked `dead` but keeps standing there: it can still be talked to, and others walk through it. Nothing places NPCs on damage tiles yet. When NPCs can die properly, handle it in `Npc` (npc.js), like `Enemy.die()`.
-- **Dying is a placeholder:** the player jumps back to a spawn point with full health.
-- **Respawning: where you come back isn't decided yet.** For now it's the spawn point of the map you died on, so dying in the hut puts you in the hut. Other options are always the game's start, the warp you last came in by (how it used to work), or checkpoints. Everything about it is in `Player.respawn()` (player.js), marked `ponytail:`, with notes on how to do each option, so changing it only means changing that one function.
-- **Map progress only lasts until the page reloads.** Defeated enemies and everything else come back on a reload, because there's no saving yet.
-- **Renaming a warp breaks warps leading to it.** Links go by name, so warps on other maps keep the old name. They show red in the editor, and the console lists them when the game loads.
-- **Nothing stops a warp being placed on a solid tile.** Arriving there leaves the player inside a wall. Put arrival warps on floor.
-- **The spawn can end up on an empty tile.** Erasing the tile under it, or making a new map filled with `empty`, leaves the player stuck there. Nothing checks for this.
-- **The New map fill picker steps one tile at a time.** Fine for now, but slow once there are lots of tiles.
-- **The art is placeholders:** coloured rectangles until sprites exist. Every catalogue already has an `image` setting (`texture` for tiles). Grass has a test dual grid tileset (`assets/squimble-quest/tiles/dual-grid/grass_tileset.png`).
-- **Normal tiles are one picture each.** A normal tile's texture is stretched over every tile of that kind. Variations (a few pictures picked at random so a big floor doesn't look repeated) or animated tiles would build on `useTexture()` in `tiles.js`.
-- **The tile editor can't rename, delete or reorder tiles.** Do those in `tiles.json` by hand. Renaming or deleting a tile loses it from every map that uses it.
-- **Pixel art at in-between zooms:** art is drawn without blurring (`noSmooth()` in `sketch.js`), so at a zoom like 1.35 some art pixels come out a screen pixel wider than others. That's normal for pixel art that isn't at a whole-number size, and there are no gaps or lines between tiles.
+- **Open file uses the browser's file picker,** which must stay (only the browser can read local files). Failures show via `showMessage()`, with the reason in the console.
+- **NPCs can be hurt by tiles.** At 0 health an NPC is marked `dead` but keeps standing: still talkable, others walk through it. Nothing places NPCs on damage tiles yet. When NPCs can die properly, handle it in `Npc` (npc.js), like `Enemy.die()`.
+- **Dying is a placeholder:** the player jumps to a spawn with full health.
+- **Respawn location is undecided.** Currently the spawn of the map you died on (die in the hut, respawn in the hut). Options: always the game's start, the last warp you came in by (the old way), or checkpoints. It's all in `Player.respawn()` (player.js), marked `ponytail:` with notes on each option, so only that function changes.
+- **Map progress lasts until reload.** No saving yet.
+- **Renaming a warp breaks warps to it.** They keep the old name, show red in the editor, and the console lists them on load.
+- **Nothing stops a warp on a solid tile;** arriving there traps the player in a wall. Put arrival warps on floor.
+- **The spawn can end up on an empty tile** (erasing under it, or a New map filled with `empty`), trapping the player. Nothing checks.
+- **New map's fill picker steps one tile at a time.** Fine now, slow with many tiles.
+- **Placeholder art:** coloured rectangles until sprites exist. Every catalogue already has an `image` setting (`texture` for tiles). Grass has a test dual grid tileset (`assets/squimble-quest/tiles/dual-grid/grass_tileset.png`).
+- **Normal tiles are one picture each,** stretched over every tile of that kind. Variations (random pictures so floors don't look repeated) or animation would build on `useTexture()` in `tiles.js`.
+- **The tile editor can't rename, delete or reorder tiles.** Do it in `tiles.json` by hand; renaming or deleting loses the tile from every map using it.
+- **Pixel art at in-between zooms:** art is unblurred (`noSmooth()` in `sketch.js`), so at e.g. 1.35 some art pixels are a screen pixel wider. Normal for non-integer pixel art scaling; there are no gaps or lines between tiles.
 
 ## Checking changes
 
-- `node --check <file>` on each file catches syntax errors.
-- For real behaviour, play it in the browser. To automate it, install `playwright-core` in a scratch folder, launch Chrome through it (`executablePath`), serve the site, then click and type into the canvas. The game's globals (`worldMap`, `enemies`, `Editor`, `loadMap`, ...) can be read directly with `page.evaluate`. When doing this:
-  - The game is always 960 × 540, so work out click positions from the canvas's bounding box.
-  - The first click on the canvas only gives it focus.
-  - Use `page.keyboard.down/up` for held keys.
-- For a refactor that shouldn't change anything, compare before and after: in `page.evaluate`, call `noLoop()`, then call `draw()` yourself with `window.deltaTime = 1000 / 60` and `Input.held` set to the keys you want, and record positions, health and a hash of the canvas pixels at checkpoints. Pin `window.frameRate = () => 60` first, or the dev panel's fps makes frames differ. `mapsReady`, `worldMap` and the other `let` globals aren't on `window`, so read them by name.
+- `node --check <file>` catches syntax errors.
+- Real behaviour: play it in the browser. To automate, install `playwright-core` in a scratch folder, launch Chrome through it (`executablePath`), serve the site, then click and type into the canvas. Globals (`worldMap`, `enemies`, `Editor`, `loadMap`, ...) are readable via `page.evaluate`. Notes:
+  - the game is always 960 × 540; compute clicks from the canvas's bounding box
+  - the first canvas click only focuses it
+  - use `page.keyboard.down/up` for held keys
+- For behaviour-preserving refactors, compare before and after: in `page.evaluate`, call `noLoop()`, then call `draw()` yourself with `window.deltaTime = 1000 / 60` and `Input.held` set to the keys you want, recording positions, health and a canvas pixel hash at checkpoints. Pin `window.frameRate = () => 60` first or the dev panel's fps makes frames differ. `mapsReady`, `worldMap` and other `let` globals aren't on `window`; read them by name.

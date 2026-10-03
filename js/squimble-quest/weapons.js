@@ -1,30 +1,23 @@
-// weapons, and the attacks they make. the same code works for anyone who attacks: the player
-// (with whatever item they're holding, items.js) and enemies (the weapon setting in enemies.js,
-// e.g. the grunt's claws).
+// weapons and their attacks, shared by the player (the held item, items.js) and enemies (their
+// weapon setting, enemies.js, e.g. the grunt's claws).
 //
 // ============================== how to make a weapon ==============================
 //
-// the weapons are in assets/squimble-quest/items/items.json, with the items, loaded when the game
-// starts (loadItemFile() in items.js). add a line to its "weapons" list, then either make an item
-// for it in the same file, so the player can hold it, or give it to an enemy with weapon: 'axe'
-// (enemies.js):
-//
+// weapons are in assets/squimble-quest/items/items.json with the items (loadItemFile() in items.js).
+// add a line to "weapons", then an item for it in the same file, or give it to an enemy (weapon: 'axe'):
 //   { "name": "axe", "damage": 35, "reach": 64, "arc": 150, "swingTime": 0.25, "cooldown": 0.6 }
+// an item's weapon can be edited in the map editor (Edit, Weapon tab); Export downloads items.json.
 //
-// an item's weapon can also be changed in the map editor (Edit on the item, Weapon tab), then
-// Export in the inspector downloads a new items.json to replace the old one.
+// settings (missing ones from WEAPON_DEFAULTS):
+//   damage      per thing hit
+//   reach       px from the swinger's middle
+//   arc         swing width in degrees, 360 is all round
+//   swingTime   seconds; anything in the arc meanwhile is hit once
+//   cooldown    seconds from one swing's start to the next
+//   colour      swoosh colour
 //
-// the settings (anything left out comes from WEAPON_DEFAULTS):
-//
-//   damage      health taken off each thing it hits
-//   reach       how far it reaches, in pixels from the middle of whoever's swinging
-//   arc         how wide the swing is, in degrees. 360 hits all the way round
-//   swingTime   how long a swing lasts, in seconds. anything in the arc during it gets hit, once
-//   cooldown    seconds from the start of one swing until the next one can start
-//   colour      the colour of the swoosh
-//
-// every weapon is a melee swing for now. bows or spells would be a new kind of attack alongside
-// MeleeSwing below, e.g. a Projectile class, with the weapon saying which one it makes
+// all melee for now. bows/spells would be a new attack class beside MeleeSwing (e.g. Projectile),
+// chosen by the weapon
 //
 // ====================================================================================
 
@@ -37,7 +30,7 @@ const WEAPON_DEFAULTS = {
   colour: '#ffffff',
 };
 
-// every weapon, by name. filled in from items.json by defineWeapon() (loadItemFile() in items.js)
+// filled from items.json (loadItemFile() in items.js)
 const WEAPONS = {};
 
 // defineType() is in utils.js
@@ -47,22 +40,21 @@ function defineWeapon(name, settings) {
 
 // ---------- a melee swing ----------
 
-// one swing of a weapon. it hits anything in an arc in front of whoever's swinging (the owner),
-// centred on the angle they were aiming when they swung. each thing can only be hit once per swing.
-// made by Character.attack() (character.js), which updates and draws it until it's finished
+// one swing: hits anything in an arc centred on the owner's aim when swung, each thing once.
+// made, updated and drawn by Character.attack() (character.js)
 class MeleeSwing {
-  // owner: the character swinging. weapon: its settings from WEAPONS. angle: which way, in radians.
-  // backhand: true swings the other way across the arc, so swings go back and forth
+  // owner: the swinger. weapon: WEAPONS settings. angle: radians. backhand: swing the other way, so
+  // swings alternate
   constructor(owner, weapon, angle, backhand) {
     this.owner = owner;
     this.weapon = weapon;
     this.angle = angle;
     this.backhand = backhand;
-    // seconds since the swing started
+    // seconds since it started
     this.time = 0;
-    // everything this swing has already hit
+    // already hit
     this.hit = new Set();
-    // the see-through swoosh colour, made once here rather than every frame it's drawn
+    // see-through swoosh colour, made once
     this.swooshColour = color(weapon.colour);
     this.swooshColour.setAlpha(70);
   }
@@ -71,8 +63,7 @@ class MeleeSwing {
     return this.time >= this.weapon.swingTime;
   }
 
-  // targets is everyone this swing is allowed to hurt (the player's swing hurts enemies,
-  // an enemy's hurts the player)
+  // targets: who it may hurt (player's swing: enemies; enemy's: the player)
   update(dt, targets) {
     this.time += dt;
     for (const target of targets) {
@@ -84,47 +75,42 @@ class MeleeSwing {
     }
   }
 
-  // is any of the target's body inside the swing?
+  // is any of the target's body in the swing?
   reaches(target) {
     const ox = this.owner.x;
     const oy = this.owner.y;
     const body = target.bodyBox();
 
-    // the nearest point of the target's body to the middle of the swing. if even that's
-    // further than the weapon reaches, nothing of it is in range
+    // the body's nearest point; out of reach means none of it is
     const nearX = constrain(ox, body.x, body.x + body.w);
     const nearY = constrain(oy, body.y, body.y + body.h);
     const distance = Math.hypot(nearX - ox, nearY - oy);
     if (distance > this.weapon.reach) return false;
-    // right on top of the owner, always a hit
+    // on top of the owner always hits
     if (distance < 1) return true;
 
-    // in range. now is it in front, inside the arc? checks the nearest point and the middle of the
-    // body, so something big standing a bit to the side still counts if part of it is in the arc
+    // in the arc? checks the nearest point and the middle, so a big body partly in the arc counts
     return this.inArc(nearX, nearY) || this.inArc(body.x + body.w / 2, body.y + body.h / 2);
   }
 
-  // is the direction to this point within the arc?
   inArc(x, y) {
     const toPoint = Math.atan2(y - this.owner.y, x - this.owner.x);
     const halfArc = radians(this.weapon.arc) / 2;
     return Math.abs(angleDifference(toPoint, this.angle)) <= halfArc;
   }
 
-  // a swoosh that sweeps across the arc, with the blade at its leading edge.
-  // uses world positions, so it's drawn between camera.begin() and camera.end()
+  // a swoosh sweeping the arc, blade at its leading edge. world positions (inside camera.begin/end)
   draw() {
     const ox = this.owner.x;
     const oy = this.owner.y;
     const halfArc = radians(this.weapon.arc) / 2;
     const progress = constrain(this.time / this.weapon.swingTime, 0, 1);
 
-    // where the blade starts, and where it's got to. backhand swings go the other way
+    // blade start and current angle; backhand goes the other way
     const start = this.backhand ? this.angle + halfArc : this.angle - halfArc;
     const blade = this.backhand ? start - progress * halfArc * 2 : start + progress * halfArc * 2;
 
-    // the swoosh: a see-through slice of a circle from where the swing started to the blade.
-    // arc() wants the smaller angle first
+    // see-through pie from start to blade. arc() wants the smaller angle first
     noStroke();
     fill(this.swooshColour);
     arc(ox, oy, this.weapon.reach * 2, this.weapon.reach * 2, Math.min(start, blade), Math.max(start, blade), PIE);

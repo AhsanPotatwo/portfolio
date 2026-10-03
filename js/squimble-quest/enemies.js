@@ -1,48 +1,34 @@
-// the enemy catalogue: every kind of enemy, and how it behaves. works like objects.js.
-// enemies are placed on maps in the map editor (the Enemies tab), and each one appears where it
-// was placed the first time you go to the map. after that the map remembers it as it was left:
-// once defeated it stays gone, and a hurt one stays hurt, until the page is reloaded or the map
-// editor is opened (see loadMap() in sketch.js).
+// the enemy catalogue: every enemy kind and its behaviour. works like objects.js. placed in the
+// editor's Enemies tab; each appears at its spawn on a map's first visit, then the map remembers it
+// as left (defeated stay gone, hurt stay hurt) until reload or the editor opens (loadMap(), sketch.js).
 //
 // ============================== how to make an enemy ==============================
 //
-// add a defineEnemy() at the bottom of this file. you only give the settings that are different
-// from ENEMY_DEFAULTS:
-//
+// add a defineEnemy() at the bottom, with only settings that differ from ENEMY_DEFAULTS:
 //   defineEnemy('slime', { width: 30, height: 24, maxHealth: 40, speed: 70, colour: '#6cc56b' });
 //
-// the settings:
-//
-//   width, height          size of its body in pixels (what attacks hit)
-//   feetWidth, feetHeight  the part that bumps into walls, at the bottom of the body
-//   speed                  pixels per second when it walks
-//   maxHealth              how much damage it takes to beat
-//   weapon                 a name from WEAPONS (weapons.js), or null if it doesn't attack
-//   colour, outline        placeholder colours, until there's art
-//   hurtColour             what it flashes when hit
-//   healthBarColour        its health bar, shown over its head once it's hurt
-//   image                  a picture for it instead of the placeholder
-//   ai                     what it does, see below. null just stands still
-//   sightRange             for chasePlayer: how close you have to be before it comes after you
-//   attackRange            for chasePlayer: how close it gets before it swings its weapon
-//   onDeath                runs when it hits 0 health: (enemy) => { ... }. if its health is
-//                          still 0 afterwards it's gone for good, so onDeath could drop loot,
-//                          or bring it back like the training dummy
+//   width, height          body size in px (what attacks hit)
+//   feetWidth, feetHeight  the part at the bottom that hits walls
+//   speed                  px/s walking
+//   maxHealth              damage it takes to beat
+//   weapon                 a WEAPONS name (weapons.js), null to not attack
+//   colour, outline        placeholder colours
+//   hurtColour             flash when hit
+//   healthBarColour        overhead bar, shown once hurt
+//   image                  picture instead of the placeholder
+//   ai                     behaviour (below), null stands still
+//   sightRange             chasePlayer: distance it notices you from
+//   attackRange            chasePlayer: distance it swings from
+//   onDeath                (enemy) => { ... } at 0 health. still 0 after → gone for good, so it can
+//                          drop loot, or revive like the dummy
 //
 // ---------- ai ----------
 //
-// ai is a function the game runs every frame. it decides what the enemy does by giving back the
-// same controls the keyboard and mouse give the player (see the top of character.js):
-//
+// runs every frame, returning the same controls the player gets from input (top of character.js):
 //   ai: (enemy, world, dt) => ({ move: { x, y }, aim: { x, y }, attack: true or false }),
-//
-// world has { map, player, enemies, npcs, characters } in it (see the top of character.js), so it
-// can see where the player is. if it decides to do nothing, it can give back STAND_STILL.
-// chasePlayer below is a complete example: the grunt uses it, and any other enemy can too
-// (ai: chasePlayer), or you can write a new one next to it.
-//
-// walking into walls and other characters, getting hurt, tiles like lava and swinging weapons all
-// already work for enemies, the ai only has to decide what to do
+// world is { map, player, enemies, npcs, characters }. STAND_STILL for nothing. chasePlayer below is
+// a full example (ai: chasePlayer); write new ones next to it. walls, collisions, damage, tiles and
+// swings already work; the ai only decides
 //
 // ====================================================================================
 
@@ -66,7 +52,6 @@ const ENEMY_DEFAULTS = {
   onDeath: null,
 };
 
-// every enemy, by name. filled in by defineEnemy() below
 const ENEMY_TYPES = {};
 
 // defineType() is in utils.js
@@ -76,9 +61,8 @@ function defineEnemy(name, settings) {
 
 // ---------- ais ----------
 
-// comes straight at the player once they're within its sightRange, and swings its weapon when it's
-// within attackRange. otherwise it waits where it is. it doesn't know about walls, it just slides
-// along them (finding a way round would be the next step up, called pathfinding)
+// heads straight at the player within sightRange, swings within attackRange, else waits. slides
+// along walls (no pathfinding)
 function chasePlayer(enemy, world) {
   const player = world.player;
   const dx = player.x - enemy.x;
@@ -94,17 +78,14 @@ function chasePlayer(enemy, world) {
   };
 }
 
-// which way to walk to go dx across and dy down: -1, 0 or 1 each way. 0 once it's within a few
-// pixels on that side, otherwise when it's level with where it's going it would flick between up
-// and down every frame
+// walk direction to cover dx, dy: -1/0/1 each. 0 within 4px, or it flickers back and forth when level
 function towards(dx, dy) {
   return { x: Math.abs(dx) > 4 ? Math.sign(dx) : 0, y: Math.abs(dy) > 4 ? Math.sign(dy) : 0 };
 }
 
 // ---------- the enemies ----------
 
-// a basic enemy to fight: chases you and swipes at you. slower than you, so you can get away,
-// and weak on its own. 3 sword hits or 2 axe hits beats it
+// basic: chases and swipes. slower than you and weak alone. 3 sword or 2 axe hits
 defineEnemy('grunt', {
   width: 28,
   height: 50,
@@ -116,8 +97,7 @@ defineEnemy('grunt', {
   ai: chasePlayer,
 });
 
-// something to practise on. it doesn't move or fight back, and when it runs out of health
-// it just fills back up, so you can keep hitting it
+// practice target: doesn't move or fight, refills at 0 health
 defineEnemy('dummy', {
   width: 28,
   height: 48,
