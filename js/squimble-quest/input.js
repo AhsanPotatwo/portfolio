@@ -1,99 +1,87 @@
-// keyboard and mouse input. keeps track of what's held down and where the mouse is,
-// and hands it to the rest of the game in a simple form.
-//
-// it only listens while the game is focused (clicked on). that way the arrow keys only move the
-// player while you're playing, and still scroll the page normally the rest of the time.
-//
-// properties starting with _ are only meant to be used inside this file
+// keyboard and mouse: what's held and where the mouse is, in a simple form.
+// only listens while the canvas is focused, so arrow keys scroll the page otherwise.
+// _ properties are private to this file
 
-// keys with longer names that count as typing while Input.typing is on (single characters always do)
+// longer key names that count as typing while Input.typing (single characters always do)
 const TYPING_KEYS = ['Backspace', 'Delete', 'Enter', 'Escape', 'Tab'];
 
 const Input = {
-  // true while the game canvas has focus. "click to play" shows when it doesn't (hud.js)
+  // canvas has focus. "click to play" shows when not (hud.js)
   focused: false,
 
   // ---------- keyboard ----------
-  // e.code of every key currently held down, e.g. 'KeyW'
+  // e.code of every held key, e.g. 'KeyW'
   held: new Set(),
-  // keys that went down since the last frame. only lasts one frame, see update()
+  // keys that went down since last frame (one frame only, see update())
   keysPressed: new Set(),
-  // true while something is being typed into, like a number box (textfield.js). the keyboard
-  // then only types: no key counts for the game (so W doesn't walk), they go in typed instead
+  // something's being typed into (textfield.js): keys go to typed, none count for the game
   typing: false,
-  // what was typed since the last frame while typing is on, as e.key names: '7', 'Backspace',
-  // 'Enter', 'Escape', 'Tab'... and { paste: 'the text' } for Ctrl + V. only lasts one frame,
-  // like keysPressed
+  // typed since last frame while typing, as e.key names ('7', 'Backspace', 'Enter', 'Escape',
+  // 'Tab'...) and { paste: 'text' } for Ctrl + V. one frame only
   typed: [],
 
   // ---------- mouse ----------
-  // where the mouse is on screen, in game pixels (0-960 across, 0-540 down) no matter how big the canvas
-  // looks on the page. this is a screen position, the camera turns it into a world position.
-  // x and y are null until the mouse has moved over the page. inside is true when it's over the game
+  // screen position in game pixels (0-960, 0-540) whatever the canvas's page size; the camera makes
+  // it a world position. x/y null until the mouse moves over the page. inside: over the game
   mouse: { x: null, y: null, inside: false },
-  // mouse buttons held down right now, by name: 'left' or 'right' (see MOUSE_BUTTONS in config.js)
+  // held buttons by name, 'left'/'right' (MOUSE_BUTTONS in config.js)
   buttonsHeld: new Set(),
-  // buttons that were clicked since the last frame. only lasts one frame, see update()
+  // clicked since last frame (one frame only)
   buttonsPressed: new Set(),
-  // buttons that were let go since the last frame. only lasts one frame
+  // released since last frame (one frame only)
   buttonsReleased: new Set(),
-  // how far the mouse wheel turned since the last frame. positive is scrolling down (towards you)
+  // wheel turn since last frame. positive is scrolling down
   wheel: 0,
-  // while false the wheel scrolls the page like normal. true when something in the game uses the
-  // wheel, which stops it scrolling the page while you play. the hotbar turns it on (inventory.js)
+  // true stops the wheel scrolling the page. the hotbar turns it on (inventory.js)
   captureWheel: false,
 
   _el: null,
-  // the mouse position the browser gave us, in page pixels. turned into game pixels in update()
+  // browser mouse position in page pixels, converted in update()
   _clientX: null,
   _clientY: null,
-  // keys, clicks and wheel turns that have happened but the game hasn't seen yet
+  // input the game hasn't seen yet
   _pendingKeys: new Set(),
   _pendingTyped: [],
   _pendingClicks: new Set(),
   _pendingReleases: new Set(),
   _pendingWheel: 0,
-  // mouse buttons whose current click belongs to the ui, so the game ignores them (see claimMouse())
+  // buttons whose current click belongs to the ui, ignored by the game (claimMouse())
   _claimed: new Set(),
 
-  // call once from setup() with the canvas element
+  // once from setup() with the canvas element
   attach(el) {
     this._el = el;
 
-    // lets the canvas take focus when it's clicked, or tabbed to with the keyboard
+    // focusable by click or tab
     el.setAttribute('tabindex', '0');
 
-    // every key the game uses, so we know which ones to stop the browser handling
+    // every game key, whose browser default gets stopped
     const gameKeys = new Set(Object.values(KEYS).flat());
 
     el.addEventListener('keydown', (e) => {
-      // while typing, a letter, number or symbol (e.key is one character), or one of these keys,
-      // is typed rather than used by the game. anything else (F5, F12...) still works like normal
+      // while typing, characters and TYPING_KEYS are typed instead of used; others (F5, F12...) work
       if (this.typing && !e.ctrlKey && (e.key.length === 1 || TYPING_KEYS.includes(e.key))) {
-        // e.g. stops Tab moving focus off the game
+        // e.g. stops Tab moving focus
         e.preventDefault();
         this._pendingTyped.push(e.key);
         return;
       }
 
-      // with Ctrl held, a Ctrl combination the game uses (e.g. 'Control+KeyD') counts on its own,
-      // not as the plain key too, so Ctrl + D doesn't also walk right. otherwise it's just the key
-      // (e.g. 'KeyD'). only keys the game uses count (see KEYS in config.js)
+      // with Ctrl held, a used combo (e.g. 'Control+KeyD') counts instead of the plain key, so
+      // Ctrl + D doesn't also walk right. only KEYS (config.js) count
       const combo = `Control+${e.code}`;
       const name = e.ctrlKey && gameKeys.has(combo) ? combo : e.code;
       if (!gameKeys.has(name)) return;
 
-      // stops the arrow keys scrolling the page while you play, and the browser doing
-      // whatever it normally does with a Ctrl shortcut the game uses
+      // no page scrolling or browser Ctrl shortcuts for game keys
       e.preventDefault();
       this.held.add(name);
-      // holding a key down makes the browser repeat keydown over and over.
-      // those repeats aren't new presses, so only the first one counts
+      // ignore key repeat
       if (!e.repeat) this._pendingKeys.add(name);
     });
 
-    // Ctrl + V isn't typed above (Ctrl is held), so the browser pastes, and this catches it.
-    // on the document, because that's where it ends up whatever has focus
+    // Ctrl + V isn't typed above, so the browser pastes and this catches it. on document, where it
+    // lands whatever has focus
     document.addEventListener('paste', (e) => {
       if (!this.typing) return;
       e.preventDefault();
@@ -105,16 +93,14 @@ const Input = {
       this.held.delete(`Control+${e.code}`);
     });
 
-    // tracked on the whole window rather than just the canvas, so aiming keeps working
-    // if the mouse slips off the edge of the game while you're playing
+    // on window, so aiming works when the mouse slips off the canvas
     window.addEventListener('pointermove', (e) => {
       this._clientX = e.clientX;
       this._clientY = e.clientY;
     });
 
     el.addEventListener('pointerdown', (e) => {
-      // the click that starts the game (gets rid of "click to play") shouldn't also count as
-      // an attack. the canvas only gets focus just after this runs, so that first click is skipped
+      // focus arrives after this, so the "click to play" click isn't an attack
       if (!this.focused) return;
       const button = MOUSE_BUTTONS[e.button];
       if (!button) return;
@@ -122,25 +108,25 @@ const Input = {
       this._pendingClicks.add(button);
     });
 
-    // on the window, because you might let go after dragging the mouse off the game
+    // on window, in case it's released off the canvas
     window.addEventListener('pointerup', (e) => {
       const button = MOUSE_BUTTONS[e.button];
-      // only counts as a release if we saw it go down in the game
+      // only if it went down in the game
       if (!this.buttonsHeld.has(button)) return;
       this.buttonsHeld.delete(button);
       this._pendingReleases.add(button);
     });
 
-    // right click is a game button, so don't open the browser's right click menu
+    // right click is a game button: no browser menu
     el.addEventListener('contextmenu', (e) => {
       e.preventDefault();
     });
 
-    // passive: false is needed to be allowed to stop the page scrolling
+    // passive: false allows preventDefault
     el.addEventListener('wheel', (e) => {
       if (!this.focused || !this.captureWheel) return;
       e.preventDefault();
-      // most browsers measure the wheel in pixels, but some (firefox) in lines. ~16px a line
+      // pixels, or lines in some browsers (firefox), ~16px a line
       this._pendingWheel += e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
     }, { passive: false });
 
@@ -148,8 +134,7 @@ const Input = {
       this.focused = true;
     });
 
-    // clicking away while a key is held means we'd never see it let go,
-    // so forget everything, otherwise the player would keep walking on their own
+    // we won't see keys released after blur, so forget everything or the player keeps walking
     el.addEventListener('blur', () => {
       this.focused = false;
       this.held.clear();
@@ -163,14 +148,12 @@ const Input = {
     });
   },
 
-  // call once at the very start of every frame, before anything reads the input
+  // once at the start of every frame, before anything reads input
   update() {
-    // a claimed click is over once its release has been and gone (released last frame).
-    // it has to last through the release frame too, or the game would see the release
+    // a claim ends after its release frame (it has to cover that frame, or the game sees the release)
     for (const button of this.buttonsReleased) this._claimed.delete(button);
 
-    // presses from since the last frame become this frame's presses, and are gone next frame.
-    // that's what lets wasPressed() and mousePressed() be true for exactly one frame per press
+    // pending input becomes this frame's, gone next frame: one frame per press
     this.keysPressed = this._pendingKeys;
     this._pendingKeys = new Set();
     this.typed = this._pendingTyped;
@@ -184,9 +167,7 @@ const Input = {
 
     if (this._clientX === null) return;
 
-    // the browser gives page pixels, but the game wants game pixels. css scales the canvas,
-    // so we find where it is and how big it looks, then scale the position to match.
-    // done every frame because the canvas moves when the page scrolls, even if the mouse doesn't
+    // page → game pixels via the canvas's css size. every frame, since page scrolling moves the canvas
     const rect = this._el.getBoundingClientRect();
     this.mouse.x = (this._clientX - rect.left) * (GAME_W / rect.width);
     this.mouse.y = (this._clientY - rect.top) * (GAME_H / rect.height);
@@ -196,21 +177,17 @@ const Input = {
 
   // ---------- keyboard ----------
 
-  // is any key for this action held? true every frame while held, e.g. Input.isDown('up').
-  // for things that keep going, like walking
+  // any key for the action held, e.g. Input.isDown('up'). for ongoing things like walking
   isDown(action) {
     return KEYS[action].some((code) => this.held.has(code));
   },
 
-  // was a key for this action pressed this frame? true for one frame only per press.
-  // for one-off things, like opening a menu or switching something on and off
+  // action pressed this frame (one frame per press). for one-off things like toggles
   wasPressed(action) {
     return KEYS[action].some((code) => this.keysPressed.has(code));
   },
 
-  // which way the keys point, as x and y that are each -1, 0 or 1.
-  // x: -1 left, 1 right. y: -1 up, 1 down (y goes down the screen in p5).
-  // holding opposite keys (left + right) cancels out to 0
+  // { x, y } each -1/0/1 (y down). opposite keys cancel
   direction() {
     return {
       x: (this.isDown('right') ? 1 : 0) - (this.isDown('left') ? 1 : 0),
@@ -220,35 +197,30 @@ const Input = {
 
   // ---------- mouse ----------
 
-  // these three are for gameplay. they ignore clicks that were meant for ui buttons,
-  // so the game never has to check whether the mouse was over a button
+  // these three are for gameplay and ignore clicks claimed by the ui
 
-  // is this button held down right now? true every frame while held.
-  // for things that keep going, like a charging bow or a flamethrower
+  // held now. for ongoing things (charging a bow)
   mouseHeld(button) {
     return this.buttonsHeld.has(button) && !this._claimed.has(button);
   },
 
-  // was this button clicked this frame? true for one frame only per click.
-  // for one-off actions, like a single sword swing
+  // clicked this frame (one frame per click). for one-offs (a sword swing)
   mousePressed(button) {
     return this.buttonsPressed.has(button) && !this._claimed.has(button);
   },
 
-  // was this button let go this frame? true for one frame only.
-  // for things that happen on release, like firing a charged bow
+  // released this frame. for release actions (firing a charged bow)
   mouseReleased(button) {
     return this.buttonsReleased.has(button) && !this._claimed.has(button);
   },
 
-  // the ui calls this when a click starts on one of its buttons. the game then ignores that click,
-  // from press to release. the ui itself reads buttonsPressed etc. directly, so it still sees it
+  // the ui calls this when a click starts on it; the game ignores that click until release. the ui
+  // reads buttonsPressed etc. directly
   claimMouse() {
     for (const button of this.buttonsPressed) this._claimed.add(button);
   },
 
-  // the point the player is aiming at: the mouse's screen position (use camera.screenToWorld() to
-  // find it in the world), or null if the game isn't being played or the mouse hasn't been seen yet
+  // mouse screen position (camera.screenToWorld() for world), or null if unfocused or unseen
   aimPoint() {
     if (!this.focused || this.mouse.x === null) return null;
     return { x: this.mouse.x, y: this.mouse.y };

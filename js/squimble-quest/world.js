@@ -1,14 +1,13 @@
-// draws the world: the tile map, plus lines to help while developing
+// draws the world: the tile map, plus dev lines
 const WORLD_COLOURS = {
-  outside: '#2b2b30',          // past the edge of the map, only seen when zoomed right out
-  grid:    'rgba(0, 0, 0, 0.12)', // lines between tiles. see-through so it works on any tile
-  axis:    'rgba(0, 0, 0, 0.45)', // the x = 0 and y = 0 lines, dev mode only
+  outside: '#2b2b30',          // past the map's edge, seen zoomed right out
+  grid:    'rgba(0, 0, 0, 0.12)', // see-through, to work on any tile
+  axis:    'rgba(0, 0, 0, 0.45)', // x = 0 and y = 0 lines, dev mode only
 };
 
-// uses world positions, so call it between camera.begin() and camera.end().
-// devLines draws the tile grid and lines through x = 0 and y = 0 (dev mode turns them on)
+// world positions (inside camera.begin/end). devLines: tile grid and x = 0 / y = 0 lines (dev mode)
 function drawWorld(camera, map, devLines) {
-  // background() ignores the camera and fills the whole canvas
+  // ignores the camera, fills the canvas
   background(WORLD_COLOURS.outside);
 
   map.draw(camera);
@@ -19,9 +18,8 @@ function drawWorld(camera, map, devLines) {
   }
 }
 
-// lines are drawn as thin rects (1px rects stay sharper than line()). everything between
-// camera.begin() and end() gets scaled by the zoom, so a 1px rect would go thick when zoomed in
-// and fade away when zoomed out. px (1 / zoom world pixels) always comes out as 1 pixel on screen
+// lines are thin rects (sharper than line()). the camera scales by zoom, so px (1 / zoom world
+// pixels) is always 1 screen pixel
 
 function drawGrid(camera, map) {
   const edges = map.bounds();
@@ -29,8 +27,7 @@ function drawGrid(camera, map) {
   const height = edges.bottom - edges.top;
   const px = 1 / camera.zoom;
 
-  // grid lines, only the ones on screen.
-  // floor(... / TILE) * TILE rounds down to the nearest tile edge, so the first line is just off screen
+  // only on-screen lines, starting at the tile edge just off screen
   const view = camera.view();
   const firstX = Math.max(edges.left, Math.floor(view.left / TILE) * TILE);
   const lastX = Math.min(edges.right, view.right);
@@ -43,7 +40,7 @@ function drawGrid(camera, map) {
   for (let y = firstY; y <= lastY; y += TILE) rect(edges.left, y, width, px);
 }
 
-// the x = 0 and y = 0 lines, 2px wide and centred on 0
+// x = 0 and y = 0 lines, 2px wide, centred
 function drawAxes(camera, map) {
   const edges = map.bounds();
   const width = edges.right - edges.left;

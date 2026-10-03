@@ -1,13 +1,12 @@
-// small helpers that more than one part of the game can use: maths, text, the catalogues, and files
+// shared helpers: maths, text, catalogues, files
 
-// do two boxes ({ x, y, w, h }) overlap? boxes that only touch along an edge don't count
+// do boxes ({ x, y, w, h }) overlap? touching edges don't count
 function boxesOverlap(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x &&
          a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
-// the smallest turn from angle b to angle a, in radians, between -PI and PI.
-// e.g. from 350° to 10° is a 20° turn, not 340°. used to check if something's within an arc
+// smallest turn from angle b to a, radians, -PI..PI (350° → 10° is 20°). for arc checks
 function angleDifference(a, b) {
   let diff = (a - b) % (Math.PI * 2);
   if (diff > Math.PI) diff -= Math.PI * 2;
@@ -15,44 +14,38 @@ function angleDifference(a, b) {
   return diff;
 }
 
-// turns a steady 0 → 1 into one that starts slow, speeds up in the middle and slows down at the
-// end (called "ease in-out"). for smooth movements with a set length, like the camera's glides
+// ease in-out of t (0 → 1), for fixed-length movements like camera glides
 function easeInOut(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-// moves current towards target, covering part of the gap each frame, so it slows down as it
-// arrives (a smooth ease). speed is how quickly: higher is snappier, Infinity gets there instantly.
-// the Math.exp part keeps it the same speed at any frame rate, like dt does for movement
+// moves current towards target by part of the gap each frame, slowing as it arrives. higher speed is
+// snappier, Infinity is instant. Math.exp makes it frame rate independent
 function approach(current, target, speed, dt) {
   if (speed === Infinity) return target;
   return current + (target - current) * (1 - Math.exp(-speed * dt));
 }
 
-// a random number from min up to (not quite) max. everything random in the game goes through here,
-// so it's one place to change, e.g. to a seeded random that every player in a multiplayer game
-// would get the same answers from (see README.md)
+// random from min to just under max. all game randomness goes through here, so it could become a
+// seeded random shared by every player in multiplayer (see README.md)
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
-// turns an angle (in radians) into the nearest of the 8 directions, as x and y that are each
-// -1, 0 or 1 (the same shape as Input.direction()). e.g. 0 → right {x:1,y:0}, PI/2 → down {x:0,y:1}.
-// angles go clockwise from pointing right, because y goes down the screen in p5
+// angle (radians, clockwise from right since y goes down) → nearest of 8 directions, x and y each
+// -1/0/1 like Input.direction(). e.g. 0 → {x:1,y:0}, PI/2 → {x:0,y:1}
 function directionFromAngle(angle) {
-  // the 8 directions are 45° (PI/4) apart. dividing by 45° and rounding picks the nearest one,
-  // then multiplying back gives that direction's exact angle
+  // snap to the nearest 45°
   const snapped = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
-  // cos and sin of that angle are 0, ±0.707 or ±1. rounding turns them into 0 or ±1
+  // cos/sin are 0, ±0.707 or ±1; rounding gives 0 or ±1
   return {
     x: Math.round(Math.cos(snapped)),
     y: Math.round(Math.sin(snapped)),
   };
 }
 
-// sets up how text() looks in one go, instead of 4 or 5 lines every time something's written.
-// style is NORMAL, BOLD or ITALIC, alignX LEFT / CENTER / RIGHT, alignY TOP / CENTER / BOTTOM.
-// quicksand and courier prime are already loaded by the page, so the canvas can use them too.
+// sets all text() settings in one call. style NORMAL/BOLD/ITALIC, alignX LEFT/CENTER/RIGHT, alignY
+// TOP/CENTER/BOTTOM. quicksand and courier prime are loaded by the page.
 // e.g. setText(14, BOLD, CENTER, BOTTOM) or setText(13, NORMAL, LEFT, TOP, 'Courier Prime')
 function setText(size, style = BOLD, alignX = CENTER, alignY = CENTER, font = 'Quicksand') {
   textFont(font);
@@ -62,13 +55,12 @@ function setText(size, style = BOLD, alignX = CENTER, alignY = CENTER, font = 'Q
 }
 
 // ---------- catalogues ----------
-// objects.js, enemies.js, npcs.js, weapons.js and items.js each keep a catalogue: every kind of that
-// thing by name, e.g. ENEMY_TYPES.grunt. their defineObject(), defineEnemy()... all use these
+// objects.js, enemies.js, npcs.js, weapons.js and items.js each keep a catalogue of kinds by name
+// (e.g. ENEMY_TYPES.grunt), filled by defineObject(), defineEnemy()... through these
 
-// adds a kind of thing to a catalogue (types): its settings on top of the catalogue's defaults, and
-// its name. kind is what the catalogue calls one, for the warning. a setting that isn't in the
-// defaults is almost always a typo (maxHelth), which would otherwise be quietly ignored, so it gets
-// a warning. a real new setting needs its normal value adding to the defaults
+// adds `name` to catalogue `types`: defaults + settings + name. a setting not in the defaults is
+// usually a typo (maxHelth) that'd be silently ignored, so it warns; a real new setting needs a
+// default. kind is only for the warning
 function defineType(types, defaults, kind, name, settings) {
   for (const key of Object.keys(settings)) {
     if (!(key in defaults)) console.warn(`The ${kind} "${name}" has a setting "${key}" that isn't in the ${kind} defaults. A typo, or a new setting that needs its normal value adding there?`);
@@ -76,9 +68,8 @@ function defineType(types, defaults, kind, name, settings) {
   types[name] = { ...defaults, ...settings, name };
 }
 
-// a catalogue entry as plain data, for a file like tiles.json or items.json: its name, plus only the
-// settings that are different from defaults. its colour always goes in, so every line says what it
-// looks like
+// a catalogue entry as file data (tiles.json, items.json): name plus non-default settings. colour
+// always goes in, so every line shows its look
 function typeToData(type, defaults) {
   const entry = { name: type.name };
   for (const [key, value] of Object.entries(defaults)) {
@@ -87,18 +78,15 @@ function typeToData(type, defaults) {
   return entry;
 }
 
-// one entry of a list in a json file, squashed onto one indented line, so the file reads like a list.
-// indenting by 1 then swapping each line break (and its indent) for a space leaves spaces after the
-// colons and commas
+// one json list entry on one indented line. indent 1 then collapsing line breaks leaves spaces
+// after colons and commas
 function jsonLine(entry) {
   return `    ${JSON.stringify(entry, null, 1).replace(/\n\s*/g, ' ')}`;
 }
 
-// run from preload() in sketch.js, before the game starts, for objects, enemies and npcs, and once
-// items.json has loaded for items (items.js). tiles load theirs in setTile() in tiles.js:
-//   prepareArt(OBJECT_TYPES, 'object')
-// loads their images, and turns colours into p5 colours once now rather than every time
-// something's drawn (thousands of times a second). kind is only used in the warning
+// loads images and makes p5 colours once (not every draw). run from preload() (sketch.js) for
+// objects, enemies, npcs, and after items.json loads for items (items.js). tiles use setTile()
+// (tiles.js). kind is only for the warning
 function prepareArt(types, kind) {
   for (const type of Object.values(types)) {
     type.fill = color(type.colour);
@@ -109,7 +97,7 @@ function prepareArt(types, kind) {
         type.img = null;
       });
     }
-    // npcs can have a portrait for the text box too (npcs.js)
+    // npc text box portraits (npcs.js)
     type.portraitImg = null;
     if (type.portrait) {
       type.portraitImg = loadImage(type.portrait, undefined, () => {
@@ -121,12 +109,11 @@ function prepareArt(types, kind) {
 }
 
 // ---------- files ----------
-// the game's files (tiles.json, maps) load from its own folders. the map and tile editors can also
-// open files from the computer, and download files for you to put in those folders
+// game files load from the site's folders; the editors can also open files from the computer and
+// download files to put in those folders
 
-// loads a json file from the site, e.g. fetchJson('assets/squimble-quest/tiles/tiles.json'). gives
-// back a promise of its data. if it can't load, the error says why, plus the usual reason when the
-// page was opened straight from its file rather than through a local server
+// promise of a site json file's data. the error says why it failed, plus the local server hint when
+// opened as file://
 function fetchJson(path) {
   return fetch(path)
     .then((response) => {
@@ -141,9 +128,8 @@ function fetchJson(path) {
     });
 }
 
-// asks for a file from the computer with the browser's own file picker (the only way a web page can
-// read one), then gives it (a File) to onPick. accept says which kinds, e.g. '.json' or 'image/*'.
-// nothing happens if the picker's closed without choosing one
+// browser file picker (the only way a page can read a file), then onPick(File). accept e.g. '.json'
+// or 'image/*'. closing without choosing does nothing
 function pickFile(accept, onPick) {
   const picker = document.createElement('input');
   picker.type = 'file';
@@ -154,20 +140,18 @@ function pickFile(accept, onPick) {
   picker.click();
 }
 
-// makes the browser download some text as a file
 function downloadTextFile(fileName, text) {
   downloadData(fileName, new Blob([text], { type: 'application/json' }));
 }
 
-// makes the browser download a file. data is a Blob, the browser's name for a file's contents, e.g. a
-// picture chosen in the tile editor (tileeditor.js). not called downloadFile(): p5 already has one,
-// and in global mode p5's would replace it
+// downloads a Blob, e.g. a picture chosen in tileeditor.js. not downloadFile(): p5's global would
+// replace it
 function downloadData(fileName, data) {
   const url = URL.createObjectURL(data);
   const link = document.createElement('a');
   link.href = url;
   link.download = fileName;
   link.click();
-  // give the download a moment to start before tidying up
+  // let the download start before tidying up
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

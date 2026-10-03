@@ -1,82 +1,61 @@
-// warps: tiles that take the player to another map, or somewhere else on the same one. a house's
-// door, a cave entrance, a manhole, a trapdoor, a secret passage, a teleporter, the way through to
-// the next part of a castle: they're all warps. "warp" is the usual name in games for a tile that
-// moves you somewhere. they're placed and linked up in the map editor (Triggers tab, see editor.js).
+// warps: tiles that move the player to another map or elsewhere on this one (doors, caves, manholes,
+// trapdoors, secret passages, teleporters; "warp" is the usual game term). placed and linked in the
+// editor's Triggers tab (editor.js). a same-map warp is a teleport: only the player moves. maps keep
+// their state when left (loadMap() in sketch.js).
 //
-// a warp to another spot on the same map is a teleport: only the player moves, and everything
-// else carries on as it was. going to another map and back finds it how it was left too (see
-// loadMap() in sketch.js)
+// each warp on a map: { name, col, row, to, toWarp, activate, enemies }
+//   name      unique per map; what other warps link to
+//   col, row  its tile; can share with objects, enemies, npcs
+//   to        target map name (maps.js). '' goes nowhere: arrival-only
+//   toWarp    warp to arrive at on that map. '' is its spawn
+//   activate  'step': on stepping onto it. 'interact': E within WARP_REACH (KEYS in config.js)
+//   enemies   true lets chasing enemies follow (sendFollowers())
 //
-// on a map, each warp is:
+// every warp is both exit and arrival, so a house needs two, each leading to the other. links go by
+// name, so moving a warp is safe; renaming breaks links to it (warpProblem()).
 //
-//   { name, col, row, to, toWarp, activate, enemies }
+// step warps only fire when the player's tile changes onto them (like damagePerStep, character.js),
+// and the arrival tile counts as already stepped on, so arriving doesn't bounce you back.
 //
-//   name      what it's called, so other warps can lead to it. each warp on a map has its own name
-//   col, row  the tile it's on. it can share the tile with objects, enemies and npcs
-//   to        the name of the map it leads to (maps.js). '' goes nowhere, which is still useful as
-//             somewhere to arrive: a warp that's only a way in, never a way out
-//   toWarp    the name of the warp on that map to arrive at. '' arrives at that map's spawn point
-//   activate  'step' opens it when the player steps onto its tile.
-//             'interact' opens it when the player's close enough and presses E (KEYS in config.js)
-//   enemies   true lets enemies chasing the player follow them through it (see sendFollowers())
+// warps live on the map, not in tiles or objects, which can't store a target. what shows a warp is
+// whatever's on its tile (a door/trapdoor object, a wall gap). an 'interact' warp works under a solid
+// object, since WARP_REACH reaches from the next tile.
 //
-// every warp is both a way out and a place to arrive, so a house needs two: one on the town map
-// leading to the one inside, and one inside leading back out. warps link by name rather than by
-// position, so a warp can be moved around in the editor without breaking anything leading to it
-// (but renaming it does, see warpProblem()).
-//
-// arriving on a 'step' warp doesn't send you straight back through it. a step warp only opens
-// when you step onto its tile from another tile, the same way a tile's damagePerStep works (character.js),
-// and the tile you arrive on counts as already stepped on.
-//
-// a warp is on the map rather than part of a tile or object, because a tile or object has nowhere
-// to keep where it leads. what shows the player where a warp is, is whatever's drawn on its tile:
-// a door, trapdoor or manhole object, or a gap in a wall. a solid object works too, with an
-// 'interact' warp on the same tile: E opens it from the tile in front, since WARP_REACH is more
-// than a tile.
-//
-// warps only move the player. something you press E at that does anything else (a sign, a chest,
-// a lever) would be its own kind of trigger, and could copy how Warps finds what's in reach
+// warps only move the player. other E things (signs, chests, levers) should be their own trigger
+// kind, copying how inReach() works
 
-// how close the middle of the player's feet has to be to the middle of an 'interact' warp's tile
-// to open it, in pixels. a bit more than a tile, so it works from the tile in front, even when the
-// warp's tile is one you can't walk onto
+// px from the feet' middle to an 'interact' warp's tile middle. over a tile, so it works from the
+// tile in front, even onto an unwalkable tile
 const WARP_REACH = 40;
 
-// how long an enemy following the player takes to open an 'interact' warp once it's walked there,
-// in seconds, like the player taking a moment to press E
+// seconds a following enemy takes to open an 'interact' warp after reaching it (like pressing E)
 const WARP_ENEMY_OPEN_TIME = 1;
 
-// how warps look in the map editor. they're invisible while playing, the map's tiles and objects
-// are what show where they are
+// editor-only look; in play, the tile and objects show where warps are
 const WARP_COLOURS = {
-  fill:   'rgba(179, 107, 255, 0.35)', // see-through, so the tile underneath still shows
+  fill:   'rgba(179, 107, 255, 0.35)', // see-through, the tile shows
   edge:   '#b36bff',
-  // for a warp that leads somewhere that doesn't exist (see warpProblem())
+  // target missing (warpProblem())
   broken: '#ff6b6b',
 };
 
 const Warps = {
-  // the tile the player's feet were on last frame. a 'step' warp opens when this changes to the
-  // warp's tile, so standing on one does nothing, only stepping onto one
+  // the player's feet tile last frame. a step warp fires when this changes onto it, not while standing
   lastCol: null,
   lastRow: null,
-  // the 'interact' warp close enough to open with E this frame, or null. worked out in sketch.js
-  // every frame while playing, and drawn with an E over it
+  // the 'interact' warp in E reach this frame, or null. set by sketch.js while playing, drawn with an E
   reachable: null,
-  // enemies following the player through a warp to another map, on their way there. they're on
-  // neither map until they come out (see sendFollowers())
+  // enemies following to another map, in transit: on neither map until they come out (sendFollowers())
   followers: [],
 
-  // run by loadMap() (sketch.js) once the player's been put on the new map. whatever tile they've
-  // arrived on counts as already stepped on, so a 'step' warp there doesn't send them straight back
+  // by loadMap() (sketch.js) and Player.respawn() after placing the player: their tile counts as
+  // stepped on, so a step warp there doesn't fire
   arrived(player, map) {
     [this.lastCol, this.lastRow] = feetTile(player, map);
     this.reachable = null;
   },
 
-  // run every frame while playing, after everyone has moved. opens a 'step' warp if the player's
-  // just stepped onto one
+  // every frame while playing, after movement: fires a step warp just stepped onto
   checkStep(player, map) {
     const [col, row] = feetTile(player, map);
     if (col === this.lastCol && row === this.lastRow) return;
@@ -86,8 +65,7 @@ const Warps = {
     if (warp && warp.activate === 'step') this.use(warp);
   },
 
-  // the closest 'interact' warp that leads somewhere and is within WARP_REACH of the player's
-  // feet, or null
+  // closest 'interact' warp with a target within WARP_REACH of the feet, or null
   inReach(player, map) {
     const feetX = player.x;
     const feetY = player.y + feetBelowCentre(player.settings);
@@ -104,8 +82,7 @@ const Warps = {
     return closest;
   },
 
-  // goes through a warp. if it leads somewhere that doesn't exist, the player stays put and a
-  // message says what's wrong
+  // broken target: the player stays and a message says why
   use(warp) {
     if (!warp.to) return;
     const problem = warpProblem(warp);
@@ -118,14 +95,12 @@ const Warps = {
     loadMap(warp.to, warp.toWarp); // in sketch.js
   },
 
-  // the enemies chasing the player follow them through a warp that lets enemies through. each
-  // takes as long as it would to walk to the warp in a straight line, plus WARP_ENEMY_OPEN_TIME
-  // if it opens with E, then comes out where the warp leads (comeOut()).
-  // on a warp to another spot on the same map, they really walk to it (Enemy.update() in
-  // enemy.js). on a warp to another map they can't, because a map the player isn't on stands
-  // still, so they leave it straight away and wait in followers instead.
-  // ponytail: any enemy with an ai counts as chasing inside its sightRange (chasePlayer in
-  // enemies.js), give ais their own "am I chasing" answer once there are ones that don't chase.
+  // chasing enemies follow through: each takes its straight-line walk time plus WARP_ENEMY_OPEN_TIME
+  // for E warps, then comes out at the target (comeOut()). same map: they really walk there
+  // (Enemy.update() in enemy.js). another map: they can't (maps the player isn't on stand still), so
+  // they leave now and wait in followers.
+  // ponytail: any enemy with an ai within sightRange counts as chasing (chasePlayer in enemies.js);
+  // give ais their own "am I chasing" once some don't chase.
   // enemies, player and worldMap are the game's (sketch.js)
   sendFollowers(warp) {
     const x = (warp.col + 0.5) * TILE;
@@ -142,8 +117,7 @@ const Warps = {
     enemies = enemies.filter((enemy) => !chasing.includes(enemy));
   },
 
-  // run every frame while playing: counts down the followers on their way to another map, and
-  // brings out the ones that have got there
+  // every frame while playing: counts down followers in transit, bringing out arrivals
   update(dt) {
     for (const enemy of this.followers) {
       enemy.following.time -= dt;
@@ -151,9 +125,8 @@ const Warps = {
     }
   },
 
-  // an enemy following the player comes out where its warp leads, like the player would. if the
-  // player's on that map it joins its enemies, otherwise the ones the map keeps for when they
-  // come back (loadMap() in sketch.js)
+  // a follower comes out at its warp's target. joins enemies if the player's on that map, else the
+  // map's kept characters (loadMap() in sketch.js)
   comeOut(enemy) {
     const warp = enemy.following.warp;
     enemy.following = null;
@@ -163,54 +136,49 @@ const Warps = {
     if (arrive) {
       enemy.placeFeetOnTile(arrive.col, arrive.row);
     } else {
-      // the spawn point is where the player's centre goes, so find the tile under their feet
+      // spawn is the player's centre; find the tile under their feet
       enemy.placeFeetOnTile(map.colAt(map.spawn.x), map.rowAt(map.spawn.y + feetBelowCentre(PLAYER)));
     }
     if (map === worldMap) {
       if (!enemies.includes(enemy)) enemies.push(enemy);
     } else {
-      // a map opened from a file since has no kept characters yet, and will make its own
+      // a map opened from file since has no kept characters yet, and will make its own
       map.characters?.enemies.push(enemy);
     }
   },
 
-  // an E over the warp that can be opened right now. uses world positions, so draw it before
-  // camera.end()
+  // E over the reachable warp. world positions (before camera.end())
   drawPrompt() {
     const warp = this.reachable;
     if (warp) drawKeyPrompt((warp.col + 0.5) * TILE, warp.row * TILE - 4); // npc.js
   },
 };
 
-// the tile under the middle of the player's feet right now, as [col, row]. the same tile as
-// player.tileCol and tileRow (character.js), but worked out from where they are this moment.
-// those are only updated when the player moves, so if they die partway through a frame (lava,
-// an enemy) and respawn, they'd still say the tile they died on until the next frame, and the
-// respawn tile would look freshly stepped onto, sending them through the warp they arrived by
+// [col, row] under the player's feet now. like player.tileCol/tileRow (character.js), but those
+// update on movement, so after a mid-frame death and respawn they'd still hold the death tile, making
+// the respawn tile look freshly stepped on and firing the warp they arrived by
 function feetTile(player, map) {
   return [map.colAt(player.x), map.rowAt(player.y + feetBelowCentre(player.settings))];
 }
 
-// what's wrong with where a warp leads, as a sentence to show, or null if nothing is. used when
-// going through a warp, to mark broken warps red in the editor, and to check every warp once the
-// maps have loaded (checkAllWarps() below)
+// what's wrong with a warp's target, as a sentence, or null. used when warping, for red editor
+// markers, and by checkAllWarps()
 function warpProblem(warp) {
   if (!warp.to) return null;
-  // getMap() builds the map the first time it's asked for, then keeps it (maps.js)
+  // builds the map on first ask, then keeps it (maps.js)
   const map = getMap(warp.to);
   if (!map) return `there's no map called "${warp.to}"`;
   if (warp.toWarp && !map.warp(warp.toWarp)) return `the map "${warp.to}" has no warp called "${warp.toWarp}"`;
   return null;
 }
 
-// the names of every warp on a map, for picking which one to arrive at in the editor
+// a map's warp names, for the editor's arrival picker
 function warpNamesOn(mapName) {
   return getMap(mapName)?.warps.map((warp) => warp.name) ?? [];
 }
 
-// looks at every warp on every map and warns in the browser console about any that lead somewhere
-// that doesn't exist. run once when the game starts, after the map files have loaded (sketch.js).
-// ponytail: builds every map to look at its warps, fine until there are lots of big maps
+// console warnings for every broken warp on every map. once after maps load (sketch.js).
+// ponytail: builds every map to read its warps, fine until there are lots of big maps
 function checkAllWarps() {
   for (const name of Object.keys(MAPS)) {
     for (const warp of getMap(name).warps) {
@@ -220,15 +188,15 @@ function checkAllWarps() {
   }
 }
 
-// a warp's marker in the map editor: its tile, see-through purple (red if it's broken), with an E
-// on it if it opens with E, and its name above it. px is one screen pixel (see Editor.drawCursor())
+// editor marker: see-through purple tile (red if broken), E if it opens with E, name above. px is
+// one screen pixel (Editor.drawCursor())
 function drawWarpMarker(warp, px) {
   const x = warp.col * TILE;
   const y = warp.row * TILE;
   const colour = warpProblem(warp) ? WARP_COLOURS.broken : WARP_COLOURS.edge;
   drawWarpSquare(x, y, TILE, colour, warp.activate === 'interact', px);
 
-  // the name, with a dark outline so it shows up on anything
+  // name, dark outline so it shows on anything
   fill(255);
   stroke(0, 0, 0, 200);
   strokeWeight(3 * px);
@@ -237,7 +205,7 @@ function drawWarpMarker(warp, px) {
   noStroke();
 }
 
-// the square part of a warp's marker, also used for the warp in the editor's bar
+// the marker's square, also the editor palette's warp icon
 function drawWarpSquare(x, y, size, colour, showE, px = 1) {
   fill(WARP_COLOURS.fill);
   stroke(colour);

@@ -1,32 +1,28 @@
-// a friendly character in the game. walking, facing and tiles come from Character (character.js),
-// what kind of npc it is (name, dialogue, ai...) comes from npcs.js.
-// this file only has what's different about npcs: no health bar, and the "press E" prompt
-// (drawKeyPrompt(), which warps use too).
-// their attacks (if they ever had any) hurt nobody, Character's targets() already gives no one
+// a friendly character. shared behaviour is in Character (character.js), its kind (name, dialogue,
+// ai...) in npcs.js. here: no health bar, and the "press E" prompt (drawKeyPrompt(), warps use it too).
+// Character's targets() is empty, so npc attacks would hurt nobody
 class Npc extends Character {
-  // type: a name from NPC_TYPES. col, row: the tile it stands on
+  // type: an NPC_TYPES name. col, row: its tile
   constructor(type, col, row) {
     super(0, 0, NPC_TYPES[type]);
     this.type = NPC_TYPES[type];
     this.placeFeetOnTile(col, row);
-    // true while the player's close enough to talk to it (set by sketch.js every frame)
+    // player close enough to talk (set by sketch.js every frame)
     this.canTalk = false;
   }
 
   update(dt, world) {
-    // its ai decides what to do, the same way an enemy's does
     super.update(this.think(world, dt), dt, world);
   }
 
   draw() {
     this.drawBody();
-    // a little "E" key over its head, so you know you can talk to it
     if (this.canTalk) drawKeyPrompt(this.x, this.y - this.h / 2 - 8);
   }
 }
 
-// a little "E" key, for something you can press E at: an npc to talk to, or a warp (warps.js).
-// x is its middle and bottom is its bottom edge, in world positions
+// a small "E" key over something you can press E at (an npc, or a warp in warps.js). x is its middle,
+// bottom its bottom edge, world positions
 function drawKeyPrompt(x, bottom) {
   const size = 18;
   const left = Math.round(x - size / 2);

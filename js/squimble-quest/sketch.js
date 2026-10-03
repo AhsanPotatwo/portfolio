@@ -1,58 +1,50 @@
-// squimble quest, a top down rpg.
-// new to the project? start with README.md in this folder: how it all fits together, what's
-// planned, known issues, and how to keep those notes up to date when you change things.
+// squimble quest, a top down rpg. new here? read README.md in this folder first.
 //
-// this file runs the game loop. the other files in this folder hold the pieces it uses,
-// and squimble-quest.html loads them in this order before this one:
+// this file is the game loop. squimble-quest.html loads the others first, in this order:
 //   config.js     settings: sizes, speeds, controls, button styles
-//   utils.js      small helpers (maths, text settings, catalogues, loading and downloading files)
-//   input.js      the keyboard and mouse
-//   camera.js     which part of the world is on screen, and world ↔ screen positions
-//   tiles.js      every kind of tile and what it does (grass, walls, lava...), loaded from tiles.json
-//   dualgrid.js   dual grid tiles: ground like grass that blends into the tiles next to it
-//   objects.js    every kind of object that sits on the tiles (furniture, decorations...)
-//   enemies.js    every kind of enemy, and its ai
-//   npcs.js       every kind of friendly npc, and what they say
-//   weapons.js    every weapon, and the swings they make
-//   items.js      every kind of item that can be carried (a sword, an axe...), and loading the
-//                 weapons and items from items.json
-//   tilemap.js    a map made of tiles: storing, drawing, resizing, and collision with solid tiles
-//   maps.js       the list of map files to load, the map the game starts on, and visited maps
-//   mapfile.js    saving and loading maps as files
-//   world.js      draws the world (the map, plus dev mode lines)
-//   character.js  what the player, enemies and npcs share: walking, health, attacking, drawing
-//   player.js     the player (needs character.js loaded first)
-//   enemy.js      an enemy in the game (needs character.js loaded first)
-//   npc.js        an npc in the game (needs character.js loaded first)
-//   ui.js         the ui system: UIElement and the UI manager
-//   button.js     buttons (needs ui.js loaded first, because Button builds on UIElement)
-//   textfield.js  boxes you type words or numbers into (needs ui.js loaded first)
-//   formbox.js    the box that asks for things in the editors, and its Picker and Checkbox fields
-//   hud.js        things drawn over the game that aren't ui elements (crosshair, messages, panels)
-//   inventory.js  inventories, the hotbar, the inventory screen, and items on the ground (needs button.js loaded first)
-//   dialogue.js   talking to npcs: who's in range, and the text box
-//   warps.js      warps (doors, caves, teleporters...): going through them, checking where they lead
-//   warpgraph.js  the map editor's picture of every warp linked to a warp (needs button.js first)
-//   editor.js     the map editor, opened from dev mode (needs button.js and textfield.js first)
-//   tileeditor.js the map editor's box for making and changing tiles (needs editor.js first)
-//   debug.js      developer mode, hidden testing tools (press ` or Ctrl + D while playing)
-//
-// the catalogue files (tiles, objects, enemies, npcs, weapons, items) each have a "how to make one"
-// guide at the top. tiles, weapons and items are made in data files the map editor can export
+//   utils.js      helpers: maths, text, catalogues, loading/downloading files
+//   input.js      keyboard and mouse
+//   camera.js     what's on screen, world ↔ screen positions
+//   tiles.js      tile kinds and what they do, loaded from tiles.json
+//   dualgrid.js   dual grid tiles: ground that blends into its neighbours
+//   objects.js    object kinds (furniture, decorations...)
+//   enemies.js    enemy kinds and their ai
+//   npcs.js       npc kinds and what they say
+//   weapons.js    weapons and their swings
+//   items.js      item kinds, and loading weapons + items from items.json
+//   tilemap.js    a tile map: storing, drawing, resizing, collision
+//   maps.js       map file list, start map, visited maps
+//   mapfile.js    saving and loading map files
+//   world.js      draws the world (map + dev mode lines)
+//   character.js  shared by player/enemies/npcs: walking, health, attacking, drawing
+//   player.js     the player (after character.js)
+//   enemy.js      an enemy (after character.js)
+//   npc.js        an npc (after character.js)
+//   ui.js         UIElement and the UI manager
+//   button.js     buttons (after ui.js)
+//   textfield.js  text and number boxes (after ui.js)
+//   formbox.js    the editors' ask-for-things box, Picker and Checkbox
+//   hud.js        non-ui overlays (crosshair, messages, panels)
+//   inventory.js  inventories, hotbar, inventory screen, items on the ground (after button.js)
+//   dialogue.js   talking to npcs: who's in range, the text box
+//   warps.js      warps (doors, caves, teleporters...): using them, checking targets
+//   warpgraph.js  editor's diagram of linked warps (after button.js)
+//   editor.js     the map editor, from dev mode (after button.js, textfield.js)
+//   tileeditor.js editor's tile box (after editor.js)
+//   debug.js      dev mode (` or Ctrl + D)
 
 let player;
-// not just "camera", because p5 already has a function called camera() for 3D
+// not "camera": p5 has camera() for 3D
 let gameCamera;
-// the tile map the player is on
+// the map the player is on
 let worldMap;
-// the enemies and npcs on it right now (see spawnCharacters())
+// its live enemies and npcs (see spawnCharacters())
 let enemies = [];
 let npcs = [];
-// false until the tiles and map files have loaded, the game shows a loading message until then
+// false until tiles and maps load; shows a loading message until then
 let mapsReady = false;
 
-// runs before setup(). p5 waits for everything started here (like images) to finish loading
-// before it starts the game. load images for buttons and anything else in here too
+// p5 waits for loads started here before setup(). images for buttons go here too
 // (tiles and items load in setup(), with the maps)
 function preload() {
   prepareArt(OBJECT_TYPES, 'object');
@@ -60,34 +52,30 @@ function preload() {
   prepareArt(NPC_TYPES, 'npc');
 }
 
-// runs once when the page loads, after preload()
 function setup() {
   const canvas = createCanvas(GAME_W, GAME_H);
   canvas.parent('sqCanvas');
-  // keeps pixel art sharp instead of blurry when it's drawn scaled
+  // sharp pixel art when scaled
   noSmooth();
 
-  // canvas.elt is the real <canvas> element that p5 made
+  // canvas.elt is the real <canvas>
   Input.attach(canvas.elt);
 
   player = new Player(0, 0);
   gameCamera = new Camera();
   gameCamera.follow(player);
-  // the hotbar along the bottom shows the player's inventory
   Hotbar.init(player.inventory);
-  // and E or I opens the whole of it (hidden until then)
+  // E or I opens it (hidden until then)
   InventoryScreen.init(player.inventory);
 
-  // the tiles (tiles.js), map files (mapfile.js), and weapons and items (items.js) load in the
-  // background, then the game starts on START_MAP (maps.js). tiles before maps, because loading a map
-  // checks every tile on it is one the game knows. items load alongside them. they're loaded here
-  // rather than in preload() because a missing file in preload() would stop the game ever starting,
-  // and this way it's just skipped
+  // tiles (tiles.js) before maps (mapfile.js), since loading a map checks its tiles exist; items
+  // (items.js) alongside. then start on START_MAP (maps.js). not in preload(), where a missing file
+  // would stop the game starting; here it's just skipped
   Promise.all([loadTileFile().then(loadMapFiles), loadItemFile()]).then(() => {
     player.giveStartingItems();
-    // the editor starts on the first tile, so it picks it now there are some
+    // the editor starts on the first tile, which exists now
     Editor.checkSelected();
-    // not one map file loaded, so use the blank stand-in map (maps.js) so there's something to play on
+    // no map files loaded: use the blank stand-in (maps.js)
     if (Object.keys(MAPS).length === 0) {
       console.warn('No map files could be loaded, so the game is on a blank stand-in map.');
       addMap(FALLBACK_MAP, buildFallbackMap);
@@ -99,150 +87,124 @@ function setup() {
       console.warn(`START_MAP is "${START_MAP}", but that map didn't load. Starting on "${first}" instead.`);
     }
     loadMap(first);
-    // warns in the browser console about warps leading to maps or warps that don't exist (warps.js)
+    // console warnings for broken warp links (warps.js)
     checkAllWarps();
     mapsReady = true;
   });
 
-  // turns dev mode back on if it was on last time
+  // dev mode back on if it was last time
   Debug.init();
-  // makes the map editor's tile bar (hidden until it's opened)
   Editor.init();
-  // makes the text box for talking to npcs (hidden until you talk to one)
   Dialogue.init();
 
-  // ui: make buttons and other ui elements here, e.g.
-  //   UI.add(new Button({ x: 20, y: 20, w: 120, h: 40, label: 'Play', onClick: () => { ... } }));
-  // the guide at the top of button.js has everything else
+  // to add ui: UI.add(new Button({ x: 20, y: 20, w: 120, h: 40, label: 'Play', onClick: () => { ... } }));
+  // see the guide in button.js
 
-  // phones/tablets get a message instead of the game (see squimble-quest.css), so don't run it there
+  // phones/tablets get a message instead (squimble-quest.css), so don't run
   if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) noLoop();
 }
 
-// go to a map, by its name in MAPS (maps.js). puts the player on the warp called warpName
-// (warps.js), or at the map's spawn point without one. dying always respawns them at the map's
-// spawn point, wherever they arrived (Player.respawn() in player.js). the camera
-// jumps straight there on a new map, and glides there on the same one. warps and dev mode's M key
-// use this.
+// go to map `name` (MAPS, maps.js), onto warp `warpName` (warps.js) or the map's spawn without one.
+// dying always respawns at the spawn (Player.respawn(), player.js). camera jumps on a new map,
+// glides on the same one. used by warps and dev mode's M.
 //
-// every map is kept how it was left, until the page reloads: its tiles and editor changes (see
-// getMap() in maps.js), and its enemies and npcs, which are put away on the map when the player
-// leaves and brought back out when they return. so a defeated enemy stays gone, a hurt one is still
-// hurt, and everyone's where they were. going to the same map (a warp to another spot on it) puts
-// the same characters straight back, so it's just a teleport: only the player moves
+// maps stay as left until reload: tiles and editor changes (getMap(), maps.js), and characters,
+// stored on the map on leaving and restored on return (defeated stay gone, hurt stay hurt). the
+// same map (a warp elsewhere on it) keeps the same characters, so it's just a teleport
 function loadMap(name, warpName = '') {
-  // going anywhere ends a conversation
   if (Dialogue.active) Dialogue.close();
-  // worldMap is undefined when the game first starts
+  // undefined on first start
   if (worldMap) worldMap.characters = { enemies, npcs };
   const map = getMap(name);
   const sameMap = map === worldMap;
   worldMap = map;
 
-  // a warp that isn't there (warpProblem() in warps.js catches that before a warp gets here)
-  // arrives at the spawn point instead
+  // a missing warp (warpProblem() in warps.js normally catches it first) arrives at the spawn
   const warp = warpName ? worldMap.warp(warpName) : null;
   const arrive = warp ? standingOnTile(PLAYER, warp.col, warp.row) : worldMap.spawn;
   player.placeAt(arrive.x, arrive.y);
-  // the tile they've arrived on counts as already stepped on, so a warp there doesn't send them
-  // straight back (warps.js)
+  // the arrival tile counts as stepped on, so its warp doesn't fire straight back (warps.js)
   Warps.arrived(player, worldMap);
 
-  // the first visit makes its characters fresh. the map editor always shows everyone where they
-  // were placed (see Editor.open() in editor.js), so it makes them fresh too
+  // fresh characters on first visit, and always in the editor (it shows the design, Editor.open())
   if (worldMap.characters && !Editor.active) {
     ({ enemies, npcs } = worldMap.characters);
   } else {
     spawnCharacters();
   }
 
-  // the camera stops at the edges of the map
   gameCamera.bounds = worldMap.bounds();
-  // if the map editor's open, the camera's following its view rather than the player,
-  // so move that to where the player arrived too
+  // in the editor the camera follows its view, so move that too
   if (Editor.active) {
     Editor.view.x = arrive.x;
     Editor.view.y = arrive.y;
   }
-  // on a new map, jump there: gliding from a spot on the last map across this one would look
-  // wrong. on the same map, the camera glides over to them like it does after dying, since it
-  // already follows the player (or the editor's view)
+  // gliding across from the last map would look wrong; same map glides like after dying
   if (!sameMap) gameCamera.snap();
 }
 
-// makes every one of the map's enemies and npcs fresh, where it was placed and with full health,
-// including enemies that were defeated. runs the first time a map is visited, and when the map
-// editor opens, closes or changes them (so opening the editor is a quick way to reset them)
+// remakes every enemy and npc from the spawn lists at full health, defeated ones included. runs on a
+// map's first visit and when the editor opens, closes or changes them (a quick enemy reset)
 function spawnCharacters() {
-  // the npc you're talking to is about to be replaced, so the conversation ends
+  // the npc being talked to is replaced
   if (Dialogue.active) Dialogue.close();
   enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row));
   npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row));
 }
 
-// runs every frame, around 60 times a second
 function draw() {
   if (!mapsReady) {
     drawLoading();
     return;
   }
 
-  // deltaTime is how long the last frame took in milliseconds (p5 gives us this).
-  // turned into seconds and capped, see MAX_DT in config.js
+  // last frame in seconds, capped (MAX_DT in config.js)
   const dt = Math.min(deltaTime / 1000, MAX_DT);
 
-  // 1. input: catch up on what the keyboard and mouse did since the last frame
+  // 1. input
   Input.update();
-  // before anything else uses the mouse, so a click on a button isn't also a click in the game
+  // before anything else uses the mouse, so a ui click isn't also a game click
   UI.update();
 
-  // the mouse is a position on screen, but the player aims at a place in the world
+  // mouse in world coords
   const aimScreen = Input.aimPoint();
   const aim = aimScreen ? gameCamera.screenToWorld(aimScreen.x, aimScreen.y) : null;
 
-  // 2. update: dev tools first (they can move the player or zoom), then move everything,
-  // then the camera last so it follows where the player is now
+  // 2. update: dev tools first (they move the player/zoom), camera last
   Debug.update(player, gameCamera, worldMap, aim, dt);
-  // while the map editor's open it takes over: WASD moves the camera, and everyone stands still
+  // editor: WASD moves the camera, everyone stands still
   if (Editor.active) {
     Editor.update(worldMap, gameCamera, aim, dt);
   } else if (Dialogue.active) {
-    // talking to someone pauses the game. E moves the conversation on
+    // talking pauses the game; E moves it on
     Dialogue.update(dt);
   } else {
-    // everything the player, enemies and npcs might need to know about (see the top of character.js).
-    // characters is everyone in one list, made once here rather than by each of them every frame
+    // what characters can see (top of character.js). characters built once here, not per character
     const world = { map: worldMap, player, enemies, npcs, characters: [player, ...enemies, ...npcs] };
 
-    // number keys and the mouse wheel change what the player's holding, and Q drops it.
-    // with the inventory open, items are dragged about in it (inventory.js)
+    // number keys/wheel pick the held item, Q drops it, the open inventory drags items (inventory.js)
     Hotbar.update();
     if (Input.wasPressed('drop')) Drops.drop(worldMap, player, player.inventory.selected);
     if (InventoryScreen.active) InventoryScreen.update(worldMap, player);
 
-    // the keyboard and mouse decide what the player does (see the top of character.js).
-    // mousePressed() ignores clicks on buttons, so clicking the ui never swings the sword.
-    // with the inventory open they stand still, so the mouse is only for moving items
+    // mousePressed() ignores ui clicks. inventory open: stand still, the mouse moves items
     player.update(InventoryScreen.active ? STAND_STILL : {
       move: Input.direction(),
       aim,
       attack: Input.mousePressed('left'),
     }, dt, world);
-    // picks up items on the ground the player's walked up to (inventory.js)
+    // picks up nearby items (inventory.js)
     Drops.update(worldMap, player, dt);
 
-    // each enemy's and npc's ai decides what it does
     for (const enemy of enemies) enemy.update(dt, world);
-    // defeated enemies are gone. this list is what the map keeps when the player leaves, so they
-    // stay gone (see loadMap())
+    // the map keeps this list on leaving, so defeated stay gone (loadMap())
     enemies = enemies.filter((enemy) => !enemy.dead);
     for (const npc of npcs) npc.update(dt, world);
-    // enemies following the player to another map come out once they've got there (warps.js)
+    // enemies following to another map come out when due (warps.js)
     Warps.update(dt);
 
-    // the npc close enough to talk to (if any) shows an E over its head, and E starts talking.
-    // otherwise, a warp that opens with E (if one's in reach) does the same (warps.js).
-    // with neither, E opens or closes the inventory (I always does). nothing's in reach while it's open
+    // E: talk to the npc in range (shows an E), else use an E warp in reach (warps.js), else toggle
+    // the inventory (I always does). nothing's in reach while it's open
     const talkTo = InventoryScreen.active ? null : Dialogue.npcInRange(player, npcs);
     for (const npc of npcs) npc.canTalk = npc === talkTo;
     Warps.reachable = talkTo || InventoryScreen.active ? null : Warps.inReach(player, worldMap);
@@ -253,23 +215,20 @@ function draw() {
       Warps.use(Warps.reachable);
     } else {
       if (Input.wasPressed('inventory')) InventoryScreen.show(!InventoryScreen.active);
-      // a warp that opens when it's stepped onto. after the E warp, which might have just gone to
-      // another map, so this doesn't look at the new map in the same frame
+      // step warps after the E warp, which may have changed map, so this never sees the new map
+      // in the same frame
       Warps.checkStep(player, worldMap);
     }
   }
   gameCamera.update(dt);
 
-  // 3. draw: back to front, so later things go on top of earlier ones.
-  // the world, drawn through the camera in world positions
-  // the map editor's warp graph covers the whole screen (warpgraph.js), so there's no need to draw
-  // the world under it. a big map with lots of warps is slow to draw, and would slow the graph down
+  // 3. draw, back to front. the warp graph covers the screen (warpgraph.js), so skip the world under
+  // it: a big map with many warps is slow and would slow the graph
   if (!WarpGraph.active) {
     gameCamera.begin();
     drawWorld(gameCamera, worldMap, Debug.enabled && Debug.showGrid);
-    // whoever's standing further down the screen is in front, so sort by where their feet are.
-    // items on the ground too, by where they touch the ground (their shadow, mid throw), so they're in
-    // front of anyone standing behind them. the editor shows them too, since it can place them
+    // sort by feet so lower on screen is in front. drops sort by their shadow (mid throw too).
+    // shown in the editor as well, since it places them
     const things = [
       ...[player, ...enemies, ...npcs].map((c) => ({ y: c.y + c.h / 2, draw: () => c.draw() })),
       ...worldMap.drops.map((d) => ({ y: Drops.where(d).y, draw: () => Drops.draw(d) })),
@@ -281,8 +240,7 @@ function draw() {
     gameCamera.end();
   }
 
-  // ui on top, in screen positions. the map editor fades it out while you move around (editor.js).
-  // globalAlpha fades everything drawn after it, and pop() puts it back
+  // ui in screen coords. the editor fades it while moving (editor.js); globalAlpha lasts until pop()
   push();
   if (Editor.active) drawingContext.globalAlpha = Editor.uiAlpha;
   Debug.draw(player, gameCamera, worldMap, aim);

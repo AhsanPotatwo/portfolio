@@ -1,73 +1,58 @@
-// the warp graph: a picture of how warps link up, for seeing how maps join together while
-// building them. open it from a warp's settings box in the map editor (Show links, see editWarp()
-// in editor.js).
+// the warp graph: how warps link up, for seeing how maps join while building them. opened by Show
+// links in a warp's settings box (editWarp() in editor.js).
 //
-// it shows the warp you're editing at the top, then every warp linked to it, then every warp
-// linked to those, and so on, like a family tree. a link counts either way round, so the warps
-// leading *to* a warp are in its family as well as the one it leads to. warps that aren't linked
-// to it at all, even ones on the same map, aren't shown.
+// the edited warp at the top, then everything linked to it, then to those, etc., like a family tree.
+// links count both ways (warps leading *to* a warp are family too). unlinked warps, even on the same
+// map, aren't shown.
 //
-// each box is a warp: its name, and the map it's on under that. lines join each warp to the one
-// above it that found it, like a family tree, and arrowheads point the way each warp leads, so a
-// pair of warps leading to each other (a door and the way back out) has an arrowhead at both ends.
-// a link that isn't part of the tree (like one going round in a loop) is a dashed arrow straight
-// across. a warp leading to a map's spawn point shows that spawn point as a box too, and
-// something a warp leads to that doesn't exist is a red box.
+// each box is a warp (name, map below). lines join each warp to the one above that found it, with
+// arrowheads the way each leads (a door and its way back have one at each end). non-tree links
+// (loops) are dashed arrows straight across. a warp to a map's spawn shows the spawn as a box; a
+// missing target is a red box.
 //
-// a warp with lots of links (a village square every house's door leads to) has its children in
-// rows of up to maxPerRow, one under the other, so the graph grows downwards rather than too wide
-// to read. it starts zoomed in enough to read, on the warp it was opened from.
+// a warp with many links (a village square) has its children in rows of up to maxPerRow stacked
+// downwards, so it stays readable. it starts readably zoomed (startZoom) on the opened warp.
 //
-// hovering over a box shows where that warp is: a little window onto its map, with the warp
-// ringed in yellow and its enemies and npcs where they were placed.
-//
-// drag to move around it, the mouse wheel zooms, Close or Escape goes back to the settings box
+// hovering a box shows a window onto its map, the warp ringed yellow, enemies and npcs at their
+// spawns. drag to pan, wheel to zoom, Close or Escape returns to the settings box
 
-// how the graph is laid out, in pixels at normal zoom
+// layout, px at zoom 1
 const WARP_GRAPH = {
-  // each warp's box
+  // box size
   nodeWidth: 140,
   nodeHeight: 42,
-  // the space between boxes side by side, and between one row and the next
+  // gap beside boxes, and between rows
   gapX: 24,
   gapY: 72,
-  // the lines and arrowheads between warps
+  // lines and arrowheads
   lineColour: [150, 155, 170],
-  // how rounded the corners of the lines are, in pixels
+  // line corner rounding, px
   cornerRadius: 8,
-  // the most children side by side under one warp. any more wrap onto rows further down. even,
-  // so a row splits evenly either side of the line down through it (see warpFamily())
+  // most children side by side; more wrap to rows below. even, so rows split evenly around the
+  // parent's line (warpFamily())
   maxPerRow: 6,
-  // how far it can zoom out and in
   minZoom: 0.2,
   maxZoom: 2,
-  // it starts zoomed out to fit on screen, but no further out than this, so the writing can still
-  // be read. anything that doesn't fit is a drag away
+  // starts zoomed out to fit, but no further than this so text stays readable; the rest is a drag away
   startZoom: 0.75,
-  // zoomed out further than this, the boxes are drawn without their writing, which would be too
-  // small to read (hovering over one still shows where it is)
+  // below this zoom boxes skip their (unreadable) text; hover previews still work
   wordsZoom: 0.3,
-  // the window onto a warp's map that shows while hovering over its box, in screen pixels, and how
-  // zoomed in it is. zoomed out a bit from normal play, so there's enough around the warp to tell
-  // where it is (the whole inside of the hut fits)
+  // hover preview window, screen px, and its zoom: a bit out from play, enough context to place the
+  // warp (the whole hut fits)
   previewWidth: 360,
   previewHeight: 240,
   previewZoom: 0.75,
 };
 
-// every warp linked to the warp called warpName on the map mapName, however far away, laid out
-// like a family tree. gives back { nodes, links }:
-//   nodes  one per warp: { key, map, name, missing, start, parent, onlyChild, fromParent,
-//          toParent, x, y }. name is '' for a map's spawn point, missing is true if it doesn't
-//          exist, start is true for the one it started from, parent is the key of the warp above it
-//          in the tree (null for the start), onlyChild is true if it's the only warp under its
-//          parent, fromParent and toParent are whether its parent leads to it and it leads to its
-//          parent, and x, y is the middle of its box
-//   links  every other link, the ones that aren't between a warp and its parent: { from, to },
-//          each a node's key
+// every warp linked to mapName's warpName at any distance, laid out as a tree. returns { nodes, links }:
+//   nodes  per warp: { key, map, name, missing, start, parent, onlyChild, fromParent, toParent, x, y }.
+//          name '' is a map's spawn. missing: doesn't exist. start: the opened warp. parent: the key
+//          above it (null for start). onlyChild: sole child of its parent. fromParent/toParent: the
+//          parent leads to it / it leads to the parent. x, y: its box's middle
+//   links  non-parent links: { from, to }, node keys
 function warpFamily(mapName, warpName) {
-  // every warp (and spawn point) any warp mentions, by key, and the keys of everything linked to
-  // each one, both ways round, so a family can be followed from either end of a link
+  // every warp (and spawn) any warp mentions, by key, and their links both ways, so the family can
+  // be followed from either end
   const found = {};
   const linked = {};
   const links = [];
@@ -83,7 +68,7 @@ function warpFamily(mapName, warpName) {
   };
 
   const startKey = add(mapName, warpName);
-  // ponytail: builds every map to look at its warps, like checkAllWarps() in warps.js
+  // ponytail: builds every map to read its warps, like checkAllWarps() in warps.js
   for (const map of Object.keys(MAPS)) {
     for (const warp of getMap(map).warps) {
       const from = add(map, warp.name);
@@ -95,8 +80,7 @@ function warpFamily(mapName, warpName) {
     }
   }
 
-  // the family: the start, then everything linked to it, then everything linked to those... each
-  // warp's parent is whichever warp found it first
+  // breadth first from the start; a warp's parent is whichever found it first
   const parent = { [startKey]: null };
   const children = { [startKey]: [] };
   const family = [startKey];
@@ -110,25 +94,20 @@ function warpFamily(mapName, warpName) {
     }
   }
 
-  // how much room each warp and everything under it needs, in spaces across (a box and the gap
-  // beside it) and rows down. a warp's children go under it in rows of up to maxPerRow, each row
-  // below everything hanging off the one before. the line from the warp down to its rows
-  // (drawWarpBranch()) runs straight down from its middle, so every row but the last is split in
-  // two either side of it, leaving a gap for it to pass through. the last row just sits in the
-  // middle, like the only row does for a warp with a few children.
-  //   size[key]   { left, right, depth }: how far it reaches left and right of the warp's middle,
-  //               and how many rows deep it is, counting its own
-  //   bands[key]  its rows of children: { kids, left, right, depth }, the same for just that row
+  // room each subtree needs, in spaces across (box + gap) and rows down. children go in rows of up to
+  // maxPerRow, each row below everything hanging off the previous. the parent's line
+  // (drawWarpBranch()) runs straight down its middle, so every row but the last splits either side of
+  // it, leaving a gap; the last row is centred.
+  //   size[key]   { left, right, depth }: reach left/right of its middle, and rows deep including its own
+  //   bands[key]  its child rows: { kids, left, right, depth } for each
   const g = WARP_GRAPH;
   const size = {};
   const bands = {};
   const width = (kids) => kids.reduce((sum, kid) => sum + size[kid].left + size[kid].right, 0);
   const measure = (key) => {
     children[key].forEach(measure);
-    // children with none of their own first, so they pack into tidy rows, and the ones with
-    // branches hanging off them last, where their branches don't push the others about. each lot
-    // in order of map then name, counting numbers properly (door-2 before door-10), so they're
-    // easy to find
+    // leaf children first so they pack tidily, branching ones last where their branches don't push
+    // others about. each group by map then name, numerically (door-2 before door-10)
     children[key].sort((a, b) => (children[a].length > 0) - (children[b].length > 0) || a.localeCompare(b, undefined, { numeric: true }));
     bands[key] = [];
     for (let i = 0; i < children[key].length; i += g.maxPerRow) {
@@ -143,7 +122,7 @@ function warpFamily(mapName, warpName) {
       depth: 1 + bands[key].reduce((sum, band) => sum + band.depth, 0),
     };
   };
-  // puts a warp's middle x spaces across and row rows down, then its rows of children under it
+  // puts a warp's middle at x spaces, row rows, then its child rows below
   const across = {};
   const down = {};
   const place = (key, x, row) => {
@@ -175,7 +154,7 @@ function warpFamily(mapName, warpName) {
       y: down[key] * (g.nodeHeight + g.gapY),
     };
   }
-  // a link between a warp and its parent is part of the tree, the rest are drawn straight across
+  // parent links are the tree; the rest are drawn straight across
   const others = [];
   for (const link of links) {
     const { from, to } = link;
@@ -188,11 +167,9 @@ function warpFamily(mapName, warpName) {
 }
 
 const WarpGraph = {
-  // true while the graph is showing. it sits over the warp's settings box (FormBox in formbox.js),
-  // which comes back when it closes
+  // showing. sits over the warp settings box (FormBox, formbox.js), which returns on close
   active: false,
 
-  // shows the graph for the warp called warpName on the map mapName
   open(mapName, warpName) {
     this.active = true;
     const add = (element) => UI.add(Object.assign(element, { group: 'warp-graph' }));
@@ -207,43 +184,40 @@ const WarpGraph = {
     UI.removeGroup('warp-graph');
   },
 
-  // run every frame while it's open, from Editor.update(). the settings box underneath has turned
-  // typing on (Input.typing), so Escape comes through as something typed
+  // every frame while open, from Editor.update(). the settings box below has Input.typing on, so
+  // Escape arrives as typed
   update() {
     if (Input.typed.includes('Escape')) this.close();
   },
 };
 
-// the graph itself, covering the whole screen. dragging and the wheel move and zoom it
+// the full-screen graph; drag pans, wheel zooms
 class WarpGraphView extends UIElement {
   constructor(options) {
     super(options);
-    // what warpFamily() gave back, its nodes by key (for finding the ends of lines), and the words
-    // along the top
+    // warpFamily()'s result, nodes by key (for line ends), and the title
     this.family = options.family;
     this.byKey = Object.fromEntries(this.family.nodes.map((node) => [node.key, node]));
     this.title = options.title;
-    // where the graph's (0, 0) is on screen, and how zoomed in it is. it starts in the middle of
-    // the space under the title, zoomed out to fit if it's too big (but never zoomed in, and never
-    // out past startZoom). if it still doesn't fit, it starts at the top, on the warp it was opened
-    // from (the graph's (0, 0), see warpFamily())
+    // screen position of graph (0, 0), and zoom. starts centred under the title, zoomed out to fit
+    // (never in, never out past startZoom). if it still doesn't fit, starts at the top on the opened
+    // warp (graph (0, 0), warpFamily())
     const nodes = this.family.nodes;
     const left = Math.min(...nodes.map((node) => node.x)) - WARP_GRAPH.nodeWidth / 2;
     const right = Math.max(...nodes.map((node) => node.x)) + WARP_GRAPH.nodeWidth / 2;
     const bottom = Math.max(...nodes.map((node) => node.y)) + WARP_GRAPH.nodeHeight / 2;
     const top = -WARP_GRAPH.nodeHeight / 2;
-    // the space it fits in: the whole screen but a margin, and the title along the top
+    // the screen less a margin and the title
     const space = { x: 20, y: 80, w: GAME_W - 40, h: GAME_H - 100 };
     this.zoom = Math.max(WARP_GRAPH.startZoom, Math.min(1, space.w / (right - left), space.h / (bottom - top)));
     const fitsAcross = (right - left) * this.zoom <= space.w;
     this.panX = space.x + space.w / 2 - (fitsAcross ? (left + right) / 2 : 0) * this.zoom;
     this.panY = space.y + Math.max(0, space.h - (bottom - top) * this.zoom) / 2 - top * this.zoom;
-    // where the mouse was last frame while dragging, or null when it isn't
+    // last frame's mouse while dragging, else null
     this.dragFrom = null;
-    // the box the mouse is over (one of family.nodes), or null. it shows a preview of where it is
+    // hovered node (previewed), or null
     this.hoveredNode = null;
-    // the camera the preview's drawn through, and the enemies and npcs shown in it, by map name
-    // (see charactersOn())
+    // the preview's camera, and its characters by map name (charactersOn())
     this.previewCamera = new Camera();
     this.characters = {};
   }
@@ -252,7 +226,7 @@ class WarpGraphView extends UIElement {
     this.hovered = hovered;
     const mouse = Input.mouse;
 
-    // dragging moves the graph along with the mouse
+    // drag pans
     if (hovered && Input.buttonsPressed.has('left')) this.dragFrom = { x: mouse.x, y: mouse.y };
     if (!Input.buttonsHeld.has('left')) this.dragFrom = null;
     if (this.dragFrom) {
@@ -261,8 +235,7 @@ class WarpGraphView extends UIElement {
       this.dragFrom = { x: mouse.x, y: mouse.y };
     }
 
-    // the wheel zooms around the mouse, so whatever's under it stays under it. the same rate as
-    // the map editor's zoom (debug.js), wheel down zooms out
+    // wheel zooms around the mouse, at the editor's rate (debug.js); down zooms out
     if (hovered && Input.wheel !== 0) {
       const zoom = constrain(this.zoom * Math.exp(-Input.wheel * DEV_WHEEL_ZOOM_RATE), WARP_GRAPH.minZoom, WARP_GRAPH.maxZoom);
       this.panX = mouse.x - (mouse.x - this.panX) * (zoom / this.zoom);
@@ -270,8 +243,7 @@ class WarpGraphView extends UIElement {
       this.zoom = zoom;
     }
 
-    // which box the mouse is over, worked out in the graph's own positions. none while dragging,
-    // so the preview doesn't get in the way of moving around
+    // hovered box in graph coords. none while dragging, so the preview doesn't get in the way
     this.hoveredNode = null;
     if (hovered && !this.dragFrom) {
       const x = (mouse.x - this.panX) / this.zoom;
@@ -290,29 +262,29 @@ class WarpGraphView extends UIElement {
     translate(this.panX, this.panY);
     scale(this.zoom);
     const byKey = this.byKey;
-    // only what's on screen is drawn, which keeps a graph of hundreds of warps smooth. a box
-    // around two boxes' middles, stretched by a box's size, covers them and everything between
+    // only draw what's on screen (keeps hundreds of warps smooth). the box around two nodes' middles,
+    // grown by a node's size, covers both and everything between
     const { nodeWidth: w, nodeHeight: h } = WARP_GRAPH;
     const left = -this.panX / this.zoom - w;
     const top = -this.panY / this.zoom - h;
     const right = (GAME_W - this.panX) / this.zoom + w;
     const bottom = (GAME_H - this.panY) / this.zoom + h;
     const showing = (a, b) => Math.max(a.x, b.x) > left && Math.min(a.x, b.x) < right && Math.max(a.y, b.y) > top && Math.min(a.y, b.y) < bottom;
-    // lines first, so the boxes cover the ends that start inside them
+    // lines first, so boxes cover their ends
     for (const node of this.family.nodes) {
       if (node.parent && showing(byKey[node.parent], node)) drawWarpBranch(byKey[node.parent], node);
     }
     for (const { from, to } of this.family.links) {
       if (showing(byKey[from], byKey[to])) drawWarpLink(byKey[from], byKey[to]);
     }
-    // writing is slow to draw, and too small to read once zoomed out past wordsZoom
+    // text is slow, and unreadable below wordsZoom
     const words = this.zoom >= WARP_GRAPH.wordsZoom;
     for (const node of this.family.nodes) {
       if (showing(node, node)) drawWarpNode(node, words);
     }
     pop();
 
-    // the title and how to use it, along the top
+    // title and help
     fill(255);
     setText(18, BOLD, LEFT, CENTER);
     text(this.title, 16, 28);
@@ -320,42 +292,38 @@ class WarpGraphView extends UIElement {
     setText(13, NORMAL, LEFT, CENTER);
     text('Drag to move around, wheel to zoom, hover over a warp to see where it is, Escape to close', 16, 52);
 
-    // something that doesn't exist has nowhere to show
+    // missing ones have nothing to show
     if (this.hoveredNode && !this.hoveredNode.missing) this.drawPreview(this.hoveredNode);
   }
 
-  // a window onto the map a warp's on (or the spawn point, for a spawn point's box), next to the
-  // mouse. it's drawn by the same code as the game's world, through a camera of its own, with
-  // the editor's markers for warps and the spawn on top
+  // a window onto the node's map at its warp (or spawn) beside the mouse, drawn by the game's world
+  // code through its own camera, with the editor's warp and spawn markers on top
   drawPreview(node) {
     const { previewWidth: w, previewHeight: h, previewZoom: zoom } = WARP_GRAPH;
     const mouse = Input.mouse;
-    // below and to the right of the mouse, like a tooltip, or the other side if there isn't room
+    // below right of the mouse like a tooltip, or the other side without room
     const x = mouse.x + 16 + w <= GAME_W - 8 ? mouse.x + 16 : Math.max(8, mouse.x - 16 - w);
     const y = mouse.y + 16 + h <= GAME_H - 8 ? mouse.y + 16 : Math.max(8, mouse.y - 16 - h);
 
     // getMap() is in maps.js
     const map = getMap(node.map);
     const warp = node.name ? map.warp(node.name) : null;
-    // the tile to show in the middle: the warp's, or the one the player spawns standing on
+    // centre tile: the warp's, or the one the player spawns standing on
     const col = warp ? warp.col : map.colAt(map.spawn.x);
     const row = warp ? warp.row : map.rowAt(map.spawn.y + feetBelowCentre(PLAYER));
 
-    // what goes in the middle of the window: the tile, but kept far enough from the map's edges that
-    // the window doesn't show past them, like the game's camera. a map that fits in the window
-    // (like the hut) sits in its middle, all of it showing (clampAxis() is in camera.js)
+    // the window's centre: that tile, kept off the map edges like the game camera. a map smaller than
+    // the window (the hut) is centred whole (clampAxis() in camera.js)
     const camera = this.previewCamera;
     const bounds = map.bounds();
     const middleX = camera.clampAxis((col + 0.5) * TILE, w / 2 / zoom, bounds.left, bounds.right);
     const middleY = camera.clampAxis((row + 0.5) * TILE, h / 2 / zoom, bounds.top, bounds.bottom);
-    // a camera always puts what it's looking at in the middle of the screen, so it looks off to
-    // the side by however far the middle of the window is from the middle of the screen. that
-    // puts it in the middle of the window instead
+    // a camera centres on the screen middle, so offset it by the window's distance from there
     camera.zoom = zoom;
     camera.x = middleX - (x + w / 2 - GAME_W / 2) / zoom;
     camera.y = middleY - (y + h / 2 - GAME_H / 2) / zoom;
 
-    // the world's drawn for the whole screen, but clip() stops anything outside the window showing
+    // the world draws full screen; clip() limits it to the window
     drawingContext.save();
     drawingContext.beginPath();
     drawingContext.rect(x, y, w, h);
@@ -363,8 +331,8 @@ class WarpGraphView extends UIElement {
     camera.begin();
     drawWorld(camera, map, true); // world.js
     for (const character of this.charactersOn(map)) character.draw();
-    // the same markers as the map editor's (see Editor.drawCursor() in editor.js), then the tile
-    // it's showing ringed in yellow, like the box it's for. a bit thicker than a pixel, so it stands out
+    // the editor's markers (Editor.drawCursor() in editor.js), then the tile ringed yellow like its
+    // box, 2px so it stands out
     const px = 1 / zoom;
     for (const other of map.warps) drawWarpMarker(other, px);
     drawSpawnRing(map.spawn.x, map.spawn.y + feetBelowCentre(PLAYER), px);
@@ -379,9 +347,8 @@ class WarpGraphView extends UIElement {
     rect(x, y, w, h);
   }
 
-  // the map's enemies and npcs where they were placed, like the map editor shows them. made the
-  // first time the map's previewed, then kept while the graph's open. whoever's standing further
-  // down is in front, like in the game (sketch.js)
+  // the map's enemies and npcs at their spawns, as the editor shows them. made on first preview, kept
+  // while open, sorted so lower is in front (like sketch.js)
   charactersOn(map) {
     this.characters[map.name] ??= [
       ...map.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row)),
@@ -391,9 +358,8 @@ class WarpGraphView extends UIElement {
   }
 }
 
-// one warp's box in the graph, x, y in the middle. yellow edge for the warp it was opened from,
-// red for one that doesn't exist, purple (like warps in the editor, warps.js) for the rest.
-// words is whether to write its name and map in it, left off when it's too small to read them
+// a warp's box centred at x, y: yellow edge for the start, red for missing, else purple (warps.js).
+// words: draw its name and map (skipped when too small)
 function drawWarpNode(node, words) {
   const { nodeWidth: w, nodeHeight: h } = WARP_GRAPH;
   fill(EDITOR_COLOURS.bar); // editor.js
@@ -411,27 +377,23 @@ function drawWarpNode(node, words) {
   text(node.missing ? `${node.map} (missing)` : node.map, node.x, node.y + 10);
 }
 
-// the line from a warp down to one of its children, like a family tree: straight down from the
-// middle of the parent, across the gap just above the child's row, then down into the child, with
-// rounded corners. its brothers and sisters share the parts down from the parent and across,
-// drawn over each other, so the lines branch off one another like railway tracks.
+// parent → child tree line: down from the parent's middle, across just above the child's row, down
+// into the child, rounded corners. siblings overdraw the shared parts, so lines branch like rail tracks.
 //
-// each way the link goes gets one arrowhead, where it arrives: into the top of the child if the
-// parent leads to it, and into the parent if the child leads there, so only a link that goes both
-// ways has two. an only child has the line to itself, so its arrowhead goes right up against the
-// parent. brothers and sisters share the end at the parent, where an arrowhead couldn't say which
-// of them it's for, so theirs goes at the top of their own bit of line instead, just below where
-// it branches off
+// one arrowhead per direction, where it arrives: child's top if the parent leads to it, the parent if
+// the child leads there (both ways: two). an only child's goes right against the parent; siblings
+// share that end, where it couldn't say whose, so theirs sits at the top of their own segment, just
+// below the branch
 function drawWarpBranch(parent, child) {
   const { nodeHeight: h, gapY } = WARP_GRAPH;
   const top = child.y - h / 2;
   const bottom = parent.y + h / 2;
   const acrossY = top - gapY / 2;
-  // no bigger than half the distance across, or two corners close together would overlap
+  // at most half the horizontal distance, or close corners would overlap
   const radius = Math.min(WARP_GRAPH.cornerRadius, Math.abs(child.x - parent.x) / 2);
 
-  // drawn straight onto the canvas, since p5 has nothing for rounded corners on a line.
-  // arcTo() goes towards a corner and turns along to the next point, rounding it off
+  // raw canvas, since p5 lacks rounded line corners. arcTo() heads to a corner and turns towards the
+  // next point, rounding it
   stroke(WARP_GRAPH.lineColour);
   strokeWeight(2);
   const pen = drawingContext;
@@ -446,10 +408,9 @@ function drawWarpBranch(parent, child) {
   if (child.toParent) drawArrowhead(child.x, child.onlyChild ? bottom : acrossY + radius, -Math.PI / 2);
 }
 
-// a dashed arrow from one warp's box to another's, for a link that isn't part of the tree. it
-// curves smoothly out of the side of one box facing the other, and into the side of the other
-// facing back, with its arrowhead against that edge rather than hidden under the box. boxes in
-// the same row are joined side to side, otherwise bottom to top (or top to bottom)
+// dashed non-tree link: curves out of the side of one box facing the other and into the facing side
+// of the other, arrowhead against that edge (not under the box). same row: side to side, else
+// bottom to top (or top to bottom)
 function drawWarpLink(from, to) {
   const { nodeWidth: w, nodeHeight: h } = WARP_GRAPH;
   let startX = from.x;
@@ -480,7 +441,7 @@ function drawWarpLink(from, to) {
   drawArrowhead(endX, endY, angle);
 }
 
-// an arrowhead with its point at x, y: a triangle turned to point angle radians (0 is right)
+// triangle pointing at angle (radians, 0 right), tip at x, y
 function drawArrowhead(x, y, angle) {
   push();
   translate(x, y);

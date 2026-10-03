@@ -1,26 +1,24 @@
-// talking to npcs: finding one close enough to talk to, and the text box.
-//
-// walk up to an npc and press E. a box opens along the bottom of the screen with their portrait,
-// their name, and the first line of their dialogue (npcs.js) typing itself out.
-// E (or clicking the box) shows the whole line straight away, then goes to the next line,
-// and closes the box after the last one. while it's open, the game pauses.
+// talking to npcs: who's in range, and the text box.
+// E near an npc opens a box along the bottom with their portrait, name and first line (npcs.js)
+// typing out. E (or clicking the box) finishes the line, then goes to the next, closing after the
+// last. the game pauses while it's open.
 
-// how close the player has to be to talk to an npc, in pixels between their feet
+// px between feet
 const TALK_RANGE = 56;
 
-// how many letters of a line appear per second
+// letters per second
 const DIALOGUE_TYPE_SPEED = 45;
 
-// while talking, the camera glides in to frame you and the npc (see focusOn() in camera.js)
+// the camera glides in to frame both of you (focusOn() in camera.js)
 const DIALOGUE_CAMERA = {
-  // how much closer it gets, compared to the zoom before talking. 1.35 is 35% closer
+  // multiplier on the current zoom (1.35 is 35% closer)
   zoom: 1.35,
-  // how long the glide in and back out take, in seconds
+  // glide in/out seconds
   inTime: 0.6,
   outTime: 0.5,
 };
 
-// layout of the text box, in screen pixels
+// text box layout, screen pixels
 const DIALOGUE_BOX = {
   margin: 16,
   height: 130,
@@ -28,19 +26,18 @@ const DIALOGUE_BOX = {
 };
 
 const Dialogue = {
-  // true while the box is open
   active: false,
-  // who's talking, and which of their lines is showing
+  // who's talking, and their current line index
   npc: null,
   line: 0,
-  // how many letters of the line have appeared so far (goes up over time, see update())
+  // letters shown so far (rises in update())
   shown: 0,
-  // the box itself, a ui element (made in init())
+  // the DialogueBox ui element (init())
   box: null,
-  // the game's camera, which glides in while talking (given to open())
+  // the game camera (from open())
   camera: null,
 
-  // call once from setup()
+  // once from setup()
   init() {
     const { margin, height } = DIALOGUE_BOX;
     this.box = UI.add(new DialogueBox({
@@ -52,7 +49,7 @@ const Dialogue = {
     }));
   },
 
-  // the npc closest to the player that's in talking range, or null
+  // closest npc within TALK_RANGE, or null
   npcInRange(player, npcs) {
     let closest = null;
     let closestDistance = TALK_RANGE;
@@ -66,19 +63,18 @@ const Dialogue = {
     return closest;
   },
 
-  // start talking to an npc
   open(npc, player, camera) {
     this.active = true;
     this.npc = npc;
     this.line = 0;
     this.shown = 0;
     this.box.visible = true;
-    // they turn to look at you
+    // they face you
     npc.aimAt({ x: player.x, y: player.y });
-    // the box goes where the hotbar is (inventory.js)
+    // the box sits where the hotbar is (inventory.js)
     Hotbar.show(false);
 
-    // the camera glides in to the point halfway between you and them
+    // glide to halfway between you
     this.camera = camera;
     camera.focusOn(
       (player.x + npc.x) / 2,
@@ -93,17 +89,15 @@ const Dialogue = {
     this.npc = null;
     this.box.visible = false;
     Hotbar.show(true);
-    // and glides back out to following you
+    // glide back to following you
     if (this.camera) this.camera.release(DIALOGUE_CAMERA.outTime);
   },
 
-  // the line that's showing
   currentLine() {
     return this.npc.type.dialogue[this.line] ?? '';
   },
 
-  // E or a click: finish typing the line if it's still going, otherwise go to the next line,
-  // or close the box after the last one
+  // E or click: finish typing, else next line, else close
   advance() {
     const text = this.currentLine();
     if (this.shown < text.length) {
@@ -115,15 +109,14 @@ const Dialogue = {
     if (this.line >= this.npc.type.dialogue.length) this.close();
   },
 
-  // run every frame while the box is open
+  // every frame while open
   update(dt) {
     this.shown = Math.min(this.currentLine().length, this.shown + DIALOGUE_TYPE_SPEED * dt);
     if (Input.wasPressed('interact')) this.advance();
   },
 };
 
-// the text box. a ui element, so clicks on it don't reach the game, and clicking it moves the
-// conversation on like E does
+// a ui element, so clicks on it don't reach the game; clicking advances like E
 class DialogueBox extends UIElement {
   update(hovered) {
     super.update(hovered);
@@ -136,13 +129,12 @@ class DialogueBox extends UIElement {
     const pad = 16;
     const size = DIALOGUE_BOX.portraitSize;
 
-    // the box
     stroke(255, 255, 255, 60);
     strokeWeight(2);
     fill(20, 22, 28);
     rect(this.x, this.y, this.w, this.h, 10);
 
-    // the portrait: their picture, or a placeholder face in their colours
+    // portrait, or a placeholder face in their colours
     const px = this.x + pad;
     const py = this.y + (this.h - size) / 2;
     if (npc.type.portraitImg) {
@@ -151,7 +143,7 @@ class DialogueBox extends UIElement {
       this.drawPlaceholderPortrait(npc, px, py, size);
     }
 
-    // their name and what they're saying, wrapped to fit next to the portrait
+    // name and wrapped line beside the portrait
     const textX = px + size + pad;
     const textW = this.x + this.w - textX - pad;
     const line = Dialogue.currentLine();
@@ -164,7 +156,7 @@ class DialogueBox extends UIElement {
     setText(17, NORMAL, LEFT, TOP);
     text(line.slice(0, Math.floor(Dialogue.shown)), textX, this.y + pad + 30, textW, this.h - pad * 2 - 30);
 
-    // once the line's finished, a hint for what to press
+    // key hint once the line's finished
     if (Dialogue.shown >= line.length) {
       const last = Dialogue.line >= npc.type.dialogue.length - 1;
       fill(255, 255, 255, 150);
@@ -173,7 +165,7 @@ class DialogueBox extends UIElement {
     }
   }
 
-  // a square in their colour with a simple face, until there's portrait art
+  // a square in their colour with a simple face, until there's art
   drawPlaceholderPortrait(npc, x, y, size) {
     stroke(npc.type.outline);
     strokeWeight(3);

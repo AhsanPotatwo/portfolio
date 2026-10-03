@@ -1,34 +1,27 @@
-// developer mode: testing tools that stay hidden until you want them.
-// press ` (the key under Esc) or Ctrl + D while playing to switch it on or off.
+// dev mode: hidden testing tools, toggled with ` (under Esc) or Ctrl + D. while on:
+//   - top left panel: fps, map, player health and tile, player/mouse (and its tile)/camera positions
+//   - H toggles the key list below it (plus the editor's keys while it's open)
+//   - the tile grid and (0, 0) lines show; G hides them (e.g. to check tiles while zooming)
+//   - - and = zoom, 0 resets. in the editor the wheel zooms too, except over the palette, which it
+//     scrolls (otherwise the wheel changes hotbar slot)
+//   - T teleports the player to the mouse (if standable)
+//   - M next map (maps.js)
+//   - B map editor (editor.js)
+// remembered in this browser, so it survives reloads. players never see it unless they press the key.
 //
-// while it's on:
-//   - a small panel in the top left shows fps, which map you're on, the player's health and tile,
-//     and where the player, mouse (and the tile it's over) and camera are
-//   - H shows or hides the list of keys under it (the map editor's keys too, while it's open)
-//   - the tile grid and lines through (0, 0) show on the world. G hides them, e.g. to check
-//     how tiles look while zooming
-//   - - and = zoom, 0 resets the zoom. in the map editor the mouse wheel zooms too, except over
-//     its palette, which it scrolls (the rest of the time the wheel changes hotbar slot)
-//   - T teleports the player to the mouse (if it's pointing at somewhere you can stand)
-//   - M goes to the next map (the maps are listed in maps.js)
-//   - B opens the map editor (see editor.js)
-//
-// it's remembered in this browser, so it stays on when you reload while working on the game.
-// players never see any of it unless they press the key.
-//
-// to add a new tool: give it a key in KEYS in config.js, check for it in update() below
-// (after the "if (!this.enabled) return"), and add a line to DEV_KEYS
+// a new tool: a key in KEYS (config.js), a check in update() after "if (!this.enabled) return", and
+// a DEV_KEYS line
 
-// how fast holding a zoom key zooms
+// zoom speed while a zoom key is held
 const DEV_KEY_ZOOM_RATE = 1;
-// how much one notch of the mouse wheel zooms
+// zoom per wheel unit
 const DEV_WHEEL_ZOOM_RATE = 0.0015;
-// name it's saved under in the browser
+// localStorage key
 const DEV_STORAGE_KEY = 'sq-dev-mode';
-// how wide the panels in the top left are, in screen pixels
+// top left panel width, screen px
 const DEV_PANEL_WIDTH = 280;
 
-// the list H shows. the map editor adds its keys under these while it's open (EDITOR_KEYS in editor.js)
+// H's list. the editor appends EDITOR_KEYS (editor.js) while open
 const DEV_KEYS = [
   'DEV MODE KEYS',
   '` / Ctrl+D  dev mode on / off',
@@ -41,16 +34,16 @@ const DEV_KEYS = [
 
 const Debug = {
   enabled: false,
-  // whether the list of keys is showing (H)
+  // key list showing (H)
   showKeys: false,
-  // whether the tile grid and lines through (0, 0) show (G). sketch.js reads it
+  // tile grid and (0, 0) lines showing (G); read by sketch.js
   showGrid: true,
-  // smoothed, so the number doesn't flicker every frame
+  // smoothed so it doesn't flicker
   fps: 60,
 
-  // call once from setup()
+  // once from setup()
   init() {
-    // browser storage can be switched off or blocked, in which case dev mode just starts off
+    // storage may be blocked; then dev mode just starts off
     try { this.enabled = localStorage.getItem(DEV_STORAGE_KEY) === 'on'; } catch (e) {}
   },
 
@@ -58,14 +51,14 @@ const Debug = {
     this.enabled = !this.enabled;
     try { localStorage.setItem(DEV_STORAGE_KEY, this.enabled ? 'on' : 'off'); } catch (e) {}
     if (!this.enabled) {
-      // the editor is part of dev mode, so it closes too
+      // the editor is part of dev mode
       if (Editor.active) Editor.close(player, camera);
-      // don't leave the game zoomed in or out once the tools are put away
+      // don't leave the game zoomed
       camera.zoomTo(1);
     }
   },
 
-  // run every frame, before the player and camera update. aim is the mouse's world position, or null
+  // every frame, before the player and camera update. aim: mouse world position or null
   update(player, camera, map, aim, dt) {
     if (Input.wasPressed('devMode')) this.toggle(player, camera);
     if (!this.enabled) return;
@@ -76,35 +69,32 @@ const Debug = {
 
     this.fps = approach(this.fps, frameRate(), 4, dt);
 
-    // zooming multiplies rather than adds, so it feels the same speed zoomed in or out.
-    // Math.exp(rate * dt) is just over 1, Math.exp(-rate * dt) just under
+    // multiplicative, so it feels the same at any zoom
     if (Input.isDown('zoomIn')) camera.zoomTo(camera.targetZoom * Math.exp(DEV_KEY_ZOOM_RATE * dt));
     if (Input.isDown('zoomOut')) camera.zoomTo(camera.targetZoom * Math.exp(-DEV_KEY_ZOOM_RATE * dt));
-    // the wheel zooms in the map editor (the rest of the time it's for the hotbar).
-    // wheel down (positive) zooms out, like most map apps. not while a box is open in the editor,
-    // the warp graph uses the wheel to zoom itself (warpgraph.js)
+    // wheel zoom in the editor only (otherwise it's the hotbar's). down zooms out, like map apps. not
+    // while a box is open: the warp graph zooms itself with it (warpgraph.js)
     if (Editor.active && !FormBox.active && Input.wheel !== 0) {
       camera.zoomTo(camera.targetZoom * Math.exp(-Input.wheel * DEV_WHEEL_ZOOM_RATE));
     }
     if (Input.wasPressed('zoomReset')) camera.zoomTo(1);
 
-    // goes to the next map in MAPS (maps.js), back to the first after the last
+    // next in MAPS (maps.js), wrapping
     if (Input.wasPressed('nextMap')) {
       const names = Object.keys(MAPS);
       const next = names[(names.indexOf(map.name) + 1) % names.length];
       loadMap(next); // in sketch.js
-      return; // the old map is gone, so skip the rest of this frame's tools
+      return; // the old map is gone, skip the other tools this frame
     }
 
-    // puts the player's feet on the mouse. not onto solid tiles or off the map, they'd be stuck
+    // feet on the mouse; not onto solid or off-map tiles, where they'd be stuck
     if (Input.wasPressed('teleport') && aim && !map.isSolid(map.colAt(aim.x), map.rowAt(aim.y))) {
       player.x = aim.x;
       player.y = aim.y - feetBelowCentre(player.settings); // character.js
     }
   },
 
-  // the panels in the top left. uses screen positions, so draw it after camera.end().
-  // the text is courier prime, where every letter is the same width, so padStart() and spaces line things up
+  // top left panels, screen positions (after camera.end()). monospace, so padStart() and spaces align
   draw(player, camera, map, aim) {
     if (!this.enabled) return;
 
@@ -118,7 +108,7 @@ const Debug = {
       `camera  ${formatPoint(camera)}  zoom ${camera.zoom.toFixed(2)}`,
       `H  ${this.showKeys ? 'hide' : 'show'} keys`,
     ];
-    // under the map editor's toolbar while it's open. hud.js
+    // below the editor toolbar while it's open. drawPanel is in hud.js
     const top = Editor.active ? EDITOR_LAYOUT.toolbarHeight + 8 : 8;
     drawPanel(8, top, DEV_PANEL_WIDTH, status, 13);
 

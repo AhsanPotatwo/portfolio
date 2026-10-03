@@ -1,79 +1,68 @@
-// the camera decides which part of the world is on screen.
-//
-// there are two kinds of position in the game:
-//   world:  where things really are, e.g. the player at (-900, 400). (0, 0) is the middle of the world
-//   screen: pixels on the canvas, from (0, 0) top left to (960, 540) bottom right.
-//           the mouse, crosshair and anything else ui uses these
-// the camera turns one into the other.
-//
-// x, y is the world point shown in the middle of the screen
+// the camera: which part of the world is on screen.
+// two kinds of position:
+//   world:  where things are, e.g. the player at (-900, 400). (0, 0) is the world's middle
+//   screen: canvas pixels, (0, 0) top left to (960, 540). the mouse, crosshair and ui use these
+// x, y is the world point at the screen's middle
 class Camera {
   constructor(x = 0, y = 0) {
     this.x = x;
     this.y = y;
     this.zoom = 1;
 
-    // where the camera is heading. it eases towards these a bit each frame in update().
-    // target is anything with an x and y: the player, an enemy, or a plain point like { x: 100, y: 50 }.
-    // null means stay put
+    // eased towards each frame in update(). target is anything with x, y (the player, a point like
+    // { x: 100, y: 50 }), null to stay put
     this.target = null;
     this.targetZoom = 1;
 
-    // copied from config so they can be changed on the fly, e.g. a slow pan for a cutscene
+    // copies of config, changeable on the fly (e.g. a slow cutscene pan)
     this.followSpeed = CAMERA.followSpeed;
     this.zoomSpeed = CAMERA.zoomSpeed;
 
-    // the area the camera has to stay inside, so you never see past the edge of the world.
-    // loadMap() in sketch.js sets it to the map's edges (and the map editor, when it resizes a map).
-    // null lets it go anywhere
+    // area the view stays inside, so you never see past the world's edge. set to the map's edges by
+    // loadMap() (sketch.js) and the editor's resize. null: anywhere
     this.bounds = null;
 
-    // a timed glide in progress (see focusOn() and release()), or null.
-    // while there is one, it moves the camera instead of following the target
+    // a timed glide in progress (focusOn(), release()) or null. it moves the camera instead of following
     this.glide = null;
-    // what the camera was following, and its zoom, before focusOn(), so release() can go back
+    // target and zoom before focusOn(), for release()
     this.beforeFocus = null;
   }
 
   // ---------- telling the camera what to do ----------
 
-  // keep following something that moves, e.g. camera.follow(player)
+  // keep following something moving, e.g. camera.follow(player)
   follow(target) {
-    // anything following something new takes over from a glide
+    // takes over from a glide
     this.endGlide();
     this.target = target;
   }
 
-  // glide over to a fixed point and stay there, e.g. for a cutscene: camera.lookAt(300, -120)
+  // glide to a fixed point and stay, e.g. camera.lookAt(300, -120)
   lookAt(x, y) {
     this.target = { x, y };
   }
 
-  // change the zoom smoothly, e.g. camera.zoomTo(2) to see everything twice as big
+  // smooth zoom, e.g. camera.zoomTo(2)
   zoomTo(zoom) {
     this.targetZoom = constrain(zoom, CAMERA.minZoom, CAMERA.maxZoom);
   }
 
-  // glides smoothly to a point and zoom, taking duration seconds, then stays there until release().
-  // unlike following, which slows down as it arrives but starts at full speed, this eases in and
-  // out: it starts gently, speeds up in the middle and settles gently, so there's no jolt.
-  // for conversations (dialogue.js) and cutscenes: camera.focusOn(300, -120, 1.5, 0.8)
+  // glide to a point and zoom over duration seconds, then stay until release(). eases in and out (no
+  // jolt), unlike following, which starts at full speed. for dialogue.js and cutscenes:
+  // camera.focusOn(300, -120, 1.5, 0.8)
   focusOn(x, y, zoom, duration) {
-    // remember what to go back to. only the first time, so focusing on something else
-    // mid-conversation still goes back to the player afterwards
+    // only remembered the first time, so refocusing mid-conversation still returns to the player
     if (!this.beforeFocus) this.beforeFocus = { target: this.target, zoom: this.targetZoom };
     this.startGlide({ x, y }, constrain(zoom, CAMERA.minZoom, CAMERA.maxZoom), duration, false);
   }
 
-  // glides back to whatever it was following before focusOn(), and its zoom from then,
-  // taking duration seconds. then it carries on following as normal
+  // glide back to the target and zoom from before focusOn() over duration seconds, then follow as normal
   release(duration) {
     if (!this.beforeFocus) return;
     this.startGlide(this.beforeFocus.target, this.beforeFocus.zoom, duration, true);
   }
 
-  // to: anything with an x and y (a point, or something moving like the player, which is
-  // followed wherever it goes during the glide). finish: true goes back to normal following after
+  // to: anything with x, y (a moving one is tracked during the glide). finish: follow normally after
   startGlide(to, zoom, duration, finish) {
     this.glide = {
       fromX: this.x, fromY: this.y, fromZoom: this.zoom,
@@ -82,8 +71,8 @@ class Camera {
     };
   }
 
-  // stops a glide straight away. if it was a focusOn(), the camera goes back to following what it
-  // was before (without gliding), so nothing's left stuck looking at the wrong thing
+  // stops a glide now. after a focusOn(), goes back to following the old target (no glide), so it's
+  // never left looking at the wrong thing
   endGlide() {
     if (this.beforeFocus) {
       this.target = this.beforeFocus.target;
@@ -93,8 +82,7 @@ class Camera {
     this.beforeFocus = null;
   }
 
-  // jump straight to the target and zoom without easing. for when the game starts,
-  // or the player teleports, when gliding across the map would look wrong
+  // jump to the target and zoom with no easing (game start, map changes)
   snap() {
     this.endGlide();
     if (this.target) {
@@ -127,15 +115,14 @@ class Camera {
   updateGlide(dt) {
     const g = this.glide;
     g.time = Math.min(g.time + dt, g.duration);
-    // how far through the glide, 0 to 1, eased so it starts and ends gently (utils.js)
+    // progress 0 to 1, eased (utils.js)
     const t = easeInOut(g.duration > 0 ? g.time / g.duration : 1);
 
     this.x = lerp(g.fromX, g.to.x, t);
     this.y = lerp(g.fromY, g.to.y, t);
     this.zoom = lerp(g.fromZoom, g.toZoom, t);
 
-    // a release() that's arrived hands back to normal following. a focusOn() that's arrived
-    // just stays where it is (the glide keeps holding it there) until release()
+    // a finished release() hands back to following; a finished focusOn() holds until release()
     if (g.time >= g.duration && g.finish) {
       this.target = g.to;
       this.zoom = g.toZoom;
@@ -145,8 +132,7 @@ class Camera {
     }
   }
 
-  // stops the camera showing past the edge of the world. near an edge the camera stops moving,
-  // and the player walks away from the middle of the screen towards the edge instead
+  // no seeing past the world's edge: near one the camera stops and the player walks off-centre
   keepInBounds() {
     if (!this.bounds) return;
     const half = this.halfView();
@@ -154,9 +140,8 @@ class Camera {
     this.y = this.clampAxis(this.y, half.h, this.bounds.top, this.bounds.bottom);
   }
 
-  // keeps the camera far enough from min and max that the screen (half on each side) stays between them.
-  // if the world is smaller than the screen on this axis (zoomed right out) that can't happen,
-  // so it sits in the middle of the world instead
+  // keeps the view (half each side) within min..max. if the world's smaller than the view on this
+  // axis (zoomed right out), centres it instead
   clampAxis(value, half, min, max) {
     if (max - min <= half * 2) return (min + max) / 2;
     return constrain(value, min + half, max - half);
@@ -164,14 +149,9 @@ class Camera {
 
   // ---------- drawing ----------
 
-  // anything drawn between begin() and end() uses world positions, and ends up in the right place
-  // on screen. anything drawn after end() uses screen positions again (for ui).
-  //
-  // p5 applies these to every point drawn, bottom one first:
-  //   1. shift the world so the camera's point is at (0, 0)
-  //   2. scale everything around that point by the zoom
-  //   3. move (0, 0) to the middle of the screen
-  // so the camera's point ends up in the middle of the screen, at the right size
+  // between begin() and end(), draw in world positions; after end(), screen positions (ui).
+  // p5 applies these bottom first: shift the camera's point to (0, 0), scale by zoom, move (0, 0) to
+  // the screen's middle
   begin() {
     push();
     translate(GAME_W / 2, GAME_H / 2);
@@ -183,16 +163,14 @@ class Camera {
     pop();
   }
 
-  // the camera glides between pixels, and drawing the whole world half a pixel over makes every
-  // edge blurry. this rounds its position to the nearest whole pixel on screen (not in the world,
-  // hence the zoom) so everything stays sharp
+  // rounds to a whole screen pixel (hence the zoom), since drawing the world half a pixel over blurs
+  // every edge
   pixelSnap(value) {
     return Math.round(value * this.zoom) / this.zoom;
   }
 
-  // exactly where begin() puts a world position on screen. unlike worldToScreen() below, it uses
-  // the pixel-snapped camera position begin() uses, so anything drawn in screen positions with this
-  // lines up perfectly with things drawn through the camera (tiles use it, see tilemap.js)
+  // exactly where begin() puts a world position on screen. unlike worldToScreen(), uses the
+  // pixel-snapped position, so screen drawing lines up with camera drawing (tiles, tilemap.js)
   drawnPosition(wx, wy) {
     return {
       x: (wx - this.pixelSnap(this.x)) * this.zoom + GAME_W / 2,
@@ -202,7 +180,7 @@ class Camera {
 
   // ---------- converting positions ----------
 
-  // a point on screen → where that is in the world. e.g. what the mouse is pointing at
+  // e.g. what the mouse points at
   screenToWorld(sx, sy) {
     return {
       x: (sx - GAME_W / 2) / this.zoom + this.x,
@@ -210,8 +188,7 @@ class Camera {
     };
   }
 
-  // a point in the world → where it is on screen. e.g. for a name tag or health bar
-  // drawn as ui above an enemy
+  // e.g. ui above an enemy
   worldToScreen(wx, wy) {
     return {
       x: (wx - this.x) * this.zoom + GAME_W / 2,
@@ -219,8 +196,7 @@ class Camera {
     };
   }
 
-  // half the width and height of the screen, measured in world pixels.
-  // zoomed in, the screen covers less of the world, so these get smaller
+  // half the screen size in world pixels (smaller when zoomed in)
   halfView() {
     return {
       w: GAME_W / 2 / this.zoom,
@@ -228,8 +204,7 @@ class Camera {
     };
   }
 
-  // the part of the world that's on screen right now, in world positions.
-  // used to only draw what can be seen (see world.js)
+  // the visible world area, for drawing only what's seen (world.js)
   view() {
     const half = this.halfView();
     return {

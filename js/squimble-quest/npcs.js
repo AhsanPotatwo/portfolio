@@ -1,32 +1,23 @@
-// the npc catalogue: every kind of friendly character, and what they say. works like enemies.js.
-// npcs are placed on maps in the map editor (the NPCs tab), and each one appears where it was
-// placed when the map loads. walk up to one and press E to talk (see dialogue.js).
+// the npc catalogue: friendly characters and what they say. works like enemies.js. placed in the
+// editor's NPCs tab; E to talk (dialogue.js).
 //
 // ============================== how to make an npc ==============================
 //
-// add a defineNpc() at the bottom of this file. you only give the settings that are different
-// from NPC_DEFAULTS:
-//
+// add a defineNpc() at the bottom, with only settings that differ from NPC_DEFAULTS:
 //   defineNpc('baker', { label: 'Baker', colour: '#e8c07d', dialogue: ['Fresh bread!', 'Want some?'] });
 //
-// the settings:
+//   label                  name in the text box
+//   dialogue               lines shown in turn; E moves on
+//   width, height          body size in px
+//   feetWidth, feetHeight  the part at the bottom that hits walls
+//   speed                  px/s, if their ai walks
+//   colour, outline        placeholder colours
+//   image                  picture instead of the placeholder
+//   portrait               text box picture, e.g. 'assets/squimble-quest/npcs/baker.png'; else a placeholder face
+//   ai                     like an enemy's (enemies.js), null stands still. e.g. wandering
 //
-//   label                  their name, shown in the text box when you talk to them
-//   dialogue               what they say: a list of lines, shown one after another. E moves on
-//   width, height          size of their body in pixels
-//   feetWidth, feetHeight  the part that bumps into walls, at the bottom of the body
-//   speed                  pixels per second, if their ai walks them about
-//   colour, outline        placeholder colours, until there's art
-//   image                  a picture for them instead of the placeholder
-//   portrait               a picture for the text box, e.g. portrait: 'assets/squimble-quest/npcs/baker.png'.
-//                          without one, the box draws a placeholder face
-//   ai                     what they do, the same as an enemy's ai (see enemies.js). null stands still.
-//                          e.g. wandering about, or walking over to the player
-//
-// npcs are Characters (character.js) like the player and enemies, so they can already walk,
-// bump into walls and face things. the player's attacks only hit enemies, so npcs are safe.
-// later, dialogue could grow into choices, quests or shops, by giving npcs more settings here
-// and teaching dialogue.js what to do with them
+// npcs are Characters (character.js), so walking, walls and facing already work. player attacks only
+// hit enemies. later: choices, quests or shops, via new settings here handled in dialogue.js
 //
 // ====================================================================================
 
@@ -38,7 +29,7 @@ const NPC_DEFAULTS = {
   feetWidth: 24,
   feetHeight: 14,
   speed: 80,
-  // npcs are Characters, which need these, even though nothing hurts npcs yet
+  // Character needs these, though nothing hurts npcs yet
   maxHealth: 100,
   weapon: null,
   colour: '#7bd88f',
@@ -50,7 +41,6 @@ const NPC_DEFAULTS = {
   ai: null,
 };
 
-// every npc, by name. filled in by defineNpc() below
 const NPC_TYPES = {};
 
 // defineType() is in utils.js
