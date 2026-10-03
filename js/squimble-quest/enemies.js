@@ -18,7 +18,7 @@
 //   image                  picture instead of the placeholder
 //   ai                     behaviour (below), null stands still. each spawn can pick another
 //                          from ENEMY_AIS (right click it in the editor)
-//   sightRange             distance it notices you from (chasePlayer and the pathfinders)
+//   sightRange             px it sees you from, walls in the way (sensePlayer() below)
 //   attackRange            distance it swings from
 //   onDeath                (enemy) => { ... } at 0 health. still 0 after → gone for good, so it can
 //                          drop loot, or revive like the dummy
@@ -27,7 +27,8 @@
 //
 // runs every frame, returning the same controls the player gets from input (top of character.js):
 //   ai: (enemy, world, dt) => ({ move: { x, y }, aim: { x, y }, attack: true or false }),
-// world is { map, players, enemies, npcs, characters }; find players with nearestPlayer() (character.js). STAND_STILL for nothing. chasePlayer below is
+// world is { map, players, enemies, npcs, characters }. find who to go for with sensePlayer() below,
+// so every ai notices and loses players the same way. STAND_STILL for nothing. chasePlayer below is
 // a full example (ai: chasePlayer); write new ones next to it, and add them to ENEMY_AIS so the
 // editor can pick them. walls, collisions, damage, tiles and swings already work; the ai only decides
 //
@@ -48,7 +49,7 @@ const ENEMY_DEFAULTS = {
   healthBarColour: '#e05050',
   image: null,
   ai: null,
-  sightRange: 300,
+  sightRange: 480,
   attackRange: 44,
   onDeath: null,
 };
@@ -60,18 +61,59 @@ function defineEnemy(name, settings) {
   defineType(ENEMY_TYPES, ENEMY_DEFAULTS, 'enemy', name, settings);
 }
 
+// ---------- senses ----------
+
+// px it hears you from, through walls
+const ENEMY_HEARING = 5 * TILE;
+// px within which allies are told when it spots you
+const ENEMY_ALERT_RANGE = 8 * TILE;
+// seconds out of sight (and out of sightRange) before it loses you
+const ENEMY_MEMORY = 8;
+
+// the player it's after (enemy.chasing), or null. it notices the nearest player it can see within
+// sightRange (solid tiles block the view, except see-through ones like water: clearLine() in
+// tilemap.js) or hear within ENEMY_HEARING, and tells allies within ENEMY_ALERT_RANGE. after that it
+// knows where they are while they're within sightRange, even behind a wall, so ducking round a
+// corner doesn't shake it; it loses them after ENEMY_MEMORY seconds out of sight and out of range
+function sensePlayer(enemy, world, dt) {
+  const feet = (c) => ({ x: c.x, y: c.y + feetBelowCentre(c.settings) }); // character.js
+  const notices = (player) => {
+    const a = feet(enemy);
+    const b = feet(player);
+    const distance = Math.hypot(b.x - a.x, b.y - a.y);
+    return distance <= ENEMY_HEARING || (distance <= enemy.type.sightRange && world.map.clearLine(a.x, a.y, b.x, b.y));
+  };
+
+  const near = nearestPlayer(world, enemy); // character.js
+  if (near && near !== enemy.chasing && notices(near)) {
+    enemy.chasing = near;
+    for (const ally of world.enemies) {
+      if (ally !== enemy && !ally.chasing && ally.ai && Math.hypot(ally.x - enemy.x, ally.y - enemy.y) <= ENEMY_ALERT_RANGE) {
+        ally.chasing = near;
+        ally.unseen = 0;
+      }
+    }
+  }
+  const target = enemy.chasing;
+  if (!target || !world.players.includes(target)) {
+    enemy.chasing = null;
+    return null;
+  }
+  enemy.unseen = notices(target) ? 0 : enemy.unseen + dt;
+  if (enemy.unseen > ENEMY_MEMORY && Math.hypot(target.x - enemy.x, target.y - enemy.y) > enemy.type.sightRange) enemy.chasing = null;
+  return enemy.chasing;
+}
+
 // ---------- ais ----------
 
-// heads straight at the nearest player (character.js) within sightRange, swings within attackRange,
-// else waits. slides along walls (no pathfinding)
-function chasePlayer(enemy, world) {
-  const player = nearestPlayer(world, enemy);
+// heads straight at the player it's after (sensePlayer()), swings within attackRange. slides along
+// walls (no pathfinding), so it gets stuck behind them: the original ai, kept as "direct"
+function chasePlayer(enemy, world, dt) {
+  const player = sensePlayer(enemy, world, dt);
   if (!player) return STAND_STILL;
   const dx = player.x - enemy.x;
   const dy = player.y - enemy.y;
   const distance = Math.hypot(dx, dy);
-
-  if (distance > enemy.type.sightRange) return STAND_STILL;
 
   return {
     move: towards(dx, dy),
@@ -85,7 +127,7 @@ function chasePlayer(enemy, world) {
 const ENEMY_AIS = {
   smart: pathfinder(0.15),   // like a player: avoids harm unless the way round is much longer
   careful: pathfinder(0.5),  // goes a long way round rather than get hurt
-  reckless: pathfinder(0),   // shortest way, harm or not (still won't walk to its death)
+  reckless: pathfinder(0.03), // takes harm whenever it's quicker (but won't walk to its death)
   direct: chasePlayer,       // the original: straight at you, stuck behind walls
   still: null,
 };

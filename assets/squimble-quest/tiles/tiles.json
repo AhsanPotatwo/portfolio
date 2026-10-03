@@ -8,7 +8,7 @@
     { "name": "planks", "colour": "#b98a55" },
     { "name": "sand", "colour": "#e6d28e", "speed": 0.8 },
     { "name": "wall", "colour": "#5f6470", "solid": true },
-    { "name": "water", "colour": "#3b7dd8", "solid": true },
+    { "name": "water", "colour": "#3b7dd8", "solid": true, "seeThrough": true },
     { "name": "roof", "colour": "#8e4a3c", "solid": true },
     { "name": "lava", "colour": "#e4572e", "speed": 0.7, "damagePerSecond": 25 },
     { "name": "spikes", "colour": "#9d8bb0", "damagePerStep": 15 },

@@ -17,7 +17,7 @@ vm.createContext(game);
 vm.runInContext(fs.readFileSync(`${__dirname}/../pathfinding.js`, 'utf8'), game);
 
 // enough of a TileMap (tilemap.js) for planPath()
-function plan(rows, caution, health = 60) {
+function plan(rows, caution, health = 60, crowd) {
   const cols = rows[0].length;
   const tiles = rows.join('').replace(/[EP]/g, '.');
   const at = (ch) => ({ col: rows.join('').indexOf(ch) % cols, row: Math.floor(rows.join('').indexOf(ch) / cols) });
@@ -30,7 +30,7 @@ function plan(rows, caution, health = 60) {
   const enemy = { speed: 95, health, maxHealth: 60 };
   const e = at('E');
   const p = at('P');
-  const result = game.planPath(map, enemy, e.col, e.row, p.col, p.row, caution);
+  const result = game.planPath(map, enemy, e.col, e.row, p.col, p.row, caution, crowd);
   result.tiles = result.path.map(({ col, row }) => tiles[row * cols + col]).join('');
   return result;
 }
@@ -80,3 +80,34 @@ const lethal = plan([
 ], 0, 30);
 assert(!lethal.reached && !lethal.tiles.includes('L'), "won't walk to its death");
 assert(plan(['#######', '#ELLLP#', '#######'], 0, 60).reached, 'crosses when it would survive');
+
+// no diagonal step past lava at the corner: (1,1) → (2,2) would brush (1,2)
+const corner = plan([
+  '#####',
+  '#E..#',
+  '#L..#',
+  '#.P.#',
+  '#####',
+], 0.15);
+assert(corner.path[0].col === 2 && corner.path[0].row === 1, 'steps round a lava corner');
+assert.strictEqual(corner.damage, 0);
+
+// crowd: an ally expected along the top of a fork sends it along the bottom
+const forkRows = [
+  '#######',
+  '#.....#',
+  '#E###P#',
+  '#.....#',
+  '#######',
+];
+const ally = new Map([[1 * 7 + 2, 1], [1 * 7 + 3, 0.6], [1 * 7 + 4, 0.4]]);
+assert(plan(forkRows, 0.15, 60, ally).path.every(({ row }) => row >= 2), 'goes the other way round an ally');
+// someone parked in a doorway: goes round by the other door
+const door = plan([
+  '#.#.#.###',
+  '#.......#',
+  '#.#.#.###',
+  '#E#....P#',
+  '#.#.#.###',
+], 0.15, 60, new Map([[2 * 9 + 3, 4]]));
+assert(door.reached && !door.path.some(({ col, row }) => col === 3 && row === 2), 'goes round someone parked in a door');

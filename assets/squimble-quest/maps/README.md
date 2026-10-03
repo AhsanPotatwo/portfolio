@@ -6,7 +6,7 @@ A map is made of:
 
 - **Tiles**: the ground. Every spot has exactly one tile (grass, wall, water…), or is empty. Tiles are made in the editor's tile editor and kept in [`tiles/tiles.json`](../tiles/README.md).
 - **Objects**: things placed on top, like furniture and decorations. One object can cover several tiles (a 2 × 1 table), and several can share a tile (a table on a rug). Objects are defined in [`js/squimble-quest/objects.js`](../../../js/squimble-quest/objects.js).
-- **Enemies**: where each enemy starts. They appear there with full health the first time you go to the map. After that, each map remembers its enemies and NPCs as you left them: defeated enemies stay defeated and hurt ones stay hurt, until the page is reloaded. Enemies are defined in [`js/squimble-quest/enemies.js`](../../../js/squimble-quest/enemies.js). Right click a placed enemy to pick its **AI**: **smart** goes round walls and avoids lava and spikes unless the way round is much longer, **careful** goes a long way round rather than get hurt, **reckless** takes the shortest way whatever it costs, **direct** is the old straight line (stuck behind walls), and **still** doesn't move. Left as **its own**, it uses the one its kind has in `enemies.js`. In dev mode each enemy shows its AI and planned route (**P** hides them).
+- **Enemies**: where each enemy starts. They appear there with full health the first time you go to the map. After that, each map remembers its enemies and NPCs as you left them: defeated enemies stay defeated and hurt ones stay hurt, until the page is reloaded. Enemies are defined in [`js/squimble-quest/enemies.js`](../../../js/squimble-quest/enemies.js). Right click a placed enemy to pick its **AI**: **smart** goes round walls and avoids lava and spikes unless the way round is much longer, **careful** goes a long way round rather than get hurt, **reckless** takes harm whenever it's quicker (but not enough to kill it), **direct** is the old straight line (stuck behind walls), and **still** doesn't move. Left as **its own**, it uses the one its kind has in `enemies.js`. The pathfinders also work round each other: they spread out, come at you from different sides and surround you, and give way when they get in each other's way. Every enemy sees you from 15 tiles unless a wall is in the way (water isn't), hears you within 5 tiles even through walls, and tells others nearby. Once it's after you it keeps track round corners, and only loses you after 8 seconds out of sight and out of range; the pathfinders then walk back to where they started. In dev mode each enemy shows its AI, what it's doing and its planned route (**P** hides them).
 - **NPCs**: where each friendly character starts. Walk up to one and press **E** to talk. NPCs, and what they say, are defined in [`js/squimble-quest/npcs.js`](../../../js/squimble-quest/npcs.js).
 - **Warps**: tiles that take the player to another map, or somewhere else on the same one. That's how doors, cave entrances, manholes, trapdoors, secret passages and teleporters work. See [Warps](#warps) below, and [`js/squimble-quest/warps.js`](../../../js/squimble-quest/warps.js).
 
@@ -24,7 +24,7 @@ The tile grid shows on every map while developer mode is on, and never outside i
 
 ### The AI test map
 
-`ai-test` is a hallway with six rooms above and six below. Each has grunts with different AIs (the label over each one in dev mode says which) and a **planks tile to stand on**: from there every grunt in that room notices you, and none from other rooms do (they notice you within about 9 tiles, through walls). Turn dev mode on to see their routes. They'll attack you, so walk away to stop a test. Opening and closing the editor (**B** twice) puts everyone back at the start.
+`ai-test` is a hallway with six rooms above and six below. Each has grunts with different AIs (the label over each one in dev mode says which and what it's doing) and a **planks tile to stand on**. Walking the hallway wakes nobody. In most rooms they see you from the planks; in **House**, **Fork** and **Pillars** the walls hide you, so step out where they can see you first, then go to the planks. Turn dev mode on to see their routes. They'll attack you; run out of the room and once they lose you they walk back. Opening and closing the editor (**B** twice) puts everyone back at the start at once.
 
 Rooms above the hallway, left to right:
 
@@ -32,8 +32,8 @@ Rooms above the hallway, left to right:
 |---|---|
 | **House** | **smart** walks round the house. **direct** (the old AI) walks into the wall and stays there |
 | **Maze** | Corridors with dead ends. Both find their way through to you in the middle |
-| **Fork** | Two equal ways round a block, one crossing lava. All take the safe side (**reckless** doesn't care, so it's a coin toss for it), then queue behind the first instead of coming at you from both sides (a known flaw) |
-| **Spike, long way round** | A wall with one spike in the gap and openings far off at the ends. **smart** and **reckless** take the spike, **careful** walks round |
+| **Fork** | Two equal ways round a block, one crossing lava. **smart** and **careful** take the safe side; **reckless**, which minds lava least, goes the other way, so you're attacked from both sides |
+| **Spike, long way round** | A wall with one spike in the gap and openings far off at the ends. **smart** and **reckless** take the spike (whoever's second gives way at the gap), **careful** walks round |
 | **Spike, short way round** | The same with openings close by. Now **smart** walks round too; only **reckless** takes the spike |
 | **Pillars and tables** | An open room of pillars, two lava tiles and two tables. The pathfinders weave through; **direct** gets caught on a pillar |
 
@@ -41,12 +41,12 @@ Rooms below, left to right:
 
 | Room | What should happen |
 |---|---|
-| **Lava river** | Too wide to cross without dying, with a bridge at the far right and one place on the left only one tile wide. **smart** and **reckless** cross the thin bit, **careful** uses the bridge, **direct** walks in and burns. Hit **smart** a few times first and it gets scared and uses the bridge. Known flaws show here: they brush the lava beside their route, losing more than planned (even on the bridge), and careful and reckless can meet head on and push against each other for ever |
+| **Lava river** | Too wide to cross without dying, with a bridge at the far right and one place on the left only one tile wide. **smart** and **reckless** cross the thin bit, **careful** uses the bridge, **direct** walks in and burns. Hit **smart** a few times first and it gets scared and uses the bridge. Stand in the lava yourself and they wait at the edge rather than follow you in |
 | **Island** | Step on the planks by the door to jump to the island (and on the island's planks to come back). Nobody can reach you, so they wait at the nearest shore with **(no way)** on their labels |
 | **Mud** | Poop (half speed) between you and them. **smart** walks round on grass and gets there first, **direct** wades through |
 | **Spike gauntlet** | Three spikes (45 hp) in a straight corridor, or a long zigzag. **smart** and **reckless** run the spikes, **careful** zigzags. A **smart** you've hurt zigzags |
-| **Crowd** | Six grunts behind a one-tile door, with a wider gap further along. They all queue at the door (a known flaw) |
-| **Give up** | A long wall with openings only at the ends. Going round takes them far enough away to lose you, so the first one round gives up (a known flaw) |
+| **Crowd** | Six grunts behind a one-tile door, with a wider gap further along. Some take the door, some the gap, and they surround you |
+| **Give up** | A long wall with openings only at the ends. You're out of sight but they hear you, and they keep after you all the way round |
 
 ## Quick start
 

@@ -23,6 +23,7 @@
 //   scale  optional display multiplier for whole-number fields, e.g. 100 shows speed 0.8 as 80 (%)
 const TILE_BEHAVIOURS = [
   { tab: 'Behaviours', key: 'solid', label: 'Solid', field: (value) => new Checkbox({ w: 180, value, label: "can't walk on it" }) },
+  { tab: 'Behaviours', key: 'seeThrough', label: 'See over', field: (value) => new Checkbox({ w: 180, value, label: 'enemies see across it' }) },
   // min 1%: 0 would trap anyone on it. 500 is 5x
   { tab: 'Behaviours', key: 'speed', label: 'Speed', after: '% of normal', scale: 100, field: (value) => new NumberField({ w: 90, value, min: 1, max: 500 }) },
   { tab: 'Behaviours', key: 'damagePerSecond', label: 'Damage', after: 'a second', field: (value) => new NumberField({ w: 90, value, max: 9999 }) },
