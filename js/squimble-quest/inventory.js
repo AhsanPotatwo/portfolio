@@ -73,7 +73,7 @@ class Inventory {
 }
 
 // an item's picture, or a placeholder in its colour with its label's first letter. size px square,
-// top left at x, y. for slots, dragging and the ground
+// top left at x, y. for dragging; slots and the ground add its glow (drawGlowingItem() in itemglow.js)
 function drawItemIcon(item, x, y, size) {
   if (item.type.img) {
     image(item.type.img, x, y, size, size);
@@ -85,19 +85,6 @@ function drawItemIcon(item, x, y, size) {
   fill(20);
   setText(Math.round(size * 0.57));
   text(item.type.label[0], x + size / 2, y + size / 2 + 1);
-}
-
-// soft glow in the item's rarity colour (items.js), centred on x, y, reaching size px out
-function drawItemGlow(item, x, y, size) {
-  push();
-  noStroke();
-  fill(itemRarity(item).colour);
-  const alpha = drawingContext.globalAlpha;
-  drawingContext.globalAlpha = alpha * 0.14;
-  circle(x, y, size * 2);
-  drawingContext.globalAlpha = alpha * 0.22;
-  circle(x, y, size * 1.4);
-  pop();
 }
 
 // ---------- the hotbar ----------
@@ -188,8 +175,7 @@ class ItemSlot extends Button {
       const pad = 8;
       push();
       if (InventoryScreen.dragging === this.slot) drawingContext.globalAlpha *= 0.3;
-      drawItemGlow(item, this.x + this.w / 2, this.y + this.h / 2, this.w / 2);
-      drawItemIcon(item, this.x + pad, this.y + pad, this.w - pad * 2);
+      drawGlowingItem(item, this.x + this.w / 2, this.y + this.h / 2, this.w - pad * 2, this.w / 2);
       pop();
     }
 
@@ -419,15 +405,14 @@ const Drops = {
     });
   },
 
-  // one drop: glowing and bobbing over its shadow, or spinning mid-throw. drawn individually so it
+  // one drop over its shadow, glowing in the air too, bobbing once landed. drawn individually so it
   // depth-sorts with characters (sketch.js). world positions (inside camera.begin/end)
   draw(drop) {
     const size = 20;
-    const time = millis() / 1000;
     const landed = drop.flight >= 1;
     const spot = this.where(drop);
     // + x so neighbours don't bob in step
-    const bob = landed ? Math.sin(time * 3 + drop.x) * 3 : 0;
+    const bob = landed ? Math.sin(millis() / 1000 * 3 + drop.x) * 3 : 0;
     const x = Math.round(spot.x);
     const y = Math.round(spot.y - size / 2 - 6 - spot.height + bob);
 
@@ -435,17 +420,7 @@ const Drops = {
     // shadow shrinks as it rises
     fill(0, 0, 0, 70);
     ellipse(x, Math.round(spot.y), Math.max(4, 16 + bob - spot.height / 4), 5);
-    if (!landed) {
-      // one full turn, spinning the throw's way
-      push();
-      translate(x, y);
-      rotate(drop.flight * TWO_PI * (drop.x < drop.from.x ? -1 : 1));
-      drawItemIcon(drop.item, -size / 2, -size / 2, size);
-      pop();
-      return;
-    }
-    // gently pulsing glow
-    drawItemGlow(drop.item, x, y, size + Math.sin(time * 2 + drop.x) * 1.5);
-    drawItemIcon(drop.item, x - size / 2, y - size / 2, size);
+    // seeded by the landing spot, fixed for the whole throw, so the glow doesn't jump as it moves
+    drawGlowingItem(drop.item, x, y, size, GLOW_PIXEL_SIZE, drop.x + drop.y);
   },
 };

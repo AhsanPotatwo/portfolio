@@ -18,7 +18,7 @@
 //   label     shown to the player
 //   category  an ITEM_CATEGORIES key; its editor palette tab
 //   weapon    a "weapons" name if holding it attacks, else null
-//   rarity    a RARITIES key; its glow colour
+//   rarity    a RARITIES key; its glow (itemglow.js)
 //   colour    placeholder hotbar colour
 //   image     e.g. "assets/squimble-quest/items/axe.png"
 //
@@ -39,15 +39,18 @@ const ITEM_CATEGORIES = {
   item: 'Items',
 };
 
-// least to most rare, with glow colours. placeholders: change freely, but keep ITEM_DEFAULTS.rarity in it
+// least to most rare, with their glow (colour, sparkles, image: see itemglow.js). placeholders: change
+// freely, but keep ITEM_DEFAULTS.rarity in it
 const RARITIES = {
-  primitive: { label: 'Primitive', colour: '#9c8b78' },
-  common:    { label: 'Common',    colour: '#e8e8e8' },
-  uncommon:  { label: 'Uncommon',  colour: '#5ed15e' },
-  rare:      { label: 'Rare',      colour: '#4aa3ff' },
-  legendary: { label: 'Legendary', colour: '#ffa726' },
-  mythical:  { label: 'Mythical',  colour: '#ff4fd8' },
+  primitive: { label: 'Primitive', colour: '#9c8b78', sparkles: 0, image: null },
+  common:    { label: 'Common',    colour: '#e8e8e8', sparkles: 1, image: null },
+  uncommon:  { label: 'Uncommon',  colour: '#5ed15e', sparkles: 1, image: null },
+  rare:      { label: 'Rare',      colour: '#4aa3ff', sparkles: 2, image: null },
+  legendary: { label: 'Legendary', colour: '#ffa726', sparkles: 3, image: null },
+  mythical:  { label: 'Mythical',  colour: '#ff4fd8', sparkles: 4, image: null },
 };
+// names for prepareArt()'s warnings (sketch.js preload() loads the glow pictures)
+for (const [name, rarity] of Object.entries(RARITIES)) rarity.name = name;
 
 const ITEM_DEFAULTS = {
   label: '?',
@@ -81,7 +84,7 @@ function defineItem(name, settings) {
   ITEMS_BY_CATEGORY[type.category][name] = type;
 }
 
-// { label, colour }
+// its RARITIES entry
 function itemRarity(item) {
   return RARITIES[item.type.rarity];
 }

@@ -12,6 +12,7 @@
 //   npcs.js       npc kinds and what they say
 //   weapons.js    weapons and their swings
 //   items.js      item kinds, and loading weapons + items from items.json
+//   itemglow.js   the rarity glow and sparkles drawn around items
 //   tilemap.js    a tile map: storing, drawing, resizing, collision
 //   maps.js       map file list, start map, visited maps
 //   mapfile.js    saving and loading map files
@@ -50,6 +51,8 @@ function preload() {
   prepareArt(OBJECT_TYPES, 'object');
   prepareArt(ENEMY_TYPES, 'enemy');
   prepareArt(NPC_TYPES, 'npc');
+  // rarity glow pictures and colours (itemglow.js)
+  prepareArt(RARITIES, 'rarity');
 }
 
 function setup() {

@@ -1235,10 +1235,8 @@ function drawPaletteArt(kind, name, x, y, size) {
     const w = size * 0.6;
     drawWarpSquare(middleX - w / 2, middleY - w / 2, w, WARP_COLOURS.edge, false);
   } else if (isItemKind(kind)) {
-    // like an inventory slot, with rarity glow (inventory.js)
-    const item = { type: ITEM_TYPES[name] };
-    drawItemGlow(item, middleX, middleY, size / 2);
-    drawItemIcon(item, x + size * 0.2, y + size * 0.2, size * 0.6);
+    // like an inventory slot, with rarity glow (itemglow.js)
+    drawGlowingItem({ type: ITEM_TYPES[name] }, middleX, middleY, size * 0.6, size / 2);
   } else {
     // objects and characters scaled to fit, aspect kept (a 2 x 1 table looks twice as wide)
     const type = EDITOR_CATALOGUES[kind][name];
