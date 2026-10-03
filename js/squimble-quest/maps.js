@@ -10,6 +10,8 @@ const MAP_FILES = [
   'example.json',
   'hut.json',
   'node-test.json',
+  // rooms testing the enemy ais (pathfinding.js), guide in the maps README
+  'ai-test.json',
 ];
 
 const START_MAP = 'example';
