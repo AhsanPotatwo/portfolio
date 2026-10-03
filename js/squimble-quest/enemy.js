@@ -1,10 +1,14 @@
 // an enemy. shared behaviour is in Character (character.js), its kind (size, health, ai...) in
 // enemies.js. here: who it hits, dying, following through warps
 class Enemy extends Character {
-  // type: an ENEMY_TYPES name. col, row: its tile
-  constructor(type, col, row) {
+  // type: an ENEMY_TYPES name. col, row: its tile. ai: its spawn's ENEMY_AIS name (enemies.js), or
+  // undefined for its kind's own
+  constructor(type, col, row, ai) {
     super(0, 0, ENEMY_TYPES[type]);
     this.type = ENEMY_TYPES[type];
+    this.ai = ai !== undefined ? ENEMY_AIS[ai] : this.type.ai;
+    // the pathfinders' current route (planPath() in pathfinding.js), else null
+    this.plan = null;
     this.placeFeetOnTile(col, row);
     // { warp, time } while following the player through a warp: seconds until it comes out
     // (Warps.sendFollowers() in warps.js). else null
@@ -28,6 +32,11 @@ class Enemy extends Character {
     const x = (this.following.warp.col + 0.5) * TILE;
     const y = (this.following.warp.row + 0.5) * TILE;
     return { move: towards(x - this.x, y - (this.y + feetBelowCentre(this.settings))), aim: { x, y }, attack: false };
+  }
+
+  // this.ai, not the kind's, since a spawn can pick another
+  think(world, dt) {
+    return this.ai ? this.ai(this, world, dt) : STAND_STILL;
   }
 
   targets(world) {

@@ -19,7 +19,7 @@
 //     weapon numbers; the inspector's Export saves items.json (items.js)
 //   - Erase, then click/drag: starting on an object, enemy, npc, item or warp removes those, else it
 //     empties tiles (like off-map: undrawn, unwalkable)
-//   - right click: settings of a warp on the map, or a tile or item in the palette
+//   - right click: settings of a warp or enemy (its ai) on the map, or a tile or item in the palette
 //   - opening shows every enemy at its spawn, defeated ones too, so you see the whole design; closing
 //     resets everyone to their spawns at full health (outside the editor maps remember their
 //     characters, loadMap() in sketch.js)
@@ -45,7 +45,7 @@ const NEW_MAP_NAME = 'new-map';
 const EDITOR_KEYS = [
   'MAP EDITOR KEYS',
   'left click  paint / place',
-  'right click change settings (warps, palette tiles and items)',
+  'right click change settings (warps, enemy ai, palette tiles and items)',
   'WASD        move around',
   'wheel       zoom',
   'B           close the editor',
@@ -436,10 +436,12 @@ const Editor = {
       if (kind === 'trigger' && name === 'warp') this.placeWarp(map, over.col, over.row);
     }
 
-    // right click: settings of what's there. only warps so far; hook future ones in here
+    // right click: settings of what's there (a warp, else an enemy); hook future ones in here
     if (over && Input.mousePressed('right')) {
       const warp = map.warpAt(over.col, over.row);
+      const enemy = map.spawnsAt('enemy', over.col, over.row)[0];
       if (warp) this.editWarp(map, warp);
+      else if (enemy) this.editEnemy(enemy);
     }
 
     // painting and erasing continue while held
@@ -638,6 +640,31 @@ const Editor = {
       canConfirm: ([name]) => name.trim() !== '' && !map.warps.some((other) => other !== warp && other.name === name.trim()),
       onConfirm: ([name, to, toWarp, activate, enemies]) => {
         Object.assign(warp, { name: name.trim(), to, toWarp: to ? toWarp : '', activate, enemies });
+      },
+    });
+  },
+
+  // an enemy spawn's ai (ENEMY_AIS in enemies.js; '' is its kind's own). saved by Export
+  editEnemy(spawn) {
+    const own = aiName(ENEMY_TYPES[spawn.type].ai);
+    FormBox.open({
+      title: `Enemy: ${spawn.type}`,
+      hint: 'direct is the old straight line, the rest go round',
+      confirmLabel: 'Save',
+      rows: [{
+        label: 'AI',
+        field: new Picker({
+          w: 180,
+          choices: ['', ...Object.keys(ENEMY_AIS)],
+          value: spawn.ai ?? '',
+          label: (name) => name || `its own (${own})`,
+        }),
+      }],
+      onConfirm: ([ai]) => {
+        if (ai) spawn.ai = ai;
+        else delete spawn.ai;
+        // the live one picks it up
+        spawnCharacters();
       },
     });
   },
@@ -934,7 +961,9 @@ function inspectorInfo(selected) {
         ['Health', type.maxHealth],
         ['Speed', type.speed],
         kind === 'npc' ? ['Name', type.label] : ['Weapon', type.weapon ?? 'none'],
+        ...(kind === 'enemy' ? [['AI', aiName(type.ai)]] : []),
       ],
+      ...(kind === 'enemy' && { note: 'Right click one on the map to pick its AI' }),
     };
   }
   if (isItemKind(kind)) {

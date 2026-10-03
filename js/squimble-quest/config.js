@@ -164,6 +164,8 @@ const KEYS = {
   zoomReset: ['Digit0', 'Numpad0'],
   // toggles the tile grid and the (0, 0) lines
   grid:      ['KeyG'],
+  // toggles enemy routes (pathfinding.js)
+  enemyPaths: ['KeyP'],
   teleport:  ['KeyT'],
   nextMap:   ['KeyM'],
   // B for build (E is for talking)

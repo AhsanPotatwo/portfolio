@@ -16,9 +16,10 @@
 //   hurtColour             flash when hit
 //   healthBarColour        overhead bar, shown once hurt
 //   image                  picture instead of the placeholder
-//   ai                     behaviour (below), null stands still
-//   sightRange             chasePlayer: distance it notices you from
-//   attackRange            chasePlayer: distance it swings from
+//   ai                     behaviour (below), null stands still. each spawn can pick another
+//                          from ENEMY_AIS (right click it in the editor)
+//   sightRange             distance it notices you from (chasePlayer and the pathfinders)
+//   attackRange            distance it swings from
 //   onDeath                (enemy) => { ... } at 0 health. still 0 after → gone for good, so it can
 //                          drop loot, or revive like the dummy
 //
@@ -27,8 +28,8 @@
 // runs every frame, returning the same controls the player gets from input (top of character.js):
 //   ai: (enemy, world, dt) => ({ move: { x, y }, aim: { x, y }, attack: true or false }),
 // world is { map, players, enemies, npcs, characters }; find players with nearestPlayer() (character.js). STAND_STILL for nothing. chasePlayer below is
-// a full example (ai: chasePlayer); write new ones next to it. walls, collisions, damage, tiles and
-// swings already work; the ai only decides
+// a full example (ai: chasePlayer); write new ones next to it, and add them to ENEMY_AIS so the
+// editor can pick them. walls, collisions, damage, tiles and swings already work; the ai only decides
 //
 // ====================================================================================
 
@@ -79,6 +80,21 @@ function chasePlayer(enemy, world) {
   };
 }
 
+// the ais a spawn can pick in the editor (its "ai" in the map file). the pathfinders (pathfinding.js)
+// go round walls and weigh harm against time; the number is caution, seconds of detour worth 1 hp
+const ENEMY_AIS = {
+  smart: pathfinder(0.15),   // like a player: avoids harm unless the way round is much longer
+  careful: pathfinder(0.5),  // goes a long way round rather than get hurt
+  reckless: pathfinder(0),   // shortest way, harm or not (still won't walk to its death)
+  direct: chasePlayer,       // the original: straight at you, stuck behind walls
+  still: null,
+};
+
+// ENEMY_AIS name of an ai, for the editor and dev mode
+function aiName(ai) {
+  return Object.keys(ENEMY_AIS).find((name) => ENEMY_AIS[name] === ai) ?? 'custom';
+}
+
 // walk direction to cover dx, dy: -1/0/1 each. 0 within 4px, or it flickers back and forth when level
 function towards(dx, dy) {
   return { x: Math.abs(dx) > 4 ? Math.sign(dx) : 0, y: Math.abs(dy) > 4 ? Math.sign(dy) : 0 };
@@ -86,7 +102,7 @@ function towards(dx, dy) {
 
 // ---------- the enemies ----------
 
-// basic: chases and swipes. slower than you and weak alone. 3 sword or 2 axe hits
+// basic: chases round walls and swipes. slower than you and weak alone. 3 sword or 2 axe hits
 defineEnemy('grunt', {
   width: 28,
   height: 50,
@@ -95,7 +111,7 @@ defineEnemy('grunt', {
   weapon: 'claws',
   colour: '#d64545',
   outline: '#6e1f1f',
-  ai: chasePlayer,
+  ai: ENEMY_AIS.smart,
 });
 
 // practice target: doesn't move or fight, refills at 0 health

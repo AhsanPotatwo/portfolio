@@ -6,7 +6,7 @@ A map is made of:
 
 - **Tiles**: the ground. Every spot has exactly one tile (grass, wall, water…), or is empty. Tiles are made in the editor's tile editor and kept in [`tiles/tiles.json`](../tiles/README.md).
 - **Objects**: things placed on top, like furniture and decorations. One object can cover several tiles (a 2 × 1 table), and several can share a tile (a table on a rug). Objects are defined in [`js/squimble-quest/objects.js`](../../../js/squimble-quest/objects.js).
-- **Enemies**: where each enemy starts. They appear there with full health the first time you go to the map. After that, each map remembers its enemies and NPCs as you left them: defeated enemies stay defeated and hurt ones stay hurt, until the page is reloaded. Enemies are defined in [`js/squimble-quest/enemies.js`](../../../js/squimble-quest/enemies.js).
+- **Enemies**: where each enemy starts. They appear there with full health the first time you go to the map. After that, each map remembers its enemies and NPCs as you left them: defeated enemies stay defeated and hurt ones stay hurt, until the page is reloaded. Enemies are defined in [`js/squimble-quest/enemies.js`](../../../js/squimble-quest/enemies.js). Right click a placed enemy to pick its **AI**: **smart** goes round walls and avoids lava and spikes unless the way round is much longer, **careful** goes a long way round rather than get hurt, **reckless** takes the shortest way whatever it costs, **direct** is the old straight line (stuck behind walls), and **still** doesn't move. Left as **its own**, it uses the one its kind has in `enemies.js`. In dev mode each enemy shows its AI and planned route (**P** hides them).
 - **NPCs**: where each friendly character starts. Walk up to one and press **E** to talk. NPCs, and what they say, are defined in [`js/squimble-quest/npcs.js`](../../../js/squimble-quest/npcs.js).
 - **Warps**: tiles that take the player to another map, or somewhere else on the same one. That's how doors, cave entrances, manholes, trapdoors, secret passages and teleporters work. See [Warps](#warps) below, and [`js/squimble-quest/warps.js`](../../../js/squimble-quest/warps.js).
 
@@ -58,7 +58,7 @@ It's laid out like a game engine: a **toolbar** along the top (the map's buttons
 | Left click (enemy or NPC chosen) | Place it, standing on the tile under the mouse |
 | Left click (**spawn** chosen, in **Triggers**) | The player spawns on this tile (yellow ring). There's only one, so it moves here |
 | Left click (**warp** chosen, in **Triggers**) | Put a warp on this tile (purple square), and open its settings. See [Warps](#warps) |
-| Right click | Change the settings of what's under the mouse. Only warps have settings so far |
+| Right click | Change the settings of what's under the mouse: a warp, or an enemy's AI |
 | **Erase** (toolbar), then left click / drag | Delete. Starting on an object, enemy, NPC or warp removes those; starting on bare ground empties tiles |
 | **WASD** | Move around the map. The editor's buttons and panels fade out while you move, so you can see the map, and come back when you stop |
 | **−** **=** or mouse wheel | Zoom out and in (**0** resets) |
@@ -178,7 +178,8 @@ You can open a map in any text editor. It looks like this:
     { "type": "table", "col": 1, "row": -1 }
   ],
   "enemies": [
-    { "type": "dummy", "col": 2, "row": 0 }
+    { "type": "dummy", "col": 2, "row": 0 },
+    { "type": "grunt", "col": 4, "row": 0, "ai": "careful" }
   ],
   "npcs": [
     { "type": "villager", "col": -3, "row": 0 }
@@ -192,7 +193,7 @@ You can open a map in any text editor. It looks like this:
 - **`rows`**: the tiles, one line per row, top row first, with a code for each tile separated by spaces.
 - **`legend`**: which code means which tile (the names in `tiles.json`). `..` is always empty. The editor makes a 2-character code for each tile when it exports, from the tile's name where it can: `gr` for grass, then `wt` for water because `wa` is already wall. There are thousands of possible codes, so they won't run out however many tiles you add.
 - **`objects`**: everything placed on the tiles. `type` is the object's name in `objects.js`, and `col`, `row` is the tile its top-left corner is on. They're drawn in list order, so later ones go on top.
-- **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is the name in `enemies.js` or `npcs.js`, and `col`, `row` is the tile it stands on. Maps without these lists just have none.
+- **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is the name in `enemies.js` or `npcs.js`, and `col`, `row` is the tile it stands on. An enemy's `ai` is only there if one was picked (a name in `ENEMY_AIS` in `enemies.js`); left out, it uses its kind's own. Maps without these lists just have none.
 - **`warps`**: see [Warps](#warps). `name` is the warp's name, and `col`, `row` is its tile. `to` is the map it leads to (`""` for nowhere), and `toWarp` is the warp to arrive at on that map (`""` for its spawn point). `activate` is `"step"` or `"interact"` (press E). `enemies` is `true` if enemies chasing the player follow them through it (left out means `false`). Maps without this list just have no warps.
 - **`left`, `top`**: the tile column and row of the map's top-left corner. Tile `(0, 0)` is at the middle of the world, so `-5, -2` puts the middle of a 10 × 5 map there.
 - **`spawn`**: where the player starts, in pixels (the centre of the player). Easiest to set with **spawn** in the editor's **Triggers** tab.
