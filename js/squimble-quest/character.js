@@ -161,7 +161,9 @@ class Character {
 
   // cuts amount (movement on 'x' or 'y') so the feet stop flush against any living character's feet.
   // only feet collide, so bodies can overlap (one standing in front of another). loops
-  // world.characters directly: every character does this every frame
+  // world.characters directly: every character does this every frame. nothing pushes anyone, so
+  // enemies blocking each other stay blocked until one moves: the pathfinders notice and give way
+  // (checkStuck() in pathfinding.js)
   stopAtOthers(world, feet, axis, amount) {
     if (amount === 0) return 0;
     const size = axis === 'x' ? 'w' : 'h';

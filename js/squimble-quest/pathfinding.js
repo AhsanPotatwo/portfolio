@@ -1,36 +1,148 @@
-// enemy pathfinding: walks round walls, through mazes and corridors, weighs harm against time like a
-// player would, and works round the other characters. used by the smart, careful and reckless ais
-// (ENEMY_AIS in enemies.js). who they chase is sensePlayer() in enemies.js, shared with every ai.
+// ================================ enemy pathfinding ================================
 //
-// how a plan is made (planPath()): A* over tiles (a search that tries the most promising tiles
-// first, so it finds the cheapest route without trying every tile). each step costs
+// how the smart, careful and reckless enemies (ENEMY_AIS in enemies.js) get to the player: round
+// walls, through mazes and corridors, weighing harm against time like a player would, and working
+// round each other. read this before changing any of it.
+//
+// ---------- the pieces, and where they live ----------
+//
+//   sensePlayer()    enemies.js  who to chase: sight, hearing, alerting allies, memory. every ai uses
+//                                it (direct's chasePlayer too), so all enemies notice and lose you the
+//                                same way. writes enemy.chasing and enemy.unseen
+//   ENEMY_AIS        enemies.js  the ais the editor offers (right click an enemy). pathfinder(caution)
+//                                below makes ours; the number is all that differs between them
+//   huntAlongPath()  here        the ai itself, run every frame (see "one frame")
+//   planPath()       here        the A* route. pure: reads the map and the enemy and changes nothing,
+//                                so tests/pathfinding-check.js runs it in node on drawn maps
+//   crowdCosts()     here        what the other characters will do next, as extra cost per tile
+//   checkStuck()     here        noticing it's stuck, and who gives way (goesFirst())
+//   drawEnemyPlans() here        dev mode's view of all of it (sketch.js draws it, P toggles)
+//   clearLine()      tilemap.js  line of sight, for sensePlayer(). seeThrough tiles (water) don't block
+//
+// ---------- one frame ----------
+//
+// sketch.js makes world = { map, players, enemies, npcs, characters }, then each enemy.update()
+// (enemy.js) calls think() → enemy.ai(enemy, world, dt), which for us is huntAlongPath(). it returns
+// controls { move, aim, attack } (top of character.js), the same as the player's keys, and
+// Character.walk() does the moving: tile speed and pushes, walls (map.moveAlongX/Y in tilemap.js) and
+// other characters' feet (stopAtOthers()). so the ai only ever picks a direction. it can't walk
+// through anything, and anything it gets wrong shows up as walking into a wall or another enemy.
+//
+// huntAlongPath(), in order:
+//   1. who to chase (sensePlayer()). nobody: walk home, or stand still once there
+//   2. where to: the player's tile, or close to them a free harmless tile beside them (attackSpot())
+//   3. stuck? (checkStuck()). giving way to someone: step back from them, later wait (see below)
+//   4. replan if PATH_REPLAN_TIME is up, it just got stuck, or the map or who it's after changed
+//   5. drop the tiles it's passed, then walk to the middle of the next (towards() in enemies.js)
+//   6. no tiles left: close in and swing, but not onto worse ground; never left standing in lava
+//
+// ---------- what each enemy keeps (declared in Enemy's constructor, enemy.js) ----------
+//
+//   chasing, unseen  sensePlayer()'s: the player it's after, and seconds since it last saw or heard
+//                    them. Warps.sendFollowers() (warps.js) reads chasing to pick who follows you
+//                    through a warp, and the dev mode label shows both
+//   plan             planPath()'s result, plus target (the player it was made for, null going home)
+//                    and age (seconds). other enemies read it too: crowdCosts() predicts them by it
+//   home             { map, col, row }: its first tile, set on its first think. only used on that
+//                    map, so one that followed you through a warp doesn't walk to a tile on the
+//                    wrong one
+//   stuck            checkStuck()'s: last position, seconds stuck, patience, trying (did it ask to
+//                    walk last frame: walked()), avoid, yieldTo, backOff and wait (PATH_STUCK)
+// all of these start empty on a fresh Enemy: spawnCharacters() (sketch.js) makes those on a map's
+// first visit and whenever the editor opens, closes or changes characters. leaving a map keeps its
+// enemy objects as they are (loadMap()), so they carry on where they were. plan and home hold the
+// map they were made on (plan.map, home.map), and both are ignored on any other map.
+//
+// ---------- planning: what a route costs (planPath()) ----------
+//
+// A* over tiles: a search that tries the most promising tiles first, so it finds the cheapest route
+// without trying every tile. 8 directions; each step onto a tile costs
 //   seconds to walk it (slow tiles cost more) + hp it'd take × caution × fear + crowd
-//   caution  seconds of extra walking worth 1 hp to this ai. 0.15 (smart): it walks ~5 tiles round
-//            one lava tile, but takes a spike rather than a long detour
-//   fear     maxHealth / health, up to PATH_MAX_FEAR: hurt enemies get careful
-//   crowd    seconds for tiles other characters are on or will be on soon (crowdCosts()), read from
-//            what each one is: a pathfinder along its own plan, a direct chaser in a straight line
-//            until a wall stops it, anyone else (no ai, idle, npcs) standing where they are. so a
-//            group spreads out and comes at you from more than one side instead of queueing
-// a route that would kill it, or leave it under PATH_SAFETY of its health, is a wall even to
-// reckless. no route (water between): it goes to the closest free tile it found and waits. replans
-// every PATH_REPLAN_TIME.
+//   caution  seconds of extra walking worth 1 hp to this ai: smart 0.15 walks ~5 tiles round one lava
+//            tile but takes a spike rather than a long detour; careful 0.5 goes a long way round;
+//            reckless 0.03 takes harm whenever it's quicker
+//   fear     maxHealth / health, up to PATH_MAX_FEAR, so hurt enemies get careful. hit a smart one
+//            twice and it takes the bridge instead of the lava
+//   crowd    crowdCosts(), below
+// hp: a tile's damagePerStep, plus damagePerSecond × the seconds crossing it (stepCost()). a route
+// that would kill it, or leave it under PATH_SAFETY of its health, is a wall, even to reckless; the
+// margin is there because the walk never matches the plan exactly. no way at all (water between,
+// or the search ran out): it goes to the closest free tile it found that isn't lava, and waits,
+// labelled "(no way)". diagonal steps never cut past a wall (the feet would catch), or past a tile
+// worse underfoot than either end (it'd brush the lava beside its route).
 //
-// walking a plan (huntAlongPath()):
-//   - close to the player it heads for a free, harmless tile beside them (attackSpot()), so a group
-//     surrounds them, and it won't step into lava they stand in to swing: it waits at the edge
-//   - it turns on tile middles and never steps diagonally past a wall, or past a tile worse
-//     underfoot than either end, so it doesn't brush lava beside its route. never left in lava
-//   - stuck (trying to walk but not moving, PATH_STUCK) it steps back from whoever's in the way and
-//     plans round them for a moment; if they're already giving way, it keeps going
-//   - with nobody to chase it walks back to where it started
+// ---------- other characters (crowdCosts()) ----------
 //
-// dev mode draws every plan (drawEnemyPlans(), P toggles): tiles searched (blue), crowd costs
-// (purple dots, bigger costs more), the route (green, orange to red where it hurts, with the hp),
-// the goal, and a label: the ai, what it's doing, the route's time and hp, fear when scared.
+// each plan adds seconds to the tiles other characters are on or will be on soon, predicting each
+// one from what it is (expectedRoute()):
+//   - a pathfinder: its own plan's next PATH_CROWD.ahead tiles, fading along them
+//   - a direct chaser (chasePlayer): a straight line at its target, until a wall, where it'll stand
+//   - anyone else (no ai, not chasing, npcs): staying put, which costs most (PATH_CROWD.parked)
+// so a group spreads out: the second takes the other side of a fork, some take a wider gap instead
+// of queueing at a door, and near the player they surround them (attackSpot()). this is the only
+// way they "talk": each reads the others' plans. enemies plan one after another in world.enemies
+// order, each seeing the others' latest plans, and replanning every PATH_REPLAN_TIME settles them.
 //
-// ponytail: ignores push and slippery tiles (they still act on the walk). add them to stepCost() if
-// enemies get swept off their routes
+// ---------- getting unstuck: right of way (checkStuck(), goesFirst()) ----------
+//
+// costs per tile can't describe everything: two can end up shoulder to shoulder in one tile at a
+// gap, each blocking the other's way in. so if it tries to walk but doesn't move for a moment
+// (PATH_STUCK) it replans, and if anyone beside it has right of way it gives way to them:
+//   - right of way: fewest tiles left to its goal (the one in front at a door), ties to whoever's
+//     first in world.enemies, so both always agree. anyone without a plan (npcs, direct, idle
+//     enemies) goes first, since they won't step aside
+//   - giving way: a step straight back from that one (not from whoever's nearest, which is often the
+//     one pushing from behind), then waiting while its next tile is beside them, until they move
+//     on, die or PATH_STUCK.wait runs out. meanwhile the characters beside it cost extra, so it takes
+//     another way if there is one
+//   - with right of way it keeps pushing; the others are stepping back
+// the result is a queue at a door: the front one goes, the next follows when there's room. the
+// labels say "giving way" and "stuck, going round".
+//
+// ---------- tuning ----------
+//
+//   caution            ENEMY_AIS (enemies.js): how much each ai minds harm
+//   sightRange         per enemy kind (ENEMY_DEFAULTS); ENEMY_HEARING, ENEMY_ALERT_RANGE and
+//                      ENEMY_MEMORY (enemies.js) for the rest of its senses
+//   PATH_REPLAN_TIME   lower reacts faster to a dodging player, costs more time per frame
+//   PATH_CROWD         higher spreads them more; too high and they take silly detours rather than
+//                      share a corridor
+//   PATH_STUCK         lower patience unsticks sooner but jitters in crowds; a longer wait queues
+//                      more patiently before trying another way
+//   PATH_SURROUND      how near the player before it picks a tile beside them
+//   PATH_MAX_SEARCH    how far a plan can look before giving up (time per plan)
+//   PATH_SAFETY        how close to death a route may take it
+//
+// ---------- known limits ----------
+//
+//   - push and slippery tiles aren't planned for, only walked on (see the ponytail note below)
+//   - healing tiles aren't sought out, and time spent standing still (queueing on spikes) isn't costed
+//   - in a one tile corridor only the front one can fight; the rest queue or find another way
+//   - a fully surrounded player: extras find every way through the crowd expensive, the search runs
+//     out and they wait where they are with "(no way)" until a spot frees up. fine as it is
+//   - routes go tile by tile, with the feet (24 px) fitting a 32 px tile. an enemy with feet wider
+//     than about TILE - 8 would snag on corners, and wider than a tile would be sent down corridors
+//     it can't fit; planPath() would need its size
+//   - sight ignores objects (furniture is low) and is one line from feet to feet
+//   - plan, chasing and yieldTo point at objects. fine with one running map; a multiplayer server
+//     would want ids (README "Multiplayer, maybe")
+//   - time: a plan is up to a few ms when the search runs out; replans are staggered (each plan
+//     starts part way through PATH_REPLAN_TIME), and 25 grunts add about 0.6 ms a frame
+//
+// ---------- changing it ----------
+//
+//   - another pathfinding ai: a line in ENEMY_AIS with pathfinder(caution). a new behaviour (one that
+//     keeps its distance, say) is its own ai function, which can still use sensePlayer() to pick a
+//     target and planPath() for routes
+//   - a tile setting that should matter to routes: stepCost() (time, hp) and tileHarm() (what counts
+//     as harmful for corners, spots beside the player and getting out of lava)
+//   - a new kind of character in the way: expectedRoute() decides how it's predicted
+//   - check: node js/squimble-quest/tests/pathfinding-check.js, then the ai-test map (maps README)
+//     with dev mode on: blue tiles searched, purple dots crowd costs (bigger costs more), the route
+//     in green going orange to red where it hurts (with the hp), the goal circled, and a label with
+//     the ai, what it's doing, the route's seconds and hp, and fear
+//
+// ponytail: push and slippery tiles aren't in stepCost(). add them if enemies get swept off routes
 
 // most tiles one plan may search, so a far or unreachable player can't stall a frame (~55 × 55 tiles)
 const PATH_MAX_SEARCH = 3000;
@@ -46,11 +158,13 @@ const PATH_SURROUND = 3 * TILE;
 // seconds added to a tile per character (crowdCosts()): standing there and moving on, each of its
 // next PATH_CROWD.ahead tiles (fading along them), or staying put there (parked)
 const PATH_CROWD = { here: 1, next: 0.6, ahead: 6, parked: 4 };
-// stuck: tried to walk but moved under `progress` × its speed for `patience` seconds (random in the
-// range, so two stuck on each other don't give way at once). then it steps straight back from the
-// nearest character for `backOff` seconds, and for `avoid` seconds characters within 1.5 tiles cost
-// `cost` more seconds, so it goes round them or waits its turn
-const PATH_STUCK = { progress: 0.25, patience: [0.3, 0.8], backOff: 0.35, avoid: 1.5, cost: 8 };
+// stuck (checkStuck()): tried to walk but moved under `progress` × its speed for `patience` seconds
+// (random in the range, so a group doesn't all react in the same frame). then, unless it has right
+// of way (goesFirst()), it gives way to the one that does: steps straight back from it for `backOff`
+// seconds, then waits while its next tile is beside that one, for up to `wait` seconds. and for
+// `avoid` seconds characters within 1.5 tiles cost `cost` more seconds, so it takes another way if
+// there is one
+const PATH_STUCK = { progress: 0.25, patience: [0.3, 0.8], backOff: 0.35, wait: 2, avoid: 1.5, cost: 8 };
 
 const PATH_COLOURS = {
   searched: [80, 170, 255, 45],   // tiles the search looked at
@@ -62,18 +176,21 @@ const PATH_COLOURS = {
 // hp on one tile that draws fully red
 const PATH_COLOUR_FULL_HURT = 20;
 
-// an ai (enemies.js) that chases along planned routes. caution: see the top of this file
+// an ai (ENEMY_AIS in enemies.js) that chases along planned routes. caution: seconds of detour worth
+// 1 hp to it (top of this file). each call makes a new function, so aiName() tells them apart
 function pathfinder(caution) {
   return (enemy, world, dt) => huntAlongPath(enemy, world, dt, caution);
 }
 
+// the pathfinders' ai, every frame: controls for this enemy (steps 1 to 6 at the top of this file)
 function huntAlongPath(enemy, world, dt, caution) {
   const map = world.map;
   // feetTile() is in warps.js
   const [col, row] = feetTile(enemy, map);
   // only on its own map: one that followed through a warp has no home here
   enemy.home ??= { map, col, row };
-  const player = sensePlayer(enemy, world, dt); // enemies.js
+  // 1, 2. who it's after (enemies.js) and where to head
+  const player = sensePlayer(enemy, world, dt);
   const goal = player ? attackSpot(enemy, world, player) : enemy.home.map === map ? [enemy.home.col, enemy.home.row] : null;
   if (!goal || (!player && goal[0] === col && goal[1] === row)) {
     enemy.plan = null;
@@ -82,14 +199,22 @@ function huntAlongPath(enemy, world, dt, caution) {
   const aim = player ? { x: player.x, y: player.y } : null;
   const attack = !!player && Math.hypot(player.x - enemy.x, player.y - enemy.y) < enemy.type.attackRange;
 
+  // 3. stuck, and giving way
   const stuck = checkStuck(enemy, world, dt, attack);
-  // giving way: a step straight back from whoever it's stuck on first, since they may be beside it
-  // in the same tile, where no route can go round them
+  // giving way (checkStuck()) ends once the one with right of way has moved on, died, or the wait's up
   const s = enemy.stuck;
-  if (s.backOff > 0) {
-    s.backOff -= dt;
-    return walked(enemy, { move: towards(enemy.x - s.awayFrom.x, enemy.y - s.awayFrom.y), aim, attack });
+  const leader = s.yieldTo;
+  if (leader) {
+    s.wait -= dt;
+    if (leader.dead || s.wait <= 0 || Math.hypot(leader.x - enemy.x, leader.y - enemy.y) > TILE * 1.5) s.yieldTo = null;
   }
+  // first a step straight back from it: they may be shoulder to shoulder in one tile, where no route
+  // can go round, and stepping back from anyone else (say the one behind) can push it into a wall
+  if (s.yieldTo && s.backOff > 0) {
+    s.backOff -= dt;
+    return walked(enemy, { move: towards(enemy.x - leader.x, enemy.y - leader.y), aim, attack });
+  }
+  // 4. replan. crowdCosts() reads every other character, so it's made fresh each time
   const plan = enemy.plan;
   if (stuck || !plan || plan.map !== map || plan.target !== player || (plan.age += dt) > PATH_REPLAN_TIME) {
     enemy.plan = planPath(map, enemy, col, row, goal[0], goal[1], caution, crowdCosts(enemy, world));
@@ -98,7 +223,7 @@ function huntAlongPath(enemy, world, dt, caution) {
   }
   const path = enemy.plan.path;
 
-  // drop tiles it's passed (several if pushed or slid ahead). the one it's on goes once it's at the
+  // 5. drop tiles it's passed (several if pushed or slid ahead). the one it's on goes once it's at the
   // middle (towards() stops within 4px), so it turns on tile middles
   const feetY = enemy.y + feetBelowCentre(enemy.settings);
   const here = path.findIndex((tile) => tile.col === col && tile.row === row);
@@ -107,7 +232,7 @@ function huntAlongPath(enemy, world, dt, caution) {
 
   const next = path[0];
   if (!next) {
-    // there: straight at the player to swing, like chasePlayer, but not onto anything worse
+    // 6. there: straight at the player to swing, like chasePlayer, but not onto anything worse
     // underfoot, so it waits at the edge of lava they stand in. no way to them: wait at the closest
     let move = STAND_STILL.move;
     if (player && enemy.plan.reached) {
@@ -119,6 +244,12 @@ function huntAlongPath(enemy, world, dt, caution) {
     const out = move === STAND_STILL.move && map.get(col, row).damagePerSecond ? nearestSafeTile(map, col, row) : null;
     if (out) move = towards((out.col + 0.5) * TILE - enemy.x, (out.row + 0.5) * TILE - feetY);
     return walked(enemy, { move, aim, attack });
+  }
+  // then it waits its turn while its way on is beside the one going first (a queue at a doorway).
+  // not walking, so it doesn't count as stuck meanwhile
+  if (s.yieldTo) {
+    const [leaderCol, leaderRow] = feetTile(s.yieldTo, map);
+    if (Math.abs(next.col - leaderCol) <= 1 && Math.abs(next.row - leaderRow) <= 1) return walked(enemy, { move: STAND_STILL.move, aim, attack });
   }
   return walked(enemy, { move: towards((next.col + 0.5) * TILE - enemy.x, (next.row + 0.5) * TILE - feetY), aim, attack });
 }
@@ -175,11 +306,14 @@ function walked(enemy, controls) {
   return controls;
 }
 
-// true the frame it's been stuck long enough to replan round whoever's beside it (PATH_STUCK). not
-// while fighting: pressing against the player is the point. if one beside it is already giving way,
-// it keeps going instead, or both would step aside, come back and stick again
+// true the frame it's been stuck long enough to replan (PATH_STUCK). not while fighting: pressing
+// against the player is the point. if a character beside it has right of way (goesFirst()), it also
+// gives way to the nearest such one: enemy.stuck.yieldTo, acted on in huntAlongPath(). with right of
+// way itself it just keeps pushing; the others step back. without a fixed order, two stuck on each
+// other both gave way, came back and stuck again, and stepping back from the nearest character
+// (often the one behind) pushed it into a wall, jamming a group at a door for good
 function checkStuck(enemy, world, dt, fighting) {
-  const s = enemy.stuck ??= { x: enemy.x, y: enemy.y, time: 0, patience: randomBetween(...PATH_STUCK.patience), avoid: 0, backOff: 0, awayFrom: null, trying: false };
+  const s = enemy.stuck ??= { x: enemy.x, y: enemy.y, time: 0, patience: randomBetween(...PATH_STUCK.patience), trying: false, avoid: 0, yieldTo: null, backOff: 0, wait: 0 };
   const moved = Math.hypot(enemy.x - s.x, enemy.y - s.y);
   s.x = enemy.x;
   s.y = enemy.y;
@@ -188,17 +322,27 @@ function checkStuck(enemy, world, dt, fighting) {
   if (s.time < s.patience) return false;
   s.time = 0;
   s.patience = randomBetween(...PATH_STUCK.patience);
-  const near = (other) => other !== enemy && !other.dead && Math.hypot(other.x - enemy.x, other.y - enemy.y) < TILE * 1.5;
-  if (world.enemies.some((other) => near(other) && other.stuck?.avoid > 0)) return false;
-  s.avoid = PATH_STUCK.avoid;
-  // back off from the nearest one (huntAlongPath())
-  const blockers = [...world.enemies, ...world.npcs].filter(near);
-  const blocker = blockers.sort((a, b) => Math.hypot(a.x - enemy.x, a.y - enemy.y) - Math.hypot(b.x - enemy.x, b.y - enemy.y))[0];
-  if (blocker) {
+  const distance = (other) => Math.hypot(other.x - enemy.x, other.y - enemy.y);
+  const near = [...world.enemies, ...world.npcs].filter((other) => other !== enemy && !other.dead && distance(other) < TILE * 1.5);
+  const leader = near.filter((other) => goesFirst(other, enemy, world)).sort((a, b) => distance(a) - distance(b))[0];
+  if (near.length > 0 && !leader) return false;
+  if (leader) {
+    s.yieldTo = leader;
     s.backOff = PATH_STUCK.backOff;
-    s.awayFrom = { x: blocker.x, y: blocker.y };
+    s.wait = PATH_STUCK.wait;
+    s.avoid = PATH_STUCK.avoid;
   }
   return true;
+}
+
+// right of way between two characters stuck on each other: does `a` go before `b`? whoever's
+// fewest tiles from its goal (the one in front at a doorway), ties to whoever's first in
+// world.enemies, so they always agree. anyone without a plan (npcs, direct, idle) goes first: it
+// won't step aside, so the pathfinder gives way, waits PATH_STUCK.wait, then tries another way
+function goesFirst(a, b, world) {
+  const tilesLeft = (c) => (c.plan ? c.plan.path.length : -1);
+  if (tilesLeft(a) !== tilesLeft(b)) return tilesLeft(a) < tilesLeft(b);
+  return world.enemies.indexOf(a) < world.enemies.indexOf(b);
 }
 
 // extra seconds per tile (map.index() → s) for every other character, from what it'll do (see the
@@ -422,6 +566,7 @@ function drawEnemyPlans(enemies, camera) {
 
 // what an enemy's doing, for its dev mode label
 function enemyState(enemy) {
+  if (enemy.stuck?.yieldTo) return 'giving way';
   if (enemy.stuck?.avoid > 0) return 'stuck, going round';
   if (enemy.chasing) return enemy.unseen > 0 ? `lost sight ${enemy.unseen.toFixed(1)}s` : 'sees you';
   return enemy.plan ? 'going home' : 'idle';

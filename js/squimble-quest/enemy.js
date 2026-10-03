@@ -7,11 +7,14 @@ class Enemy extends Character {
     super(0, 0, ENEMY_TYPES[type]);
     this.type = ENEMY_TYPES[type];
     this.ai = ai !== undefined ? ENEMY_AIS[ai] : this.type.ai;
-    // the player it's after, and seconds since it last saw or heard them (sensePlayer() in enemies.js)
+    // the player it's after, and seconds since it last saw or heard them (sensePlayer() in enemies.js).
+    // set by every ai, read by Warps.sendFollowers() (warps.js) and the pathfinders
     this.chasing = null;
     this.unseen = 0;
-    // the pathfinders' (pathfinding.js): current route (planPath()), else null; the tile it started
-    // on, to go back to ({ map, col, row }, set on its first think); being stuck (checkStuck())
+    // the pathfinders' (pathfinding.js, whose header explains each): current route (planPath()),
+    // else null, which other enemies read to predict it; the tile it started on, to go back to
+    // ({ map, col, row }, set on its first think); being stuck and giving way (checkStuck()). all
+    // start empty, so a fresh enemy (spawnCharacters() in sketch.js) has no memory of the last one
     this.plan = null;
     this.home = null;
     this.stuck = null;

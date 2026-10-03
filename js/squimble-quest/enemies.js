@@ -62,6 +62,25 @@ function defineEnemy(name, settings) {
 }
 
 // ---------- senses ----------
+// who an enemy goes for, shared by every ai so they all notice and lose you the same way. how the
+// pathfinders then get to you is pathfinding.js (its header explains the whole system).
+//
+//   noticing  the nearest player (nearestPlayer(), so it works with several) that it can see, within
+//             sightRange with no wall between (clearLine() in tilemap.js; seeThrough tiles like
+//             water don't block, objects never do), or hear, within ENEMY_HEARING even through walls
+//   alerting  the moment it notices someone, allies within ENEMY_ALERT_RANGE that aren't after
+//             anyone yet are too, even through walls. only on its own noticing, so it doesn't chain
+//             across a whole map
+//   tracking  once after you it knows where you are while you're within sightRange, seen or not:
+//             ducking round a corner or behind a house doesn't shake it. unseen counts the seconds
+//             since it last saw or heard you
+//   losing    only after ENEMY_MEMORY seconds unseen and farther than sightRange. the pathfinders
+//             then walk home; direct ones stand where they are
+// it all lives on the enemy: chasing (the player) and unseen (s), declared in enemy.js. also read by
+// Warps.sendFollowers() (warps.js: who follows you through a warp), crowdCosts() in pathfinding.js
+// (a direct chaser is predicted heading at its chasing) and the dev mode label.
+// limits: sight is one line from feet to feet, and hearing ignores walls entirely, so a thin wall
+// between you and one 5 tiles away doesn't hide you. a new sense (noticing when hit, say) goes here.
 
 // px it hears you from, through walls
 const ENEMY_HEARING = 5 * TILE;
@@ -70,11 +89,8 @@ const ENEMY_ALERT_RANGE = 8 * TILE;
 // seconds out of sight (and out of sightRange) before it loses you
 const ENEMY_MEMORY = 8;
 
-// the player it's after (enemy.chasing), or null. it notices the nearest player it can see within
-// sightRange (solid tiles block the view, except see-through ones like water: clearLine() in
-// tilemap.js) or hear within ENEMY_HEARING, and tells allies within ENEMY_ALERT_RANGE. after that it
-// knows where they are while they're within sightRange, even behind a wall, so ducking round a
-// corner doesn't shake it; it loses them after ENEMY_MEMORY seconds out of sight and out of range
+// the player it's after (enemy.chasing), or null; see "senses" above. call it once per frame per
+// enemy: it counts unseen with dt
 function sensePlayer(enemy, world, dt) {
   const feet = (c) => ({ x: c.x, y: c.y + feetBelowCentre(c.settings) }); // character.js
   const notices = (player) => {
@@ -84,6 +100,7 @@ function sensePlayer(enemy, world, dt) {
     return distance <= ENEMY_HEARING || (distance <= enemy.type.sightRange && world.map.clearLine(a.x, a.y, b.x, b.y));
   };
 
+  // a newly noticed player (or a nearer one than it's after) takes over, and alerts allies
   const near = nearestPlayer(world, enemy); // character.js
   if (near && near !== enemy.chasing && notices(near)) {
     enemy.chasing = near;
@@ -94,6 +111,7 @@ function sensePlayer(enemy, world, dt) {
       }
     }
   }
+  // gone from this map (left, or not a player here): forget them
   const target = enemy.chasing;
   if (!target || !world.players.includes(target)) {
     enemy.chasing = null;
@@ -122,8 +140,11 @@ function chasePlayer(enemy, world, dt) {
   };
 }
 
-// the ais a spawn can pick in the editor (its "ai" in the map file). the pathfinders (pathfinding.js)
-// go round walls and weigh harm against time; the number is caution, seconds of detour worth 1 hp
+// the ais a spawn can pick in the editor (right click an enemy; saved as its "ai" in the map file,
+// read back by addSpawn() in tilemap.js and Enemy's constructor). the pathfinders (pathfinding.js)
+// go round walls, weigh harm against time and work round each other; the number is caution, seconds
+// of detour worth 1 hp. names are what map files store, so renaming one breaks spawns using it (they
+// fall back to their kind's ai, with a console warning). aiName() finds a name from the function
 const ENEMY_AIS = {
   smart: pathfinder(0.15),   // like a player: avoids harm unless the way round is much longer
   careful: pathfinder(0.5),  // goes a long way round rather than get hurt
