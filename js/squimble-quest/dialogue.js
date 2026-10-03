@@ -1,7 +1,7 @@
 // talking to npcs: who's in range, and the text box.
 // E near an npc opens a box along the bottom with their portrait, name and first line (npcs.js)
 // typing out. E (or clicking the box) finishes the line, then goes to the next, closing after the
-// last. the game pauses while it's open.
+// last. the world keeps running while it's open; walking out of range ends it.
 
 // px between feet
 const TALK_RANGE = 56;
@@ -109,8 +109,10 @@ const Dialogue = {
     if (this.line >= this.npc.type.dialogue.length) this.close();
   },
 
-  // every frame while open
-  update(dt) {
+  // every frame while open, after everyone's moved. the world doesn't pause, so the conversation ends
+  // if either of you leaves talking range (walking off, being pushed, respawning, the npc's ai)
+  update(player, dt) {
+    if (this.npcInRange(player, [this.npc]) !== this.npc) return this.close();
     this.shown = Math.min(this.currentLine().length, this.shown + DIALOGUE_TYPE_SPEED * dt);
     if (Input.wasPressed('interact')) this.advance();
   },

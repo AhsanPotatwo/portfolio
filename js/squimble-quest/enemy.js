@@ -31,7 +31,7 @@ class Enemy extends Character {
   }
 
   targets(world) {
-    return [world.player];
+    return world.players;
   }
 
   // onDeath first (enemies.js); still on 0 health after → gone for good

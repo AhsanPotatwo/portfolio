@@ -13,11 +13,26 @@
 //   width, height, feetWidth, feetHeight, speed, maxHealth, weapon (enemies),
 //   colour, outline, hurtColour, hurtFlashTime, healthBarColour, ai (enemies and npcs)
 //
-// world (for update() and ais): { map, player, enemies, npcs, characters }, characters being all of
-// them in one list (made in sketch.js)
+// world (for update() and ais): { map, players, enemies, npcs, characters }, characters being all of
+// them in one list (made in sketch.js). players is a list so there can be more than one: find them
+// with nearestPlayer(), never by assuming there's just one
 
 // controls for doing nothing (no ai, or it's waiting)
 const STAND_STILL = { move: { x: 0, y: 0 }, aim: null, attack: false };
+
+// the player in world.players closest to `from` (anything with x, y), or null if there are none
+function nearestPlayer(world, from) {
+  let nearest = null;
+  let nearestDistance = Infinity;
+  for (const player of world.players) {
+    const distance = Math.hypot(player.x - from.x, player.y - from.y);
+    if (distance < nearestDistance) {
+      nearest = player;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
+}
 
 // distance from a character's centre down to its feet's middle. settings: PLAYER or an enemy/npc type
 function feetBelowCentre(settings) {

@@ -175,23 +175,24 @@ function draw() {
   // editor: WASD moves the camera, everyone stands still
   if (Editor.active) {
     Editor.update(worldMap, gameCamera, aim, dt);
-  } else if (Dialogue.active) {
-    // talking pauses the game; E moves it on
-    Dialogue.update(dt);
   } else {
     // what characters can see (top of character.js). characters built once here, not per character
-    const world = { map: worldMap, player, enemies, npcs, characters: [player, ...enemies, ...npcs] };
+    const world = { map: worldMap, players: [player], enemies, npcs, characters: [player, ...enemies, ...npcs] };
 
-    // number keys/wheel pick the held item, Q drops it, the open inventory drags items (inventory.js)
-    Hotbar.update();
-    if (Input.wasPressed('drop')) Drops.drop(worldMap, player, player.inventory.selected);
+    // number keys/wheel pick the held item, Q drops it, the open inventory drags items (inventory.js).
+    // not while talking: the dialogue box hides the hotbar
+    if (!Dialogue.active) {
+      Hotbar.update();
+      if (Input.wasPressed('drop')) Drops.drop(worldMap, player, player.inventory.selected);
+    }
     if (InventoryScreen.active) InventoryScreen.update(worldMap, player);
 
-    // mousePressed() ignores ui clicks. inventory open: stand still, the mouse moves items
+    // mousePressed() ignores ui clicks. inventory open: stand still, the mouse moves items. talking:
+    // no attacking, but walking away ends the conversation (dialogue.js)
     player.update(InventoryScreen.active ? STAND_STILL : {
       move: Input.direction(),
       aim,
-      attack: Input.mousePressed('left'),
+      attack: !Dialogue.active && Input.mousePressed('left'),
     }, dt, world);
     // picks up nearby items (inventory.js)
     Drops.update(worldMap, player, dt);
@@ -203,16 +204,20 @@ function draw() {
     // enemies following to another map come out when due (warps.js)
     Warps.update(dt);
 
-    // E: talk to the npc in range (shows an E), else use an E warp in reach (warps.js), else toggle
-    // the inventory (I always does). nothing's in reach while it's open
-    const talkTo = InventoryScreen.active ? null : Dialogue.npcInRange(player, npcs);
+    // talking: E moves the conversation on, and nothing else is in reach.
+    // otherwise E: talk to the npc in range (shows an E), else use an E warp in reach (warps.js), else
+    // toggle the inventory (I always does). nothing's in reach while it's open
+    const talkTo = InventoryScreen.active || Dialogue.active ? null : Dialogue.npcInRange(player, npcs);
     for (const npc of npcs) npc.canTalk = npc === talkTo;
-    Warps.reachable = talkTo || InventoryScreen.active ? null : Warps.inReach(player, worldMap);
-    if (talkTo && Input.wasPressed('interact')) {
+    Warps.reachable = talkTo || InventoryScreen.active || Dialogue.active ? null : Warps.inReach(player, worldMap);
+    if (Dialogue.active) {
+      Dialogue.update(player, dt);
+      Warps.checkStep(player, worldMap);
+    } else if (talkTo && Input.wasPressed('interact')) {
       talkTo.canTalk = false;
       Dialogue.open(talkTo, player, gameCamera);
     } else if (Warps.reachable && Input.wasPressed('interact')) {
-      Warps.use(Warps.reachable);
+      Warps.use(Warps.reachable, player);
     } else {
       if (Input.wasPressed('inventory')) InventoryScreen.show(!InventoryScreen.active);
       // step warps after the E warp, which may have changed map, so this never sees the new map

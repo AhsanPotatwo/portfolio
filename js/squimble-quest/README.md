@@ -28,9 +28,10 @@ This README and the code comments are the only notes. When you change something:
 - **Keep it simple.** Build the smallest thing that works. No features, settings or layers "for later".
 - **Keep multiplayer possible** (only a maybe, see [Ideas](#ideas-for-later); don't build for it). Prefer the multiplayer-safe way when it costs nothing:
   - only `sketch.js` reads keyboard and mouse; everything else gets `{ move, aim, attack }` controls or is told what happened
-  - AIs and triggers find "the nearest player" via one small helper, not `world.player` everywhere
-  - game state is plain numbers, strings and lists, no p5 colours or images (tiles keep `fill`/`img` apart from their settings)
-  - gameplay doesn't depend on the whole world pausing (dialogue and the editor do now)
+  - AIs and triggers find players with `nearestPlayer(world, from)` (character.js) from the `world.players` list, never assuming one player
+  - per-player state lives on the player (e.g. `player.warpTile` for step warps), not in a shared global
+  - game state is plain numbers, strings and lists, no p5 colours or images (tiles keep `fill`/`img` apart from their settings; `MeleeSwing` makes its colour in `draw()`)
+  - gameplay never pauses the world: talking to an NPC doesn't (the dev-only editor does)
   - randomness goes through one shared function, not scattered `Math.random()`
 - **In-game UI** (`ui.js`, `button.js`, `textfield.js`), never `prompt()`/`alert()`.
 - **Comment style:** lowercase, British spelling (`colour`), concise: say *why*, or what isn't obvious from the code; don't restate it. Explain jargon. Constants and object properties get a short note on purpose or units unless the name says it all. Name the file of another file's global, e.g. `// worldMap is the game's (sketch.js)`.
@@ -139,8 +140,8 @@ Only build these when needed.
   - enemy-only weapons (the grunt's `claws`) can only be changed in `items.json`, since the editor edits weapons through their item
   - Speedy Shoes do nothing yet
 - **Multiplayer, maybe.** Not decided. The idea: a small social game for friends, up to about a classroom (20–40), playtesting and hanging out, never hundreds. If it happens:
-  - **Helps already:** every character runs on `{ move, aim, attack }`, so another player is a `Player` with networked controls. Maps and tiles are data a server can load. Progress is separate from design. The only randomness (drop spots) goes through `randomBetween()` in utils.js.
-  - **In the way:** one player and one running map are assumed (globals `player`, `worldMap`, `enemies`, `npcs`, and `loadMap()` swapping the world). Players on different maps need each occupied map running, so maps become "rooms". Also single-player: warp step tracking (`Warps.lastCol`), enemies following through warps, `chasePlayer` and enemy `targets()` only knowing `world.player`, dialogue and the editor pausing everything, and some rules code needing p5 (`color()` in `MeleeSwing` and `setTile()`).
+  - **Helps already:** every character runs on `{ move, aim, attack }`, so another player is a `Player` with networked controls. `world.players` is a list, AIs use `nearestPlayer()`, enemies hit every player, step warp tracking is per player, and nothing in gameplay pauses the world. Maps and tiles are data a server can load. Progress is separate from design. The only randomness (drop spots) goes through `randomBetween()` in utils.js.
+  - **In the way:** one running map is assumed (globals `player`, `worldMap`, `enemies`, `npcs`, and `loadMap()` swapping the whole world). Players on different maps need each occupied map running, so maps become "rooms" each holding their own characters and players; that also decides how `Warps.followers` (enemies in transit between maps) and `Player.respawn()` (reads the global `worldMap`) work. A drop's `ready` flag is shared, so one player walking away readies it for everyone, including the one who dropped it (it needs to remember who dropped it). `setTile()` still calls p5 (`color()`, `loadImage()`), so rules and drawing need separating for a server. Dialogue, the hotbar, `Warps.reachable` and the editor are the local player's UI, which is fine as each client has its own.
   - **Needs a small server** at that size (Node + WebSockets, cheap to host), not a player's browser hosting: the host's upload or a throttled hidden tab would stall everyone, and school networks often block browser-to-browser connections. The server runs the rules without p5, so rules and drawing need separating first. Each player only needs updates for their map.
   - **Social layer:** names over heads, chat (filtered if younger players might join), emotes, hangout maps sized for a crowd.
 
