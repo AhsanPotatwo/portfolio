@@ -237,7 +237,7 @@ function bird(k) {
 }
 
 // a creature from the Beasts knobs, mostly the voice wave (a throat and mouth) with a growl
-const BEAST_ANATOMY = ['throat', 'beak', 'gills', 'shell', 'spirit', 'clockwork'];
+const BEAST_ANATOMY = ['throat', 'beak', 'gills', 'shell', 'spirit', 'clockwork', 'dog'];
 function beast(k) {
   const anatomy = BEAST_ANATOMY[k.anatomy];
   // 80 ms to 2.5 s
@@ -249,7 +249,7 @@ function beast(k) {
     pitch: 30 * 40 ** (k.pitch / 100),
     mouth: 40 + k.size * 1.2,
     // the vowel it starts on, and how far it moves through the vowels in each call
-    vowel: { throat: 0, beak: 2, gills: 4, shell: 0, spirit: 4, clockwork: 1 }[anatomy],
+    vowel: { throat: 0, beak: 2, gills: 4, shell: 0, spirit: 4, clockwork: 1, dog: 3.3 }[anatomy],
     vowelSlide: ((k.evolution / 100) * 3) / seconds,
     ...contour(seconds, k.bend, k.arch),
     attack: Math.max(10, seconds * 120),
@@ -276,6 +276,9 @@ function beast(k) {
   if (anatomy === 'shell') Object.assign(s, { tremolo: 100, tremoloSpeed: 25 + k.flutter * 0.5, highPass: 35, lowPass: 85, resonance: 40, volume: 55 });
   if (anatomy === 'spirit') Object.assign(s, { breath: Math.max(s.breath, 45), vibrato: s.vibrato + 0.4, echo: 160, echoFeedback: 35, lowPass: 100 });
   if (anatomy === 'clockwork') Object.assign(s, { crush: 40, fm: 12, fmRatio: 2 });
+  // a dog's (or wolf's) muzzle: a darker, rounder mouth than a person's, rough jitter that follows
+  // growl (what makes a bark harsh rather than a voice saying ah), and short calls start with a snap
+  if (anatomy === 'dog') Object.assign(s, { attack: Math.max(4, seconds * 80), punch: Math.max(0, 60 - seconds * 200), lowPass: 75, wander: 0.2 + k.growl * 0.025, wanderSpeed: 900, volume: s.volume * 0.75 });
   return s;
 }
 
@@ -601,7 +604,7 @@ const SOUND_GENERATORS = {
   },
   Beasts: {
     knobs: [
-      choiceKnob('anatomy', 'Anatomy', 'What it calls with: a throat, a beak, gills (bubbly), a shell (insects), a spirit (airy and echoing) or clockwork', BEAST_ANATOMY),
+      choiceKnob('anatomy', 'Anatomy', 'What it calls with: a throat, a beak, gills (bubbly), a shell (insects), a spirit (airy and echoing), clockwork or a dog (barks and howls)', BEAST_ANATOMY),
       knob('pitch', 'Pitch', 'How high its voice is', { normal: 45 }),
       knob('size', 'Size', 'How big its mouth and throat are. Big ones boom, small ones squeak'),
       knob('calls', 'Calls', 'How many calls in a row', { min: 1, max: 8, unit: '', normal: 1 }),
@@ -615,11 +618,11 @@ const SOUND_GENERATORS = {
     ],
     make: beast,
     makers: {
-      Woof: { tip: 'A bark, from a yap to a big woof', knobs: { anatomy: 0, pitch: [45, 62], size: [45, 80], calls: 1, length: [10, 28], bend: [-60, -25], arch: [10, 40], growl: [20, 50], breath: [15, 35], flutter: [0, 10], evolution: [0, 25] } },
+      Woof: { tip: 'A bark, from a yap to a big woof', knobs: { anatomy: 6, pitch: [55, 72], size: [50, 85], calls: 1, length: [0, 15], bend: [-80, -45], arch: [30, 60], growl: [50, 80], breath: [35, 60], flutter: [0, 5], evolution: [-15, 0] } },
       Meow: { tip: 'A cat\'s meow', knobs: { anatomy: 1, pitch: [62, 75], size: [20, 45], calls: 1, length: [42, 62], bend: [-20, 10], arch: [20, 50], growl: [0, 10], breath: [5, 15], flutter: [0, 12], evolution: [-80, -55] } },
       Pig: { tip: 'A grunt or an oink', knobs: { anatomy: 0, pitch: [30, 45], size: [40, 65], calls: [1, 3], length: [18, 32], bend: [-30, 10], arch: [0, 30], growl: [60, 90], breath: [20, 40], flutter: [20, 40], evolution: [-30, 0] } },
       Rat: { tip: 'Tiny squeaks', knobs: { anatomy: 1, pitch: [85, 98], size: [0, 15], calls: [2, 4], length: [5, 18], bend: [-20, 40], arch: [10, 50], growl: 0, breath: [5, 20], flutter: [0, 20] } },
-      'Wolf howl': { tip: 'A long howl at the moon', knobs: { anatomy: 4, pitch: [58, 70], size: [45, 65], calls: 1, length: [88, 100], bend: [5, 30], arch: [40, 80], growl: [0, 10], breath: [10, 30], flutter: [5, 15], evolution: [-40, -10] } },
+      'Wolf howl': { tip: 'A long howl at the moon', knobs: { anatomy: 6, pitch: [58, 70], size: [50, 70], calls: 1, length: [88, 100], bend: [0, 25], arch: [40, 80], growl: [5, 20], breath: [10, 25], flutter: [3, 12], evolution: [-10, 5] } },
       'Tiny dragon': { tip: 'A little chirrup with a smoky throat', knobs: { anatomy: 1, pitch: [55, 72], size: [10, 35], calls: [1, 3], length: [25, 45], bend: [-70, 50], arch: [20, 70], growl: [15, 40], breath: [10, 35], flutter: [5, 25], evolution: [-40, 40] } },
       'Dragon roar': { tip: 'A huge, fiery roar', knobs: { anatomy: 0, pitch: [10, 25], size: [80, 100], calls: 1, length: [70, 85], bend: [-50, -15], arch: [20, 50], growl: [70, 100], breath: [40, 65], flutter: [5, 20], evolution: [10, 40] } },
       'Cave beast': { tip: 'A huge rumble from the dark', knobs: { anatomy: 0, pitch: [3, 18], size: [75, 100], calls: [1, 2], length: [78, 95], bend: [-40, 5], growl: [65, 100], breath: [20, 50], flutter: [10, 30], evolution: [10, 50] } },
@@ -687,7 +690,10 @@ const SOUND_GENERATORS = {
       // 300-700 Hz roar (no deep rumble) that the crackle only partly chops, so the roar stays under it
       Rain: { tip: 'Steady pattering rain that loops', make: () => ({ wave: 'pink', pitch: randomNumber(1800, 3000), highPass: randomNumber(45, 52), lowPass: randomNumber(86, 92), crackle: randomNumber(200, 400), crackleLength: randomNumber(6, 12), crackleDepth: randomNumber(45, 65), attack: 0, sustain: 3000, decay: 0, volume: 75, range: 16 }) },
       Storm: { tip: 'Heavy rain coming and going in waves, that loops', make: () => ({ wave: 'pink', pitch: randomNumber(1200, 2000), highPass: randomNumber(30, 40), lowPass: randomNumber(80, 88), crackle: randomNumber(350, 500), crackleLength: randomNumber(10, 20), crackleDepth: randomNumber(35, 50), wander: randomNumber(3, 6), wanderSpeed: randomNumber(0.2, 0.5), tremolo: randomNumber(20, 35), tremoloSpeed: randomNumber(0.15, 0.3), attack: 0, sustain: 4000, decay: 0, volume: 85, range: 20 }) },
-      Thunder: { tip: 'A rumbling crack of thunder', make: () => ({ wave: 'pink', pitch: randomNumber(60, 180), crackle: randomNumber(15, 40), crackleLength: randomNumber(80, 200), attack: randomNumber(0, 30), sustain: randomNumber(300, 800), punch: randomNumber(30, 60), decay: randomNumber(1500, 3000), lowPass: randomNumber(35, 55), echo: sometimes(randomNumber(150, 300)), echoFeedback: randomNumber(30, 50), volume: 90, range: 40 }) },
+      // thunder is a bright crack (white noise with the low-pass wide open, and lots of punch) that the
+      // low-pass sweeps down into a deep, ringing rumble. long pops that only partly chop it are the
+      // rolls, and the echo is it bouncing round the sky
+      Thunder: { tip: 'A crack of thunder rolling away', make: () => ({ wave: 'noise', pitch: randomNumber(300, 700), slide: -randomNumber(4, 10), attack: 0, punch: randomNumber(80, 100), sustain: randomNumber(150, 400), decay: randomNumber(2500, 4000), lowPass: randomNumber(80, 90), lowPassSweep: -randomNumber(11, 17), resonance: randomNumber(25, 45), crackle: randomNumber(10, 25), crackleLength: randomNumber(150, 350), crackleDepth: randomNumber(50, 70), echo: randomNumber(180, 320), echoFeedback: randomNumber(40, 55), volume: 100, range: 40 }) },
       Fire: { tip: 'A roaring, crackling fire that loops', make: () => ({ wave: 'pink', pitch: randomNumber(1000, 1800), highPass: randomNumber(25, 32), lowPass: randomNumber(52, 60), resonance: randomNumber(0, 15), crackle: randomNumber(15, 35), crackleLength: randomNumber(3, 6), crackleDepth: randomNumber(60, 75), attack: 0, sustain: 3000, decay: 0, volume: 90, range: 6 }) },
       Stream: { tip: 'Babbling water that loops', make: () => ({ wave: 'pink', pitch: randomNumber(700, 1600), crackle: randomNumber(80, 200), crackleLength: randomNumber(15, 40), wander: randomNumber(2, 5), wanderSpeed: randomNumber(2, 6), lowPass: randomNumber(55, 75), highPass: randomNumber(15, 30), attack: 0, sustain: 3000, decay: 0, volume: 95, range: 10 }) },
       Waterfall: { tip: 'A rushing waterfall that loops', make: () => ({ wave: 'pink', pitch: randomNumber(800, 1400), highPass: randomNumber(15, 25), lowPass: randomNumber(65, 80), crackle: randomNumber(300, 500), crackleLength: randomNumber(10, 25), crackleDepth: randomNumber(25, 40), attack: 0, sustain: 3000, decay: 0, volume: 95, range: 18 }) },
@@ -695,7 +701,9 @@ const SOUND_GENERATORS = {
         const sustain = randomNumber(3500, 5000);
         return { wave: 'pink', pitch: randomNumber(500, 1000), lowPass: randomNumber(50, 65), highPass: randomNumber(5, 15), tremolo: randomNumber(70, 90), tremoloSpeed: 1000 / sustain, crackle: randomNumber(80, 160), crackleLength: 30, crackleDepth: 20, wander: 3, wanderSpeed: 0.3, attack: 0, sustain, decay: 0, volume: 90, range: 25 };
       } },
-      Leaves: { tip: 'Leaves rustling in the breeze, that loops', make: () => ({ wave: 'pink', pitch: randomNumber(2500, 4000), highPass: randomNumber(45, 60), lowPass: randomNumber(85, 95), crackle: randomNumber(60, 200), crackleLength: randomNumber(6, 18), crackleDepth: randomNumber(85, 100), tremolo: randomNumber(40, 70), tremoloSpeed: randomNumber(0.3, 0.8), attack: 0, sustain: 3000, decay: 0, volume: 100, range: 8 }) },
+      // a rustle is hundreds of tiny clicks a second over a soft hiss that keeps going (fewer, longer
+      // pops that chop it all the way are a firecracker), swelling up and down with the breeze
+      Leaves: { tip: 'Leaves rustling in the breeze, that loops', make: () => ({ wave: 'pink', pitch: randomNumber(2500, 4000), highPass: randomNumber(50, 60), lowPass: randomNumber(90, 97), crackle: randomNumber(400, 500), crackleLength: randomNumber(1.5, 4), crackleDepth: randomNumber(40, 60), wander: randomNumber(3, 6), wanderSpeed: randomNumber(0.5, 1), tremolo: randomNumber(50, 80), tremoloSpeed: randomNumber(0.2, 0.5), attack: 0, sustain: 3000, decay: 0, volume: 100, range: 8 }) },
       Drip: { tip: 'Water dripping in a cave, that loops', make: () => ({ wave: 'sine', pitch: randomNumber(500, 1100), slide: randomNumber(150, 350), attack: 0, sustain: randomNumber(5, 15), decay: randomNumber(30, 60), repeats: randomPick([1, 2]), gap: randomNumber(600, 1400), repeatPitch: sometimes(randomPick([-3, 2])), echo: randomNumber(150, 300), echoFeedback: randomNumber(35, 55), volume: 50, range: 10 }) },
     },
   },
