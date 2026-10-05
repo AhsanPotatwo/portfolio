@@ -1054,7 +1054,7 @@ function inspectorInfo(selected) {
       kind: 'Sound',
       rows: type.wave === 'file'
         ? [['File', type.file], ['Speed', `${Math.round((type.pitch / 440) * 100)}%`]]
-        : [['Wave', type.wave], ['Pitch', `${type.pitch} Hz (${noteName(type.pitch)})`]],
+        : [['Wave', SOUND_WAVES[type.wave].label], ['Pitch', `${type.pitch} Hz (${noteName(type.pitch)})`]],
       note: 'Click the map for a block that plays it. Right click it here (or Edit) to change it',
     };
   }
