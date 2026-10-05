@@ -2,11 +2,13 @@
 // pressing E near an npc opens a box along the bottom with their portrait, their name, and their first
 // line (npcs.js) typing itself out. E (or clicking the box) finishes the line, then goes to the next
 // one, and closes after the last. the world keeps going while it's open, and walking away ends it.
+// an npc with a voice (a sound's name, npcs.js) says each line with it as it types (renderSpeech() in
+// sound.js), at that sound's talk speed, and finishing a line early cuts the voice off
 
 // how close in px your feet have to be to theirs
 const TALK_RANGE = 56;
 
-// letters per second
+// letters per second, for npcs without a voice. ones with a voice type at its Talk speed
 const DIALOGUE_TYPE_SPEED = 45;
 
 // the camera glides in so you're both in shot (focusOn() in camera.js)
@@ -34,6 +36,8 @@ const Dialogue = {
   shown: 0,
   // the DialogueBox ui element (made in init())
   box: null,
+  // the npc's voice saying the current line (Sound.play()'s), or null
+  voice: null,
   // the game camera (passed in to open())
   camera: null,
 
@@ -67,7 +71,7 @@ const Dialogue = {
     this.active = true;
     this.npc = npc;
     this.line = 0;
-    this.shown = 0;
+    this.startLine();
     this.box.visible = true;
     // they turn to face you
     npc.aimAt({ x: player.x, y: player.y });
@@ -85,6 +89,8 @@ const Dialogue = {
   },
 
   close() {
+    Sound.stop(this.voice);
+    this.voice = null;
     this.active = false;
     this.npc = null;
     this.box.visible = false;
@@ -97,23 +103,37 @@ const Dialogue = {
     return this.npc.type.dialogue[this.line] ?? '';
   },
 
+  // starts typing out the current line, and the npc's voice saying it (a voice that isn't in SOUNDS
+  // is just silent, like a sound block's)
+  startLine() {
+    this.shown = 0;
+    Sound.stop(this.voice);
+    this.voice = this.npc.type.voice ? playSound(this.npc.type.voice, null, 'dialogue', { say: this.currentLine() }) : null;
+  },
+
+  // letters a second: the voice's talk speed, so the words match what it's saying
+  typeSpeed() {
+    return SOUNDS[this.npc.type.voice]?.talkSpeed ?? DIALOGUE_TYPE_SPEED;
+  },
+
   // E or a click: finish typing the line, or go to the next line, or close if that was the last
   advance() {
     const text = this.currentLine();
     if (this.shown < text.length) {
       this.shown = text.length;
+      Sound.stop(this.voice);
       return;
     }
     this.line++;
-    this.shown = 0;
     if (this.line >= this.npc.type.dialogue.length) this.close();
+    else this.startLine();
   },
 
   // every frame while it's open, after everyone has moved. the world doesn't pause, so the conversation
   // ends if either of you gets out of range (walking off, getting pushed, respawning, the npc's ai)
   update(player, dt) {
     if (this.npcInRange(player, [this.npc]) !== this.npc) return this.close();
-    this.shown = Math.min(this.currentLine().length, this.shown + DIALOGUE_TYPE_SPEED * dt);
+    this.shown = Math.min(this.currentLine().length, this.shown + this.typeSpeed() * dt);
     if (Input.wasPressed('interact')) this.advance();
   },
 };

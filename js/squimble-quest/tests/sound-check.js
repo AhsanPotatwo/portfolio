@@ -53,3 +53,27 @@ assert.strictEqual(cleaned.wave, 'square');
 assert.strictEqual(cleaned.pitch, 5000);
 assert.strictEqual(cleaned.volume, 60);
 assert.strictEqual(cleaned.jump, -24);
+
+// echoes make a one-shot longer by their tail, and the length still matches its timings
+const echoed = game.soundSettings({ sustain: 50, decay: 50, echo: 200, echoFeedback: 50 });
+assert(game.soundTimings(echoed).tail > 0.2, 'echo adds a tail');
+assert(Math.abs(game.renderSound(echoed).seconds - game.soundTimings(echoed).seconds) < 0.001, 'echoed sounds are the right length');
+
+// every wave and the new settings make real sound (no NaN, not silent), all at once
+for (const wave of Object.keys(vm.runInContext('SOUND_WAVES', game)).filter((w) => w !== 'file')) {
+  const busy = game.soundSettings({ wave, sustain: 300, wander: 3, wanderSpeed: 50, jump: 4, jump2: 3, jumpRepeat: 90, tremolo: 50, crackle: 200, fm: 30, echo: 50, vowelSlide: 3 });
+  const { samples } = game.renderSound(busy);
+  assert(samples.every((v) => !Number.isNaN(v)) && samples.some((v) => Math.abs(v) > 0.05), `${wave} with everything on makes sound`);
+}
+
+// talking: a syllable per vowel group (a silent e doesn't count), the same words always sound the
+// same, a question ends higher than it starts, and it lasts as long as the words take to type
+const syllables = game.speechSyllables('Hello there, time to go?', 3);
+assert.strictEqual(syllables.map((s) => s.letters).join(' '), 'he llo the ti to go');
+assert(syllables[5].notes - game.speechSyllables('Hello there, time to go.', 3)[5].notes === 6, 'questions go up at the end');
+const voice = SOUNDS['villager-voice'];
+const said = game.renderSpeech(voice, 'Hello there, time to go?');
+const again = game.renderSpeech(voice, 'Hello there, time to go?').samples;
+assert(said.samples.every((v, i) => v === again[i]), 'talking is the same every time');
+assert(said.samples.every((v) => !Number.isNaN(v)) && said.samples.some((v) => Math.abs(v) > 0.05), 'talking makes sound');
+assert(Math.abs(said.seconds - (24 / voice.talkSpeed + game.soundTimings(voice).beep)) < 0.001, 'talking takes as long as typing the words');

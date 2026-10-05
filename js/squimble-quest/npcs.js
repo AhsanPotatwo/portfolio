@@ -8,6 +8,10 @@
 //
 //   label                  their name in the text box
 //   dialogue               lines shown one after another, E goes to the next one
+//   voice                  a sound's name (sounds.json) they say their lines with, babbling a
+//                          syllable at a time as the words type out. make one in the sound editor
+//                          (Voices buttons, then the Voice tab's Say box to try it). any sound works,
+//                          a blip talks like old games. null is silent
 //   width, height          body size in px
 //   feetWidth, feetHeight  the bit at the bottom that bumps into walls
 //   speed                  px/s, if their ai walks
@@ -27,6 +31,7 @@
 const NPC_DEFAULTS = {
   label: '???',
   dialogue: ['...'],
+  voice: null,
   width: 28,
   height: 56,
   feetWidth: 24,
@@ -56,4 +61,5 @@ function defineNpc(name, settings) {
 defineNpc('villager', {
   label: 'Villager',
   dialogue: ["It seems like you're on some sort of... squimble quest"],
+  voice: 'villager-voice',
 });
