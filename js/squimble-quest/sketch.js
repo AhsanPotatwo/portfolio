@@ -248,7 +248,8 @@ function draw() {
     }
   }
   gameCamera.update(dt);
-  // sounds get quieter the further they are from the player's feet (sound.js)
+  // sounds get quieter the further they are from the player's feet (sound.js). this runs in the editor
+  // too, so finished sounds (like the sound editor's previews) still get tidied up
   Sound.update({ x: player.x, y: player.y + feetBelowCentre(PLAYER), map: worldMap });
 
   // 3. draw, from back to front. the warp graph and the sound editor cover the whole screen

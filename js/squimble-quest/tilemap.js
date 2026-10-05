@@ -45,7 +45,7 @@ class TileMap {
 
     // each one is { name, col, row, to, toWarp, activate, enemies } (explained at the top of warps.js)
     this.warps = [];
-    // sound blocks, each { col, row, activate, sound } (explained at the top of soundblocks.js)
+    // sound blocks, each { sound, col, row, activate } (explained at the top of soundblocks.js)
     this.sounds = [];
 
     // { enemies, npcs } as they were when you last left (loadMap() in sketch.js), so coming back finds
@@ -237,13 +237,19 @@ class TileMap {
   }
 
   // ---------- sound blocks ----------
-  // at most one per tile (soundblocks.js). to add one just push it onto this.sounds
+  // at most one per tile (soundblocks.js). to add one just push it onto this.sounds, keeping the keys
+  // in the order { sound, col, row, activate } like mapfile.js makes them, so a placed block and a
+  // loaded one look exactly the same
 
   // or null
   soundAt(col, row) {
     return this.sounds.find((block) => block.col === col && block.row === row) ?? null;
   }
 
+  // takes away the block on this tile, if there is one. it doesn't stop a loop the block was playing,
+  // which is fine because blocks only get erased in the editor, and that stops every sound when it
+  // opens. if blocks ever get removed while playing (a machine you can break, say), stop its voice too:
+  // the voice's key is the block (Sound.voices and Sound.stop() in sound.js)
   removeSoundAt(col, row) {
     this.sounds = this.sounds.filter((block) => block.col !== col || block.row !== row);
   }

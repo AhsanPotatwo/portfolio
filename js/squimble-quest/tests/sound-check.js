@@ -1,6 +1,12 @@
 // checks the synthesiser (sound.js): loops join smoothly, sounds.json saves back out the same, and bad
 // settings get cleaned up. run it with node js/squimble-quest/tests/sound-check.js (no output means it
-// all passed). add "--fix" to rewrite sounds.json in the exported format
+// all passed). add "--fix" to rewrite sounds.json in the exported format.
+//
+// it runs sound.js in node with just enough faked (constrain() from p5, TILE), so it can only check
+// the maths. it doesn't play anything, and doesn't touch the browser's audio, sound blocks or the sound
+// editor. those were checked by playing the game in Chrome through playwright (README "Checking
+// changes"). it's slow-ish (a few seconds) because node's vm makes globals slow, not because the
+// synthesiser is
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');

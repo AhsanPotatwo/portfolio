@@ -13,8 +13,56 @@
 // to New in the inspector) downloads sounds.json and any audio files chosen since the page loaded.
 // it's a ui group over the whole screen, like the warp graph (warpgraph.js), and the map editor hands
 // it the updates while it's open (Editor.update())
+//
+// ---------- how it's put together ----------
+//
+// everything's made fresh in open() and thrown away in close() (UI.removeGroup('sound-editor')).
+// the sound being edited is SoundEditor.draft, a plain settings object, and every part works off it:
+//   - each slider's onChange writes its value into the draft
+//   - the wave buttons, make one buttons, Random, Mutate, Undo and Choose file all go through
+//     replace(), which swaps in a whole new draft, saves the old one for Undo, moves every slider to
+//     match, and plays it
+//   - SoundVisualiser reads the draft every frame (and Sound.render() keeps the samples, so a draft
+//     that hasn't changed isn't worked out again)
+//   - update() greys out sliders that don't matter right now, and restarts the loop preview when
+//     the draft changes
+//   - Save copies the draft into SOUNDS (setSound() in sound.js). nothing else touches the library
+//
+// ---------- known problems ----------
+//
+//   - Undo only goes back past the big changes (make one, Random, Mutate, waves, files), not slider
+//     drags. the history is cleared every time the editor opens
+//   - Escape and Cancel close it straight away without asking, even with changes
+//   - the name box shows what you typed, but the sound is saved under the cleaned up name
+//     (cleanMapName() in mapfile.js), so "My Sound" saves as "my-sound". names are 20 letters at most
+//   - there's no renaming or deleting. saving under a new name makes a copy, and deleting is by hand
+//     in sounds.json (see the sounds README)
+//   - with Loop on, every change restarts the sound, and the old one fades out in about 15 ms, so you
+//     can hear a tiny blip each restart while dragging. that's the restart, not the loop itself
+//   - dragging a slider works the sound out again every frame (for the picture). long sounds (a few
+//     seconds, or lots of repeats) can make it stutter while you drag
+//   - two different files with the same file name: the second one replaces the first. sounds that
+//     were already worked out with the first one (Sound.render() keeps them) can keep playing the old
+//     audio until their settings change or the page reloads. giving files different names avoids it
+//   - a file chosen and then cancelled stays loaded until the page reloads (it isn't exported unless
+//     a saved sound uses it)
+//   - the layout is fixed numbers (SOUND_EDITOR). the left column of sliders (Pitch and Tone) is
+//     nearly full, so a new setting there would run into the footer. put it in the right column, or
+//     add a section to SOUND_EDITOR.columns
+//   - while it's open Input.typing is on (for the name box), so dev mode keys don't work, apart from
+//     Ctrl + D, which closes everything
+//
+// ---------- ideas for later ----------
+//
+//   - playing the piano with the keyboard (it'd need the name box to only take keys while clicked)
+//   - an "unsaved changes" question on Cancel, and Undo for slider drags (save a copy on mouse down)
+//   - a picture of the volume shape (fade in, hold, punch, fade out) as a line over the whole sound
+//   - copy and paste a sound's settings, or a "compare" button that flips between two versions
+//   - Delete and Rename buttons. rename would need to fix every sound block on every map
 
-// layout, in screen px
+// layout, in screen px. the game is always 960 x 540, so these are just where things go. the buttons
+// in open() use a few numbers of their own too (the piano and make one buttons' y, for example), so
+// moving things around means looking there as well
 const SOUND_EDITOR = {
   headerHeight: 36,
   footerHeight: 30,
@@ -37,6 +85,8 @@ const SOUND_EDITOR = {
   whiteKeys: 15,
 };
 
+// little helpers for the generators. they use randomBetween() (utils.js) like all the game's
+// randomness. they're globals, so their names try not to clash with anything else
 // a random number from a to b, rounded to one decimal place, for the generators
 const randomNumber = (a, b) => Math.round(randomBetween(a, b) * 10) / 10;
 // one thing from a list at random
@@ -45,7 +95,11 @@ const randomPick = (list) => list[Math.floor(randomBetween(0, list.length))];
 const sometimes = (value) => (randomBetween(0, 1) < 0.5 ? value : undefined);
 
 // the "make one" buttons: each comes up with a random sound of its kind, as settings on top of the
-// normal ones (anything left out stays normal). a new kind is just a new line here
+// normal ones (anything left out stays normal). a new kind is just a new line here, and its button
+// appears by itself (they go in rows of 3 under the piano, with Random and Mutate last, and there's
+// room for about 15 buttons before they run into the footer). the ranges are just what sounded right
+// when I tried them.
+// a generator can give values outside a slider's range, it gets pulled back in (soundSettings())
 const SOUND_GENERATORS = {
   Coin: () => ({ wave: randomPick(['square', 'sine', 'triangle']), pitch: randomNumber(700, 1400), jump: randomPick([3, 4, 5, 7, 12]), jumpAt: randomNumber(40, 100), attack: 0, sustain: randomNumber(30, 90), punch: randomNumber(30, 60), decay: randomNumber(100, 300), pulseWidth: randomNumber(20, 50) }),
   Laser: () => ({ wave: randomPick(['square', 'sawtooth', 'sine']), pitch: randomNumber(500, 2000), slide: -randomNumber(40, 150), slideAccel: randomNumber(-50, 50), attack: 0, sustain: randomNumber(40, 150), decay: randomNumber(50, 200), pulseWidth: randomNumber(10, 50), pulseSweep: randomNumber(-50, 50), highPass: sometimes(randomNumber(5, 30)) }),
@@ -84,7 +138,8 @@ const SoundEditor = {
   playedPitch: null,
   playedAt: 0,
 
-  // opens it on a sound from SOUNDS, or a new one with no name
+  // opens it on a sound from SOUNDS, or a new one with no name (which starts as the normal settings,
+  // a plain square beep). it stops every sound first, so nothing from the game plays over it
   open(name = null) {
     this.active = true;
     this.original = name ?? '';
@@ -118,11 +173,15 @@ const SoundEditor = {
         Sound.stopPreview();
       },
     }));
+    // turning Loop on plays it looping (at the last piano note, if one was pressed), turning it off
+    // stops it. while it's on, update() restarts it whenever the draft changes
     this.loopButton = add(new Button({
       x: x + 200, y: 232, w: 100, h: 26, label: '↻  Loop', style: 'editor', toggle: true,
       onClick: (button) => (button.on ? this.play(this.playedPitch) : Sound.stopPreview()),
     }));
     add(new SoundPiano({ x, y: 266, w: L.leftWidth, h: 62, onPlay: (note) => this.play(noteFrequency(note)) }));
+    // every generator, then Random and Mutate (which aren't in SOUND_GENERATORS since they work
+    // differently, see generate() and mutate()), in rows of 3
     const makers = [...Object.keys(SOUND_GENERATORS), 'Random', 'Mutate'];
     makers.forEach((label, i) => add(new Button({
       x: x + (i % 3) * 102, y: 356 + Math.floor(i / 3) * 30, w: 96, h: 24, label, style: label === 'Random' || label === 'Mutate' ? 'editorPrimary' : 'editor',
@@ -137,6 +196,8 @@ const SoundEditor = {
       onClick: () => (wave === 'file' && !this.draft.file ? this.chooseFile() : this.change({ wave })),
     })));
     add(new Button({ x: L.right + Object.keys(SOUND_WAVES).length * 66, y: 54, w: 140, h: 24, label: 'Choose file...', style: 'editor', onClick: () => this.chooseFile() }));
+    // one slider for every SOUND_SETTINGS line, under its section's heading, going down each column.
+    // a setting whose section isn't in SOUND_EDITOR.columns doesn't get a slider at all
     L.columns.forEach((sections, c) => {
       const columnX = L.right + c * (L.columnWidth + L.columnGap);
       let y = L.slidersTop;
@@ -158,13 +219,15 @@ const SoundEditor = {
     });
   },
 
-  // what a setting's slider shows on its right
+  // what a setting's slider shows on its right. pitch is special: a note name for waves, and a speed
+  // for files (since a file's pitch is how fast it plays, 440 being normal speed)
   formatSetting(setting, value) {
     if (setting.key === 'pitch') return this.draft.wave === 'file' ? `${Math.round((value / 440) * 100)}% speed` : `${value} Hz  ${noteName(value)}`;
     if (setting.off === value) return 'off';
     return `${value} ${setting.unit}`;
   },
 
+  // closes it without saving (Save calls this after saving). the draft is just dropped
   close() {
     this.active = false;
     Input.typing = false;
@@ -181,7 +244,8 @@ const SoundEditor = {
     return null;
   },
 
-  // puts the sound in the library (straight into the game), picks it in the palette, and closes
+  // puts the sound in the library (straight into the game), picks it in the palette, and closes. it
+  // only lasts until the page reloads, unless it's exported (exportSounds())
   save() {
     if (this.problem()) return;
     const name = cleanMapName(this.nameField.value);
@@ -191,15 +255,19 @@ const SoundEditor = {
     this.close();
   },
 
-  // every frame while it's open, from Editor.update()
+  // every frame while it's open, from Editor.update(). the ui elements (sliders, buttons, piano)
+  // update themselves through UI, this only does the typing and the things that depend on the draft
   update() {
+    // the name box always has the typing (Tab is ignored since there's nothing to tab to)
     for (const key of Input.typed) {
       if (key === 'Enter') return this.save();
       if (key === 'Escape') return this.close();
       if (key.paste !== undefined) this.nameField.paste(key.paste);
       else if (key !== 'Tab') this.nameField.type(key);
     }
-    // sliders that don't do anything with the other settings as they are get greyed out
+    // sliders that don't do anything with the other settings as they are get greyed out (they keep
+    // their value, it just doesn't change the sound). a new setting that only matters sometimes needs
+    // a line here
     const d = this.draft;
     const matters = {
       pulseWidth: d.wave === 'square',
@@ -217,7 +285,8 @@ const SoundEditor = {
     if (this.loopButton.on && JSON.stringify(d) !== this.playedAs && millis() - this.playedAt > 100) this.play(this.playedPitch);
   },
 
-  // plays the draft at full volume, at another pitch for the piano, looping if Loop is on
+  // plays the draft at full volume, at another pitch for the piano, looping if Loop is on. it
+  // remembers what it played (playedAs, playedPitch) so update() can tell when to play it again
   play(pitch = null) {
     this.playedAs = JSON.stringify(this.draft);
     this.playedPitch = pitch;
@@ -225,7 +294,9 @@ const SoundEditor = {
     Sound.preview(this.draft, { loop: this.loopButton.on, pitch: pitch ?? this.draft.pitch });
   },
 
-  // swaps in new settings (keeping Undo's history), moving every slider to match, and plays it
+  // swaps in new settings (keeping Undo's history), moving every slider to match, and plays it. every
+  // big change goes through here, so this is the place to hook anything that should happen on one.
+  // careful: it plays at the draft's own pitch, so it forgets a piano note the loop was playing at
   replace(settings) {
     this.history.push(this.draft);
     this.draft = soundSettings(settings);
@@ -250,7 +321,9 @@ const SoundEditor = {
   },
 
   // a completely random sound: a random wave, and about half the settings moved somewhere random. the
-  // volume shape is kept short enough to hear what it is
+  // volume shape is kept short enough to hear what it is. it picks a random spot along each slider
+  // (using the slider's curve, borrowed from Slider without making one), so it spreads like the
+  // sliders do. it's meant to be wild, a lot of what it makes is noise, press it again
   randomSettings() {
     const settings = { wave: randomPick(Object.keys(SOUND_WAVES).filter((wave) => wave !== 'file')) };
     for (const setting of SOUND_SETTINGS) {
@@ -263,8 +336,8 @@ const SoundEditor = {
     return settings;
   },
 
-  // nudges about half the settings a little bit along their sliders, for a sound that's similar but
-  // different
+  // nudges about half the settings a little bit along their sliders (up to 6% either way), for a sound
+  // that's similar but different. the wave and heard from never change
   mutate() {
     const settings = { ...this.draft };
     for (const setting of SOUND_SETTINGS) {
@@ -283,7 +356,10 @@ const SoundEditor = {
   },
 
   // lets you pick an audio file (pickFile() in utils.js) and uses it as the wave, held for as long as
-  // the file is. everything else goes back to normal so it starts off sounding just like the file
+  // the file is. everything else goes back to normal so it starts off sounding just like the file.
+  // it's decoded straight away and put in SOUND_FILES (marked as asked, so loadAudioFile() won't try
+  // to fetch it from the folder, where it isn't yet). the File is kept in newFiles for Export.
+  // files over 5 s are cut to the first 5 s, since that's the longest hold can be
   chooseFile() {
     pickFile('audio/*,.mp3,.wav,.ogg', (file) => {
       file.arrayBuffer()
@@ -301,7 +377,8 @@ const SoundEditor = {
 
   // downloads sounds.json (sound.js) and any audio file chosen since the page loaded that a sound
   // uses, then says where they go (the download helpers are in utils.js). the inspector's Export
-  // button on the Sounds tab
+  // button on the Sounds tab. the browser might ask whether the page can download several files at
+  // once the first time. files that were already in sounds/files/ aren't downloaded again
   exportSounds() {
     downloadTextFile('sounds.json', soundsToText());
     const files = [...new Set(Object.values(SOUNDS).map((sound) => sound.file))].filter((name) => this.newFiles[name]);
@@ -398,7 +475,9 @@ class SoundVisualiser extends UIElement {
     }
 
     // the close-up: some waves (or a hundredth of a second of noise or a file) from just after it gets
-    // loud
+    // loud. it starts at the end of the fade in plus a little into the hold, so a bell (no hold) is
+    // shown right at its loudest. it picks one sample per pixel rather than averaging, so a very high
+    // pitch can look a bit uneven, which is fine for a picture
     const startSeconds = sound.attack / 1000 + Math.min(sound.sustain / 2000, 0.05);
     const start = Math.min(samples.length - 1, Math.floor(startSeconds * SOUND_RATE));
     const spanSeconds = SOUND_WAVES[sound.wave].shape ? closeUpCycles(sound.pitch) / sound.pitch : 0.01;
@@ -416,7 +495,9 @@ class SoundVisualiser extends UIElement {
     strokeWeight(1);
     drawSoundShape(sound, x + 4, wholeY + 12, inner, h - 16);
 
-    // the moving line while it plays (it goes round and round while looping)
+    // the moving line while it plays (it goes round and round while looping). it goes by millis(),
+    // not the audio clock, so it can be a few ms out, and while playing a piano note it moves at that
+    // note's length over this picture of the normal pitch (which is the same length unless looping)
     const preview = Sound.previewing;
     if (preview) {
       const played = (millis() - preview.started) / 1000;
@@ -436,7 +517,9 @@ class SoundVisualiser extends UIElement {
 }
 
 // a little piano that plays the sound at each note (onPlay(note), note numbers like noteFrequency()
-// in sound.js). everything that's in notes (slide, jump, vibrato) moves with it
+// in sound.js). everything that's in notes (slide, jump, vibrato) moves with it, and for a file it
+// changes the speed. it's two octaves from SOUND_EDITOR.pianoFrom, and works on any number of white
+// keys, so making it longer is just whiteKeys
 class SoundPiano extends UIElement {
   constructor(options) {
     super(options);

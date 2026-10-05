@@ -63,6 +63,24 @@ Saved sounds work straight away, but only until the page reloads. To keep them, 
 
 The message at the top says where each one goes. Exporting without changing anything gives exactly the same `sounds.json`.
 
+## Things to know
+
+Quirks you might run into, so they don't look like bugs:
+
+- **No sound until you click.** Browsers don't let a page make sound until it's been clicked, so nothing plays before you click into the game. If a looping sound block is next to where you start, it begins once you click (the browser console might show a warning about it, which is harmless).
+- **Names get tidied.** The name box shows what you type, but the sound is saved under a tidied name: lowercase, with dashes for spaces, so "My Sound" is saved as `my-sound`. Names can be up to 20 letters.
+- **Undo is for big changes.** It goes back past the **Make one** buttons, **Random**, **Mutate**, changing the wave and choosing a file, but not slider drags. Right click a slider to put just that one back to normal.
+- **Cancel doesn't ask.** **Cancel** and **Escape** close straight away, even if you've changed things.
+- **A little blip with Loop on.** While Loop is on, every change restarts the sound, so you'll hear a tiny blip each time you move a slider. That's the restart, not a problem with the loop. Turn Loop off and press **Play** to hear it cleanly.
+- **Long sounds and dragging.** The pictures are made from the real sound, so a long sound (several seconds, or lots of repeats) gets worked out again every time a slider moves, and the editor can stutter while you drag.
+- **Punch can click.** Lots of punch after a long fade in makes a jump in volume you can hear as a click.
+- **Noise brightness tops out.** Noise doesn't get any brighter above about 1400 Hz.
+- **Too loud gets harsh.** Lots of resonance, flanger, punch or volume can go past full volume, which gets cut off and sounds harsh (sometimes that's the sound you want).
+- **Step blocks repeat.** A sound block set to play when stepped on plays every time you step onto it, even walking back and forth over it.
+- **The same loop twice is louder.** Two looping sound blocks with the same sound near each other play it twice. For a big area (a river), use one block with a bigger **Heard from**.
+- **Audio file names.** Keep them simple (letters, numbers, `-` and `_`). Two different files with the same name replace each other. A file that fails to load (it's not in `files/`, say) isn't tried again until you reload the page.
+- **Changing the code's normal values changes sounds.** `sounds.json` only stores settings that aren't normal, so if the normal value of a setting changes in `sound.js`, every sound that left it out changes too.
+
 ## The file format
 
 ```json

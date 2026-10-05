@@ -400,7 +400,16 @@ class Checkbox extends UIElement {
 //   format    optional (value) => the words shown on the right, otherwise the number and unit
 //   unit      optional word after the number, like 'ms'
 //   onChange  optional, called with the new value whenever it changes
-// enabled false greys it out and stops it changing, like a Button
+// enabled false greys it out and stops it changing, like a Button.
+//
+// things to know:
+//   - the label always gets 100 px and the value 72 px, so give it a w of about 250 or more (the sound
+//     editor's are 296). in a FormBox row (which sets x, y and h) a w of 180 would leave a tiny bar
+//   - 'log' needs a min above 0, and 'square' on a range either side of 0 needs min to be exactly -max,
+//     otherwise it falls back to squaring from min, which is lopsided
+//   - onChange only runs when the value actually changes, after rounding to step
+//   - valueAt() and positionOf() only use min, max and curve, so other code can borrow them for a
+//     plain object with those (SoundEditor.randomSettings() does)
 class Slider extends UIElement {
   constructor(options) {
     super(options);
