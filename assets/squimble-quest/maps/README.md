@@ -85,7 +85,7 @@ It's laid out like a game engine: a **toolbar** along the top (the map's buttons
 | Left click (enemy or NPC chosen) | Place it, standing on the tile under the mouse |
 | Left click (**spawn** chosen, in **Triggers**) | The player spawns on this tile (yellow ring). There's only one, so it moves here |
 | Left click (**warp** chosen, in **Triggers**) | Put a warp on this tile (purple square), and open its settings. See [Warps](#warps) |
-| Left click (**Sounds** tab) | Put a sound block on this tile, starting as the sound you picked, and hear it once. See [Sound blocks](#sound-blocks) |
+| Left click (**Sounds** tab) | Put a sound block on this tile that plays the sound you picked, and hear it once. **New** / **Edit** in the inspector (or right click a sound in the palette) opens the [sound editor](../sounds/README.md); **Export** saves the sounds. See [Sound blocks](#sound-blocks) |
 | Right click | Change the settings of what's under the mouse: a warp, a sound block, or an enemy's AI |
 | **Erase** (toolbar), then left click / drag | Delete. Starting on an object, enemy, NPC, warp or sound block removes those; starting on bare ground empties tiles |
 | **WASD** | Move around the map. The editor's buttons and panels fade out while you move, so you can see the map, and come back when you stop |
@@ -139,24 +139,18 @@ Warps link by name, so you can move a warp around freely. **Renaming a warp brea
 
 ### Sound blocks
 
-A sound block is a tile that makes a sound. Each square in the **Sounds** tab is a different starting sound (beep, coin, jump, laser, hit, explosion, alarm, hum, chime); click the map to put one down. Like warps, sound blocks only show in the editor (a green square with its wave on it), so put an object on the tile if players should see something there.
+A sound block is a tile that plays a sound. The **Sounds** tab shows every sound in the game (each square is a picture of the whole sound); pick one and click the map to put a block there. Like warps, sound blocks only show in the editor (a green square with its wave on it), so put an object on the tile if players should see something there.
 
-Right click a sound block to open its settings. It's a little synthesiser, and you can press **▶ Play** at any time to hear what's in the box. The picture on the right shows the whole sound, and changes as you type: the shape of the wave, how loud it is, how it fades, slides, wobbles and repeats, with a line moving along it while it plays. Under it is the note, the pitch and how long it lasts.
+Right click a sound block to change it:
 
-- **Sound** tab
-  - **Wave**: the kind of sound. **sine** is smooth like a whistle, **triangle** soft like a flute, **square** buzzy like old games, **pulse** a thinner square, **sawtooth** harsh (lasers, engines), and **noise** is hiss (hits, explosions, wind).
-  - **Pitch**: how high it is, in Hz. 440 is the A above middle C, and doubling it goes up an octave. For noise it's how high the hiss is.
-  - **Length**: how long each beep lasts. **Volume**: how loud it is.
-- **Shape** tab
-  - **Fade in** / **Fade out**: how long it takes to get loud at the start and go quiet at the end. A long fade out sounds like a bell; a short one stops it clicking.
-  - **Slide to**: the pitch it slides to by the end (up for a jump or coin, down for a laser). 0 means no slide.
-  - **Wobble** / **Wobble speed**: makes the pitch wobble up and down (vibrato). Wobble is in cents: 100 is one note.
-- **Playing** tab
-  - **Plays by**: **stepping on it**, **pressing E** when close enough (works from the tile next to it too), or **over and over nearby**: it keeps playing while the player is close enough to hear it, for things like a humming machine or a waterfall.
-  - **Repeats** / **Gap**: how many times it beeps, and how long between beeps (alarms, footsteps).
-  - **Heard from**: how many tiles away it can be heard. It's loudest right on top of it, gets quieter as the player walks away, and comes more out of the left or right speaker depending on which side it's on. Hovering over a sound block in the editor shows this as a green circle.
+- **Sound**: which sound it plays. **▶ Play** lets you hear it, and **Edit sound** opens it in the sound editor.
+- **Plays by**: **stepping on it**, **pressing E** when close enough (it works from the tile next to it too), or **constantly nearby**: it loops smoothly, with no gaps, for as long as the player is close enough to hear it, for a humming machine, a waterfall or wind. Walking out of range stops it, and walking back starts it again.
 
-**Save** keeps the changes. Sounds stop when the editor opens, and the game won't make any sound until it's been clicked (browsers don't allow it before then).
+Sounds get quieter as the player walks away, and come more out of the left or right speaker depending on which side they're on. How far away a sound can be heard is part of the sound (**Heard from** in the sound editor), and hovering over a sound block shows it as a green circle.
+
+A block whose sound has been renamed or deleted from `sounds.json` is shown in red and makes no sound. Right click it and pick another one.
+
+Making and changing the sounds themselves is in the [sounds README](../sounds/README.md). Sounds stop when the editor opens, and the game won't make any sound until it's been clicked (browsers don't allow it before then).
 
 ### Changing a map you've already made
 
@@ -237,7 +231,7 @@ You can open a map in any text editor. It looks like this:
     { "name": "front", "col": 0, "row": 2, "to": "house", "toWarp": "exit", "activate": "interact" }
   ],
   "sounds": [
-    { "wave": "pulse", "col": 3, "row": 0, "activate": "step", "pitch": 988, "slideTo": 1976 }
+    { "sound": "coin", "col": 3, "row": 0, "activate": "step" }
   ]
 }
 ```
@@ -247,7 +241,7 @@ You can open a map in any text editor. It looks like this:
 - **`objects`**: everything placed on the tiles. `type` is the object's name in `objects.js`, and `col`, `row` is the tile its top-left corner is on. They're drawn in list order, so later ones go on top.
 - **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is the name in `enemies.js` or `npcs.js`, and `col`, `row` is the tile it stands on. An enemy's `ai` is only there if one was picked (a name in `ENEMY_AIS` in `enemies.js`); left out, it uses its kind's own. Maps without these lists just have none.
 - **`warps`**: see [Warps](#warps). `name` is the warp's name, and `col`, `row` is its tile. `to` is the map it leads to (`""` for nowhere), and `toWarp` is the warp to arrive at on that map (`""` for its spawn point). `activate` is `"step"` or `"interact"` (press E). `enemies` is `true` if enemies chasing the player follow them through it (left out means `false`). Maps without this list just have no warps.
-- **`sounds`**: see [Sound blocks](#sound-blocks). `wave` is the wave, `col`, `row` its tile, and `activate` is `"step"`, `"interact"` or `"loop"`. The rest are the sound's settings (`pitch`, `length`, `volume`, `fadeIn`, `fadeOut`, `slideTo`, `wobble`, `wobbleSpeed`, `repeats`, `gap`, `range`, explained in `SOUND_DEFAULTS` in `sound.js`), and only ones that aren't the normal value are written. Maps without this list just have no sound blocks.
+- **`sounds`**: see [Sound blocks](#sound-blocks). `sound` is the name of a sound in `sounds.json`, `col`, `row` is its tile, and `activate` is `"step"`, `"interact"` (press E) or `"loop"` (constantly nearby). Maps without this list just have no sound blocks.
 - **`left`, `top`**: the tile column and row of the map's top-left corner. Tile `(0, 0)` is at the middle of the world, so `-5, -2` puts the middle of a 10 × 5 map there.
 - **`spawn`**: where the player starts, in pixels (the centre of the player). Easiest to set with **spawn** in the editor's **Triggers** tab.
 

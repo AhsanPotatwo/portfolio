@@ -20,9 +20,10 @@
 //   - weapons and items (one tab for each category in items.js): click to drop one on the ground (Export
 //     doesn't save these). Give puts one in your inventory, right click or Edit changes its name,
 //     rarity, colour and weapon numbers, and the inspector's Export saves items.json (items.js)
-//   - sounds: click to place a sound block (soundblocks.js) that starts as that sound. right click it
-//     on the map to change its sound, with a visualiser and a Play button. its green circle shows how
-//     far away it can be heard
+//   - sounds: click to place a sound block (soundblocks.js) that plays that sound, and right click it
+//     on the map to pick its sound and how it plays. its green circle shows how far away it can be
+//     heard. New, Edit or right click in the palette opens the sound editor (soundeditor.js), and the
+//     inspector's Export saves sounds.json (sound.js)
 //   - Erase, then click or drag: if you start on an object, enemy, npc, item, warp or sound block it
 //     removes those, otherwise it empties tiles (like off the map, so they aren't drawn and can't be
 //     walked on)
@@ -56,7 +57,7 @@ const EDITOR_KEYS = [
   'MAP EDITOR KEYS',
   'left click  paint / place',
   'right click change settings (warps, sound blocks, enemy ai,',
-  '            palette tiles and items)',
+  '            palette tiles, items and sounds)',
   'WASD        move around',
   'wheel       zoom',
   'B           close the editor',
@@ -136,8 +137,8 @@ const EDITOR_TABS = [
     kind, label, types: ITEMS_BY_CATEGORY[kind],
     place: (map, name, col, row) => Editor.placeItem(map, name, col, row),
   })),
-  // sound blocks (soundblocks.js). each square is a starting sound (SOUND_PRESETS in sound.js)
-  { kind: 'sound', label: 'Sounds', types: SOUND_PRESETS, place: (map, name, col, row) => Editor.placeSoundBlock(map, name, col, row) },
+  // sound blocks (soundblocks.js), one square for each sound in the library (SOUNDS in sound.js)
+  { kind: 'sound', label: 'Sounds', types: SOUNDS, place: (map, name, col, row) => Editor.placeSoundBlock(map, name, col, row) },
   // an empty example that just says "Nothing here yet". to use it, give it a catalogue and a
   // place(). if there are too many tabs to fit they scroll (EditorTabStrip)
   { kind: 'light', label: 'Lights', types: {} },
@@ -192,10 +193,12 @@ const Editor = {
   uiAlpha: 1,
   stillFor: 0,
 
-  // made in init(). showTab() only shows New and Export on the Tiles tab, and the items' Export on
-  // item tabs. Edit is for when a tile or item is picked, and Give is for when an item is
+  // made in init(). showTab() only shows the tiles' New and Export on the Tiles tab, the sounds' on the
+  // Sounds tab, and the items' Export on item tabs. Edit is for when a tile, item or sound is picked,
+  // and Give is for when an item is
   tabStrip: null,
   tileButtons: [],
+  soundButtons: [],
   exportItemsButton: null,
   editButton: null,
   giveButton: null,
@@ -250,18 +253,24 @@ const Editor = {
     // goes between the tabs and the inspector
     add(new PaletteGrid({ x: dockX, y: dockY + L.tabHeight, w: L.dockWidth, h: inspectorY - dockY - L.tabHeight }));
 
-    // the inspector's buttons along its bottom, for tiles (tileeditor.js) and items
+    // the inspector's buttons along its bottom, for tiles (tileeditor.js), sounds (soundeditor.js) and
+    // items
     const buttonW = (L.dockWidth - L.padding * 2 - 8) / 3;
     const inspectorButton = (i, label, onClick) => add(new EditorButton({
       x: dockX + L.padding + i * (buttonW + 4), y: GAME_H - L.statusHeight - 28, w: buttonW, h: 22, label, onClick,
     }));
     this.editButton = inspectorButton(0, 'Edit', () => {
       if (this.selected.kind === 'tile') TileEditor.open(TILE_TYPES[this.selected.name]);
+      else if (this.selected.kind === 'sound') SoundEditor.open(this.selected.name);
       else this.editItem(this.selected.name);
     });
     this.tileButtons = [
       inspectorButton(1, 'New', () => TileEditor.open(null)),
       inspectorButton(2, 'Export', () => TileEditor.exportTiles()),
+    ];
+    this.soundButtons = [
+      inspectorButton(1, 'New', () => SoundEditor.open()),
+      inspectorButton(2, 'Export', () => SoundEditor.exportSounds()),
     ];
     // it's in the same spot as New, so it's never shown on the Tiles tab (update())
     this.giveButton = inspectorButton(1, 'Give', () => this.giveItem(this.selected.name));
@@ -331,6 +340,7 @@ const Editor = {
     // Ctrl + D still works while typing, so the editor can close while a box is open
     if (WarpGraph.active) WarpGraph.close();
     if (FormBox.active) FormBox.close();
+    if (SoundEditor.active) SoundEditor.close();
     Hotbar.show(true);
   },
 
@@ -341,6 +351,7 @@ const Editor = {
     this.tab = kind;
     this.tabStrip.reveal(kind);
     for (const button of this.tileButtons) button.visible = kind === 'tile';
+    for (const button of this.soundButtons) button.visible = kind === 'sound';
     this.exportItemsButton.visible = isItemKind(kind);
   },
 
@@ -422,6 +433,13 @@ const Editor = {
     // alpha back straight away, otherwise a box opened while faded (like placing a warp just after
     // moving) would be invisible. the warp graph sits on top of a warp's box and takes over until it
     // closes (warpgraph.js)
+    // the sound editor covers everything and takes over until it closes (soundeditor.js)
+    if (SoundEditor.active) {
+      this.uiAlpha = 1;
+      this.stillFor = EDITOR_UI_FADE.showDelay;
+      SoundEditor.update();
+      return;
+    }
     if (FormBox.active) {
       this.uiAlpha = 1;
       this.stillFor = EDITOR_UI_FADE.showDelay;
@@ -441,7 +459,7 @@ const Editor = {
     // Edit only shows with a tile or item picked, and Give only with an item (it's in the same spot as
     // New on Tiles)
     const itemPicked = isItemKind(this.selected?.kind);
-    this.editButton.visible = this.selected?.kind === 'tile' || itemPicked;
+    this.editButton.visible = this.selected?.kind === 'tile' || this.selected?.kind === 'sound' || itemPicked;
     this.giveButton.visible = itemPicked && this.tab !== 'tile';
 
     // dividing by the zoom keeps the speed on screen the same
@@ -602,14 +620,14 @@ const Editor = {
     map.setSpawnTile(col, row);
   },
 
-  // adds a sound block (soundblocks.js) on any tile on the map, starting as the preset `name`
-  // (SOUND_PRESETS in sound.js) and playing when stepped on. it plays once so you can hear it. if
+  // adds a sound block (soundblocks.js) on any tile on the map, playing the sound `name`
+  // (SOUNDS in sound.js) and playing when stepped on. it plays once so you can hear it. if
   // there's already one there it opens that one's settings instead, like warps
   placeSoundBlock(map, name, col, row) {
     if (!map.inside(col, row)) return;
     const block = map.soundAt(col, row);
     if (block) return SoundBlocks.edit(block);
-    const placed = { col, row, activate: 'step', sound: soundSettings(SOUND_PRESETS[name]) };
+    const placed = { sound: name, col, row, activate: 'step' };
     map.sounds.push(placed);
     SoundBlocks.play(placed, map);
   },
@@ -1032,9 +1050,11 @@ function inspectorInfo(selected) {
   if (kind === 'sound') {
     return {
       title: name,
-      kind: 'Sound block',
-      rows: [['Wave', type.wave], ['Pitch', `${type.pitch} Hz (${noteName(type.pitch)})`]],
-      note: 'Right click one on the map to change its sound',
+      kind: 'Sound',
+      rows: type.wave === 'file'
+        ? [['File', type.file], ['Speed', `${Math.round((type.pitch / 440) * 100)}%`]]
+        : [['Wave', type.wave], ['Pitch', `${type.pitch} Hz (${noteName(type.pitch)})`]],
+      note: 'Click the map for a block that plays it. Right click it here (or Edit) to change it',
     };
   }
   if (kind === 'trigger' && name === 'spawn') {
@@ -1235,6 +1255,7 @@ class PaletteGrid extends UIElement {
     if (Input.buttonsPressed.has('left')) Editor.pick({ kind: tab, name: this.hoveredName });
     if (tab === 'tile' && Input.buttonsPressed.has('right')) TileEditor.open(TILE_TYPES[this.hoveredName]);
     if (isItemKind(tab) && Input.buttonsPressed.has('right')) Editor.editItem(this.hoveredName);
+    if (tab === 'sound' && Input.buttonsPressed.has('right')) SoundEditor.open(this.hoveredName);
   }
 
   draw() {
@@ -1325,11 +1346,11 @@ function drawPaletteArt(kind, name, x, y, size) {
     const w = size * 0.6;
     drawWarpSquare(middleX - w / 2, middleY - w / 2, w, WARP_COLOURS.edge, false);
   } else if (kind === 'sound') {
-    // the whole sound's wave from start to end (sound.js)
+    // the whole sound from start to end (sound.js)
     noFill();
     stroke(SOUND_COLOURS.edge);
     strokeWeight(1);
-    drawSoundWave(SOUND_PRESETS[name], x + 3, y + 3, size - 6, size - 6);
+    drawSoundShape(SOUNDS[name], x + 3, y + 3, size - 6, size - 6);
   } else if (isItemKind(kind)) {
     // like in an inventory slot, with its rarity glow (itemglow.js)
     drawGlowingItem({ type: ITEM_TYPES[name] }, middleX, middleY, size * 0.6, size / 2);

@@ -31,10 +31,11 @@
 //   dialogue.js   talking to npcs: who's in range, the text box
 //   warps.js      warps (doors, caves, teleporters...): using them, checking targets
 //   warpgraph.js  editor's diagram of linked warps (after button.js)
-//   sound.js      the synthesiser: playing sounds, distance volume, drawing waves, presets
+//   sound.js      the sound library and synthesiser: working sounds out, playing them, drawing them
 //   soundblocks.js sound blocks: tiles that play a sound, and their settings box (after sound.js)
 //   editor.js     the map editor, from dev mode (after button.js, textfield.js)
 //   tileeditor.js editor's tile box (after editor.js)
+//   soundeditor.js the sound editor, a full screen synthesiser (after editor.js)
 //   debug.js      dev mode (` or Ctrl + D)
 
 let player;
@@ -74,11 +75,11 @@ function setup() {
   // E or I opens it (it's hidden until then)
   InventoryScreen.init(player.inventory);
 
-  // tiles (tiles.js) have to load before maps (mapfile.js), since loading a map checks its tiles
-  // exist. items (items.js) load at the same time. then it starts on START_MAP (maps.js). this isn't
-  // in preload() because there a missing file would stop the game starting, but here it just gets
-  // skipped
-  Promise.all([loadTileFile().then(loadMapFiles), loadItemFile()]).then(() => {
+  // tiles (tiles.js) and sounds (sound.js) have to load before maps (mapfile.js), since loading a map
+  // checks its tiles and sounds exist. items (items.js) load at the same time. then it starts on
+  // START_MAP (maps.js). this isn't in preload() because there a missing file would stop the game
+  // starting, but here it just gets skipped
+  Promise.all([Promise.all([loadTileFile(), loadSoundFile()]).then(loadMapFiles), loadItemFile()]).then(() => {
     player.giveStartingItems();
     // the editor starts with the first tile picked, which exists now
     Editor.checkSelected();
@@ -214,7 +215,7 @@ function draw() {
     for (const npc of npcs) npc.update(dt, world);
     // enemies following you to another map come out when it's time (warps.js)
     Warps.update(dt);
-    // loop sound blocks start again when they finish (soundblocks.js)
+    // loop sound blocks start when you come close enough to hear them (soundblocks.js)
     SoundBlocks.update(worldMap);
 
     // while talking, E moves the conversation on and nothing else is in reach.
@@ -250,9 +251,10 @@ function draw() {
   // sounds get quieter the further they are from the player's feet (sound.js)
   Sound.update({ x: player.x, y: player.y + feetBelowCentre(PLAYER), map: worldMap });
 
-  // 3. draw, from back to front. the warp graph covers the whole screen (warpgraph.js), so skip
-  // drawing the world under it. a big map with lots of warps is slow and would slow the graph down
-  if (!WarpGraph.active) {
+  // 3. draw, from back to front. the warp graph and the sound editor cover the whole screen
+  // (warpgraph.js, soundeditor.js), so skip drawing the world under them. a big map with lots of warps
+  // is slow and would slow them down
+  if (!WarpGraph.active && !SoundEditor.active) {
     gameCamera.begin();
     drawWorld(gameCamera, worldMap, Debug.enabled && Debug.showGrid);
     // sort by feet so whatever's lower on screen is in front. drops sort by their shadow (even while

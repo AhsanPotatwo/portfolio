@@ -1,0 +1,17 @@
+{
+  "format": "squimble-quest-sounds",
+  "version": 1,
+  "sounds": [
+    { "name": "beep", "attack": 0, "sustain": 100, "decay": 50 },
+    { "name": "blip", "pitch": 660, "attack": 0, "sustain": 40, "decay": 30, "highPass": 20, "volume": 40 },
+    { "name": "coin", "pitch": 988, "jump": 5, "jumpAt": 60, "attack": 0, "sustain": 60, "punch": 50, "decay": 220, "pulseWidth": 30, "volume": 45 },
+    { "name": "powerup", "pitch": 300, "slide": 30, "vibrato": 0.5, "vibratoSpeed": 15, "attack": 0, "sustain": 250, "decay": 150, "volume": 45 },
+    { "name": "jump", "pitch": 260, "slide": 40, "attack": 0, "sustain": 100, "decay": 80, "pulseWidth": 35, "lowPass": 70, "volume": 45 },
+    { "name": "laser", "wave": "sawtooth", "pitch": 1600, "slide": -120, "attack": 0, "sustain": 80, "decay": 140, "volume": 40 },
+    { "name": "hit", "wave": "noise", "pitch": 1200, "slide": -60, "attack": 0, "sustain": 30, "decay": 90, "volume": 80 },
+    { "name": "explosion", "wave": "noise", "pitch": 300, "slide": -12, "attack": 0, "punch": 50, "decay": 700, "crush": 20, "volume": 90, "range": 14 },
+    { "name": "alarm", "wave": "triangle", "pitch": 880, "vibrato": 1.5, "vibratoSpeed": 12, "sustain": 140, "decay": 20, "repeats": 4, "gap": 90 },
+    { "name": "hum", "wave": "organ", "pitch": 110, "vibrato": 0.2, "vibratoSpeed": 4, "attack": 0, "sustain": 1500, "decay": 0, "volume": 70, "range": 5 },
+    { "name": "chime", "wave": "sine", "pitch": 1319, "attack": 2, "sustain": 0, "decay": 650, "repeats": 2, "gap": 40, "volume": 50 }
+  ]
+}

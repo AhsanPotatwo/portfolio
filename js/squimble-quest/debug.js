@@ -81,7 +81,7 @@ const Debug = {
     if (Input.isDown('zoomOut')) camera.zoomTo(camera.targetZoom * Math.exp(-DEV_KEY_ZOOM_RATE * dt));
     // the wheel only zooms in the editor (otherwise the hotbar uses it). down zooms out, like map apps
     // do. not while a box is open, because the warp graph uses the wheel for its own zoom (warpgraph.js)
-    if (Editor.active && !FormBox.active && Input.wheel !== 0) {
+    if (Editor.active && !FormBox.active && !SoundEditor.active && Input.wheel !== 0) {
       camera.zoomTo(camera.targetZoom * Math.exp(-Input.wheel * DEV_WHEEL_ZOOM_RATE));
     }
     if (Input.wasPressed('zoomReset')) camera.zoomTo(1);

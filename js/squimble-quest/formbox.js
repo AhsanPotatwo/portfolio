@@ -6,6 +6,7 @@
 //   FormBox   the box itself. FormBox.open({ title, rows, onConfirm... }) lays itself out (see open())
 //   Picker    pick one thing from a list with the < > arrows
 //   Checkbox  a tick box that's on or off
+//   Slider    drag to pick a number (the sound editor's knobs)
 // the typing fields are in textfield.js, and the colours are EDITOR_COLOURS (editor.js)
 
 // all in screen px: the box's width, the space between rows, field height, title bar height, footer
@@ -382,5 +383,125 @@ class Checkbox extends UIElement {
     fill(255);
     setText(12, BOLD, LEFT, CENTER);
     text(this.label, left + size + 8, this.y + this.h / 2);
+  }
+}
+
+// drag along it to pick a number, like a knob on a synthesiser (the sound editor uses lots of them).
+// the label goes on the left, the bar in the middle and the value on the right. click or drag the bar
+// to set it, scroll the wheel over it to nudge it, and right click to put it back to normal.
+//   label     words on the left
+//   min, max  the smallest and biggest it can be
+//   step      what it rounds to (1 for whole numbers, 0.1 for one decimal place...)
+//   curve     how the values spread along the bar. 'linear' is even. 'log' gives every doubling the
+//             same room (good for pitch). 'square' gives the small values more room, and for a range
+//             like -100 to 100 the ones near 0, so small amounts are easy to pick
+//   value     where it starts
+//   normal    what right click puts it back to (otherwise value)
+//   format    optional (value) => the words shown on the right, otherwise the number and unit
+//   unit      optional word after the number, like 'ms'
+//   onChange  optional, called with the new value whenever it changes
+// enabled false greys it out and stops it changing, like a Button
+class Slider extends UIElement {
+  constructor(options) {
+    super(options);
+    this.label = options.label;
+    this.min = options.min;
+    this.max = options.max;
+    this.step = options.step ?? 1;
+    this.curve = options.curve ?? 'linear';
+    this.unit = options.unit ?? '';
+    this.format = options.format ?? null;
+    this.onChange = options.onChange ?? null;
+    this.value = options.value;
+    this.normal = options.normal ?? options.value;
+    // being dragged
+    this.dragging = false;
+  }
+
+  // where the bar is, inside the slider: after the label, before the value
+  bar() {
+    return { x: this.x + 100, w: this.w - 172 };
+  }
+
+  // a position along the bar (0 to 1) as a value, following the curve
+  valueAt(p) {
+    const { min, max } = this;
+    if (this.curve === 'log') return min * (max / min) ** p;
+    if (this.curve === 'square') {
+      // a range either side of 0 squares outwards from the middle
+      if (min === -max) return Math.sign(2 * p - 1) * (2 * p - 1) ** 2 * max;
+      return min + (max - min) * p * p;
+    }
+    return min + (max - min) * p;
+  }
+
+  // the other way round: where a value is along the bar (0 to 1)
+  positionOf(value) {
+    const { min, max } = this;
+    const v = Math.min(max, Math.max(min, value));
+    if (this.curve === 'log') return Math.log(v / min) / Math.log(max / min);
+    if (this.curve === 'square') {
+      if (min === -max) return (Math.sign(v) * Math.sqrt(Math.abs(v) / max) + 1) / 2;
+      return Math.sqrt((v - min) / (max - min));
+    }
+    return (v - min) / (max - min);
+  }
+
+  // changes the value (rounded to step, kept in range), calling onChange if it's different
+  set(value) {
+    const decimals = (String(this.step).split('.')[1] ?? '').length;
+    const rounded = Number((Math.round(value / this.step) * this.step).toFixed(decimals));
+    const kept = Math.min(this.max, Math.max(this.min, rounded));
+    if (kept === this.value) return;
+    this.value = kept;
+    if (this.onChange) this.onChange(kept);
+  }
+
+  update(hovered) {
+    this.hovered = hovered && this.enabled;
+    if (!this.enabled) {
+      this.dragging = false;
+      return;
+    }
+    if (this.hovered && Input.buttonsPressed.has('left')) this.dragging = true;
+    if (!Input.buttonsHeld.has('left')) this.dragging = false;
+    const bar = this.bar();
+    if (this.dragging) this.set(this.valueAt(Math.min(1, Math.max(0, (Input.mouse.x - bar.x) / bar.w))));
+    if (this.hovered && Input.buttonsPressed.has('right')) this.set(this.normal);
+    // the wheel nudges it 2% along the bar, or at least one step. used up so nothing else scrolls
+    if (this.hovered && Input.wheel !== 0) {
+      const way = -Math.sign(Input.wheel);
+      const before = this.value;
+      this.set(this.valueAt(Math.min(1, Math.max(0, this.positionOf(this.value) + way * 0.02))));
+      if (this.value === before) this.set(before + way * this.step);
+      Input.wheel = 0;
+    }
+  }
+
+  draw() {
+    push();
+    if (!this.enabled) drawingContext.globalAlpha *= BUTTON_STYLES.default.disabledAlpha;
+    const middleY = this.y + this.h / 2;
+    const bar = this.bar();
+    noStroke();
+    fill(this.hovered || this.dragging ? EDITOR_COLOURS.text : EDITOR_COLOURS.dimText);
+    setText(11, BOLD, LEFT, CENTER);
+    text(this.label, this.x, middleY);
+
+    // the bar, filled from 0 (or the left end) to the value
+    fill(EDITOR_COLOURS.well);
+    rect(bar.x, middleY - 3, bar.w, 6, 3);
+    const from = bar.x + bar.w * this.positionOf(Math.min(this.max, Math.max(this.min, 0)));
+    const at = bar.x + bar.w * this.positionOf(this.value);
+    fill(EDITOR_COLOURS.accent);
+    rect(Math.min(from, at), middleY - 3, Math.abs(at - from), 6, 3);
+    // the knob
+    fill(this.dragging ? 255 : this.hovered ? 230 : 200);
+    circle(at, middleY, this.dragging ? 12 : 10);
+
+    fill(EDITOR_COLOURS.text);
+    setText(11, BOLD, RIGHT, CENTER);
+    text(this.format ? this.format(this.value) : `${this.value} ${this.unit}`, this.x + this.w, middleY);
+    pop();
   }
 }
