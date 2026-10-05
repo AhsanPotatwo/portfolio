@@ -29,7 +29,7 @@ This README and the code comments are the only notes. When you change something:
 - **Keep multiplayer possible** (only a maybe, see [Ideas](#ideas-for-later); don't build for it). Prefer the multiplayer-safe way when it costs nothing:
   - only `sketch.js` reads keyboard and mouse; everything else gets `{ move, aim, attack }` controls or is told what happened
   - AIs and triggers find players with `nearestPlayer(world, from)` (character.js) from the `world.players` list, never assuming one player
-  - per-player state lives on the player (e.g. `player.warpTile` for step warps), not in a shared global
+  - per-player state lives on the player (e.g. `player.stepTile` for step warps and step sound blocks), not in a shared global
   - game state is plain numbers, strings and lists, no p5 colours or images (tiles keep `fill`/`img` apart from their settings; `MeleeSwing` makes its colour in `draw()`)
   - gameplay never pauses the world: talking to an NPC doesn't (the dev-only editor does)
   - randomness goes through one shared function, not scattered `Math.random()`
@@ -83,12 +83,17 @@ This README and the code comments are the only notes. When you change something:
   - A drop can't be picked up until the player has left `PICKUP_RANGE`, so it isn't grabbed straight back and "inventory full" shows once per approach, not every frame.
   - Each item has a `category` (`ITEM_CATEGORIES`, items.js; only decides its editor tab) and a `rarity` (`RARITIES`), which sets its glow on the ground, mid-throw, in slots and the palette, and the colour of the held item's name above the hotbar. The glow (`itemglow.js`, everything goes through `drawGlowingItem()`) is a pulsing halo in the rarity colour plus `sparkles` pixel twinkles; a rarity's `image` replaces the drawn halo with a picture, and `ITEM_GLOW` holds the shared timings. Both lists are placeholders; a new line adds one. Rarity is per item type for now.
   - Weapons and items load from `items.json` alongside tiles, so there are none until then: `PLAYER.startingItems` are given after (`giveStartingItems()`), and the editor's item tabs read `ITEMS_BY_CATEGORY`, which fills as they load. If the file fails, there are none (console warning) and nobody can attack.
+- **Sound** (`sound.js`, `soundblocks.js`):
+  - `sound.js` is a small synthesiser on Web Audio. A sound is plain settings (`SOUND_DEFAULTS`: wave, pitch, length, volume, fade in/out, slide, wobble, repeats and gap, range), so it saves in map files. Anything can play one with `playSound(sound, { x, y, map })`; it gets quieter with distance from the player's feet (gone at `range` tiles) and pans left or right, updated every frame by `Sound.update()` (sketch.js). Pass `null` instead of a place for full volume.
+  - Waves (`SOUND_WAVES`) are just a `shape(p)` function: `Sound.makeWave()` turns the shape into the real sound, and `drawSoundWave()` draws the same shape, so the visualiser always matches. Noise is the exception (random hiss through a filter tuned to the pitch).
+  - **Sound blocks** (`soundblocks.js`, `map.sounds`): tiles that play their sound on `step`, `interact` (E) or `loop` (again whenever it finishes, while you're in range). Step blocks share warps' `player.stepTile` check, so `SoundBlocks.checkStep()` must run before `Warps.checkStep()`. E blocks share warps' reach (`closestInReach()`, warps.js); a warp wins if both are in reach. Placed from the editor's **Sounds** tab, whose squares are `SOUND_PRESETS` (`defineSound()` lines in sound.js). Right click one for its settings box (a tabbed `FormBox` with a `SoundVisualiser` and **Play**).
+  - Opening the editor stops every sound (`Sound.stopAll()`). Sound only ever comes out of this computer, so it doesn't affect multiplayer.
 - **UI** (`ui.js`, `button.js`, `textfield.js`, `formbox.js`):
   - Everything extends `UIElement`. Groups show, hide and remove together. A click on UI is claimed, so gameplay never sees it.
   - `Input.typing = true` routes keys to `Input.typed` instead of the game. The box's owner picks the focused `TextField`/`NumberField` and calls `field.type(key)` per key; Ctrl + V arrives as `{ paste: text }` → `field.paste(text)`. `ColourField` accepts pasted hex or rgb, and its swatch opens the browser's colour picker (`<input type="color">`).
 - **Editor** (`editor.js`):
   - Game-engine layout: `EditorToolbar` on top (New, Open, Resize, Export, Paint, Erase, Grid, Keys, Play), `EditorDock` on the right (palette tabs, `PaletteGrid`, inspector), `EditorStatusBar` at the bottom. Sizes in `EDITOR_LAYOUT`, colours in `EDITOR_COLOURS`, buttons use the compact `editor`/`editorPrimary` `BUTTON_STYLES`.
-  - Palette tabs are for placeable things only; whole-map actions are in the toolbar. `EditorTabStrip` draws tabs at natural width and scrolls (wheel, or **‹ ›** when they overflow), so `EDITOR_TABS` can grow. **Sounds** and **Lights** are empty examples.
+  - Palette tabs are for placeable things only; whole-map actions are in the toolbar. `EditorTabStrip` draws tabs at natural width and scrolls (wheel, or **‹ ›** when they overflow), so `EDITOR_TABS` can grow. **Lights** is an empty example.
   - **Weapons** and **Items** get a tab per `ITEM_CATEGORIES` entry. Clicking the map drops one (`Drops.place()`; progress, not saved by Export). **Give** adds one to the inventory; **Edit** (or right click in the palette) changes name, rarity, colour and weapon numbers immediately. **Export** on those tabs downloads `items.json` with everything (`itemsToText()`) for `assets/squimble-quest/items/`. Adding, renaming or deleting is by hand in `items.json`.
   - Clicking the map with something picked runs its tab's `place()` (`EDITOR_TABS`); tiles have none, since they paint while held.
   - **Triggers** (spawn and warps, `TRIGGER_TYPES`) make things happen. Not a catalogue: each has its own `place()` there. Placing a warp opens its settings.
@@ -116,6 +121,10 @@ Each file's header has the details.
 | A box that asks for things | `FormBox.open({ title, rows, onConfirm })` (formbox.js); `tabs` instead of `rows` for many settings. |
 | A new UI element kind | A class extending `UIElement` (guide atop ui.js). Buttons: guide in button.js. |
 | Loading or saving a file | `fetchJson()`, `pickFile()`, `downloadTextFile()`, `downloadData()` in utils.js. |
+| A sound wave | A `SOUND_WAVES` line with its `shape(p)` (sound.js). It's heard and drawn from that one function. |
+| A sound preset | A `defineSound()` line at the bottom of sound.js. It shows up in the editor's **Sounds** tab. |
+| A sound setting | Default in `SOUND_DEFAULTS`, what it does in `Sound.beep()` (and `drawSoundWave()` if it changes the look), a row in `SoundBlocks.edit()` (soundblocks.js). |
+| A sound from code (a sword swing, a door) | `playSound(settings, { x, y, map })` (sound.js). |
 | A new file | Its `<script>` tag in `squimble-quest.html` (order matters) and a line in sketch.js's file list. |
 
 ## Rules to keep when changing things
@@ -135,6 +144,7 @@ Not obvious from any one file; breaking them causes hard-to-trace bugs.
 Only build these when needed.
 
 - **Warps:** objects that are warps (a door/trapdoor/manhole object opening its warp, see the end of the Warps notes); a "back where you came from" target for shared interiors; a fade between maps; locked doors; an editor key to go through the warp under the mouse; loading map files by name instead of listing them in `MAP_FILES`.
+- **Sound:** a named sound library (like `items.json`) so swords, doors and footsteps can share sounds; music; a volume setting or mute key; chords or notes one after another in one sound.
 - **Items:**
   - stacking (arrows, potions), needing a count per item
   - editor-placed items aren't saved in the map file; that needs a list in the file like `spawns`, and a decision on whether picked-up ones return

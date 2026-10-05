@@ -31,6 +31,8 @@
 //   dialogue.js   talking to npcs: who's in range, the text box
 //   warps.js      warps (doors, caves, teleporters...): using them, checking targets
 //   warpgraph.js  editor's diagram of linked warps (after button.js)
+//   sound.js      the synthesiser: playing sounds, distance volume, drawing waves, presets
+//   soundblocks.js sound blocks: tiles that play a sound, and their settings box (after sound.js)
 //   editor.js     the map editor, from dev mode (after button.js, textfield.js)
 //   tileeditor.js editor's tile box (after editor.js)
 //   debug.js      dev mode (` or Ctrl + D)
@@ -212,30 +214,41 @@ function draw() {
     for (const npc of npcs) npc.update(dt, world);
     // enemies following you to another map come out when it's time (warps.js)
     Warps.update(dt);
+    // loop sound blocks start again when they finish (soundblocks.js)
+    SoundBlocks.update(worldMap);
 
     // while talking, E moves the conversation on and nothing else is in reach.
     // otherwise E talks to the npc in range (it shows an E), or if there isn't one uses an E warp in
-    // reach (warps.js), or if there isn't one of those either opens or closes the inventory (I always
-    // does). nothing's in reach while the inventory is open
+    // reach (warps.js), or if there isn't one plays an E sound block in reach (soundblocks.js), or if
+    // there's none of those either opens or closes the inventory (I always does). nothing's in reach
+    // while the inventory is open
     const talkTo = InventoryScreen.active || Dialogue.active ? null : Dialogue.npcInRange(player, npcs);
     for (const npc of npcs) npc.canTalk = npc === talkTo;
     Warps.reachable = talkTo || InventoryScreen.active || Dialogue.active ? null : Warps.inReach(player, worldMap);
+    SoundBlocks.reachable = talkTo || Warps.reachable || InventoryScreen.active || Dialogue.active ? null : SoundBlocks.inReach(player, worldMap);
     if (Dialogue.active) {
       Dialogue.update(player, dt);
+      SoundBlocks.checkStep(player, worldMap);
       Warps.checkStep(player, worldMap);
     } else if (talkTo && Input.wasPressed('interact')) {
       talkTo.canTalk = false;
       Dialogue.open(talkTo, player, gameCamera);
     } else if (Warps.reachable && Input.wasPressed('interact')) {
       Warps.use(Warps.reachable, player);
+    } else if (SoundBlocks.reachable && Input.wasPressed('interact')) {
+      SoundBlocks.play(SoundBlocks.reachable, worldMap);
     } else {
       if (Input.wasPressed('inventory')) InventoryScreen.show(!InventoryScreen.active);
-      // step warps go after the E warp, which might have changed the map, so this never looks at the
-      // new map in the same frame
+      // step triggers go after the E warp, which might have changed the map, so they never look at
+      // the new map in the same frame. sound blocks go before warps, since Warps.checkStep() is what
+      // remembers the tile you're on
+      SoundBlocks.checkStep(player, worldMap);
       Warps.checkStep(player, worldMap);
     }
   }
   gameCamera.update(dt);
+  // sounds get quieter the further they are from the player's feet (sound.js)
+  Sound.update({ x: player.x, y: player.y + feetBelowCentre(PLAYER), map: worldMap });
 
   // 3. draw, from back to front. the warp graph covers the whole screen (warpgraph.js), so skip
   // drawing the world under it. a big map with lots of warps is slow and would slow the graph down
@@ -252,7 +265,10 @@ function draw() {
     for (const thing of things) thing.draw();
     // dev mode: each enemy's ai and its route (pathfinding.js)
     if (Debug.enabled && Debug.showPaths) drawEnemyPlans(enemies, gameCamera);
-    if (!Editor.active && !Dialogue.active) Warps.drawPrompt();
+    if (!Editor.active && !Dialogue.active) {
+      Warps.drawPrompt();
+      SoundBlocks.drawPrompt();
+    }
     if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
     gameCamera.end();
   }

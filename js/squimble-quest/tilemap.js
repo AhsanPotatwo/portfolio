@@ -45,6 +45,8 @@ class TileMap {
 
     // each one is { name, col, row, to, toWarp, activate, enemies } (explained at the top of warps.js)
     this.warps = [];
+    // sound blocks, each { col, row, activate, sound } (explained at the top of soundblocks.js)
+    this.sounds = [];
 
     // { enemies, npcs } as they were when you last left (loadMap() in sketch.js), so coming back finds
     // them the same. null until you leave it the first time. this is progress, not design: the spawn
@@ -119,6 +121,7 @@ class TileMap {
       this[info.list] = this[info.list].filter((spawn) => this.inside(spawn.col, spawn.row));
     }
     this.warps = this.warps.filter((warp) => this.inside(warp.col, warp.row));
+    this.sounds = this.sounds.filter((block) => this.inside(block.col, block.row));
     // the index() numbers have all changed
     this.updateSolidCells();
   }
@@ -231,6 +234,18 @@ class TileMap {
     const warp = this.warpAt(col, row);
     this.warps = this.warps.filter((other) => other !== warp);
     return warp !== null;
+  }
+
+  // ---------- sound blocks ----------
+  // at most one per tile (soundblocks.js). to add one just push it onto this.sounds
+
+  // or null
+  soundAt(col, row) {
+    return this.sounds.find((block) => block.col === col && block.row === row) ?? null;
+  }
+
+  removeSoundAt(col, row) {
+    this.sounds = this.sounds.filter((block) => block.col !== col || block.row !== row);
   }
 
   // ---------- solid objects ----------

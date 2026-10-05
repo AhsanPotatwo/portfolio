@@ -75,7 +75,7 @@ It's laid out like a game engine: a **toolbar** along the top (the map's buttons
 
 | Control | What it does |
 |---|---|
-| **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** / **Weapons** / **Items** tabs at the top of the palette | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs, triggers (the player's spawn point, and warps), weapons and other items. When there are more tabs than fit, **‹ ›** (or the mouse wheel over them) scrolls along. **Sounds** and **Lights** are empty examples for now |
+| **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** / **Weapons** / **Items** / **Sounds** tabs at the top of the palette | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs, triggers (the player's spawn point, and warps), weapons, other items and sound blocks. When there are more tabs than fit, **‹ ›** (or the mouse wheel over them) scrolls along. **Lights** is an empty example for now |
 | A weapon or item picked | Click the map to put one on the ground (it isn't saved by Export). **Give** in the inspector puts one in your inventory, **Edit** (or right click it in the palette) changes its name, rarity, colour and, for weapons, damage, reach, arc and timings. **Export** in the inspector downloads `items.json`: put it in `assets/squimble-quest/items/` (replacing the old one) to keep the changes |
 | **New** / **Open** / **Resize** / **Export** (toolbar) | Make a new map, open a map file, change this map's size, or save it as a file |
 | Click something in the palette | Choose it, and switch to the **Paint** tool. Hover over one to see its name. The mouse wheel scrolls the palette while the mouse is over it |
@@ -85,8 +85,9 @@ It's laid out like a game engine: a **toolbar** along the top (the map's buttons
 | Left click (enemy or NPC chosen) | Place it, standing on the tile under the mouse |
 | Left click (**spawn** chosen, in **Triggers**) | The player spawns on this tile (yellow ring). There's only one, so it moves here |
 | Left click (**warp** chosen, in **Triggers**) | Put a warp on this tile (purple square), and open its settings. See [Warps](#warps) |
-| Right click | Change the settings of what's under the mouse: a warp, or an enemy's AI |
-| **Erase** (toolbar), then left click / drag | Delete. Starting on an object, enemy, NPC or warp removes those; starting on bare ground empties tiles |
+| Left click (**Sounds** tab) | Put a sound block on this tile, starting as the sound you picked, and hear it once. See [Sound blocks](#sound-blocks) |
+| Right click | Change the settings of what's under the mouse: a warp, a sound block, or an enemy's AI |
+| **Erase** (toolbar), then left click / drag | Delete. Starting on an object, enemy, NPC, warp or sound block removes those; starting on bare ground empties tiles |
 | **WASD** | Move around the map. The editor's buttons and panels fade out while you move, so you can see the map, and come back when you stop |
 | **−** **=** or mouse wheel | Zoom out and in (**0** resets) |
 | **M** | Go to the next map |
@@ -135,6 +136,27 @@ Arriving on a warp that opens by stepping on it doesn't send you straight back. 
 **Show links** opens the warp graph. The warp you're editing is at the top with a yellow edge, and under it is every warp linked to it, whichever way round, on any map. Each box shows a warp's name and its map, and the arrows point the way each warp leads, so a door and its way back out have an arrow at both ends. A dashed arrow is a link that loops back to a warp elsewhere in the graph. A warp with lots of links (like a village square that every door leads to) has them in rows of six, one under the other, so it stays readable however many there are. A warp that leads to a spawn point shows that spawn point as a box, and one leading to a warp that doesn't exist shows a red box. Hover over a box to see where that warp is: a window onto its map, with the warp ringed in yellow. Drag to move around it and use the mouse wheel to zoom. **Close** or **Escape** goes back to the warp's settings. It shows the warp as it was last saved, so **Save** changes first to see them in the graph.
 
 Warps link by name, so you can move a warp around freely. **Renaming a warp breaks every warp that leads to it**, so change those too. Both maps have to be exported for a link to work after a reload.
+
+### Sound blocks
+
+A sound block is a tile that makes a sound. Each square in the **Sounds** tab is a different starting sound (beep, coin, jump, laser, hit, explosion, alarm, hum, chime); click the map to put one down. Like warps, sound blocks only show in the editor (a green square with its wave on it), so put an object on the tile if players should see something there.
+
+Right click a sound block to open its settings. It's a little synthesiser, and you can press **▶ Play** at any time to hear what's in the box. The picture on the right shows the whole sound, and changes as you type: the shape of the wave, how loud it is, how it fades, slides, wobbles and repeats, with a line moving along it while it plays. Under it is the note, the pitch and how long it lasts.
+
+- **Sound** tab
+  - **Wave**: the kind of sound. **sine** is smooth like a whistle, **triangle** soft like a flute, **square** buzzy like old games, **pulse** a thinner square, **sawtooth** harsh (lasers, engines), and **noise** is hiss (hits, explosions, wind).
+  - **Pitch**: how high it is, in Hz. 440 is the A above middle C, and doubling it goes up an octave. For noise it's how high the hiss is.
+  - **Length**: how long each beep lasts. **Volume**: how loud it is.
+- **Shape** tab
+  - **Fade in** / **Fade out**: how long it takes to get loud at the start and go quiet at the end. A long fade out sounds like a bell; a short one stops it clicking.
+  - **Slide to**: the pitch it slides to by the end (up for a jump or coin, down for a laser). 0 means no slide.
+  - **Wobble** / **Wobble speed**: makes the pitch wobble up and down (vibrato). Wobble is in cents: 100 is one note.
+- **Playing** tab
+  - **Plays by**: **stepping on it**, **pressing E** when close enough (works from the tile next to it too), or **over and over nearby**: it keeps playing while the player is close enough to hear it, for things like a humming machine or a waterfall.
+  - **Repeats** / **Gap**: how many times it beeps, and how long between beeps (alarms, footsteps).
+  - **Heard from**: how many tiles away it can be heard. It's loudest right on top of it, gets quieter as the player walks away, and comes more out of the left or right speaker depending on which side it's on. Hovering over a sound block in the editor shows this as a green circle.
+
+**Save** keeps the changes. Sounds stop when the editor opens, and the game won't make any sound until it's been clicked (browsers don't allow it before then).
 
 ### Changing a map you've already made
 
@@ -213,6 +235,9 @@ You can open a map in any text editor. It looks like this:
   ],
   "warps": [
     { "name": "front", "col": 0, "row": 2, "to": "house", "toWarp": "exit", "activate": "interact" }
+  ],
+  "sounds": [
+    { "wave": "pulse", "col": 3, "row": 0, "activate": "step", "pitch": 988, "slideTo": 1976 }
   ]
 }
 ```
@@ -222,6 +247,7 @@ You can open a map in any text editor. It looks like this:
 - **`objects`**: everything placed on the tiles. `type` is the object's name in `objects.js`, and `col`, `row` is the tile its top-left corner is on. They're drawn in list order, so later ones go on top.
 - **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is the name in `enemies.js` or `npcs.js`, and `col`, `row` is the tile it stands on. An enemy's `ai` is only there if one was picked (a name in `ENEMY_AIS` in `enemies.js`); left out, it uses its kind's own. Maps without these lists just have none.
 - **`warps`**: see [Warps](#warps). `name` is the warp's name, and `col`, `row` is its tile. `to` is the map it leads to (`""` for nowhere), and `toWarp` is the warp to arrive at on that map (`""` for its spawn point). `activate` is `"step"` or `"interact"` (press E). `enemies` is `true` if enemies chasing the player follow them through it (left out means `false`). Maps without this list just have no warps.
+- **`sounds`**: see [Sound blocks](#sound-blocks). `wave` is the wave, `col`, `row` its tile, and `activate` is `"step"`, `"interact"` or `"loop"`. The rest are the sound's settings (`pitch`, `length`, `volume`, `fadeIn`, `fadeOut`, `slideTo`, `wobble`, `wobbleSpeed`, `repeats`, `gap`, `range`, explained in `SOUND_DEFAULTS` in `sound.js`), and only ones that aren't the normal value are written. Maps without this list just have no sound blocks.
 - **`left`, `top`**: the tile column and row of the map's top-left corner. Tile `(0, 0)` is at the middle of the world, so `-5, -2` puts the middle of a 10 × 5 map there.
 - **`spawn`**: where the player starts, in pixels (the centre of the player). Easiest to set with **spawn** in the editor's **Triggers** tab.
 
