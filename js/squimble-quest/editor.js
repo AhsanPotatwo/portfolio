@@ -622,7 +622,8 @@ const Editor = {
 
   // adds a sound block (soundblocks.js) on any tile on the map, playing the sound `name`
   // (SOUNDS in sound.js) and playing when stepped on. it plays once so you can hear it. if
-  // there's already one there it opens that one's settings instead, like warps
+  // there's already one there it opens that one's settings instead, like warps. it can go on any
+  // tile, even solid ones and ones with a warp (a warp on the same tile is the one right click opens)
   placeSoundBlock(map, name, col, row) {
     if (!map.inside(col, row)) return;
     const block = map.soundAt(col, row);

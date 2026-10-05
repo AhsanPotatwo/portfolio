@@ -16,6 +16,32 @@
 // same reach as E warps (closestInReach(), warps.js), and a warp wins if both are in reach. loop blocks
 // play their sound as a loop (seamless, see renderSound()) from when you come into range until you
 // leave it (Sound.update() stops it)
+//
+// where it hooks into the rest of the game:
+//   sketch.js    every frame while playing: SoundBlocks.update() (loops), reachable (the E block),
+//                SoundBlocks.play() on E, checkStep() before Warps.checkStep(), and drawPrompt()
+//   tilemap.js   map.sounds, soundAt(), removeSoundAt(), and resize() dropping blocks cut off
+//   mapfile.js   saving and loading "sounds" in map files ({ sound, col, row, activate })
+//   editor.js    the Sounds tab places them (Editor.placeSoundBlock()), right click opens edit(),
+//                Erase removes them, and drawCursor() draws drawSoundMarker() and drawSoundRange()
+//
+// known problems:
+//   - only the player sets them off. enemies and npcs walking over a step block don't
+//   - a step block plays every time you step onto it, with no cooldown, so walking back and forth
+//     over it plays it over and over (on top of itself if it's long)
+//   - two loop blocks with the same sound near each other play it twice, louder, and they can drift
+//     in and out of step. for a big area of sound, one block with a bigger range is better
+//   - a loop block's sound has to be loopable to sound good. one with a long fade out will pulse,
+//     which is right for some things but not a steady hum (see "loops" atop sound.js)
+//   - they're design, so Export saves them in the map file, but sounds.json has to be exported too
+//     or a new sound they use won't be there after a reload (the block goes red and silent)
+//
+// ideas for later:
+//   - a cooldown, or "only once" blocks (a sound the first time you walk somewhere)
+//   - letting enemies set off step blocks (a creaky floor that gives them away)
+//   - sounds tied to objects (a fire object that crackles), which could reuse this, just placed with
+//     the object
+//   - blocks bigger than one tile, for an area like a river that's loudest anywhere along it
 
 // how a block plays, and the words for it in the settings box
 const SOUND_BLOCK_ACTIVATE = {
@@ -37,7 +63,7 @@ const SoundBlocks = {
   reachable: null,
 
   // plays a block's sound from its tile. the block itself is the key, so a loop block can tell whether
-  // it's still playing
+  // it's still playing. a missing sound just doesn't play (playSound() gives back null)
   play(block, map) {
     playSound(block.sound, this.where(block, map), block, { loop: block.activate === 'loop' });
   },
@@ -48,7 +74,9 @@ const SoundBlocks = {
   },
 
   // every frame while playing, before Warps.checkStep() (which updates player.stepTile, so this has
-  // to look first). plays a step block if the player just stepped onto one
+  // to look first). plays a step block if the player just stepped onto one.
+  // careful: it only reads player.stepTile and never changes it. if Warps.checkStep() ever stops
+  // being called (or gets called first) step blocks would play every frame or never
   checkStep(player, map) {
     const [col, row] = feetTile(player, map); // warps.js
     const [lastCol, lastRow] = player.stepTile ?? [];
@@ -62,7 +90,9 @@ const SoundBlocks = {
     return closestInReach(player, map.sounds.filter((block) => block.activate === 'interact'));
   },
 
-  // every frame while playing: starts loop blocks you've just come close enough to hear
+  // every frame while playing: starts loop blocks you've just come close enough to hear. a loop never
+  // ends by itself, so it only gets started again after Sound.update() has stopped it (you walked out
+  // of range, or went to another map). it doesn't run in the editor, so loops stay quiet there
   update(map) {
     for (const block of map.sounds) {
       if (block.activate !== 'loop' || !SOUNDS[block.sound] || Sound.isPlaying(block)) continue;
@@ -77,7 +107,9 @@ const SoundBlocks = {
   },
 
   // the settings box for a block (right click it in the editor): which sound, and how it plays. Play
-  // tries the picked sound, and Edit sound saves the box and opens the sound editor on it
+  // tries the picked sound (full volume, not as it'd sound from where the player is), and Edit sound
+  // saves the box and opens the sound editor on it. the sound editor then changes the sound itself,
+  // so every block using it changes too
   edit(block) {
     const soundPicker = new Picker({
       w: 180,
@@ -112,6 +144,7 @@ const SoundBlocks = {
           field: new Button({
             w: 180, label: 'Edit sound', style: 'editor',
             onClick: () => {
+              // confirm first, so the block keeps the sound picked here, then open that sound
               FormBox.confirm();
               if (SOUNDS[block.sound]) SoundEditor.open(block.sound); // soundeditor.js
             },
@@ -149,7 +182,9 @@ function drawSoundMarker(block, px) {
   text(block.activate === 'interact' ? 'E' : 'loop', x + TILE - 3, y + 2);
 }
 
-// a circle showing how far away a block can be heard, for the one under the mouse in the editor
+// a circle showing how far away a block can be heard, for the one under the mouse in the editor. it's
+// where the sound fades to nothing, measured from the tile's middle to the player's feet. the
+// sound's already pretty quiet well before the edge, since the fade is squared (Sound.volumeAt())
 function drawSoundRange(block, px) {
   const sound = SOUNDS[block.sound];
   if (!sound) return;
