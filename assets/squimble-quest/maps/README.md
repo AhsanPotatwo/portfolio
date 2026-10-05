@@ -19,6 +19,7 @@ A map is made of:
 | `hut.json` | Inside the hut on `example`: a room with a rug, a table and a villager. Walk back out through the gap in the bottom wall |
 | `node-test.json` | For trying out the warp graph (**Show links**, see [Warps](#warps)). Warps that teleport around the same map, each on a coloured tile so you can see it without the editor: a family on dirt that branches like a tree, a family on sand that goes round in a loop, a village on grass to the right (20 doors leading to one `square`, some with a back room and a cellar, for testing a warp with lots of links), and two on planks that aren't linked to the others (one leads nowhere, one leads to the spawn point). Press **E** on one to use it |
 | `ai-test.json` | Twelve rooms off one hallway for watching the enemy AIs (see [The AI test map](#the-ai-test-map)). Get there with dev mode's **M** |
+| `doppler-test.json` | Moving sounds and the doppler effect (see [The sound test map](#the-sound-test-map)). Get there with dev mode's **M** |
 
 The tile grid shows on every map while developer mode is on, and never outside it. **G** hides it (and shows it again), to see the tiles on their own while zooming.
 
@@ -138,18 +139,39 @@ Arriving on a warp that opens by stepping on it doesn't send you straight back. 
 
 Warps link by name, so you can move a warp around freely. **Renaming a warp breaks every warp that leads to it**, so change those too. Both maps have to be exported for a link to work after a reload.
 
+### The sound test map
+
+`doppler-test` shows off sounds moving around the world and the **doppler effect**: a sound coming towards you is higher, and going away lower, like a car or a siren going past ("neeeoww"). Talk to the **Sound Guide** next to where you start for a tour. Sounds still get quieter the further away they are. Most of the sounds here have a little marker so you can see where they are (**Seen** in a sound block's settings).
+
+| Where | What to listen for |
+|---|---|
+| **Highway** (top) | A car races past, left to right, every few seconds. Stand on the pavement: it's higher as it comes, drops as it passes you, and fades away lower. It starts again far out of earshot |
+| **Avenue** (left) | An ambulance drives up and down. Its siren bends as it passes, and gets slower near the ends of the road (it slows down to turn round), so the bend is smaller there |
+| **Roundabout** (right) | A tone goes round in a circle. Stand on the planks in the middle and it never changes pitch, because it never gets closer or further away. Stand outside the circle and it wobbles up and down each time round |
+| **Three bays** (bottom) | The same tone going up and down past a wooden spot, with **Doppler** set to 0% (left), 100% (middle) and 300% (right), to compare |
+| **Hum path** (left of the start) | A still hum. Run along the path past it: you moving bends it too, just a little (about one note) |
+| **Bee garden** (top right) | Two bees going round the flowers, each buzzing higher as it comes round towards you |
+| **Chase room** (bottom left) | A grunt carrying a motor sound. Step in, and it whines higher as it chases you and lower as you run away. It does attack! |
+| **Camp** (top left) | The campfire and the rain, standing still |
+
+Everything here is changeable in the editor: right click a sound block for its sound and how it moves (**Moving** tab), right click the grunt (or any enemy or NPC) to give it a sound, and open the sounds in the sound editor to change their **Doppler** setting. How strong the doppler effect is everywhere is `SOUND_DOPPLER` in `js/squimble-quest/sound.js`.
+
 ### Sound blocks
 
-A sound block is a tile that plays a sound. The **Sounds** tab shows every sound in the game (each square is a picture of the whole sound); pick one and click the map to put a block there. Like warps, sound blocks only show in the editor (a green square with its wave on it), so put an object on the tile if players should see something there.
+A sound block is a tile that plays a sound. The **Sounds** tab shows every sound in the game (each square is a picture of the whole sound); pick one and click the map to put a block there. Like warps, sound blocks only show in the editor (a green square with its wave on it), unless they're set to be **Seen** (below), or put an object on the tile.
 
 Right click a sound block to change it:
 
 - **Sound**: which sound it plays. **▶ Play** lets you hear it, and **Edit sound** opens it in the sound editor.
 - **Plays by**: **stepping on it**, **pressing E** when close enough (it works from the tile next to it too), or **constantly nearby**: it loops smoothly, with no gaps, for as long as the player is close enough to hear it, for a humming machine, a waterfall or wind. Walking out of range stops it, and walking back starts it again.
+- **Moving** tab: the block's sound can move around its tile. **Moves**: **stays still**, **side to side** or **up and down** (slowing down at the ends to turn round), **past** (one way at a steady speed, then starting again from the beginning: give it a distance well past its **Heard from**, so nobody hears it jump back), or **round in a circle**. **Distance** is how long its path is in tiles (a circle's is how far out it goes), and **Speed** is how many tiles a second it goes. The editor draws the path and the sound moving along it. Moving sounds get the doppler effect, so a constantly nearby block going past is a car, a train or a bee. Stepping on it and pressing E still go by its tile, so moving is mostly for constantly nearby blocks.
+- **Seen**: shows a little sound marker where its sound is while playing, so players can see it (handy for something moving).
 
-Sounds get quieter as the player walks away, and come more out of the left or right speaker depending on which side they're on. How far away a sound can be heard is part of the sound (**Heard from** in the sound editor), and hovering over a sound block shows it as a green circle.
+Sounds get quieter as the player walks away, come more out of the left or right speaker depending on which side they're on, and bend higher or lower when they or the player move (the doppler effect; each sound's **Doppler** setting in the sound editor says how much, and 0 turns it off). How far away a sound can be heard is part of the sound (**Heard from** in the sound editor), and hovering over a sound block shows it as a green circle.
 
 A block whose sound has been renamed or deleted from `sounds.json` is shown in red and makes no sound. Right click it and pick another one.
+
+Enemies and NPCs can carry a sound around too, looping it wherever they go while the player is close enough (a buzzing wasp, a rumbling cart). Right click one on the map and pick its **Sound**; left as **its own**, it uses its kind's `sound` from `enemies.js` or `npcs.js` (none, normally). It stops when the enemy is defeated.
 
 Making and changing the sounds themselves is in the [sounds README](../sounds/README.md). Sounds stop when the editor opens, and the game won't make any sound until it's been clicked (browsers don't allow it before then).
 
@@ -241,9 +263,9 @@ You can open a map in any text editor. It looks like this:
 - **`rows`**: the tiles, one line per row, top row first, with a code for each tile separated by spaces.
 - **`legend`**: which code means which tile (the names in `tiles.json`). `..` is always empty. The editor makes a 2-character code for each tile when it exports, from the tile's name where it can: `gr` for grass, then `wt` for water because `wa` is already wall. There are thousands of possible codes, so they won't run out however many tiles you add.
 - **`objects`**: everything placed on the tiles. `type` is the object's name in `objects.js`, and `col`, `row` is the tile its top-left corner is on. They're drawn in list order, so later ones go on top.
-- **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is the name in `enemies.js` or `npcs.js`, and `col`, `row` is the tile it stands on. An enemy's `ai` is only there if one was picked (a name in `ENEMY_AIS` in `enemies.js`); left out, it uses its kind's own. Likewise an NPC's `voice` (a voice's name in `sounds.json`). Maps without these lists just have none.
+- **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is the name in `enemies.js` or `npcs.js`, and `col`, `row` is the tile it stands on. An enemy's `ai` is only there if one was picked (a name in `ENEMY_AIS` in `enemies.js`); left out, it uses its kind's own. Likewise an NPC's `voice` (a voice's name in `sounds.json`), and either's `sound` (a sound it carries around). Maps without these lists just have none.
 - **`warps`**: see [Warps](#warps). `name` is the warp's name, and `col`, `row` is its tile. `to` is the map it leads to (`""` for nowhere), and `toWarp` is the warp to arrive at on that map (`""` for its spawn point). `activate` is `"step"` or `"interact"` (press E). `enemies` is `true` if enemies chasing the player follow them through it (left out means `false`). Maps without this list just have no warps.
-- **`sounds`**: see [Sound blocks](#sound-blocks). `sound` is the name of a sound in `sounds.json`, `col`, `row` is its tile, and `activate` is `"step"`, `"interact"` (press E) or `"loop"` (constantly nearby). Maps without this list just have no sound blocks.
+- **`sounds`**: see [Sound blocks](#sound-blocks). `sound` is the name of a sound in `sounds.json`, `col`, `row` is its tile, and `activate` is `"step"`, `"interact"` (press E) or `"loop"` (constantly nearby). A moving one also has `move` (`"side"`, `"upDown"`, `"past"`, `"pastDown"` or `"circle"`), `distance` and `speed` (tiles, and tiles a second), and one that's seen while playing has `"show": true`. Maps without this list just have no sound blocks.
 - **`left`, `top`**: the tile column and row of the map's top-left corner. Tile `(0, 0)` is at the middle of the world, so `-5, -2` puts the middle of a 10 × 5 map there.
 - **`spawn`**: where the player starts, in pixels (the centre of the player). Easiest to set with **spawn** in the editor's **Triggers** tab.
 

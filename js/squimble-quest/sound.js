@@ -14,11 +14,16 @@
 //   renderSound()     here            the synthesiser: works out every sample of a sound
 //   voiceMouth()      here            what turns the voice wave's buzz into vowels (see "voices")
 //   renderSpeech()    here            a sound saying some words, a syllable at a time (npcs talking)
-//   Sound             here            playing: the browser's audio, voices, distance, the preview
+//   SOUND_DOPPLER     here            how the doppler effect feels (the speed of sound, and limits)
+//   dopplerShift()    here            how much moving bends a sound's pitch
+//   Sound             here            playing: the browser's audio, voices, distance, doppler, the
+//                                     preview
 //   playSound()       here            how everything else plays a sound
 //   sounds.json       assets/squimble-quest/sounds/   one sound per line (user guide: README.md there)
 //   files/            assets/squimble-quest/sounds/files/   audio files (mp3, wav, ogg) sounds use
-//   SoundBlocks       soundblocks.js  tiles on maps that play a sound (step on it, press E, or loop)
+//   SoundBlocks       soundblocks.js  tiles on maps that play a sound (step on it, press E, or loop),
+//                                     which can move their sound around, and sounds that follow
+//                                     characters (an enemy or npc's sound)
 //   SoundEditor       soundeditor.js  the full screen synthesiser for making and changing sounds
 //   Slider            formbox.js      the sliders the sound editor is made of
 //   Dialogue          dialogue.js     an npc with a voice says its lines as they type out
@@ -65,8 +70,9 @@
 //      sound that's played a lot is only worked out once
 //   3. the samples get copied into a browser AudioBuffer (once, kept with the render) and played by
 //      an AudioBufferSourceNode, through a gain (volume from distance) and a panner (left/right)
-//   4. every frame Sound.update() (from sketch.js) moves each voice's volume and pan as the player
-//      walks, tidies up finished voices, and stops loops that can't be heard any more
+//   4. every frame Sound.update() (from sketch.js) moves each voice's volume, pan and pitch (the
+//      doppler effect, below) as the player and the sound move, tidies up finished voices, and stops
+//      loops that can't be heard any more
 // with { say: 'some words' }, step 2 uses renderSpeech() instead, and the rest is the same.
 //
 // ---------- one sound, sample by sample (renderSound()) ----------
@@ -128,8 +134,10 @@
 // (squared, so it drops off quicker at first), and pans towards the side it's on. a sound on another
 // map is silent. a sound played with null for its place is full volume with no pan (the editor's
 // preview, npcs talking, and later things like menu clicks). the place is read again every frame, so
-// it can be an object that moves: anything with x, y and map (an enemy would need a map added, see
-// "ideas" below).
+// it can be an object that moves: anything with x, y and map, like a moving sound block's
+// (SoundBlocks.where()) or a character's (SoundBlocks.updateCharacters()). those use getters, like
+// { get x() { return enemy.x; }, get y() { return enemy.y; }, map: worldMap }. how fast the place
+// moves is what the doppler effect uses (see "the doppler effect" further down this file).
 //
 // ---------- adding things ----------
 //
@@ -144,6 +152,10 @@
 //                it only matters sometimes, add it to `matters` in SoundEditor.update(). its section
 //                has to be in a tab in SOUND_EDITOR.tabs (soundeditor.js)
 //   a generator  a SOUND_GENERATORS line in soundeditor.js (the "make one" buttons)
+//   a moving sound      in game: right click a sound block, Moving tab. or give an enemy or npc a
+//                sound (right click it, or sound: in enemies.js / npcs.js). from code, pass a place
+//                that moves (see "distance and stereo") and the doppler effect just works. how strong
+//                it is everywhere is SOUND_DOPPLER, and for one sound its Doppler setting
 //   a sound from code   playSound('name', { x, y, map }) for something in the world, or
 //                playSound('name') for full volume, or playSound('name', null, key, { say: 'Hi!' })
 //                to have it talk. it gives back the voice, which Sound.stop() takes
@@ -195,6 +207,14 @@
 //   - an audio file that fails to load is never tried again until the page reloads
 //   - two loop blocks playing the same sound near each other play it twice, louder, and they can
 //     drift in and out of step
+//   - the doppler effect changes how fast a sound plays (like it really does), so a bent one-shot is
+//     a bit shorter or longer too. it's worked out from how far things moved since the last frame, so
+//     a stuttery frame or a character bumping into things can wobble the pitch a little (glide smooths
+//     most of it)
+//   - walking past a still loop bends it slightly (about a note at walking speed), which is right,
+//     but if a hum shouldn't do that, set its Doppler to 0
+//   - the doppler effect only bends a whole voice: echoes baked into a sound bend with it, rather than
+//     each echo bending on its own like in real life
 //
 // ---------- ideas for later ----------
 //
@@ -203,9 +223,10 @@
 //     getting hurt or dying, ui clicks. all of them are just playSound() calls
 //   - a little random pitch on each play so repeated sounds (footsteps) don't all sound the same.
 //     it'd go through randomBetween() (utils.js) like all game randomness
-//   - sounds that follow something moving: pass an object with x, y and map as the place, like
-//     { get x() { return enemy.x; }, get y() { return enemy.y; }, map: worldMap }. an npc's voice
-//     could come from where they stand that way
+//   - an npc's voice could come from where they stand (and bend as they walk), with a place like a
+//     character sound's
+//   - sounds take time to arrive: something far away could be heard a little after it happens
+//     (distance / SOUND_DOPPLER.speedOfSound), like thunder after lightning
 //   - walls muffling sounds: if clearLine() (tilemap.js) is blocked between the sound and the
 //     listener, turn the volume down or add a low-pass to the voice
 //   - music: long file sounds as loops, with a fade between maps. a separate music volume
@@ -337,6 +358,7 @@ const SOUND_SETTINGS = [
   { key: 'tremoloSpeed', section: 'Tremolo', label: 'Tremolo speed', min: 0.1, max: 80, step: 0.1, curve: 'log', unit: '/s', normal: 8, tip: 'How many wobbles a second' },
   { key: 'crackle', section: 'Crackle', label: 'Crackle', min: 0, max: 500, step: 1, curve: 'square', unit: 'pops/s', normal: 0, off: 0, tip: 'Chops it into random pops. A few a second for firecrackers, lots for fire, rain, bubbling water and gravel. 0 is off' },
   { key: 'crackleLength', section: 'Crackle', label: 'Pop length', min: 1, max: 300, step: 1, curve: 'log', unit: 'ms', normal: 20, tip: 'How long each pop takes to die away. Short is a click, long is a rumble' },
+  { key: 'crackleDepth', section: 'Crackle', label: 'Crackle depth', min: 0, max: 100, step: 1, curve: 'linear', unit: '%', normal: 100, tip: 'How much it chops. 100 leaves only the pops (firecrackers), lower keeps the sound going underneath them (a fire\'s roar, steady rain)' },
 
   { key: 'pulseWidth', section: 'Square wave', label: 'Pulse width', min: 5, max: 95, step: 1, curve: 'linear', unit: '%', normal: 50, tip: 'Square wave only. 50 is a full square, lower or higher sounds thinner and more nasal' },
   { key: 'pulseSweep', section: 'Square wave', label: 'Pulse sweep', min: -100, max: 100, step: 1, curve: 'square', unit: '%/s', normal: 0, tip: 'Square wave only. Changes the pulse width while it plays, which sounds like it\'s moving' },
@@ -362,6 +384,7 @@ const SOUND_SETTINGS = [
   { key: 'crush', section: 'Crunch', label: 'Crunch', min: 0, max: 100, step: 1, curve: 'linear', unit: '%', normal: 0, off: 0, tip: 'Makes it lower quality on purpose (a bitcrusher), for crunchy retro sounds, robots and old radios' },
   { key: 'volume', section: 'Output', label: 'Volume', min: 0, max: 100, step: 1, curve: 'linear', unit: '%', normal: 60, tip: 'How loud it is' },
   { key: 'range', section: 'Output', label: 'Heard from', min: 1, max: 50, step: 1, curve: 'linear', unit: 'tiles', normal: 8, tip: 'How many tiles away you can still hear it in the game. It gets quieter the further away you are' },
+  { key: 'doppler', section: 'Output', label: 'Doppler', min: 0, max: 300, step: 5, curve: 'linear', unit: '%', normal: 100, off: 0, tip: 'How much moving bends its pitch in the game (the doppler effect): higher while it and you get closer, lower while you get further apart. 0 is off (menu sounds, music), over 100 exaggerates it' },
 ];
 
 // every sound starts with these, and they're the only settings a sound can have. wave first so it's
@@ -647,10 +670,12 @@ function renderSound(sound, loop = false, pitch = sound.pitch) {
       else x *= 1 - (b - attack - sustain) / decay;
       // tremolo dips the volume and comes back up, starting loud
       if (s.tremolo > 0) x *= 1 - (s.tremolo / 100) * (0.5 - 0.5 * Math.cos(2 * Math.PI * s.tremoloSpeed * b));
-      // crackle: on average `crackle` pops a second, each a random loudness that dies away
+      // crackle: on average `crackle` pops a second, each a random loudness that dies away. depth is
+      // how much it chops: at 100% there's nothing between pops, lower keeps the sound underneath
+      // (a fire's roar under its crackles)
       if (s.crackle > 0) {
         if (chance() < s.crackle / SOUND_RATE) pop = Math.max(pop, 0.3 + 0.7 * chance());
-        x *= pop;
+        x *= 1 - (s.crackleDepth / 100) * (1 - pop);
         pop *= popFade;
       }
     }
@@ -880,6 +905,56 @@ function seededRandom(seed) {
   };
 }
 
+// ---------- the doppler effect ----------
+//
+// a sound coming towards you is higher, and going away is lower (a car or a siren going past goes
+// "neeeoww"). that's because the waves bunch up in front of something moving and spread out behind it,
+// and the same happens when you're the one moving. Sound.update() works out how fast the listener and
+// every sound in the world are moving each frame (from how far they moved since the last one), and
+// dopplerShift() turns that into how much faster or slower to play the sound (its playbackRate), so
+// the pitch bends smoothly as things go past. only the speed along the line between you and the sound
+// counts: something going round you in a circle doesn't change pitch, and nor does one that's stopped
+// right next to you. each sound's Doppler setting scales it (0 is off), and it only happens to sounds
+// with a place in the world, so the sound editor's preview and talking npcs are never bent.
+
+// tweak these to change how the doppler effect feels everywhere
+const SOUND_DOPPLER = {
+  // how fast sound travels in the game, in tiles a second. real sound is about 340 tiles a second
+  // (with a tile as a metre), which makes walking past something change its pitch by a percent or
+  // two, too little to notice. slower sound makes the effect bigger: at 75, walking (5 tiles a
+  // second) bends things about one note, and something going 20 tiles a second about five
+  speedOfSound: 75,
+  // the most it can bend the pitch either way, as a playback speed (2 is an octave)
+  maxShift: 2,
+  // seconds the pitch takes to glide to its new bend, so frame to frame wobbles don't warble
+  glide: 0.06,
+};
+
+// how much the doppler effect bends a sound (its playback speed, 1 is no change), from where the
+// listener and the sound are ({ x, y }, px) and how fast each is moving ({ x, y }, px a second).
+// amount is the sound's Doppler setting (100 is normal). it's the usual formula,
+// (speed of sound + listener's speed towards the sound) / (speed of sound + sound's speed away), each
+// speed taken along the line between them and kept under the speed of sound so it can't blow up
+function dopplerShift(listener, listenerVelocity, source, sourceVelocity, amount) {
+  const dx = source.x - listener.x;
+  const dy = source.y - listener.y;
+  const distance = Math.hypot(dx, dy);
+  if (amount <= 0 || distance < 1) return 1;
+  const c = SOUND_DOPPLER.speedOfSound * TILE;
+  const along = (velocity) => Math.max(-0.9 * c, Math.min(0.9 * c, ((velocity.x * dx + velocity.y * dy) / distance) * (amount / 100)));
+  const shift = (c + along(listenerVelocity)) / (c + along(sourceVelocity));
+  return Math.max(1 / SOUND_DOPPLER.maxShift, Math.min(SOUND_DOPPLER.maxShift, shift));
+}
+
+// how fast something moved since last frame ({ x, y }, px a second), from where it was and is. on
+// another map, with no time gone by, or faster than sound (a warp, respawning, a moving sound block
+// starting its path again) it counts as still, so a teleport doesn't make anything squeal
+function soundVelocity(was, now, dt) {
+  if (!was || was.map !== now.map || dt <= 0) return { x: 0, y: 0 };
+  const velocity = { x: (now.x - was.x) / dt, y: (now.y - was.y) / dt };
+  return Math.hypot(velocity.x, velocity.y) > SOUND_DOPPLER.speedOfSound * TILE ? { x: 0, y: 0 } : velocity;
+}
+
 // ---------- playing sounds ----------
 
 // plays a sound or voice, by name (SOUNDS or VOICES) or as settings. at: where it is in the world, { x, y, map }, so it
@@ -895,11 +970,14 @@ function playSound(sound, at = null, key = null, options = {}) {
 const Sound = {
   // the browser's audio, made the first time something plays (null if the browser can't do audio)
   ctx: null,
-  // sounds that are playing, each { source, out, pan, at, range, key, loop, end }. out and pan are
-  // what distance changes, and end is when it finishes (ctx.currentTime seconds, Infinity for loops)
+  // sounds that are playing, each { source, out, pan, at, range, doppler, key, loop, ended, was }.
+  // out and pan are what distance changes, source's playbackRate is what the doppler effect changes,
+  // ended is set once it's finished, and was is where it was last frame
   voices: [],
-  // where sounds are heard from, { x, y, map }, set every frame by update()
+  // where sounds are heard from, { x, y, map }, set every frame by update(), and how fast that's
+  // moving ({ x, y }, px a second, for the doppler effect)
   listener: null,
+  listenerVelocity: { x: 0, y: 0 },
   // worked out sounds, newest last, so changing the same sound back and forth doesn't redo it. each
   // is renderSound()'s result plus its browser buffer once it's been played
   rendered: new Map(),
@@ -961,7 +1039,11 @@ const Sound = {
     pan.pan.value = this.panAt(at, sound.range);
     source.connect(out).connect(pan).connect(ctx.destination);
     source.start();
-    const voice = { source, out, pan, at, range: sound.range, key, loop, end: loop ? Infinity : ctx.currentTime + result.seconds };
+    // was is where it was last frame, for the doppler effect (update())
+    const voice = { source, out, pan, at, range: sound.range, doppler: sound.doppler, key, loop, ended: false, was: at && { x: at.x, y: at.y, map: at.map } };
+    // the browser says when it's finished. the doppler effect changes how fast it plays, so it can't
+    // be worked out from its length
+    source.onended = () => { voice.ended = true; };
     this.voices.push(voice);
     return voice;
   },
@@ -1006,17 +1088,19 @@ const Sound = {
     return constrain((at.x - this.listener.x) / (range * TILE), -1, 1) * 0.7;
   },
 
-  // every frame (sketch.js). listener is where you hear from, { x, y, map }. sounds that are playing
-  // change volume and side as you move, finished ones get tidied up, and loops you can't hear any
-  // more stop (sound blocks start them again when you come back)
-  update(listener) {
+  // every frame (sketch.js). listener is where you hear from, { x, y, map }, and dt the seconds since
+  // the last frame. sounds that are playing change volume, side and pitch (the doppler effect) as you
+  // and they move, finished ones get tidied up, and loops you can't hear any more stop (sound blocks
+  // start them again when you come back)
+  update(listener, dt = 0) {
+    this.listenerVelocity = soundVelocity(this.listener, listener, dt);
     this.listener = listener;
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
     for (const voice of [...this.voices]) {
       // finished. the browser has already stopped it and throws its nodes away by itself, so it just
       // comes off the list
-      if (now > voice.end + 0.1) {
+      if (voice.ended) {
         this.voices = this.voices.filter((other) => other !== voice);
         continue;
       }
@@ -1029,6 +1113,14 @@ const Sound = {
       // setTargetAtTime glides there quickly instead of jumping, which would click
       voice.out.gain.setTargetAtTime(SOUND_MASTER_VOLUME * volume, now, 0.05);
       voice.pan.pan.setTargetAtTime(this.panAt(voice.at, voice.range), now, 0.05);
+      // the place is read again every frame, so a moving one (a moving sound block, a character) has
+      // a speed. playing faster is higher, slower is lower
+      const at = { x: voice.at.x, y: voice.at.y, map: voice.at.map };
+      if (voice.doppler > 0 && at.map === listener.map) {
+        const shift = dopplerShift(listener, this.listenerVelocity, at, soundVelocity(voice.was, at, dt), voice.doppler);
+        voice.source.playbackRate.setTargetAtTime(shift, now, SOUND_DOPPLER.glide);
+      }
+      voice.was = at;
     }
   },
 

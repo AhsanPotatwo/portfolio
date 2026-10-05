@@ -31,8 +31,9 @@
 //   - Erase, then click or drag: if you start on an object, enemy, npc, item, warp or sound block it
 //     removes those, otherwise it empties tiles (like off the map, so they aren't drawn and can't be
 //     walked on)
-//   - right click: the settings for a warp, a sound block, an enemy (its ai) or an npc (its voice) on
-//     the map, or a tile, item, sound or voice in the palette
+//   - right click: the settings for a warp, a sound block (its sound, and how it moves), an enemy (its
+//     ai and sound) or an npc (its voice and sound) on the map, or a tile, item, sound or voice in the
+//     palette
 //   - opening it shows every enemy at its spawn, even defeated ones, so you see the whole design.
 //     closing it puts everyone back at their spawns on full health (outside the editor, maps remember
 //     their characters, loadMap() in sketch.js)
@@ -61,7 +62,8 @@ const EDITOR_KEYS = [
   'MAP EDITOR KEYS',
   'left click  paint / place',
   'right click change settings (warps, sound blocks, enemy ai,',
-  '            npc voices, palette tiles, items and sounds)',
+  '            npc voices, character sounds, palette tiles,',
+  '            items and sounds)',
   'WASD        move around',
   'wheel       zoom',
   'B           close the editor',
@@ -721,7 +723,8 @@ const Editor = {
     });
   },
 
-  // picks an enemy spawn's ai (ENEMY_AIS in enemies.js, '' means its kind's own). Export saves it
+  // picks an enemy spawn's ai (ENEMY_AIS in enemies.js, '' means its kind's own) and the sound it
+  // carries around. Export saves them
   editEnemy(spawn) {
     const own = aiName(ENEMY_TYPES[spawn.type].ai);
     FormBox.open({
@@ -736,17 +739,37 @@ const Editor = {
           value: spawn.ai ?? '',
           label: (name) => name || `its own (${own})`,
         }),
-      }],
-      onConfirm: ([ai]) => {
+      }, { label: 'Sound', field: this.characterSoundPicker(spawn, ENEMY_TYPES[spawn.type]) }],
+      onConfirm: ([ai, sound]) => {
         if (ai) spawn.ai = ai;
         else delete spawn.ai;
-        // so the one on the map picks it up
-        spawnCharacters();
+        this.setCharacterSound(spawn, sound);
       },
     });
   },
 
-  // picks an npc spawn's voice (VOICES in sound.js, '' means its kind's own from npcs.js). Say plays
+  // a picker for the sound a character loops wherever it goes (soundblocks.js), from SOUNDS. '' is
+  // its kind's own from enemies.js or npcs.js. a missing sound stays in the list so opening the box
+  // doesn't quietly change it
+  characterSoundPicker(spawn, type) {
+    return new Picker({
+      w: 180,
+      choices: ['', ...Object.keys(SOUNDS), ...(spawn.sound && !SOUNDS[spawn.sound] ? [spawn.sound] : [])],
+      value: spawn.sound ?? '',
+      label: (name) => (!name ? `its own (${type.sound ?? 'none'})` : SOUNDS[name] ? name : `${name} (missing)`),
+    });
+  },
+
+  // gives a character spawn its own sound ('' goes back to its kind's), and makes the characters
+  // again so the one on the map picks it up
+  setCharacterSound(spawn, sound) {
+    if (sound) spawn.sound = sound;
+    else delete spawn.sound;
+    spawnCharacters();
+  },
+
+  // picks an npc spawn's voice (VOICES in sound.js, '' means its kind's own from npcs.js), and the
+  // sound it carries around (like an enemy's). Say plays
   // its first line with the voice picked, Edit voice opens that voice in the sound editor, and New
   // voice makes one and gives it to this npc when it's saved. Export saves it in the map
   editNpc(spawn) {
@@ -768,7 +791,8 @@ const Editor = {
       confirmLabel: 'Save',
       rows: [
         { label: 'Voice', field: picker },
-        // buttons last, so their (undefined) values don't shift the one onConfirm gets
+        { label: 'Sound', field: this.characterSoundPicker(spawn, type) },
+        // buttons last, so their (undefined) values don't shift the ones onConfirm gets
         button('▶  Say', () => Sound.preview(VOICES[voiceOf(picker.value)], { say: type.dialogue[0] })),
         button('Edit voice', () => {
           const name = voiceOf(picker.value);
@@ -784,11 +808,10 @@ const Editor = {
           });
         }),
       ],
-      onConfirm: ([voice]) => {
+      onConfirm: ([voice, sound]) => {
         if (voice) spawn.voice = voice;
         else delete spawn.voice;
-        // so the one on the map picks it up
-        spawnCharacters();
+        this.setCharacterSound(spawn, sound);
       },
     });
   },
@@ -1107,7 +1130,7 @@ function inspectorInfo(selected) {
         kind === 'npc' ? ['Name', type.label] : ['Weapon', type.weapon ?? 'none'],
         kind === 'enemy' ? ['AI', aiName(type.ai)] : ['Voice', type.voice ?? 'silent'],
       ],
-      note: `Right click one on the map to pick its ${kind === 'enemy' ? 'AI' : 'voice'}`,
+      note: `Right click one on the map to pick its ${kind === 'enemy' ? 'AI' : 'voice'} and sound`,
     };
   }
   if (isItemKind(kind)) {

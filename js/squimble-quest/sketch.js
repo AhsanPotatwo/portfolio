@@ -161,6 +161,10 @@ function spawnCharacters() {
   if (Dialogue.active) Dialogue.close();
   enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row, spawn.ai));
   npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row, spawn.voice));
+  // the sound each one loops wherever it goes: its own if its spawn picked one, otherwise its kind's
+  // (soundblocks.js plays them)
+  enemies.forEach((enemy, i) => { enemy.sound = worldMap.enemySpawns[i].sound ?? enemy.type.sound; });
+  npcs.forEach((npc, i) => { npc.sound = worldMap.npcSpawns[i].sound ?? npc.type.sound; });
 }
 
 function draw() {
@@ -215,8 +219,10 @@ function draw() {
     for (const npc of npcs) npc.update(dt, world);
     // enemies following you to another map come out when it's time (warps.js)
     Warps.update(dt);
-    // loop sound blocks start when you come close enough to hear them (soundblocks.js)
+    // loop sound blocks start when you come close enough to hear them, and so do the sounds
+    // characters carry around (soundblocks.js)
     SoundBlocks.update(worldMap);
+    SoundBlocks.updateCharacters([...enemies, ...npcs], worldMap);
 
     // while talking, E moves the conversation on and nothing else is in reach.
     // otherwise E talks to the npc in range (it shows an E), or if there isn't one uses an E warp in
@@ -248,9 +254,10 @@ function draw() {
     }
   }
   gameCamera.update(dt);
-  // sounds get quieter the further they are from the player's feet (sound.js). this runs in the editor
-  // too, so finished sounds (like the sound editor's previews) still get tidied up
-  Sound.update({ x: player.x, y: player.y + feetBelowCentre(PLAYER), map: worldMap });
+  // sounds get quieter the further they are from the player's feet, and higher or lower as they and
+  // the player move (the doppler effect, sound.js). this runs in the editor too, so finished sounds
+  // (like the sound editor's previews) still get tidied up
+  Sound.update({ x: player.x, y: player.y + feetBelowCentre(PLAYER), map: worldMap }, dt);
 
   // 3. draw, from back to front. the warp graph and the sound editor cover the whole screen
   // (warpgraph.js, soundeditor.js), so skip drawing the world under them. a big map with lots of warps
@@ -268,6 +275,8 @@ function draw() {
     for (const thing of things) thing.draw();
     // dev mode: each enemy's ai and its route (pathfinding.js)
     if (Debug.enabled && Debug.showPaths) drawEnemyPlans(enemies, gameCamera);
+    // sound blocks set to be seen (soundblocks.js). the editor draws every block its own way
+    if (!Editor.active) SoundBlocks.draw(worldMap);
     if (!Editor.active && !Dialogue.active) {
       Warps.drawPrompt();
       SoundBlocks.drawPrompt();

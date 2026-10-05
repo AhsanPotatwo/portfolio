@@ -1,6 +1,7 @@
 // checks the synthesiser (sound.js): loops join smoothly, sounds.json saves back out the same, and bad
-// settings get cleaned up. run it with node js/squimble-quest/tests/sound-check.js (no output means it
-// all passed). add "--fix" to rewrite sounds.json in the exported format.
+// settings get cleaned up. also the doppler maths and moving sound blocks' paths (soundblocks.js). run
+// it with node js/squimble-quest/tests/sound-check.js (no output means it all passed). add "--fix" to
+// rewrite sounds.json in the exported format.
 //
 // it runs sound.js in node with just enough faked (constrain() from p5, TILE), so it can only check
 // the maths. it doesn't play anything, and doesn't touch the browser's audio, sound blocks or the sound
@@ -13,7 +14,7 @@ const assert = require('assert');
 
 const game = { TILE: 32, console: { ...console, warn: () => {} }, constrain: (v, a, b) => Math.min(b, Math.max(a, v)) };
 vm.createContext(game);
-for (const file of ['utils.js', 'sound.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), game);
+for (const file of ['utils.js', 'sound.js', 'soundblocks.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), game);
 
 const soundsPath = `${__dirname}/../../../assets/squimble-quest/sounds/sounds.json`;
 const text = fs.readFileSync(soundsPath, 'utf8').replace(/\r\n/g, '\n');
@@ -84,3 +85,33 @@ assert(VOICES['villager-voice'] && !SOUNDS['villager-voice'] && SOUNDS.coin && !
 game.setSound('coin', { ...SOUNDS.coin, kind: 'voice' });
 assert(VOICES.coin && !SOUNDS.coin, 'a sound made a voice moves to VOICES');
 assert.strictEqual(game.findSound('coin'), VOICES.coin);
+
+// the doppler effect: coming closer is higher, going away lower, going across or round you the same,
+// you moving counts too, 0 is off, and it never goes past maxShift
+const c = vm.runInContext('SOUND_DOPPLER', game).speedOfSound * 32;
+const here = { x: 0, y: 0 };
+const still = { x: 0, y: 0 };
+const there = { x: 1000, y: 0 };
+const close = (a, b) => Math.abs(a - b) < 1e-9;
+assert(close(game.dopplerShift(here, still, there, { x: -c / 4, y: 0 }, 100), 4 / 3), 'a sound coming at a quarter of the speed of sound plays 4/3 as fast');
+assert(close(game.dopplerShift(here, still, there, { x: c / 4, y: 0 }, 100), 4 / 5), 'and going away 4/5 as fast');
+assert(close(game.dopplerShift(here, still, there, { x: 0, y: 300 }, 100), 1), 'going across the line between you changes nothing');
+assert(close(game.dopplerShift(here, { x: c / 4, y: 0 }, there, still, 100), 5 / 4), 'walking towards a sound is higher');
+assert(close(game.dopplerShift(here, still, there, { x: -c / 4, y: 0 }, 0), 1), 'doppler 0 is off');
+assert(game.dopplerShift(here, still, there, { x: -c * 5, y: 0 }, 300) <= vm.runInContext('SOUND_DOPPLER', game).maxShift, 'it never bends past maxShift');
+assert(close(game.soundVelocity({ x: 0, y: 0, map: 'a' }, { x: 10, y: 0, map: 'a' }, 0.1).x, 100), 'speed is how far it went over the time');
+assert.strictEqual(game.soundVelocity({ x: 0, y: 0, map: 'a' }, { x: c, y: 0, map: 'a' }, 0.1).x, 0, 'a teleport counts as still');
+assert.strictEqual(game.soundVelocity({ x: 0, y: 0, map: 'a' }, { x: 10, y: 0, map: 'b' }, 0.1).x, 0, 'so does changing map');
+
+// moving sound blocks stay on their paths: a circle at its radius, side to side and past within
+// distance / 2 of their tile, and still ones on their tile
+const middle = { x: 10 * 32 + 16, y: 5 * 32 + 16 };
+assert.deepStrictEqual({ ...game.soundBlockPosition({ col: 10, row: 5 }, 3) }, middle);
+for (let t = 0; t < 20; t += 0.37) {
+  const round = game.soundBlockPosition({ col: 10, row: 5, move: 'circle', distance: 4, speed: 6 }, t);
+  assert(Math.abs(Math.hypot(round.x - middle.x, round.y - middle.y) - 128) < 1e-6, 'a circle stays at its radius');
+  for (const move of ['side', 'past', 'upDown', 'pastDown']) {
+    const at = game.soundBlockPosition({ col: 10, row: 5, move, distance: 6, speed: 5 }, t);
+    assert(Math.abs(at.x - middle.x) <= 96 + 1e-6 && Math.abs(at.y - middle.y) <= 96 + 1e-6 && (at.x === middle.x || at.y === middle.y), `${move} stays on its line`);
+  }
+}

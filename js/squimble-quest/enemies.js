@@ -22,6 +22,10 @@
 //   sightRange             how many px away it can see you from, if there's no wall in the way
 //                          (sensePlayer() below)
 //   attackRange            how close it has to be to swing
+//   sound                  a sound's name (SOUNDS, sounds.json) it loops wherever it goes while you're
+//                          in range, like a buzzing wasp or a rumbling machine. it gets the doppler
+//                          effect as it moves (sound.js). each spawn can pick its own (right click it
+//                          in the editor). null is silent
 //   onDeath                (enemy) => { ... } that runs at 0 health. if it's still on 0 afterwards it's
 //                          gone for good, so this can drop loot, or bring it back to life like the dummy
 //
@@ -55,6 +59,7 @@ const ENEMY_DEFAULTS = {
   ai: null,
   sightRange: 480,
   attackRange: 44,
+  sound: null,
   onDeath: null,
 };
 

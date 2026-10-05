@@ -190,9 +190,10 @@ class TileMap {
 
   // type is a name from enemies.js or npcs.js, like map.addSpawn('npc', 'villager', 3, -2). extras
   // are optional, used instead of what the kind has in its file: ai, an ENEMY_AIS name (enemies.js,
-  // enemies only), and voice, a voice's name (VOICES in sound.js, npcs only). a voice that isn't in
-  // VOICES is kept, so exporting doesn't lose it, but it's silent
-  addSpawn(kind, type, col, row, { ai, voice } = {}) {
+  // enemies only), voice, a voice's name (VOICES in sound.js, npcs only), and sound, a sound it loops
+  // wherever it goes (SOUNDS, either kind). a voice or sound that isn't there is kept, so exporting
+  // doesn't lose it, but it's silent
+  addSpawn(kind, type, col, row, { ai, voice, sound } = {}) {
     const info = SPAWN_KINDS[kind];
     if (!info.types[type]) {
       console.warn(`There's no ${kind} called "${type}", add it in ${info.file}`);
@@ -204,9 +205,12 @@ class TileMap {
     }
     if (voice !== undefined && (kind !== 'npc' || typeof voice !== 'string')) voice = undefined;
     if (voice !== undefined && !VOICES[voice]) console.warn(`An npc uses the voice "${voice}", which isn't in ${SOUND_FILE}, so it's silent`);
+    if (typeof sound !== 'string') sound = undefined;
+    if (sound !== undefined && !SOUNDS[sound]) console.warn(`A ${type} uses the sound "${sound}", which isn't in ${SOUND_FILE}, so it's silent`);
     const spawn = { type, col, row };
     if (ai !== undefined) spawn.ai = ai;
     if (voice !== undefined) spawn.voice = voice;
+    if (sound !== undefined) spawn.sound = sound;
     this[info.list].push(spawn);
   }
 
