@@ -2,8 +2,10 @@
 // pressing E near an npc opens a box along the bottom with their portrait, their name, and their first
 // line (npcs.js) typing itself out. E (or clicking the box) finishes the line, then goes to the next
 // one, and closes after the last. the world keeps going while it's open, and walking away ends it.
-// an npc with a voice (a sound's name, npcs.js) says each line with it as it types (renderSpeech() in
-// sound.js), at that sound's talk speed, and finishing a line early cuts the voice off
+// an npc with a voice (its own picked in the editor, or its kind's in npcs.js, a name in VOICES)
+// says each line with it as it types (renderSpeech() in sound.js), at that voice's talk speed, and
+// finishing a line early cuts the voice off. the voice is looked up by name every line, so changing
+// it in the sound editor changes every npc that uses it
 
 // how close in px your feet have to be to theirs
 const TALK_RANGE = 56;
@@ -103,17 +105,17 @@ const Dialogue = {
     return this.npc.type.dialogue[this.line] ?? '';
   },
 
-  // starts typing out the current line, and the npc's voice saying it (a voice that isn't in SOUNDS
-  // is just silent, like a sound block's)
+  // starts typing out the current line, and the npc's voice saying it (a voice that isn't in VOICES
+  // is just silent, like a sound block's missing sound)
   startLine() {
     this.shown = 0;
     Sound.stop(this.voice);
-    this.voice = this.npc.type.voice ? playSound(this.npc.type.voice, null, 'dialogue', { say: this.currentLine() }) : null;
+    this.voice = playSound(VOICES[this.npc.voice], null, 'dialogue', { say: this.currentLine() });
   },
 
   // letters a second: the voice's talk speed, so the words match what it's saying
   typeSpeed() {
-    return SOUNDS[this.npc.type.voice]?.talkSpeed ?? DIALOGUE_TYPE_SPEED;
+    return VOICES[this.npc.voice]?.talkSpeed ?? DIALOGUE_TYPE_SPEED;
   },
 
   // E or a click: finish typing the line, or go to the next line, or close if that was the last

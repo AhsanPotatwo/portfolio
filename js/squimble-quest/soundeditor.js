@@ -1,7 +1,9 @@
-// the sound editor: a full screen synthesiser for making and changing the sounds in the library
-// (SOUNDS, sound.js). open it from the map editor's Sounds tab (New, Edit, or right click a sound in
-// the palette) or from a sound block's settings (Edit sound).
-//   - top: the sound's name, Undo, Cancel and Save. saving under a different name makes a copy
+// the sound editor: a full screen synthesiser for making and changing the sounds and voices in the
+// libraries (SOUNDS and VOICES, sound.js). open it from the map editor's Sounds or Voices tab (New,
+// Edit, or right click one in the palette), from a sound block's settings (Edit sound), or from an
+// npc's settings (Edit voice, New voice).
+//   - top: the name, whether it's a Sound (for sound blocks) or a Voice (for npcs), Undo, Cancel and
+//     Save. saving under a different name makes a copy
 //   - left: the visualiser (a close-up of the wave and the whole sound, both from the real audio),
 //     Play / Stop / Loop, a piano that plays the sound at other notes, and the "make one" buttons in
 //     four kinds (Game, Nature, Things, Voices), each coming up with a random sound of that kind
@@ -29,7 +31,8 @@
 //     preview when the draft changes
 //   - SoundVisualiser reads the draft every frame (and Sound.render() keeps the samples, so a draft
 //     that hasn't changed isn't worked out again)
-//   - Save copies the draft into SOUNDS (setSound() in sound.js). nothing else touches the library
+//   - Save copies the draft into SOUNDS or VOICES, by its kind (setSound() in sound.js). nothing else
+//     touches the libraries
 // all the sliders are made at once, and the tabs just show and hide them (each has a .tab)
 //
 // ---------- known problems ----------
@@ -41,6 +44,8 @@
 //     names are 20 letters at most
 //   - there's no renaming or deleting. saving under a new name makes a copy, and deleting is by hand
 //     in sounds.json (see the sounds README)
+//   - switching an existing sound to a voice (or back) moves it to the other library when it's saved,
+//     so sound blocks using it go silent (and red), and so do npcs using a voice made a sound
 //   - with Loop on, every change restarts the sound, and the old one fades out in about 15 ms, so you
 //     can hear a tiny blip each restart while dragging. that's the restart, not the loop itself
 //   - dragging a slider works the sound out again every frame (for the picture). long sounds (a few
@@ -93,7 +98,7 @@ const SOUND_EDITOR = {
     { name: 'Pitch', columns: [['Pitch', 'Wobble'], ['Jumps']], hint: 'Everything here is in notes, so the piano moves it all together. Slides, wobbles and jumps start again on every repeat.' },
     { name: 'Volume', columns: [['Volume shape', 'Output'], ['Tremolo', 'Crackle']], hint: 'One beep is fade in, hold and fade out, and repeats play it again after the gap. Tremolo and crackle chop the volume up while it plays. For a smooth loop, use no fade in or out.' },
     { name: 'Tone & effects', columns: [['Filters', 'Square wave'], ['FM', 'Flanger', 'Echo', 'Crunch']], hint: 'Square wave and FM change the wave itself, then it goes through the filters and the effects in the order they\'re listed.' },
-    { name: 'Voice', columns: [['Voice'], ['Talking']], hint: 'The Voice settings shape the voice wave. Talking works with any sound, so a blip can talk too, like in old games. Give an npc this sound as its voice (npcs.js) and it says its lines with it.' },
+    { name: 'Voice', columns: [['Voice'], ['Talking']], hint: 'The Voice settings shape the voice wave. Talking works with any wave, so a blip can talk too, like in old games. Save it as a Voice, then right click an npc in the map editor to give it this voice.' },
   ],
   // the piano's lowest note (note numbers like noteFrequency() in sound.js, 48 is C4) and how many
   // white keys it has (15 is two octaves)
@@ -195,12 +200,17 @@ const SOUND_GENERATORS = {
   },
 };
 
+// what a New voice starts as: a plain man's voice, so there's something to hear straight away
+const NEW_VOICE = { kind: 'voice', wave: 'voice', pitch: 120, attack: 10, sustain: 60, decay: 50 };
+
 const SoundEditor = {
   active: false,
   // the sound being changed. a copy, so nothing changes in the game until Save
   draft: null,
   // its name when the editor opened, '' for a new sound
   original: '',
+  // (name) => {} run after it's saved, or null. an npc's New voice uses it to take the new voice
+  onSave: null,
   // the draft as text when it opened, for Cancel to tell if anything's changed
   openedAs: '',
   // ui elements kept to change later: the text boxes (and which has the typing), each setting's
@@ -235,12 +245,19 @@ const SoundEditor = {
   playedPitch: null,
   playedAt: 0,
 
-  // opens it on a sound from SOUNDS, or a new one with no name (which starts as the normal settings,
-  // a plain square beep). it stops every sound first, so nothing from the game plays over it
-  open(name = null) {
+  // opens it on a sound or voice by name, or a new one of a kind (SOUND_KINDS) with no name. a new
+  // sound starts as the normal settings (a plain square beep), a new voice as a plain man's voice.
+  // onSave(name) runs after it's saved. it stops every sound first, so nothing from the game plays
+  // over it, and voices open on the Voice tab and Voices buttons
+  open(name = null, kind = 'sound', onSave = null) {
     this.active = true;
     this.original = name ?? '';
-    this.draft = soundSettings(name ? SOUNDS[name] : {});
+    this.onSave = onSave;
+    this.draft = soundSettings(name ? findSound(name) : kind === 'voice' ? NEW_VOICE : { kind });
+    if (this.draft.kind === 'voice') {
+      this.tab = 'Voice';
+      this.makers = 'Voices';
+    }
     this.openedAs = JSON.stringify(this.draft);
     this.settled = this.openedAs;
     this.history = [];
@@ -262,6 +279,14 @@ const SoundEditor = {
     this.undoButton = add(new Button({ x: GAME_W - 280, y: 6, w: 80, h: 24, label: 'Undo', style: 'editor', onClick: () => this.undo() }));
     add(new Button({ x: GAME_W - 194, y: 6, w: 80, h: 24, label: 'Cancel', style: 'editor', onClick: () => this.cancel() }));
     this.saveButton = add(new Button({ x: GAME_W - 108, y: 6, w: 92, h: 24, label: 'Save', style: 'editorPrimary', onClick: () => this.save() }));
+    // Sound or Voice: which library it goes in when it's saved
+    Object.entries(SOUND_KINDS).forEach(([kind, label], i) => add(Object.assign(new EditorButton({
+      x: 340 + i * 64, y: 6, w: 60, h: 24, label,
+      isOn: () => this.draft.kind === kind,
+      onClick: () => this.changeKind(kind),
+    }), { tip: kind === 'voice'
+      ? 'Voice: for npcs to talk with. Voices are in the map editor\'s Voices tab, and only voices can be given to npcs'
+      : 'Sound: for sound blocks and anything else that plays a sound. Sounds are in the map editor\'s Sounds tab' })));
 
     // the left: visualiser, Play / Stop / Loop, piano, make one buttons
     const x = L.left;
@@ -371,6 +396,16 @@ const SoundEditor = {
     for (const element of UI.group('sound-editor')) if (element.makers) element.visible = element.makers === kind;
   },
 
+  // makes the draft a sound or a voice. a voice gets the Voice tab and Voices buttons out, since that's
+  // what it'll want next
+  changeKind(kind) {
+    this.draft.kind = kind;
+    if (kind === 'voice') {
+      this.showTab('Voice');
+      this.showMakers('Voices');
+    }
+  },
+
   // which text box the typing goes into
   typeInto(field) {
     this.nameField.blur();
@@ -416,20 +451,25 @@ const SoundEditor = {
   problem() {
     const name = cleanMapName(this.nameField.value); // mapfile.js, sound names follow the same rules
     if (!name) return 'Type a name for it at the top';
-    if (name !== this.original && SOUNDS[name]) return `There's already a sound called ${name}, pick another name`;
+    // sounds and voices share sounds.json, so a name can only be used once across both
+    if (name !== this.original && findSound(name)) return `There's already a ${SOUND_KINDS[findSound(name).kind].toLowerCase()} called ${name}, pick another name`;
     if (this.draft.wave === 'file' && !this.draft.file) return 'Choose an audio file first';
     return null;
   },
 
-  // puts the sound in the library (straight into the game), picks it in the palette, and closes. it
-  // only lasts until the page reloads, unless it's exported (exportSounds())
+  // puts the sound or voice in its library (straight into the game, so npcs using a voice talk with
+  // the new version), picks it in the palette, and closes. it only lasts until the page reloads,
+  // unless it's exported (exportSounds())
   save() {
     if (this.problem()) return;
     const name = cleanMapName(this.nameField.value);
+    const onSave = this.onSave;
     setSound(name, this.draft);
-    Editor.pick({ kind: 'sound', name });
-    showMessage(`Saved ${name}. Export sounds in the inspector to keep it`);
+    Editor.showTab(this.draft.kind);
+    Editor.pick({ kind: this.draft.kind, name });
+    showMessage(`Saved ${name}. Export in the inspector to keep it`);
     this.close();
+    onSave?.(name);
   },
 
   // every frame while it's open, from Editor.update(). the ui elements (sliders, buttons, piano)
@@ -510,10 +550,11 @@ const SoundEditor = {
   // swaps in new settings, moving every slider to match, and plays it (or says the Say box, for
   // talk). every big change goes through here, so this is the place to hook anything that should
   // happen on one. it plays at the draft's own pitch, so it forgets a piano note the loop was playing
-  // at. picking the voice wave opens the Voice tab
+  // at. picking the voice wave opens the Voice tab. it stays a sound or a voice (only the Sound and
+  // Voice buttons change that)
   replace(settings, talk = false) {
     const wasVoice = this.draft.wave === 'voice';
-    this.draft = soundSettings(settings);
+    this.draft = soundSettings({ ...settings, kind: this.draft.kind });
     this.syncSliders();
     if (this.draft.wave === 'voice' && !wasVoice) this.showTab('Voice');
     if (talk) this.speak();
@@ -535,10 +576,11 @@ const SoundEditor = {
   },
 
   // a random sound from a make one button. heard from stays the same unless the generator says,
-  // since that's about where it goes rather than how it sounds. voices say the Say box
+  // since that's about where it goes rather than how it sounds. voices (the Voices buttons, or
+  // anything while it's a voice) say the Say box
   generate(kind, name) {
     const settings = SOUND_GENERATORS[kind][name].make();
-    this.replace({ range: this.draft.range, ...settings }, kind === 'Voices');
+    this.replace({ range: this.draft.range, ...settings }, kind === 'Voices' || this.draft.kind === 'voice');
   },
 
   // Random: a completely random sound. a random wave, and about a third of the settings moved
@@ -605,7 +647,7 @@ const SoundEditor = {
   // once the first time. files that were already in sounds/files/ aren't downloaded again
   exportSounds() {
     downloadTextFile('sounds.json', soundsToText());
-    const files = [...new Set(Object.values(SOUNDS).map((sound) => sound.file))].filter((name) => this.newFiles[name]);
+    const files = [...new Set([...Object.values(SOUNDS), ...Object.values(VOICES)].map((sound) => sound.file))].filter((name) => this.newFiles[name]);
     for (const name of files) downloadData(name, this.newFiles[name]);
     const also = files.length > 0 ? `, and ${files.join(', ')} in sounds/files/` : '';
     showMessage(`Exported! Put sounds.json in assets/squimble-quest/sounds/${also}`);
@@ -633,7 +675,7 @@ class SoundEditorPanel extends UIElement {
 
     fill(C.text);
     setText(14, BOLD, LEFT, CENTER);
-    text('Sound editor', 16, L.headerHeight / 2);
+    text(`${SOUND_KINDS[editor.draft.kind]} editor`, 16, L.headerHeight / 2);
     fill(C.dimText);
     setText(12, BOLD, LEFT, CENTER);
     text('Name', 130, L.headerHeight / 2);
@@ -642,7 +684,7 @@ class SoundEditorPanel extends UIElement {
     const name = cleanMapName(typed);
     if (name && name !== typed) {
       setText(11, BOLD, LEFT, CENTER);
-      text(`saves as ${name}`, 340, L.headerHeight / 2);
+      text(`saves as ${name}`, 474, L.headerHeight / 2);
     }
 
     // headings

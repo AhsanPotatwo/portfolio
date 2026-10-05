@@ -160,7 +160,7 @@ function spawnCharacters() {
   // the npc you're talking to is about to be replaced
   if (Dialogue.active) Dialogue.close();
   enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row, spawn.ai));
-  npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row));
+  npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row, spawn.voice));
 }
 
 function draw() {

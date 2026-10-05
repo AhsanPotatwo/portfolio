@@ -9,7 +9,8 @@
 //
 //   SOUND_WAVES       here            the kinds of wave, most just a shape(p) function
 //   SOUND_SETTINGS    here            every number setting, which is also its slider in the editor
-//   SOUNDS            here            the library: every sound by name, from sounds.json
+//   SOUNDS, VOICES    here            the libraries: every sound and every voice by name, both
+//                                     from sounds.json (see "sounds and voices")
 //   renderSound()     here            the synthesiser: works out every sample of a sound
 //   voiceMouth()      here            what turns the voice wave's buzz into vowels (see "voices")
 //   renderSpeech()    here            a sound saying some words, a syllable at a time (npcs talking)
@@ -20,7 +21,8 @@
 //   SoundBlocks       soundblocks.js  tiles on maps that play a sound (step on it, press E, or loop)
 //   SoundEditor       soundeditor.js  the full screen synthesiser for making and changing sounds
 //   Slider            formbox.js      the sliders the sound editor is made of
-//   Dialogue          dialogue.js     an npc with a voice (npcs.js) says its lines as they type out
+//   Dialogue          dialogue.js     an npc with a voice says its lines as they type out
+//   Editor            editor.js       the Voices tab, and right clicking an npc to pick its voice
 //   tests             tests/sound-check.js  node checks: loops join without clicks, files save the
 //                     same, every wave and setting makes sound, talking
 //
@@ -40,6 +42,21 @@
 // there's one synthesiser, not one for each kind of sound. birds, fire, engines and voices are all
 // the same settings turned different ways (the sound editor's make one buttons show how), so a new
 // kind of sound is usually a new SOUND_GENERATORS line, not new code.
+//
+// ---------- sounds and voices ----------
+//
+// there are two kinds of sound (SOUND_KINDS), made the same way in the same editor: sounds, for sound
+// blocks and anything else that makes a noise, and voices, for npcs to talk with. each kind has its
+// own library (SOUNDS, VOICES), so sound blocks only offer sounds and npcs only offer voices, and the
+// map editor has a tab for each. they're saved together in sounds.json, voices last with
+// "kind": "voice", so a name can only be used once across both (the sound editor checks).
+// findSound() and playSound() look in both. a voice is any wave, not just the voice wave (a blip voice
+// sounds like old games), it's the kind that makes it a voice.
+//
+// an npc talks with its own voice if one was picked for it on the map (right click it in the editor,
+// saved in the map file as its "voice"), otherwise its kind's (voice in npcs.js). npcs keep the
+// voice's name, not a copy, and dialogue looks it up every line, so changing a voice in the sound
+// editor changes every npc that uses it straight away.
 //
 // ---------- what happens when something plays a sound ----------
 //
@@ -117,8 +134,8 @@
 // ---------- adding things ----------
 //
 //   a sound      in game: map editor, Sounds tab, New (or right click one to change it), then Export
-//   a voice      the same, with the Voices make one buttons and the Voice tab, then voice: 'its-name'
-//                on an npc (npcs.js)
+//   a voice      in game: map editor, Voices tab, New, then click an npc to give it the voice (or
+//                right click an npc, New voice). voice: 'its-name' in npcs.js gives a whole kind one
 //   a wave       a SOUND_WAVES line with its shape(p, width) and a tip. it gets a button in the sound
 //                editor and its own wave table by itself. a wave without a shape needs its own
 //                branch in renderSound()
@@ -200,7 +217,8 @@
 //     emotions (a line starting with [angry] could raise the pitch and expression)
 //   - drawing your own wave shape in the sound editor, saved as a list of points in sounds.json
 //   - renaming and deleting sounds in the sound editor (now by hand in sounds.json). renaming would
-//     have to update every sound block on every map and every npc's voice, like renaming a warp would
+//     have to update every sound block and npc voice on every map (and in npcs.js), like renaming a
+//     warp would
 //   - one file per sound instead of one sounds.json, if the list gets long
 //
 // ---------- checking changes ----------
@@ -349,6 +367,8 @@ const SOUND_SETTINGS = [
 // every sound starts with these, and they're the only settings a sound can have. wave first so it's
 // first in each line of sounds.json
 const SOUND_DEFAULTS = {
+  // a SOUND_KINDS name: which library it's in
+  kind: 'sound',
   // a SOUND_WAVES name
   wave: 'square',
   // the audio file's name in SOUND_FILE_FOLDER, for wave 'file'
@@ -356,8 +376,30 @@ const SOUND_DEFAULTS = {
   ...Object.fromEntries(SOUND_SETTINGS.map((setting) => [setting.key, setting.normal])),
 };
 
-// every sound by name, from sounds.json (loadSoundFile()) and the sound editor (setSound())
+// the kinds of sound, and the words for them. a sound is for sound blocks and anything else that
+// plays a sound, a voice is for npcs to talk with (renderSpeech()). they're made the same way, in the
+// same editor, and saved in the same sounds.json (with "kind": "voice"), but they're kept in their own
+// libraries so sound blocks only offer sounds and npcs only offer voices. a name is only ever used
+// once across both, since they share a file
+const SOUND_KINDS = { sound: 'Sound', voice: 'Voice' };
+
+// every sound and every voice by name, from sounds.json (loadSoundFile()) and the sound editor
+// (setSound())
 const SOUNDS = {};
+const VOICES = {};
+
+// the library a sound or voice is in (SOUNDS or VOICES), from its name or settings, or null for a
+// name that's in neither
+function soundLibrary(nameOrSound) {
+  if (typeof nameOrSound !== 'string') return nameOrSound.kind === 'voice' ? VOICES : SOUNDS;
+  if (SOUNDS[nameOrSound]) return SOUNDS;
+  return VOICES[nameOrSound] ? VOICES : null;
+}
+
+// a sound or voice by name, or undefined
+function findSound(name) {
+  return soundLibrary(name)?.[name];
+}
 
 // decoded audio files by file name, { data (samples), rate (samples a second), seconds }. a file
 // that's still loading (or failed) isn't in here yet, so its sounds are silent until it is
@@ -369,7 +411,11 @@ const SOUND_FILES = {};
 // slider's step though, so a hand typed 440.5 stays 440.5 until the sound editor opens it (its slider
 // rounds it then)
 function soundSettings(from) {
-  const sound = { wave: SOUND_WAVES[from.wave] ? from.wave : SOUND_DEFAULTS.wave, file: typeof from.file === 'string' ? from.file : null };
+  const sound = {
+    kind: SOUND_KINDS[from.kind] ? from.kind : SOUND_DEFAULTS.kind,
+    wave: SOUND_WAVES[from.wave] ? from.wave : SOUND_DEFAULTS.wave,
+    file: typeof from.file === 'string' ? from.file : null,
+  };
   if (from.wave !== undefined && sound.wave !== from.wave) console.warn(`There's no sound wave called "${from.wave}", so it's a ${sound.wave} instead. They're in SOUND_WAVES (sound.js)`);
   for (const { key, min, max, normal } of SOUND_SETTINGS) {
     sound[key] = typeof from[key] === 'number' && !Number.isNaN(from[key]) ? Math.min(max, Math.max(min, from[key])) : normal;
@@ -377,12 +423,16 @@ function soundSettings(from) {
   return sound;
 }
 
-// adds a sound to the library or changes one, and starts loading its audio file if it has one.
-// anything already playing the old version carries on with it, and the next play uses the new one. a
-// changed sound keeps its place in the list (and in sounds.json), and a new one goes on the end
+// adds a sound or voice to its library (by its kind) or changes one, and starts loading its audio
+// file if it has one. anything already playing the old version carries on with it, and the next play
+// uses the new one. a changed sound keeps its place in the list (and in sounds.json), and a new one
+// goes on the end. one that's changed kind moves to the other library (and to the end)
 function setSound(name, settings) {
-  SOUNDS[name] = { ...soundSettings(settings), name };
-  if (SOUNDS[name].wave === 'file' && SOUNDS[name].file) loadAudioFile(SOUNDS[name].file);
+  const sound = { ...soundSettings(settings), name };
+  const library = soundLibrary(sound);
+  delete (library === SOUNDS ? VOICES : SOUNDS)[name];
+  library[name] = sound;
+  if (sound.wave === 'file' && sound.file) loadAudioFile(sound.file);
 }
 
 // the times that make up a sound, in seconds: one beep (fade in + hold + fade out), one beep plus its
@@ -832,13 +882,13 @@ function seededRandom(seed) {
 
 // ---------- playing sounds ----------
 
-// plays a sound, by name (SOUNDS) or as settings. at: where it is in the world, { x, y, map }, so it
+// plays a sound or voice, by name (SOUNDS or VOICES) or as settings. at: where it is in the world, { x, y, map }, so it
 // gets quieter with distance, or null for full volume everywhere (like the sound editor). key:
 // anything that marks what's playing it, so Sound.isPlaying(key) can tell. options: { loop, pitch,
 // say }, where say is some words for it to say (renderSpeech()), like an npc talking. gives back the
 // voice (Sound.stop() takes it), or null if it couldn't play
 function playSound(sound, at = null, key = null, options = {}) {
-  const settings = typeof sound === 'string' ? SOUNDS[sound] : sound;
+  const settings = typeof sound === 'string' ? findSound(sound) : sound;
   return settings ? Sound.play(settings, at, key, options) : null;
 }
 
@@ -1016,9 +1066,10 @@ function loadSoundFile() {
     });
 }
 
-// every sound as the text of sounds.json, one per line (typeToData() and jsonLine() in utils.js)
+// every sound then every voice as the text of sounds.json, one per line (typeToData() and jsonLine()
+// in utils.js)
 function soundsToText() {
-  const lines = Object.values(SOUNDS).map((sound) => jsonLine(typeToData(sound, SOUND_DEFAULTS)));
+  const lines = [...Object.values(SOUNDS), ...Object.values(VOICES)].map((sound) => jsonLine(typeToData(sound, SOUND_DEFAULTS)));
   return `{\n  "format": "${SOUNDS_FORMAT}",\n  "version": ${SOUNDS_VERSION},\n  "sounds": [\n${lines.join(',\n')}\n  ]\n}\n`;
 }
 

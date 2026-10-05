@@ -23,10 +23,11 @@ if (process.argv.includes('--fix')) fs.writeFileSync(soundsPath, game.soundsToTe
 else assert.strictEqual(game.soundsToText(), text, 'sounds.json saves back out exactly the same');
 
 const SOUNDS = vm.runInContext('SOUNDS', game);
+const VOICES = vm.runInContext('VOICES', game);
 
 // every sound as a loop: the jump from the last sample back to the first is no bigger than the
 // biggest jump between two samples anywhere else, so there's no click at the join
-for (const sound of Object.values(SOUNDS)) {
+for (const sound of [...Object.values(SOUNDS), ...Object.values(VOICES)]) {
   const { samples } = game.renderSound(sound, true);
   let biggest = 0;
   for (let i = 1; i < samples.length; i++) biggest = Math.max(biggest, Math.abs(samples[i] - samples[i - 1]));
@@ -71,9 +72,15 @@ for (const wave of Object.keys(vm.runInContext('SOUND_WAVES', game)).filter((w) 
 const syllables = game.speechSyllables('Hello there, time to go?', 3);
 assert.strictEqual(syllables.map((s) => s.letters).join(' '), 'he llo the ti to go');
 assert(syllables[5].notes - game.speechSyllables('Hello there, time to go.', 3)[5].notes === 6, 'questions go up at the end');
-const voice = SOUNDS['villager-voice'];
+const voice = VOICES['villager-voice'];
 const said = game.renderSpeech(voice, 'Hello there, time to go?');
 const again = game.renderSpeech(voice, 'Hello there, time to go?').samples;
 assert(said.samples.every((v, i) => v === again[i]), 'talking is the same every time');
 assert(said.samples.every((v) => !Number.isNaN(v)) && said.samples.some((v) => Math.abs(v) > 0.05), 'talking makes sound');
 assert(Math.abs(said.seconds - (24 / voice.talkSpeed + game.soundTimings(voice).beep)) < 0.001, 'talking takes as long as typing the words');
+
+// voices go in VOICES and sounds in SOUNDS, and changing a sound's kind moves it across
+assert(VOICES['villager-voice'] && !SOUNDS['villager-voice'] && SOUNDS.coin && !VOICES.coin, 'voices and sounds are kept apart');
+game.setSound('coin', { ...SOUNDS.coin, kind: 'voice' });
+assert(VOICES.coin && !SOUNDS.coin, 'a sound made a voice moves to VOICES');
+assert.strictEqual(game.findSound('coin'), VOICES.coin);

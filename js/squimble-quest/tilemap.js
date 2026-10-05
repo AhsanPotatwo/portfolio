@@ -188,9 +188,11 @@ class TileMap {
   // ---------- where characters start ----------
   // kind is 'enemy' or 'npc' (SPAWN_KINDS)
 
-  // type is a name from enemies.js or npcs.js, like map.addSpawn('npc', 'villager', 3, -2). ai is
-  // optional, an ENEMY_AIS name (enemies.js) to use instead of the kind's own. enemies only
-  addSpawn(kind, type, col, row, ai) {
+  // type is a name from enemies.js or npcs.js, like map.addSpawn('npc', 'villager', 3, -2). extras
+  // are optional, used instead of what the kind has in its file: ai, an ENEMY_AIS name (enemies.js,
+  // enemies only), and voice, a voice's name (VOICES in sound.js, npcs only). a voice that isn't in
+  // VOICES is kept, so exporting doesn't lose it, but it's silent
+  addSpawn(kind, type, col, row, { ai, voice } = {}) {
     const info = SPAWN_KINDS[kind];
     if (!info.types[type]) {
       console.warn(`There's no ${kind} called "${type}", add it in ${info.file}`);
@@ -200,7 +202,12 @@ class TileMap {
       console.warn(`There's no enemy ai called "${ai}", so this ${type} uses its own. They're in ENEMY_AIS (enemies.js)`);
       ai = undefined;
     }
-    this[info.list].push(ai === undefined ? { type, col, row } : { type, col, row, ai });
+    if (voice !== undefined && (kind !== 'npc' || typeof voice !== 'string')) voice = undefined;
+    if (voice !== undefined && !VOICES[voice]) console.warn(`An npc uses the voice "${voice}", which isn't in ${SOUND_FILE}, so it's silent`);
+    const spawn = { type, col, row };
+    if (ai !== undefined) spawn.ai = ai;
+    if (voice !== undefined) spawn.voice = voice;
+    this[info.list].push(spawn);
   }
 
   spawnsAt(kind, col, row) {
