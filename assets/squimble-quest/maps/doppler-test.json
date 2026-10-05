@@ -1,0 +1,87 @@
+{
+  "format": "squimble-quest-map",
+  "version": 2,
+  "left": 0,
+  "top": 0,
+  "spawn": {
+    "x": 1200,
+    "y": 720
+  },
+  "legend": {
+    "..": null,
+    "gr": "grass",
+    "di": "dirt",
+    "pl": "planks",
+    "sa": "sand",
+    "wa": "wall"
+  },
+  "rows": [
+    "wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa",
+    "wa gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di wa",
+    "wa di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di wa",
+    "wa di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di wa",
+    "wa di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di wa",
+    "wa pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl pl wa",
+    "wa gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr sa sa sa gr gr gr gr gr gr gr gr di di di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr sa sa sa gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr sa sa sa gr gr gr gr gr gr gr gr di di di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr sa sa sa gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr sa sa sa gr gr gr gr gr gr gr gr di di di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr sa sa sa gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr sa sa sa sa sa gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr sa sa gr gr gr gr gr sa sa gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr sa sa gr gr gr gr gr gr gr sa sa gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr sa gr gr gr gr gr gr gr gr gr sa gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr sa gr gr gr gr gr gr gr gr gr gr gr sa gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pl pl pl pl pl gr gr gr gr gr gr gr gr gr gr sa gr gr gr gr pl pl pl gr gr gr gr sa gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr di di di di di di di di di di di di di di di di di di di di di di di di di gr gr pl pl pl pl pl gr gr gr gr gr gr gr gr gr gr sa gr gr gr gr pl pl pl gr gr gr gr sa gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pl pl pl pl pl gr gr gr gr gr gr gr gr gr gr sa gr gr gr gr pl pl pl gr gr gr gr sa gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr sa gr gr gr gr gr gr gr gr gr gr gr sa gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr sa gr gr gr gr gr gr gr gr gr sa gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr sa sa gr gr gr gr gr gr gr sa sa gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr sa sa gr gr gr gr gr sa sa gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr sa sa sa sa sa gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr wa wa wa wa wa pl pl pl wa wa wa wa wa gr gr gr gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr wa pl pl pl pl pl pl pl pl pl pl pl wa gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr wa pl pl pl pl pl pl pl pl pl pl pl wa gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr wa pl pl pl pl pl pl pl pl pl pl pl wa gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr wa pl pl pl pl pl pl pl pl pl pl pl wa gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr wa pl pl pl pl pl pl pl pl pl pl pl wa gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr wa pl pl pl pl pl pl pl pl pl pl pl wa gr gr gr gr di gr gr pl pl gr wa gr gr gr gr gr di gr gr pl pl gr wa gr gr gr gr gr di gr gr pl pl gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr wa pl pl pl pl pl pl pl pl pl pl pl wa gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr wa pl pl pl pl pl pl pl pl pl pl pl wa gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr wa pl pl pl pl pl pl pl pl pl pl pl wa gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr wa pl pl pl pl pl pl pl pl pl pl pl wa gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr wa pl pl pl pl pl pl pl pl pl pl pl wa gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr di di di gr gr wa wa wa wa wa wa wa wa wa wa wa wa wa gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr wa gr gr gr gr gr di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr wa",
+    "wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa"
+  ],
+  "objects": [
+    { "type": "rug", "col": 61, "row": 10 }
+  ],
+  "enemies": [
+    { "type": "grunt", "col": 13, "row": 38, "ai": "smart", "sound": "drone" }
+  ],
+  "npcs": [
+    { "type": "sound-guide", "col": 39, "row": 21 }
+  ],
+  "warps": [],
+  "sounds": [
+    { "sound": "car", "col": 36, "row": 3, "activate": "loop", "move": "past", "distance": 90, "speed": 14, "show": true },
+    { "sound": "siren", "col": 3, "row": 24, "activate": "loop", "move": "upDown", "distance": 30, "speed": 8, "show": true },
+    { "sound": "fire", "col": 10, "row": 11, "activate": "loop", "show": true },
+    { "sound": "rain", "col": 22, "row": 11, "activate": "loop" },
+    { "sound": "hum", "col": 20, "row": 21, "activate": "loop", "show": true },
+    { "sound": "tone", "col": 56, "row": 22, "activate": "loop", "move": "circle", "distance": 6, "speed": 9, "show": true },
+    { "sound": "bee", "col": 62, "row": 11, "activate": "loop", "move": "circle", "distance": 2, "speed": 5, "show": true },
+    { "sound": "bee", "col": 62, "row": 12, "activate": "loop", "move": "circle", "distance": 3, "speed": 7, "show": true },
+    { "sound": "tone-no-doppler", "col": 24, "row": 35, "activate": "loop", "move": "upDown", "distance": 10, "speed": 10, "show": true },
+    { "sound": "tone", "col": 36, "row": 35, "activate": "loop", "move": "upDown", "distance": 10, "speed": 10, "show": true },
+    { "sound": "tone-extra-doppler", "col": 48, "row": 35, "activate": "loop", "move": "upDown", "distance": 10, "speed": 10, "show": true }
+  ]
+}

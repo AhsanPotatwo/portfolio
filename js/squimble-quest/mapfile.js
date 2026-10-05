@@ -21,20 +21,21 @@
 //     "objects": [                          each one's top left tile
 //       { "type": "table", "col": -1, "row": -11 }
 //     ],
-//     "enemies": [                          start tiles (enemies.js), ai only if picked (ENEMY_AIS)
-//       { "type": "dummy", "col": 3, "row": -3 },
-//       { "type": "grunt", "col": 6, "row": -3, "ai": "careful" }
+//     "enemies": [                          start tiles (enemies.js), ai only if picked (ENEMY_AIS),
+//       { "type": "dummy", "col": 3, "row": -3 },    sound (a SOUNDS name it loops) only if picked
+//       { "type": "grunt", "col": 6, "row": -3, "ai": "careful", "sound": "bee" }
 //     ],
-//     "npcs": [                             start tiles (npcs.js), voice only if picked (VOICES)
+//     "npcs": [                             start tiles (npcs.js), voice (VOICES) and sound only if picked
 //       { "type": "villager", "col": -3, "row": -3 },
 //       { "type": "villager", "col": 2, "row": -3, "voice": "old-man" }
 //     ],
 //     "warps": [                            (warps.js)
 //       { "name": "hut", "col": -11, "row": -5, "to": "hut", "toWarp": "exit", "activate": "interact", "enemies": true }
 //     ],
-//     "sounds": [                           sound blocks (soundblocks.js), a sound from sounds.json
-//       { "sound": "coin", "col": 2, "row": 4, "activate": "step" }
-//     ]
+//     "sounds": [                           sound blocks (soundblocks.js), a sound from sounds.json.
+//       { "sound": "coin", "col": 2, "row": 4, "activate": "step" },    move, distance, speed and show
+//       { "sound": "car", "col": 0, "row": 9, "activate": "loop", "move": "past", "distance": 40, "speed": 14 }
+//     ]                                                                  only if it moves or is seen
 //   }
 //
 // exported codes are 2 characters taken from the tile's name where possible (gr for grass, wt for
@@ -85,12 +86,12 @@ function mapToData(map) {
   };
   // "enemies" and "npcs" (SPAWN_KINDS in tilemap.js)
   for (const info of Object.values(SPAWN_KINDS)) {
-    // ai and voice only go in if one was picked (JSON leaves out undefined)
-    data[info.fileKey] = map[info.list].map(({ type, col, row, ai, voice }) => ({ type, col, row, ai, voice }));
+    // ai, voice and sound only go in if one was picked (JSON leaves out undefined)
+    data[info.fileKey] = map[info.list].map(({ type, col, row, ai, voice, sound }) => ({ type, col, row, ai, voice, sound }));
   }
   data.warps = map.warps.map(({ name, col, row, to, toWarp, activate, enemies }) => ({ name, col, row, to, toWarp, activate, enemies }));
-  // sound first, so mapDataToText() squashes each one onto one line
-  data.sounds = map.sounds.map(({ sound, col, row, activate }) => ({ sound, col, row, activate }));
+  // sound first, so mapDataToText() squashes each one onto one line. moving and seen ones only
+  data.sounds = map.sounds.map(({ sound, col, row, activate, move, distance, speed, show }) => ({ sound, col, row, activate, move, distance, speed, show }));
   return data;
 }
 
@@ -163,7 +164,7 @@ function mapFromData(data) {
         unknown.add(`${kind} "${spawn.type}"`);
         continue;
       }
-      map.addSpawn(kind, spawn.type, spawn.col, spawn.row, { ai: spawn.ai, voice: spawn.voice });
+      map.addSpawn(kind, spawn.type, spawn.col, spawn.row, { ai: spawn.ai, voice: spawn.voice, sound: spawn.sound });
     }
   }
 
@@ -195,12 +196,22 @@ function mapFromData(data) {
       continue;
     }
     if (!SOUNDS[entry.sound]) console.warn(`A sound block uses the sound "${entry.sound}", which isn't in ${SOUND_FILE}, so it's silent`);
-    map.sounds.push({
+    const block = {
       sound: entry.sound,
       col: entry.col,
       row: entry.row,
       activate: Object.hasOwn(SOUND_BLOCK_ACTIVATE, entry.activate) ? entry.activate : 'step',
-    });
+    };
+    // moving (soundblocks.js): a move it doesn't know is still, and a missing or bad distance or
+    // speed gets the default
+    if (Object.hasOwn(SOUND_BLOCK_MOVES, entry.move) && entry.move !== 'still') {
+      const number = (value, normal) => (typeof value === 'number' && value > 0 ? value : normal);
+      block.move = entry.move;
+      block.distance = number(entry.distance, SOUND_BLOCK_MOVE_DEFAULTS.distance);
+      block.speed = number(entry.speed, SOUND_BLOCK_MOVE_DEFAULTS.speed);
+    }
+    if (entry.show === true) block.show = true;
+    map.sounds.push(block);
   }
 
   if (unknown.size > 0) {

@@ -66,8 +66,9 @@ For the noises, **Pitch** is how high the hiss is rather than a note.
   - **Punch**: makes the very start of the hold extra loud, for a snappy hit.
   - **Repeats** / **Gap**: plays it this many times in a row, with this much silence between (alarms, footsteps, birdsong).
   - **Volume** and **Heard from**: how loud it is, and how many tiles away it can be heard in the game. It's loudest right on top of it and fades away to nothing at this distance.
+  - **Doppler**: how much moving bends its pitch in the game. Something coming towards you (or you towards it) is higher, and going away lower, like a car going past. 100% is normal, 0% turns it off (for menu sounds or music), and more exaggerates it. It only happens in the game, never in the editor's preview. See the [sound test map](../maps/README.md#the-sound-test-map).
   - **Tremolo** / **Tremolo speed**: wobbles the volume. Fast for engines, helicopters, crickets and frogs, slow for pulsing.
-  - **Crackle** / **Pop length**: chops it into random pops that die away. A few a second for firecrackers, lots for fire, rain, bubbling water and gravel. Short pops click, long ones rumble.
+  - **Crackle** / **Pop length** / **Crackle depth**: chops it into random pops that die away. A few a second for firecrackers, lots for fire, rain, bubbling water and gravel. Short pops click, long ones rumble. Depth is how much it chops: 100% leaves only the pops, lower keeps the sound going underneath (a fire's roar under its crackles).
 - **Tone & effects** tab
   - **Low-pass** / **Low-pass sweep** / **Resonance**: cuts out the high sounds so it's duller (100 is off), sweeps that while it plays (a "wah"), and makes it ring at the edge for a squelchy synth sound or whistling wind.
   - **High-pass** / **High-pass sweep**: cuts out the low sounds so it's thinner, like a little radio (0 is off).

@@ -14,6 +14,8 @@ const MAP_FILES = [
   'node-test.json',
   // rooms testing the enemy ais (pathfinding.js), guide in the maps README
   'ai-test.json',
+  // the doppler effect and moving sounds (sound.js, soundblocks.js), guide in the maps README
+  'doppler-test.json',
 ];
 
 const START_MAP = 'example';
