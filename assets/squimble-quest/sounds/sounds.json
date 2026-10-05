@@ -16,6 +16,6 @@
     { "name": "bird", "wave": "sine", "pitch": 3200, "slide": 120, "slideAccel": -300, "attack": 2, "sustain": 60, "decay": 40, "repeats": 3, "gap": 70, "volume": 45, "range": 12 },
     { "name": "wind", "wave": "pink", "pitch": 500, "wander": 9, "wanderSpeed": 0.6, "attack": 0, "sustain": 4000, "decay": 0, "tremolo": 30, "tremoloSpeed": 0.3, "lowPass": 55, "resonance": 60, "volume": 70, "range": 20 },
     { "name": "fire", "wave": "pink", "pitch": 400, "attack": 0, "sustain": 3000, "decay": 0, "crackle": 60, "crackleLength": 30, "lowPass": 70, "volume": 70, "range": 6 },
-    { "name": "villager-voice", "wave": "voice", "pitch": 130, "attack": 10, "sustain": 60, "decay": 50, "mouth": 96 }
+    { "name": "villager-voice", "kind": "voice", "wave": "voice", "pitch": 130, "attack": 10, "sustain": 60, "decay": 50, "mouth": 96 }
   ]
 }

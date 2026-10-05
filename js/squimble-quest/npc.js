@@ -3,10 +3,13 @@
 // "press E" prompt (drawKeyPrompt(), which warps use too). Character's targets() is empty, so an npc
 // attacking wouldn't hurt anyone
 class Npc extends Character {
-  // type: an NPC_TYPES name. col, row: its tile
-  constructor(type, col, row) {
+  // type: an NPC_TYPES name. col, row: its tile. voice: a voice's name (VOICES in sound.js) to talk
+  // with instead of its kind's own (picked by right clicking it in the editor)
+  constructor(type, col, row, voice) {
     super(0, 0, NPC_TYPES[type]);
     this.type = NPC_TYPES[type];
+    // what it talks with in dialogue.js, or null for silent
+    this.voice = voice ?? this.type.voice;
     this.placeFeetOnTile(col, row);
     // whether the player is close enough to talk (sketch.js sets this every frame)
     this.canTalk = false;

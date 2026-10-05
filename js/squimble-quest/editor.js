@@ -24,11 +24,15 @@
 //     on the map to pick its sound and how it plays. its green circle shows how far away it can be
 //     heard. New, Edit or right click in the palette opens the sound editor (soundeditor.js), and the
 //     inspector's Export saves sounds.json (sound.js)
+//   - voices (the voices npcs talk with, VOICES in sound.js): click an npc on the map to give it that
+//     voice, or right click an npc to pick one (or make a new one). New, Edit, right click in the
+//     palette and Export work like sounds', since voices are made in the same editor and saved in the
+//     same sounds.json
 //   - Erase, then click or drag: if you start on an object, enemy, npc, item, warp or sound block it
 //     removes those, otherwise it empties tiles (like off the map, so they aren't drawn and can't be
 //     walked on)
-//   - right click: the settings for a warp, a sound block or an enemy (its ai) on the map, or a tile or
-//     item in the palette
+//   - right click: the settings for a warp, a sound block, an enemy (its ai) or an npc (its voice) on
+//     the map, or a tile, item, sound or voice in the palette
 //   - opening it shows every enemy at its spawn, even defeated ones, so you see the whole design.
 //     closing it puts everyone back at their spawns on full health (outside the editor, maps remember
 //     their characters, loadMap() in sketch.js)
@@ -57,7 +61,7 @@ const EDITOR_KEYS = [
   'MAP EDITOR KEYS',
   'left click  paint / place',
   'right click change settings (warps, sound blocks, enemy ai,',
-  '            palette tiles, items and sounds)',
+  '            npc voices, palette tiles, items and sounds)',
   'WASD        move around',
   'wheel       zoom',
   'B           close the editor',
@@ -139,6 +143,8 @@ const EDITOR_TABS = [
   })),
   // sound blocks (soundblocks.js), one square for each sound in the library (SOUNDS in sound.js)
   { kind: 'sound', label: 'Sounds', types: SOUNDS, place: (map, name, col, row) => Editor.placeSoundBlock(map, name, col, row) },
+  // npcs' voices (VOICES in sound.js). clicking an npc gives it the voice
+  { kind: 'voice', label: 'Voices', types: VOICES, place: (map, name, col, row) => Editor.giveVoice(map, name, col, row) },
   // an empty example that just says "Nothing here yet". to use it, give it a catalogue and a
   // place(). if there are too many tabs to fit they scroll (EditorTabStrip)
   { kind: 'light', label: 'Lights', types: {} },
@@ -150,6 +156,11 @@ const EDITOR_CATALOGUES = Object.fromEntries(EDITOR_TABS.map(({ kind, types }) =
 // a field for a map's width or height, from min up to EDITOR_MAX_MAP_SIZE (NumberField in textfield.js)
 function sizeField(value, min = 1) {
   return new NumberField({ w: 90, value, min, max: EDITOR_MAX_MAP_SIZE });
+}
+
+// is it a tab of things made in the sound editor (sounds or voices, SOUND_KINDS in sound.js)?
+function isSoundKind(kind) {
+  return kind in SOUND_KINDS;
 }
 
 // is it something that gets placed standing on a tile (an enemy or npc)?
@@ -261,7 +272,7 @@ const Editor = {
     }));
     this.editButton = inspectorButton(0, 'Edit', () => {
       if (this.selected.kind === 'tile') TileEditor.open(TILE_TYPES[this.selected.name]);
-      else if (this.selected.kind === 'sound') SoundEditor.open(this.selected.name);
+      else if (isSoundKind(this.selected.kind)) SoundEditor.open(this.selected.name);
       else this.editItem(this.selected.name);
     });
     this.tileButtons = [
@@ -269,7 +280,8 @@ const Editor = {
       inspectorButton(2, 'Export', () => TileEditor.exportTiles()),
     ];
     this.soundButtons = [
-      inspectorButton(1, 'New', () => SoundEditor.open()),
+      // a new sound on Sounds, a new voice on Voices
+      inspectorButton(1, 'New', () => SoundEditor.open(null, this.tab)),
       inspectorButton(2, 'Export', () => SoundEditor.exportSounds()),
     ];
     // it's in the same spot as New, so it's never shown on the Tiles tab (update())
@@ -351,7 +363,7 @@ const Editor = {
     this.tab = kind;
     this.tabStrip.reveal(kind);
     for (const button of this.tileButtons) button.visible = kind === 'tile';
-    for (const button of this.soundButtons) button.visible = kind === 'sound';
+    for (const button of this.soundButtons) button.visible = isSoundKind(kind);
     this.exportItemsButton.visible = isItemKind(kind);
   },
 
@@ -459,7 +471,7 @@ const Editor = {
     // Edit only shows with a tile or item picked, and Give only with an item (it's in the same spot as
     // New on Tiles)
     const itemPicked = isItemKind(this.selected?.kind);
-    this.editButton.visible = this.selected?.kind === 'tile' || this.selected?.kind === 'sound' || itemPicked;
+    this.editButton.visible = this.selected?.kind === 'tile' || isSoundKind(this.selected?.kind) || itemPicked;
     this.giveButton.visible = itemPicked && this.tab !== 'tile';
 
     // dividing by the zoom keeps the speed on screen the same
@@ -480,15 +492,17 @@ const Editor = {
       EDITOR_TABS.find((tab) => tab.kind === kind).place?.(map, name, over.col, over.row);
     }
 
-    // right click: the settings for what's there (a warp, then a sound block, then an enemy). any new
-    // settings boxes can hook in here
+    // right click: the settings for what's there (a warp, then a sound block, then an enemy, then an
+    // npc). any new settings boxes can hook in here
     if (over && Input.mousePressed('right')) {
       const warp = map.warpAt(over.col, over.row);
       const sound = map.soundAt(over.col, over.row);
       const enemy = map.spawnsAt('enemy', over.col, over.row)[0];
+      const npc = map.spawnsAt('npc', over.col, over.row)[0];
       if (warp) this.editWarp(map, warp);
       else if (sound) SoundBlocks.edit(sound);
       else if (enemy) this.editEnemy(enemy);
+      else if (npc) this.editNpc(npc);
     }
 
     // painting and erasing keep going while the mouse is held
@@ -732,6 +746,65 @@ const Editor = {
     });
   },
 
+  // picks an npc spawn's voice (VOICES in sound.js, '' means its kind's own from npcs.js). Say plays
+  // its first line with the voice picked, Edit voice opens that voice in the sound editor, and New
+  // voice makes one and gives it to this npc when it's saved. Export saves it in the map
+  editNpc(spawn) {
+    const type = NPC_TYPES[spawn.type];
+    const own = type.voice ? `its own (${type.voice})` : 'its own (silent)';
+    // what the picker's choice means: a voice's name, or the kind's own
+    const voiceOf = (name) => name || type.voice;
+    const picker = new Picker({
+      w: 180,
+      // a missing voice stays in the list so opening the box doesn't quietly change it
+      choices: ['', ...Object.keys(VOICES), ...(spawn.voice && !VOICES[spawn.voice] ? [spawn.voice] : [])],
+      value: spawn.voice ?? '',
+      label: (name) => (!name ? own : VOICES[name] ? name : `${name} (missing)`),
+    });
+    const button = (label, onClick) => ({ label: '', field: new Button({ w: 180, label, style: 'editor', onClick }) });
+    FormBox.open({
+      title: `NPC: ${type.label}`,
+      hint: 'Voices are made in the Voices tab',
+      confirmLabel: 'Save',
+      rows: [
+        { label: 'Voice', field: picker },
+        // buttons last, so their (undefined) values don't shift the one onConfirm gets
+        button('▶  Say', () => Sound.preview(VOICES[voiceOf(picker.value)], { say: type.dialogue[0] })),
+        button('Edit voice', () => {
+          const name = voiceOf(picker.value);
+          // confirm first, so the npc keeps the voice picked here, then open that voice
+          FormBox.confirm();
+          if (VOICES[name]) SoundEditor.open(name); // soundeditor.js
+        }),
+        button('New voice', () => {
+          FormBox.close();
+          SoundEditor.open(null, 'voice', (name) => {
+            spawn.voice = name;
+            spawnCharacters();
+          });
+        }),
+      ],
+      onConfirm: ([voice]) => {
+        if (voice) spawn.voice = voice;
+        else delete spawn.voice;
+        // so the one on the map picks it up
+        spawnCharacters();
+      },
+    });
+  },
+
+  // the Voices tab's place(): gives the npc standing on this tile the voice, and has it say its first
+  // line with it so you hear the difference
+  giveVoice(map, name, col, row) {
+    const spawn = map.spawnsAt('npc', col, row)[0];
+    if (!spawn) return showMessage('Click an NPC to give them this voice');
+    spawn.voice = name;
+    spawnCharacters();
+    const type = NPC_TYPES[spawn.type];
+    Sound.preview(VOICES[name], { say: type.dialogue[0] });
+    showMessage(`${type.label} talks with ${name} now. Export the map to keep it`);
+  },
+
   // the body box of a character type standing on this tile (standingOnTile() in character.js, same as
   // Character.placeFeetOnTile() uses)
   characterBodyOnTile(type, col, row) {
@@ -910,7 +983,7 @@ class EditorStatusBar extends UIElement {
       where = `(${over.col}, ${over.row})  ${worldMap.inside(over.col, over.row) ? tile?.name ?? 'empty' : 'off the map'}`;
     }
     const s = Editor.selected;
-    const click = s === null ? 'erase' : `${s.kind === 'tile' ? 'paint' : 'place'} ${s.name}`;
+    const click = s === null ? 'erase' : s.kind === 'voice' ? `give an NPC ${s.name}` : `${s.kind === 'tile' ? 'paint' : 'place'} ${s.name}`;
 
     setText(11, BOLD, LEFT, CENTER);
     fill(C.text);
@@ -1032,9 +1105,9 @@ function inspectorInfo(selected) {
         ['Health', type.maxHealth],
         ['Speed', type.speed],
         kind === 'npc' ? ['Name', type.label] : ['Weapon', type.weapon ?? 'none'],
-        ...(kind === 'enemy' ? [['AI', aiName(type.ai)]] : []),
+        kind === 'enemy' ? ['AI', aiName(type.ai)] : ['Voice', type.voice ?? 'silent'],
       ],
-      ...(kind === 'enemy' && { note: 'Right click one on the map to pick its AI' }),
+      note: `Right click one on the map to pick its ${kind === 'enemy' ? 'AI' : 'voice'}`,
     };
   }
   if (isItemKind(kind)) {
@@ -1056,6 +1129,14 @@ function inspectorInfo(selected) {
         ? [['File', type.file], ['Speed', `${Math.round((type.pitch / 440) * 100)}%`]]
         : [['Wave', SOUND_WAVES[type.wave].label], ['Pitch', `${type.pitch} Hz (${noteName(type.pitch)})`]],
       note: 'Click the map for a block that plays it. Right click it here (or Edit) to change it',
+    };
+  }
+  if (kind === 'voice') {
+    return {
+      title: name,
+      kind: 'Voice',
+      rows: [['Pitch', `${type.pitch} Hz (${noteName(type.pitch)})`], ['Talk speed', `${type.talkSpeed} letters/s`]],
+      note: 'Click an NPC to give them this voice',
     };
   }
   if (kind === 'trigger' && name === 'spawn') {
@@ -1256,7 +1337,7 @@ class PaletteGrid extends UIElement {
     if (Input.buttonsPressed.has('left')) Editor.pick({ kind: tab, name: this.hoveredName });
     if (tab === 'tile' && Input.buttonsPressed.has('right')) TileEditor.open(TILE_TYPES[this.hoveredName]);
     if (isItemKind(tab) && Input.buttonsPressed.has('right')) Editor.editItem(this.hoveredName);
-    if (tab === 'sound' && Input.buttonsPressed.has('right')) SoundEditor.open(this.hoveredName);
+    if (isSoundKind(tab) && Input.buttonsPressed.has('right')) SoundEditor.open(this.hoveredName);
   }
 
   draw() {
@@ -1352,6 +1433,12 @@ function drawPaletteArt(kind, name, x, y, size) {
     stroke(SOUND_COLOURS.edge);
     strokeWeight(1);
     drawSoundShape(SOUNDS[name], x + 3, y + 3, size - 6, size - 6);
+  } else if (kind === 'voice') {
+    // the voice saying something (sound.js), worked out once and kept
+    noFill();
+    stroke(SOUND_COLOURS.edge);
+    strokeWeight(1);
+    drawSoundShape(VOICES[name], x + 3, y + 3, size - 6, size - 6, 'Hello, how are you today?');
   } else if (isItemKind(kind)) {
     // like in an inventory slot, with its rarity glow (itemglow.js)
     drawGlowingItem({ type: ITEM_TYPES[name] }, middleX, middleY, size * 0.6, size / 2);

@@ -4,11 +4,15 @@ Every sound in the game is in `sounds.json` in this folder, one per line. Audio 
 
 ## Opening the sound editor
 
-Open the map editor (**`** or **Ctrl + D**, then **B**) and go to the **Sounds** tab. Then:
+Open the map editor (**`** or **Ctrl + D**, then **B**) and go to the **Sounds** tab (or **Voices**, for npc voices). Then:
 
-- **New** in the inspector makes a new sound.
-- **Edit** in the inspector, or right click a sound in the palette, changes that sound.
-- A sound block's settings (right click it on the map) have **Edit sound** too.
+- **New** in the inspector makes a new sound (or voice).
+- **Edit** in the inspector, or right click one in the palette, changes it.
+- A sound block's settings (right click it on the map) have **Edit sound** too, and an npc's have **Edit voice** and **New voice**.
+
+## Sounds and voices
+
+There are two kinds: **sounds**, for sound blocks, and **voices**, for npcs to talk with. They're made the same way in the same editor; the **Sound** / **Voice** buttons next to the name say which it is. Sounds show in the map editor's **Sounds** tab and are the only ones sound blocks can play, and voices show in the **Voices** tab and are the only ones npcs can use. Both are saved in `sounds.json`, so a name can only be used once across both.
 
 ## Using it
 
@@ -16,7 +20,8 @@ Open the map editor (**`** or **Ctrl + D**, then **B**) and go to the **Sounds**
 
 | Part | What it does |
 |---|---|
-| **Name** (top) | What the sound's called. Sound blocks and npc voices use this name, so **renaming a sound breaks the things that use it**. Saving an existing sound under a new name makes a copy and leaves the old one alone. If the name gets tidied when it saves, it says so next to the box |
+| **Name** (top) | What the sound's called. Sound blocks and npcs use this name, so **renaming a sound breaks the things that use it**. Saving an existing sound under a new name makes a copy and leaves the old one alone. If the name gets tidied when it saves, it says so next to the box |
+| **Sound** / **Voice** (top) | Whether it's a sound (for sound blocks) or a voice (for npcs). Changing an existing one moves it to the other tab, and anything using it as the old kind goes silent |
 | **Undo** / **Cancel** / **Save** | Undo goes back one change at a time, including slider drags (a whole drag is one Undo). **Save** (or **Enter**) puts it in the game straight away. **Cancel** (or **Escape**) leaves the sound as it was; if you've changed it, it asks first and the second press closes |
 | The pictures (top left) | **wave** is a close-up of the actual sound just after it gets loud: square looks square, filters round the corners off, crunch makes it steppy. **whole sound** is the whole thing from start to end, so you can see how it fades, repeats and stops (while it's talking, it shows the talking). A white line moves along it while it plays. Underneath is the note, the pitch and how long it is |
 | **▶ Play** / **■ Stop** / **↻ Loop** | Play it. With **Loop** on it plays over and over, and **changing anything restarts it straight away**, so you can drag a slider and hear what it does |
@@ -95,7 +100,14 @@ To make a voice, open the **Voices** kind of **Make one** buttons: **Man**, **Wo
 | Alien | **FM**, **Vowel slide**, lots of **Vibrato** and **Expression**, an odd **Mouth size** for the pitch |
 | Robot | **Expression** 0, lots of **Crunch** |
 
-Then save it and give an npc that voice: `voice: 'its-name'` in `defineNpc()` in `js/squimble-quest/npcs.js`. When you talk to them, they say each line as it types out, at the voice's **Talk speed**. Pressing **E** to finish a line early cuts the voice off.
+Then save it (as a **Voice**) and give it to npcs. In the map editor, either:
+
+- pick the voice in the **Voices** tab and click an npc on the map (they say their first line with it), or
+- right click an npc on the map and pick its **Voice**. **▶ Say** plays its first line with the voice picked, **Edit voice** opens that voice, and **New voice** makes a new one that the npc gets when you save it.
+
+Each npc on a map can have its own voice (it's saved in the map file, so **Export** the map too). One left on **its own** uses its kind's voice from `voice: 'its-name'` in `defineNpc()` in `js/squimble-quest/npcs.js`. Npcs use the voice by name, so **changing a voice changes every npc that uses it**: make "Man voice 1", give it to five npcs, then tweak it once.
+
+When you talk to them, they say each line as it types out, at the voice's **Talk speed**. Pressing **E** to finish a line early cuts the voice off.
 
 ### Smooth loops
 
@@ -150,4 +162,6 @@ Quirks you might run into, so they don't look like bugs:
 
 Each sound only lists the settings that aren't the normal value. The names are the sliders' settings in `SOUND_SETTINGS` in `js/squimble-quest/sound.js` (`attack`, `sustain` and `decay` are fade in, hold and fade out). Anything out of range is pulled back into range when it loads, and a wave that doesn't exist becomes a square, with a warning in the browser console (F12).
 
-There's no renaming or deleting in the editor, since sound blocks on maps and npc voices use the names. Do those here by hand, and fix any blocks using the old name (they show red in the editor) and any npc's `voice` in `npcs.js`.
+Voices are the lines with `"kind": "voice"`, after the sounds.
+
+There's no renaming or deleting in the editor, since sound blocks and npcs on maps use the names. Do those here by hand, and fix anything using the old name: sound blocks (they show red in the editor), npcs' voices (right click them; a missing voice shows as "(missing)"), and any `voice` in `npcs.js`.
