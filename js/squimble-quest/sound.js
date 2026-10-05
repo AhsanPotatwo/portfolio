@@ -80,22 +80,23 @@
 // a sound is one "beep" (fade in, hold, fade out), played `repeats` times with `gap` between. for
 // every sample:
 //   - time into the current beep decides the pitch: the start pitch, moved by slide (notes a second),
-//     slide speed-up, vibrato (a sine wobble), wander (a smooth random drift) and the two jumps (steps
-//     partway through, which can go round and round). all of those are in notes, so the piano can
-//     move the whole sound up or down by changing just the start pitch
+//     slide speed-up, vibrato (a sine wobble), wander (a smooth random drift), the two jumps (steps
+//     partway through, which can go round and round) and each repeat's step. all of those are in
+//     notes, so the piano can move the whole sound up or down by changing just the start pitch
 //   - the wave is read at its current point in the cycle (its phase), pushed back and forth by FM (a
 //     hidden sine). waves with a shape come from a table (waveTable()), apart from square, which
 //     works its shape out each time because its pulse width can change. the noises get a new value
 //     32 times a cycle (metal 93), from random numbers or a 1 bit shift register, and soft noise
 //     filters that. a file is read at a speed of pitch / 440
-//   - a voice goes through its mouth (voiceMouth()), which makes the vowel
+//   - growl turns every other wave down (a rough note an octave lower), then a voice goes through its
+//     mouth (voiceMouth()), which makes the vowel
 //   - the volume shape (fade in, hold with punch, fade out) multiplies it, then tremolo (a volume
 //     wobble) and crackle (random pops that die away)
 //   - then the effects, in this order: low-pass (with resonance), high-pass, flanger, echo, crunch.
 //     they keep running in the gaps between beeps, so a filter's tail or the echoes fade out
 //     naturally instead of stopping dead (a one-shot with echo is made longer to fit them)
 //   - volume, then it's clipped to -1..1
-// the random parts (noise, wander, crackle, breath) use seededRandom(), so a sound is exactly the
+// the random parts (noise, wander, crackle, breath, growl) use seededRandom(), so a sound is exactly the
 // same every time it plays
 //
 // ---------- voices ----------
@@ -151,7 +152,8 @@
 //                renderSound(). if it moves the pitch, add it to `steady` in renderSound() too, and if
 //                it only matters sometimes, add it to `matters` in SoundEditor.update(). its section
 //                has to be in a tab in SOUND_EDITOR.tabs (soundeditor.js)
-//   a generator  a SOUND_GENERATORS line in soundeditor.js (the "make one" buttons)
+//   a generator  a line in SOUND_GENERATORS in soundeditor.js (the "make one" buttons, and the
+//                Character tab's knobs for each kind)
 //   a moving sound      in game: right click a sound block, Moving tab. or give an enemy or npc a
 //                sound (right click it, or sound: in enemies.js / npcs.js). from code, pass a place
 //                that moves (see "distance and stereo") and the doppler effect just works. how strong
@@ -336,17 +338,19 @@ function glottalPulse(p) {
 //     go anywhere, but moving old ones changes how every line of sounds.json is written
 const SOUND_SETTINGS = [
   { key: 'pitch', section: 'Pitch', label: 'Pitch', min: 20, max: 5000, step: 1, curve: 'log', unit: 'Hz', normal: 440, tip: 'How high it is. 440 is the A above middle C, and doubling it goes up an octave. For a file it\'s how fast it plays' },
-  { key: 'slide', section: 'Pitch', label: 'Slide', min: -200, max: 200, step: 1, curve: 'square', unit: 'notes/s', normal: 0, tip: 'Makes the pitch rise (+) or fall (-) while it plays. Up for jumps and power-ups, down for lasers and falling' },
-  { key: 'slideAccel', section: 'Pitch', label: 'Slide speed-up', min: -500, max: 500, step: 1, curve: 'square', unit: 'notes/s²', normal: 0, tip: 'Makes the slide get faster (+) or slower (-) as it goes, so it curves. Slide one way and speed up the other way for a chirp that turns round' },
+  { key: 'slide', section: 'Pitch', label: 'Slide', min: -500, max: 500, step: 1, curve: 'square', unit: 'notes/s', normal: 0, tip: 'Makes the pitch rise (+) or fall (-) while it plays. Up for jumps and power-ups, down for lasers and falling' },
+  { key: 'slideAccel', section: 'Pitch', label: 'Slide speed-up', min: -10000, max: 10000, step: 1, curve: 'square', unit: 'notes/s²', normal: 0, tip: 'Makes the slide get faster (+) or slower (-) as it goes, so it curves. Slide one way and speed up the other way for a chirp that turns round' },
   { key: 'vibrato', section: 'Wobble', label: 'Vibrato', min: 0, max: 12, step: 0.1, curve: 'square', unit: 'notes', normal: 0, off: 0, tip: 'Wobbles the pitch up and down by this many notes. Big and slow for a siren, small and fast for a trill' },
   { key: 'vibratoSpeed', section: 'Wobble', label: 'Vibrato speed', min: 0, max: 40, step: 0.5, curve: 'linear', unit: '/s', normal: 6, tip: 'How many wobbles a second' },
   { key: 'wander', section: 'Wobble', label: 'Wander', min: 0, max: 24, step: 0.1, curve: 'square', unit: 'notes', normal: 0, off: 0, tip: 'Lets the pitch drift around at random by up to this many notes. Slow for wind gusts and engines, fast for rough, gravelly voices' },
   { key: 'wanderSpeed', section: 'Wobble', label: 'Wander speed', min: 0.1, max: 2000, step: 0.1, curve: 'log', unit: '/s', normal: 3, tip: 'How often it drifts somewhere new. Under 10 wanders, over 100 sounds rough and raspy (crows, growls, old voices)' },
+  { key: 'growl', section: 'Wobble', label: 'Growl', min: 0, max: 100, step: 1, curve: 'linear', unit: '%', normal: 0, off: 0, tip: 'Makes every other wave quieter, which adds a rough note an octave lower (like vocal fry). A little for a gravelly voice, lots for growling beasts, dragons and snores. 0 is off' },
   { key: 'jump', section: 'Jumps', label: 'Jump', min: -24, max: 24, step: 1, curve: 'linear', unit: 'notes', normal: 0, off: 0, tip: 'Jumps the pitch up (+) or down (-) by this many notes partway through. Two notes like a coin pickup' },
   { key: 'jumpAt', section: 'Jumps', label: 'Jump at', min: 0, max: 1000, step: 5, curve: 'square', unit: 'ms', normal: 100, tip: 'How long after it starts the jump happens' },
   { key: 'jump2', section: 'Jumps', label: 'Second jump', min: -24, max: 24, step: 1, curve: 'linear', unit: 'notes', normal: 0, off: 0, tip: 'Another jump, on top of the first. 4 then 3 more plays a happy chord one note at a time, 3 then 4 a sad one' },
   { key: 'jump2At', section: 'Jumps', label: 'Second jump at', min: 0, max: 1000, step: 5, curve: 'square', unit: 'ms', normal: 200, tip: 'How long after it starts the second jump happens' },
   { key: 'jumpRepeat', section: 'Jumps', label: 'Jumps repeat', min: 0, max: 1000, step: 5, curve: 'square', unit: 'ms', normal: 0, off: 0, tip: 'Goes back to the start pitch every this many ms and does the jumps again, round and round (an arpeggio). Short for sparkly magic. 0 is off' },
+  { key: 'repeatPitch', section: 'Jumps', label: 'Each repeat', min: -12, max: 12, step: 0.5, curve: 'linear', unit: 'notes', normal: 0, off: 0, tip: 'Moves the pitch up (+) or down (-) by this many notes on every repeat. Falling birdsong, a cuckoo\'s lower second note, a fanfare that climbs. Only does something with Repeats' },
 
   { key: 'attack', section: 'Volume shape', label: 'Fade in', min: 0, max: 2000, step: 1, curve: 'square', unit: 'ms', normal: 5, tip: 'How long it takes to get loud. Long fades in sound soft, like a swell' },
   { key: 'sustain', section: 'Volume shape', label: 'Hold', min: 0, max: 5000, step: 1, curve: 'square', unit: 'ms', normal: 150, tip: 'How long it stays loud' },
@@ -517,8 +521,10 @@ function renderSound(sound, loop = false, pitch = sound.pitch) {
   const steady = s.slide === 0 && s.slideAccel === 0 && s.jump === 0 && s.jump2 === 0 && s.vibrato === 0 && s.wander === 0 &&
     s.repeats === 1 && (s.fm === 0 || Number.isInteger(s.fmRatio)) && SOUND_WAVES[s.wave].shape;
   // rounds the loop to the nearest whole number of waves (at least one), which changes its length by
-  // at most half a wave, so you can't hear the difference
-  if (loop && steady) period = Math.max(1, Math.round(period * pitch)) / pitch;
+  // at most half a wave, so you can't hear the difference. growl repeats every two waves, so it's
+  // rounded to pairs of them
+  const loopWaves = s.growl > 0 ? pitch / 2 : pitch;
+  if (loop && steady) period = Math.max(1, Math.round(period * loopWaves)) / loopWaves;
   // a sound with everything at 0 would have no samples at all, which the browser can't play
   period = Math.max(period, 0.01);
   const length = Math.round(period * SOUND_RATE);
@@ -569,6 +575,9 @@ function renderSound(sound, loop = false, pitch = sound.pitch) {
   const pinkLoudness = 0.12 * Math.min(1, Math.cbrt(pitch / 800));
 
   let phase = 0;
+  // waves so far (for growl, which turns down every other one) and how loud this one is
+  let waves = 0;
+  let growlGain = 1;
   let fmPhase = 0;
   let white = 0;
   let cell = -1;
@@ -604,7 +613,7 @@ function renderSound(sound, loop = false, pitch = sound.pitch) {
       }
       // the pitch right now, in notes away from the start. jumps go round every jumpRepeat
       const j = jumpRepeat > 0 ? b % jumpRepeat : b;
-      let notes = s.slide * b + 0.5 * s.slideAccel * b * b + (j >= jumpAt ? s.jump : 0) + (j >= jump2At ? s.jump2 : 0);
+      let notes = s.slide * b + 0.5 * s.slideAccel * b * b + (j >= jumpAt ? s.jump : 0) + (j >= jump2At ? s.jump2 : 0) + s.repeatPitch * n;
       if (s.vibrato > 0) notes += s.vibrato * Math.sin(2 * Math.PI * s.vibratoSpeed * b);
       // wander: a new random spot every 1 / wanderSpeed seconds, gliding smoothly between them
       if (s.wander > 0) {
@@ -618,7 +627,13 @@ function renderSound(sound, loop = false, pitch = sound.pitch) {
       }
       const frequency = Math.min(20000, Math.max(1, notes === 0 ? pitch : pitch * Math.exp(notes * notesToRatio)));
       phase += frequency / SOUND_RATE;
-      if (phase >= 1) phase -= Math.floor(phase);
+      if (phase >= 1) {
+        phase -= Math.floor(phase);
+        // growl: every other wave is quieter (by a slightly random amount, so it's rough rather than
+        // a clean octave). that's what vocal folds do when they growl or fry. a new wave starts where
+        // most waves are near 0, so the change doesn't click
+        if (s.growl > 0) growlGain = ++waves % 2 ? 1 - (s.growl / 100) * (0.6 + 0.4 * chance()) : 1;
+      }
       // FM bends where in the cycle the wave is read, by a hidden sine fmRatio times the pitch
       let p = phase;
       if (fmDepth > 0) {
@@ -661,6 +676,7 @@ function renderSound(sound, loop = false, pitch = sound.pitch) {
           x = (pink[0] + pink[1] + pink[2] + x * 0.1848) * pinkLoudness;
         }
       }
+      x *= growlGain;
       if (mouth) x = mouth(x, b, chance);
       // the volume shape. fade in goes 0 to 1, hold starts at 1 + punch and settles to 1 by its end,
       // and fade out goes 1 to 0. the jump from 1 to 1 + punch is the punch's snap (it can click with
@@ -781,7 +797,11 @@ function voiceMouth(sound) {
       });
     }
     const air = sound.breath / 100;
-    const source = buzz * (1 - air * 0.8) + (chance() * 2 - 1) * air * 0.5;
+    // the top tenth of the slider goes to pure air (breathing, whispers): the buzz fades from about a
+    // quarter to nothing, and the air gets 3 times louder, since air through a mouth is much quieter
+    // than a buzz. below 90% it's how it always was
+    const top = Math.max(0, air - 0.9);
+    const source = buzz * (top > 0 ? (1 - air) * 2.8 : 1 - air * 0.8) + (chance() * 2 - 1) * air * (0.5 + top * 10);
     // three state variable filters (like the low-pass) side by side, using their band output, which
     // rings at f. times damping keeps each ring's peak at the same loudness however narrow it is
     let x = 0;

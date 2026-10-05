@@ -1,20 +1,22 @@
-// checks the synthesiser (sound.js): loops join smoothly, sounds.json saves back out the same, and bad
-// settings get cleaned up. also the doppler maths and moving sound blocks' paths (soundblocks.js). run
-// it with node js/squimble-quest/tests/sound-check.js (no output means it all passed). add "--fix" to
-// rewrite sounds.json in the exported format.
+// checks the synthesiser (sound.js): loops join smoothly, sounds.json saves back out the same, bad
+// settings get cleaned up, and every make one button makes a sound (soundeditor.js). also the doppler
+// maths and moving sound blocks' paths (soundblocks.js). run it with
+// node js/squimble-quest/tests/sound-check.js (no output means it all passed). add "--fix" to rewrite
+// sounds.json in the exported format.
 //
-// it runs sound.js in node with just enough faked (constrain() from p5, TILE), so it can only check
-// the maths. it doesn't play anything, and doesn't touch the browser's audio, sound blocks or the sound
-// editor. those were checked by playing the game in Chrome through playwright (README "Checking
-// changes"). it's slow-ish (a few seconds) because node's vm makes globals slow, not because the
-// synthesiser is
+// it runs sound.js in node with just enough faked (constrain() from p5, TILE, UIElement), so it can
+// only check the maths. it doesn't play anything, and doesn't touch the browser's audio, sound blocks
+// or the sound editor's screen. those were checked by playing the game in Chrome through playwright (README "Checking
+// changes"). it's slow-ish (15 to 20 seconds, most of it the make one buttons) because node's vm
+// makes globals slow, not because the synthesiser is
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
 
-const game = { TILE: 32, console: { ...console, warn: () => {} }, constrain: (v, a, b) => Math.min(b, Math.max(a, v)) };
+// UIElement is faked too, just so soundeditor.js loads (for its make one buttons, SOUND_GENERATORS)
+const game = { TILE: 32, console: { ...console, warn: () => {} }, constrain: (v, a, b) => Math.min(b, Math.max(a, v)), UIElement: class {} };
 vm.createContext(game);
-for (const file of ['utils.js', 'sound.js', 'soundblocks.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), game);
+for (const file of ['utils.js', 'sound.js', 'soundblocks.js', 'soundeditor.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), game);
 
 const soundsPath = `${__dirname}/../../../assets/squimble-quest/sounds/sounds.json`;
 const text = fs.readFileSync(soundsPath, 'utf8').replace(/\r\n/g, '\n');
@@ -66,6 +68,42 @@ for (const wave of Object.keys(vm.runInContext('SOUND_WAVES', game)).filter((w) 
   const busy = game.soundSettings({ wave, sustain: 300, wander: 3, wanderSpeed: 50, jump: 4, jump2: 3, jumpRepeat: 90, tremolo: 50, crackle: 200, fm: 30, echo: 50, vowelSlide: 3 });
   const { samples } = game.renderSound(busy);
   assert(samples.every((v) => !Number.isNaN(v)) && samples.some((v) => Math.abs(v) > 0.05), `${wave} with everything on makes sound`);
+}
+
+// growl repeats every two waves, so a growling hum loops at a whole number of pairs of them
+const growling = game.soundSettings({ wave: 'organ', pitch: 110, attack: 0, decay: 0, sustain: 1000, growl: 50 });
+assert(Math.abs((game.renderSound(growling, true).seconds * 110) / 2 % 1) < 0.01, 'a growling hum loops at pairs of waves');
+
+// every make one button makes real sound (no NaN, not silent) that isn't too long, and with every
+// knob anywhere its settings are still numbers. only one short beep of each is worked out (no echo,
+// at most 150 ms held and 150 ms fading), since all of them in full takes most of a minute. the
+// tweaked kinds leave a maker's sound alone at their normal knobs
+const generators = vm.runInContext('SOUND_GENERATORS', game);
+const knobsFor = (kind, maker, anywhere) => Object.fromEntries(generators[kind].knobs.map((knob) => {
+  const pick = anywhere ? [knob.min, knob.max] : maker.knobs?.[knob.key] ?? knob.normal;
+  const value = typeof pick === 'function' ? pick() : Array.isArray(pick) ? pick[0] + Math.random() * (pick[1] - pick[0]) : pick;
+  return [knob.key, Math.round(value / knob.step) * knob.step];
+}));
+for (const [kind, { make, makers }] of Object.entries(generators)) {
+  for (const [name, maker] of Object.entries(makers)) {
+    const sound = game.soundSettings(make(knobsFor(kind, maker, false), maker));
+    const { seconds } = game.soundTimings(sound);
+    const { samples } = game.renderSound({ ...sound, sustain: Math.min(sound.sustain, 150), decay: Math.min(sound.decay, 150), repeats: 1, echo: 0 });
+    assert(samples.every((v) => !Number.isNaN(v)) && samples.some((v) => Math.abs(v) > 0.02), `${kind} ${name} makes sound`);
+    assert(seconds < 12, `${kind} ${name} isn't too long (${seconds.toFixed(1)} s)`);
+    for (let i = 0; i < 5; i++) {
+      const wild = make(knobsFor(kind, maker, true), maker);
+      assert(Object.values(wild).every((v) => v === undefined || typeof v === 'string' || Number.isFinite(v)), `${kind} ${name} with any knobs gives proper numbers`);
+    }
+    if (maker.make) {
+      vm.runInContext('makerRandom = seededRandom(7)', game);
+      const plain = game.soundSettings(maker.make());
+      vm.runInContext('makerRandom = seededRandom(7)', game);
+      const knobbed = game.soundSettings(make(knobsFor(kind, { knobs: {} }, false), maker));
+      vm.runInContext('makerRandom = Math.random', game);
+      assert.deepStrictEqual(knobbed, plain, `${kind}'s knobs leave ${name} alone at their normal values`);
+    }
+  }
 }
 
 // talking: a syllable per vowel group (a silent e doesn't count), the same words always sound the
