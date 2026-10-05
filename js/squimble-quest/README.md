@@ -17,7 +17,7 @@ This README and the code comments are the only notes. When you change something:
 
 - **`sketch.js`**: the game loop; its header lists every file. Read it first.
 - **[maps README](../../assets/squimble-quest/maps/README.md)**: map editor guide and map file format.
-- **Catalogue files** (`tiles.js`, `objects.js`, `enemies.js`, `npcs.js`, `weapons.js`, `items.js`) each open with a "how to make one" guide. Tiles, weapons and items are data files the editor can change and export (see Tiles and Inventory below).
+- **Catalogue files** (`tiles.js`, `objects.js`, `enemies.js`, `npcs.js`, `weapons.js`, `items.js`, `sound.js`) each open with a "how to make one" guide. Tiles, weapons, items and sounds are data files the editor can change and export (see Tiles, Inventory and Sound below).
 
 **Running:** maps load with `fetch`, so serve it locally (see "Running the game locally" in the maps README), e.g. `py -m http.server 8765` from the portfolio root, then `http://localhost:8765/squimble-quest.html`. From `file://` it falls back to a blank stand-in map.
 
@@ -83,11 +83,13 @@ This README and the code comments are the only notes. When you change something:
   - A drop can't be picked up until the player has left `PICKUP_RANGE`, so it isn't grabbed straight back and "inventory full" shows once per approach, not every frame.
   - Each item has a `category` (`ITEM_CATEGORIES`, items.js; only decides its editor tab) and a `rarity` (`RARITIES`), which sets its glow on the ground, mid-throw, in slots and the palette, and the colour of the held item's name above the hotbar. The glow (`itemglow.js`, everything goes through `drawGlowingItem()`) is a pulsing halo in the rarity colour plus `sparkles` pixel twinkles; a rarity's `image` replaces the drawn halo with a picture, and `ITEM_GLOW` holds the shared timings. Both lists are placeholders; a new line adds one. Rarity is per item type for now.
   - Weapons and items load from `items.json` alongside tiles, so there are none until then: `PLAYER.startingItems` are given after (`giveStartingItems()`), and the editor's item tabs read `ITEMS_BY_CATEGORY`, which fills as they load. If the file fails, there are none (console warning) and nobody can attack.
-- **Sound** (`sound.js`, `soundblocks.js`):
-  - `sound.js` is a small synthesiser on Web Audio. A sound is plain settings (`SOUND_DEFAULTS`: wave, pitch, length, volume, fade in/out, slide, wobble, repeats and gap, range), so it saves in map files. Anything can play one with `playSound(sound, { x, y, map })`; it gets quieter with distance from the player's feet (gone at `range` tiles) and pans left or right, updated every frame by `Sound.update()` (sketch.js). Pass `null` instead of a place for full volume.
-  - Waves (`SOUND_WAVES`) are just a `shape(p)` function: `Sound.makeWave()` turns the shape into the real sound, and `drawSoundWave()` draws the same shape, so the visualiser always matches. Noise is the exception (random hiss through a filter tuned to the pitch).
-  - **Sound blocks** (`soundblocks.js`, `map.sounds`): tiles that play their sound on `step`, `interact` (E) or `loop` (again whenever it finishes, while you're in range). Step blocks share warps' `player.stepTile` check, so `SoundBlocks.checkStep()` must run before `Warps.checkStep()`. E blocks share warps' reach (`closestInReach()`, warps.js); a warp wins if both are in reach. Placed from the editor's **Sounds** tab, whose squares are `SOUND_PRESETS` (`defineSound()` lines in sound.js). Right click one for its settings box (a tabbed `FormBox` with a `SoundVisualiser` and **Play**).
-  - Opening the editor stops every sound (`Sound.stopAll()`). Sound only ever comes out of this computer, so it doesn't affect multiplayer.
+- **Sound** (`sound.js`, `soundblocks.js`, `soundeditor.js`):
+  - **The library:** every sound is plain settings (`SOUND_DEFAULTS`), kept by name in `SOUNDS`, from `assets/squimble-quest/sounds/sounds.json` (one per line, non-default settings only, like `tiles.json`). Audio files (mp3, wav, ogg) go in `sounds/files/` and load in the background into `SOUND_FILES`. `loadSoundFile()` runs before the maps, since sound blocks name their sound.
+  - **The synthesiser:** `renderSound()` works out every sample in JavaScript (the old sfxr idea): wave (from `SOUND_WAVES` shapes, via a lookup table, or noise, or a file), pitch with slide, vibrato and jump, a volume shape (fade in, hold with punch, fade out, repeats), then low-pass, high-pass, flanger and crunch. The browser just plays the result as a recording (`Sound.render()` keeps the last 30). Each `SOUND_SETTINGS` line is a setting and its slider at once: range, step, curve, unit, normal value and tip.
+  - **Loops are seamless:** a loop is rendered so its wave carries on across the join, a little past the end is crossfaded into the start (`SOUND_LOOP_FADE`), and steady sounds loop at a whole number of waves; the browser then repeats the buffer sample-perfectly. (The first version restarted loops every frame they'd ended, which left gaps and clicks.) `tests/sound-check.js` checks every sound's join.
+  - **Playing:** `playSound(name or settings, { x, y, map }, key, { loop, pitch })`. It gets quieter with distance from the player's feet (silent at `range` tiles) and pans left or right, updated every frame by `Sound.update()` (sketch.js), which also stops loops you can no longer hear. `null` instead of a place is full volume. Opening the editor stops everything (`Sound.stopAll()`). Sound only ever comes out of this computer, so it doesn't affect multiplayer.
+  - **Sound blocks** (`soundblocks.js`, `map.sounds`, each `{ sound, col, row, activate }`): tiles that play a library sound on `step`, `interact` (E) or `loop` (constantly while in range). Step blocks share warps' `player.stepTile` check, so `SoundBlocks.checkStep()` must run before `Warps.checkStep()`. E blocks share warps' reach (`closestInReach()`, warps.js); a warp wins if both are in reach. A block naming a sound that isn't in the library is kept but silent, and red in the editor.
+  - **The sound editor** (`soundeditor.js`): a full screen `'sound-editor'` UI group, like the warp graph, that `Editor.update()` hands control to while it's open. A slider (`Slider`, formbox.js) per setting, wave buttons, visualiser drawn from the real samples, Play / Stop / Loop (Loop restarts on every change, so you hear sliders as you drag), a piano (`SoundPiano`), `SOUND_GENERATORS` buttons plus Random and Mutate, Undo, and Choose file. It edits a copy (`SoundEditor.draft`); Save puts it in `SOUNDS` (saving under a new name makes a copy), and the inspector's Export downloads `sounds.json` plus any audio files chosen since load (`SoundEditor.newFiles`).
 - **UI** (`ui.js`, `button.js`, `textfield.js`, `formbox.js`):
   - Everything extends `UIElement`. Groups show, hide and remove together. A click on UI is claimed, so gameplay never sees it.
   - `Input.typing = true` routes keys to `Input.typed` instead of the game. The box's owner picks the focused `TextField`/`NumberField` and calls `field.type(key)` per key; Ctrl + V arrives as `{ paste: text }` → `field.paste(text)`. `ColourField` accepts pasted hex or rgb, and its swatch opens the browser's colour picker (`<input type="color">`).
@@ -121,10 +123,11 @@ Each file's header has the details.
 | A box that asks for things | `FormBox.open({ title, rows, onConfirm })` (formbox.js); `tabs` instead of `rows` for many settings. |
 | A new UI element kind | A class extending `UIElement` (guide atop ui.js). Buttons: guide in button.js. |
 | Loading or saving a file | `fetchJson()`, `pickFile()`, `downloadTextFile()`, `downloadData()` in utils.js. |
-| A sound wave | A `SOUND_WAVES` line with its `shape(p)` (sound.js). It's heard and drawn from that one function. |
-| A sound preset | A `defineSound()` line at the bottom of sound.js. It shows up in the editor's **Sounds** tab. |
-| A sound setting | Default in `SOUND_DEFAULTS`, what it does in `Sound.beep()` (and `drawSoundWave()` if it changes the look), a row in `SoundBlocks.edit()` (soundblocks.js). |
-| A sound from code (a sword swing, a door) | `playSound(settings, { x, y, map })` (sound.js). |
+| A sound | In game: editor, **Sounds** tab, **New** in the inspector, then **Export**. Or a line in `assets/squimble-quest/sounds/sounds.json`. |
+| A sound wave | A `SOUND_WAVES` line with its `shape(p, width)` (sound.js). It's heard and drawn from that one function, and gets a button in the sound editor. |
+| A sound setting | A `SOUND_SETTINGS` line (sound.js), which is also its slider, then what it does in `renderSound()`. |
+| A "make one" button | A `SOUND_GENERATORS` line (soundeditor.js). |
+| A sound from code (a sword swing, a door) | `playSound('name', { x, y, map })` (sound.js). |
 | A new file | Its `<script>` tag in `squimble-quest.html` (order matters) and a line in sketch.js's file list. |
 
 ## Rules to keep when changing things
@@ -144,7 +147,7 @@ Not obvious from any one file; breaking them causes hard-to-trace bugs.
 Only build these when needed.
 
 - **Warps:** objects that are warps (a door/trapdoor/manhole object opening its warp, see the end of the Warps notes); a "back where you came from" target for shared interiors; a fade between maps; locked doors; an editor key to go through the warp under the mouse; loading map files by name instead of listing them in `MAP_FILES`.
-- **Sound:** a named sound library (like `items.json`) so swords, doors and footsteps can share sounds; music; a volume setting or mute key; chords or notes one after another in one sound.
+- **Sound:** music; a volume setting or mute key; deleting and renaming sounds in the editor (now by hand in `sounds.json`, like tiles); sounds for swords, footsteps and doors using `playSound()`.
 - **Items:**
   - stacking (arrows, potions), needing a count per item
   - editor-placed items aren't saved in the map file; that needs a list in the file like `spawns`, and a decision on whether picked-up ones return
@@ -183,7 +186,7 @@ Only build these when needed.
 ## Checking changes
 
 - `node --check <file>` catches syntax errors.
-- `node js/squimble-quest/tests/pathfinding-check.js` checks the enemy pathfinder's route choices (no output means it passed).
+- `node js/squimble-quest/tests/pathfinding-check.js` checks the enemy pathfinder's route choices, and `tests/sound-check.js` that every sound loops without a click and `sounds.json` saves back out the same (no output means they passed).
 - Real behaviour: play it in the browser. To automate, install `playwright-core` in a scratch folder, launch Chrome through it (`executablePath`), serve the site, then click and type into the canvas. Globals (`worldMap`, `enemies`, `Editor`, `loadMap`, ...) are readable via `page.evaluate`. Notes:
   - the game is always 960 × 540; compute clicks from the canvas's bounding box
   - the first canvas click only focuses it

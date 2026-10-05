@@ -31,8 +31,8 @@
 //     "warps": [                            (warps.js)
 //       { "name": "hut", "col": -11, "row": -5, "to": "hut", "toWarp": "exit", "activate": "interact", "enemies": true }
 //     ],
-//     "sounds": [                           sound blocks (soundblocks.js), only non-default settings
-//       { "wave": "pulse", "col": 2, "row": 4, "activate": "step", "pitch": 988, "slideTo": 1976 }
+//     "sounds": [                           sound blocks (soundblocks.js), a sound from sounds.json
+//       { "sound": "coin", "col": 2, "row": 4, "activate": "step" }
 //     ]
 //   }
 //
@@ -88,18 +88,9 @@ function mapToData(map) {
     data[info.fileKey] = map[info.list].map(({ type, col, row, ai }) => ({ type, col, row, ai }));
   }
   data.warps = map.warps.map(({ name, col, row, to, toWarp, activate, enemies }) => ({ name, col, row, to, toWarp, activate, enemies }));
-  data.sounds = map.sounds.map(soundBlockToData);
+  // sound first, so mapDataToText() squashes each one onto one line
+  data.sounds = map.sounds.map(({ sound, col, row, activate }) => ({ sound, col, row, activate }));
   return data;
-}
-
-// a sound block as file data. the wave goes first so mapDataToText() squashes it onto one line, then
-// its tile and how it plays, then only the sound settings that aren't the default (sound.js)
-function soundBlockToData({ col, row, activate, sound }) {
-  const entry = { wave: sound.wave, col, row, activate };
-  for (const [key, value] of Object.entries(SOUND_DEFAULTS)) {
-    if (key !== 'wave' && sound[key] !== value) entry[key] = sound[key];
-  }
-  return entry;
 }
 
 // a 2 character code that isn't in the legend yet. it tries the first letter plus each other letter
@@ -194,18 +185,20 @@ function mapFromData(data) {
     });
   }
 
-  // "sounds", which older maps don't have. only the tile is needed: how it plays defaults to step, and
-  // any missing sound settings get their default (soundSettings() in sound.js)
+  // "sounds", which older maps don't have. the sound's name and tile are needed, and how it plays
+  // defaults to step. a sound that isn't in sounds.json (renamed, say) is kept, so exporting doesn't
+  // lose it, but it's silent and red in the editor, like a broken warp
   for (const entry of data.sounds ?? []) {
-    if (!Number.isInteger(entry.col) || !Number.isInteger(entry.row)) {
-      unknown.add('a sound block without a col or row');
+    if (typeof entry.sound !== 'string' || !Number.isInteger(entry.col) || !Number.isInteger(entry.row)) {
+      unknown.add('a sound block without a sound, col or row');
       continue;
     }
+    if (!SOUNDS[entry.sound]) console.warn(`A sound block uses the sound "${entry.sound}", which isn't in ${SOUND_FILE}, so it's silent`);
     map.sounds.push({
+      sound: entry.sound,
       col: entry.col,
       row: entry.row,
       activate: Object.hasOwn(SOUND_BLOCK_ACTIVATE, entry.activate) ? entry.activate : 'step',
-      sound: soundSettings(entry),
     });
   }
 
@@ -297,9 +290,9 @@ function openMapFile() {
 // npc, warp and sound block squashed onto one line so long lists are still easy to read
 function mapDataToText(data) {
   return JSON.stringify(data, null, 2)
-    // an object, character, warp or sound block is a { } starting with "type", "name" or "wave" with
+    // an object, character, warp or sound block is a { } starting with "type", "name" or "sound" with
     // only plain values in it
-    .replace(/\{\s+("(?:type|name|wave)":[^{}[\]]*?)\s+\}/g, (match, inside) => `{ ${inside.replace(/,\s+/g, ', ')} }`)
+    .replace(/\{\s+("(?:type|name|sound)":[^{}[\]]*?)\s+\}/g, (match, inside) => `{ ${inside.replace(/,\s+/g, ', ')} }`)
     + '\n';
 }
 
