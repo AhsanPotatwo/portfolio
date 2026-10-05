@@ -1,10 +1,11 @@
-// checks the enemy pathfinder (pathfinding.js) on tiny drawn maps: node js/squimble-quest/tests/pathfinding-check.js
-// # wall, . floor, L lava, S spikes, E enemy, P player. no output = all passed
+// checks the enemy pathfinder (pathfinding.js) on tiny maps drawn as text. run it with
+// node js/squimble-quest/tests/pathfinding-check.js
+// # is wall, . floor, L lava, S spikes, E the enemy and P the player. no output means it all passed
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
 
-// the real lava and spikes from tiles.json, filled like TILE_DEFAULTS
+// the same lava and spikes as in tiles.json, filled in like TILE_DEFAULTS would
 const tile = (name, settings) => ({ name, solid: false, speed: 1, damagePerStep: 0, damagePerSecond: 0, ...settings });
 const TILE_TYPES = {
   '#': tile('wall', { solid: true }),
@@ -16,7 +17,7 @@ const game = { TILE: 32, TILE_TYPES };
 vm.createContext(game);
 vm.runInContext(fs.readFileSync(`${__dirname}/../pathfinding.js`, 'utf8'), game);
 
-// enough of a TileMap (tilemap.js) for planPath()
+// just enough of a TileMap (tilemap.js) for planPath() to work
 function plan(rows, caution, health = 60, crowd) {
   const cols = rows[0].length;
   const tiles = rows.join('').replace(/[EP]/g, '.');
@@ -44,7 +45,7 @@ const wall = plan([
 ], 0.15);
 assert(wall.reached && !wall.tiles.includes('#'), 'goes round the wall');
 
-// fork of equal length, lava on one side: takes the safe side
+// a fork where both ways are the same length but one has lava: it takes the safe side
 const fork = plan([
   '#######',
   '#.....#',
@@ -54,7 +55,7 @@ const fork = plan([
 ], 0.15);
 assert(fork.reached && fork.damage === 0, 'picks the safe side of a fork');
 
-// one spike, or 12 tiles further round
+// either one spike, or 12 tiles further round
 const spikeOrDetour = [
   '#################',
   '#...............#',
@@ -69,10 +70,10 @@ const spikeOrDetour = [
 assert.strictEqual(plan(spikeOrDetour, 0.15).damage, 15, 'smart takes one spike over a long walk');
 assert.strictEqual(plan(spikeOrDetour, 0.5).damage, 0, 'careful walks round');
 assert.strictEqual(plan(spikeOrDetour, 0).damage, 15, 'reckless takes the shortest');
-// hurt: fear makes even smart walk round
+// when it's hurt, fear makes even smart walk round
 assert.strictEqual(plan(spikeOrDetour, 0.15, 20).damage, 0, 'hurt smart walks round');
 
-// lava that would kill: a wall, so no way
+// lava that would kill it counts as a wall, so there's no way through
 const lethal = plan([
   '#######',
   '#ELLLP#',
@@ -81,7 +82,7 @@ const lethal = plan([
 assert(!lethal.reached && !lethal.tiles.includes('L'), "won't walk to its death");
 assert(plan(['#######', '#ELLLP#', '#######'], 0, 60).reached, 'crosses when it would survive');
 
-// no diagonal step past lava at the corner: (1,1) → (2,2) would brush (1,2)
+// no diagonal step past lava on the corner: going from (1,1) to (2,2) would brush (1,2)
 const corner = plan([
   '#####',
   '#E..#',
@@ -92,7 +93,7 @@ const corner = plan([
 assert(corner.path[0].col === 2 && corner.path[0].row === 1, 'steps round a lava corner');
 assert.strictEqual(corner.damage, 0);
 
-// crowd: an ally expected along the top of a fork sends it along the bottom
+// crowd: if an ally is expected along the top of a fork it goes along the bottom
 const forkRows = [
   '#######',
   '#.....#',
@@ -102,7 +103,7 @@ const forkRows = [
 ];
 const ally = new Map([[1 * 7 + 2, 1], [1 * 7 + 3, 0.6], [1 * 7 + 4, 0.4]]);
 assert(plan(forkRows, 0.15, 60, ally).path.every(({ row }) => row >= 2), 'goes the other way round an ally');
-// someone parked in a doorway: goes round by the other door
+// someone standing in a doorway: it goes round through the other door
 const door = plan([
   '#.#.#.###',
   '#.......#',

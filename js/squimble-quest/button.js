@@ -1,38 +1,42 @@
-// a clickable button, extending UIElement (ui.js).
+// a clickable button, built on UIElement (ui.js).
 //
 // ============================== how to use buttons ==============================
 //
-// make them once in setup() (sketch.js); UI handles hover, click and drawing:
+// make them once in setup() (sketch.js) and UI takes care of hovering, clicking and drawing:
 //   UI.add(new Button({ x: 20, y: 20, w: 120, h: 40, label: 'Play', onClick: () => startGame() }));
-// x, y top left, w, h size, screen pixels (always 960 x 540). later buttons draw on top.
+// x, y is the top left and w, h the size, in screen pixels (always 960 x 540). buttons added later
+// draw on top.
 //
-// options (only x, y, w, h needed):
-//   label         centred text (works over images too)
+// options (only x, y, w, h are needed):
+//   label         text in the middle (works over images too)
 //   onClick       (button) => { ... }
-//   style         a BUTTON_STYLES name (config.js), e.g. 'danger', or overrides like
-//                 { fill: '#ff00ff', radius: 0 }. unset settings come from BUTTON_STYLES.default;
-//                 add reusable ones to BUTTON_STYLES
-//   image         art instead of a box. load it in preload() (sketch.js), e.g.
-//                 swordImg = loadImage('assets/squimble-quest/sword.png'). without w, h it uses the
-//                 image's size; small pixel art scales up crisply
-//   hoverImage    art while hovered (optional)
-//   pressedImage  art while held (optional)
-//   invisible     just a clickable area, e.g. over a door in a bigger picture. UI.draw(true) in
-//                 sketch.js outlines everything for lining it up (put it back after)
-//   toggle        flips button.on each click:
+//   style         a BUTTON_STYLES name (config.js) like 'danger', or your own changes like
+//                 { fill: '#ff00ff', radius: 0 }. anything you don't set comes from
+//                 BUTTON_STYLES.default. if you'll reuse a style, add it to BUTTON_STYLES
+//   image         a picture instead of a box. load it in preload() (sketch.js), like
+//                 swordImg = loadImage('assets/squimble-quest/sword.png'). without a w and h it uses
+//                 the picture's size. small pixel art scales up nice and crisp
+//   hoverImage    picture while the mouse is over it (optional)
+//   pressedImage  picture while it's held down (optional)
+//   invisible     just an area you can click, like over a door in a bigger picture. UI.draw(true) in
+//                 sketch.js outlines everything so you can line it up (change it back after)
+//   toggle        flips button.on every click:
 //                   new Button({ ..., label: 'Music', toggle: true, on: true, onClick: (b) => setMusic(b.on) })
-//   on            a toggle's start state
-//   enabled       false fades it and blocks clicking
+//   on            whether a toggle starts on
+//   enabled       false fades it out and stops it being clicked
 //   visible       false hides it
-//   group         shared name: UI.showGroup('pause', false/true), UI.removeGroup('pause')
+//   group         a name shared with other elements: UI.showGroup('pause', false/true),
+//                 UI.removeGroup('pause')
 //
-// UI.add() returns the button, so keep it to change later: .enabled, .label, .visible, UI.remove(b).
+// UI.add() gives the button back, so keep it if you want to change it later: .enabled, .label,
+// .visible, UI.remove(b).
 //
 // good to know:
-//   - a click happens on release over the button; dragging off cancels it
-//   - button clicks never reach the game (Input.mousePressed() stays false), no checks needed
-//   - disabled buttons still block clicks to the game
-//   - button.click() presses it from code (e.g. keyboard shortcuts)
+//   - a click happens when you let go over the button, so dragging off it cancels the click
+//   - clicks on buttons never reach the game (Input.mousePressed() stays false), so you don't need to
+//     check for that
+//   - disabled buttons still stop clicks reaching the game
+//   - button.click() presses it from code (for keyboard shortcuts, say)
 //
 // ================================================================================
 class Button extends UIElement {
@@ -40,18 +44,18 @@ class Button extends UIElement {
     super(options);
 
     this.label = options.label ?? '';
-    // gets the button, handy for toggles: (button) => button.on
+    // gets passed the button, which is handy for toggles: (button) => button.on
     this.onClick = options.onClick ?? null;
 
-    // a BUTTON_STYLES name or an object, over BUTTON_STYLES.default
+    // a BUTTON_STYLES name or an object, put on top of BUTTON_STYLES.default
     const style = typeof options.style === 'string' ? BUTTON_STYLES[options.style] : options.style;
     this.style = { ...BUTTON_STYLES.default, ...style };
 
-    // hover and pressed fall back to image
+    // hover and pressed fall back to image if they aren't given
     this.image = options.image ?? null;
     this.hoverImage = options.hoverImage ?? null;
     this.pressedImage = options.pressedImage ?? null;
-    // no size given: the image's
+    // no size given, so use the image's
     if (this.image && options.w === undefined) this.w = this.image.width;
     if (this.image && options.h === undefined) this.h = this.image.height;
 
@@ -60,13 +64,13 @@ class Button extends UIElement {
     this.toggle = options.toggle ?? false;
     this.on = options.on ?? false;
 
-    // mouse held after pressing on it
+    // the mouse was pressed on it and is still held
     this.pressed = false;
   }
 
-  // run every frame by UI
+  // UI runs this every frame
   update(hovered) {
-    // disabled never looks hovered or pressed
+    // a disabled button never looks hovered or pressed
     this.hovered = hovered && this.enabled;
 
     if (!this.visible || !this.enabled) {
@@ -76,17 +80,17 @@ class Button extends UIElement {
 
     if (this.hovered && Input.buttonsPressed.has('left')) this.pressed = true;
 
-    // released: a click only if still over it
+    // let go: it's only a click if the mouse is still over it
     if (this.pressed && Input.buttonsReleased.has('left')) {
       this.pressed = false;
       if (this.hovered) this.click();
     }
 
-    // e.g. focus lost mid-press, so the release was never seen
+    // like if focus was lost halfway through a press, so the release never got seen
     if (!Input.buttonsHeld.has('left')) this.pressed = false;
   }
 
-  // also callable from code
+  // can be called from code too
   click() {
     if (this.toggle) this.on = !this.on;
     if (this.onClick) this.onClick(this);
@@ -97,10 +101,11 @@ class Button extends UIElement {
   draw() {
     if (this.invisible) return;
 
-    // sinks while held and hovered
+    // sinks down while it's held and the mouse is over it
     const y = this.y + (this.pressed && this.hovered ? this.style.pressOffset : 0);
 
-    // push/pop contains the fade. *= so it stacks on existing fades (the editor's)
+    // push/pop keeps the fade to just this button. *= so it stacks on top of any fade that's already
+    // there (like the editor's)
     push();
     if (!this.enabled) drawingContext.globalAlpha *= this.style.disabledAlpha;
 
@@ -128,7 +133,7 @@ class Button extends UIElement {
   boxColour() {
     const s = this.style;
     if (this.pressed && this.hovered) return s.pressedFill;
-    // an on toggle keeps onFill, slightly lighter when hovered, so it still reads as on
+    // a toggle that's on keeps onFill, just a bit lighter when hovered, so it still looks on
     if (this.toggle && this.on) return this.hovered ? lerpColor(color(s.onFill), color(255), 0.15) : s.onFill;
     if (this.hovered) return s.hoverFill;
     return s.fill;

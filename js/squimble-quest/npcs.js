@@ -1,23 +1,26 @@
-// the npc catalogue: friendly characters and what they say. works like enemies.js. placed in the
-// editor's NPCs tab; E to talk (dialogue.js).
+// the npc catalogue: friendly characters and what they say. works like enemies.js. you place them in
+// the editor's NPCs tab, and press E to talk to them (dialogue.js).
 //
 // ============================== how to make an npc ==============================
 //
-// add a defineNpc() at the bottom, with only settings that differ from NPC_DEFAULTS:
+// add a defineNpc() at the bottom, with only the settings that are different from NPC_DEFAULTS:
 //   defineNpc('baker', { label: 'Baker', colour: '#e8c07d', dialogue: ['Fresh bread!', 'Want some?'] });
 //
-//   label                  name in the text box
-//   dialogue               lines shown in turn; E moves on
+//   label                  their name in the text box
+//   dialogue               lines shown one after another, E goes to the next one
 //   width, height          body size in px
-//   feetWidth, feetHeight  the part at the bottom that hits walls
+//   feetWidth, feetHeight  the bit at the bottom that bumps into walls
 //   speed                  px/s, if their ai walks
 //   colour, outline        placeholder colours
-//   image                  picture instead of the placeholder
-//   portrait               text box picture, e.g. 'assets/squimble-quest/npcs/baker.png'; else a placeholder face
-//   ai                     like an enemy's (enemies.js), null stands still. e.g. wandering
+//   image                  a picture to use instead of the placeholder
+//   portrait               the picture in the text box, like 'assets/squimble-quest/npcs/baker.png'.
+//                          without one they get a placeholder face
+//   ai                     same as an enemy's (enemies.js), null just stands still. something like
+//                          wandering around
 //
-// npcs are Characters (character.js), so walking, walls and facing already work. player attacks only
-// hit enemies. later: choices, quests or shops, via new settings here handled in dialogue.js
+// npcs are Characters (character.js), so walking, walls and facing already work. the player's attacks
+// only hit enemies. later on: choices, quests or shops, which would be new settings here that
+// dialogue.js deals with
 //
 // ====================================================================================
 
@@ -29,7 +32,7 @@ const NPC_DEFAULTS = {
   feetWidth: 24,
   feetHeight: 14,
   speed: 80,
-  // Character needs these, though nothing hurts npcs yet
+  // Character needs these, even though nothing hurts npcs yet
   maxHealth: 100,
   weapon: null,
   colour: '#7bd88f',

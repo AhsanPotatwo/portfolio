@@ -1,36 +1,40 @@
-// the enemy catalogue: every enemy kind and its behaviour. works like objects.js. placed in the
-// editor's Enemies tab; each appears at its spawn on a map's first visit, then the map remembers it
-// as left (defeated stay gone, hurt stay hurt) until reload or the editor opens (loadMap(), sketch.js).
+// the enemy catalogue: every kind of enemy and how it behaves. works like objects.js. you place them
+// in the editor's Enemies tab. each one appears at its spawn the first time you visit a map, and then
+// the map remembers it as you left it (defeated ones stay gone, hurt ones stay hurt) until you reload
+// or open the editor (loadMap(), sketch.js).
 //
 // ============================== how to make an enemy ==============================
 //
-// add a defineEnemy() at the bottom, with only settings that differ from ENEMY_DEFAULTS:
+// add a defineEnemy() at the bottom, with only the settings that are different from ENEMY_DEFAULTS:
 //   defineEnemy('slime', { width: 30, height: 24, maxHealth: 40, speed: 70, colour: '#6cc56b' });
 //
-//   width, height          body size in px (what attacks hit)
-//   feetWidth, feetHeight  the part at the bottom that hits walls
-//   speed                  px/s walking
-//   maxHealth              damage it takes to beat
-//   weapon                 a WEAPONS name (weapons.js), null to not attack
+//   width, height          body size in px (this is what attacks hit)
+//   feetWidth, feetHeight  the bit at the bottom that bumps into walls
+//   speed                  walking speed in px/s
+//   maxHealth              how much damage it takes to beat it
+//   weapon                 a weapon name from items.json (weapons.js), or null if it doesn't attack
 //   colour, outline        placeholder colours
-//   hurtColour             flash when hit
-//   healthBarColour        overhead bar, shown once hurt
-//   image                  picture instead of the placeholder
-//   ai                     behaviour (below), null stands still. each spawn can pick another
-//                          from ENEMY_AIS (right click it in the editor)
-//   sightRange             px it sees you from, walls in the way (sensePlayer() below)
-//   attackRange            distance it swings from
-//   onDeath                (enemy) => { ... } at 0 health. still 0 after → gone for good, so it can
-//                          drop loot, or revive like the dummy
+//   hurtColour             the flash when it gets hit
+//   healthBarColour        the bar over its head, shown once it's hurt
+//   image                  a picture to use instead of the placeholder
+//   ai                     how it behaves (see below), null just stands still. each spawn can pick
+//                          a different one from ENEMY_AIS (right click it in the editor)
+//   sightRange             how many px away it can see you from, if there's no wall in the way
+//                          (sensePlayer() below)
+//   attackRange            how close it has to be to swing
+//   onDeath                (enemy) => { ... } that runs at 0 health. if it's still on 0 afterwards it's
+//                          gone for good, so this can drop loot, or bring it back to life like the dummy
 //
 // ---------- ai ----------
 //
-// runs every frame, returning the same controls the player gets from input (top of character.js):
+// it runs every frame and gives back the same controls the player gets from the keyboard and mouse
+// (top of character.js):
 //   ai: (enemy, world, dt) => ({ move: { x, y }, aim: { x, y }, attack: true or false }),
-// world is { map, players, enemies, npcs, characters }. find who to go for with sensePlayer() below,
-// so every ai notices and loses players the same way. STAND_STILL for nothing. chasePlayer below is
-// a full example (ai: chasePlayer); write new ones next to it, and add them to ENEMY_AIS so the
-// editor can pick them. walls, collisions, damage, tiles and swings already work; the ai only decides
+// world is { map, players, enemies, npcs, characters }. use sensePlayer() below to find who to go
+// for, so every ai notices you and loses you the same way. return STAND_STILL to do nothing.
+// chasePlayer below is a full example (ai: chasePlayer). write new ones next to it, and add them to
+// ENEMY_AIS so the editor can pick them. walls, bumping into things, damage, tiles and swings already
+// work, the ai just has to decide what to do
 //
 // ====================================================================================
 
@@ -62,35 +66,39 @@ function defineEnemy(name, settings) {
 }
 
 // ---------- senses ----------
-// who an enemy goes for, shared by every ai so they all notice and lose you the same way. how the
-// pathfinders then get to you is pathfinding.js (its header explains the whole system).
+// works out who an enemy goes for. every ai shares this so they all notice you and lose you the same
+// way. how the pathfinders then actually get to you is in pathfinding.js (its header explains the
+// whole thing).
 //
-//   noticing  the nearest player (nearestPlayer(), so it works with several) that it can see, within
-//             sightRange with no wall between (clearLine() in tilemap.js; seeThrough tiles like
-//             water don't block, objects never do), or hear, within ENEMY_HEARING even through walls
-//   alerting  the moment it notices someone, allies within ENEMY_ALERT_RANGE that aren't after
-//             anyone yet are too, even through walls. only on its own noticing, so it doesn't chain
-//             across a whole map
-//   tracking  once after you it knows where you are while you're within sightRange, seen or not:
-//             ducking round a corner or behind a house doesn't shake it. unseen counts the seconds
-//             since it last saw or heard you
-//   losing    only after ENEMY_MEMORY seconds unseen and farther than sightRange. the pathfinders
-//             then walk home; direct ones stand where they are
-// it all lives on the enemy: chasing (the player) and unseen (s), declared in enemy.js. also read by
-// Warps.sendFollowers() (warps.js: who follows you through a warp), crowdCosts() in pathfinding.js
-// (a direct chaser is predicted heading at its chasing) and the dev mode label.
-// limits: sight is one line from feet to feet, and hearing ignores walls entirely, so a thin wall
-// between you and one 5 tiles away doesn't hide you. a new sense (noticing when hit, say) goes here.
+//   noticing  it goes for the nearest player (nearestPlayer(), so it works with more than one) that
+//             it can either see or hear. seeing means within sightRange with no wall in between
+//             (clearLine() in tilemap.js. seeThrough tiles like water don't block it, and objects
+//             never do). hearing means within ENEMY_HEARING, even through walls
+//   alerting  the moment it notices someone, any allies within ENEMY_ALERT_RANGE that aren't already
+//             after someone get told too, even through walls. this only happens when it notices you
+//             itself, so it doesn't chain right across the whole map
+//   tracking  once it's after you, it knows where you are as long as you're within sightRange, seen
+//             or not. so ducking round a corner or behind a house doesn't shake it off. unseen counts
+//             the seconds since it last saw or heard you
+//   losing    it only gives up after ENEMY_MEMORY seconds unseen while you're further away than
+//             sightRange. the pathfinders then walk home, and direct ones just stand where they are
+// all of this is stored on the enemy as chasing (the player) and unseen (seconds), which are set up
+// in enemy.js. they also get read by Warps.sendFollowers() (warps.js, which decides who follows you
+// through a warp), crowdCosts() in pathfinding.js (a direct chaser is guessed to be heading for who
+// it's chasing) and the dev mode label.
+// limits: sight is just one line from feet to feet, and hearing ignores walls completely, so a thin
+// wall between you and an enemy 5 tiles away doesn't hide you. a new sense (like noticing when it gets
+// hit) would go here.
 
-// px it hears you from, through walls
+// how many px away it can hear you from, through walls
 const ENEMY_HEARING = 5 * TILE;
-// px within which allies are told when it spots you
+// allies within this many px get told when it spots you
 const ENEMY_ALERT_RANGE = 8 * TILE;
-// seconds out of sight (and out of sightRange) before it loses you
+// how many seconds you have to be out of sight (and out of sightRange) before it forgets you
 const ENEMY_MEMORY = 8;
 
-// the player it's after (enemy.chasing), or null; see "senses" above. call it once per frame per
-// enemy: it counts unseen with dt
+// the player it's after (enemy.chasing), or null. see "senses" above. call it once per frame for
+// each enemy, since it uses dt to count unseen
 function sensePlayer(enemy, world, dt) {
   const feet = (c) => ({ x: c.x, y: c.y + feetBelowCentre(c.settings) }); // character.js
   const notices = (player) => {
@@ -100,7 +108,8 @@ function sensePlayer(enemy, world, dt) {
     return distance <= ENEMY_HEARING || (distance <= enemy.type.sightRange && world.map.clearLine(a.x, a.y, b.x, b.y));
   };
 
-  // a newly noticed player (or a nearer one than it's after) takes over, and alerts allies
+  // a player it's only just noticed (or one nearer than who it's after) takes over, and the allies
+  // get alerted
   const near = nearestPlayer(world, enemy); // character.js
   if (near && near !== enemy.chasing && notices(near)) {
     enemy.chasing = near;
@@ -111,7 +120,7 @@ function sensePlayer(enemy, world, dt) {
       }
     }
   }
-  // gone from this map (left, or not a player here): forget them
+  // if they've gone from this map (they left, or they aren't a player here) then forget them
   const target = enemy.chasing;
   if (!target || !world.players.includes(target)) {
     enemy.chasing = null;
@@ -124,8 +133,9 @@ function sensePlayer(enemy, world, dt) {
 
 // ---------- ais ----------
 
-// heads straight at the player it's after (sensePlayer()), swings within attackRange. slides along
-// walls (no pathfinding), so it gets stuck behind them: the original ai, kept as "direct"
+// heads straight for the player it's after (sensePlayer()) and swings once it's within attackRange.
+// it just slides along walls with no pathfinding, so it gets stuck behind them. this was the first ai
+// I made, and it's kept as "direct"
 function chasePlayer(enemy, world, dt) {
   const player = sensePlayer(enemy, world, dt);
   if (!player) return STAND_STILL;
@@ -140,32 +150,35 @@ function chasePlayer(enemy, world, dt) {
   };
 }
 
-// the ais a spawn can pick in the editor (right click an enemy; saved as its "ai" in the map file,
-// read back by addSpawn() in tilemap.js and Enemy's constructor). the pathfinders (pathfinding.js)
-// go round walls, weigh harm against time and work round each other; the number is caution, seconds
-// of detour worth 1 hp. names are what map files store, so renaming one breaks spawns using it (they
-// fall back to their kind's ai, with a console warning). aiName() finds a name from the function
+// the ais a spawn can pick in the editor (right click an enemy). it gets saved as the spawn's "ai" in
+// the map file and read back by addSpawn() in tilemap.js and Enemy's constructor. the pathfinders
+// (pathfinding.js) go round walls, weigh up getting hurt against taking longer, and work round each
+// other. the number is how cautious it is: how many seconds of detour it thinks 1 hp is worth.
+// map files store these names, so renaming one breaks the spawns using it (they go back to their
+// kind's ai, with a console warning). aiName() finds the name for an ai function
 const ENEMY_AIS = {
-  smart: pathfinder(0.15),   // like a player: avoids harm unless the way round is much longer
+  smart: pathfinder(0.15),   // like a player would: avoids harm unless the way round is much longer
   careful: pathfinder(0.5),  // goes a long way round rather than get hurt
-  reckless: pathfinder(0.03), // takes harm whenever it's quicker (but won't walk to its death)
-  direct: chasePlayer,       // the original: straight at you, stuck behind walls
+  reckless: pathfinder(0.03), // takes damage whenever it's quicker (but won't walk to its death)
+  direct: chasePlayer,       // the first one: straight at you, gets stuck behind walls
   still: null,
 };
 
-// ENEMY_AIS name of an ai, for the editor and dev mode
+// the ENEMY_AIS name of an ai function, for the editor and dev mode
 function aiName(ai) {
   return Object.keys(ENEMY_AIS).find((name) => ENEMY_AIS[name] === ai) ?? 'custom';
 }
 
-// walk direction to cover dx, dy: -1/0/1 each. 0 within 4px, or it flickers back and forth when level
+// which way to walk to cover dx, dy, as -1, 0 or 1 each. it's 0 within 4px, otherwise it flickers
+// back and forth once it's level
 function towards(dx, dy) {
   return { x: Math.abs(dx) > 4 ? Math.sign(dx) : 0, y: Math.abs(dy) > 4 ? Math.sign(dy) : 0 };
 }
 
 // ---------- the enemies ----------
 
-// basic: chases round walls and swipes. slower than you and weak alone. 3 sword or 2 axe hits
+// the basic one: chases you round walls and swipes at you. slower than you and weak on its own. dies
+// in 3 sword hits or 2 axe hits
 defineEnemy('grunt', {
   width: 28,
   height: 50,
@@ -177,7 +190,7 @@ defineEnemy('grunt', {
   ai: ENEMY_AIS.smart,
 });
 
-// practice target: doesn't move or fight, refills at 0 health
+// something to practise on: doesn't move or fight back, and fills back up at 0 health
 defineEnemy('dummy', {
   width: 28,
   height: 48,

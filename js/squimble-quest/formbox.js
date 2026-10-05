@@ -1,56 +1,59 @@
-// the form box: an in-game centred box that asks for things (instead of prompt()). used by the map
-// editor for New map, Resize map, Export and warp settings (editor.js), and by the tile editor
-// (tileeditor.js). click a field to type, Tab for the next, Enter or the confirm button says yes,
-// Escape, Cancel or × closes. a window: drag the title bar to move it.
-//   FormBox   the box: FormBox.open({ title, rows, onConfirm... }) lays itself out (see open())
-//   Picker    choose one of a list with ‹ ›
-//   Checkbox  an on/off tick box
-// typing fields are in textfield.js. colours: EDITOR_COLOURS (editor.js)
+// the form box: a box in the middle of the game that asks you for things (instead of using
+// prompt()). the map editor uses it for New map, Resize map, Export and warp settings (editor.js), and
+// so does the tile editor (tileeditor.js). click a field to type in it, Tab goes to the next one,
+// Enter or the confirm button says yes, and Escape, Cancel or the x closes it. it works like a window,
+// so you can drag the title bar to move it.
+//   FormBox   the box itself. FormBox.open({ title, rows, onConfirm... }) lays itself out (see open())
+//   Picker    pick one thing from a list with the < > arrows
+//   Checkbox  a tick box that's on or off
+// the typing fields are in textfield.js, and the colours are EDITOR_COLOURS (editor.js)
 
-// screen px: box width, row spacing, field height, title bar, footer (buttons), extra width with a
-// side column (open()'s side), tab size and gap
+// all in screen px: the box's width, the space between rows, field height, title bar height, footer
+// height (where the buttons go), extra width when there's a side column (open()'s side), and tab
+// height and gap
 const FORM_BOX = { width: 300, rowHeight: 30, fieldHeight: 24, titleHeight: 28, footerHeight: 40, sideWidth: 180, tabHeight: 22, tabGap: 2 };
 
 const FormBox = {
   active: false,
-  // open()'s options
+  // the options that were passed to open()
   options: null,
-  // the open tab's typing fields, and the confirm button
+  // the typing fields on the open tab, and the confirm button
   fields: [],
   confirmButton: null,
-  // every tab ({ label, rows }; untabbed is one), the open one, and their buttons
+  // every tab ({ label, rows }, a box with no tabs counts as one), which one's open, and their buttons
   tabs: [],
   tab: 0,
   tabButtons: [],
-  // rows' offset from the box top, and row capacity
+  // how far down from the top of the box the rows start, and how many rows it has room for
   rowsTop: 0,
   mostRows: 0,
-  // on-screen { x, y, w, h } (moves when dragged), and its backdrop
+  // where it is on screen as { x, y, w, h } (changes when it's dragged), and its backdrop
   box: null,
   backdrop: null,
-  // mouse position during a title bar drag, else null
+  // the mouse position while dragging the title bar, otherwise null
   dragFrom: null,
 
   // options: { title, hint, confirmLabel, rows, tabs, canConfirm(values), onConfirm(values) }
-  //   rows        { label, field, after } each. field: a sized TextField, NumberField, Picker or
-  //               Checkbox. after: optional word after it, like 'tiles'
-  //   tabs        instead of rows: [{ label, rows }]. a tab row goes under the title, showing one
-  //               tab's rows. the box fits the longest tab, so it doesn't jump when switching
-  //   minRows     optional minimum height in rows, e.g. to give side room
-  //   hint        optional line under the rows
-  //   values      each row's field value, in row order (every tab's)
-  //   canConfirm  whether values are ok; without it, always
-  //   side        optional (x, y, w, h) => [ui elements] for a column beside the rows (the tile
-  //               editor's pictures); x, y, w, h is its space
-  //   onUpdate    optional, every frame while open (e.g. live previews)
-  //   onCancel    optional, on closing without confirming (e.g. undo those previews)
+  //   rows        each one is { label, field, after }. field is a TextField, NumberField, Picker or
+  //               Checkbox with its width set. after is an optional word that goes after it, like 'tiles'
+  //   tabs        use this instead of rows: [{ label, rows }]. a row of tabs goes under the title and
+  //               it shows one tab's rows at a time. the box is sized for the longest tab so it doesn't
+  //               jump around when you switch
+  //   minRows     optional smallest height in rows, like to leave room for the side column
+  //   hint        optional line of text under the rows
+  //   values      every row's field value in row order (all the tabs')
+  //   canConfirm  whether the values are ok. if it's left out they always are
+  //   side        optional (x, y, w, h) => [ui elements] for a column next to the rows (like the tile
+  //               editor's pictures). x, y, w, h is the space it gets
+  //   onUpdate    optional, runs every frame while it's open (for live previews, say)
+  //   onCancel    optional, runs when it's closed without confirming (like to undo those previews)
   open(options) {
     this.options = options;
     this.active = true;
-    // keys type into fields now (input.js)
+    // keys go into the fields now (input.js)
     Input.typing = true;
 
-    // built fresh each time, sized to fit
+    // built from scratch every time, sized to fit what's in it
     this.tabs = options.tabs ?? [{ rows: options.rows }];
     const tabbed = Boolean(options.tabs);
     this.rowsTop = FORM_BOX.titleHeight + 12 + (tabbed ? FORM_BOX.tabHeight + 8 : 0);
@@ -63,15 +66,15 @@ const FormBox = {
     this.dragFrom = null;
     const add = (element) => UI.add(Object.assign(element, { group: 'form-box' }));
 
-    // full screen, so nothing behind is clickable
+    // covers the whole screen so nothing behind it can be clicked
     this.backdrop = add(new FormBoxBackdrop({ x: 0, y: 0, w: GAME_W, h: GAME_H, box: this.box }));
-    // title bar ×, red on hover like a window close button
+    // the x in the title bar, which goes red when hovered like a window's close button
     add(new Button({
       x: x + w - 26, y: y + 4, w: 22, h: FORM_BOX.titleHeight - 8, label: '×',
       style: { ...BUTTON_STYLES.editor, fill: 'rgba(0, 0, 0, 0)', border: 'rgba(0, 0, 0, 0)', hoverFill: BUTTON_STYLES.danger.fill, pressedFill: BUTTON_STYLES.danger.pressedFill, textSize: 16 },
       onClick: () => this.close(),
     }));
-    // tabs under the title, label-width, all squashed to fit if there are many
+    // the tabs under the title, each as wide as its label, all squashed to fit if there are loads
     setText(11, BOLD, CENTER, CENTER, BUTTON_STYLES.default.font);
     const tabWidths = this.tabs.map(({ label }) => textWidth(label ?? '') + 14);
     const room = FORM_BOX.width - 32 - FORM_BOX.tabGap * (this.tabs.length - 1);
@@ -81,21 +84,21 @@ const FormBox = {
       const button = add(new Button({
         x: tabX, y: y + FORM_BOX.titleHeight + 10, w: tabWidths[i] * squash, h: FORM_BOX.tabHeight, label,
         style: { ...BUTTON_STYLES.editor, textSize: 11 },
-        // toggle so the open one's lit; showTab() fixes them all after the click flips it
+        // a toggle so the open one lights up. the click flips it, then showTab() sets them all right
         toggle: true,
         onClick: () => this.showTab(i),
       }));
       tabX += button.w + FORM_BOX.tabGap;
       return button;
     }) : [];
-    // every tab's rows in the same spots; showTab() hides all but one
+    // every tab's rows go in the same spots, and showTab() hides all but one tab's
     for (const { rows } of this.tabs) {
       rows.forEach(({ field }, i) => add(Object.assign(field, { x: x + 100, y: y + this.rowsTop + i * FORM_BOX.rowHeight, h: FORM_BOX.fieldHeight })));
     }
-    // side column: right of the rows, from under the title bar to above the footer
+    // the side column: to the right of the rows, from under the title bar down to the footer
     const sideTop = FORM_BOX.titleHeight + 12;
     if (options.side) options.side(x + FORM_BOX.width, y + sideTop, FORM_BOX.sideWidth - 16, h - sideTop - FORM_BOX.footerHeight - 6).forEach(add);
-    // bottom right, as usual
+    // bottom right, where you'd expect them
     const buttonY = y + h - (FORM_BOX.footerHeight + 24) / 2;
     add(new Button({ x: x + w - 182, y: buttonY, w: 80, h: 24, label: 'Cancel', style: 'editor', onClick: () => this.close() }));
     this.confirmButton = add(new Button({
@@ -107,23 +110,23 @@ const FormBox = {
     this.showTab(0);
   },
 
-  // the open tab's rows
+  // the rows on the open tab
   rows() {
     return this.tabs[this.tab].rows;
   },
 
-  // shows tab `index`, hides the rest, focuses its first field
+  // shows tab number `index`, hides the others, and focuses its first field
   showTab(index) {
     for (const field of this.fields) field.blur();
     this.tab = index;
     this.tabButtons.forEach((button, i) => { button.on = i === index; });
     this.tabs.forEach(({ rows }, i) => rows.forEach(({ field }) => { field.visible = i === index; }));
     this.fields = this.rows().map(({ field }) => field).filter((field) => field instanceof TextField);
-    // tabs of only checkboxes and pickers have nothing to type into
+    // a tab with only checkboxes and pickers has nothing to type into
     if (this.fields.length > 0) this.focus(this.fields[0]);
   },
 
-  // onCancel runs unless confirmed
+  // onCancel runs unless it was confirmed
   close(confirmed = false) {
     this.active = false;
     Input.typing = false;
@@ -131,7 +134,7 @@ const FormBox = {
     if (!confirmed && this.options.onCancel) this.options.onCancel();
   },
 
-  // every tab's field values, in row order
+  // the values from every tab's fields, in row order
   values() {
     return this.tabs.flatMap(({ rows }) => rows).map(({ field }) => field.value);
   },
@@ -143,7 +146,7 @@ const FormBox = {
   confirm() {
     if (!this.canConfirm()) return;
     const values = this.values();
-    // close first, since confirming can change map
+    // close it first, since confirming might change the map
     this.close(true);
     this.options.onConfirm(values);
   },
@@ -155,8 +158,8 @@ const FormBox = {
     field.focus();
   },
 
-  // every frame while open, from Editor.update(). keys in typed order, so a quick "20 Tab 12" still
-  // fills two fields correctly
+  // every frame while it's open, from Editor.update(). keys are handled in the order they were typed,
+  // so typing "20 Tab 12" quickly still fills in two fields properly
   update() {
     this.drag();
     if (Input.buttonsPressed.has('left')) {
@@ -166,19 +169,19 @@ const FormBox = {
     for (const key of Input.typed) {
       if (key === 'Enter') return this.confirm();
       if (key === 'Escape') return this.close();
-      // nothing to type into on this tab
+      // nothing on this tab to type into
       if (this.fields.length === 0) continue;
       const focused = this.fields.find((field) => field.focused);
       if (key === 'Tab') this.focus(this.fields[(this.fields.indexOf(focused) + 1) % this.fields.length]);
       else if (key.paste !== undefined) focused.paste(key.paste);
       else focused.type(key);
     }
-    // greyed out while invalid, e.g. Export with no name
+    // greyed out while the values aren't ok, like Export with no name
     this.confirmButton.enabled = this.canConfirm();
     if (this.options.onUpdate) this.options.onUpdate();
   },
 
-  // title bar drag. kept on screen so its buttons stay reachable
+  // dragging by the title bar. it's kept on screen so you can always reach its buttons
   drag() {
     const { x, y } = Input.mouse;
     const box = this.box;
@@ -191,7 +194,7 @@ const FormBox = {
     }
     const dx = constrain(box.x + x - this.dragFrom.x, 0, GAME_W - box.w) - box.x;
     const dy = constrain(box.y + y - this.dragFrom.y, 0, GAME_H - box.h) - box.y;
-    // move everything but the full-screen backdrop
+    // move everything apart from the full screen backdrop
     for (const el of UI.group('form-box')) {
       if (el === this.backdrop) continue;
       el.x += dx;
@@ -204,7 +207,8 @@ const FormBox = {
   },
 };
 
-// dims the screen, then draws the box and its text. fields and buttons are separate elements on top
+// darkens the screen, then draws the box and its text. the fields and buttons are their own elements
+// on top of this
 class FormBoxBackdrop extends UIElement {
   constructor(options) {
     super(options);
@@ -217,7 +221,7 @@ class FormBoxBackdrop extends UIElement {
     const { title, hint } = FormBox.options;
     const { rowsTop, mostRows } = FormBox;
 
-    // only slightly dark, so live changes show on the map (tileeditor.js)
+    // only a little bit dark, so you can still see live changes on the map (tileeditor.js)
     noStroke();
     fill(0, 0, 0, 40);
     rect(0, 0, GAME_W, GAME_H);
@@ -229,7 +233,7 @@ class FormBoxBackdrop extends UIElement {
     strokeWeight(1);
     rect(x, y, w, h, 4);
 
-    // darker title bar and footer, like a window
+    // darker title bar and footer, like a window has
     noStroke();
     fill(C.header);
     rect(x + 1, y + 1, w - 2, titleHeight - 1, 4, 4, 0, 0);
@@ -241,7 +245,7 @@ class FormBoxBackdrop extends UIElement {
     setText(13, BOLD, LEFT, CENTER);
     text(title, x + 12, y + titleHeight / 2);
 
-    // open tab's row labels, centred on their fields, and after words
+    // the open tab's row labels, lined up with the middle of their fields, and any after words
     FormBox.rows().forEach(({ label, field, after }, i) => {
       const middleY = y + rowsTop + FORM_BOX.fieldHeight / 2 + i * FORM_BOX.rowHeight;
       fill(C.text);
@@ -262,12 +266,13 @@ class FormBoxBackdrop extends UIElement {
   }
 }
 
-// choose one of a list (New map's fill, a warp's target map). left half goes back, right forward.
+// pick one thing from a list (New map's fill, where a warp goes). clicking the left half goes back
+// and the right half goes forward.
 //   choices   any values (names, null...)
-//   value     starting choice (else the first)
-//   label     choice → shown words
-//   art       optional (choice, x, y, size) => { ... } thumbnail
-//   onChange  optional, called with the new choice
+//   value     what it starts on (otherwise the first one)
+//   label     (choice) => the words to show for it
+//   art       optional (choice, x, y, size) => { ... } to draw a little picture
+//   onChange  optional, gets called with the new choice
 class Picker extends UIElement {
   constructor(options) {
     super(options);
@@ -277,7 +282,7 @@ class Picker extends UIElement {
     this.setChoices(options.choices, options.value);
   }
 
-  // value: starting choice (else the first)
+  // value is what it starts on (otherwise the first one)
   setChoices(choices, value) {
     this.choices = choices;
     this.index = Math.max(0, choices.indexOf(value));
@@ -287,7 +292,7 @@ class Picker extends UIElement {
     return this.choices[this.index];
   }
 
-  // over the left (back) half?
+  // is the mouse over the left (back) half?
   mouseOnLeft() {
     return Input.mouse.x < this.x + this.w / 2;
   }
@@ -296,7 +301,7 @@ class Picker extends UIElement {
     this.hovered = hovered;
     if (!hovered || !Input.buttonsPressed.has('left')) return;
     const count = this.choices.length;
-    // + count avoids negatives, % wraps
+    // adding count stops it going negative, and % wraps it round
     this.index = (this.index + (this.mouseOnLeft() ? -1 : 1) + count) % count;
     if (this.onChange) this.onChange(this.value);
   }
@@ -309,7 +314,7 @@ class Picker extends UIElement {
     strokeWeight(1);
     rect(this.x, this.y, this.w, this.h, 3);
 
-    // end arrows, the hovered one lit
+    // the arrows at each end, with the hovered one lit up
     noStroke();
     setText(16, BOLD, CENTER, CENTER);
     fill(this.hovered && this.mouseOnLeft() ? 255 : 120);
@@ -317,7 +322,7 @@ class Picker extends UIElement {
     fill(this.hovered && !this.mouseOnLeft() ? 255 : 120);
     text('›', this.x + this.w - 10, middleY - 2);
 
-    // thumbnail if any, then words
+    // the little picture if there is one, then the words
     let textX = this.x + 22;
     if (this.art) {
       this.art(this.value, this.x + 22, middleY - 8, 16);
@@ -330,10 +335,11 @@ class Picker extends UIElement {
   }
 }
 
-// an on/off tick box (e.g. enemies follow through a warp). clicking it or its words flips it.
+// a tick box that's on or off (like whether enemies follow you through a warp). clicking the box or
+// its words flips it.
 //   value    starts ticked if true
-//   label    words beside it
-//   enabled  false greys it and blocks clicks, like a Button
+//   label    the words next to it
+//   enabled  false greys it out and stops clicks, same as a Button
 class Checkbox extends UIElement {
   constructor(options) {
     super(options);
@@ -357,13 +363,13 @@ class Checkbox extends UIElement {
     const size = 16;
     const left = this.x + 4;
     const top = this.y + (this.h - size) / 2;
-    // dark box like the typing fields
+    // dark box like the typing fields have
     fill(EDITOR_COLOURS.well);
     stroke(this.hovered ? 140 : EDITOR_COLOURS.edge);
     strokeWeight(1);
     rect(left, top, size, size, 3);
 
-    // tick
+    // the tick
     if (this.value) {
       noFill();
       stroke(255);

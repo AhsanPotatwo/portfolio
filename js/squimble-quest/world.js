@@ -1,13 +1,14 @@
-// draws the world: the tile map, plus dev lines
+// draws the world: the tile map, plus the dev mode lines
 const WORLD_COLOURS = {
-  outside: '#2b2b30',          // past the map's edge, seen zoomed right out
-  grid:    'rgba(0, 0, 0, 0.12)', // see-through, to work on any tile
-  axis:    'rgba(0, 0, 0, 0.45)', // x = 0 and y = 0 lines, dev mode only
+  outside: '#2b2b30',          // past the edge of the map, you see it when zoomed right out
+  grid:    'rgba(0, 0, 0, 0.12)', // see-through so it works on any tile
+  axis:    'rgba(0, 0, 0, 0.45)', // the x = 0 and y = 0 lines, only in dev mode
 };
 
-// world positions (inside camera.begin/end). devLines: tile grid and x = 0 / y = 0 lines (dev mode)
+// world positions (inside camera.begin/end). devLines turns on the tile grid and the x = 0 / y = 0
+// lines (dev mode)
 function drawWorld(camera, map, devLines) {
-  // ignores the camera, fills the canvas
+  // this ignores the camera and fills the whole canvas
   background(WORLD_COLOURS.outside);
 
   map.draw(camera);
@@ -18,8 +19,8 @@ function drawWorld(camera, map, devLines) {
   }
 }
 
-// lines are thin rects (sharper than line()). the camera scales by zoom, so px (1 / zoom world
-// pixels) is always 1 screen pixel
+// the lines are drawn as thin rects because they come out sharper than line(). the camera scales
+// everything by the zoom, so px (1 / zoom world pixels) is always 1 pixel on screen
 
 function drawGrid(camera, map) {
   const edges = map.bounds();
@@ -27,7 +28,7 @@ function drawGrid(camera, map) {
   const height = edges.bottom - edges.top;
   const px = 1 / camera.zoom;
 
-  // only on-screen lines, starting at the tile edge just off screen
+  // only the lines that are on screen, starting from the tile edge just off screen
   const view = camera.view();
   const firstX = Math.max(edges.left, Math.floor(view.left / TILE) * TILE);
   const lastX = Math.min(edges.right, view.right);
@@ -40,7 +41,7 @@ function drawGrid(camera, map) {
   for (let y = firstY; y <= lastY; y += TILE) rect(edges.left, y, width, px);
 }
 
-// x = 0 and y = 0 lines, 2px wide, centred
+// the x = 0 and y = 0 lines, 2px wide and centred on 0
 function drawAxes(camera, map) {
   const edges = map.bounds();
   const width = edges.right - edges.left;

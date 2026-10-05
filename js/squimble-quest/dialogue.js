@@ -1,24 +1,24 @@
-// talking to npcs: who's in range, and the text box.
-// E near an npc opens a box along the bottom with their portrait, name and first line (npcs.js)
-// typing out. E (or clicking the box) finishes the line, then goes to the next, closing after the
-// last. the world keeps running while it's open; walking out of range ends it.
+// talking to npcs: who's close enough, and the text box.
+// pressing E near an npc opens a box along the bottom with their portrait, their name, and their first
+// line (npcs.js) typing itself out. E (or clicking the box) finishes the line, then goes to the next
+// one, and closes after the last. the world keeps going while it's open, and walking away ends it.
 
-// px between feet
+// how close in px your feet have to be to theirs
 const TALK_RANGE = 56;
 
 // letters per second
 const DIALOGUE_TYPE_SPEED = 45;
 
-// the camera glides in to frame both of you (focusOn() in camera.js)
+// the camera glides in so you're both in shot (focusOn() in camera.js)
 const DIALOGUE_CAMERA = {
-  // multiplier on the current zoom (1.35 is 35% closer)
+  // multiplies the current zoom (1.35 is 35% closer)
   zoom: 1.35,
-  // glide in/out seconds
+  // how many seconds it takes to glide in and out
   inTime: 0.6,
   outTime: 0.5,
 };
 
-// text box layout, screen pixels
+// text box layout, in screen pixels
 const DIALOGUE_BOX = {
   margin: 16,
   height: 130,
@@ -27,17 +27,17 @@ const DIALOGUE_BOX = {
 
 const Dialogue = {
   active: false,
-  // who's talking, and their current line index
+  // who's talking, and which line they're on
   npc: null,
   line: 0,
-  // letters shown so far (rises in update())
+  // how many letters are showing so far (goes up in update())
   shown: 0,
-  // the DialogueBox ui element (init())
+  // the DialogueBox ui element (made in init())
   box: null,
-  // the game camera (from open())
+  // the game camera (passed in to open())
   camera: null,
 
-  // once from setup()
+  // called once from setup()
   init() {
     const { margin, height } = DIALOGUE_BOX;
     this.box = UI.add(new DialogueBox({
@@ -49,7 +49,7 @@ const Dialogue = {
     }));
   },
 
-  // closest npc within TALK_RANGE, or null
+  // the closest npc within TALK_RANGE, or null
   npcInRange(player, npcs) {
     let closest = null;
     let closestDistance = TALK_RANGE;
@@ -69,12 +69,12 @@ const Dialogue = {
     this.line = 0;
     this.shown = 0;
     this.box.visible = true;
-    // they face you
+    // they turn to face you
     npc.aimAt({ x: player.x, y: player.y });
-    // the box sits where the hotbar is (inventory.js)
+    // the box goes where the hotbar is (inventory.js)
     Hotbar.show(false);
 
-    // glide to halfway between you
+    // glide to halfway between you both
     this.camera = camera;
     camera.focusOn(
       (player.x + npc.x) / 2,
@@ -89,7 +89,7 @@ const Dialogue = {
     this.npc = null;
     this.box.visible = false;
     Hotbar.show(true);
-    // glide back to following you
+    // glide back to following you around
     if (this.camera) this.camera.release(DIALOGUE_CAMERA.outTime);
   },
 
@@ -97,7 +97,7 @@ const Dialogue = {
     return this.npc.type.dialogue[this.line] ?? '';
   },
 
-  // E or click: finish typing, else next line, else close
+  // E or a click: finish typing the line, or go to the next line, or close if that was the last
   advance() {
     const text = this.currentLine();
     if (this.shown < text.length) {
@@ -109,8 +109,8 @@ const Dialogue = {
     if (this.line >= this.npc.type.dialogue.length) this.close();
   },
 
-  // every frame while open, after everyone's moved. the world doesn't pause, so the conversation ends
-  // if either of you leaves talking range (walking off, being pushed, respawning, the npc's ai)
+  // every frame while it's open, after everyone has moved. the world doesn't pause, so the conversation
+  // ends if either of you gets out of range (walking off, getting pushed, respawning, the npc's ai)
   update(player, dt) {
     if (this.npcInRange(player, [this.npc]) !== this.npc) return this.close();
     this.shown = Math.min(this.currentLine().length, this.shown + DIALOGUE_TYPE_SPEED * dt);
@@ -118,7 +118,7 @@ const Dialogue = {
   },
 };
 
-// a ui element, so clicks on it don't reach the game; clicking advances like E
+// it's a ui element so clicks on it don't reach the game. clicking it moves the conversation on like E
 class DialogueBox extends UIElement {
   update(hovered) {
     super.update(hovered);
@@ -136,7 +136,7 @@ class DialogueBox extends UIElement {
     fill(20, 22, 28);
     rect(this.x, this.y, this.w, this.h, 10);
 
-    // portrait, or a placeholder face in their colours
+    // their portrait, or a placeholder face in their colours
     const px = this.x + pad;
     const py = this.y + (this.h - size) / 2;
     if (npc.type.portraitImg) {
@@ -145,7 +145,7 @@ class DialogueBox extends UIElement {
       this.drawPlaceholderPortrait(npc, px, py, size);
     }
 
-    // name and wrapped line beside the portrait
+    // their name and the line (wrapped) next to the portrait
     const textX = px + size + pad;
     const textW = this.x + this.w - textX - pad;
     const line = Dialogue.currentLine();
@@ -158,7 +158,7 @@ class DialogueBox extends UIElement {
     setText(17, NORMAL, LEFT, TOP);
     text(line.slice(0, Math.floor(Dialogue.shown)), textX, this.y + pad + 30, textW, this.h - pad * 2 - 30);
 
-    // key hint once the line's finished
+    // a hint about which key to press once the line's finished
     if (Dialogue.shown >= line.length) {
       const last = Dialogue.line >= npc.type.dialogue.length - 1;
       fill(255, 255, 255, 150);
@@ -167,7 +167,7 @@ class DialogueBox extends UIElement {
     }
   }
 
-  // a square in their colour with a simple face, until there's art
+  // a square in their colour with a simple face, until there's proper art
   drawPlaceholderPortrait(npc, x, y, size) {
     stroke(npc.type.outline);
     strokeWeight(3);
