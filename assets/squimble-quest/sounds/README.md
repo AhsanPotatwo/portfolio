@@ -26,10 +26,32 @@ There are two kinds: **sounds**, for sound blocks, and **voices**, for npcs to t
 | The pictures (top left) | **wave** is a close-up of the actual sound just after it gets loud: square looks square, filters round the corners off, crunch makes it steppy. **whole sound** is the whole thing from start to end, so you can see how it fades, repeats and stops (while it's talking, it shows the talking). A white line moves along it while it plays. Underneath is the note, the pitch and how long it is |
 | **▶ Play** / **■ Stop** / **↻ Loop** | Play it. With **Loop** on it plays over and over, and **changing anything restarts it straight away**, so you can drag a slider and hear what it does |
 | The piano | Plays the sound at that note. Everything (slides, jumps, vibrato) moves with it, so you can try a sound higher or lower without changing it |
-| **Make one** buttons | Each makes up a random sound of that kind. Pick a kind first: **Game** (coin, laser, explosion, power-up, hit, jump, blip, bell, hum, magic, teleport, jingle), **Nature** (bird, owl, crow, cricket, frog, bee, wind, rain, fire, thunder, stream, bubbles), **Things** (engine, motor, firecracker, footsteps, clock, creak, siren, alarm, heartbeat, whoosh, computer, splash) or **Voices** (see below). Press one a few times until you like it, then tweak it. **Random** makes anything at all, and **Mutate** nudges the settings that are on a little, for a sound that's similar but different |
+| **Make one** buttons | Each makes up a random sound of that kind (see [Make one](#make-one) below for them all). Pick a kind with the little tabs first, then press a button a few times until you like it, and change it in the **Character** tab. **Random** makes anything at all, and **Mutate** nudges the settings that are on a little, for a sound that's similar but different |
 | **Wave** buttons | The kind of sound (see below). **file** is an audio file |
-| Tabs | The sliders are in four tabs: **Pitch**, **Volume**, **Tone & effects** and **Voice**. A tab with a **•** has settings that aren't normal, so you can see where a sound's character comes from. Picking the voice wave opens the Voice tab |
+| Tabs | The sliders are in five tabs: **Character** (see below), **Pitch**, **Volume**, **Tone & effects** and **Voice**. A tab with a **•** has settings that aren't normal, so you can see where a sound's character comes from. Picking the voice wave opens the Voice tab |
 | Sliders | Drag one, or click anywhere along it. Scroll the mouse wheel over one to nudge it, and right click to put it back to normal. Greyed out sliders don't do anything with the other settings as they are (pulse width is only for square waves, for example) |
+
+### Make one
+
+The buttons come in kinds, picked with the little tabs above them:
+
+| Kind | Buttons | Its Character sliders |
+|---|---|---|
+| **Game** | coin, pickup, power-up, jump, hit, hurt, laser, explosion, blip, select, back, error, jingle, level up, game over | Pitch, Length, Retro |
+| **Magic** | sparkle, heal, cast, fireball, ice, zap, teleport, portal, force field, curse, charge up, poof, secret, chime, shield | Pitch, Length, Sparkle, Echo |
+| **Sci-fi** | sonar, radar, target lock, beacon, scanner, hologram, computer, data, glitch, stutter, static, alien signal, power on, power off, beam | Pitch, Length, Glitch, Space |
+| **Things** | footsteps, knock, clang, glass, whoosh, sword clash, creak, clock, bell, coins, firecracker, splash, siren, alarm, heartbeat | Pitch, Length, Hardness, Room |
+| **Motors** | engine, car idle, motor, drill, chainsaw, fan, helicopter, hum, generator, spin up, spin down, servo, clockwork, winch | Machine, Speed, Size, Strain, Rattle, Spin, Spin time |
+| **Squishy** | slime step, squelch, splat, bubble pop, bubbles, potion, gulp, slurp, suction, mud, plop, jelly, boing, burp | Bubble size, Thickness, Pressure, Wetness |
+| **Birds** | chirp, sparrow, songbird, robin, canary, warbler, chick, parrot, seagull, duck, hawk, crow, owl, cuckoo, dove | Voice, Size, Calls, Call length, Gap, Sweep, Arch, Trill, Trill speed, Rasp, Phrase |
+| **Beasts** | woof, meow, pig, rat, wolf howl, tiny dragon, dragon roar, cave beast, zombie, angry blob, alien purr, insect, ghost whale, forest spirit, clockwork pet | Anatomy, Pitch, Size, Calls, Call length, Bend, Arch, Growl, Breath, Flutter, Mouth move |
+| **Breath** | inhale, exhale, sigh, gasp, sniff, panting, deep breath, huff, cough, snore, sleeping beast, diver, helmet, ghost breath | Breath (in, out, or in and out), Breaths, Length, Effort, Throat, Rasp, Tremble, Snore, Enclosure |
+| **Nature** | cricket, frog, bee, swarm, wind, blizzard, rain, storm, thunder, fire, stream, waterfall, ocean, leaves, drip | Brightness, Wildness, Length |
+| **Voices** | see [Voices and talking](#voices-and-talking) | Age, Size, Mood, Gravel |
+
+**The Character tab** has sliders for the kind the sound was made from, so you can change it the way that kind of thing would change: give a bird more trill, a beast more growl, a potion more pressure, or make a voice older. Moving one makes the sound again with the same random numbers, so it's the same sound with just that changed, and the other tabs' sliders move to match. Anything you've changed in the other tabs since stays how you set it. For Birds, Beasts, Breath and Motors the Character sliders are the whole sound (a crow is a bird with a rasp voice, low size and lots of rasp), so they go a long way. For the other kinds they change whatever the button made, and in the middle (or at 0) they leave it alone.
+
+The Character sliders only last while the editor is open. A saved sound keeps how it sounds, but opens again with an empty Character tab. **Random** and choosing a file empty it too.
 
 ### The waves
 
@@ -59,8 +81,10 @@ For the noises, **Pitch** is how high the hiss is rather than a note.
   - **Slide** / **Slide speed-up**: makes the pitch rise or fall while it plays (up for jumps and power-ups, down for lasers), and makes that slide speed up or slow down. Slide one way and speed up the other way for a chirp that turns round.
   - **Vibrato** / **Vibrato speed**: wobbles the pitch up and down. Big and slow is a siren, small and fast is a trill.
   - **Wander** / **Wander speed**: lets the pitch drift around at random. Slow for wind gusts and engines, fast (over 100) for rough, gravelly, raspy sounds.
+  - **Growl**: makes every other wave quieter, which adds a rough note an octave lower, like vocal fry. A little for a gravelly voice, lots for growling beasts, dragons and snores.
   - **Jump** / **Jump at**, **Second jump** / **Second jump at**: jumps the pitch up or down partway through, like the two notes of a coin. The second jump goes on top of the first, so 4 then 3 plays a happy chord one note at a time.
   - **Jumps repeat**: goes back to the start pitch and does the jumps again, round and round (an arpeggio). Short is sparkly magic.
+  - **Each repeat**: moves the pitch up or down this many notes on every repeat, for a falling birdsong, a cuckoo's lower second note or a fanfare that climbs. Only does something with **Repeats** over 1.
 - **Volume** tab
   - **Fade in**, **Hold**, **Fade out**: how long it takes to get loud, how long it stays loud, and how long it takes to go quiet. A long fade out rings like a bell.
   - **Punch**: makes the very start of the hold extra loud, for a snappy hit.
@@ -81,7 +105,7 @@ For the noises, **Pitch** is how high the hiss is rather than a note.
   - **Vowel**: which vowel the voice wave says (ah, eh, ee, oh, oo, or in between).
   - **Vowel slide**: moves through the vowels while it plays, like "wah". Good for babies, cats and aliens.
   - **Mouth size**: how big the mouth and throat are, separate from the pitch. 100 is a man, 85 a woman, 70 a child, 55 a baby, over 120 a giant.
-  - **Breath**: air in the voice. A little sounds natural, more sounds old or shy, lots is a whisper or a ghost.
+  - **Breath**: air in the voice. A little sounds natural, more sounds old or shy, lots is a whisper or a ghost, and 100% is just air (breathing).
   - **Talk speed**: how fast it talks, in letters a second.
   - **Expression**: how much the pitch goes up and down between syllables. 0 is a flat robot, high is excited.
   - **Say** box: type something and press **▶ Say** (or **Enter**) to hear the sound saying it.
@@ -90,7 +114,7 @@ For the noises, **Pitch** is how high the hiss is rather than a note.
 
 Any sound can **talk**: it's played once per syllable of the words, with each syllable's vowel and pitch, like the babble in old games. Questions go up at the end, and the same word always sounds the same. The **voice** wave sounds most like a person; a **blip** talking sounds like a classic retro game.
 
-To make a voice, open the **Voices** kind of **Make one** buttons: **Man**, **Woman**, **Old man**, **Old woman**, **Teen**, **Child**, **Baby**, **Gruff**, **Innocent**, **Alien**, **Robot**, **Monster** and **Ghost**. Each press says what's in the Say box, so you can press until one sounds right. Then tweak it in the **Voice** tab. What makes the difference:
+To make a voice, open the **Voices** kind of **Make one** buttons: **Man**, **Woman**, **Old man**, **Old woman**, **Teen**, **Child**, **Baby**, **Gruff**, **Innocent**, **Goblin**, **Fairy**, **Alien**, **Robot**, **Monster** and **Ghost**. Each press says what's in the Say box, so you can press until one sounds right. Then use the **Character** tab's **Age**, **Size**, **Mood** and **Gravel** for quick changes (they say the words again when you let go), or tweak it in the **Voice** tab. What makes the difference:
 
 | To sound... | Change |
 |---|---|
@@ -112,7 +136,7 @@ When you talk to them, they say each line as it types out, at the voice's **Talk
 
 ### Smooth loops
 
-Sound blocks set to **constantly nearby** loop their sound with no gaps or clicks, whatever the sound is. For a steady hum that never changes, set **Fade in** and **Fade out** to 0 and use **Hold** for its length; any fades, slides or repeats happen every time round, which is good for things like a pulsing machine or a siren. The make one buttons that say "loops" in their tip (hum, bee, wind, rain, fire, stream, engine, motor, siren) are made like that already. Turn **Loop** on in the sound editor to hear exactly how it'll loop.
+Sound blocks set to **constantly nearby** loop their sound with no gaps or clicks, whatever the sound is. For a steady hum that never changes, set **Fade in** and **Fade out** to 0 and use **Hold** for its length; any fades, slides or repeats happen every time round, which is good for things like a pulsing machine or a siren. The make one buttons that say "loops" in their tip are made like that already (most of Nature, and things like the engine, motor, fan, hum, siren, portal, force field, static and potion). A Motors sound loops like that when its **Spin** is 0. Turn **Loop** on in the sound editor to hear exactly how it'll loop.
 
 ## Audio files
 
