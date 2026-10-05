@@ -20,10 +20,14 @@
 //   - weapons and items (one tab for each category in items.js): click to drop one on the ground (Export
 //     doesn't save these). Give puts one in your inventory, right click or Edit changes its name,
 //     rarity, colour and weapon numbers, and the inspector's Export saves items.json (items.js)
-//   - Erase, then click or drag: if you start on an object, enemy, npc, item or warp it removes those,
-//     otherwise it empties tiles (like off the map, so they aren't drawn and can't be walked on)
-//   - right click: the settings for a warp or an enemy (its ai) on the map, or a tile or item in the
-//     palette
+//   - sounds: click to place a sound block (soundblocks.js) that starts as that sound. right click it
+//     on the map to change its sound, with a visualiser and a Play button. its green circle shows how
+//     far away it can be heard
+//   - Erase, then click or drag: if you start on an object, enemy, npc, item, warp or sound block it
+//     removes those, otherwise it empties tiles (like off the map, so they aren't drawn and can't be
+//     walked on)
+//   - right click: the settings for a warp, a sound block or an enemy (its ai) on the map, or a tile or
+//     item in the palette
 //   - opening it shows every enemy at its spawn, even defeated ones, so you see the whole design.
 //     closing it puts everyone back at their spawns on full health (outside the editor, maps remember
 //     their characters, loadMap() in sketch.js)
@@ -51,7 +55,8 @@ const NEW_MAP_NAME = 'new-map';
 const EDITOR_KEYS = [
   'MAP EDITOR KEYS',
   'left click  paint / place',
-  'right click change settings (warps, enemy ai, palette tiles and items)',
+  'right click change settings (warps, sound blocks, enemy ai,',
+  '            palette tiles and items)',
   'WASD        move around',
   'wheel       zoom',
   'B           close the editor',
@@ -131,9 +136,10 @@ const EDITOR_TABS = [
     kind, label, types: ITEMS_BY_CATEGORY[kind],
     place: (map, name, col, row) => Editor.placeItem(map, name, col, row),
   })),
-  // empty examples that just say "Nothing here yet". to use one, give it a catalogue and a place().
-  // if there are too many tabs to fit they scroll (EditorTabStrip)
-  { kind: 'sound', label: 'Sounds', types: {} },
+  // sound blocks (soundblocks.js). each square is a starting sound (SOUND_PRESETS in sound.js)
+  { kind: 'sound', label: 'Sounds', types: SOUND_PRESETS, place: (map, name, col, row) => Editor.placeSoundBlock(map, name, col, row) },
+  // an empty example that just says "Nothing here yet". to use it, give it a catalogue and a
+  // place(). if there are too many tabs to fit they scroll (EditorTabStrip)
   { kind: 'light', label: 'Lights', types: {} },
 ];
 
@@ -294,6 +300,8 @@ const Editor = {
 
   open(player, camera) {
     this.active = true;
+    // nothing from the game keeps playing while you edit, except what you press Play on (sound.js)
+    Sound.stopAll();
     // the dialogue text box would be in the way (dialogue.js)
     if (Dialogue.active) Dialogue.close();
     // everyone goes back to their spawns, even defeated ones, so it shows the whole design and resets
@@ -454,12 +462,14 @@ const Editor = {
       EDITOR_TABS.find((tab) => tab.kind === kind).place?.(map, name, over.col, over.row);
     }
 
-    // right click: the settings for what's there (a warp, otherwise an enemy). any new settings boxes
-    // can hook in here
+    // right click: the settings for what's there (a warp, then a sound block, then an enemy). any new
+    // settings boxes can hook in here
     if (over && Input.mousePressed('right')) {
       const warp = map.warpAt(over.col, over.row);
+      const sound = map.soundAt(over.col, over.row);
       const enemy = map.spawnsAt('enemy', over.col, over.row)[0];
       if (warp) this.editWarp(map, warp);
+      else if (sound) SoundBlocks.edit(sound);
       else if (enemy) this.editEnemy(enemy);
     }
 
@@ -479,6 +489,7 @@ const Editor = {
         } else if (this.erasingThings) {
           map.removeObjectsAt(col, row);
           map.removeWarpAt(col, row);
+          map.removeSoundAt(col, row);
           const items = this.dropsAt(map, col, row);
           map.drops = map.drops.filter((drop) => !items.includes(drop));
           for (const kind of Object.keys(SPAWN_KINDS)) {
@@ -496,9 +507,9 @@ const Editor = {
     }
   },
 
-  // any object, enemy, npc, item or warp on this tile?
+  // any object, enemy, npc, item, warp or sound block on this tile?
   thingsAt(map, col, row) {
-    if (map.objectsAt(col, row).length > 0 || map.warpAt(col, row) || this.dropsAt(map, col, row).length > 0) return true;
+    if (map.objectsAt(col, row).length > 0 || map.warpAt(col, row) || map.soundAt(col, row) || this.dropsAt(map, col, row).length > 0) return true;
     return Object.keys(SPAWN_KINDS).some((kind) => map.spawnsAt(kind, col, row).length > 0);
   },
 
@@ -589,6 +600,18 @@ const Editor = {
   placeSpawn(map, col, row) {
     if (map.isSolid(col, row)) return;
     map.setSpawnTile(col, row);
+  },
+
+  // adds a sound block (soundblocks.js) on any tile on the map, starting as the preset `name`
+  // (SOUND_PRESETS in sound.js) and playing when stepped on. it plays once so you can hear it. if
+  // there's already one there it opens that one's settings instead, like warps
+  placeSoundBlock(map, name, col, row) {
+    if (!map.inside(col, row)) return;
+    const block = map.soundAt(col, row);
+    if (block) return SoundBlocks.edit(block);
+    const placed = { col, row, activate: 'step', sound: soundSettings(SOUND_PRESETS[name]) };
+    map.sounds.push(placed);
+    SoundBlocks.play(placed, map);
   },
 
   // adds a warp (warps.js) on any tile on the map, even under an object or npc, and opens its
@@ -711,13 +734,15 @@ const Editor = {
 
   // ---------- drawing ----------
 
-  // the spawn and warp markers, and a preview of what clicking would do. world positions (before
-  // camera.end()), and drawn after the characters so the markers are on top
+  // the spawn, warp and sound block markers, and a preview of what clicking would do. world positions
+  // (before camera.end()), and drawn after the characters so the markers are on top
   drawCursor(map, camera, aim) {
     // one screen pixel, so lines stay the same thickness at any zoom
     const px = 1 / camera.zoom;
 
-    // warps (warps.js), and the spawn ring where the player's feet go
+    // sound blocks (soundblocks.js), warps on top of them (warps.js), and the spawn ring where the
+    // player's feet go
+    for (const block of map.sounds) drawSoundMarker(block, px);
     for (const warp of map.warps) drawWarpMarker(warp, px);
     drawSpawnRing(map.spawn.x, map.spawn.y + feetBelowCentre(PLAYER), px);
 
@@ -725,6 +750,10 @@ const Editor = {
     const col = map.colAt(aim.x);
     const row = map.rowAt(aim.y);
     if (!map.inside(col, row)) return;
+
+    // a sound block under the mouse shows how far away it can be heard
+    const sound = map.soundAt(col, row);
+    if (sound) drawSoundRange(sound, px);
 
     // spawn: a preview of its ring, plus the tile outline further down
     if (this.isSelected('trigger', 'spawn')) {
@@ -998,6 +1027,14 @@ function inspectorInfo(selected) {
       title: name,
       kind: category,
       rows: [['Damage', weapon.damage], ['Reach', `${weapon.reach} px`], ['Cooldown', `${weapon.cooldown} s`]],
+    };
+  }
+  if (kind === 'sound') {
+    return {
+      title: name,
+      kind: 'Sound block',
+      rows: [['Wave', type.wave], ['Pitch', `${type.pitch} Hz (${noteName(type.pitch)})`]],
+      note: 'Right click one on the map to change its sound',
     };
   }
   if (kind === 'trigger' && name === 'spawn') {
@@ -1287,6 +1324,12 @@ function drawPaletteArt(kind, name, x, y, size) {
     // a warp, same as its marker on the map (warps.js)
     const w = size * 0.6;
     drawWarpSquare(middleX - w / 2, middleY - w / 2, w, WARP_COLOURS.edge, false);
+  } else if (kind === 'sound') {
+    // the whole sound's wave from start to end (sound.js)
+    noFill();
+    stroke(SOUND_COLOURS.edge);
+    strokeWeight(1);
+    drawSoundWave(SOUND_PRESETS[name], x + 3, y + 3, size - 6, size - 6);
   } else if (isItemKind(kind)) {
     // like in an inventory slot, with its rarity glow (itemglow.js)
     drawGlowingItem({ type: ITEM_TYPES[name] }, middleX, middleY, size * 0.6, size / 2);

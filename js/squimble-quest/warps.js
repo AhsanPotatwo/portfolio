@@ -52,39 +52,27 @@ const Warps = {
   followers: [],
 
   // loadMap() (sketch.js) and Player.respawn() call this after placing the player. their tile counts
-  // as stepped on, so a step warp there doesn't go off
+  // as stepped on, so a step warp (or step sound block) there doesn't go off
   arrived(player, map) {
-    player.warpTile = feetTile(player, map);
+    player.stepTile = feetTile(player, map);
     this.reachable = null;
   },
 
   // every frame while playing, after everyone's moved. sets off a step warp if the player just stepped
-  // onto one. player.warpTile (player.js) is the tile their feet were on last frame, so just standing
-  // on one does nothing
+  // onto one. player.stepTile (player.js) is the tile their feet were on last frame, so just standing
+  // on one does nothing. SoundBlocks.checkStep() (soundblocks.js) reads it too, so it has to go first
   checkStep(player, map) {
     const [col, row] = feetTile(player, map);
-    const [lastCol, lastRow] = player.warpTile ?? [];
+    const [lastCol, lastRow] = player.stepTile ?? [];
     if (col === lastCol && row === lastRow) return;
-    player.warpTile = [col, row];
+    player.stepTile = [col, row];
     const warp = map.warpAt(col, row);
     if (warp && warp.activate === 'step') this.use(warp, player);
   },
 
   // the closest 'interact' warp that goes somewhere, within WARP_REACH of the feet, or null
   inReach(player, map) {
-    const feetX = player.x;
-    const feetY = player.y + feetBelowCentre(player.settings);
-    let closest = null;
-    let closestDistance = WARP_REACH;
-    for (const warp of map.warps) {
-      if (warp.activate !== 'interact' || !warp.to) continue;
-      const distance = Math.hypot((warp.col + 0.5) * TILE - feetX, (warp.row + 0.5) * TILE - feetY);
-      if (distance <= closestDistance) {
-        closest = warp;
-        closestDistance = distance;
-      }
-    }
-    return closest;
+    return closestInReach(player, map.warps.filter((warp) => warp.activate === 'interact' && warp.to));
   },
 
   // `player` goes through. if where it goes is broken they stay put and a message says why
@@ -164,6 +152,23 @@ const Warps = {
 // just stepped onto it, and sent you back out the warp you arrived by
 function feetTile(player, map) {
   return [map.colAt(player.x), map.rowAt(player.y + feetBelowCentre(player.settings))];
+}
+
+// the closest of `things` (anything with a col and row) within WARP_REACH of the player's feet, or
+// null. used for everything you press E on: warps, and sound blocks (soundblocks.js)
+function closestInReach(player, things) {
+  const feetX = player.x;
+  const feetY = player.y + feetBelowCentre(player.settings);
+  let closest = null;
+  let closestDistance = WARP_REACH;
+  for (const thing of things) {
+    const distance = Math.hypot((thing.col + 0.5) * TILE - feetX, (thing.row + 0.5) * TILE - feetY);
+    if (distance <= closestDistance) {
+      closest = thing;
+      closestDistance = distance;
+    }
+  }
+  return closest;
 }
 
 // what's wrong with where a warp goes, as a sentence, or null if nothing is. used when warping, for

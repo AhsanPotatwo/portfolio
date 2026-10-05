@@ -30,6 +30,9 @@
 //     ],
 //     "warps": [                            (warps.js)
 //       { "name": "hut", "col": -11, "row": -5, "to": "hut", "toWarp": "exit", "activate": "interact", "enemies": true }
+//     ],
+//     "sounds": [                           sound blocks (soundblocks.js), only non-default settings
+//       { "wave": "pulse", "col": 2, "row": 4, "activate": "step", "pitch": 988, "slideTo": 1976 }
 //     ]
 //   }
 //
@@ -85,7 +88,18 @@ function mapToData(map) {
     data[info.fileKey] = map[info.list].map(({ type, col, row, ai }) => ({ type, col, row, ai }));
   }
   data.warps = map.warps.map(({ name, col, row, to, toWarp, activate, enemies }) => ({ name, col, row, to, toWarp, activate, enemies }));
+  data.sounds = map.sounds.map(soundBlockToData);
   return data;
+}
+
+// a sound block as file data. the wave goes first so mapDataToText() squashes it onto one line, then
+// its tile and how it plays, then only the sound settings that aren't the default (sound.js)
+function soundBlockToData({ col, row, activate, sound }) {
+  const entry = { wave: sound.wave, col, row, activate };
+  for (const [key, value] of Object.entries(SOUND_DEFAULTS)) {
+    if (key !== 'wave' && sound[key] !== value) entry[key] = sound[key];
+  }
+  return entry;
 }
 
 // a 2 character code that isn't in the legend yet. it tries the first letter plus each other letter
@@ -180,6 +194,21 @@ function mapFromData(data) {
     });
   }
 
+  // "sounds", which older maps don't have. only the tile is needed: how it plays defaults to step, and
+  // any missing sound settings get their default (soundSettings() in sound.js)
+  for (const entry of data.sounds ?? []) {
+    if (!Number.isInteger(entry.col) || !Number.isInteger(entry.row)) {
+      unknown.add('a sound block without a col or row');
+      continue;
+    }
+    map.sounds.push({
+      col: entry.col,
+      row: entry.row,
+      activate: Object.hasOwn(SOUND_BLOCK_ACTIVATE, entry.activate) ? entry.activate : 'step',
+      sound: soundSettings(entry),
+    });
+  }
+
   if (unknown.size > 0) {
     console.warn(`This map has things the game doesn't know, so they've been left out: ${[...unknown].join(', ')}.`);
   }
@@ -265,11 +294,12 @@ function openMapFile() {
 // ---------- small helpers ----------
 
 // the text of a map file: json with 2 space indents (one tile row per line), with each object, enemy,
-// npc and warp squashed onto one line so long lists are still easy to read
+// npc, warp and sound block squashed onto one line so long lists are still easy to read
 function mapDataToText(data) {
   return JSON.stringify(data, null, 2)
-    // an object, character or warp is a { } starting with "type" or "name" with only plain values in it
-    .replace(/\{\s+("(?:type|name)":[^{}[\]]*?)\s+\}/g, (match, inside) => `{ ${inside.replace(/,\s+/g, ', ')} }`)
+    // an object, character, warp or sound block is a { } starting with "type", "name" or "wave" with
+    // only plain values in it
+    .replace(/\{\s+("(?:type|name|wave)":[^{}[\]]*?)\s+\}/g, (match, inside) => `{ ${inside.replace(/,\s+/g, ', ')} }`)
     + '\n';
 }
 
