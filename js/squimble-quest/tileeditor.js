@@ -1,36 +1,39 @@
-// the tile editor: making and changing tiles inside the map editor (editor.js), so tiles.json
-// (tiles.js) never needs hand editing.
-//   - New (inspector, Tiles tab) opens a box for a new tile; right click in the palette (or Edit)
-//     opens it for an existing one
-//   - tabs: Look, then TILE_BEHAVIOURS' tabs (Behaviours, Effects...), then Dual grid (blendsWith)
-//   - a side column shows the texture file and a live patch of the tile on the map
-//   - an existing tile changes on the map as you edit (drag the box aside to see). Save keeps it;
-//     Cancel, Escape or × restores it
-//   - Save applies to the game straight away (paint and walk on it)
-//   - Export (beside New) downloads tiles.json for assets/squimble-quest/tiles/, plus any picture
-//     chosen since page load; the message says which folder
-// no renaming or deleting: maps store tile names, so either would lose it from every map. do those
-// in tiles.json by hand
+// the tile editor: for making and changing tiles inside the map editor (editor.js), so you never
+// have to edit tiles.json (tiles.js) by hand.
+//   - New (in the inspector on the Tiles tab) opens a box for a new tile. right clicking a tile in
+//     the palette (or Edit) opens it for one that already exists
+//   - the tabs are Look, then TILE_BEHAVIOURS' tabs (Behaviours, Effects...), then Dual grid
+//     (blendsWith)
+//   - a column down the side shows the texture file and a little patch of the tile like on the map
+//   - a tile that already exists changes on the map while you edit it (drag the box out of the way to
+//     see). Save keeps the changes, and Cancel, Escape or the x puts it back how it was
+//   - Save changes the game straight away (you can paint with it and walk on it)
+//   - Export (next to New) downloads tiles.json for assets/squimble-quest/tiles/, plus any pictures
+//     chosen since the page loaded. the message says which folder they go in
+// there's no renaming or deleting, because maps store tile names, so either one would lose the tile
+// from every map. do those by hand in tiles.json
 
-// every non-look setting (TILE_DEFAULTS in tiles.js) as an editor row on its tab. tabs follow Look in
-// first-mention order; a new tab name makes a new tab ("adding a new tile setting", top of tiles.js).
-//   key    TILE_DEFAULTS / tiles.json name
-//   tab    its tab
-//   label  words before the field
+// every setting apart from the look ones (TILE_DEFAULTS in tiles.js), each as a row in the editor on
+// its tab. the tabs come after Look in the order they're first mentioned, and a tab name that's new
+// makes a new tab ("adding a new tile setting" at the top of tiles.js).
+//   key    its name in TILE_DEFAULTS and tiles.json
+//   tab    which tab it goes on
+//   label  the words before the field
 //   after  optional words after it
-//   field  (value) => a NumberField, Checkbox or Picker. number fields have a max, so typos can't do
+//   field  (value) => a NumberField, Checkbox or Picker. number fields have a max so a typo can't do
 //          anything silly
-//   scale  optional display multiplier for whole-number fields, e.g. 100 shows speed 0.8 as 80 (%)
+//   scale  optional, multiplies the number shown in whole number fields. 100 shows a speed of 0.8 as
+//          80 (%)
 const TILE_BEHAVIOURS = [
   { tab: 'Behaviours', key: 'solid', label: 'Solid', field: (value) => new Checkbox({ w: 180, value, label: "can't walk on it" }) },
   { tab: 'Behaviours', key: 'seeThrough', label: 'See over', field: (value) => new Checkbox({ w: 180, value, label: 'enemies see across it' }) },
-  // min 1%: 0 would trap anyone on it. 500 is 5x
+  // at least 1%, because 0 would trap anyone standing on it. 500 is 5x
   { tab: 'Behaviours', key: 'speed', label: 'Speed', after: '% of normal', scale: 100, field: (value) => new NumberField({ w: 90, value, min: 1, max: 500 }) },
   { tab: 'Behaviours', key: 'damagePerSecond', label: 'Damage', after: 'a second', field: (value) => new NumberField({ w: 90, value, max: 9999 }) },
   { tab: 'Behaviours', key: 'damagePerStep', label: 'Damage', after: 'per step', field: (value) => new NumberField({ w: 90, value, max: 9999 }) },
 
   { tab: 'Effects', key: 'healPerSecond', label: 'Heal', after: 'a second', field: (value) => new NumberField({ w: 90, value, max: 9999 }) },
-  // max 95%: at 100 anyone standing still could never get moving
+  // at most 95%, because at 100 anyone standing still could never get moving again
   { tab: 'Effects', key: 'slippery', label: 'Slippery', after: '%', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 95 }) },
   {
     tab: 'Effects', key: 'pushDirection', label: 'Push',
@@ -39,12 +42,12 @@ const TILE_BEHAVIOURS = [
   { tab: 'Effects', key: 'pushSpeed', label: 'Push by', after: 'tiles a second', field: (value) => new NumberField({ w: 90, value, max: 20 }) },
 ];
 
-// max rows per tab; more continue in a numbered tab ("Effects 2"). the box is always this tall,
-// leaving room for the side pictures
+// the most rows on a tab. any more carry on in a numbered tab ("Effects 2"). the box is always this
+// tall, which leaves room for the pictures down the side
 const TILE_EDITOR_ROWS = 7;
 
-// a 2 x 2 dual grid patch is 3 x 3 pieces, bits as in DUAL_TILESET_LAYOUT (dualgrid.js). drawn by
-// the "On the map" preview
+// a 2 x 2 patch of dual grid tile is 3 x 3 pieces, with the bits like in DUAL_TILESET_LAYOUT
+// (dualgrid.js). the "On the map" preview draws it
 const DUAL_PREVIEW_PATCH = [
   [0b0001, 0b0011, 0b0010],
   [0b0101, 0b1111, 0b1010],
@@ -52,47 +55,48 @@ const DUAL_PREVIEW_PATCH = [
 ];
 
 const TileEditor = {
-  // Files chosen since page load, by file name. the game only loads textures from its folders, so
-  // Export tiles downloads these too
+  // Files chosen since the page loaded, by file name. the game only loads textures from its own
+  // folders, so Export tiles downloads these as well
   newPictures: {},
 
-  // opens the box for a TILE_TYPES tile, or a new one with null
+  // opens the box for a tile from TILE_TYPES, or for a new one if type is null
   open(type) {
     const isNew = type === null;
-    // picture chosen in this box, { file, img } (p5 image), or null; kept only on Save
+    // the picture chosen in this box as { file, img } (img is a p5 image), or null. only kept if you
+    // press Save
     let chosen = null;
-    // the tile's settings and picture before editing, restored on cancel (live preview changes the
-    // tile itself)
+    // the tile's settings and picture from before editing, put back if you cancel (the live preview
+    // changes the actual tile)
     const original = type && Object.fromEntries(['name', ...Object.keys(TILE_DEFAULTS)].map((key) => [key, type[key]]));
     const ownImg = type?.textureImg ?? null;
 
-    // fields kept in variables rather than read from onConfirm's values, since the Name row only
-    // exists for new tiles and shifts the rest
+    // the fields are kept in variables instead of reading them from onConfirm's values, because the
+    // Name row is only there for new tiles and would shift the rest along
     const nameField = new TextField({ w: 180, value: '' });
-    // false normal, true dual grid, like dualGrid in tiles.json
+    // false is normal and true is dual grid, same as dualGrid in tiles.json
     const kindPicker = new Picker({
       w: 180,
       choices: [false, true],
       value: type?.dualGrid ?? false,
       label: (dual) => (dual ? 'dual grid' : 'normal'),
     });
-    // new tiles start grey. swatch opens a picker; hex or rgb can be pasted
+    // new tiles start grey. the colour square opens a picker, and you can paste in hex or rgb
     const colourField = new ColourField({ w: 180, value: type?.colour ?? '#8a8f99' });
-    // none, or the texture file name. Choose picture swaps in a new one
+    // none, or the texture's file name. Choose picture swaps in a new one
     const texturePicker = new Picker({
       w: 180,
       choices: type?.texture ? [null, type.texture] : [null],
       value: type?.texture ?? null,
-      // long names truncated to fit
+      // long names get cut short to fit
       label: (file) => (!file ? 'none, just colour' : file.length > 18 ? `${file.slice(0, 17)}…` : file),
     });
-    // a row per TILE_BEHAVIOURS entry, from the tile's value (or the default)
+    // a row for each TILE_BEHAVIOURS entry, starting on the tile's value (or the default)
     const behaviourRows = TILE_BEHAVIOURS.map((b) => {
       const value = type?.[b.key] ?? TILE_DEFAULTS[b.key];
       return { ...b, field: b.field(b.scale ? Math.round(value * b.scale) : value) };
     });
-    // blendsWith (tiles.js): every dual grid tile (even future ones), or only the ticked ones, with a
-    // checkbox per other dual grid tile
+    // blendsWith (tiles.js): either every dual grid tile (even ones made later) or only the ticked
+    // ones, with a tick box for each other dual grid tile
     const blendPicker = new Picker({
       w: 180,
       choices: [true, false],
@@ -111,7 +115,7 @@ const TileEditor = {
       ...blendBoxes.map((field) => ({ label: '', field })),
     ];
 
-    // TILE_BEHAVIOURS' tabs then Dual grid, split into TILE_EDITOR_ROWS pages
+    // TILE_BEHAVIOURS' tabs and then Dual grid, split into pages of TILE_EDITOR_ROWS
     const sections = [...new Set(TILE_BEHAVIOURS.map((b) => b.tab))]
       .map((name) => [name, behaviourRows.filter((row) => row.tab === name)]);
     sections.push(['Dual grid', blendRows]);
@@ -123,15 +127,15 @@ const TileEditor = {
       }
     }
 
-    // the selected texture as a p5 image: just chosen, or the tile's own. null for none or if the
-    // tile's file failed to load
+    // the picked texture as a p5 image, either one that was just chosen or the tile's own. null if
+    // there isn't one or the tile's file didn't load
     const picture = () => {
       const file = texturePicker.value;
       if (!file) return null;
       if (chosen?.file.name === file) return chosen.img;
       return ownImg;
     };
-    // current settings, tiles.json shaped (tiles.js)
+    // the settings as they are now, in the same shape as tiles.json (tiles.js)
     const settingsNow = () => {
       const settings = {
         name: isNew ? cleanMapName(nameField.value) : type.name,
@@ -143,13 +147,14 @@ const TileEditor = {
       settings.blendsWith = blendPicker.value ? null : blendBoxes.filter((box) => box.value).map((box) => box.label);
       return settings;
     };
-    // what the map shows (settings as text, to detect changes, and picture), and whether it differs
-    // from the original
+    // what the map is showing (the settings as text so changes are easy to spot, and the picture), and
+    // whether it's different from the original
     let shown = { settings: JSON.stringify(settingsNow()), img: picture() };
     let changed = false;
-    // why it can't be saved (shown; Save greyed), or null
+    // why it can't be saved (shown in the box, and Save gets greyed out), or null
     const problem = () => {
-      // tile names follow map name rules (cleanMapName() in mapfile.js), since maps store them
+      // tile names follow the same rules as map names (cleanMapName() in mapfile.js), since maps
+      // store them
       const name = cleanMapName(nameField.value);
       if (isNew && !name) return 'It needs a name';
       if (isNew && TILE_TYPES[name]) return `There's already a tile called ${name}`;
@@ -168,7 +173,7 @@ const TileEditor = {
         {
           label: 'Look',
           rows: [
-            // no renaming (top of this file)
+            // no renaming (see the top of this file)
             ...(isNew ? [{ label: 'Name', field: nameField }] : []),
             { label: 'Kind', field: kindPicker },
             { label: 'Colour', field: colourField },
@@ -178,7 +183,7 @@ const TileEditor = {
         ...tabs,
       ],
       minRows: TILE_EDITOR_ROWS,
-      // previews, and Choose picture below them
+      // the previews, with Choose picture under them
       side: (x, y, w, h) => [
         new TilePreview({
           x, y, w, h: h - 32,
@@ -193,7 +198,8 @@ const TileEditor = {
         }),
       ],
       canConfirm: () => problem() === null,
-      // an existing tile updates live whenever the box would save; a new one isn't on the map yet
+      // a tile that already exists updates live whenever the box would be able to save. a new one
+      // isn't on the map yet
       onUpdate: () => {
         if (isNew || problem() !== null) return;
         const settings = settingsNow();
@@ -211,13 +217,14 @@ const TileEditor = {
         const { name, texture } = settings;
         const isChosen = chosen !== null && texture === chosen.file.name;
         if (isChosen) this.newPictures[texture] = chosen.file;
-        // an old texture on a tile that changed kind now belongs in the other folder
+        // an old texture on a tile that switched kind now belongs in the other folder
         const moved = !isNew && !isChosen && texture && kindPicker.value !== original.dualGrid;
 
-        // tiles.js. uses the picture directly, since it may not be in its folder yet
+        // tiles.js. uses the picture directly, since it might not be in its folder yet
         setTile(settings, picture());
 
-        // the palette reads TILE_TYPES each frame, so it's current. a new tile gets picked (editor.js)
+        // the palette reads TILE_TYPES every frame, so it's already up to date. a new tile gets picked
+        // (editor.js)
         if (isNew) Editor.pick({ kind: 'tile', name });
         showMessage(moved
           ? `Saved ${name}. Move ${texture} into tiles/${this.folderName(TILE_TYPES[name])}/ too`
@@ -226,15 +233,15 @@ const TileEditor = {
     });
   },
 
-  // texture folder name inside assets/squimble-quest/tiles/
+  // the name of the texture folder inside assets/squimble-quest/tiles/
   folderName(type) {
     return type.dualGrid ? 'dual-grid' : 'normal';
   },
 
-  // picks a picture (pickFile() in utils.js), then onLoad(File, p5 image)
+  // lets you pick a picture (pickFile() in utils.js), then calls onLoad(File, p5 image)
   choosePicture(onLoad) {
     pickFile('image/png,image/*', (file) => {
-      // temporary url so p5 can load it
+      // a temporary url so p5 can load it
       const url = URL.createObjectURL(file);
       loadImage(url, (img) => {
         URL.revokeObjectURL(url);
@@ -246,14 +253,14 @@ const TileEditor = {
     });
   },
 
-  // downloads tiles.json (tiles.js) and any in-use picture chosen since page load, then says where
-  // they go (utils.js download helpers)
+  // downloads tiles.json (tiles.js) and any picture that's in use and was chosen since the page loaded,
+  // then says where they go (the download helpers are in utils.js)
   exportTiles() {
     downloadTextFile('tiles.json', tilesDataToText(tilesToData()));
     const pictures = [];
     for (const type of Object.values(TILE_TYPES)) {
       const file = this.newPictures[type.texture];
-      // shared pictures download once
+      // pictures used by more than one tile only download once
       if (!file || pictures.some((p) => p.name === type.texture)) continue;
       downloadData(type.texture, file);
       pictures.push({ name: type.texture, folder: this.folderName(type) });
@@ -263,24 +270,26 @@ const TileEditor = {
   },
 };
 
-// the side column: the texture file, a 2 x 2 patch as on the map, and any save problem.
+// the column down the side: the texture file, a 2 x 2 patch like it'd look on the map, and anything
+// stopping it saving.
 //   look  () => { dualGrid, colour, img, problem }
 class TilePreview extends UIElement {
   constructor(options) {
-    // show-only; clicks go to the form box
+    // just for show, clicks go through to the form box
     super({ ...options, interactive: false });
     this.look = options.look;
-    // last tileset's pieces and source, so it's only recut when the picture changes
+    // the last tileset's pieces and the picture they came from, so it only cuts it again when the
+    // picture changes
     this.pieces = null;
     this.piecesFrom = null;
   }
 
   draw() {
     const { dualGrid, colour, img, problem } = this.look();
-    // black until the colour's complete (mid typing)
+    // black until the colour is finished (while you're halfway through typing it)
     const fillColour = HEX_COLOUR.test(colour) ? colour : '#000000';
-    // two squares side by side, room below for the problem. a multiple of 6 whole px, so the patch's
-    // halves (normal) and thirds (dual grid) meet exactly with no faint lines
+    // two squares side by side, with room underneath for the problem. it's a multiple of 6 whole px,
+    // so the patch's halves (normal) and thirds (dual grid) meet exactly with no faint lines
     const gap = 8;
     const size = Math.floor(Math.min((this.w - gap) / 2, this.h - 70) / 6) * 6;
     const firstLeft = Math.round(this.x + (this.w - size * 2 - gap) / 2);
@@ -300,12 +309,12 @@ class TilePreview extends UIElement {
       rect(left, top, size, size);
     };
 
-    // 1. the texture file, fitted without stretching; tilesets get faint piece lines. no texture
-    // shows the colour
+    // 1. the texture file, fitted in without stretching it, and tilesets get faint lines between the
+    // pieces. with no texture it shows the colour
     label(img ? 'Texture file' : 'Colour', firstLeft);
     backing(firstLeft);
     if (img) {
-      // scaled to fit, aspect kept, centred
+      // scaled to fit, keeping its shape, and centred
       const scale = Math.min(size / img.width, size / img.height);
       const w = img.width * scale;
       const h = img.height * scale;
@@ -313,7 +322,7 @@ class TilePreview extends UIElement {
       const imgTop = top + (size - h) / 2;
       image(img, imgLeft, imgTop, w, h);
       if (dualGrid) {
-        // 4 x 4 piece lines
+        // lines between the 4 x 4 pieces
         stroke(255, 255, 255, 50);
         strokeWeight(1);
         for (let i = 1; i < 4; i++) {
@@ -326,7 +335,7 @@ class TilePreview extends UIElement {
       rect(firstLeft, top, size, size);
     }
 
-    // 2. a 2 x 2 patch as on the map; dual grid rounds off at the edges
+    // 2. a 2 x 2 patch like it'd look on the map. dual grid rounds off at the edges
     label('On the map', secondLeft);
     backing(secondLeft);
     const pieces = dualGrid && img ? this.piecesOf(img) : null;
@@ -336,7 +345,7 @@ class TilePreview extends UIElement {
         image(pieces[which], secondLeft + c * piece, top + r * piece, piece, piece);
       }));
     } else {
-      // normal, or dual grid without a working tileset: four squares
+      // normal, or dual grid without a tileset that works: four squares
       const half = size / 2;
       for (let i = 0; i < 4; i++) {
         const x = secondLeft + (i % 2) * half;
@@ -351,7 +360,7 @@ class TilePreview extends UIElement {
       }
     }
 
-    // 3. the save problem in red, wrapped
+    // 3. whatever's stopping it saving, in red and wrapped
     if (problem) {
       noStroke();
       fill(EDITOR_COLOURS.erase);
@@ -360,7 +369,7 @@ class TilePreview extends UIElement {
     }
   }
 
-  // the tileset's pieces (dualgrid.js), or null if it can't be one
+  // the tileset's pieces (dualgrid.js), or null if it can't be a tileset
   piecesOf(img) {
     if (img !== this.piecesFrom) {
       this.piecesFrom = img;

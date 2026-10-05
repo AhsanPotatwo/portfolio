@@ -1,24 +1,28 @@
 // inventories, the hotbar, the inventory screen, and items on the ground.
 //
-// an inventory is a row of slots, each one item (items.js) or empty, with one picked: its item is
-// what's held (empty is empty hands). the player's (player.inventory) first HOTBAR_SIZE slots are the
-// hotbar (the only pickable ones); the rest are the bag, seen only on the inventory screen:
+// an inventory is a row of slots. each slot has one item (items.js) or is empty, and one slot is
+// picked: its item is what you're holding (an empty slot means empty hands). the first HOTBAR_SIZE
+// slots of the player's inventory (player.inventory) are the hotbar, which are the only ones you can
+// pick. the rest are the bag, which you only see on the inventory screen:
 //   1 - 5        pick a slot
-//   mouse wheel  step through slots (zooms in the editor instead)
+//   mouse wheel  go through the slots (in the editor it zooms instead)
 //   click        pick a slot
-//   E or I       toggle the inventory screen (E talks instead with an npc in reach). drag between
-//                slots to move, out of the box to drop
-//   Q            drop the held item. walk away and back to pick it up
+//   E or I       open or close the inventory screen (if there's an npc in reach E talks to them
+//                instead). drag between slots to move things, or out of the box to drop them
+//   Q            drop the held item. walk away and come back to pick it up again
 
-// hotbar slots, the inventory's first ones
+// how many hotbar slots there are. they're the first ones in the inventory
 const HOTBAR_SIZE = 5;
-// extra bag slots, inventory screen only. a multiple of HOTBAR_SIZE so rows line up with the hotbar
+// extra bag slots, only on the inventory screen. it's a multiple of HOTBAR_SIZE so the rows line up
+// with the hotbar
 const BAG_SIZE = 10;
 
-// wheel amount per slot. a notch is ~100; stops trackpads' many small amounts racing through
+// how much the wheel has to turn to move one slot. one notch is about 100. this stops trackpads, which
+// send lots of tiny amounts, racing through the slots
 const HOTBAR_SCROLL_STEP = 60;
 
-// screen px: slot size, gap, and slot bottoms' distance from the screen bottom
+// in screen px: the slot size, the gap between them, and how far the bottom of the slots is from the
+// bottom of the screen
 const HOTBAR_LAYOUT = {
   slotSize: 44,
   gap: 6,
@@ -27,9 +31,9 @@ const HOTBAR_LAYOUT = {
 
 class Inventory {
   constructor(size) {
-    // item or null each
+    // an item or null for each slot
     this.slots = new Array(size).fill(null);
-    // picked slot
+    // the picked slot
     this.selected = 0;
   }
 
@@ -37,7 +41,7 @@ class Inventory {
     return this.slots.length;
   }
 
-  // picked slot's item, or null
+  // the item in the picked slot, or null
   held() {
     return this.slots[this.selected];
   }
@@ -46,12 +50,12 @@ class Inventory {
     if (slot >= 0 && slot < this.size) this.selected = slot;
   }
 
-  // step ±1 through the first count slots (the hotbar), wrapping
+  // moves 1 forward or back through the first count slots (the hotbar), wrapping round at the ends
   cycle(step, count = this.size) {
     this.selected = (this.selected + step + count) % count;
   }
 
-  // into the first empty slot; true if there was room
+  // puts it in the first empty slot. gives true if there was room
   add(item) {
     const slot = this.slots.indexOf(null);
     if (!item || slot === -1) return false;
@@ -59,21 +63,22 @@ class Inventory {
     return true;
   }
 
-  // empties a slot, returning its item (or null). for dropping, giving, chests...
+  // empties a slot and gives back what was in it (or null). for dropping, giving, chests...
   take(slot) {
     const item = this.slots[slot];
     this.slots[slot] = null;
     return item;
   }
 
-  // also moves into an empty slot
+  // also works for moving into an empty slot
   swap(a, b) {
     [this.slots[a], this.slots[b]] = [this.slots[b], this.slots[a]];
   }
 }
 
-// an item's picture, or a placeholder in its colour with its label's first letter. size px square,
-// top left at x, y. for dragging; slots and the ground add its glow (drawGlowingItem() in itemglow.js)
+// an item's picture, or a placeholder square in its colour with the first letter of its label. size
+// is how many px square it is, with its top left at x, y. used for dragging. slots and the ground add
+// its glow around it (drawGlowingItem() in itemglow.js)
 function drawItemIcon(item, x, y, size) {
   if (item.type.img) {
     image(item.type.img, x, y, size, size);
@@ -91,16 +96,17 @@ function drawItemIcon(item, x, y, size) {
 
 const Hotbar = {
   inventory: null,
-  // wheel turned towards the next slot (HOTBAR_SCROLL_STEP)
+  // how far the wheel has turned towards the next slot (HOTBAR_SCROLL_STEP)
   scrolled: 0,
 
-  // once from setup() with the player's inventory. slots are ui elements, so clicking them never swings
+  // called once from setup() with the player's inventory. the slots are ui elements, so clicking on
+  // them never swings your weapon
   init(inventory) {
     this.inventory = inventory;
-    // the game uses the wheel, so it stops scrolling the page while playing
+    // the game uses the wheel, so it stops it scrolling the page while you're playing
     Input.captureWheel = true;
 
-    // a centred row along the bottom
+    // a row in the middle along the bottom
     const { slotSize: size, gap, bottom } = HOTBAR_LAYOUT;
     const width = HOTBAR_SIZE * size + (HOTBAR_SIZE - 1) * gap;
     const left = (GAME_W - width) / 2;
@@ -117,16 +123,17 @@ const Hotbar = {
     }
   },
 
-  // every frame while playing: number keys and wheel
+  // every frame while playing: the number keys and the wheel
   update() {
     for (let i = 0; i < HOTBAR_SIZE; i++) {
       if (Input.wasPressed(`slot${i + 1}`)) this.inventory.select(i);
     }
 
-    // down is next, up back; reversing restarts the count
+    // down goes to the next slot and up goes back. changing direction starts the count again
     if (Input.wheel !== 0 && Math.sign(Input.wheel) !== Math.sign(this.scrolled)) this.scrolled = 0;
     this.scrolled += Input.wheel;
-    // one slot at a time, leftover dropped (carrying it over sometimes skipped two)
+    // one slot at a time, and any leftover gets thrown away (when I carried it over it sometimes
+    // skipped two)
     if (Math.abs(this.scrolled) >= HOTBAR_SCROLL_STEP) {
       this.inventory.cycle(Math.sign(this.scrolled), HOTBAR_SIZE);
       this.scrolled = 0;
@@ -137,22 +144,22 @@ const Hotbar = {
     UI.showGroup('hotbar', visible);
   },
 
-  // held item's name above the hotbar, screen positions
+  // the held item's name above the hotbar, in screen positions
   drawLabel() {
     const item = this.inventory.held();
     fill(255);
     setText(14, BOLD, CENTER, BOTTOM);
-    // dark outline, readable on any ground
+    // dark outline so you can read it on any ground
     stroke(0, 0, 0, 170);
     strokeWeight(3);
-    // rarity colour (items.js)
+    // in its rarity's colour (items.js)
     if (item) fill(itemRarity(item).colour);
     text(item ? item.type.label : 'Empty hands', GAME_W / 2, GAME_H - HOTBAR_LAYOUT.slotSize - 16);
   },
 };
 
-// a slot on the hotbar or inventory screen. a Button for click handling, drawing the slot and its
-// item. hotbar slots show their number, and a ring when picked
+// a slot on the hotbar or the inventory screen. it's a Button so it gets clicking for free, and it
+// draws the slot and its item. hotbar slots show their number, and a ring when they're picked
 class ItemSlot extends Button {
   constructor(options) {
     super(options);
@@ -170,7 +177,7 @@ class ItemSlot extends Button {
     strokeWeight(selected ? 3 : 1.5);
     rect(this.x, this.y, this.w, this.h, 6);
 
-    // faded while being dragged
+    // faded out while it's being dragged
     if (item) {
       const pad = 8;
       push();
@@ -179,7 +186,7 @@ class ItemSlot extends Button {
       pop();
     }
 
-    // number, top left
+    // the number in the top left
     if (!onHotbar) return;
     noStroke();
     fill(selected ? '#ffd23f' : 200);
@@ -190,8 +197,8 @@ class ItemSlot extends Button {
 
 // ---------- the inventory screen ----------
 
-// screen px (slots use HOTBAR_LAYOUT): edge padding, title above the bag, label above the hotbar row,
-// hint along the bottom
+// in screen px (the slots use HOTBAR_LAYOUT): padding round the edge, the title above the bag, the
+// label above the hotbar row, and the hint along the bottom
 const INVENTORY_LAYOUT = {
   pad: 16,
   titleHeight: 40,
@@ -199,7 +206,7 @@ const INVENTORY_LAYOUT = {
   hintHeight: 28,
 };
 
-// the panel behind the screen's slots. a ui element, so clicks on it never reach the game
+// the panel behind the inventory screen's slots. it's a ui element so clicks on it never reach the game
 class InventoryPanel extends UIElement {
   draw() {
     const { pad, titleHeight, hintHeight } = INVENTORY_LAYOUT;
@@ -213,7 +220,7 @@ class InventoryPanel extends UIElement {
     setText(16);
     text('Inventory', this.x + this.w / 2, this.y + titleHeight / 2 + 2);
 
-    // above the hotbar row (the bottom row)
+    // above the hotbar row (which is the bottom row)
     fill(200);
     setText(11, BOLD, LEFT, BOTTOM);
     text('Hotbar', this.x + pad, this.y + this.h - hintHeight - HOTBAR_LAYOUT.slotSize - 4);
@@ -224,14 +231,15 @@ class InventoryPanel extends UIElement {
   }
 }
 
-// E or I: every slot, bag above, hotbar below. the game carries on, but the player stands still (sketch.js)
+// opened with E or I. shows every slot, with the bag on top and the hotbar underneath. the game keeps
+// going but the player stands still (sketch.js)
 const InventoryScreen = {
   active: false,
   inventory: null,
-  // slot being dragged, or null
+  // the slot being dragged, or null
   dragging: null,
 
-  // once from setup() with the player's inventory. makes the hidden panel and slots
+  // called once from setup() with the player's inventory. makes the panel and slots, hidden to start with
   init(inventory) {
     this.inventory = inventory;
     const { slotSize: size, gap } = HOTBAR_LAYOUT;
@@ -242,10 +250,10 @@ const InventoryScreen = {
     const h = titleHeight + bagRows * (size + gap) - gap + labelHeight + size + hintHeight;
     const left = (GAME_W - w) / 2;
     const top = (GAME_H - h) / 2;
-    // first, so slots draw over it
+    // added first so the slots draw on top of it
     UI.add(new InventoryPanel({ x: left, y: top, w, h, group: 'inventory', visible: false }));
 
-    // bag rows left to right, hotbar along the bottom
+    // the bag rows go left to right, and the hotbar goes along the bottom
     const hotbarTop = top + h - hintHeight - size;
     for (let i = 0; i < inventory.size; i++) {
       const onHotbar = i < HOTBAR_SIZE;
@@ -258,13 +266,13 @@ const InventoryScreen = {
         visible: false,
         inventory,
         slot: i,
-        // hotbar slots pick on click, like the real hotbar
+        // clicking a hotbar slot picks it, same as the real hotbar
         onClick: onHotbar ? () => inventory.select(i) : null,
       }));
     }
   },
 
-  // the real hotbar hides while open, since its row is in the box
+  // the real hotbar hides while this is open, since its row is in the box anyway
   show(open) {
     this.active = open;
     this.dragging = null;
@@ -272,17 +280,18 @@ const InventoryScreen = {
     Hotbar.show(!open);
   },
 
-  // every frame while open, after UI.update() (ui.js) finds the hovered element. map and player are
-  // for dropping out of the box
+  // every frame while it's open, after UI.update() (ui.js) has found which element the mouse is over.
+  // map and player are for when you drop something out of the box
   update(map, player) {
     const hovered = UI.hovered instanceof ItemSlot && UI.hovered.group === 'inventory' ? UI.hovered.slot : null;
 
-    // press on an item to drag it
+    // press on an item to start dragging it
     if (Input.buttonsPressed.has('left') && hovered !== null && this.inventory.slots[hovered]) {
       this.dragging = hovered;
     }
 
-    // release: on a slot swaps; outside the box but over the game drops; elsewhere returns it
+    // when you let go: over a slot it swaps them, outside the box but over the game it drops it, and
+    // anywhere else it just goes back
     if (this.dragging !== null && Input.buttonsReleased.has('left')) {
       if (hovered !== null) {
         this.inventory.swap(this.dragging, hovered);
@@ -291,11 +300,11 @@ const InventoryScreen = {
       }
       this.dragging = null;
     }
-    // e.g. focus lost mid-drag (release unseen), or Q dropped it
+    // like if focus was lost mid drag (so the release never got seen), or Q dropped it
     if (!Input.buttonsHeld.has('left') || !this.inventory.slots[this.dragging]) this.dragging = null;
   },
 
-  // dragged item under the mouse, after UI.draw() so it's on top
+  // the dragged item under the mouse. drawn after UI.draw() so it's on top
   drawDragged() {
     if (this.dragging === null) return;
     const size = 28;
@@ -305,39 +314,43 @@ const InventoryScreen = {
 
 // ---------- items on the ground ----------
 
-// px from the feet' middle to pick up
+// how close in px the middle of your feet has to be to pick something up
 const PICKUP_RANGE = 28;
-// px a drop is thrown from the feet' middle towards the aim; clears the body when thrown upwards
+// how many px from the middle of your feet a drop gets thrown towards where you're aiming. it's far
+// enough to clear your body when you throw upwards
 const DROP_DISTANCE = 48;
-// randomness so drops from one spot don't stack: up to angle degrees either side of the aim, and
-// up to distance px short of DROP_DISTANCE
+// some randomness so things dropped from the same spot don't pile up: up to angle degrees either side
+// of where you're aiming, and up to distance px short of DROP_DISTANCE
 const DROP_SPREAD = {
   angle: 35,
   distance: 20,
 };
-// px a drop tries to land from other drops, about an item's width
+// how many px a drop tries to land away from other drops, about the width of an item
 const DROP_GAP = 20;
-// seconds in the air
+// seconds it spends in the air
 const THROW_TIME = 0.4;
-// px a throw arcs above the straight line from the player's middle to the ground
+// how many px a throw arcs up above the straight line from the player's middle to the ground
 const THROW_HEIGHT = 24;
 
-// items on the ground, per map in map.drops (tilemap.js), until reload. progress like map.characters,
-// so Export doesn't save them, even editor-placed ones (Drops.place()).
-// each { item, x, y, ready, from, flight }: x, y where it sits or will land. ready is false until the
-// player's been out of PICKUP_RANGE, so drops aren't picked straight back up and "inventory full"
-// shows once per approach, not every frame. from: throw start under the player and its height.
-// flight: 0 to 1 in the air (THROW_TIME); can't be picked up until landed
+// items on the ground. each map keeps its own in map.drops (tilemap.js) until you reload. they're
+// progress like map.characters, so Export doesn't save them, even ones placed in the editor
+// (Drops.place()).
+// each one is { item, x, y, ready, from, flight }. x, y is where it is or where it'll land. ready is
+// false until the player has been outside PICKUP_RANGE, so you don't pick drops straight back up and
+// "inventory full" only shows once each time you walk up to it, not every frame. from is where the
+// throw started (under the player) and how high. flight goes from 0 to 1 while it's in the air
+// (THROW_TIME), and it can't be picked up until it's landed
 const Drops = {
-  // takes the slot's item and throws it roughly towards the aim. tries a few random spots, keeping
-  // the first DROP_GAP clear of other drops (or the clearest if crowded)
+  // takes the item out of the slot and throws it roughly where you're aiming. it tries a few random
+  // spots and keeps the first one that's DROP_GAP away from other drops (or the clearest one if it's
+  // crowded)
   drop(map, player, slot) {
     const item = player.inventory.take(slot);
     if (!item) return;
     let best = null;
     for (let i = 0; i < 10; i++) {
       const spot = this.throwSpot(map, player);
-      // Infinity with nothing else on the ground
+      // Infinity if there's nothing else on the ground
       spot.gap = Math.min(Infinity, ...map.drops.map((drop) => Math.hypot(drop.x - spot.x, drop.y - spot.y)));
       if (!best || spot.gap > best.gap) best = spot;
       if (best.gap >= DROP_GAP) break;
@@ -350,17 +363,17 @@ const Drops = {
     });
   },
 
-  // straight onto the ground, landed and ready. for the editor
+  // puts it straight on the ground, already landed and ready. for the editor
   place(map, item, x, y) {
     map.drops.push({ item, x, y, ready: true, from: null, flight: 1 });
   },
 
-  // random spot ~DROP_DISTANCE from the feet towards the aim (DROP_SPREAD)
+  // a random spot about DROP_DISTANCE from the feet, towards where you're aiming (DROP_SPREAD)
   throwSpot(map, player) {
     const angle = player.aimAngle + radians(randomBetween(-DROP_SPREAD.angle, DROP_SPREAD.angle));
     const distance = DROP_DISTANCE - randomBetween(0, DROP_SPREAD.distance);
-    // a small box moved with map collision (tilemap.js), so it stops at walls and stays reachable.
-    // two halves, since the map only checks one tile ahead
+    // moves a small box using the map's collision (tilemap.js), so it stops at walls and you can
+    // still reach it. done in two halves, since the map only checks one tile ahead
     const feet = player.feetBox();
     const box = { x: feet.x + feet.w / 2 - 4, y: feet.y + feet.h / 2 - 4, w: 8, h: 8 };
     for (let i = 0; i < 2; i++) {
@@ -370,8 +383,8 @@ const Drops = {
     return { x: box.x + 4, y: box.y + 4 };
   },
 
-  // current ground x, y (the shadow) and height above it. mid-air it flies from the player's middle
-  // to its landing spot, arcing up THROW_HEIGHT
+  // where it is on the ground right now (the shadow) and how high above it. in the air it flies from
+  // the player's middle to where it lands, arcing up by THROW_HEIGHT
   where(drop) {
     const t = drop.flight;
     if (t >= 1) return { x: drop.x, y: drop.y, height: 0 };
@@ -382,7 +395,8 @@ const Drops = {
     };
   },
 
-  // every frame while playing: moves throws, picks up landed drops in range if there's room
+  // every frame while playing: moves things being thrown, and picks up landed drops in range if
+  // there's room
   update(map, player, dt) {
     const feet = player.feetBox();
     const fx = feet.x + feet.w / 2;
@@ -397,7 +411,7 @@ const Drops = {
         return true;
       }
       if (!drop.ready) return true;
-      // picked up
+      // picked it up
       if (player.inventory.add(drop.item)) return false;
       drop.ready = false;
       showMessage(`No room for the ${drop.item.type.label.toLowerCase()}, your inventory is full`);
@@ -405,22 +419,24 @@ const Drops = {
     });
   },
 
-  // one drop over its shadow, glowing in the air too, bobbing once landed. drawn individually so it
-  // depth-sorts with characters (sketch.js). world positions (inside camera.begin/end)
+  // one drop above its shadow. it glows in the air too, and bobs up and down once it's landed. each
+  // one gets drawn on its own so it can be sorted in front of or behind characters (sketch.js). world
+  // positions (inside camera.begin/end)
   draw(drop) {
     const size = 20;
     const landed = drop.flight >= 1;
     const spot = this.where(drop);
-    // + x so neighbours don't bob in step
+    // + x so drops next to each other don't bob in time
     const bob = landed ? Math.sin(millis() / 1000 * 3 + drop.x) * 3 : 0;
     const x = Math.round(spot.x);
     const y = Math.round(spot.y - size / 2 - 6 - spot.height + bob);
 
     noStroke();
-    // shadow shrinks as it rises
+    // the shadow shrinks as it goes up
     fill(0, 0, 0, 70);
     ellipse(x, Math.round(spot.y), Math.max(4, 16 + bob - spot.height / 4), 5);
-    // seeded by the landing spot, fixed for the whole throw, so the glow doesn't jump as it moves
+    // the seed is the landing spot, which stays the same for the whole throw, so the glow doesn't
+    // jump about as it moves
     drawGlowingItem(drop.item, x, y, size, GLOW_PIXEL_SIZE, drop.x + drop.y);
   },
 };

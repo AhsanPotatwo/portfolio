@@ -1,13 +1,14 @@
-// a friendly character. shared behaviour is in Character (character.js), its kind (name, dialogue,
-// ai...) in npcs.js. here: no health bar, and the "press E" prompt (drawKeyPrompt(), warps use it too).
-// Character's targets() is empty, so npc attacks would hurt nobody
+// a friendly character. the stuff it shares with everyone else is in Character (character.js), and
+// its kind (name, dialogue, ai...) is in npcs.js. this file just skips the health bar and adds the
+// "press E" prompt (drawKeyPrompt(), which warps use too). Character's targets() is empty, so an npc
+// attacking wouldn't hurt anyone
 class Npc extends Character {
   // type: an NPC_TYPES name. col, row: its tile
   constructor(type, col, row) {
     super(0, 0, NPC_TYPES[type]);
     this.type = NPC_TYPES[type];
     this.placeFeetOnTile(col, row);
-    // player close enough to talk (set by sketch.js every frame)
+    // whether the player is close enough to talk (sketch.js sets this every frame)
     this.canTalk = false;
   }
 
@@ -21,8 +22,8 @@ class Npc extends Character {
   }
 }
 
-// a small "E" key over something you can press E at (an npc, or a warp in warps.js). x is its middle,
-// bottom its bottom edge, world positions
+// a little "E" key over something you can press E on (an npc, or a warp in warps.js). x is its middle
+// and bottom is its bottom edge, in world positions
 function drawKeyPrompt(x, bottom) {
   const size = 18;
   const left = Math.round(x - size / 2);

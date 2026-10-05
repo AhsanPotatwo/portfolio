@@ -1,5 +1,6 @@
-// saving and loading map files (guide: assets/squimble-quest/maps/README.md). json; tiles as rows of
-// short codes so the shape is visible; objects (objects.js) as a list, since they can share and span tiles:
+// saving and loading map files (the guide is assets/squimble-quest/maps/README.md). they're json. the
+// tiles are rows of short codes so you can see the map's shape in the file, and objects (objects.js)
+// are a list, since they can share tiles and cover more than one:
 //
 //   {
 //     "format": "squimble-quest-map",
@@ -7,7 +8,7 @@
 //     "left": -20,                          left edge column (tile coords)
 //     "top": -12,                           top edge row
 //     "spawn": { "x": 0, "y": 0 },          player start, world pixels
-//     "legend": {                           code → tile
+//     "legend": {                           code: tile
 //       "..": null,                         always empty
 //       "gr": "grass",
 //       "wa": "wall"
@@ -32,22 +33,23 @@
 //     ]
 //   }
 //
-// exported codes are 2 characters from the tile's name where possible (gr grass, wt water since wa is
-// wall), thousands possible. hand made codes can be any length, just space separated.
+// exported codes are 2 characters taken from the tile's name where possible (gr for grass, wt for
+// water because wa is already wall), so there are thousands to go round. codes typed by hand can be
+// any length, as long as they're split by spaces.
 // version 1 files (one character per tile, no spaces, no objects) still load.
-// map name = file name: forest.json is "forest"
+// a map's name is its file name, so forest.json is "forest"
 
 const MAP_FORMAT = 'squimble-quest-map';
 const MAP_VERSION = 2;
 
 const EMPTY_CODE = '..';
-// for codes when the tile's name gives no free one
+// used for codes when the tile's name doesn't give a free one
 const CODE_CHARACTERS = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-// ---------- map → file data ----------
+// ---------- map to file data ----------
 
 function mapToData(map) {
-  // a code per tile kind used
+  // a code for each kind of tile the map uses
   const legend = { [EMPTY_CODE]: null };
   const codeFor = {};
   for (const name of new Set(map.tiles)) {
@@ -79,15 +81,16 @@ function mapToData(map) {
   };
   // "enemies" and "npcs" (SPAWN_KINDS in tilemap.js)
   for (const info of Object.values(SPAWN_KINDS)) {
-    // ai only when picked (undefined is left out)
+    // ai only goes in if one was picked (JSON leaves out undefined)
     data[info.fileKey] = map[info.list].map(({ type, col, row, ai }) => ({ type, col, row, ai }));
   }
   data.warps = map.warps.map(({ name, col, row, to, toWarp, activate, enemies }) => ({ name, col, row, to, toWarp, activate, enemies }));
   return data;
 }
 
-// a 2 character code not in the legend: first letter + each other letter (grass → gr, ga, gs...),
-// then first letter + anything, then any pair (3,800+, won't run out)
+// a 2 character code that isn't in the legend yet. it tries the first letter plus each other letter
+// (grass gives gr, ga, gs...), then the first letter plus anything, then any pair at all (over 3,800,
+// so it won't run out)
 function makeTileCode(name, legend) {
   const letters = name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'x';
   const first = letters[0];
@@ -100,15 +103,15 @@ function makeTileCode(name, legend) {
   return options.find((code) => !(code in legend));
 }
 
-// ---------- file data → map ----------
+// ---------- file data to map ----------
 
-// throws a readable error if the data isn't a map, for the loader to show
+// throws an error you can read if the data isn't a map, so the loader can show it
 function mapFromData(data) {
   if (!data || !Array.isArray(data.rows) || typeof data.legend !== 'object') {
     throw new Error("this doesn't look like a Squimble Quest map file");
   }
 
-  // rows split into codes. version 1: one character per tile, no spaces
+  // splits the rows into codes. version 1 had one character per tile and no spaces
   const oldFormat = (data.version ?? 1) < 2;
   const grid = data.rows.map((line) => (oldFormat ? [...line] : line.trim().split(/\s+/)));
 
@@ -118,14 +121,15 @@ function mapFromData(data) {
 
   const map = new TileMap(data.left ?? 0, data.top ?? 0, cols, rows, null);
   if (data.spawn) map.spawn = { x: data.spawn.x, y: data.spawn.y };
-  // older files may have an unused "showGrid" (the grid is dev mode only now)
+  // older files might have a "showGrid" that isn't used any more (the grid is dev mode only now)
 
-  // unknown things (e.g. a tile renamed in tiles.json) are left out, with one warning listing them
+  // anything it doesn't know (like a tile that got renamed in tiles.json) gets left out, with one
+  // warning that lists them all
   const unknown = new Set();
 
   grid.forEach((codes, r) => {
     for (let c = 0; c < cols; c++) {
-      // short rows pad with empty
+      // short rows get padded with empty tiles
       const code = codes[c];
       const name = code === undefined ? null : data.legend[code];
       if (name === undefined) {
@@ -146,7 +150,7 @@ function mapFromData(data) {
     map.addObject(obj.type, obj.col, obj.row);
   }
 
-  // "enemies" and "npcs"; older maps lack them
+  // "enemies" and "npcs". older maps don't have them
   for (const [kind, info] of Object.entries(SPAWN_KINDS)) {
     for (const spawn of data[info.fileKey] ?? []) {
       if (!info.types[spawn.type]) {
@@ -157,9 +161,9 @@ function mapFromData(data) {
     }
   }
 
-  // "warps", also missing from older maps. only name and tile are required: no "to" goes nowhere
-  // (arrival only), no "toWarp" arrives at the spawn, anything but "interact" is step, enemies follow
-  // only with "enemies": true (warps.js)
+  // "warps", which older maps don't have either. only the name and tile are needed. with no "to" it
+  // goes nowhere (you can only arrive there), with no "toWarp" you arrive at the spawn, anything that
+  // isn't "interact" counts as step, and enemies only follow with "enemies": true (warps.js)
   for (const warp of data.warps ?? []) {
     if (typeof warp.name !== 'string' || !Number.isInteger(warp.col) || !Number.isInteger(warp.row)) {
       unknown.add(`a warp without a name, col or row`);
@@ -182,9 +186,9 @@ function mapFromData(data) {
   return map;
 }
 
-// adds (or replaces) a map in MAPS (maps.js) from file data. true if it worked
+// adds a map to MAPS (maps.js) from file data, or replaces it. gives true if it worked
 function registerMap(name, data) {
-  // built once now to check it
+  // build it once now to check it's ok
   let checked;
   try {
     checked = mapFromData(data);
@@ -192,7 +196,8 @@ function registerMap(name, data) {
     console.warn(`Couldn't use the map "${name}": ${err.message}`);
     return false;
   }
-  // the first build reuses the checked map (no rebuild or repeat warnings); later ones build fresh
+  // the first build reuses the map that was just checked (so no building it twice or repeating the
+  // warnings), and after that it builds a fresh one each time
   addMap(name, () => {
     const map = checked ?? mapFromData(data);
     checked = null;
@@ -203,16 +208,16 @@ function registerMap(name, data) {
 
 // ---------- the maps folder ----------
 
-// loads every MAP_FILES map (maps.js), once at start. promise resolves when all loaded or failed;
-// failures are skipped with a console warning
+// loads every map in MAP_FILES (maps.js), once at the start. the promise finishes when they've all
+// loaded or failed. any that fail get skipped with a console warning
 function loadMapFiles() {
-  // parallel downloads (fetchJson() in utils.js), null on failure
+  // downloads them all at once (fetchJson() in utils.js), null for any that fail
   const loads = MAP_FILES.map((file) => fetchJson(MAP_FOLDER + file).catch((err) => {
     console.warn(`Couldn't load the map file "${file}": ${err.message}.`);
     return null;
   }));
 
-  // registered in MAP_FILES order, not finish order, so dev mode's M order is stable
+  // added in MAP_FILES order rather than whichever finished first, so dev mode's M order never changes
   return Promise.all(loads).then((results) => {
     results.forEach((data, i) => {
       if (data) registerMap(mapNameFromFile(MAP_FILES[i]), data);
@@ -222,17 +227,17 @@ function loadMapFiles() {
 
 // ---------- export and open (map editor buttons) ----------
 
-// downloads the map as cleanMapName(typedName).json. the map takes that name for this visit, so M
-// returns to it as it is now. a new name is "save as": this map becomes the new one, and the old
-// name rebuilds from its own file next time
+// downloads the map as cleanMapName(typedName).json. the map takes that name until you reload, so M
+// comes back to it as it is now. a new name works like "save as": this map becomes the new one, and
+// the old name gets rebuilt from its own file next time
 function exportMap(map, typedName) {
   const name = cleanMapName(typedName);
-  // the editor already blocks this; just in case
+  // the editor already stops this from happening, this is just in case
   if (!name) return;
 
   const data = mapToData(map);
   registerMap(name, data);
-  // forget the old name too, or both names would point at this map (maps.js)
+  // forget the old name too, otherwise both names would point at this map (maps.js)
   if (map.name !== name && VISITED_MAPS[map.name] === map) delete VISITED_MAPS[map.name];
   VISITED_MAPS[name] = map;
   map.name = name;
@@ -240,7 +245,7 @@ function exportMap(map, typedName) {
   downloadTextFile(`${name}.json`, mapDataToText(data));
 }
 
-// picks a map file (pickFile() in utils.js) and goes to it
+// lets you pick a map file (pickFile() in utils.js) and goes to it
 function openMapFile() {
   pickFile('.json,application/json', (file) => {
     file.text()
@@ -249,7 +254,7 @@ function openMapFile() {
         if (!registerMap(name, JSON.parse(text))) throw new Error('see the browser console for why');
         loadMap(name); // in sketch.js
       })
-      // in game (hud.js), and the console in case it's long
+      // shown in game (hud.js), and in the console too in case it's long
       .catch((err) => {
         showMessage(`Couldn't open ${file.name}`);
         console.warn(`Couldn't open ${file.name}: ${err.message}`);
@@ -259,21 +264,21 @@ function openMapFile() {
 
 // ---------- small helpers ----------
 
-// map file text: 2 space json (a tile row per line), with each object, enemy, npc and warp squashed
-// onto one line so long lists stay readable
+// the text of a map file: json with 2 space indents (one tile row per line), with each object, enemy,
+// npc and warp squashed onto one line so long lists are still easy to read
 function mapDataToText(data) {
   return JSON.stringify(data, null, 2)
-    // an object, character or warp: a { } starting with "type" or "name" holding only plain values
+    // an object, character or warp is a { } starting with "type" or "name" with only plain values in it
     .replace(/\{\s+("(?:type|name)":[^{}[\]]*?)\s+\}/g, (match, inside) => `{ ${inside.replace(/,\s+/g, ', ')} }`)
     + '\n';
 }
 
-// "My Forest!" → "my-forest", safe as a file name
+// turns "My Forest!" into "my-forest", so it's safe to use as a file name
 function cleanMapName(name) {
   return name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '');
 }
 
-// "forest.json" → "forest"
+// turns "forest.json" into "forest"
 function mapNameFromFile(fileName) {
   return cleanMapName(fileName.replace(/\.json$/i, ''));
 }

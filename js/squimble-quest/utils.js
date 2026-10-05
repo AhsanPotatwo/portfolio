@@ -1,12 +1,13 @@
-// shared helpers: maths, text, catalogues, files
+// helpers that get used all over the place: maths, text, catalogues and files
 
-// do boxes ({ x, y, w, h }) overlap? touching edges don't count
+// do two boxes ({ x, y, w, h }) overlap? edges just touching doesn't count
 function boxesOverlap(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x &&
          a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
-// smallest turn from angle b to a, radians, -PI..PI (350° → 10° is 20°). for arc checks
+// the smallest turn from angle b to angle a, in radians from -PI to PI (so 350 degrees to 10 degrees
+// is a 20 degree turn, not 340). used for checking if something's inside an arc
 function angleDifference(a, b) {
   let diff = (a - b) % (Math.PI * 2);
   if (diff > Math.PI) diff -= Math.PI * 2;
@@ -14,39 +15,41 @@ function angleDifference(a, b) {
   return diff;
 }
 
-// ease in-out of t (0 → 1), for fixed-length movements like camera glides
+// eases t (0 to 1) in and out, for movements with a fixed length like camera glides
 function easeInOut(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
 
-// moves current towards target by part of the gap each frame, slowing as it arrives. higher speed is
-// snappier, Infinity is instant. Math.exp makes it frame rate independent
+// moves current towards target by part of the gap each frame, so it slows down as it gets there.
+// higher speed is snappier and Infinity is instant. the Math.exp makes it work the same at any
+// frame rate
 function approach(current, target, speed, dt) {
   if (speed === Infinity) return target;
   return current + (target - current) * (1 - Math.exp(-speed * dt));
 }
 
-// random from min to just under max. all game randomness goes through here, so it could become a
-// seeded random shared by every player in multiplayer (see README.md)
+// a random number from min up to (but not including) max. all the game's randomness goes through
+// here, so in multiplayer it could be swapped for a seeded random that every player shares (README.md)
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }
 
-// angle (radians, clockwise from right since y goes down) → nearest of 8 directions, x and y each
-// -1/0/1 like Input.direction(). e.g. 0 → {x:1,y:0}, PI/2 → {x:0,y:1}
+// turns an angle (radians, going clockwise from right because y goes down) into the nearest of 8
+// directions, with x and y each -1, 0 or 1 like Input.direction(). so 0 gives {x:1,y:0} and PI/2
+// gives {x:0,y:1}
 function directionFromAngle(angle) {
-  // snap to the nearest 45°
+  // snap to the nearest 45 degrees
   const snapped = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
-  // cos/sin are 0, ±0.707 or ±1; rounding gives 0 or ±1
+  // cos and sin come out as 0, 0.707 or 1 (or minus those), and rounding turns them into 0 or 1
   return {
     x: Math.round(Math.cos(snapped)),
     y: Math.round(Math.sin(snapped)),
   };
 }
 
-// sets all text() settings in one call. style NORMAL/BOLD/ITALIC, alignX LEFT/CENTER/RIGHT, alignY
-// TOP/CENTER/BOTTOM. quicksand and courier prime are loaded by the page.
-// e.g. setText(14, BOLD, CENTER, BOTTOM) or setText(13, NORMAL, LEFT, TOP, 'Courier Prime')
+// sets all of p5's text settings in one go. style is NORMAL/BOLD/ITALIC, alignX is LEFT/CENTER/RIGHT
+// and alignY is TOP/CENTER/BOTTOM. the page loads quicksand and courier prime.
+// like setText(14, BOLD, CENTER, BOTTOM) or setText(13, NORMAL, LEFT, TOP, 'Courier Prime')
 function setText(size, style = BOLD, alignX = CENTER, alignY = CENTER, font = 'Quicksand') {
   textFont(font);
   textStyle(style);
@@ -55,12 +58,12 @@ function setText(size, style = BOLD, alignX = CENTER, alignY = CENTER, font = 'Q
 }
 
 // ---------- catalogues ----------
-// objects.js, enemies.js, npcs.js, weapons.js and items.js each keep a catalogue of kinds by name
-// (e.g. ENEMY_TYPES.grunt), filled by defineObject(), defineEnemy()... through these
+// objects.js, enemies.js, npcs.js, weapons.js and items.js each keep a catalogue of their kinds by name
+// (like ENEMY_TYPES.grunt), filled in by defineObject(), defineEnemy() and so on, which all use these
 
-// adds `name` to catalogue `types`: defaults + settings + name. a setting not in the defaults is
-// usually a typo (maxHelth) that'd be silently ignored, so it warns; a real new setting needs a
-// default. kind is only for the warning
+// adds `name` to the catalogue `types` as the defaults, then its settings on top, plus its name. if a
+// setting isn't in the defaults it's probably a typo (like maxHelth) that would just get ignored, so
+// it warns about it. a setting that's actually new needs a default adding. kind is only for the warning
 function defineType(types, defaults, kind, name, settings) {
   for (const key of Object.keys(settings)) {
     if (!(key in defaults)) console.warn(`The ${kind} "${name}" has a setting "${key}" that isn't in the ${kind} defaults. A typo, or a new setting that needs its normal value adding there?`);
@@ -68,8 +71,8 @@ function defineType(types, defaults, kind, name, settings) {
   types[name] = { ...defaults, ...settings, name };
 }
 
-// a catalogue entry as file data (tiles.json, items.json): name plus non-default settings. colour
-// always goes in, so every line shows its look
+// a catalogue entry turned back into file data (tiles.json, items.json): its name plus any settings
+// that aren't the default. colour always goes in so you can see what every line looks like
 function typeToData(type, defaults) {
   const entry = { name: type.name };
   for (const [key, value] of Object.entries(defaults)) {
@@ -78,15 +81,15 @@ function typeToData(type, defaults) {
   return entry;
 }
 
-// one json list entry on one indented line. indent 1 then collapsing line breaks leaves spaces
-// after colons and commas
+// one entry of a json list, squashed onto one indented line. using an indent of 1 and then removing
+// the line breaks leaves a space after every colon and comma, which reads nicely
 function jsonLine(entry) {
   return `    ${JSON.stringify(entry, null, 1).replace(/\n\s*/g, ' ')}`;
 }
 
-// loads images and makes p5 colours once (not every draw). run from preload() (sketch.js) for
-// objects, enemies, npcs, and after items.json loads for items (items.js). tiles use setTile()
-// (tiles.js). kind is only for the warning
+// loads the pictures and makes the p5 colours once, instead of on every draw. preload() (sketch.js)
+// runs it for objects, enemies and npcs, and items.js runs it once items.json has loaded. tiles do
+// their own thing in setTile() (tiles.js). kind is only for the warning
 function prepareArt(types, kind) {
   for (const type of Object.values(types)) {
     type.fill = color(type.colour);
@@ -97,7 +100,7 @@ function prepareArt(types, kind) {
         type.img = null;
       });
     }
-    // npc text box portraits (npcs.js)
+    // portraits for the npc text box (npcs.js)
     type.portraitImg = null;
     if (type.portrait) {
       type.portraitImg = loadImage(type.portrait, undefined, () => {
@@ -109,11 +112,11 @@ function prepareArt(types, kind) {
 }
 
 // ---------- files ----------
-// game files load from the site's folders; the editors can also open files from the computer and
-// download files to put in those folders
+// the game loads its files from the site's folders. the editors can also open files from your
+// computer, and download files for you to put in those folders
 
-// promise of a site json file's data. the error says why it failed, plus the local server hint when
-// opened as file://
+// gives a promise of a json file's data from the site. if it fails, the error says why, plus a hint
+// about running a local server if the page was opened as file://
 function fetchJson(path) {
   return fetch(path)
     .then((response) => {
@@ -128,8 +131,8 @@ function fetchJson(path) {
     });
 }
 
-// browser file picker (the only way a page can read a file), then onPick(File). accept e.g. '.json'
-// or 'image/*'. closing without choosing does nothing
+// opens the browser's file picker (the only way a web page is allowed to read your files), then calls
+// onPick(File). accept is something like '.json' or 'image/*'. closing it without choosing does nothing
 function pickFile(accept, onPick) {
   const picker = document.createElement('input');
   picker.type = 'file';
@@ -144,14 +147,14 @@ function downloadTextFile(fileName, text) {
   downloadData(fileName, new Blob([text], { type: 'application/json' }));
 }
 
-// downloads a Blob, e.g. a picture chosen in tileeditor.js. not downloadFile(): p5's global would
-// replace it
+// downloads a Blob, like a picture chosen in tileeditor.js. it's not called downloadFile() because
+// p5 already has a global with that name and would replace it
 function downloadData(fileName, data) {
   const url = URL.createObjectURL(data);
   const link = document.createElement('a');
   link.href = url;
   link.download = fileName;
   link.click();
-  // let the download start before tidying up
+  // give the download a second to start before tidying up
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

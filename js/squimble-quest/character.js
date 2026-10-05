@@ -1,26 +1,27 @@
-// anything that walks, has health and fights: the base of the player (player.js), enemies (enemy.js)
-// and npcs (npc.js), so they all walk, collide, get hurt and attack the same way.
+// anything that walks, has health and fights. the player (player.js), enemies (enemy.js) and npcs
+// (npc.js) are all built on this, so they all walk, bump into things, get hurt and attack the same way.
 //
-// each frame a character gets controls:
+// every frame a character gets given controls:
 //   { move: { x, y }, aim: { x, y } or null, attack: true or false }
-//   move    walk direction, x and y each -1/0/1 (like Input.direction())
-//   aim     world position to face, or null to keep facing
-//   attack  start a weapon swing (if ready)
-// from the keyboard and mouse for the player (sketch.js), from the ai for enemies (enemies.js), so
-// enemies can do anything the player can.
+//   move    which way to walk, x and y each -1, 0 or 1 (like Input.direction())
+//   aim     a world position to face, or null to keep facing the same way
+//   attack  start a weapon swing (if it's ready)
+// the player's come from the keyboard and mouse (sketch.js) and enemies' come from their ai
+// (enemies.js), so enemies can do anything the player can.
 //
-// settings: PLAYER (config.js), ENEMY_TYPES (enemies.js) or NPC_TYPES (npcs.js):
+// the settings come from PLAYER (config.js), ENEMY_TYPES (enemies.js) or NPC_TYPES (npcs.js):
 //   width, height, feetWidth, feetHeight, speed, maxHealth, weapon (enemies),
 //   colour, outline, hurtColour, hurtFlashTime, healthBarColour, ai (enemies and npcs)
 //
-// world (for update() and ais): { map, players, enemies, npcs, characters }, characters being all of
-// them in one list (made in sketch.js). players is a list so there can be more than one: find them
-// with nearestPlayer(), never by assuming there's just one
+// world (for update() and ais) is { map, players, enemies, npcs, characters }, where characters is
+// all of them in one list (sketch.js makes it). players is a list so there can be more than one, so
+// find them with nearestPlayer() and never assume there's only one
 
-// controls for doing nothing (no ai, or it's waiting)
+// controls for doing nothing (no ai, or it's waiting for something)
 const STAND_STILL = { move: { x: 0, y: 0 }, aim: null, attack: false };
 
-// the player in world.players closest to `from` (anything with x, y), or null if there are none
+// the player in world.players that's closest to `from` (anything with an x and y), or null if there
+// aren't any
 function nearestPlayer(world, from) {
   let nearest = null;
   let nearestDistance = Infinity;
@@ -34,12 +35,14 @@ function nearestPlayer(world, from) {
   return nearest;
 }
 
-// distance from a character's centre down to its feet's middle. settings: PLAYER or an enemy/npc type
+// how far it is from a character's middle down to the middle of its feet. settings is PLAYER or an
+// enemy or npc type
 function feetBelowCentre(settings) {
   return settings.height / 2 - settings.feetHeight / 2;
 }
 
-// centre of a character standing with its feet mid-tile. places enemies, npcs and the player's spawn
+// where a character's middle is when it's standing with its feet in the middle of a tile. used to
+// place enemies, npcs and the player's spawn
 function standingOnTile(settings, col, row) {
   return { x: (col + 0.5) * TILE, y: (row + 0.5) * TILE - feetBelowCentre(settings) };
 }
@@ -48,43 +51,46 @@ class Character {
   constructor(x, y, settings) {
     this.settings = settings;
 
-    // centre, world positions (camera.js)
+    // its middle, in world positions (camera.js)
     this.x = x;
     this.y = y;
     this.w = settings.width;
     this.h = settings.height;
     this.speed = settings.speed;
-    // px/s. only matters on slippery tiles, where it carries on (walk())
+    // px/s. only really matters on slippery tiles, where it keeps you sliding (walk())
     this.velocity = { x: 0, y: 0 };
 
     this.maxHealth = settings.maxHealth;
     this.health = this.maxHealth;
-    // counts down after a hit; flashes while above 0
+    // counts down after getting hit, and it flashes while this is above 0
     this.hurtTimer = 0;
-    // died for good. dead enemies are removed (the player respawns instead)
+    // died for good. dead enemies get removed (the player respawns instead)
     this.dead = false;
 
-    // the tile under its feet (tiles.js settings) and its column and row. null until the first update
+    // the tile under its feet (its tiles.js settings) and that tile's column and row. null until the
+    // first update
     this.tile = null;
     this.tileCol = null;
     this.tileRow = null;
 
-    // exact facing in radians (0 right, PI/2 down), for precise things like swing direction
+    // the exact way it's facing in radians (0 is right, PI/2 is down), for things that need to be
+    // precise like which way to swing
     this.aimAngle = Math.PI / 2;
-    // nearest of 8 directions to aimAngle, x and y -1..1, for 8-way things like sprites. both start down
+    // the closest of 8 directions to aimAngle, x and y from -1 to 1, for 8 way things like sprites.
+    // both start off facing down
     this.facing = { x: 0, y: 1 };
 
-    // the current swing, or null
+    // the swing that's happening, or null
     this.swing = null;
     // seconds until it can attack again
     this.attackCooldown = 0;
-    // flips each swing so they go back and forth
+    // flips every swing so they go back and forth
     this.backhand = false;
   }
 
   // ---------- every frame ----------
 
-  // controls and world: see the top of this file. dt: seconds since last frame
+  // controls and world are explained at the top of this file. dt is the seconds since last frame
   update(controls, dt, world) {
     this.walk(controls.move, dt, world);
     this.aimAt(controls.aim);
@@ -100,81 +106,84 @@ class Character {
     this.attackCooldown = Math.max(0, this.attackCooldown - dt);
   }
 
-  // who its attacks can hurt; the player and enemies override it
+  // who its attacks can hurt. the player and enemies replace this with their own
   targets(world) {
     return [];
   }
 
-  // its ai's controls this frame (enemies.js / npcs.js), or STAND_STILL without one. not the player
+  // the controls from its ai this frame (enemies.js / npcs.js), or STAND_STILL if it doesn't have
+  // one. not used for the player
   think(world, dt) {
     return this.settings.ai ? this.settings.ai(this, world, dt) : STAND_STILL;
   }
 
   // ---------- moving ----------
 
-  // changes position, not facing, so it can walk one way and aim another. walls and other
-  // characters stop it
+  // changes where it is but not which way it's facing, so it can walk one way and aim another. walls
+  // and other characters stop it
   walk(dir, dt, world) {
     const map = world.map;
     let dx = dir.x;
     let dy = dir.y;
 
-    // diagonals would be ~1.41x faster; scale by 1/√2
+    // going diagonally would be about 1.41x faster, so scale it down by 1/sqrt(2)
     if (dx !== 0 && dy !== 0) {
       dx *= Math.SQRT1_2;
       dy *= Math.SQRT1_2;
     }
 
-    // tile speed (sand slows you)
+    // the tile's speed (sand slows you down)
     const tile = this.tile;
     const speed = this.speed * (tile ? tile.speed : 1);
 
-    // intended velocity plus any tile push (pushSpeed is in tiles)
+    // the velocity it wants plus any push from the tile (pushSpeed is in tiles)
     const push = PUSH_DIRECTIONS[tile?.pushDirection];
     const pushSpeed = push ? tile.pushSpeed * TILE : 0;
-    // instant, except on slippery tiles where it only slowly turns from its old velocity, so it
-    // slides (SLIPPERY_GRIP in tiles.js)
+    // changes straight away, except on slippery tiles where it only turns slowly from its old
+    // velocity, which is what makes it slide (SLIPPERY_GRIP in tiles.js)
     const grip = tile?.slippery ? SLIPPERY_GRIP * (1 - tile.slippery) : Infinity;
     this.velocity.x = approach(this.velocity.x, dx * speed + (push ? push.x * pushSpeed : 0), grip, dt);
     this.velocity.y = approach(this.velocity.y, dy * speed + (push ? push.y * pushSpeed : 0), grip, dt);
 
-    // x then y, so angled collisions slide along. each: the map limits the feet at walls
-    // (tilemap.js), then other characters' feet cut it shorter
+    // x and then y, so it slides along things it hits at an angle. for each one the map stops the feet
+    // at walls (tilemap.js), and then other characters' feet can cut it shorter
     const feet = this.feetBox();
     const moveX = this.stopAtOthers(world, feet, 'x', map.moveAlongX(feet, this.velocity.x * dt));
     feet.x += moveX;
     const moveY = this.stopAtOthers(world, feet, 'y', map.moveAlongY(feet, this.velocity.y * dt));
     this.x += moveX;
     this.y += moveY;
-    // bumping stops sliding that way
+    // bumping into something stops you sliding that way
     if (dt > 0) {
       this.velocity.x = moveX / dt;
       this.velocity.y = moveY / dt;
     }
 
-    // feet stop at the map edge, but the head could poke off the top, so stop at that too. skipped
-    // on maps shorter than the character, where it'd push the feet off the bottom
+    // the feet stop at the edge of the map, but the head could still poke off the top, so stop that
+    // too. skipped on maps shorter than the character, because there it would push the feet off the
+    // bottom
     const edges = map.bounds();
     const headLimit = edges.top + this.h / 2;
     if (edges.bottom - edges.top >= this.h && this.y < headLimit) this.y = headLimit;
   }
 
-  // cuts amount (movement on 'x' or 'y') so the feet stop flush against any living character's feet.
-  // only feet collide, so bodies can overlap (one standing in front of another). loops
-  // world.characters directly: every character does this every frame. nothing pushes anyone, so
-  // enemies blocking each other stay blocked until one moves: the pathfinders notice and give way
-  // (checkStuck() in pathfinding.js)
+  // cuts down amount (movement along 'x' or 'y') so the feet stop right up against any living
+  // character's feet. only feet bump, so bodies can overlap (one standing in front of another). it
+  // loops world.characters directly since every character does this every frame. nobody pushes
+  // anyone, so enemies blocking each other stay stuck until one moves. the pathfinders notice that and
+  // give way (checkStuck() in pathfinding.js)
   stopAtOthers(world, feet, axis, amount) {
     if (amount === 0) return 0;
     const size = axis === 'x' ? 'w' : 'h';
     for (const other of world.characters) {
       if (other === this || other.dead) continue;
       const theirs = other.feetBox();
-      // already overlapping (e.g. teleported onto them): let them walk apart rather than both stick
+      // already overlapping (like if one got teleported onto the other): let them walk apart instead of
+      // both getting stuck
       if (boxesOverlap(feet, theirs)) continue;
       const moved = { ...feet, [axis]: feet[axis] + amount };
       if (!boxesOverlap(moved, theirs)) continue;
-      // our front edge on their near edge
+      // put our front edge on their near edge
       amount = amount > 0
         ? theirs[axis] - (feet[axis] + feet[size])
         : (theirs[axis] + theirs[size]) - feet[axis];
@@ -182,8 +191,9 @@ class Character {
     return amount;
   }
 
-  // the colliding part: just the feet at the body's bottom, so the head can overlap a wall above
-  // (right for top down) and the ~2 tile tall player fits 1 tile gaps
+  // the part that bumps into things, which is just the feet at the bottom of the body. that way the
+  // head can overlap a wall above it (which looks right for top down) and the player, who's about 2
+  // tiles tall, fits through 1 tile gaps
   feetBox() {
     const w = this.settings.feetWidth;
     const h = this.settings.feetHeight;
@@ -195,7 +205,7 @@ class Character {
     };
   }
 
-  // the whole body; what attacks hit
+  // the whole body, which is what attacks hit
   bodyBox() {
     return { x: this.x - this.w / 2, y: this.y - this.h / 2, w: this.w, h: this.h };
   }
@@ -206,14 +216,15 @@ class Character {
     this.y = centre.y;
   }
 
-  // tracks the tile under the feet' middle and applies its damage/healing (damagePerStep,
-  // damagePerSecond, healPerSecond in tiles.js). same for everyone, so lava hurts enemies too
+  // keeps track of the tile under the middle of the feet and applies its damage or healing
+  // (damagePerStep, damagePerSecond, healPerSecond in tiles.js). it's the same for everyone, so lava
+  // hurts enemies too
   checkTile(map, dt) {
     const feet = this.feetBox();
     const col = map.colAt(feet.x + feet.w / 2);
     const row = map.rowAt(feet.y + feet.h / 2);
 
-    // stepped onto a new tile
+    // just stepped onto a new tile
     if (col !== this.tileCol || row !== this.tileRow) {
       this.tileCol = col;
       this.tileRow = row;
@@ -227,27 +238,27 @@ class Character {
 
   // ---------- aiming and attacking ----------
 
-  // face a point; null keeps facing
+  // face towards a point. null keeps facing the same way
   aimAt(point) {
     if (!point) return;
 
     const dx = point.x - this.x;
     const dy = point.y - this.y;
 
-    // too close: the angle would flick about
+    // too close, the angle would flick all over the place
     if (Math.hypot(dx, dy) < AIM.deadzone) return;
 
     this.aimAngle = Math.atan2(dy, dx);
     this.facing = directionFromAngle(this.aimAngle);
   }
 
-  // its weapon now (WEAPONS settings, weapons.js), or null. enemies' is fixed in settings; the player
-  // overrides this to use the held item (player.js)
+  // the weapon it's using right now (WEAPONS settings, weapons.js), or null. an enemy's is fixed in
+  // its settings, and the player replaces this to use whatever item it's holding (player.js)
   currentWeapon() {
     return this.settings.weapon ? WEAPONS[this.settings.weapon] : null;
   }
 
-  // swing towards the aim, if armed and ready
+  // swing towards where it's aiming, if it has a weapon and it's ready
   attack() {
     const weapon = this.currentWeapon();
     if (!weapon || this.attackCooldown > 0) return;
@@ -258,7 +269,7 @@ class Character {
 
   // ---------- health ----------
 
-  // anything can call it: weapons, tiles, traps...
+  // anything can call this: weapons, tiles, traps...
   hurt(amount) {
     if (this.dead) return;
     this.health -= amount;
@@ -269,28 +280,28 @@ class Character {
     }
   }
 
-  // up to max. anything can call it: tiles, potions...
+  // heals up to max health. anything can call this: tiles, potions...
   heal(amount) {
     if (this.dead) return;
     this.health = Math.min(this.maxHealth, this.health + amount);
   }
 
-  // at 0 health; the player and enemies override it
+  // runs at 0 health. the player and enemies replace this with their own
   die() {
     this.dead = true;
   }
 
   // ---------- drawing ----------
 
-  // world positions (inside camera.begin/end). npcs override it (npc.js)
+  // world positions (inside camera.begin/end). npcs have their own (npc.js)
   draw() {
     this.drawBody();
-    // health bar once hurt
+    // health bar once it's been hurt
     if (this.health < this.maxHealth) this.drawHealthBar();
     if (this.swing) this.swing.draw();
   }
 
-  // overhead health bar in healthBarColour
+  // the health bar over its head, in healthBarColour
   drawHealthBar() {
     const w = this.w + 8;
     const x = Math.round(this.x - w / 2);
@@ -302,10 +313,10 @@ class Character {
     rect(x, y, w * (this.health / this.maxHealth), 5, 2);
   }
 
-  // body and facing, world positions (inside camera.begin/end)
+  // the body and which way it's facing, in world positions (inside camera.begin/end)
   drawBody() {
     const s = this.settings;
-    // top left, rounded to whole pixels for sharp edges
+    // top left, rounded to whole pixels so the edges are sharp
     const left = Math.round(this.x - this.w / 2);
     const top = Math.round(this.y - this.h / 2);
 
@@ -318,7 +329,7 @@ class Character {
       rect(left, top, this.w, this.h);
     }
 
-    // dot towards the 8-way facing, showing which sprite would be used
+    // a dot towards whichever of the 8 directions it's facing, to show which sprite it would use
     noStroke();
     fill(s.outline);
     const dotX = this.x + this.facing.x * this.w * 0.3;
