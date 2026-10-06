@@ -261,9 +261,9 @@
   }
 
   // a button for each wave, with a little picture of it (like drawWaveShape() in sound.js). the
-  // noises and file have no shape, so they get a made up one
+  // waves with no shape get their made up one from WAVE_PICTURES
   for (const [wave, { label, tip, shape }] of Object.entries(SOUND_WAVES)) {
-    const picture = shape ?? (wave === 'file' ? (p) => Math.sin(p * Math.PI * 6) * Math.sin(p * Math.PI) : (p) => Math.sin(p * 997) * Math.sin(p * 131));
+    const picture = shape ?? WAVE_PICTURES[wave] ?? WAVE_PICTURES.noise;
     const points = Array.from({ length: 53 }, (_, i) => `${i},${(8 - picture(((i / 52) * 2) % 1, 0.5) * 6.4).toFixed(2)}`);
     // file asks for a file the first time, and goes back to the chosen one after that
     const button = key('', `${label}: ${tip}`, () => (wave === 'file' && !Studio.draft.file ? Studio.chooseFile() : Studio.change({ wave })));
@@ -395,30 +395,8 @@
   function render() {
     const d = Studio.draft;
     // sliders that don't do anything with the other settings as they are get greyed out, the same
-    // list as SoundEditor.update()
-    const shaped = Boolean(SOUND_WAVES[d.wave].shape);
-    const matters = {
-      pulseWidth: d.wave === 'square',
-      pulseSweep: d.wave === 'square',
-      fm: shaped,
-      fmRatio: shaped && d.fm > 0,
-      resonance: d.lowPass < 100 || d.lowPassSweep !== 0,
-      jumpAt: d.jump !== 0,
-      jump2At: d.jump2 !== 0,
-      jumpRepeat: d.jump !== 0 || d.jump2 !== 0,
-      repeatPitch: d.repeats > 1,
-      vibratoSpeed: d.vibrato > 0,
-      wanderSpeed: d.wander > 0,
-      gap: d.repeats > 1,
-      tremoloSpeed: d.tremolo > 0,
-      crackleLength: d.crackle > 0,
-      crackleDepth: d.crackle > 0,
-      echoFeedback: d.echo > 0,
-      vowel: d.wave === 'voice',
-      vowelSlide: d.wave === 'voice',
-      mouth: d.wave === 'voice',
-      breath: d.wave === 'voice',
-    };
+    // ones as in the game (soundSettingMatters() in soundeditor.js)
+    const matters = soundSettingMatters(d);
     for (const [settingKey, slider] of Object.entries(Studio.sliders)) {
       slider.enabled = matters[settingKey] ?? true;
       showSlider(slider);

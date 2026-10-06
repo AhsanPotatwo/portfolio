@@ -37,19 +37,25 @@ The buttons come in kinds, picked with the little tabs above them:
 
 | Kind | Buttons | Its Character sliders |
 |---|---|---|
-| **Game** | coin, pickup, power-up, jump, hit, hurt, laser, explosion, blip, select, back, error, jingle, level up, game over | Pitch, Length, Retro |
-| **Magic** | sparkle, heal, cast, fireball, ice, zap, teleport, portal, force field, curse, charge up, poof, secret, chime, shield | Pitch, Length, Sparkle, Echo |
-| **Sci-fi** | sonar, radar, target lock, beacon, scanner, hologram, computer, data, glitch, stutter, static, alien signal, power on, power off, beam | Pitch, Length, Glitch, Space |
-| **Things** | footsteps, knock, clang, glass, whoosh, sword clash, creak, clock, bell, coins, firecracker, splash, siren, alarm, heartbeat | Pitch, Length, Hardness, Room |
-| **Motors** | engine, car idle, motor, drill, chainsaw, fan, helicopter, hum, generator, spin up, spin down, servo, clockwork, winch | Machine, Speed, Size, Strain, Rattle, Spin, Spin time |
-| **Squishy** | slime step, squelch, splat, bubble pop, bubbles, potion, gulp, slurp, suction, mud, plop, jelly, boing, burp | Bubble size, Thickness, Pressure, Wetness |
-| **Birds** | chirp, sparrow, songbird, robin, canary, warbler, chick, parrot, seagull, duck, hawk, crow, owl, cuckoo, dove | Voice, Size, Calls, Call length, Gap, Sweep, Arch, Trill, Trill speed, Rasp, Phrase |
-| **Beasts** | woof, meow, pig, rat, wolf howl, tiny dragon, dragon roar, cave beast, zombie, angry blob, alien purr, insect, ghost whale, forest spirit, clockwork pet | Anatomy, Pitch, Size, Calls, Call length, Bend, Arch, Growl, Breath, Flutter, Mouth move |
-| **Breath** | inhale, exhale, sigh, gasp, sniff, panting, deep breath, huff, cough, snore, sleeping beast, diver, helmet, ghost breath | Breath (in, out, or in and out), Breaths, Length, Effort, Throat, Rasp, Tremble, Snore, Enclosure |
-| **Nature** | cricket, frog, bee, swarm, wind, blizzard, rain, storm, thunder, fire, stream, waterfall, ocean, leaves, drip | Brightness, Wildness, Length |
+| **Arcade** | shiny, grab, boost, hop, thwack, ouch, pew, kaboom, bleep, choose, go back, nope, treasure, level ding, womp womp | Pitch, Length, Retro |
+| **Tunes** | yep, nah, letter, tuck away, found it, hooray, oh no, hidden path, danger, safe spot, solved, sleepy, shop bell, music box, quest start | Instrument, Tune number, Notes, Mood, Shape, Speed, Key, Finale, Brightness, Space |
+| **Drums** | kick, snare, closed hat, open hat, clap, tom, rimshot, cowbell, shaker, crash, boom, woodblock, bongo, chip snare, tambourine | Tuning, Ring, Snap, Room, Crunch |
+| **Choir** | heavenly, dread, cloister, pixie chorus, tin choir, phantoms, triumph, the deep, temple, sunrise, hymn, awe, mystery | Pitch, Singers, Harmony, Spread, Sing, Air, Swell, Length, Wobble, Space |
+| **Combat** | swish, big swing, slice, steel on steel, deflect, shield bash, wallop, thud, bowstring, arrow past, jab, crunch, smash, plate armour, sidestep | Pitch, Length, Weight, Room |
+| **Magic** | twinkle, mend, incant, flame bolt, frost, jolt, blink, rift, ward, hex, gather power, vanish, clue, glint, barrier | Pitch, Length, Sparkle, Echo |
+| **Sci-fi** | depth ping, blip scan, lock-on, homing signal, scan beam, projector, mainframe, uplink, corrupt, skip, dead channel, first contact, boot up, shut down, tractor beam | Pitch, Length, Glitch, Space |
+| **Things** | steps, knuckles, pan bang, tink, old hinge, tick tock, doorbell, pocket change, bangers, sploosh, wail, beep beep, lub-dub, page flip, drawer | Pitch, Length, Hardness, Room |
+| **Motors** | big engine, ticking over, whirr, drill, buzzsaw, fan, chopper, steady hum, genny, rev up, wind down, robot arm, tiny gears, crank | Machine, Speed, Size, Strain, Rattle, Spin, Spin time |
+| **Squishy** | goo step, squelch, splotch, pop, fizz, cauldron, glug, slurp, plunger, bog, plink, wobble, spring, burp, ooze | Blob size, Gloop, Squeeze, Slop |
+| **Birds** | peep, hedge chatter, dawn song, redbreast, golden trill, brook song, chick, squawker, gull, quacker, hawk, rook, night hoot, two-note, cooer | Beak, Size, Chirps, Chirp length, Pause, Swoop, Curve, Warble, Warble speed, Scratch, Song slope |
+| **Beasts** | bark, mew, oink, squeak, moon howl, drakeling, wyrm roar, lurker, shambler, grumpy slime, star kitten, cicada, sky whale, wisp, tin pup | Body, Pitch, Bulk, Cries, Cry length, Slide, Hump, Snarl, Huff, Quiver, Jaw |
+| **Breath** | breathe in, breathe out, weary, shock, sniffle, out of puff, calm down, hup!, ahem, zzz, dozing giant, scuba, space suit, cold breath | Way (in, out, or in and out), Puffs, Length, Push, Chest, Wheeze, Shiver, Rumble, Mask |
+| **Nature** | chirrup, croak, bumble, midges, breeze, whiteout, drizzle, downpour, thunderclap, hearth, brook, falls, tide, rustle, cave drip | Nearness, Restless, Length |
 | **Voices** | see [Voices and talking](#voices-and-talking) | Age, Size, Mood, Gravel |
 
-**The Character tab** has sliders for the kind the sound was made from, so you can change it the way that kind of thing would change: give a bird more trill, a beast more growl, a potion more pressure, or make a voice older. Moving one makes the sound again with the same random numbers, so it's the same sound with just that changed, and the other tabs' sliders move to match. Anything you've changed in the other tabs since stays how you set it. For Birds, Beasts, Breath and Motors the Character sliders are the whole sound (a crow is a bird with a rasp voice, low size and lots of rasp), so they go a long way. For the other kinds they change whatever the button made, and in the middle (or at 0) they leave it alone.
+**The Character tab** has sliders for the kind the sound was made from, so you can change it the way that kind of thing would change: play a tune on a different instrument, give a bird more warble, a beast more snarl, a cauldron more squeeze, or make a voice older. Moving one makes the sound again with the same random numbers, so it's the same sound with just that changed, and the other tabs' sliders move to match. Anything you've changed in the other tabs since stays how you set it. For Tunes, Choir, Birds, Beasts, Breath and Motors the Character sliders are the whole sound (a rook is a bird with a rough beak, low size and lots of scratch), so they go a long way. For the other kinds they change whatever the button made, and in the middle (or at 0) they leave it alone.
+
+Every button comes out at about the same loudness, so flicking through them doesn't jump between whispers and blasts. Turning a Character slider keeps it at that level; **Volume** is still yours to change.
 
 The Character sliders only last while the editor is open. A saved sound keeps how it sounds, but opens again with an empty Character tab. **Random** and choosing a file empty it too.
 
@@ -67,6 +73,7 @@ The Character sliders only last while the editor is open. A saved sound keeps ho
 | **tan** | Wild and distorted. Alarms, broken machines |
 | **metal** | A metallic, clangy buzz (old consoles' short noise). Still plays notes |
 | **voice** | A voice saying a vowel. Shape it in the Voice tab |
+| **string** | A plucked string: harps, guitars, music boxes. Each repeat plucks it again, and a long fade out lets it ring |
 | **noise** | Random hiss. Hits, explosions, footsteps |
 | **soft noise** | Softer, deeper hiss. Wind, rain, rivers, the sea, fire |
 | **bit noise** | Crunchy 1 bit noise like old consoles. Glitches, retro explosions |
@@ -79,27 +86,34 @@ For the noises, **Pitch** is how high the hiss is rather than a note.
 - **Pitch** tab
   - **Pitch**: how high it is. 440 Hz is the A above middle C (the note is shown next to it), and doubling it goes up an octave.
   - **Slide** / **Slide speed-up**: makes the pitch rise or fall while it plays (up for jumps and power-ups, down for lasers), and makes that slide speed up or slow down. Slide one way and speed up the other way for a chirp that turns round.
+  - **Drop** / **Drop time**: starts that many notes higher and falls fast to the pitch, then stays. The thump of a kick drum, a punch, a zap.
   - **Vibrato** / **Vibrato speed**: wobbles the pitch up and down. Big and slow is a siren, small and fast is a trill.
   - **Wander** / **Wander speed**: lets the pitch drift around at random. Slow for wind gusts and engines, fast (over 100) for rough, gravelly, raspy sounds.
   - **Growl**: makes every other wave quieter, which adds a rough note an octave lower, like vocal fry. A little for a gravelly voice, lots for growling beasts, dragons and snores.
   - **Jump** / **Jump at**, **Second jump** / **Second jump at**: jumps the pitch up or down partway through, like the two notes of a coin. The second jump goes on top of the first, so 4 then 3 plays a happy chord one note at a time.
   - **Jumps repeat**: goes back to the start pitch and does the jumps again, round and round (an arpeggio). Short is sparkly magic.
   - **Each repeat**: moves the pitch up or down this many notes on every repeat, for a falling birdsong, a cuckoo's lower second note or a fanfare that climbs. Only does something with **Repeats** over 1.
+  - **Repeat scatter**: puts every repeat after the first on a random note, for coins clinking, bubbles and breaking glass.
+  - **Tune** / **Scale** / **Shape** / **Last note**: turns the repeats into a little tune, one note each. Every **Tune** number is a different tune (0 is off), **Scale** picks its notes (major, minor, pentatonic, dreamy, spooky, whole tone), **Shape** which way it goes (climbs, falls, arches, wanders, calls), and **Last note** holds the final note for longer so it sounds finished.
 - **Volume** tab
   - **Fade in**, **Hold**, **Fade out**: how long it takes to get loud, how long it stays loud, and how long it takes to go quiet. A long fade out rings like a bell.
   - **Punch**: makes the very start of the hold extra loud, for a snappy hit.
   - **Repeats** / **Gap**: plays it this many times in a row, with this much silence between (alarms, footsteps, birdsong).
-  - **Volume** and **Heard from**: how loud it is, and how many tiles away it can be heard in the game. It's loudest right on top of it and fades away to nothing at this distance.
+  - **Scatter**: makes the repeats come at uneven times and loudnesses instead of like a clock, for bubbles, rain on a roof, or tapping.
+  - **Volume** and **Heard from**: how loud it is (over 100% boosts quiet sounds like soft noise), and how many tiles away it can be heard in the game. It's loudest right on top of it and fades away to nothing at this distance.
   - **Doppler**: how much moving bends its pitch in the game. Something coming towards you (or you towards it) is higher, and going away lower, like a car going past. 100% is normal, 0% turns it off (for menu sounds or music), and more exaggerates it. It only happens in the game, never in the editor's preview. See the [sound test map](../maps/README.md#the-sound-test-map).
   - **Tremolo** / **Tremolo speed**: wobbles the volume. Fast for engines, helicopters, crickets and frogs, slow for pulsing.
+  - **Hiss**: mixes noise in with the wave, for a breathy flute, a snare drum's rattle, or steam.
   - **Crackle** / **Pop length** / **Crackle depth**: chops it into random pops that die away. A few a second for firecrackers, lots for fire, rain, bubbling water and gravel. Short pops click, long ones rumble. Depth is how much it chops: 100% leaves only the pops, lower keeps the sound going underneath (a fire's roar under its crackles).
 - **Tone & effects** tab
   - **Low-pass** / **Low-pass sweep** / **Resonance**: cuts out the high sounds so it's duller (100 is off), sweeps that while it plays (a "wah"), and makes it ring at the edge for a squelchy synth sound or whistling wind.
   - **High-pass** / **High-pass sweep**: cuts out the low sounds so it's thinner, like a little radio (0 is off).
   - **Pulse width** / **Pulse sweep**: square waves only. Thinner widths sound more nasal, and sweeping it makes it sound like it's moving.
   - **FM** / **FM ratio**: a hidden second wave bends this one, for bells, metal, glass, robots and aliens. Whole number ratios sound musical, in-between ones clang.
+  - **Voices** / **Spread** / **Chord**: plays several copies of the wave at once, each a little out of tune and drifting on its own, for choirs, strings, swarms and big synths. **Chord** shares them out over the notes of a chord. Only waves with a shape (not the noises, string or file).
   - **Flanger** / **Flanger sweep**: mixes in a slightly late copy for a hollow, metallic, whooshy sound.
   - **Echo** / **Echo amount**: plays it again later, over and over. Short for a small room or a pipe, long for a cave. The sound gets longer to fit the echoes.
+  - **Reverb** / **Room size**: the sound of a space around it, from a cupboard to a cathedral. The sound gets longer to fit it too, and it carries on round a loop's join.
   - **Crunch**: makes it lower quality on purpose, for crunchy retro sounds, robots and old radios.
 - **Voice** tab
   - **Vowel**: which vowel the voice wave says (ah, eh, ee, oh, oo, or in between).
@@ -136,7 +150,7 @@ When you talk to them, they say each line as it types out, at the voice's **Talk
 
 ### Smooth loops
 
-Sound blocks set to **constantly nearby** loop their sound with no gaps or clicks, whatever the sound is. For a steady hum that never changes, set **Fade in** and **Fade out** to 0 and use **Hold** for its length; any fades, slides or repeats happen every time round, which is good for things like a pulsing machine or a siren. The make one buttons that say "loops" in their tip are made like that already (most of Nature, and things like the engine, motor, fan, hum, siren, portal, force field, static and potion). A Motors sound loops like that when its **Spin** is 0. Turn **Loop** on in the sound editor to hear exactly how it'll loop.
+Sound blocks set to **constantly nearby** loop their sound with no gaps or clicks, whatever the sound is. For a steady hum that never changes, set **Fade in** and **Fade out** to 0 and use **Hold** for its length; any fades, slides or repeats happen every time round, which is good for things like a pulsing machine or a siren. The make one buttons that say "loops" in their tip are made like that already (most of Nature, and things like big engine, whirr, fan, steady hum, wail, rift, ward, dead channel and cauldron). A Motors sound loops like that when its **Spin** is 0. Turn **Loop** on in the sound editor to hear exactly how it'll loop.
 
 ## Audio files
 
