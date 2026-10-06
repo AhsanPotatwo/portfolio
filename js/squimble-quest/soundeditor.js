@@ -6,10 +6,11 @@
 //     Save. saving under a different name makes a copy
 //   - left: the visualiser (a close-up of the wave and the whole sound, both from the real audio),
 //     Play / Stop / Loop, a piano that plays the sound at other notes, and the "make one" buttons in
-//     kinds (Game, Magic, Sci-fi, Things, Motors, Squishy, Birds, Beasts, Breath, Nature, Voices),
+//     kinds (Arcade, Tunes, Drums, Choir, Combat, Magic, Sci-fi, Things, Motors, Squishy, Birds,
+//     Beasts, Breath, Nature, Voices),
 //     each coming up with a random sound of that kind (like sfxr and bfxr), plus Random and Mutate
 //   - right: a button for each wave (file picks an mp3, wav or ogg), then tabs of sliders. Character
-//     has the knobs of the make one kind the sound came from (trill for a bird, growl for a beast),
+//     has the knobs of the make one kind the sound came from (warble for a bird, snarl for a beast),
 //     which make it again with that changed. Pitch, Volume, Tone & effects and Voice have a slider for
 //     every SOUND_SETTINGS entry under its section's heading. a tab with a dot has settings that
 //     aren't normal. the Voice tab has a Say box, which plays the sound talking (how npcs with this as
@@ -63,7 +64,7 @@
 //   - a file chosen and then cancelled stays loaded until the page reloads (it isn't exported unless
 //     a saved sound uses it)
 //   - the layout is fixed numbers (SOUND_EDITOR). each tab has room for about 13 sliders a column,
-//     each kind of make one button for 15, and the kinds' tabs for 12
+//     each kind of make one button for 15, and the kinds' tabs for 15 (3 rows of 5)
 //   - the knobs aren't saved, so a saved sound opens with an empty Character tab, and Undo doesn't
 //     move them back. after an Undo, moving a knob counts the undone changes as changed by hand
 //   - while it's open Input.typing is on (for the text boxes), so dev mode keys don't work, apart from
@@ -91,15 +92,16 @@ const SOUND_EDITOR = {
   playTop: 186,
   pianoTop: 216,
   pianoHeight: 44,
-  // the make one kinds go in two rows of tabs, then the buttons in rows of 3
+  // the make one kinds go in rows of kindColumns tabs, then the buttons in rows of 3
   makersTop: 268,
+  kindColumns: 5,
   // the right side: where it starts, each column of sliders' width, and the gap between columns
   right: 336,
   columnWidth: 296,
   columnGap: 16,
   // the wave buttons, in rows of waveColumns
   wavesTop: 56,
-  waveColumns: 7,
+  waveColumns: 8,
   tabsTop: 116,
   // where the sliders start, each slider's height, and the room for a section's heading
   slidersTop: 150,
@@ -109,10 +111,10 @@ const SOUND_EDITOR = {
   // Character is different: its sliders are the knobs of the make one kind the sound came from
   // (SOUND_GENERATORS), and empty says what to do when it didn't come from one
   tabs: [
-    { name: 'Character', columns: [], hint: 'These sliders change the sound the way its kind would change, and the rest of the sliders follow. Anything you\'ve changed in the other tabs since stays as you set it. They only last while the editor is open, they\'re not saved with the sound.', empty: 'Press one of the Make one buttons on the left and sliders for that kind of sound appear here: trill and rasp for a bird, growl for a beast, pressure for a potion. They only last while the editor is open, so a saved sound opens without them.' },
-    { name: 'Pitch', columns: [['Pitch', 'Wobble'], ['Jumps']], hint: 'Everything here is in notes, so the piano moves it all together. Slides, wobbles and jumps start again on every repeat.' },
-    { name: 'Volume', columns: [['Volume shape', 'Output'], ['Tremolo', 'Crackle']], hint: 'One beep is fade in, hold and fade out, and repeats play it again after the gap. Tremolo and crackle chop the volume up while it plays. For a smooth loop, use no fade in or out.' },
-    { name: 'Tone & effects', columns: [['Filters', 'Square wave'], ['FM', 'Flanger', 'Echo', 'Crunch']], hint: 'Square wave and FM change the wave itself, then it goes through the filters and the effects in the order they\'re listed.' },
+    { name: 'Character', columns: [], hint: 'These sliders change the sound the way its kind would change, and the rest of the sliders follow. Anything you\'ve changed in the other tabs since stays as you set it. They only last while the editor is open, they\'re not saved with the sound.', empty: 'Press one of the Make one buttons on the left and sliders for that kind of sound appear here: the instrument and mood of a tune, warble and scratch for a bird, snarl for a beast. They only last while the editor is open, so a saved sound opens without them.' },
+    { name: 'Pitch', columns: [['Pitch', 'Wobble'], ['Jumps', 'Tune']], hint: 'Everything here is in notes, so the piano moves it all together. Slides, wobbles and jumps start again on every repeat, and a tune plays one note a repeat.' },
+    { name: 'Volume', columns: [['Volume shape', 'Output'], ['Tremolo', 'Texture']], hint: 'One beep is fade in, hold and fade out, and repeats play it again after the gap. Tremolo and crackle chop the volume up while it plays. For a smooth loop, use no fade in or out.' },
+    { name: 'Tone & effects', columns: [['Filters', 'Square wave', 'Ensemble'], ['FM', 'Flanger', 'Echo & reverb', 'Crunch']], hint: 'Square wave, FM and the ensemble change the wave itself, then it goes through the filters and the effects in the order they\'re listed.' },
     { name: 'Voice', columns: [['Voice'], ['Talking']], hint: 'The Voice settings shape the voice wave. Talking works with any wave, so a blip can talk too, like in old games. Save it as a Voice, then right click an npc in the map editor to give it this voice.' },
   ],
   // the piano's lowest note (note numbers like noteFrequency() in sound.js, 48 is C4) and how many
@@ -127,20 +129,27 @@ const SOUND_EDITOR = {
 //
 // SOUND_GENERATORS has the kinds of make one button (the little tabs above them). each kind has its
 // makers (the buttons) and its knobs (its sliders in the Character tab), which change the sound in
-// ways that make sense for that kind: trill and rasp for birds, growl for beasts, pressure for
+// ways that make sense for that kind: warble and scratch for birds, snarl for beasts, squeeze for
 // squishy things, age for voices. pressing a maker picks the knobs (a maker can give a knob a number,
 // a [low, high] range to pick from, or a function), then the kind's make(knobs, maker) turns them
 // into settings. moving a knob runs make again with the same random numbers (generate() and
 // remake()), so it's the same sound, just changed. kinds work one of two ways:
-//   built     Birds, Beasts, Breath and Motors: the knobs are the sound. make builds the settings
-//             from them (bird(), beast(), breathing(), machine()), and a maker is just its knobs
+//   built     Tunes, Choir, Birds, Beasts, Breath and Motors: the knobs are the sound. make builds the
+//             settings from them (tune(), choir(), bird(), beast(), breathing(), machine()), and a
+//             maker is just its knobs
 //   tweaked   the rest: each maker makes its own random sound (its make()), and the knobs change it
 //             afterwards. at their normal values they leave it alone
 // a new maker is a new line (its button appears by itself, 3 a row, 15 fit in a kind), and a new
-// kind is a new entry (its tab appears by itself, 2 rows fit 12). the numbers are just what sounded
-// right. settings can come out past a slider's range, they get pulled back in (soundSettings()).
-// heard from stays what it was unless the maker gives it. the Voices makers say the Say box's words
-// instead of just playing
+// kind is a new entry (its tab appears by itself, 5 a row, 3 rows fit 15). the numbers are just what
+// sounded right. settings can come out past a slider's range, they get pulled back in
+// (soundSettings()). heard from stays what it was unless the maker gives it. a made sound's volume is
+// set by levelGain() so they all come out about as loud as each other, so a maker's own volume only
+// matters next to its other settings. the Voices makers say the Say box's words instead of just
+// playing
+//
+// the names are this game's own. the idea of a sound effect maker with buttons for kinds of sound
+// comes from sfxr and bfxr (bfxr.net), and some kinds are ones bfxr also has, but the sounds, names
+// and knobs here are made for squimble quest
 
 // the random numbers the makers use. Math.random, apart from while a sound is being made from a maker
 // (makeRecipe()), when it's a seeded one (seededRandom() in sound.js), so a knob can make the same
@@ -167,6 +176,8 @@ const choiceKnob = (key, label, tip, options) => knob(key, label, tip, { max: op
 // knobs a few kinds share
 const PITCH_KNOB = knob('pitch', 'Pitch', 'Moves the whole sound up or down by this many notes', { min: -24, max: 24, normal: 0, unit: 'notes' });
 const LENGTH_KNOB = knob('length', 'Length', 'Stretches or squashes it in time, keeping its shape (slides still cover the same notes)', { min: 25, max: 400, step: 5, curve: 'log', normal: 100 });
+// a few of a list for a choice knob, like a maker's pick of instruments: () => one of their places
+const oneOf = (list, ...wanted) => () => list.indexOf(randomPick(wanted));
 
 // a setting from some partial settings, or its normal value if they don't have it
 const settingOf = (s, key) => s[key] ?? SOUND_DEFAULTS[key];
@@ -180,7 +191,7 @@ function shifted(s, notes) {
 function stretched(s, times) {
   if (times === 1) return s;
   const out = { ...s };
-  for (const key of ['attack', 'sustain', 'decay', 'gap', 'jumpAt', 'jump2At', 'jumpRepeat']) out[key] = settingOf(s, key) * times;
+  for (const key of ['attack', 'sustain', 'decay', 'gap', 'jumpAt', 'jump2At', 'jumpRepeat', 'dropTime']) out[key] = settingOf(s, key) * times;
   for (const key of ['slide', 'pulseSweep', 'lowPassSweep', 'highPassSweep', 'flangerSweep', 'vowelSlide']) out[key] = settingOf(s, key) / times;
   out.slideAccel = settingOf(s, 'slideAccel') / times ** 2;
   return out;
@@ -192,6 +203,12 @@ function echoed(s, amount, shortest, longest) {
   return { ...s, echo: Math.max(settingOf(s, 'echo'), shortest + ((longest - shortest) * amount) / 100), echoFeedback: 25 + amount * 0.35 };
 }
 
+// in a room from amount (0 to 100): more reverb and a bigger room, unless it already has more
+function roomed(s, amount, size = 30 + amount * 0.5) {
+  if (!amount) return s;
+  return { ...s, reverb: Math.max(settingOf(s, 'reverb'), amount * 0.7), reverbSize: Math.max(settingOf(s, 'reverbSize'), size) };
+}
+
 // slide and slide speed-up for a curve over some seconds: sweep (-100 to 100) ends up to an octave
 // lower or higher, and arch (-100 to 100) bows the middle up or down by up to 6 notes
 function contour(seconds, sweep, arch) {
@@ -200,104 +217,166 @@ function contour(seconds, sweep, arch) {
   return { slide: (end + 4 * middle) / seconds, slideAccel: (-8 * middle) / seconds ** 2 };
 }
 
-// a bird from the Birds knobs. a call is one beep and calls are its repeats
-const BIRD_VOICES = ['whistle', 'reed', 'rasp', 'hoot'];
+// ---------- Tunes ----------
+// a little tune from the Tunes knobs: the repeats are its notes (the Tune settings in sound.js pick
+// them), played on an instrument. each instrument is a wave and how a note of it sounds, as parts of
+// one note's time: a quick fade in (ms), how much of the note it holds, and how much it rings
+const TUNE_INSTRUMENTS = ['chip', 'pluck', 'bell', 'flute', 'keys', 'glass', 'reed'];
+function tune(k) {
+  const instrument = TUNE_INSTRUMENTS[k.instrument];
+  // a note is an eighth of a beat at tempo beats a minute
+  const ms = (30 / k.tempo) * 1000;
+  const bright = k.bright / 100;
+  // each instrument's root note (48 is middle C), where it sounds best
+  const root = { chip: 60, pluck: 55, bell: 72, flute: 67, keys: 60, glass: 79, reed: 55 }[instrument];
+  const note = (attack, hold, ring) => ({ attack, sustain: ms * hold, decay: ms * ring, gap: Math.max(0, ms - attack - ms * (hold + ring)) });
+  const s = { pitch: noteFrequency(root + k.key), repeats: k.notes, melody: k.tune, scale: k.mood, contour: k.shape, lastNote: k.finale, reverb: k.space, reverbSize: 60, volume: 50, range: 12 };
+  if (instrument === 'chip') Object.assign(s, { wave: 'square', pulseWidth: 50 - bright * 25, lowPass: Math.min(100, 55 + bright * 90), vibrato: 0.15, vibratoSpeed: 6 }, note(2, 0.55, 0.3));
+  if (instrument === 'pluck') Object.assign(s, { wave: 'string', lowPass: Math.min(100, 45 + bright * 60) }, note(0, 0.05, 0.9));
+  if (instrument === 'bell') Object.assign(s, { wave: 'sine', fm: 10 + bright * 30, fmRatio: 3.5 }, note(0, 0, 0.95));
+  if (instrument === 'flute') Object.assign(s, { wave: 'sine', hiss: 6 + bright * 14, vibrato: 0.12, vibratoSpeed: 5.5, lowPass: 75 }, note(25, 0.55, 0.3));
+  if (instrument === 'keys') Object.assign(s, { wave: 'triangle', fm: 5 + bright * 12, fmRatio: 1 }, note(2, 0.1, 0.85));
+  if (instrument === 'glass') Object.assign(s, { wave: 'breaker', fm: 8 + bright * 20, fmRatio: 2.76, highPass: 20 }, note(0, 0, 0.92));
+  if (instrument === 'reed') Object.assign(s, { wave: 'square', pulseWidth: 18, lowPass: 35 + bright * 40, resonance: 30, vibrato: 0.1, vibratoSpeed: 5 }, note(12, 0.6, 0.25));
+  return s;
+}
+const TUNE_MOODS = ['happy', 'sad', 'easy', 'hopeful', 'eerie', 'floaty'];
+
+// ---------- Choir ----------
+// a choir from the Choir knobs: the voice wave sung by several voices at once (Voices in sound.js),
+// each a little out of tune, on the notes of a harmony, swelling in and out of a big room
+const CHOIR_HARMONIES = ['together', 'octaves', 'open', 'bright', 'dark', 'floating', 'rich', 'tense'];
+function choir(k) {
+  return {
+    wave: 'voice',
+    // 70 Hz to about 740 Hz, and lower singers have bigger mouths
+    pitch: 70 * 2 ** ((k.pitch / 100) * 3.4),
+    mouth: 75 + (1 - k.pitch / 100) * 55,
+    voices: k.singers,
+    chord: k.harmony,
+    detune: 4 + k.spread * 0.5,
+    vowel: k.vowel,
+    breath: 5 + k.air * 0.75,
+    vibrato: k.wobble * 0.004,
+    vibratoSpeed: 5.2,
+    attack: 40 + k.swell * 14,
+    sustain: 300 + k.length * 37,
+    decay: 250 + k.swell * 12,
+    reverb: k.space,
+    reverbSize: 70,
+    lowPass: 88,
+    volume: 60,
+    range: 14,
+  };
+}
+
+// ---------- Birds ----------
+// a bird from the Birds knobs. a call is one beep and calls are its repeats. a pipe is a clear
+// whistle, nasal is a parrot or a gull, rough is a crow's caw and hollow is an owl or a dove
+const BIRD_BEAKS = ['pipe', 'nasal', 'rough', 'hollow'];
 function bird(k) {
-  const voice = BIRD_VOICES[k.voice];
+  const beak = BIRD_BEAKS[k.beak];
   // 20 ms to 800 ms
   const seconds = 0.02 * 40 ** (k.length / 100);
-  const hoot = voice === 'hoot';
-  const trillSpeed = 12 + k.trillSpeed * 0.38;
+  const hollow = beak === 'hollow';
+  const warbleSpeed = 12 + k.warbleSpeed * 0.38;
   const s = {
-    wave: { whistle: 'sine', reed: 'voice', rasp: 'voice', hoot: 'triangle' }[voice],
+    wave: { pipe: 'sine', nasal: 'voice', rough: 'voice', hollow: 'triangle' }[beak],
     // 200 Hz to 5000 Hz
     pitch: 200 * 25 ** (k.size / 100),
-    ...contour(seconds, k.sweep, k.arch),
-    attack: seconds * (hoot ? 250 : 60),
+    ...contour(seconds, k.swoop, k.curve),
+    attack: seconds * (hollow ? 250 : 60),
     sustain: seconds * 450,
-    decay: seconds * (hoot ? 300 : 490),
+    decay: seconds * (hollow ? 300 : 490),
     repeats: k.calls,
-    gap: 10 + k.gap * 4,
-    repeatPitch: k.phrase * 0.04,
-    vibrato: k.trill * 0.03,
-    vibratoSpeed: trillSpeed,
-    tremolo: k.trill * 0.5,
-    tremoloSpeed: trillSpeed,
-    wander: k.rasp * 0.025,
+    gap: 10 + k.pause * 4,
+    repeatPitch: k.slope * 0.04,
+    vibrato: k.warble * 0.03,
+    vibratoSpeed: warbleSpeed,
+    tremolo: k.warble * 0.5,
+    tremoloSpeed: warbleSpeed,
+    wander: k.scratch * 0.025,
     wanderSpeed: 700,
-    growl: k.rasp * 0.5,
+    growl: k.scratch * 0.5,
+    // a little of the open air around it
+    reverb: 10,
+    reverbSize: 75,
     volume: 50,
     range: 12,
   };
-  // a small mouth rings high, which sounds nasal. rasp is a crow's rough caw
-  if (voice === 'reed') Object.assign(s, { vowel: 1.6, mouth: 45, breath: 15 + k.rasp * 0.3, volume: 20 + k.size * 1.3 });
-  if (voice === 'rasp') Object.assign(s, { vowel: 0.3, mouth: 55, breath: 35 + k.rasp * 0.3, wander: 1.2 + k.rasp * 0.015, wanderSpeed: 600 });
-  if (hoot) s.lowPass = 55;
+  // a small mouth rings high, which sounds nasal. rough is a crow's caw
+  if (beak === 'nasal') Object.assign(s, { vowel: 1.6, mouth: 45, breath: 15 + k.scratch * 0.3, volume: 20 + k.size * 1.3 });
+  if (beak === 'rough') Object.assign(s, { vowel: 0.3, mouth: 55, breath: 35 + k.scratch * 0.3, wander: 1.2 + k.scratch * 0.015, wanderSpeed: 600 });
+  if (hollow) s.lowPass = 55;
   return s;
 }
 
-// a creature from the Beasts knobs, mostly the voice wave (a throat and mouth) with a growl
-const BEAST_ANATOMY = ['throat', 'beak', 'gills', 'shell', 'spirit', 'clockwork', 'dog'];
+// ---------- Beasts ----------
+// a creature from the Beasts knobs, mostly the voice wave (a throat and mouth) with a snarl. lungs is
+// a plain big throat, a squeaker a small high one (cats, rats), gills bubble, a buzzer is an insect
+// rubbing its wings, a phantom is airy and echoing, a windup is clockwork and a hound barks and howls
+const BEAST_BODIES = ['lungs', 'squeaker', 'gills', 'buzzer', 'phantom', 'windup', 'hound'];
 function beast(k) {
-  const anatomy = BEAST_ANATOMY[k.anatomy];
+  const body = BEAST_BODIES[k.body];
   // 80 ms to 2.5 s
   const seconds = 0.08 * 31 ** (k.length / 100);
-  const flutterSpeed = 8 + k.flutter * 0.2;
+  const quiverSpeed = 8 + k.quiver * 0.2;
   const s = {
-    wave: anatomy === 'shell' ? 'sawtooth' : 'voice',
+    wave: body === 'buzzer' ? 'sawtooth' : 'voice',
     // 30 Hz to 1200 Hz
     pitch: 30 * 40 ** (k.pitch / 100),
-    mouth: 40 + k.size * 1.2,
+    mouth: 40 + k.bulk * 1.2,
     // the vowel it starts on, and how far it moves through the vowels in each call
-    vowel: { throat: 0, beak: 2, gills: 4, shell: 0, spirit: 4, clockwork: 1, dog: 3.3 }[anatomy],
-    vowelSlide: ((k.evolution / 100) * 3) / seconds,
-    ...contour(seconds, k.bend, k.arch),
+    vowel: { lungs: 0, squeaker: 2, gills: 4, buzzer: 0, phantom: 4, windup: 1, hound: 3.3 }[body],
+    vowelSlide: ((k.jaw / 100) * 3) / seconds,
+    ...contour(seconds, k.slide, k.hump),
     attack: Math.max(10, seconds * 120),
     sustain: seconds * 500,
     decay: seconds * 380,
-    repeats: k.calls,
+    repeats: k.cries,
     gap: seconds * 350,
-    growl: k.growl * 0.9,
-    wander: k.growl * 0.015,
-    wanderSpeed: 150 + k.growl * 3,
-    breath: k.breath * 0.9,
-    vibrato: k.flutter * 0.015,
-    vibratoSpeed: flutterSpeed,
-    tremolo: k.flutter * 0.6,
-    tremoloSpeed: flutterSpeed,
+    growl: k.snarl * 0.9,
+    wander: k.snarl * 0.015,
+    wanderSpeed: 150 + k.snarl * 3,
+    breath: k.huff * 0.9,
+    vibrato: k.quiver * 0.015,
+    vibratoSpeed: quiverSpeed,
+    tremolo: k.quiver * 0.6,
+    tremoloSpeed: quiverSpeed,
     lowPass: 80,
     volume: 65 + Math.abs(k.pitch - 60) * 0.6,
     range: 12,
   };
-  if (anatomy === 'beak') Object.assign(s, { mouth: s.mouth * 0.75, highPass: 15, lowPass: 100, volume: s.volume * 0.8 });
+  if (body === 'squeaker') Object.assign(s, { mouth: s.mouth * 0.75, highPass: 15, lowPass: 100, volume: s.volume * 0.8 });
   // bubbling through water
-  if (anatomy === 'gills') Object.assign(s, { flanger: 3, crackle: 40, crackleLength: 30, crackleDepth: 35 });
+  if (body === 'gills') Object.assign(s, { flanger: 3, crackle: 40, crackleLength: 30, crackleDepth: 35 });
   // an insect rubbing its wings or legs: a buzz chopped up fast
-  if (anatomy === 'shell') Object.assign(s, { tremolo: 100, tremoloSpeed: 25 + k.flutter * 0.5, highPass: 35, lowPass: 85, resonance: 40, volume: 55 });
-  if (anatomy === 'spirit') Object.assign(s, { breath: Math.max(s.breath, 45), vibrato: s.vibrato + 0.4, echo: 160, echoFeedback: 35, lowPass: 100 });
-  if (anatomy === 'clockwork') Object.assign(s, { crush: 40, fm: 12, fmRatio: 2 });
-  // a dog's (or wolf's) muzzle: a darker, rounder mouth than a person's, rough jitter that follows
-  // growl (what makes a bark harsh rather than a voice saying ah), and short calls start with a snap
-  if (anatomy === 'dog') Object.assign(s, { attack: Math.max(4, seconds * 80), punch: Math.max(0, 60 - seconds * 200), lowPass: 75, wander: 0.2 + k.growl * 0.025, wanderSpeed: 900, volume: s.volume * 0.75 });
+  if (body === 'buzzer') Object.assign(s, { tremolo: 100, tremoloSpeed: 25 + k.quiver * 0.5, highPass: 35, lowPass: 85, resonance: 40, volume: 55 });
+  if (body === 'phantom') Object.assign(s, { breath: Math.max(s.breath, 45), vibrato: s.vibrato + 0.4, echo: 160, echoFeedback: 35, reverb: 45, reverbSize: 80, lowPass: 100 });
+  if (body === 'windup') Object.assign(s, { crush: 40, fm: 12, fmRatio: 2 });
+  // a dog's (or wolf's) muzzle: a darker, rounder mouth than a person's, rough jitter that follows the
+  // snarl (what makes a bark harsh rather than a voice saying ah), and short calls start with a snap
+  if (body === 'hound') Object.assign(s, { attack: Math.max(4, seconds * 80), punch: Math.max(0, 60 - seconds * 200), lowPass: 75, wander: 0.2 + k.snarl * 0.025, wanderSpeed: 900, volume: s.volume * 0.75 });
   return s;
 }
 
+// ---------- Breath ----------
 // breathing from the Breath knobs: the voice wave turned all the way to air, so the mouth shapes the
-// hiss. snore lets some buzz back in, and rattles it
+// hiss. rumble lets some buzz back in, and rattles it
 const BREATH_WAYS = ['in', 'out', 'in and out'];
 function breathing(k) {
   const way = BREATH_WAYS[k.way];
   // 120 ms to 3.6 s
   const seconds = 0.12 * 30 ** (k.length / 100);
-  const effort = k.effort / 100;
+  const push = k.push / 100;
   // fade in, hold and fade out as parts of the breath: in builds up and stops, out starts strong
   // and fades away
   const shape = { in: [0.6, 0.25, 0.15], out: [0.08, 0.25, 0.67], 'in and out': [0.3, 0.4, 0.3] }[way];
   const s = {
     wave: 'voice',
-    pitch: 70 + (100 - k.throat) * 0.6,
-    breath: 100 - k.snore * 0.65,
-    mouth: 60 + k.throat * 0.9,
+    pitch: 70 + (100 - k.chest) * 0.6,
+    breath: 100 - k.rumble * 0.65,
+    mouth: 60 + k.chest * 0.9,
     // in is a brighter ee, out a softer ah, and in and out goes from one to the other
     vowel: way === 'out' ? 0.3 : 2.4,
     vowelSlide: way === 'in and out' ? -2.1 / seconds : 0,
@@ -305,42 +384,41 @@ function breathing(k) {
     sustain: seconds * shape[1] * 1000,
     decay: seconds * shape[2] * 1000,
     // a hard breath out starts with a push
-    punch: way === 'out' ? effort * 40 : 0,
-    repeats: k.breaths,
+    punch: way === 'out' ? push * 40 : 0,
+    repeats: k.puffs,
     gap: seconds * 250,
-    lowPass: 55 + effort * 40,
+    lowPass: 55 + push * 40,
     lowPassSweep: (way === 'in' ? 15 : -15) / seconds,
     highPass: way === 'in' ? 25 : 12,
-    crackle: k.rasp > 0 ? 300 : 0,
+    crackle: k.wheeze > 0 ? 300 : 0,
     crackleLength: 4,
-    crackleDepth: k.rasp * 0.7,
-    tremolo: k.tremble * 0.45,
+    crackleDepth: k.wheeze * 0.7,
+    tremolo: k.shiver * 0.45,
     tremoloSpeed: 9,
-    growl: k.snore * 0.7,
-    wander: k.snore * 0.01,
+    growl: k.rumble * 0.7,
+    wander: k.rumble * 0.01,
     wanderSpeed: 300,
-    // out (an ah) rings louder than in (an ee), in and out dips in the middle, and a low snore is
-    // quieter than air, so they're evened out
-    volume: (30 + effort * 50 + k.snore * 0.5) * { in: 1, out: 0.7 + k.snore * 0.005, 'in and out': 1.4 }[way],
+    volume: 60,
     range: 6,
   };
   // a snore's rattle
-  if (k.snore * 0.6 > s.tremolo) Object.assign(s, { tremolo: k.snore * 0.6, tremoloSpeed: 28 });
+  if (k.rumble * 0.6 > s.tremolo) Object.assign(s, { tremolo: k.rumble * 0.6, tremoloSpeed: 28 });
   // in and out is one beep with a dip in the middle: tremolo all the way down, once a breath, so
-  // tremble can't use it
+  // shiver can't use it
   if (way === 'in and out') Object.assign(s, { tremolo: 100, tremoloSpeed: 1 / seconds });
-  if (k.space > 0) Object.assign(s, { echo: 25 + k.space * 0.6, echoFeedback: 20 + k.space * 0.45, flanger: k.space * 0.03 });
+  if (k.mask > 0) Object.assign(s, { echo: 25 + k.mask * 0.6, echoFeedback: 20 + k.mask * 0.45, flanger: k.mask * 0.03 });
   return s;
 }
 
+// ---------- Motors ----------
 // the Motors machines: their wave, their pitch and how fast they chop (tremolo speed) at middle speed
 // and size, and anything else they need
 const MACHINES = {
-  motor: { wave: 'sawtooth', pitch: 200, chop: 40, tremolo: 10, highPass: 15, lowPass: 75, fm: 8, fmRatio: 1 },
+  whirr: { wave: 'sawtooth', pitch: 200, chop: 40, tremolo: 10, highPass: 15, lowPass: 75, fm: 8, fmRatio: 1 },
   engine: { wave: 'sawtooth', pitch: 55, chop: 20, tremolo: 45, lowPass: 45, resonance: 20 },
   drill: { wave: 'square', pitch: 600, chop: 30, tremolo: 25, pulseWidth: 30, highPass: 25, lowPass: 80, crush: 15 },
   fan: { wave: 'pink', pitch: 600, chop: 8, tremolo: 55, lowPass: 55, resonance: 20 },
-  chainsaw: { wave: 'sawtooth', pitch: 110, chop: 35, tremolo: 40, wander: 0.8, wanderSpeed: 600, crush: 20, lowPass: 65, resonance: 35 },
+  saw: { wave: 'sawtooth', pitch: 110, chop: 35, tremolo: 40, wander: 0.8, wanderSpeed: 600, crush: 20, lowPass: 65, resonance: 35 },
   // gears are ticks (repeats) rather than a hum, chop of them a second
   gears: { wave: 'metal', pitch: 1800, chop: 8, highPass: 30 },
   hum: { wave: 'organ', pitch: 110, chop: 0, lowPass: 60 },
@@ -373,11 +451,11 @@ function machine(k) {
   return s;
 }
 
-// the waves that go square with Game's Retro knob
+// the waves that go square with Arcade's Retro knob
 const SMOOTH_WAVES = ['sine', 'triangle', 'breaker', 'organ', 'whistle'];
 
 const SOUND_GENERATORS = {
-  Game: {
+  Arcade: {
     knobs: [PITCH_KNOB, LENGTH_KNOB, knob('retro', 'Retro', 'Crunchier, more like an old console. Past halfway, smooth waves turn into square waves', { normal: 0 })],
     make: (k, maker) => {
       const s = stretched(shifted(maker.make(), k.pitch), k.length / 100);
@@ -385,31 +463,159 @@ const SOUND_GENERATORS = {
       return { ...s, crush: Math.max(settingOf(s, 'crush'), k.retro * 0.55), wave: k.retro >= 50 && SMOOTH_WAVES.includes(settingOf(s, 'wave')) ? 'square' : s.wave };
     },
     makers: {
-      Coin: { tip: 'Two quick rising notes, for picking things up', make: () => ({ wave: randomPick(['square', 'sine', 'triangle', 'breaker']), pitch: randomNumber(700, 1400), jump: randomPick([3, 4, 5, 7, 12]), jumpAt: randomNumber(40, 100), attack: 0, sustain: randomNumber(30, 90), punch: randomNumber(30, 60), decay: randomNumber(100, 300), pulseWidth: randomNumber(20, 50) }) },
-      Pickup: { tip: 'A quick rising bloop, for grabbing an item', make: () => ({ wave: randomPick(['square', 'triangle', 'sine']), pitch: randomNumber(400, 900), slide: randomNumber(60, 160), attack: 0, sustain: randomNumber(30, 60), punch: randomNumber(20, 40), decay: randomNumber(60, 140), pulseWidth: randomNumber(25, 50), volume: 45 }) },
-      'Power-up': { tip: 'A rising, wobbling tune', make: () => ({ wave: randomPick(['square', 'sawtooth', 'triangle']), pitch: randomNumber(200, 600), slide: randomNumber(15, 60), vibrato: sometimes(randomNumber(0.2, 1)), vibratoSpeed: randomNumber(8, 20), attack: 0, sustain: randomNumber(150, 350), decay: randomNumber(80, 300), repeats: randomPick([1, 1, 2, 3]), gap: randomNumber(20, 60) }) },
-      Jump: { tip: 'A springy rising boing', make: () => ({ wave: 'square', pitch: randomNumber(200, 500), slide: randomNumber(25, 80), attack: 0, sustain: randomNumber(50, 150), decay: randomNumber(50, 150), pulseWidth: randomNumber(20, 50), lowPass: sometimes(randomNumber(50, 90)) }) },
-      Hit: { tip: 'A short thump or smack', make: () => ({ wave: randomPick(['noise', 'noise', 'sawtooth', 'square', 'bitnoise']), pitch: randomNumber(150, 900), slide: -randomNumber(30, 100), attack: 0, sustain: randomNumber(10, 60), decay: randomNumber(40, 160), punch: randomNumber(0, 50), highPass: sometimes(randomNumber(5, 30)), volume: 70 }) },
-      Hurt: { tip: 'A falling, wobbly ouch, for taking damage', make: () => ({ wave: randomPick(['square', 'sawtooth', 'tan']), pitch: randomNumber(250, 600), slide: -randomNumber(50, 130), vibrato: randomNumber(1, 3), vibratoSpeed: randomNumber(25, 40), attack: 0, sustain: randomNumber(60, 120), decay: randomNumber(80, 160), crush: sometimes(randomNumber(10, 30)), pulseWidth: randomNumber(20, 50), volume: 50 }) },
-      Laser: { tip: 'A falling zap', make: () => ({ wave: randomPick(['square', 'sawtooth', 'sine']), pitch: randomNumber(500, 2000), slide: -randomNumber(40, 150), slideAccel: randomNumber(-50, 50), attack: 0, sustain: randomNumber(40, 150), decay: randomNumber(50, 200), pulseWidth: randomNumber(10, 50), pulseSweep: randomNumber(-50, 50), highPass: sometimes(randomNumber(5, 30)) }) },
-      Explosion: { tip: 'A crunchy boom', make: () => ({ wave: randomPick(['noise', 'noise', 'bitnoise', 'pink']), pitch: randomNumber(80, 600), slide: -randomNumber(5, 30), attack: 0, sustain: randomNumber(80, 300), punch: randomNumber(20, 70), decay: randomNumber(300, 900), flanger: sometimes(randomNumber(1, 8)), flangerSweep: sometimes(randomNumber(-10, 10)), crush: sometimes(randomNumber(10, 50)), lowPass: randomNumber(60, 100), volume: 80 }) },
-      Blip: { tip: 'A tiny beep, for menus and clicks', make: () => ({ wave: randomPick(['square', 'sine', 'triangle', 'breaker']), pitch: randomNumber(300, 1500), attack: 0, sustain: randomNumber(20, 80), decay: randomNumber(10, 60), pulseWidth: randomNumber(20, 50), highPass: sometimes(randomNumber(5, 30)) }) },
-      Select: { tip: 'Two quick notes up, for choosing something in a menu', make: () => ({ wave: randomPick(['square', 'sine', 'triangle', 'breaker']), pitch: randomNumber(600, 1100), jump: randomPick([5, 7, 12]), jumpAt: randomNumber(30, 55), attack: 0, sustain: randomNumber(60, 100), decay: randomNumber(40, 90), pulseWidth: randomNumber(25, 50), volume: 40 }) },
-      Back: { tip: 'Two quick notes down, for going back or closing a menu', make: () => ({ wave: randomPick(['square', 'sine', 'triangle', 'breaker']), pitch: randomNumber(500, 900), jump: -randomPick([5, 7]), jumpAt: randomNumber(30, 55), attack: 0, sustain: randomNumber(60, 100), decay: randomNumber(40, 90), pulseWidth: randomNumber(25, 50), volume: 40 }) },
-      Error: { tip: 'A low double buzz, for something you can\'t do', make: () => ({ wave: randomPick(['square', 'sawtooth', 'tan']), pitch: randomNumber(110, 200), jump: sometimes(-1), jumpAt: randomNumber(50, 80), attack: 0, sustain: randomNumber(70, 120), decay: randomNumber(20, 40), repeats: 2, gap: randomNumber(40, 80), lowPass: randomNumber(55, 80), volume: 45 }) },
-      Jingle: { tip: 'Three notes of a chord, like finding treasure', make: () => {
+      Shiny: { tip: 'Two bright notes going up, for grabbing something valuable', make: () => ({ wave: randomPick(['square', 'sine', 'triangle', 'breaker']), pitch: randomNumber(700, 1400), jump: randomPick([3, 4, 5, 7, 12]), jumpAt: randomNumber(40, 100), attack: 0, sustain: randomNumber(30, 90), punch: randomNumber(30, 60), decay: randomNumber(100, 300), pulseWidth: randomNumber(20, 50) }) },
+      Grab: { tip: 'A quick bloop that rises, for putting something in your bag', make: () => ({ wave: randomPick(['square', 'triangle', 'sine']), pitch: randomNumber(400, 900), slide: randomNumber(60, 160), attack: 0, sustain: randomNumber(30, 60), punch: randomNumber(20, 40), decay: randomNumber(60, 140), pulseWidth: randomNumber(25, 50), volume: 45 }) },
+      Boost: { tip: 'A climbing, wobbling run, for getting stronger', make: () => ({ wave: randomPick(['square', 'sawtooth', 'triangle']), pitch: randomNumber(200, 600), slide: randomNumber(15, 60), vibrato: sometimes(randomNumber(0.2, 1)), vibratoSpeed: randomNumber(8, 20), attack: 0, sustain: randomNumber(150, 350), decay: randomNumber(80, 300), repeats: randomPick([1, 1, 2, 3]), gap: randomNumber(20, 60) }) },
+      Hop: { tip: 'A springy little leap', make: () => ({ wave: 'square', pitch: randomNumber(200, 500), slide: randomNumber(25, 80), attack: 0, sustain: randomNumber(50, 150), decay: randomNumber(50, 150), pulseWidth: randomNumber(20, 50), lowPass: sometimes(randomNumber(50, 90)) }) },
+      Thwack: { tip: 'A short smack or thump, for landing a hit', make: () => ({ wave: randomPick(['noise', 'noise', 'sawtooth', 'square', 'bitnoise']), pitch: randomNumber(150, 900), slide: -randomNumber(30, 100), attack: 0, sustain: randomNumber(10, 60), decay: randomNumber(40, 160), punch: randomNumber(0, 50), highPass: sometimes(randomNumber(5, 30)), volume: 70 }) },
+      Ouch: { tip: 'A falling, wobbly yelp, for taking damage', make: () => ({ wave: randomPick(['square', 'sawtooth', 'tan']), pitch: randomNumber(250, 600), slide: -randomNumber(50, 130), vibrato: randomNumber(1, 3), vibratoSpeed: randomNumber(25, 40), attack: 0, sustain: randomNumber(60, 120), decay: randomNumber(80, 160), crush: sometimes(randomNumber(10, 30)), pulseWidth: randomNumber(20, 50), volume: 50 }) },
+      Pew: { tip: 'A zap that falls away, for blasters and space shooters', make: () => ({ wave: randomPick(['square', 'sawtooth', 'sine']), pitch: randomNumber(500, 2000), slide: -randomNumber(40, 150), slideAccel: randomNumber(-50, 50), attack: 0, sustain: randomNumber(40, 150), decay: randomNumber(50, 200), pulseWidth: randomNumber(10, 50), pulseSweep: randomNumber(-50, 50), highPass: sometimes(randomNumber(5, 30)) }) },
+      Kaboom: { tip: 'A crunchy blast that rumbles off', make: () => ({ wave: randomPick(['noise', 'noise', 'bitnoise', 'pink']), pitch: randomNumber(80, 600), slide: -randomNumber(5, 30), attack: 0, sustain: randomNumber(80, 300), punch: randomNumber(20, 70), decay: randomNumber(300, 900), flanger: sometimes(randomNumber(1, 8)), flangerSweep: sometimes(randomNumber(-10, 10)), crush: sometimes(randomNumber(10, 50)), lowPass: randomNumber(60, 100), reverb: sometimes(randomNumber(15, 35)), reverbSize: 65, volume: 80 }) },
+      Bleep: { tip: 'A tiny beep, for menus and clicks', make: () => ({ wave: randomPick(['square', 'sine', 'triangle', 'breaker']), pitch: randomNumber(300, 1500), attack: 0, sustain: randomNumber(20, 80), decay: randomNumber(10, 60), pulseWidth: randomNumber(20, 50), highPass: sometimes(randomNumber(5, 30)) }) },
+      Choose: { tip: 'Two quick notes up, for picking something in a menu', make: () => ({ wave: randomPick(['square', 'sine', 'triangle', 'breaker']), pitch: randomNumber(600, 1100), jump: randomPick([5, 7, 12]), jumpAt: randomNumber(30, 55), attack: 0, sustain: randomNumber(60, 100), decay: randomNumber(40, 90), pulseWidth: randomNumber(25, 50), volume: 40 }) },
+      'Go back': { tip: 'Two quick notes down, for going back or closing a menu', make: () => ({ wave: randomPick(['square', 'sine', 'triangle', 'breaker']), pitch: randomNumber(500, 900), jump: -randomPick([5, 7]), jumpAt: randomNumber(30, 55), attack: 0, sustain: randomNumber(60, 100), decay: randomNumber(40, 90), pulseWidth: randomNumber(25, 50), volume: 40 }) },
+      Nope: { tip: 'A low double buzz, for something you can\'t do', make: () => ({ wave: randomPick(['square', 'sawtooth', 'tan']), pitch: randomNumber(110, 200), jump: sometimes(-1), jumpAt: randomNumber(50, 80), attack: 0, sustain: randomNumber(70, 120), decay: randomNumber(20, 40), repeats: 2, gap: randomNumber(40, 80), lowPass: randomNumber(55, 80), volume: 45 }) },
+      Treasure: { tip: 'Three notes of a chord, like opening a chest', make: () => {
         const [jump, jump2] = randomPick([[4, 3], [3, 4], [5, 4], [7, 5], [4, 5]]);
         const at = randomNumber(70, 110);
         return { wave: randomPick(['square', 'triangle', 'breaker']), pitch: noteFrequency(randomPick([60, 62, 64, 65, 67])), jump, jumpAt: at, jump2, jump2At: at * 2, attack: 0, sustain: at * 3 + randomNumber(50, 150), decay: randomNumber(150, 300), pulseWidth: randomNumber(25, 50), vibrato: sometimes(randomNumber(0.1, 0.3)), vibratoSpeed: 6, volume: 45 };
       } },
-      'Level up': { tip: 'A chord going up, then again an octave higher', make: () => {
+      'Level ding': { tip: 'A chord going up, then again an octave higher', make: () => {
         const at = randomNumber(60, 90);
         return { wave: randomPick(['square', 'triangle', 'breaker']), pitch: noteFrequency(randomPick([55, 57, 60, 62])), jump: 4, jumpAt: at, jump2: 3, jump2At: at * 2, attack: 0, sustain: at * 3, decay: randomNumber(60, 120), repeats: 2, gap: randomNumber(10, 30), repeatPitch: 12, vibrato: sometimes(randomNumber(0.1, 0.3)), vibratoSpeed: 7, pulseWidth: randomNumber(25, 50), volume: 40 };
       } },
-      'Game over': { tip: 'A slow, sad falling tune', make: () => {
+      'Womp womp': { tip: 'A slow, sad tune falling away, for when it all goes wrong', make: () => {
         const at = randomNumber(180, 260);
         return { wave: randomPick(['triangle', 'square', 'sawtooth']), pitch: noteFrequency(randomPick([57, 60, 62])), jump: -3, jumpAt: at, jump2: -4, jump2At: at * 2, slide: -randomNumber(0.5, 2), vibrato: 0.3, vibratoSpeed: 5, attack: 0, sustain: at * 3 + 200, decay: randomNumber(400, 700), lowPass: sometimes(randomNumber(60, 80)), pulseWidth: randomNumber(25, 50), volume: 40 };
       } },
+    },
+  },
+  // little tunes for moments in the game. the knobs are the tune: its instrument, which tune, how many
+  // notes, its mood and shape, how fast, its key, how long the last note rings, and the room
+  Tunes: {
+    knobs: [
+      choiceKnob('instrument', 'Instrument', 'What plays it: a chip (old consoles), a plucked string, a bell, a flute, keys, glass or a reed', TUNE_INSTRUMENTS),
+      knob('tune', 'Tune number', 'Which tune it plays. Every number is a different one, so flick through them', { min: 1, max: 99, unit: '', normal: 1 }),
+      knob('notes', 'Notes', 'How many notes the tune has', { min: 2, max: 12, unit: '', normal: 4 }),
+      choiceKnob('mood', 'Mood', 'Which notes it uses: happy (major), sad (minor), easy (pentatonic), hopeful, eerie or floaty', TUNE_MOODS),
+      choiceKnob('shape', 'Shape', 'Climbs to a high note, falls to a low one, arches up and back, wanders, or calls back and forth', ['climbs', 'falls', 'arches', 'wanders', 'calls']),
+      knob('tempo', 'Speed', 'How quick it is, in beats a minute (two notes a beat)', { min: 60, max: 260, step: 5, unit: 'bpm', normal: 150 }),
+      knob('key', 'Key', 'Moves the whole tune up or down', { min: -12, max: 12, unit: 'notes', normal: 0 }),
+      knob('finale', 'Finale', 'How much longer the last note holds and rings', { min: 1, max: 6, step: 0.5, unit: '×', normal: 2 }),
+      knob('bright', 'Brightness', 'Soft and mellow, or bright and sparkly'),
+      knob('space', 'Space', 'How much room it rings in', { normal: 20 }),
+    ],
+    make: tune,
+    makers: {
+      Yep: { tip: 'A quick, happy yes, for confirming something', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'pluck', 'bell', 'keys', 'chip'), tune: [1, 99], notes: 2, mood: 0, shape: 0, tempo: [200, 250], key: [-2, 5], finale: 1.5, space: [0, 15], bright: [40, 80] } },
+      Nah: { tip: 'Two low notes, for saying no', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'chip', 'reed', 'keys'), tune: [1, 99], notes: 2, mood: 1, shape: 1, tempo: [200, 240], key: [-12, -5], finale: 1, space: [0, 10], bright: [20, 60] } },
+      Letter: { tip: 'A soft little arrival, like a message turning up', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'pluck', 'bell', 'flute', 'keys'), tune: [1, 99], notes: 2, mood: 2, shape: 0, tempo: [170, 220], key: [0, 7], finale: 2, space: [10, 30], bright: [15, 55] } },
+      'Tuck away': { tip: 'A short step down, for putting something away', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'pluck', 'chip', 'keys'), tune: [1, 99], notes: 2, mood: [0, 2], shape: 1, tempo: [200, 240], key: [-5, 0], finale: 1, space: [0, 15], bright: [20, 55] } },
+      'Found it': { tip: 'A curious sparkle that rises, for discovering something', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'pluck', 'bell', 'keys', 'glass'), tune: [1, 99], notes: [4, 7], mood: () => randomPick([0, 2]), shape: 0, tempo: [130, 185], key: [-3, 5], finale: [2, 3], space: [20, 40], bright: [50, 90] } },
+      Hooray: { tip: 'A bright fanfare that climbs, for winning', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'bell', 'chip', 'reed'), tune: [1, 99], notes: [5, 9], mood: 0, shape: 0, tempo: [160, 215], key: [-5, 4], finale: [2.5, 4], space: [15, 35], bright: [70, 100] } },
+      'Oh no': { tip: 'A droopy little tune in a minor key, for losing', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'pluck', 'chip', 'keys'), tune: [1, 99], notes: [3, 5], mood: 1, shape: 1, tempo: [80, 120], key: [-7, 0], finale: [2, 4], space: [10, 25], bright: [15, 50] } },
+      'Hidden path': { tip: 'A mysterious shimmer from somewhere nearby, for secrets', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'bell', 'glass'), tune: [1, 99], notes: [4, 7], mood: () => randomPick([3, 4, 5]), shape: () => randomPick([2, 3]), tempo: [95, 145], key: [-3, 3], finale: [2, 4], space: [35, 60], bright: [40, 85] } },
+      Danger: { tip: 'An urgent call over and over, for a warning', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'chip', 'reed'), tune: [1, 99], notes: [4, 8], mood: 1, shape: 4, tempo: [160, 220], key: [-2, 5], finale: 1, space: [0, 10], bright: [70, 100] } },
+      'Safe spot': { tip: 'A gentle, reassuring arrival, for a checkpoint or a save', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'pluck', 'flute', 'keys'), tune: [1, 99], notes: [3, 5], mood: () => randomPick([0, 2]), shape: 2, tempo: [120, 160], key: [-2, 4], finale: [2, 3], space: [15, 30], bright: [30, 65] } },
+      Solved: { tip: 'An idea clicking into place, for finishing a puzzle', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'pluck', 'bell', 'glass'), tune: [1, 99], notes: [6, 10], mood: () => randomPick([0, 2]), shape: 0, tempo: [115, 165], key: [-2, 4], finale: [2.5, 3.5], space: [20, 35], bright: [45, 80] } },
+      Sleepy: { tip: 'A soft, slow tune that takes its time, like a lullaby', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'pluck', 'flute', 'keys'), tune: [1, 99], notes: [4, 7], mood: () => randomPick([0, 2, 3]), shape: () => randomPick([2, 3]), tempo: [65, 100], key: [-5, 2], finale: [3, 5], space: [30, 50], bright: [5, 35] } },
+      'Shop bell': { tip: 'The ding-dong of a shop door', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'bell', 'glass'), tune: [1, 99], notes: 2, mood: 0, shape: 1, tempo: [70, 100], key: [-7, 0], finale: [3, 4], space: [15, 30], bright: [30, 60] } },
+      'Music box': { tip: 'A tinkling wind-up music box', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'glass', 'bell', 'pluck'), tune: [1, 99], notes: [8, 12], mood: () => randomPick([0, 2, 3]), shape: 3, tempo: [140, 180], key: [5, 12], finale: [2, 3], space: [20, 35], bright: [60, 90] } },
+      'Quest start': { tip: 'A heroic little call to adventure', knobs: { instrument: oneOf(TUNE_INSTRUMENTS, 'reed', 'chip', 'bell'), tune: [1, 99], notes: [4, 6], mood: 0, shape: 0, tempo: [120, 150], key: [-5, 0], finale: [3.5, 5], space: [20, 35], bright: [55, 85] } },
+    },
+  },
+  // drums, for music and for the thump of things. the knobs change the drum: Ring is how long it rings
+  // on for, Snap its attack, Room puts it in a room and Crunch makes it lo-fi
+  Drums: {
+    knobs: [
+      knob('pitch', 'Tuning', 'Tunes the drum up or down by this many notes', { min: -12, max: 12, normal: 0, unit: 'notes' }),
+      knob('length', 'Ring', 'How long it rings on for', { min: 25, max: 400, step: 5, curve: 'log', normal: 100 }),
+      knob('snap', 'Snap', 'A harder, sharper hit', { normal: 0 }),
+      knob('room', 'Room', 'Plays it in a room, from a little booth to a big hall', { normal: 0 }),
+      knob('crunch', 'Crunch', 'Lo-fi and gritty, like an old drum machine', { normal: 0 }),
+    ],
+    make: (k, maker) => {
+      let s = shifted(maker.make(), k.pitch);
+      if (k.length !== 100) s = { ...s, decay: settingOf(s, 'decay') * (k.length / 100) };
+      if (k.snap) s = { ...s, punch: Math.min(100, settingOf(s, 'punch') + k.snap * 0.5), hiss: Math.min(100, settingOf(s, 'hiss') + k.snap * 0.25) };
+      s = roomed(s, k.room, 30 + k.room * 0.4);
+      if (k.crunch) s = { ...s, crush: Math.max(settingOf(s, 'crush'), k.crunch * 0.6) };
+      return s;
+    },
+    makers: {
+      Kick: { tip: 'A deep thump that drops fast', make: () => ({ wave: 'sine', pitch: randomNumber(45, 58), drop: randomNumber(20, 28), dropTime: randomNumber(18, 35), attack: 0, sustain: randomNumber(10, 30), punch: randomNumber(30, 60), decay: randomNumber(250, 450), volume: 90 }) },
+      Snare: { tip: 'A tight crack with a rattle of wires', make: () => ({ wave: 'triangle', pitch: randomNumber(170, 220), drop: randomNumber(5, 9), dropTime: 20, hiss: randomNumber(55, 75), attack: 0, sustain: 10, punch: 40, decay: randomNumber(120, 200), highPass: 10 }) },
+      'Closed hat': { tip: 'A short, crisp tick of cymbals', make: () => ({ wave: 'noise', pitch: randomNumber(3500, 5000), highPass: randomNumber(70, 80), attack: 0, sustain: 0, decay: randomNumber(30, 60), volume: 60 }) },
+      'Open hat': { tip: 'Cymbals left to sizzle', make: () => ({ wave: 'noise', pitch: randomNumber(3500, 5000), highPass: randomNumber(65, 75), attack: 0, sustain: 20, decay: randomNumber(250, 400), volume: 55 }) },
+      Clap: { tip: 'A few hands clapping at almost once', make: () => ({ wave: 'noise', pitch: randomNumber(2000, 3000), highPass: randomNumber(35, 45), lowPass: randomNumber(80, 90), resonance: 20, attack: 0, sustain: 2, decay: randomNumber(12, 18), repeats: randomPick([3, 4]), gap: randomNumber(6, 10), scatter: 30, lastNote: randomNumber(5, 6) }) },
+      Tom: { tip: 'A round, falling drum', make: () => ({ wave: 'sine', pitch: randomNumber(90, 160), drop: randomNumber(8, 12), dropTime: randomNumber(40, 70), hiss: 8, attack: 0, sustain: 10, punch: 30, decay: randomNumber(250, 350) }) },
+      Rimshot: { tip: 'A sharp knock on the edge of the drum', make: () => ({ wave: 'triangle', pitch: randomNumber(1500, 1900), drop: 6, dropTime: 5, hiss: 20, attack: 0, sustain: 0, decay: randomNumber(30, 50), highPass: 30 }) },
+      Cowbell: { tip: 'Clonk. Two clashing tones, like the real thing', make: () => ({ wave: 'square', pitch: randomNumber(520, 580), voices: 2, chord: 2, detune: 0, attack: 0, sustain: 5, punch: 30, decay: randomNumber(250, 350), highPass: 30, lowPass: 85 }) },
+      Shaker: { tip: 'A shake of beads', make: () => ({ wave: 'noise', pitch: randomNumber(4000, 5000), highPass: randomNumber(55, 65), attack: randomNumber(20, 35), sustain: 10, decay: 50, repeats: 2, gap: randomNumber(50, 80), scatter: 20, volume: 50 }) },
+      Crash: { tip: 'A big splash of cymbal', make: () => ({ wave: randomPick(['noise', 'metal']), pitch: randomNumber(4000, 5000), highPass: randomNumber(40, 50), attack: 0, sustain: 20, punch: 50, decay: randomNumber(1200, 1800), reverb: 20, reverbSize: 60, volume: 55 }) },
+      Boom: { tip: 'A huge, long electronic thump, like an 808', make: () => ({ wave: 'sine', pitch: randomNumber(40, 52), drop: 12, dropTime: 60, attack: 0, sustain: 80, decay: randomNumber(700, 1100), growl: sometimes(15), volume: 100 }) },
+      Woodblock: { tip: 'A hollow wooden tock', make: () => ({ wave: 'sine', pitch: randomNumber(700, 1000), fm: 20, fmRatio: 2.3, drop: 3, dropTime: 5, attack: 0, sustain: 0, decay: randomNumber(50, 80) }) },
+      Bongo: { tip: 'A bright little hand drum', make: () => ({ wave: 'sine', pitch: randomNumber(250, 380), drop: 5, dropTime: 15, attack: 0, sustain: 5, punch: 30, decay: randomNumber(130, 190) }) },
+      'Chip snare': { tip: 'An old console\'s noisy snare', make: () => ({ wave: 'bitnoise', pitch: randomNumber(600, 1500), slide: -20, attack: 0, sustain: 10, decay: randomNumber(80, 150), crush: sometimes(randomNumber(10, 30)) }) },
+      Tambourine: { tip: 'Little jingles shaken', make: () => ({ wave: randomPick(['metal', 'noise']), pitch: randomNumber(3500, 4500), highPass: 50, attack: 0, sustain: 5, decay: randomNumber(90, 140), repeats: randomPick([3, 4]), gap: randomNumber(20, 40), scatter: 50, volume: 50 }) },
+    },
+  },
+  // a choir singing a held chord. the knobs are the choir
+  Choir: {
+    knobs: [
+      knob('pitch', 'Pitch', 'Low voices or high ones', { normal: 45 }),
+      knob('singers', 'Singers', 'How many voices', { min: 2, max: 8, unit: '', normal: 6 }),
+      choiceKnob('harmony', 'Harmony', 'What they sing together: one note, octaves, open, bright (major), dark (minor), floating, rich or tense', CHOIR_HARMONIES),
+      knob('spread', 'Spread', 'How out of tune the singers are with each other', { normal: 30 }),
+      choiceKnob('vowel', 'Sing', 'The vowel they sing', VOWEL_NAMES),
+      knob('air', 'Air', 'Breath in the voices', { normal: 15 }),
+      knob('swell', 'Swell', 'How slowly it swells in and fades out', { normal: 40 }),
+      knob('length', 'Length', 'How long they hold it', { normal: 40 }),
+      knob('wobble', 'Wobble', 'A gentle shake in their voices', { normal: 30 }),
+      knob('space', 'Space', 'How much room it rings in', { normal: 40 }),
+    ],
+    make: choir,
+    makers: {
+      Heavenly: { tip: 'A bright, glowing chord from above', knobs: { pitch: [50, 70], singers: [6, 8], harmony: 3, spread: [20, 40], vowel: () => randomPick([0, 4]), air: [8, 20], swell: [50, 75], length: [55, 85], wobble: [20, 45], space: [55, 75] } },
+      Dread: { tip: 'A low, dark chord behind a locked door', knobs: { pitch: [5, 25], singers: [5, 8], harmony: 4, spread: [35, 70], vowel: () => randomPick([3, 4]), air: [10, 25], swell: [30, 60], length: [60, 95], wobble: [15, 40], space: [45, 70] } },
+      Cloister: { tip: 'Low voices holding an open note, like monks', knobs: { pitch: [10, 30], singers: [3, 6], harmony: 2, spread: [10, 25], vowel: () => randomPick([0, 3]), air: [3, 12], swell: [10, 35], length: [50, 90], wobble: [5, 20], space: [65, 90] } },
+      'Pixie chorus': { tip: 'Tiny high voices in a shimmering chord', knobs: { pitch: [70, 95], singers: [5, 8], harmony: () => randomPick([3, 5]), spread: [40, 70], vowel: 2, air: [8, 20], swell: [30, 60], length: [20, 50], wobble: [55, 90], space: [40, 60] } },
+      'Tin choir': { tip: 'Steady, perfectly matched machine voices', knobs: { pitch: [30, 60], singers: [3, 6], harmony: 0, spread: [0, 4], vowel: () => randomPick([1, 2]), air: 0, swell: [2, 15], length: [20, 50], wobble: 0, space: [15, 35] } },
+      Phantoms: { tip: 'An airy minor chord that fades in from nowhere', knobs: { pitch: [35, 60], singers: [6, 8], harmony: 4, spread: [50, 90], vowel: 4, air: [40, 75], swell: [70, 100], length: [60, 95], wobble: [40, 80], space: [60, 85] } },
+      Triumph: { tip: 'A full, open "aah" for a big win', knobs: { pitch: [35, 55], singers: 8, harmony: 3, spread: [12, 30], vowel: 0, air: [3, 10], swell: [10, 35], length: [15, 35], wobble: [15, 40], space: [40, 60] } },
+      'The deep': { tip: 'An uneasy huddle of very low voices', knobs: { pitch: [0, 18], singers: [6, 8], harmony: 7, spread: [70, 100], vowel: () => randomPick([1, 3]), air: [15, 45], swell: [35, 70], length: [65, 100], wobble: [55, 95], space: [55, 80] } },
+      Temple: { tip: 'Voices an octave apart in a huge stone hall', knobs: { pitch: [20, 45], singers: [4, 6], harmony: 1, spread: [10, 25], vowel: 3, air: [5, 15], swell: [40, 65], length: [55, 85], wobble: [10, 30], space: [85, 100] } },
+      Sunrise: { tip: 'A floating chord slowly swelling up', knobs: { pitch: [45, 65], singers: [6, 8], harmony: 5, spread: [20, 40], vowel: () => randomPick([0, 1]), air: [10, 20], swell: [80, 100], length: [65, 95], wobble: [20, 40], space: [50, 70] } },
+      Hymn: { tip: 'A warm, steady chord, like singing in a chapel', knobs: { pitch: [30, 50], singers: [5, 8], harmony: 3, spread: [15, 30], vowel: 3, air: [5, 15], swell: [30, 50], length: [45, 75], wobble: [15, 35], space: [55, 75] } },
+      Awe: { tip: 'A short swell of wonder, for seeing something amazing', knobs: { pitch: [40, 60], singers: [6, 8], harmony: () => randomPick([3, 5]), spread: [15, 35], vowel: 0, air: [8, 20], swell: [20, 40], length: [10, 25], wobble: [15, 35], space: [45, 65] } },
+      Mystery: { tip: 'A rich, unresolved chord, for something strange', knobs: { pitch: [30, 55], singers: [6, 8], harmony: 6, spread: [25, 50], vowel: 4, air: [10, 25], swell: [40, 70], length: [50, 80], wobble: [30, 55], space: [55, 75] } },
+    },
+  },
+  // fighting: swings, blocks, hits and arrows. Weight makes it a heavier or lighter weapon
+  Combat: {
+    knobs: [PITCH_KNOB, LENGTH_KNOB, twoWayKnob('weight', 'Weight', 'A light, quick weapon (-) or a big heavy one (+)'), knob('room', 'Room', 'Fighting in a room, from a hallway to a great hall', { normal: 0 })],
+    make: (k, maker) => {
+      let s = stretched(shifted(maker.make(), k.pitch - k.weight * 0.08), k.length / 100);
+      if (k.weight > 0) s = { ...s, lowPass: Math.min(settingOf(s, 'lowPass'), 100 - k.weight * 0.3), punch: Math.min(100, settingOf(s, 'punch') + k.weight * 0.3) };
+      if (k.weight < 0) s = { ...s, highPass: Math.max(settingOf(s, 'highPass'), -k.weight * 0.3) };
+      return roomed(s, k.room);
+    },
+    makers: {
+      Swish: { tip: 'A blade or a stick cutting the air', make: () => ({ wave: 'pink', pitch: randomNumber(300, 900), slide: eitherWay(randomNumber(15, 40)), attack: randomNumber(100, 250), sustain: randomNumber(0, 50), decay: randomNumber(150, 300), lowPass: randomNumber(45, 65), resonance: randomNumber(30, 60), lowPassSweep: randomNumber(30, 80), volume: 90 }) },
+      'Big swing': { tip: 'Something huge and heavy swung round', make: () => ({ wave: 'pink', pitch: randomNumber(200, 400), slide: -randomNumber(5, 15), attack: randomNumber(200, 350), sustain: randomNumber(30, 80), decay: randomNumber(250, 400), lowPass: randomNumber(30, 45), resonance: randomNumber(40, 65), lowPassSweep: randomNumber(20, 50), volume: 100 }) },
+      Slice: { tip: 'A quick, thin slash', make: () => ({ wave: 'pink', pitch: randomNumber(1500, 2500), slide: -randomNumber(20, 50), attack: randomNumber(20, 40), sustain: 10, decay: randomNumber(80, 140), highPass: randomNumber(30, 45), resonance: randomNumber(40, 60), lowPass: randomNumber(70, 85), volume: 90 }) },
+      'Steel on steel': { tip: 'Two blades meeting', make: () => ({ wave: 'sine', pitch: randomNumber(700, 1400), fm: randomNumber(60, 95), fmRatio: randomPick([1.41, 2.76, 3.17]), attack: 0, punch: randomNumber(50, 80), sustain: randomNumber(10, 30), decay: randomNumber(300, 600), highPass: randomNumber(15, 30), flanger: sometimes(randomNumber(0.5, 2)), volume: 40 }) },
+      Deflect: { tip: 'A quick, bright parry that rings off', make: () => ({ wave: 'sine', pitch: randomNumber(1600, 2600), fm: randomNumber(25, 45), fmRatio: 1.41, attack: 0, punch: 60, sustain: 0, decay: randomNumber(150, 250), highPass: 25, slide: randomNumber(2, 8) }) },
+      'Shield bash': { tip: 'A heavy hit on a metal shield', make: () => ({ wave: 'sine', pitch: randomNumber(150, 220), fm: randomNumber(40, 60), fmRatio: 1.41, hiss: randomNumber(15, 25), drop: randomNumber(4, 8), dropTime: 25, attack: 0, punch: randomNumber(50, 80), sustain: 10, decay: randomNumber(350, 500), lowPass: randomNumber(60, 75) }) },
+      Wallop: { tip: 'A solid punch', make: () => ({ wave: 'sine', pitch: randomNumber(70, 95), drop: randomNumber(14, 20), dropTime: randomNumber(12, 20), hiss: randomNumber(30, 40), attack: 0, punch: randomNumber(50, 70), sustain: 10, decay: randomNumber(100, 150), lowPass: randomNumber(50, 65) }) },
+      Thud: { tip: 'A dull blow on something soft', make: () => ({ wave: 'noise', pitch: randomNumber(300, 600), drop: 6, dropTime: 30, attack: 0, punch: randomNumber(40, 70), sustain: 10, decay: randomNumber(120, 180), lowPass: randomNumber(25, 35), volume: 100 }) },
+      Bowstring: { tip: 'An arrow let loose with a twang', make: () => ({ wave: 'string', pitch: randomNumber(140, 200), drop: randomNumber(3, 5), dropTime: 30, attack: 0, sustain: 20, decay: randomNumber(250, 350), lowPass: randomNumber(65, 80) }) },
+      'Arrow past': { tip: 'Something small whizzing by your head', make: () => ({ wave: 'pink', pitch: randomNumber(1000, 1500), slide: -randomNumber(20, 40), attack: randomNumber(100, 150), sustain: 10, decay: randomNumber(60, 100), lowPass: randomNumber(65, 75), lowPassSweep: -randomNumber(30, 50), resonance: randomNumber(35, 50), volume: 90 }) },
+      Jab: { tip: 'A quick stab', make: () => ({ wave: 'noise', pitch: randomNumber(1800, 2500), slide: -randomNumber(30, 60), highPass: randomNumber(25, 35), attack: 10, sustain: 10, decay: randomNumber(60, 90) }) },
+      Crunch: { tip: 'Something breaking, like bones or biscuits', make: () => ({ wave: 'bitnoise', pitch: randomNumber(600, 1200), crackle: randomNumber(250, 400), crackleLength: randomNumber(2, 4), crackleDepth: randomNumber(85, 95), attack: 0, sustain: randomNumber(40, 80), decay: randomNumber(100, 160), lowPass: randomNumber(55, 70) }) },
+      Smash: { tip: 'Glass shattering into pieces', make: () => ({ wave: randomPick(['breaker', 'sine']), pitch: randomNumber(2500, 4000), fm: randomNumber(10, 20), fmRatio: 2.76, attack: 0, sustain: 0, decay: randomNumber(150, 300), repeats: randomPick([6, 8, 10]), gap: randomNumber(20, 60), scatter: randomNumber(70, 100), pitchScatter: randomNumber(4, 8), repeatPitch: -0.5, highPass: 20 }) },
+      'Plate armour': { tip: 'Heavy armour clanking as you move', make: () => ({ wave: 'metal', pitch: randomNumber(600, 1000), attack: 0, sustain: 5, decay: randomNumber(80, 120), repeats: randomPick([2, 3]), gap: randomNumber(80, 150), scatter: 50, pitchScatter: 2, highPass: 20, lowPass: 80 }) },
+      Sidestep: { tip: 'A quick dodge out of the way', make: () => ({ wave: 'pink', pitch: randomNumber(600, 900), slide: randomNumber(30, 50), attack: randomNumber(30, 50), sustain: 10, decay: randomNumber(50, 80), lowPass: randomNumber(55, 70), resonance: 35, volume: 90 }) },
     },
   },
   Magic: {
@@ -420,30 +626,30 @@ const SOUND_GENERATORS = {
       return echoed(s, k.echo, 80, 400);
     },
     makers: {
-      Sparkle: { tip: 'A sparkly arpeggio with an echo', make: () => {
+      Twinkle: { tip: 'A sparkly run of notes that echoes', make: () => {
         const at = randomNumber(30, 60);
-        return { wave: randomPick(['sine', 'triangle', 'breaker', 'whistle']), pitch: randomNumber(600, 1400), slide: randomNumber(0, 15), jump: randomPick([4, 5, 7]), jumpAt: at, jump2: randomPick([3, 5, 7]), jump2At: at * 2, jumpRepeat: at * 3, attack: 0, sustain: randomNumber(250, 500), decay: randomNumber(250, 600), echo: randomNumber(90, 180), echoFeedback: randomNumber(30, 50), volume: 45 };
+        return { wave: randomPick(['sine', 'triangle', 'breaker', 'whistle']), pitch: randomNumber(600, 1400), slide: randomNumber(0, 15), jump: randomPick([4, 5, 7]), jumpAt: at, jump2: randomPick([3, 5, 7]), jump2At: at * 2, jumpRepeat: at * 3, attack: 0, sustain: randomNumber(250, 500), decay: randomNumber(250, 600), echo: randomNumber(90, 180), echoFeedback: randomNumber(30, 50), reverb: randomNumber(20, 35), reverbSize: 70, volume: 45 };
       } },
-      Heal: { tip: 'A gentle, warm rising chord', make: () => {
+      Mend: { tip: 'A gentle, warm rising chord, for healing', make: () => {
         const at = randomNumber(70, 110);
-        return { wave: randomPick(['sine', 'triangle', 'whistle']), pitch: noteFrequency(randomPick([64, 67, 69, 72])), jump: randomPick([4, 5]), jumpAt: at, jump2: randomPick([3, 4, 5]), jump2At: at * 2, jumpRepeat: sometimes(at * 3), slide: randomNumber(1, 4), attack: randomNumber(10, 40), sustain: randomNumber(400, 700), decay: randomNumber(300, 600), vibrato: randomNumber(0.1, 0.3), vibratoSpeed: randomNumber(5, 8), echo: randomNumber(120, 200), echoFeedback: randomNumber(30, 45), volume: 40 };
+        return { wave: randomPick(['sine', 'triangle', 'whistle']), pitch: noteFrequency(randomPick([64, 67, 69, 72])), jump: randomPick([4, 5]), jumpAt: at, jump2: randomPick([3, 4, 5]), jump2At: at * 2, jumpRepeat: sometimes(at * 3), slide: randomNumber(1, 4), attack: randomNumber(10, 40), sustain: randomNumber(400, 700), decay: randomNumber(300, 600), vibrato: randomNumber(0.1, 0.3), vibratoSpeed: randomNumber(5, 8), voices: randomPick([1, 3]), detune: 10, echo: randomNumber(120, 200), echoFeedback: randomNumber(30, 45), reverb: randomNumber(25, 40), reverbSize: 65, volume: 40 };
       } },
-      Cast: { tip: 'A rising, swooshing spell', make: () => ({ wave: randomPick(['sawtooth', 'square', 'breaker']), pitch: randomNumber(200, 500), slide: randomNumber(20, 60), slideAccel: sometimes(randomNumber(-60, 60)), attack: randomNumber(20, 80), sustain: randomNumber(150, 300), decay: randomNumber(150, 300), flanger: randomNumber(1, 4), flangerSweep: randomNumber(3, 10), lowPass: randomNumber(50, 80), lowPassSweep: randomNumber(20, 60), resonance: randomNumber(30, 60), volume: 45 }) },
-      Fireball: { tip: 'A roaring burst of flame', make: () => ({ wave: 'pink', pitch: randomNumber(400, 900), slide: -randomNumber(5, 20), attack: randomNumber(40, 100), sustain: randomNumber(150, 300), punch: randomNumber(20, 50), decay: randomNumber(400, 800), crackle: randomNumber(30, 70), crackleLength: randomNumber(5, 15), crackleDepth: randomNumber(40, 60), lowPass: randomNumber(55, 70), lowPassSweep: -randomNumber(10, 30), resonance: randomNumber(10, 30), volume: 100 }) },
-      Ice: { tip: 'Glassy chimes tumbling down', make: () => ({ wave: randomPick(['sine', 'breaker']), pitch: randomNumber(1800, 3200), fm: randomNumber(15, 35), fmRatio: randomPick([2.76, 3.5, 5.4]), attack: 0, sustain: 0, decay: randomNumber(120, 250), repeats: randomPick([4, 5, 6, 8]), gap: randomNumber(15, 45), repeatPitch: -randomPick([1, 2, 3]), echo: randomNumber(60, 120), echoFeedback: 35, volume: 40 }) },
-      Zap: { tip: 'A crackling jolt of lightning', make: () => ({ wave: randomPick(['noise', 'bitnoise']), pitch: randomNumber(1500, 3500), attack: 0, sustain: randomNumber(80, 250), decay: randomNumber(40, 120), crackle: randomNumber(150, 350), crackleLength: randomNumber(2, 6), crackleDepth: randomNumber(70, 95), tremolo: randomNumber(30, 60), tremoloSpeed: randomNumber(40, 70), highPass: randomNumber(30, 50), wander: randomNumber(4, 10), wanderSpeed: randomNumber(30, 80), volume: 60 }) },
-      Teleport: { tip: 'A rising warble, for warps and spells', make: () => ({ wave: randomPick(['square', 'sine', 'sawtooth']), pitch: randomNumber(200, 500), slide: randomNumber(60, 150), vibrato: randomNumber(2, 6), vibratoSpeed: randomNumber(20, 35), attack: randomNumber(0, 50), sustain: randomNumber(250, 450), decay: randomNumber(100, 250), flanger: sometimes(randomNumber(2, 6)), flangerSweep: sometimes(randomNumber(-8, 8)), volume: 45 }) },
-      Portal: { tip: 'A deep swirling hum that loops', make: () => ({ wave: randomPick(['sawtooth', 'organ', 'square']), pitch: randomNumber(70, 160), vibrato: randomNumber(0.5, 2), vibratoSpeed: randomNumber(0.5, 2), flanger: randomNumber(3, 8), lowPass: randomNumber(40, 60), resonance: randomNumber(50, 75), tremolo: randomNumber(20, 40), tremoloSpeed: randomNumber(1, 3), attack: 0, sustain: 2000, decay: 0, volume: 55, range: 8 }) },
-      'Force field': { tip: 'A buzzing magic barrier that loops', make: () => ({ wave: randomPick(['sawtooth', 'square']), pitch: randomNumber(80, 140), fm: randomNumber(5, 15), fmRatio: randomPick([1, 2, 3]), tremolo: randomNumber(30, 50), tremoloSpeed: randomNumber(12, 25), flanger: randomNumber(1, 3), lowPass: randomNumber(45, 65), resonance: randomNumber(40, 65), highPass: 10, attack: 0, sustain: 2000, decay: 0, volume: 40, range: 6 }) },
-      Curse: { tip: 'A dark, ghostly moan', make: () => ({ wave: 'voice', vowel: randomNumber(3, 4), vowelSlide: -randomNumber(0.5, 1.5), mouth: randomNumber(120, 150), pitch: randomNumber(70, 110), slide: -randomNumber(2, 6), breath: randomNumber(50, 75), growl: randomNumber(20, 50), vibrato: randomNumber(0.3, 0.8), vibratoSpeed: randomNumber(4, 6), attack: randomNumber(80, 200), sustain: randomNumber(500, 900), decay: randomNumber(400, 700), flanger: randomNumber(2, 5), echo: randomNumber(150, 250), echoFeedback: 40, volume: 80 }) },
-      'Charge up': { tip: 'Power building up faster and faster', make: () => ({ wave: randomPick(['sawtooth', 'square', 'sine']), pitch: randomNumber(80, 200), slide: randomNumber(10, 30), slideAccel: randomNumber(10, 40), tremolo: randomNumber(30, 60), tremoloSpeed: randomNumber(15, 30), vibrato: sometimes(randomNumber(0.2, 0.6)), vibratoSpeed: 20, attack: randomNumber(300, 600), sustain: randomNumber(400, 800), decay: randomNumber(30, 80), lowPass: randomNumber(50, 80), lowPassSweep: randomNumber(10, 30), volume: 45 }) },
-      Poof: { tip: 'A puff of smoke, for vanishing', make: () => ({ wave: 'pink', pitch: randomNumber(500, 1500), attack: randomNumber(5, 20), sustain: randomNumber(20, 60), decay: randomNumber(200, 400), lowPass: randomNumber(70, 85), lowPassSweep: -randomNumber(30, 60), highPass: randomNumber(20, 35), resonance: randomNumber(10, 30), volume: 100 }) },
-      Secret: { tip: 'A little climbing tune, for finding something hidden', make: () => {
+      Incant: { tip: 'A rising, swooshing spell being cast', make: () => ({ wave: randomPick(['sawtooth', 'square', 'breaker']), pitch: randomNumber(200, 500), slide: randomNumber(20, 60), slideAccel: sometimes(randomNumber(-60, 60)), attack: randomNumber(20, 80), sustain: randomNumber(150, 300), decay: randomNumber(150, 300), flanger: randomNumber(1, 4), flangerSweep: randomNumber(3, 10), lowPass: randomNumber(50, 80), lowPassSweep: randomNumber(20, 60), resonance: randomNumber(30, 60), volume: 45 }) },
+      'Flame bolt': { tip: 'A roaring burst of fire', make: () => ({ wave: 'pink', pitch: randomNumber(400, 900), slide: -randomNumber(5, 20), attack: randomNumber(40, 100), sustain: randomNumber(150, 300), punch: randomNumber(20, 50), decay: randomNumber(400, 800), crackle: randomNumber(30, 70), crackleLength: randomNumber(5, 15), crackleDepth: randomNumber(40, 60), lowPass: randomNumber(55, 70), lowPassSweep: -randomNumber(10, 30), resonance: randomNumber(10, 30), volume: 100 }) },
+      Frost: { tip: 'Glassy chimes tumbling down like ice', make: () => ({ wave: randomPick(['sine', 'breaker']), pitch: randomNumber(1800, 3200), fm: randomNumber(15, 35), fmRatio: randomPick([2.76, 3.5, 5.4]), attack: 0, sustain: 0, decay: randomNumber(120, 250), repeats: randomPick([4, 5, 6, 8]), gap: randomNumber(15, 45), repeatPitch: -randomPick([1, 2, 3]), scatter: randomNumber(30, 60), pitchScatter: randomNumber(0.5, 1.5), reverb: randomNumber(25, 40), reverbSize: 70, volume: 40 }) },
+      Jolt: { tip: 'A crackling shock of lightning', make: () => ({ wave: randomPick(['noise', 'bitnoise']), pitch: randomNumber(1500, 3500), attack: 0, sustain: randomNumber(80, 250), decay: randomNumber(40, 120), crackle: randomNumber(150, 350), crackleLength: randomNumber(2, 6), crackleDepth: randomNumber(70, 95), tremolo: randomNumber(30, 60), tremoloSpeed: randomNumber(40, 70), highPass: randomNumber(30, 50), wander: randomNumber(4, 10), wanderSpeed: randomNumber(30, 80), volume: 60 }) },
+      Blink: { tip: 'A rising warble, for vanishing and appearing somewhere else', make: () => ({ wave: randomPick(['square', 'sine', 'sawtooth']), pitch: randomNumber(200, 500), slide: randomNumber(60, 150), vibrato: randomNumber(2, 6), vibratoSpeed: randomNumber(20, 35), attack: randomNumber(0, 50), sustain: randomNumber(250, 450), decay: randomNumber(100, 250), flanger: sometimes(randomNumber(2, 6)), flangerSweep: sometimes(randomNumber(-8, 8)), volume: 45 }) },
+      Rift: { tip: 'A deep swirling hum of a portal, that loops', make: () => ({ wave: randomPick(['sawtooth', 'organ', 'square']), pitch: randomNumber(70, 160), vibrato: randomNumber(0.5, 2), vibratoSpeed: randomNumber(0.5, 2), flanger: randomNumber(3, 8), voices: 3, detune: randomNumber(15, 30), lowPass: randomNumber(40, 60), resonance: randomNumber(50, 75), tremolo: randomNumber(20, 40), tremoloSpeed: randomNumber(1, 3), attack: 0, sustain: 2000, decay: 0, volume: 55, range: 8 }) },
+      Ward: { tip: 'A buzzing magic barrier, that loops', make: () => ({ wave: randomPick(['sawtooth', 'square']), pitch: randomNumber(80, 140), fm: randomNumber(5, 15), fmRatio: randomPick([1, 2, 3]), tremolo: randomNumber(30, 50), tremoloSpeed: randomNumber(12, 25), flanger: randomNumber(1, 3), lowPass: randomNumber(45, 65), resonance: randomNumber(40, 65), highPass: 10, attack: 0, sustain: 2000, decay: 0, volume: 40, range: 6 }) },
+      Hex: { tip: 'A dark, ghostly moan of a curse', make: () => ({ wave: 'voice', vowel: randomNumber(3, 4), vowelSlide: -randomNumber(0.5, 1.5), mouth: randomNumber(120, 150), pitch: randomNumber(70, 110), slide: -randomNumber(2, 6), breath: randomNumber(50, 75), growl: randomNumber(20, 50), vibrato: randomNumber(0.3, 0.8), vibratoSpeed: randomNumber(4, 6), voices: 3, chord: 4, detune: randomNumber(20, 40), attack: randomNumber(80, 200), sustain: randomNumber(500, 900), decay: randomNumber(400, 700), flanger: randomNumber(2, 5), reverb: randomNumber(35, 55), reverbSize: 75, volume: 80 }) },
+      'Gather power': { tip: 'Power building up faster and faster', make: () => ({ wave: randomPick(['sawtooth', 'square', 'sine']), pitch: randomNumber(80, 200), slide: randomNumber(10, 30), slideAccel: randomNumber(10, 40), tremolo: randomNumber(30, 60), tremoloSpeed: randomNumber(15, 30), vibrato: sometimes(randomNumber(0.2, 0.6)), vibratoSpeed: 20, attack: randomNumber(300, 600), sustain: randomNumber(400, 800), decay: randomNumber(30, 80), lowPass: randomNumber(50, 80), lowPassSweep: randomNumber(10, 30), volume: 45 }) },
+      Vanish: { tip: 'A puff of smoke', make: () => ({ wave: 'pink', pitch: randomNumber(500, 1500), attack: randomNumber(5, 20), sustain: randomNumber(20, 60), decay: randomNumber(200, 400), lowPass: randomNumber(70, 85), lowPassSweep: -randomNumber(30, 60), highPass: randomNumber(20, 35), resonance: randomNumber(10, 30), volume: 100 }) },
+      Clue: { tip: 'A little climbing tune, for finding something hidden', make: () => {
         const at = randomNumber(50, 80);
         return { wave: randomPick(['square', 'triangle', 'breaker']), pitch: noteFrequency(randomPick([62, 64, 65, 67])), jump: randomPick([5, 6, 7]), jumpAt: at, attack: 0, sustain: at * 2, decay: randomNumber(30, 60), repeats: 4, gap: randomNumber(5, 20), repeatPitch: randomPick([1, 2, -1]), echo: sometimes(randomNumber(100, 150)), pulseWidth: randomNumber(25, 50), volume: 40 };
       } },
-      Chime: { tip: 'A ringing ding. FM makes it clang like real metal', make: () => ({ wave: randomPick(['sine', 'triangle', 'organ']), pitch: randomNumber(500, 2000), attack: randomNumber(0, 5), sustain: 0, decay: randomNumber(400, 1500), fm: sometimes(randomNumber(10, 40)), fmRatio: randomPick([1.4, 2.76, 3.5, 5.4]), vibrato: sometimes(randomNumber(0.05, 0.3)), vibratoSpeed: randomNumber(3, 8), repeats: randomPick([1, 1, 2]), gap: randomNumber(20, 80) }) },
-      Shield: { tip: 'A magic barrier ringing as it blocks a hit', make: () => ({ wave: 'sine', pitch: randomNumber(300, 600), fm: randomNumber(40, 70), fmRatio: randomPick([1.41, 2.76, 3.5]), attack: 0, punch: randomNumber(40, 70), sustain: randomNumber(20, 50), decay: randomNumber(500, 900), flanger: randomNumber(2, 5), flangerSweep: randomNumber(-6, 6), vibrato: 0.2, vibratoSpeed: 6, volume: 40 }) },
+      Glint: { tip: 'A ringing ding. FM makes it clang like real metal', make: () => ({ wave: randomPick(['sine', 'triangle', 'organ']), pitch: randomNumber(500, 2000), attack: randomNumber(0, 5), sustain: 0, decay: randomNumber(400, 1500), fm: sometimes(randomNumber(10, 40)), fmRatio: randomPick([1.4, 2.76, 3.5, 5.4]), vibrato: sometimes(randomNumber(0.05, 0.3)), vibratoSpeed: randomNumber(3, 8), repeats: randomPick([1, 1, 2]), gap: randomNumber(20, 80), reverb: randomNumber(20, 35), reverbSize: 60 }) },
+      Barrier: { tip: 'A magic shield ringing as it blocks a hit', make: () => ({ wave: 'sine', pitch: randomNumber(300, 600), fm: randomNumber(40, 70), fmRatio: randomPick([1.41, 2.76, 3.5]), attack: 0, punch: randomNumber(40, 70), sustain: randomNumber(20, 50), decay: randomNumber(500, 900), flanger: randomNumber(2, 5), flangerSweep: randomNumber(-6, 6), vibrato: 0.2, vibratoSpeed: 6, reverb: randomNumber(15, 30), reverbSize: 55, volume: 40 }) },
     },
   },
   'Sci-fi': {
@@ -456,27 +662,27 @@ const SOUND_GENERATORS = {
       return echoed(s, k.space, 100, 450);
     },
     makers: {
-      Sonar: { tip: 'A ping with echoes coming back', make: () => ({ wave: randomPick(['sine', 'sine', 'triangle']), pitch: randomNumber(700, 1500), slide: -randomNumber(0, 3), fm: sometimes(randomNumber(3, 10)), fmRatio: randomPick([1, 2]), attack: randomNumber(0, 3), sustain: randomNumber(10, 40), decay: randomNumber(600, 1200), echo: randomNumber(250, 450), echoFeedback: randomNumber(40, 60), lowPass: randomNumber(70, 90), volume: 45, range: 14 }) },
-      Radar: { tip: 'A short bright blip on the scanner', make: () => ({ wave: 'sine', pitch: randomNumber(1500, 2800), attack: 0, sustain: randomNumber(10, 30), decay: randomNumber(60, 140), repeats: randomPick([1, 2]), gap: randomNumber(60, 120), highPass: randomNumber(20, 40), volume: 40 }) },
-      'Target lock': { tip: 'Quick beeps climbing as it locks on', make: () => ({ wave: randomPick(['square', 'sine', 'triangle']), pitch: randomNumber(900, 1500), attack: 0, sustain: randomNumber(30, 50), decay: randomNumber(10, 30), repeats: randomPick([3, 4, 5, 6]), gap: randomNumber(30, 70), repeatPitch: randomPick([1, 2, 3, 4]), pulseWidth: randomNumber(20, 50), volume: 40 }) },
-      Beacon: { tip: 'A slow repeating signal that loops', make: () => ({ wave: randomPick(['sine', 'triangle']), pitch: randomNumber(500, 1100), fm: sometimes(randomNumber(5, 15)), fmRatio: 2, jump: sometimes(randomPick([-5, 7])), jumpAt: 100, attack: randomNumber(5, 20), sustain: randomNumber(80, 150), decay: randomNumber(150, 300), repeats: 2, gap: randomNumber(500, 900), echo: sometimes(randomNumber(150, 250)), volume: 45, range: 18 }) },
-      Scanner: { tip: 'A sweeping, pulsing scan', make: () => ({ wave: randomPick(['sine', 'square', 'sawtooth']), pitch: randomNumber(600, 1400), vibrato: randomNumber(4, 8), vibratoSpeed: randomNumber(1, 3), tremolo: randomNumber(40, 70), tremoloSpeed: randomNumber(25, 45), highPass: randomNumber(20, 40), lowPass: randomNumber(70, 90), attack: randomNumber(20, 60), sustain: randomNumber(600, 1200), decay: randomNumber(50, 150), volume: 35 }) },
-      Hologram: { tip: 'A shimmering screen opening', make: () => ({ wave: randomPick(['breaker', 'whistle', 'sine']), pitch: randomNumber(400, 900), fm: randomNumber(10, 30), fmRatio: randomPick([1.5, 2.5, 3]), slide: eitherWay(randomNumber(5, 20)), vibrato: randomNumber(0.2, 0.6), vibratoSpeed: randomNumber(10, 18), flanger: randomNumber(1, 4), flangerSweep: randomNumber(-8, 8), lowPass: randomNumber(50, 70), lowPassSweep: randomNumber(30, 70), resonance: randomNumber(30, 55), attack: randomNumber(30, 80), sustain: randomNumber(150, 300), decay: randomNumber(150, 300), volume: 40 }) },
-      Computer: { tip: 'Busy computer bleeps', make: () => {
+      'Depth ping': { tip: 'A ping with its echoes coming back, like sonar', make: () => ({ wave: randomPick(['sine', 'sine', 'triangle']), pitch: randomNumber(700, 1500), slide: -randomNumber(0, 3), fm: sometimes(randomNumber(3, 10)), fmRatio: randomPick([1, 2]), attack: randomNumber(0, 3), sustain: randomNumber(10, 40), decay: randomNumber(600, 1200), echo: randomNumber(250, 450), echoFeedback: randomNumber(40, 60), lowPass: randomNumber(70, 90), reverb: randomNumber(20, 35), reverbSize: 80, volume: 45, range: 14 }) },
+      'Blip scan': { tip: 'A short bright blip on a screen', make: () => ({ wave: 'sine', pitch: randomNumber(1500, 2800), attack: 0, sustain: randomNumber(10, 30), decay: randomNumber(60, 140), repeats: randomPick([1, 2]), gap: randomNumber(60, 120), highPass: randomNumber(20, 40), volume: 40 }) },
+      'Lock-on': { tip: 'Quick beeps climbing as it locks on', make: () => ({ wave: randomPick(['square', 'sine', 'triangle']), pitch: randomNumber(900, 1500), attack: 0, sustain: randomNumber(30, 50), decay: randomNumber(10, 30), repeats: randomPick([3, 4, 5, 6]), gap: randomNumber(30, 70), repeatPitch: randomPick([1, 2, 3, 4]), pulseWidth: randomNumber(20, 50), volume: 40 }) },
+      'Homing signal': { tip: 'A slow repeating signal, that loops', make: () => ({ wave: randomPick(['sine', 'triangle']), pitch: randomNumber(500, 1100), fm: sometimes(randomNumber(5, 15)), fmRatio: 2, jump: sometimes(randomPick([-5, 7])), jumpAt: 100, attack: randomNumber(5, 20), sustain: randomNumber(80, 150), decay: randomNumber(150, 300), repeats: 2, gap: randomNumber(500, 900), echo: sometimes(randomNumber(150, 250)), volume: 45, range: 18 }) },
+      'Scan beam': { tip: 'A sweeping, pulsing scan', make: () => ({ wave: randomPick(['sine', 'square', 'sawtooth']), pitch: randomNumber(600, 1400), vibrato: randomNumber(4, 8), vibratoSpeed: randomNumber(1, 3), tremolo: randomNumber(40, 70), tremoloSpeed: randomNumber(25, 45), highPass: randomNumber(20, 40), lowPass: randomNumber(70, 90), attack: randomNumber(20, 60), sustain: randomNumber(600, 1200), decay: randomNumber(50, 150), volume: 35 }) },
+      Projector: { tip: 'A shimmering screen flickering open', make: () => ({ wave: randomPick(['breaker', 'whistle', 'sine']), pitch: randomNumber(400, 900), fm: randomNumber(10, 30), fmRatio: randomPick([1.5, 2.5, 3]), slide: eitherWay(randomNumber(5, 20)), vibrato: randomNumber(0.2, 0.6), vibratoSpeed: randomNumber(10, 18), flanger: randomNumber(1, 4), flangerSweep: randomNumber(-8, 8), lowPass: randomNumber(50, 70), lowPassSweep: randomNumber(30, 70), resonance: randomNumber(30, 55), attack: randomNumber(30, 80), sustain: randomNumber(150, 300), decay: randomNumber(150, 300), volume: 40 }) },
+      Mainframe: { tip: 'A busy computer thinking in bleeps', make: () => {
         const at = randomNumber(20, 50);
         return { wave: randomPick(['square', 'sine', 'triangle']), pitch: randomNumber(600, 1600), jump: eitherWay(randomPick([5, 7, 12])), jumpAt: at, jump2: eitherWay(randomPick([3, 5, 7])), jump2At: at * 2, jumpRepeat: at * 3, attack: 0, sustain: randomNumber(300, 700), decay: randomNumber(20, 60), repeats: randomPick([1, 2, 3]), gap: randomNumber(60, 150), volume: 40 };
       } },
-      Data: { tip: 'A fast stream of data chirps', make: () => {
+      Uplink: { tip: 'A fast stream of data chirps', make: () => {
         const at = randomNumber(8, 18);
         return { wave: randomPick(['square', 'sine']), pitch: randomNumber(800, 2000), jump: randomPick([-7, -5, 5, 7, 12]), jumpAt: at, jump2: randomPick([-12, -3, 3, 4]), jump2At: at * 2, jumpRepeat: at * 3, wander: randomNumber(4, 10), wanderSpeed: randomNumber(30, 90), attack: 0, sustain: randomNumber(400, 900), decay: randomNumber(20, 50), highPass: 25, volume: 30 };
       } },
-      Glitch: { tip: 'Broken, jumpy digital noise', make: () => ({ wave: randomPick(['bitnoise', 'square', 'tan', 'metal']), pitch: randomNumber(200, 1500), wander: randomNumber(12, 24), wanderSpeed: randomNumber(200, 1200), crush: randomNumber(40, 75), crackle: randomNumber(20, 60), crackleLength: randomNumber(20, 60), attack: 0, sustain: randomNumber(150, 400), decay: randomNumber(10, 40), volume: 40 }) },
-      Stutter: { tip: 'A sound skipping like a scratched disc', make: () => ({ wave: randomPick(['square', 'sawtooth', 'tan']), pitch: randomNumber(200, 900), slide: sometimes(-randomNumber(20, 80)), attack: 0, sustain: randomNumber(15, 40), decay: randomNumber(5, 15), repeats: randomPick([4, 6, 8, 10]), gap: randomNumber(10, 30), repeatPitch: eitherWay(randomPick([0.5, 1, 2])), crush: randomNumber(20, 50), pulseWidth: randomNumber(20, 50), volume: 40 }) },
-      Static: { tip: 'A broken radio\'s hiss and crackle that loops', make: () => ({ wave: 'noise', pitch: randomNumber(1500, 3000), highPass: randomNumber(35, 50), lowPass: randomNumber(70, 85), crackle: randomNumber(30, 80), crackleLength: randomNumber(20, 60), crackleDepth: randomNumber(50, 80), wander: randomNumber(5, 12), wanderSpeed: randomNumber(3, 8), tremolo: sometimes(randomNumber(20, 40)), tremoloSpeed: randomNumber(2, 6), crush: sometimes(randomNumber(20, 40)), attack: 0, sustain: 2000, decay: 0, volume: 75 }) },
-      'Alien signal': { tip: 'A strange warbling transmission', make: () => ({ wave: randomPick(['sine', 'whistle', 'triangle']), pitch: randomNumber(400, 1200), fm: randomNumber(10, 30), fmRatio: randomNumber(0.5, 3), vibrato: randomNumber(2, 6), vibratoSpeed: randomNumber(6, 14), wander: randomNumber(2, 5), wanderSpeed: randomNumber(3, 8), attack: randomNumber(20, 60), sustain: randomNumber(400, 800), decay: randomNumber(200, 400), repeats: randomPick([1, 2, 3]), gap: randomNumber(80, 200), repeatPitch: eitherWay(randomPick([2, 3, 5])), echo: randomNumber(150, 300), echoFeedback: 40, volume: 40 }) },
-      'Power on': { tip: 'A machine whirring up to speed', make: () => ({ wave: randomPick(['sawtooth', 'square']), pitch: randomNumber(40, 80), slide: randomNumber(40, 80), slideAccel: -randomNumber(30, 60), attack: randomNumber(30, 80), sustain: randomNumber(600, 1000), decay: randomNumber(100, 250), lowPass: randomNumber(40, 60), lowPassSweep: randomNumber(20, 40), resonance: randomNumber(20, 50), tremolo: sometimes(randomNumber(10, 30)), tremoloSpeed: 30, volume: 45 }) },
-      'Power off': { tip: 'A machine winding down and dying', make: () => ({ wave: randomPick(['sawtooth', 'square', 'sine']), pitch: randomNumber(400, 900), slide: -randomNumber(30, 60), slideAccel: randomNumber(10, 30), attack: 0, sustain: randomNumber(300, 600), decay: randomNumber(400, 700), lowPass: randomNumber(60, 85), lowPassSweep: -randomNumber(20, 40), volume: 45 }) },
-      Beam: { tip: 'A humming energy beam that loops', make: () => ({ wave: randomPick(['sawtooth', 'square']), pitch: randomNumber(150, 400), vibrato: randomNumber(0.3, 1), vibratoSpeed: randomNumber(20, 40), fm: randomNumber(10, 30), fmRatio: randomPick([0.5, 1.5, 2]), flanger: randomNumber(1, 3), lowPass: randomNumber(60, 85), resonance: randomNumber(30, 60), attack: 0, sustain: 2000, decay: 0, volume: 40 }) },
+      Corrupt: { tip: 'Broken, jumpy digital noise', make: () => ({ wave: randomPick(['bitnoise', 'square', 'tan', 'metal']), pitch: randomNumber(200, 1500), wander: randomNumber(12, 24), wanderSpeed: randomNumber(200, 1200), crush: randomNumber(40, 75), crackle: randomNumber(20, 60), crackleLength: randomNumber(20, 60), attack: 0, sustain: randomNumber(150, 400), decay: randomNumber(10, 40), volume: 40 }) },
+      Skip: { tip: 'A sound catching like a scratched disc', make: () => ({ wave: randomPick(['square', 'sawtooth', 'tan']), pitch: randomNumber(200, 900), slide: sometimes(-randomNumber(20, 80)), attack: 0, sustain: randomNumber(15, 40), decay: randomNumber(5, 15), repeats: randomPick([4, 6, 8, 10]), gap: randomNumber(10, 30), repeatPitch: eitherWay(randomPick([0.5, 1, 2])), crush: randomNumber(20, 50), pulseWidth: randomNumber(20, 50), volume: 40 }) },
+      'Dead channel': { tip: 'A broken radio\'s hiss and crackle, that loops', make: () => ({ wave: 'noise', pitch: randomNumber(1500, 3000), highPass: randomNumber(35, 50), lowPass: randomNumber(70, 85), crackle: randomNumber(30, 80), crackleLength: randomNumber(20, 60), crackleDepth: randomNumber(50, 80), wander: randomNumber(5, 12), wanderSpeed: randomNumber(3, 8), tremolo: sometimes(randomNumber(20, 40)), tremoloSpeed: randomNumber(2, 6), crush: sometimes(randomNumber(20, 40)), attack: 0, sustain: 2000, decay: 0, volume: 75 }) },
+      'First contact': { tip: 'A strange warbling message from very far away', make: () => ({ wave: randomPick(['sine', 'whistle', 'triangle']), pitch: randomNumber(400, 1200), fm: randomNumber(10, 30), fmRatio: randomNumber(0.5, 3), vibrato: randomNumber(2, 6), vibratoSpeed: randomNumber(6, 14), wander: randomNumber(2, 5), wanderSpeed: randomNumber(3, 8), attack: randomNumber(20, 60), sustain: randomNumber(400, 800), decay: randomNumber(200, 400), repeats: randomPick([1, 2, 3]), gap: randomNumber(80, 200), repeatPitch: eitherWay(randomPick([2, 3, 5])), echo: randomNumber(150, 300), echoFeedback: 40, reverb: randomNumber(20, 40), reverbSize: 85, volume: 40 }) },
+      'Boot up': { tip: 'A machine whirring up to speed', make: () => ({ wave: randomPick(['sawtooth', 'square']), pitch: randomNumber(40, 80), slide: randomNumber(40, 80), slideAccel: -randomNumber(30, 60), attack: randomNumber(30, 80), sustain: randomNumber(600, 1000), decay: randomNumber(100, 250), lowPass: randomNumber(40, 60), lowPassSweep: randomNumber(20, 40), resonance: randomNumber(20, 50), tremolo: sometimes(randomNumber(10, 30)), tremoloSpeed: 30, volume: 45 }) },
+      'Shut down': { tip: 'A machine winding down and going dark', make: () => ({ wave: randomPick(['sawtooth', 'square', 'sine']), pitch: randomNumber(400, 900), slide: -randomNumber(30, 60), slideAccel: randomNumber(10, 30), attack: 0, sustain: randomNumber(300, 600), decay: randomNumber(400, 700), lowPass: randomNumber(60, 85), lowPassSweep: -randomNumber(20, 40), volume: 45 }) },
+      'Tractor beam': { tip: 'A thick humming energy beam, that loops', make: () => ({ wave: randomPick(['sawtooth', 'square']), pitch: randomNumber(150, 400), vibrato: randomNumber(0.3, 1), vibratoSpeed: randomNumber(20, 40), fm: randomNumber(10, 30), fmRatio: randomPick([0.5, 1.5, 2]), flanger: randomNumber(1, 3), voices: 3, detune: randomNumber(15, 30), lowPass: randomNumber(60, 85), resonance: randomNumber(30, 60), attack: 0, sustain: 2000, decay: 0, volume: 40 }) },
     },
   },
   Things: {
@@ -486,24 +692,24 @@ const SOUND_GENERATORS = {
       const h = k.hardness;
       if (h > 0) s = { ...s, punch: Math.max(settingOf(s, 'punch'), h * 0.6), highPass: Math.max(settingOf(s, 'highPass'), h * 0.3), attack: settingOf(s, 'attack') * (1 - h / 110) };
       if (h < 0) s = { ...s, lowPass: Math.min(settingOf(s, 'lowPass'), 100 + h * 0.6), attack: settingOf(s, 'attack') - h * 0.3, punch: settingOf(s, 'punch') * (1 + h / 100) };
-      return echoed(s, k.room, 25, 140);
+      return roomed(s, k.room, 20 + k.room * 0.3);
     },
     makers: {
-      Footsteps: { tip: 'A few steps. Crackle makes them crunch like gravel', make: () => ({ wave: randomPick(['noise', 'pink']), pitch: randomNumber(150, 500), attack: 0, sustain: randomNumber(5, 15), decay: randomNumber(60, 120), lowPass: randomNumber(35, 55), crackle: sometimes(randomNumber(150, 300)), crackleLength: randomNumber(4, 8), repeats: randomPick([2, 3, 4]), gap: randomNumber(250, 380), volume: 100, range: 6 }) },
-      Knock: { tip: 'Knocking on wood', make: () => ({ wave: randomPick(['triangle', 'sine']), pitch: randomNumber(150, 320), slide: -randomNumber(10, 30), fm: randomNumber(10, 25), fmRatio: randomPick([2.3, 3.1, 1.7]), attack: 0, sustain: randomNumber(0, 5), decay: randomNumber(50, 100), lowPass: randomNumber(45, 65), repeats: randomPick([1, 2, 3]), gap: randomNumber(90, 160), volume: 90 }) },
-      Clang: { tip: 'A heavy metal clang', make: () => ({ wave: 'sine', pitch: randomNumber(250, 700), fm: randomNumber(35, 65), fmRatio: randomPick([1.41, 2.76, 3.5, 5.4]), attack: 0, punch: randomNumber(30, 60), sustain: randomNumber(0, 20), decay: randomNumber(600, 1300), vibrato: sometimes(randomNumber(0.05, 0.2)), vibratoSpeed: randomNumber(4, 8), highPass: randomNumber(5, 15), volume: 50, range: 12 }) },
-      Glass: { tip: 'A delicate glass ping', make: () => ({ wave: randomPick(['sine', 'breaker']), pitch: randomNumber(1800, 3600), fm: randomNumber(10, 30), fmRatio: randomPick([2.76, 3.5, 5.4]), attack: 0, sustain: 0, decay: randomNumber(300, 700), repeats: randomPick([1, 1, 2]), gap: randomNumber(20, 60), repeatPitch: sometimes(randomPick([-2, 3])), volume: 40 }) },
-      Whoosh: { tip: 'A swing or something flying past', make: () => ({ wave: 'pink', pitch: randomNumber(300, 900), slide: eitherWay(randomNumber(15, 40)), attack: randomNumber(100, 250), sustain: randomNumber(0, 50), decay: randomNumber(150, 300), lowPass: randomNumber(45, 65), resonance: randomNumber(30, 60), lowPassSweep: randomNumber(30, 80), volume: 90 }) },
-      'Sword clash': { tip: 'Two blades hitting', make: () => ({ wave: 'sine', pitch: randomNumber(700, 1400), fm: randomNumber(60, 95), fmRatio: randomPick([1.41, 2.76, 3.17]), attack: 0, punch: randomNumber(50, 80), sustain: randomNumber(10, 30), decay: randomNumber(300, 600), highPass: randomNumber(15, 30), flanger: sometimes(randomNumber(0.5, 2)), volume: 40 }) },
-      Creak: { tip: 'A creaky door or floorboard', make: () => ({ wave: randomPick(['sawtooth', 'metal']), pitch: randomNumber(40, 110), slide: randomNumber(-5, 5), wander: randomNumber(1, 4), wanderSpeed: randomNumber(2, 6), lowPass: randomNumber(40, 60), resonance: randomNumber(60, 85), highPass: randomNumber(10, 25), attack: randomNumber(50, 150), sustain: randomNumber(400, 900), decay: randomNumber(100, 200) }) },
-      Clock: { tip: 'Tick, tock', make: () => ({ wave: randomPick(['metal', 'bitnoise', 'sine']), pitch: randomNumber(1500, 4000), attack: 0, sustain: randomNumber(0, 5), decay: randomNumber(15, 35), highPass: randomNumber(30, 60), repeats: 2, gap: randomNumber(450, 520), volume: 70, range: 5 }) },
-      Bell: { tip: 'A ringing ding. FM makes it clang like real metal', make: () => ({ wave: randomPick(['sine', 'triangle', 'organ']), pitch: randomNumber(500, 2000), attack: randomNumber(0, 5), sustain: 0, decay: randomNumber(400, 1500), fm: sometimes(randomNumber(10, 40)), fmRatio: randomPick([1.4, 2.76, 3.5, 5.4]), vibrato: sometimes(randomNumber(0.05, 0.3)), vibratoSpeed: randomNumber(3, 8), repeats: randomPick([1, 1, 2]), gap: randomNumber(20, 80) }) },
-      Coins: { tip: 'A handful of coins clinking', make: () => ({ wave: randomPick(['sine', 'breaker']), pitch: randomNumber(2200, 3600), fm: randomNumber(10, 25), fmRatio: randomPick([2.76, 3.5]), attack: 0, sustain: 0, decay: randomNumber(60, 140), repeats: randomPick([3, 4, 6, 8]), gap: randomNumber(25, 90), wander: randomNumber(3, 6), wanderSpeed: randomNumber(8, 20), volume: 55 }) },
-      Firecracker: { tip: 'A string of bangs and pops', make: () => ({ wave: randomPick(['noise', 'bitnoise']), pitch: randomNumber(900, 2500), crackle: randomNumber(6, 20), crackleLength: randomNumber(15, 40), punch: randomNumber(30, 60), attack: 0, sustain: randomNumber(600, 1500), decay: randomNumber(200, 400), echo: sometimes(randomNumber(60, 150)), echoFeedback: randomNumber(20, 40), volume: 85, range: 20 }) },
-      Splash: { tip: 'Something dropping into water', make: () => ({ wave: 'noise', pitch: randomNumber(1000, 2500), attack: 0, punch: randomNumber(40, 70), sustain: randomNumber(30, 80), decay: randomNumber(250, 500), crackle: randomNumber(150, 300), crackleLength: randomNumber(10, 25), lowPass: randomNumber(70, 90), lowPassSweep: -randomNumber(40, 80), volume: 90 }) },
-      Siren: { tip: 'A wailing siren that loops', make: () => ({ wave: randomPick(['sine', 'square', 'triangle']), pitch: randomNumber(500, 800), vibrato: randomNumber(3, 6), vibratoSpeed: randomNumber(0.5, 2), pulseWidth: randomNumber(30, 50), attack: 0, sustain: 2000, decay: 0, volume: 50, range: 25 }) },
-      Alarm: { tip: 'Beep beep beep', make: () => ({ wave: randomPick(['square', 'tan', 'sawtooth']), pitch: randomNumber(800, 1600), jump: sometimes(-randomPick([5, 7, 12])), jumpAt: randomNumber(50, 80), attack: 0, sustain: randomNumber(80, 150), decay: randomNumber(10, 30), repeats: randomPick([3, 4, 5]), gap: randomNumber(60, 120), volume: 45, range: 15 }) },
-      Heartbeat: { tip: 'Lub-dub', make: () => ({ wave: 'sine', pitch: randomNumber(45, 65), slide: -randomNumber(5, 15), attack: 0, sustain: randomNumber(10, 20), punch: randomNumber(50, 80), decay: randomNumber(80, 140), repeats: 2, gap: randomNumber(90, 140), lowPass: randomNumber(30, 50), volume: 90, range: 4 }) },
+      Steps: { tip: 'A few footsteps. Crackle makes them crunch like gravel', make: () => ({ wave: randomPick(['noise', 'pink']), pitch: randomNumber(150, 500), attack: 0, sustain: randomNumber(5, 15), decay: randomNumber(60, 120), lowPass: randomNumber(35, 55), crackle: sometimes(randomNumber(150, 300)), crackleLength: randomNumber(4, 8), repeats: randomPick([2, 3, 4]), gap: randomNumber(250, 380), scatter: randomNumber(15, 30), pitchScatter: randomNumber(0.5, 1.5), volume: 100, range: 6 }) },
+      Knuckles: { tip: 'Knocking on a wooden door', make: () => ({ wave: randomPick(['triangle', 'sine']), pitch: randomNumber(150, 320), slide: -randomNumber(10, 30), fm: randomNumber(10, 25), fmRatio: randomPick([2.3, 3.1, 1.7]), attack: 0, sustain: randomNumber(0, 5), decay: randomNumber(50, 100), lowPass: randomNumber(45, 65), repeats: randomPick([1, 2, 3]), gap: randomNumber(90, 160), scatter: 20, volume: 90 }) },
+      'Pan bang': { tip: 'A heavy metal clang', make: () => ({ wave: 'sine', pitch: randomNumber(250, 700), fm: randomNumber(35, 65), fmRatio: randomPick([1.41, 2.76, 3.5, 5.4]), attack: 0, punch: randomNumber(30, 60), sustain: randomNumber(0, 20), decay: randomNumber(600, 1300), vibrato: sometimes(randomNumber(0.05, 0.2)), vibratoSpeed: randomNumber(4, 8), highPass: randomNumber(5, 15), volume: 50, range: 12 }) },
+      Tink: { tip: 'A delicate ping on a glass', make: () => ({ wave: randomPick(['sine', 'breaker']), pitch: randomNumber(1800, 3600), fm: randomNumber(10, 30), fmRatio: randomPick([2.76, 3.5, 5.4]), attack: 0, sustain: 0, decay: randomNumber(300, 700), repeats: randomPick([1, 1, 2]), gap: randomNumber(20, 60), repeatPitch: sometimes(randomPick([-2, 3])), volume: 40 }) },
+      'Old hinge': { tip: 'A creaky door or floorboard', make: () => ({ wave: randomPick(['sawtooth', 'metal']), pitch: randomNumber(40, 110), slide: randomNumber(-5, 5), wander: randomNumber(1, 4), wanderSpeed: randomNumber(2, 6), lowPass: randomNumber(40, 60), resonance: randomNumber(60, 85), highPass: randomNumber(10, 25), attack: randomNumber(50, 150), sustain: randomNumber(400, 900), decay: randomNumber(100, 200) }) },
+      'Tick tock': { tip: 'A clock ticking', make: () => ({ wave: randomPick(['metal', 'bitnoise', 'sine']), pitch: randomNumber(1500, 4000), attack: 0, sustain: randomNumber(0, 5), decay: randomNumber(15, 35), highPass: randomNumber(30, 60), repeats: 2, gap: randomNumber(450, 520), repeatPitch: -randomPick([1, 2]), volume: 70, range: 5 }) },
+      Doorbell: { tip: 'A ringing ding. FM makes it clang like real metal', make: () => ({ wave: randomPick(['sine', 'triangle', 'organ']), pitch: randomNumber(500, 2000), attack: randomNumber(0, 5), sustain: 0, decay: randomNumber(400, 1500), fm: sometimes(randomNumber(10, 40)), fmRatio: randomPick([1.4, 2.76, 3.5, 5.4]), vibrato: sometimes(randomNumber(0.05, 0.3)), vibratoSpeed: randomNumber(3, 8), repeats: randomPick([1, 1, 2]), gap: randomNumber(20, 80) }) },
+      'Pocket change': { tip: 'A handful of coins clinking', make: () => ({ wave: randomPick(['sine', 'breaker']), pitch: randomNumber(2200, 3600), fm: randomNumber(10, 25), fmRatio: randomPick([2.76, 3.5]), attack: 0, sustain: 0, decay: randomNumber(60, 140), repeats: randomPick([3, 4, 6, 8]), gap: randomNumber(25, 90), scatter: randomNumber(60, 100), pitchScatter: randomNumber(2, 4), volume: 55 }) },
+      Bangers: { tip: 'A string of bangs and pops', make: () => ({ wave: randomPick(['noise', 'bitnoise']), pitch: randomNumber(900, 2500), crackle: randomNumber(6, 20), crackleLength: randomNumber(15, 40), punch: randomNumber(30, 60), attack: 0, sustain: randomNumber(600, 1500), decay: randomNumber(200, 400), echo: sometimes(randomNumber(60, 150)), echoFeedback: randomNumber(20, 40), volume: 85, range: 20 }) },
+      Sploosh: { tip: 'Something dropping into water', make: () => ({ wave: 'noise', pitch: randomNumber(1000, 2500), attack: 0, punch: randomNumber(40, 70), sustain: randomNumber(30, 80), decay: randomNumber(250, 500), crackle: randomNumber(150, 300), crackleLength: randomNumber(10, 25), lowPass: randomNumber(70, 90), lowPassSweep: -randomNumber(40, 80), volume: 90 }) },
+      Wail: { tip: 'A wailing siren, that loops', make: () => ({ wave: randomPick(['sine', 'square', 'triangle']), pitch: randomNumber(500, 800), vibrato: randomNumber(3, 6), vibratoSpeed: randomNumber(0.5, 2), pulseWidth: randomNumber(30, 50), attack: 0, sustain: 2000, decay: 0, volume: 50, range: 25 }) },
+      'Beep beep': { tip: 'An alarm going off', make: () => ({ wave: randomPick(['square', 'tan', 'sawtooth']), pitch: randomNumber(800, 1600), jump: sometimes(-randomPick([5, 7, 12])), jumpAt: randomNumber(50, 80), attack: 0, sustain: randomNumber(80, 150), decay: randomNumber(10, 30), repeats: randomPick([3, 4, 5]), gap: randomNumber(60, 120), volume: 45, range: 15 }) },
+      'Lub-dub': { tip: 'A heartbeat', make: () => ({ wave: 'sine', pitch: randomNumber(45, 65), slide: -randomNumber(5, 15), attack: 0, sustain: randomNumber(10, 20), punch: randomNumber(50, 80), decay: randomNumber(80, 140), repeats: 2, gap: randomNumber(90, 140), lowPass: randomNumber(30, 50), volume: 90, range: 4 }) },
+      'Page flip': { tip: 'Turning the page of a book', make: () => ({ wave: 'pink', pitch: randomNumber(2000, 3000), slide: randomNumber(5, 15), attack: randomNumber(25, 45), sustain: randomNumber(30, 60), decay: randomNumber(70, 110), highPass: randomNumber(30, 40), crackle: randomNumber(150, 250), crackleLength: 2, crackleDepth: randomNumber(30, 50), volume: 100 }) },
+      Drawer: { tip: 'A wooden drawer sliding open', make: () => ({ wave: 'pink', pitch: randomNumber(400, 800), attack: randomNumber(20, 40), sustain: randomNumber(200, 350), decay: randomNumber(40, 80), lowPass: randomNumber(35, 45), resonance: randomNumber(25, 40), crackle: randomNumber(90, 150), crackleLength: randomNumber(6, 10), crackleDepth: randomNumber(40, 60), volume: 100 }) },
     },
   },
   Motors: {
@@ -518,193 +724,194 @@ const SOUND_GENERATORS = {
     ],
     make: machine,
     makers: {
-      Engine: { tip: 'A rumbling engine that loops', knobs: { machine: 1, speed: [35, 60], size: [45, 70], strain: [5, 30], rattle: [5, 25] } },
-      'Car idle': { tip: 'A car ticking over, waiting', knobs: { machine: 1, speed: [15, 35], size: [40, 60], strain: [0, 15], rattle: [15, 35] } },
-      Motor: { tip: 'A whirring electric motor that loops', knobs: { machine: 0, speed: [40, 65], size: [30, 60], strain: [0, 15], rattle: [0, 15] } },
+      'Big engine': { tip: 'A rumbling engine, that loops', knobs: { machine: 1, speed: [35, 60], size: [45, 70], strain: [5, 30], rattle: [5, 25] } },
+      'Ticking over': { tip: 'A car waiting with its engine running', knobs: { machine: 1, speed: [15, 35], size: [40, 60], strain: [0, 15], rattle: [15, 35] } },
+      Whirr: { tip: 'An electric motor, that loops', knobs: { machine: 0, speed: [40, 65], size: [30, 60], strain: [0, 15], rattle: [0, 15] } },
       Drill: { tip: 'A whining drill', knobs: { machine: 2, speed: [45, 75], size: [20, 50], strain: [10, 40], rattle: [5, 20] } },
-      Chainsaw: { tip: 'A snarling chainsaw', knobs: { machine: 4, speed: [45, 70], size: [35, 60], strain: [20, 50], rattle: [10, 30] } },
-      Fan: { tip: 'A whooshing fan that loops', knobs: { machine: 3, speed: [40, 65], size: [30, 55], rattle: [0, 15] } },
-      Helicopter: { tip: 'Big blades chopping the air', knobs: { machine: 3, speed: [25, 40], size: [75, 95], rattle: [5, 20] } },
-      Hum: { tip: 'A steady machine hum that loops smoothly', knobs: { machine: 6, speed: [35, 65], size: [40, 70] } },
-      Generator: { tip: 'A rattling generator that loops', knobs: { machine: 6, speed: [20, 40], size: [55, 80], strain: [10, 30], rattle: [20, 40] } },
-      'Spin up': { tip: 'Something starting up and getting to speed', knobs: { machine: [0, 2], speed: [50, 75], size: [20, 55], spin: [50, 100], spinTime: [50, 75] } },
-      'Spin down': { tip: 'Something switching off and slowing down', knobs: { machine: [0, 2], speed: [50, 75], size: [20, 55], spin: [-100, -50], spinTime: [60, 85] } },
-      Servo: { tip: 'A little robot joint moving', knobs: { machine: 0, speed: [60, 85], size: [5, 30], spin: () => eitherWay(randomNumber(25, 60)), spinTime: [10, 30] } },
-      Clockwork: { tip: 'Tiny gears ticking round', knobs: { machine: 5, speed: [20, 40], size: [5, 30], rattle: [0, 15] } },
-      Winch: { tip: 'Slow, heavy, creaking gears', knobs: { machine: 5, speed: [10, 30], size: [50, 80], strain: [40, 70], rattle: [30, 60] } },
+      Buzzsaw: { tip: 'A snarling saw', knobs: { machine: 4, speed: [45, 70], size: [35, 60], strain: [20, 50], rattle: [10, 30] } },
+      Fan: { tip: 'A whooshing fan, that loops', knobs: { machine: 3, speed: [40, 65], size: [30, 55], rattle: [0, 15] } },
+      Chopper: { tip: 'Big blades chopping the air', knobs: { machine: 3, speed: [25, 40], size: [75, 95], rattle: [5, 20] } },
+      'Steady hum': { tip: 'A machine humming, that loops smoothly', knobs: { machine: 6, speed: [35, 65], size: [40, 70] } },
+      Genny: { tip: 'A rattling generator, that loops', knobs: { machine: 6, speed: [20, 40], size: [55, 80], strain: [10, 30], rattle: [20, 40] } },
+      'Rev up': { tip: 'Something starting up and getting to speed', knobs: { machine: [0, 2], speed: [50, 75], size: [20, 55], spin: [50, 100], spinTime: [50, 75] } },
+      'Wind down': { tip: 'Something switching off and slowing down', knobs: { machine: [0, 2], speed: [50, 75], size: [20, 55], spin: [-100, -50], spinTime: [60, 85] } },
+      'Robot arm': { tip: 'A little robot joint moving', knobs: { machine: 0, speed: [60, 85], size: [5, 30], spin: () => eitherWay(randomNumber(25, 60)), spinTime: [10, 30] } },
+      'Tiny gears': { tip: 'Little gears ticking round', knobs: { machine: 5, speed: [20, 40], size: [5, 30], rattle: [0, 15] } },
+      Crank: { tip: 'Slow, heavy, creaking gears being wound', knobs: { machine: 5, speed: [10, 30], size: [50, 80], strain: [40, 70], rattle: [30, 60] } },
     },
   },
   Squishy: {
     knobs: [
-      twoWayKnob('size', 'Bubble size', 'Tiny high droplets (-) to big low glugs (+)'),
-      twoWayKnob('thick', 'Thickness', 'Thin, splashy water (-) to thick, slow goo (+)'),
-      knob('pressure', 'Pressure', 'How hard it squeezes and bubbles: more movement, more pops', { max: 200, normal: 100 }),
-      knob('wet', 'Wetness', 'Adds wet little pops and bubbles', { normal: 0 }),
+      twoWayKnob('size', 'Blob size', 'Tiny high droplets (-) to big low glugs (+)'),
+      twoWayKnob('gloop', 'Gloop', 'Thin, splashy water (-) to thick, slow goo (+)'),
+      knob('squeeze', 'Squeeze', 'How hard it squeezes and bubbles: more movement, more pops', { max: 200, normal: 100 }),
+      knob('slop', 'Slop', 'Adds wet little pops and bubbles', { normal: 0 }),
     ],
     make: (k, maker) => {
       let s = shifted(maker.make(), -k.size * 0.18);
-      if (k.thick) s = { ...stretched(s, 2 ** (k.thick / 200)), lowPass: settingOf(s, 'lowPass') - k.thick * 0.35, resonance: settingOf(s, 'resonance') + Math.max(0, k.thick * 0.25) };
-      const p = k.pressure / 100;
-      if (p !== 1) s = { ...s, slide: settingOf(s, 'slide') * p, lowPassSweep: settingOf(s, 'lowPassSweep') * p, crackle: settingOf(s, 'crackle') * p, volume: settingOf(s, 'volume') * (0.7 + 0.3 * p) };
-      if (k.wet > 0) s = { ...s, crackle: Math.max(settingOf(s, 'crackle'), k.wet * 1.5), crackleLength: s.crackle ? settingOf(s, 'crackleLength') : 12, crackleDepth: Math.min(settingOf(s, 'crackleDepth'), 20 + k.wet * 0.6) };
+      if (k.gloop) s = { ...stretched(s, 2 ** (k.gloop / 200)), lowPass: settingOf(s, 'lowPass') - k.gloop * 0.35, resonance: settingOf(s, 'resonance') + Math.max(0, k.gloop * 0.25) };
+      const p = k.squeeze / 100;
+      if (p !== 1) s = { ...s, slide: settingOf(s, 'slide') * p, lowPassSweep: settingOf(s, 'lowPassSweep') * p, crackle: settingOf(s, 'crackle') * p, scatter: Math.min(100, settingOf(s, 'scatter') * p), volume: settingOf(s, 'volume') * (0.7 + 0.3 * p) };
+      if (k.slop > 0) s = { ...s, crackle: Math.max(settingOf(s, 'crackle'), k.slop * 1.5), crackleLength: s.crackle ? settingOf(s, 'crackleLength') : 12, crackleDepth: Math.min(settingOf(s, 'crackleDepth'), 20 + k.slop * 0.6) };
       return s;
     },
     makers: {
-      'Slime step': { tip: 'A sticky step through goo', make: () => ({ wave: randomPick(['pink', 'noise']), pitch: randomNumber(400, 900), attack: randomNumber(5, 15), sustain: randomNumber(30, 60), decay: randomNumber(120, 220), lowPass: randomNumber(35, 50), lowPassSweep: randomNumber(60, 120), resonance: randomNumber(60, 80), crackle: randomNumber(40, 90), crackleLength: randomNumber(10, 25), crackleDepth: randomNumber(30, 50), volume: 100, range: 6 }) },
+      'Goo step': { tip: 'A sticky step through slime', make: () => ({ wave: randomPick(['pink', 'noise']), pitch: randomNumber(400, 900), attack: randomNumber(5, 15), sustain: randomNumber(30, 60), decay: randomNumber(120, 220), lowPass: randomNumber(35, 50), lowPassSweep: randomNumber(60, 120), resonance: randomNumber(60, 80), crackle: randomNumber(40, 90), crackleLength: randomNumber(10, 25), crackleDepth: randomNumber(30, 50), volume: 100, range: 6 }) },
       Squelch: { tip: 'A wet, squeezy squelch', make: () => ({ wave: randomPick(['sawtooth', 'pink']), pitch: randomNumber(80, 200), attack: randomNumber(10, 30), sustain: randomNumber(80, 160), decay: randomNumber(60, 120), lowPass: randomNumber(20, 35), lowPassSweep: randomNumber(80, 160), resonance: randomNumber(70, 85), wander: randomNumber(2, 5), wanderSpeed: randomNumber(10, 30), volume: 45 }) },
-      Splat: { tip: 'Something wet hitting the floor', make: () => ({ wave: 'noise', pitch: randomNumber(500, 1200), attack: 0, punch: randomNumber(50, 80), sustain: randomNumber(10, 30), decay: randomNumber(150, 300), lowPass: randomNumber(50, 65), lowPassSweep: -randomNumber(40, 80), resonance: randomNumber(30, 55), crackle: randomNumber(80, 180), crackleLength: randomNumber(8, 20), crackleDepth: randomNumber(40, 65), volume: 100 }) },
-      'Bubble pop': { tip: 'One bubble popping', make: () => ({ wave: 'sine', pitch: randomNumber(300, 700), slide: randomNumber(150, 350), attack: 0, sustain: randomNumber(5, 15), punch: 30, decay: randomNumber(20, 45), volume: 55 }) },
-      Bubbles: { tip: 'Little rising bloops', make: () => ({ wave: 'sine', pitch: randomNumber(250, 600), slide: randomNumber(60, 140), attack: 0, sustain: randomNumber(20, 40), decay: randomNumber(20, 50), repeats: randomPick([3, 4, 6, 8]), gap: randomNumber(30, 160), wander: sometimes(randomNumber(2, 5)), wanderSpeed: randomNumber(3, 8), lowPass: sometimes(randomNumber(60, 85)), volume: 50 }) },
-      Potion: { tip: 'A bubbling cauldron that loops. Pressure makes it boil harder', make: () => ({ wave: 'sine', pitch: randomNumber(200, 450), wander: randomNumber(8, 14), wanderSpeed: randomNumber(8, 20), crackle: randomNumber(6, 16), crackleLength: randomNumber(25, 60), crackleDepth: 100, lowPass: randomNumber(55, 75), attack: 0, sustain: 3000, decay: 0, volume: 70, range: 6 }) },
-      Gulp: { tip: 'A big swallow', make: () => ({ wave: 'sine', pitch: randomNumber(100, 180), slide: -randomNumber(20, 50), slideAccel: randomNumber(200, 600), attack: randomNumber(5, 15), sustain: randomNumber(40, 80), decay: randomNumber(60, 120), lowPass: randomNumber(40, 60), repeats: randomPick([1, 2, 3]), gap: randomNumber(150, 300), volume: 60 }) },
+      Splotch: { tip: 'Something wet landing on the floor', make: () => ({ wave: 'noise', pitch: randomNumber(500, 1200), attack: 0, punch: randomNumber(50, 80), sustain: randomNumber(10, 30), decay: randomNumber(150, 300), lowPass: randomNumber(50, 65), lowPassSweep: -randomNumber(40, 80), resonance: randomNumber(30, 55), crackle: randomNumber(80, 180), crackleLength: randomNumber(8, 20), crackleDepth: randomNumber(40, 65), volume: 100 }) },
+      Pop: { tip: 'One bubble popping', make: () => ({ wave: 'sine', pitch: randomNumber(300, 700), slide: randomNumber(150, 350), attack: 0, sustain: randomNumber(5, 15), punch: 30, decay: randomNumber(20, 45), volume: 55 }) },
+      Fizz: { tip: 'Lots of little bubbles rising at their own pace', make: () => ({ wave: 'sine', pitch: randomNumber(400, 800), slide: randomNumber(80, 180), attack: 0, sustain: randomNumber(8, 20), decay: randomNumber(15, 35), repeats: randomPick([8, 10, 12, 16]), gap: randomNumber(20, 90), scatter: randomNumber(80, 100), pitchScatter: randomNumber(3, 7), volume: 50 }) },
+      Cauldron: { tip: 'A pot of something bubbling away, that loops. Squeeze makes it boil harder', make: () => ({ wave: 'sine', pitch: randomNumber(150, 300), slide: randomNumber(150, 300), attack: 0, sustain: randomNumber(15, 30), decay: randomNumber(30, 60), repeats: 8, gap: randomNumber(120, 250), scatter: 100, pitchScatter: randomNumber(4, 7), lowPass: randomNumber(55, 75), reverb: randomNumber(10, 20), reverbSize: 35, volume: 70, range: 6 }) },
+      Glug: { tip: 'A big swallow', make: () => ({ wave: 'sine', pitch: randomNumber(100, 180), slide: -randomNumber(20, 50), slideAccel: randomNumber(200, 600), attack: randomNumber(5, 15), sustain: randomNumber(40, 80), decay: randomNumber(60, 120), lowPass: randomNumber(40, 60), repeats: randomPick([1, 2, 3]), gap: randomNumber(150, 300), volume: 60 }) },
       Slurp: { tip: 'Slurping something up', make: () => ({ wave: 'pink', pitch: randomNumber(600, 1200), attack: randomNumber(30, 80), sustain: randomNumber(200, 400), decay: randomNumber(80, 150), lowPass: randomNumber(25, 40), lowPassSweep: randomNumber(50, 110), resonance: randomNumber(70, 88), wander: randomNumber(4, 8), wanderSpeed: randomNumber(15, 40), crackle: randomNumber(30, 80), crackleLength: 15, crackleDepth: 40, volume: 85 }) },
-      Suction: { tip: 'A suction cup pulling free with a pop', make: () => ({ wave: randomPick(['sawtooth', 'square']), pitch: randomNumber(60, 120), slide: randomNumber(10, 30), attack: randomNumber(150, 300), sustain: randomNumber(10, 30), punch: randomNumber(50, 80), decay: randomNumber(40, 80), lowPass: randomNumber(15, 30), lowPassSweep: randomNumber(40, 90), resonance: randomNumber(65, 85), volume: 30 }) },
-      Mud: { tip: 'Pulling something out of thick mud', make: () => ({ wave: 'pink', pitch: randomNumber(200, 450), attack: randomNumber(80, 200), sustain: randomNumber(300, 600), decay: randomNumber(100, 200), lowPass: randomNumber(25, 40), lowPassSweep: randomNumber(10, 30), resonance: randomNumber(65, 85), wander: randomNumber(5, 10), wanderSpeed: randomNumber(3, 8), crackle: randomNumber(10, 30), crackleLength: randomNumber(30, 60), crackleDepth: 50, volume: 95 }) },
-      Plop: { tip: 'A drop falling into water', make: () => ({ wave: 'sine', pitch: randomNumber(700, 1400), slide: randomNumber(200, 450), attack: 0, sustain: randomNumber(5, 10), decay: randomNumber(40, 90), echo: sometimes(randomNumber(40, 90)), echoFeedback: 30, volume: 55 }) },
-      Jelly: { tip: 'A big jelly wobbling', make: () => {
+      Plunger: { tip: 'A sucker pulling free with a pop', make: () => ({ wave: randomPick(['sawtooth', 'square']), pitch: randomNumber(60, 120), slide: randomNumber(10, 30), attack: randomNumber(150, 300), sustain: randomNumber(10, 30), punch: randomNumber(50, 80), decay: randomNumber(40, 80), lowPass: randomNumber(15, 30), lowPassSweep: randomNumber(40, 90), resonance: randomNumber(65, 85), volume: 30 }) },
+      Bog: { tip: 'Pulling a boot out of thick mud', make: () => ({ wave: 'pink', pitch: randomNumber(200, 450), attack: randomNumber(80, 200), sustain: randomNumber(300, 600), decay: randomNumber(100, 200), lowPass: randomNumber(25, 40), lowPassSweep: randomNumber(10, 30), resonance: randomNumber(65, 85), wander: randomNumber(5, 10), wanderSpeed: randomNumber(3, 8), crackle: randomNumber(10, 30), crackleLength: randomNumber(30, 60), crackleDepth: 50, volume: 95 }) },
+      Plink: { tip: 'A drop falling into water', make: () => ({ wave: 'sine', pitch: randomNumber(700, 1400), slide: randomNumber(200, 450), attack: 0, sustain: randomNumber(5, 10), decay: randomNumber(40, 90), echo: sometimes(randomNumber(40, 90)), echoFeedback: 30, volume: 55 }) },
+      Wobble: { tip: 'A big jelly wobbling', make: () => {
         const speed = randomNumber(5, 9);
         return { wave: randomPick(['sine', 'triangle']), pitch: randomNumber(70, 140), vibrato: randomNumber(2, 4), vibratoSpeed: speed, tremolo: randomNumber(30, 60), tremoloSpeed: speed, attack: randomNumber(10, 30), sustain: randomNumber(200, 400), decay: randomNumber(300, 500), lowPass: randomNumber(40, 60), volume: 65 };
       } },
-      Boing: { tip: 'A springy, wobbling boing', make: () => ({ wave: randomPick(['triangle', 'sine', 'square']), pitch: randomNumber(150, 300), slide: randomNumber(5, 20), vibrato: randomNumber(2, 5), vibratoSpeed: randomNumber(10, 18), attack: 0, sustain: randomNumber(50, 100), decay: randomNumber(300, 600), lowPass: randomNumber(50, 75), resonance: randomNumber(30, 50), volume: 55 }) },
+      Spring: { tip: 'A springy, wobbling boing', make: () => ({ wave: randomPick(['triangle', 'sine', 'square']), pitch: randomNumber(150, 300), slide: randomNumber(5, 20), vibrato: randomNumber(2, 5), vibratoSpeed: randomNumber(10, 18), attack: 0, sustain: randomNumber(50, 100), decay: randomNumber(300, 600), lowPass: randomNumber(50, 75), resonance: randomNumber(30, 50), volume: 55 }) },
       Burp: { tip: 'Excuse me', make: () => ({ wave: 'voice', pitch: randomNumber(60, 110), vowel: randomNumber(2.8, 3.6), mouth: randomNumber(115, 140), growl: randomNumber(50, 85), wander: randomNumber(1, 2), wanderSpeed: randomNumber(150, 300), breath: randomNumber(15, 30), slide: -randomNumber(1, 4), attack: randomNumber(20, 40), sustain: randomNumber(250, 500), decay: randomNumber(100, 200), volume: 70 }) },
+      Ooze: { tip: 'Something thick and slimy creeping along', make: () => ({ wave: 'sawtooth', pitch: randomNumber(50, 90), wander: randomNumber(3, 6), wanderSpeed: randomNumber(4, 10), attack: randomNumber(150, 300), sustain: randomNumber(500, 900), decay: randomNumber(200, 400), lowPass: randomNumber(18, 28), lowPassSweep: randomNumber(-10, 10), resonance: randomNumber(75, 90), crackle: randomNumber(20, 40), crackleLength: randomNumber(30, 60), crackleDepth: 35, volume: 60 }) },
     },
   },
   Birds: {
     knobs: [
-      choiceKnob('voice', 'Voice', 'How it calls: a clear whistle, a nasal reed (parrots, gulls, ducks), a rough rasp (crows) or a soft hoot (owls, doves)', BIRD_VOICES),
+      choiceKnob('beak', 'Beak', 'How it calls: a clear pipe, nasal (parrots, gulls, ducks), rough (crows) or hollow (owls, doves)', BIRD_BEAKS),
       knob('size', 'Size', 'Tiny birds chirp high, big ones call low', { normal: 75 }),
-      knob('calls', 'Calls', 'How many calls in a row', { min: 1, max: 12, unit: '', normal: 3 }),
-      knob('length', 'Call length', 'How long each call is, from a tiny tick to a long whistle', { normal: 40 }),
-      knob('gap', 'Gap', 'The pause between calls', { normal: 25 }),
-      twoWayKnob('sweep', 'Sweep', 'Each call slides down (-) or up (+), up to an octave'),
-      twoWayKnob('arch', 'Arch', 'Each call bows up (+) or dips down (-) in the middle'),
-      knob('trill', 'Trill', 'Fast warbling in the pitch and volume', { normal: 0 }),
-      knob('trillSpeed', 'Trill speed', 'How fast it trills'),
-      knob('rasp', 'Rasp', 'A rough, scratchy throat', { normal: 0 }),
-      twoWayKnob('phrase', 'Phrase', 'Each call goes down (-) or up (+) from the last, like a song falling or climbing'),
+      knob('calls', 'Chirps', 'How many calls in a row', { min: 1, max: 12, unit: '', normal: 3 }),
+      knob('length', 'Chirp length', 'How long each call is, from a tiny tick to a long whistle', { normal: 40 }),
+      knob('pause', 'Pause', 'The rest between calls', { normal: 25 }),
+      twoWayKnob('swoop', 'Swoop', 'Each call slides down (-) or up (+), up to an octave'),
+      twoWayKnob('curve', 'Curve', 'Each call bends up (+) or dips down (-) in the middle'),
+      knob('warble', 'Warble', 'A fast flutter in the pitch and volume', { normal: 0 }),
+      knob('warbleSpeed', 'Warble speed', 'How fast it warbles'),
+      knob('scratch', 'Scratch', 'A rough, scratchy throat', { normal: 0 }),
+      twoWayKnob('slope', 'Song slope', 'Each call goes down (-) or up (+) from the one before, like a song falling or climbing'),
     ],
     make: bird,
     makers: {
-      Chirp: { tip: 'One quick, bright call', knobs: { voice: 0, size: [75, 90], calls: 1, length: [35, 60], sweep: [-70, 60], arch: [20, 90], trill: [0, 10] } },
-      Sparrow: { tip: 'A few short, chattering chirps', knobs: { voice: 0, size: [78, 90], calls: [3, 6], length: [25, 40], gap: [15, 30], sweep: [-60, -10], arch: [30, 80], trill: [5, 20], rasp: [5, 25], phrase: [-20, 20] } },
-      Songbird: { tip: 'A lilting little song', knobs: { voice: 0, size: [65, 85], calls: [3, 6], length: [35, 55], gap: [15, 35], sweep: [-20, 45], arch: [35, 80], trill: [10, 35], trillSpeed: [15, 50], phrase: [-40, 40] } },
-      Robin: { tip: 'Clear whistles going up and down', knobs: { voice: 0, size: [70, 82], calls: [3, 5], length: [35, 50], gap: [8, 18], sweep: [-60, 60], arch: [-40, 60], trill: [0, 25], phrase: [-50, 50] } },
-      Canary: { tip: 'A bright, fast rolling trill', knobs: { voice: 0, size: [75, 90], calls: [1, 3], length: [60, 85], gap: [10, 20], sweep: [-15, 25], arch: [10, 40], trill: [55, 90], trillSpeed: [65, 100] } },
-      Warbler: { tip: 'A bubbly, tumbling warble', knobs: { voice: 0, size: [65, 80], calls: [4, 8], length: [30, 45], gap: [5, 20], sweep: [-40, 40], arch: [-50, 70], trill: [30, 65], trillSpeed: [20, 65], phrase: [-60, 60] } },
-      Chick: { tip: 'Little falling peeps', knobs: { voice: 0, size: [86, 95], calls: [2, 5], length: [30, 45], gap: [20, 40], sweep: [-80, -50], arch: [0, 30] } },
-      Parrot: { tip: 'A nasal, raspy squawk', knobs: { voice: 1, size: [30, 45], calls: [1, 2], length: [45, 65], gap: [20, 40], sweep: [-60, 20], arch: [30, 80], trill: [15, 40], rasp: [35, 65] } },
-      Seagull: { tip: 'Falling cries, like the seaside', knobs: { voice: 1, size: [52, 62], calls: [3, 6], length: [50, 62], gap: [5, 15], sweep: [-60, -30], arch: [30, 70], rasp: [15, 35], phrase: [-25, 0] } },
-      Duck: { tip: 'Quack quack', knobs: { voice: 1, size: [18, 26], calls: [2, 4], length: [42, 52], gap: [15, 30], sweep: [-30, -10], arch: [0, 20], rasp: [40, 70] } },
-      Hawk: { tip: 'A long, piercing scream', knobs: { voice: 1, size: [55, 65], calls: 1, length: [80, 92], sweep: [-40, -15], arch: [10, 30], trill: [5, 15], rasp: [40, 70] } },
-      Crow: { tip: 'A hoarse, falling caw', knobs: { voice: 2, size: [20, 35], calls: [1, 3], length: [55, 70], gap: [35, 55], sweep: [-50, -15], arch: [15, 45], trill: [10, 30], rasp: [55, 90] } },
-      Owl: { tip: 'A soft, hollow hoot', knobs: { voice: 3, size: [15, 25], calls: [1, 3], length: [75, 90], gap: [50, 85], sweep: [-15, 3], arch: [5, 20], trill: [0, 8] } },
-      Cuckoo: { tip: 'Two hoots, the second lower', knobs: { voice: 3, size: [33, 38], calls: 2, length: [68, 75], gap: [20, 25], sweep: [-5, 3], phrase: [-100, -75] } },
-      Dove: { tip: 'A gentle cooing', knobs: { voice: 3, size: [20, 27], calls: 3, length: [72, 80], gap: [10, 20], arch: [10, 30], phrase: [-15, 15] } },
+      Peep: { tip: 'One quick, bright call', knobs: { beak: 0, size: [75, 90], calls: 1, length: [35, 60], swoop: [-70, 60], curve: [20, 90], warble: [0, 10] } },
+      'Hedge chatter': { tip: 'A few short, busy chirps from a hedge', knobs: { beak: 0, size: [78, 90], calls: [3, 6], length: [25, 40], pause: [15, 30], swoop: [-60, -10], curve: [30, 80], warble: [5, 20], scratch: [5, 25], slope: [-20, 20] } },
+      'Dawn song': { tip: 'A lilting little song first thing in the morning', knobs: { beak: 0, size: [65, 85], calls: [3, 6], length: [35, 55], pause: [15, 35], swoop: [-20, 45], curve: [35, 80], warble: [10, 35], warbleSpeed: [15, 50], slope: [-40, 40] } },
+      Redbreast: { tip: 'Clear whistles going up and down', knobs: { beak: 0, size: [70, 82], calls: [3, 5], length: [35, 50], pause: [8, 18], swoop: [-60, 60], curve: [-40, 60], warble: [0, 25], slope: [-50, 50] } },
+      'Golden trill': { tip: 'A bright, fast rolling trill', knobs: { beak: 0, size: [75, 90], calls: [1, 3], length: [60, 85], pause: [10, 20], swoop: [-15, 25], curve: [10, 40], warble: [55, 90], warbleSpeed: [65, 100] } },
+      'Brook song': { tip: 'A bubbly, tumbling song', knobs: { beak: 0, size: [65, 80], calls: [4, 8], length: [30, 45], pause: [5, 20], swoop: [-40, 40], curve: [-50, 70], warble: [30, 65], warbleSpeed: [20, 65], slope: [-60, 60] } },
+      Chick: { tip: 'Little falling peeps', knobs: { beak: 0, size: [86, 95], calls: [2, 5], length: [30, 45], pause: [20, 40], swoop: [-80, -50], curve: [0, 30] } },
+      Squawker: { tip: 'A nasal, scratchy squawk, like a parrot', knobs: { beak: 1, size: [30, 45], calls: [1, 2], length: [45, 65], pause: [20, 40], swoop: [-60, 20], curve: [30, 80], warble: [15, 40], scratch: [35, 65] } },
+      Gull: { tip: 'Falling cries, like the seaside', knobs: { beak: 1, size: [52, 62], calls: [3, 6], length: [50, 62], pause: [5, 15], swoop: [-60, -30], curve: [30, 70], scratch: [15, 35], slope: [-25, 0] } },
+      Quacker: { tip: 'Quack quack', knobs: { beak: 1, size: [18, 26], calls: [2, 4], length: [42, 52], pause: [15, 30], swoop: [-30, -10], curve: [0, 20], scratch: [40, 70] } },
+      Hawk: { tip: 'A long, piercing scream from high up', knobs: { beak: 1, size: [55, 65], calls: 1, length: [80, 92], swoop: [-40, -15], curve: [10, 30], warble: [5, 15], scratch: [40, 70] } },
+      Rook: { tip: 'A hoarse, falling caw', knobs: { beak: 2, size: [20, 35], calls: [1, 3], length: [55, 70], pause: [35, 55], swoop: [-50, -15], curve: [15, 45], warble: [10, 30], scratch: [55, 90] } },
+      'Night hoot': { tip: 'A soft, hollow hoot in the dark', knobs: { beak: 3, size: [15, 25], calls: [1, 3], length: [75, 90], pause: [50, 85], swoop: [-15, 3], curve: [5, 20], warble: [0, 8] } },
+      'Two-note': { tip: 'Two hoots, the second lower, like a cuckoo', knobs: { beak: 3, size: [33, 38], calls: 2, length: [68, 75], pause: [20, 25], swoop: [-5, 3], slope: [-100, -75] } },
+      Cooer: { tip: 'A gentle cooing, like a dove', knobs: { beak: 3, size: [20, 27], calls: 3, length: [72, 80], pause: [10, 20], curve: [10, 30], slope: [-15, 15] } },
     },
   },
   Beasts: {
     knobs: [
-      choiceKnob('anatomy', 'Anatomy', 'What it calls with: a throat, a beak, gills (bubbly), a shell (insects), a spirit (airy and echoing), clockwork or a dog (barks and howls)', BEAST_ANATOMY),
+      choiceKnob('body', 'Body', 'What it calls with: lungs, a squeaker (cats, rats), gills (bubbly), a buzzer (insects), a phantom (airy and echoing), windup (clockwork) or a hound (barks and howls)', BEAST_BODIES),
       knob('pitch', 'Pitch', 'How high its voice is', { normal: 45 }),
-      knob('size', 'Size', 'How big its mouth and throat are. Big ones boom, small ones squeak'),
-      knob('calls', 'Calls', 'How many calls in a row', { min: 1, max: 8, unit: '', normal: 1 }),
-      knob('length', 'Call length', 'How long each call is', { normal: 40 }),
-      twoWayKnob('bend', 'Bend', 'Each call falls (-) like a grunt or rises (+) like a yelp'),
-      twoWayKnob('arch', 'Arch', 'Each call bows up (+) or down (-) in the middle, like a howl'),
-      knob('growl', 'Growl', 'A deep, rough growl in its voice', { normal: 20 }),
-      knob('breath', 'Breath', 'Air and hiss in its voice', { normal: 20 }),
-      knob('flutter', 'Flutter', 'Shaky, trembling or trilling', { normal: 10 }),
-      twoWayKnob('evolution', 'Mouth move', 'How much its mouth changes shape during each call, and which way'),
+      knob('bulk', 'Bulk', 'How big its mouth and throat are. Big ones boom, small ones squeak'),
+      knob('cries', 'Cries', 'How many cries in a row', { min: 1, max: 8, unit: '', normal: 1 }),
+      knob('length', 'Cry length', 'How long each cry is', { normal: 40 }),
+      twoWayKnob('slide', 'Slide', 'Each cry falls (-) like a grunt or rises (+) like a yelp'),
+      twoWayKnob('hump', 'Hump', 'Each cry bows up (+) or down (-) in the middle, like a howl'),
+      knob('snarl', 'Snarl', 'A deep, rough snarl in its voice', { normal: 20 }),
+      knob('huff', 'Huff', 'Air and hiss in its voice', { normal: 20 }),
+      knob('quiver', 'Quiver', 'Shaky, trembling or trilling', { normal: 10 }),
+      twoWayKnob('jaw', 'Jaw', 'How much its mouth changes shape during each cry, and which way'),
     ],
     make: beast,
     makers: {
-      Woof: { tip: 'A bark, from a yap to a big woof', knobs: { anatomy: 6, pitch: [55, 72], size: [50, 85], calls: 1, length: [0, 15], bend: [-80, -45], arch: [30, 60], growl: [50, 80], breath: [35, 60], flutter: [0, 5], evolution: [-15, 0] } },
-      Meow: { tip: 'A cat\'s meow', knobs: { anatomy: 1, pitch: [62, 75], size: [20, 45], calls: 1, length: [42, 62], bend: [-20, 10], arch: [20, 50], growl: [0, 10], breath: [5, 15], flutter: [0, 12], evolution: [-80, -55] } },
-      Pig: { tip: 'A grunt or an oink', knobs: { anatomy: 0, pitch: [30, 45], size: [40, 65], calls: [1, 3], length: [18, 32], bend: [-30, 10], arch: [0, 30], growl: [60, 90], breath: [20, 40], flutter: [20, 40], evolution: [-30, 0] } },
-      Rat: { tip: 'Tiny squeaks', knobs: { anatomy: 1, pitch: [85, 98], size: [0, 15], calls: [2, 4], length: [5, 18], bend: [-20, 40], arch: [10, 50], growl: 0, breath: [5, 20], flutter: [0, 20] } },
-      'Wolf howl': { tip: 'A long howl at the moon', knobs: { anatomy: 6, pitch: [58, 70], size: [50, 70], calls: 1, length: [88, 100], bend: [0, 25], arch: [40, 80], growl: [5, 20], breath: [10, 25], flutter: [3, 12], evolution: [-10, 5] } },
-      'Tiny dragon': { tip: 'A little chirrup with a smoky throat', knobs: { anatomy: 1, pitch: [55, 72], size: [10, 35], calls: [1, 3], length: [25, 45], bend: [-70, 50], arch: [20, 70], growl: [15, 40], breath: [10, 35], flutter: [5, 25], evolution: [-40, 40] } },
-      'Dragon roar': { tip: 'A huge, fiery roar', knobs: { anatomy: 0, pitch: [10, 25], size: [80, 100], calls: 1, length: [70, 85], bend: [-50, -15], arch: [20, 50], growl: [70, 100], breath: [40, 65], flutter: [5, 20], evolution: [10, 40] } },
-      'Cave beast': { tip: 'A huge rumble from the dark', knobs: { anatomy: 0, pitch: [3, 18], size: [75, 100], calls: [1, 2], length: [78, 95], bend: [-40, 5], growl: [65, 100], breath: [20, 50], flutter: [10, 30], evolution: [10, 50] } },
-      Zombie: { tip: 'A gurgling, hungry moan', knobs: { anatomy: 2, pitch: [15, 30], size: [65, 90], calls: [1, 2], length: [75, 92], bend: [-30, 0], arch: [-20, 20], growl: [40, 75], breath: [40, 65], flutter: [10, 30], evolution: [-40, -10] } },
-      'Angry blob': { tip: 'A rubbery, bubbling grumble', knobs: { anatomy: 2, pitch: [20, 40], size: [45, 85], calls: [2, 5], length: [20, 40], bend: [-85, -30], arch: [0, 40], growl: [50, 90], breath: [3, 20], flutter: [20, 50], evolution: [-30, 30] } },
-      'Alien purr': { tip: 'A happy creature with too many throats', knobs: { anatomy: 2, pitch: [25, 45], size: [25, 60], calls: [1, 3], length: [60, 80], bend: [-15, 15], growl: [40, 80], breath: [5, 20], flutter: [65, 95], evolution: [-20, 20] } },
-      Insect: { tip: 'A bright, buzzing chirr', knobs: { anatomy: 3, pitch: [80, 95], size: [0, 25], calls: [3, 8], length: [20, 45], bend: [-12, 17], growl: [0, 5], breath: [10, 30], flutter: [60, 100] } },
-      'Ghost whale': { tip: 'A long, hollow song from the deep', knobs: { anatomy: 4, pitch: [25, 42], size: [70, 100], calls: [1, 2], length: [95, 100], bend: [45, 95], arch: [10, 40], growl: [10, 35], breath: [10, 30], flutter: [3, 20], evolution: [-50, -20] } },
-      'Forest spirit': { tip: 'A breathy, flickering call in the woods', knobs: { anatomy: 4, pitch: [55, 78], size: [20, 50], calls: [2, 4], length: [40, 60], bend: [-30, 50], arch: [10, 50], growl: [0, 15], breath: [45, 75], flutter: [25, 60], evolution: [-40, 40] } },
-      'Clockwork pet': { tip: 'An eager little robot friend', knobs: { anatomy: 5, pitch: [50, 72], size: [10, 40], calls: [2, 5], length: [15, 35], bend: [20, 80], arch: [0, 40], growl: [3, 18], breath: [0, 10], flutter: [12, 45] } },
+      Bark: { tip: 'A dog, from a little yap to a big woof', knobs: { body: 6, pitch: [55, 72], bulk: [50, 85], cries: 1, length: [0, 15], slide: [-80, -45], hump: [30, 60], snarl: [50, 80], huff: [35, 60], quiver: [0, 5], jaw: [-15, 0] } },
+      Mew: { tip: 'A cat asking for something', knobs: { body: 1, pitch: [62, 75], bulk: [20, 45], cries: 1, length: [42, 62], slide: [-20, 10], hump: [20, 50], snarl: [0, 10], huff: [5, 15], quiver: [0, 12], jaw: [-80, -55] } },
+      Oink: { tip: 'A pig grunting', knobs: { body: 0, pitch: [30, 45], bulk: [40, 65], cries: [1, 3], length: [18, 32], slide: [-30, 10], hump: [0, 30], snarl: [60, 90], huff: [20, 40], quiver: [20, 40], jaw: [-30, 0] } },
+      Squeak: { tip: 'Tiny squeaks, like mice', knobs: { body: 1, pitch: [85, 98], bulk: [0, 15], cries: [2, 4], length: [5, 18], slide: [-20, 40], hump: [10, 50], snarl: 0, huff: [5, 20], quiver: [0, 20] } },
+      'Moon howl': { tip: 'A long howl at the moon', knobs: { body: 6, pitch: [58, 70], bulk: [50, 70], cries: 1, length: [88, 100], slide: [0, 25], hump: [40, 80], snarl: [5, 20], huff: [10, 25], quiver: [3, 12], jaw: [-10, 5] } },
+      Drakeling: { tip: 'A baby dragon\'s chirrup, with a smoky throat', knobs: { body: 1, pitch: [55, 72], bulk: [10, 35], cries: [1, 3], length: [25, 45], slide: [-70, 50], hump: [20, 70], snarl: [15, 40], huff: [10, 35], quiver: [5, 25], jaw: [-40, 40] } },
+      'Wyrm roar': { tip: 'A huge, fiery roar', knobs: { body: 0, pitch: [10, 25], bulk: [80, 100], cries: 1, length: [70, 85], slide: [-50, -15], hump: [20, 50], snarl: [70, 100], huff: [40, 65], quiver: [5, 20], jaw: [10, 40] } },
+      Lurker: { tip: 'A deep rumble from the dark', knobs: { body: 0, pitch: [3, 18], bulk: [75, 100], cries: [1, 2], length: [78, 95], slide: [-40, 5], snarl: [65, 100], huff: [20, 50], quiver: [10, 30], jaw: [10, 50] } },
+      Shambler: { tip: 'A gurgling, hungry moan', knobs: { body: 2, pitch: [15, 30], bulk: [65, 90], cries: [1, 2], length: [75, 92], slide: [-30, 0], hump: [-20, 20], snarl: [40, 75], huff: [40, 65], quiver: [10, 30], jaw: [-40, -10] } },
+      'Grumpy slime': { tip: 'A rubbery, bubbling grumble', knobs: { body: 2, pitch: [20, 40], bulk: [45, 85], cries: [2, 5], length: [20, 40], slide: [-85, -30], hump: [0, 40], snarl: [50, 90], huff: [3, 20], quiver: [20, 50], jaw: [-30, 30] } },
+      'Star kitten': { tip: 'A happy creature from somewhere else, purring with too many throats', knobs: { body: 2, pitch: [25, 45], bulk: [25, 60], cries: [1, 3], length: [60, 80], slide: [-15, 15], snarl: [40, 80], huff: [5, 20], quiver: [65, 95], jaw: [-20, 20] } },
+      Cicada: { tip: 'A bright, buzzing insect', knobs: { body: 3, pitch: [80, 95], bulk: [0, 25], cries: [3, 8], length: [20, 45], slide: [-12, 17], snarl: [0, 5], huff: [10, 30], quiver: [60, 100] } },
+      'Sky whale': { tip: 'A long, hollow song from somewhere huge', knobs: { body: 4, pitch: [25, 42], bulk: [70, 100], cries: [1, 2], length: [95, 100], slide: [45, 95], hump: [10, 40], snarl: [10, 35], huff: [10, 30], quiver: [3, 20], jaw: [-50, -20] } },
+      Wisp: { tip: 'A breathy, flickering call between the trees', knobs: { body: 4, pitch: [55, 78], bulk: [20, 50], cries: [2, 4], length: [40, 60], slide: [-30, 50], hump: [10, 50], snarl: [0, 15], huff: [45, 75], quiver: [25, 60], jaw: [-40, 40] } },
+      'Tin pup': { tip: 'An eager little clockwork friend', knobs: { body: 5, pitch: [50, 72], bulk: [10, 40], cries: [2, 5], length: [15, 35], slide: [20, 80], hump: [0, 40], snarl: [3, 18], huff: [0, 10], quiver: [12, 45] } },
     },
   },
   Breath: {
     knobs: [
-      choiceKnob('way', 'Breath', 'Breathing in, out, or in and then out', BREATH_WAYS),
-      knob('breaths', 'Breaths', 'How many breaths in a row', { min: 1, max: 10, unit: '', normal: 1 }),
+      choiceKnob('way', 'Way', 'Breathing in, out, or in and then out', BREATH_WAYS),
+      knob('puffs', 'Puffs', 'How many breaths in a row', { min: 1, max: 10, unit: '', normal: 1 }),
       knob('length', 'Length', 'How long each breath takes', { normal: 40 }),
-      knob('effort', 'Effort', 'Soft and calm, or loud and forced', { normal: 40 }),
-      knob('throat', 'Throat', 'From a narrow, high airway to a big deep chest'),
-      knob('rasp', 'Rasp', 'Rough, crackly air', { normal: 10 }),
-      knob('tremble', 'Tremble', 'Shaky, shivering air (not for in and out)', { normal: 10 }),
-      knob('snore', 'Snore', 'Lets the voice in, from a little hum to a full rattling snore', { normal: 0 }),
-      knob('space', 'Enclosure', 'Close echoes, like breathing in a mask, a helmet or a cave', { normal: 0 }),
+      knob('push', 'Push', 'Soft and calm, or loud and forced', { normal: 40 }),
+      knob('chest', 'Chest', 'From a narrow, high airway to a big deep chest'),
+      knob('wheeze', 'Wheeze', 'Rough, crackly air', { normal: 10 }),
+      knob('shiver', 'Shiver', 'Shaky, shivering air (not for in and out)', { normal: 10 }),
+      knob('rumble', 'Rumble', 'Lets the voice in, from a little hum to a full rattling snore', { normal: 0 }),
+      knob('mask', 'Mask', 'Close echoes, like breathing in a mask, a helmet or a cave', { normal: 0 }),
     ],
     make: breathing,
     makers: {
-      Inhale: { tip: 'One breath in', knobs: { way: 0, length: [30, 55], effort: [25, 65], throat: [25, 65], rasp: [0, 16], tremble: [3, 20], space: [0, 12] } },
-      Exhale: { tip: 'One soft breath out', knobs: { way: 1, length: [35, 60], effort: [20, 60], throat: [35, 75], rasp: [0, 15], tremble: [2, 18], space: [0, 12] } },
-      Sigh: { tip: 'A weary, fading sigh', knobs: { way: 1, length: [58, 78], effort: [25, 50], throat: [45, 80], rasp: [8, 30], tremble: [12, 40], snore: [0, 15] } },
-      Gasp: { tip: 'A sharp, shaky breath in', knobs: { way: 0, length: [5, 25], effort: [80, 100], throat: [4, 30], rasp: [25, 60], tremble: [25, 65], snore: [0, 10] } },
-      Sniff: { tip: 'A couple of quick sniffs', knobs: { way: 0, breaths: [2, 3], length: [0, 12], effort: [40, 70], throat: [0, 20], rasp: [0, 10], tremble: 0 } },
-      Panting: { tip: 'Fast breathing after running', knobs: { way: 2, breaths: [4, 8], length: [10, 25], effort: [65, 100], throat: [25, 55], rasp: [20, 50] } },
-      'Deep breath': { tip: 'One slow, full breath in and out', knobs: { way: 2, length: [85, 100], effort: [20, 50], throat: [40, 75], rasp: [0, 12] } },
-      Huff: { tip: 'A short push of effort, hup!', knobs: { way: 1, length: [5, 20], effort: [70, 95], throat: [40, 70], rasp: [10, 30], snore: [20, 45] } },
-      Cough: { tip: 'A rough cough or two', knobs: { way: 1, breaths: [1, 3], length: [0, 12], effort: [85, 100], throat: [30, 60], rasp: [40, 70], snore: [40, 70] } },
-      Snore: { tip: 'A rattling snore', knobs: { way: 0, length: [55, 75], effort: [20, 50], throat: [40, 78], rasp: [20, 50], snore: [60, 95] } },
-      'Sleeping beast': { tip: 'Huge, sleepy, rumbling lungs', knobs: { way: 2, breaths: [1, 2], length: [92, 100], effort: [20, 50], throat: [80, 100], rasp: [40, 80], snore: [65, 100], space: [15, 40] } },
-      Diver: { tip: 'Breathing through a regulator underwater', knobs: { way: 2, breaths: [2, 3], length: [70, 85], effort: [55, 85], throat: [15, 40], rasp: [0, 12], space: [40, 70] } },
-      Helmet: { tip: 'Breathing inside a helmet or mask', knobs: { way: 2, breaths: [1, 3], length: [60, 80], effort: [30, 60], throat: [20, 50], space: [70, 100] } },
-      'Ghost breath': { tip: 'A cold, trembling breath out', knobs: { way: 1, length: [65, 85], effort: [30, 55], throat: [50, 80], tremble: [50, 90], space: [30, 60] } },
+      'Breathe in': { tip: 'One breath in', knobs: { way: 0, length: [30, 55], push: [25, 65], chest: [25, 65], wheeze: [0, 16], shiver: [3, 20], mask: [0, 12] } },
+      'Breathe out': { tip: 'One soft breath out', knobs: { way: 1, length: [35, 60], push: [20, 60], chest: [35, 75], wheeze: [0, 15], shiver: [2, 18], mask: [0, 12] } },
+      Weary: { tip: 'A long, tired sigh', knobs: { way: 1, length: [58, 78], push: [25, 50], chest: [45, 80], wheeze: [8, 30], shiver: [12, 40], rumble: [0, 15] } },
+      Shock: { tip: 'A sharp, shaky breath in', knobs: { way: 0, length: [5, 25], push: [80, 100], chest: [4, 30], wheeze: [25, 60], shiver: [25, 65], rumble: [0, 10] } },
+      Sniffle: { tip: 'A couple of quick sniffs', knobs: { way: 0, puffs: [2, 3], length: [0, 12], push: [40, 70], chest: [0, 20], wheeze: [0, 10], shiver: 0 } },
+      'Out of puff': { tip: 'Fast breathing after a run', knobs: { way: 2, puffs: [4, 8], length: [10, 25], push: [65, 100], chest: [25, 55], wheeze: [20, 50] } },
+      'Calm down': { tip: 'One slow, full breath in and out', knobs: { way: 2, length: [85, 100], push: [20, 50], chest: [40, 75], wheeze: [0, 12] } },
+      'Hup!': { tip: 'A short push of effort, like lifting something', knobs: { way: 1, length: [5, 20], push: [70, 95], chest: [40, 70], wheeze: [10, 30], rumble: [20, 45] } },
+      Ahem: { tip: 'A rough cough or two', knobs: { way: 1, puffs: [1, 3], length: [0, 12], push: [85, 100], chest: [30, 60], wheeze: [40, 70], rumble: [40, 70] } },
+      Zzz: { tip: 'A rattling snore', knobs: { way: 0, length: [55, 75], push: [20, 50], chest: [40, 78], wheeze: [20, 50], rumble: [60, 95] } },
+      'Dozing giant': { tip: 'Huge, sleepy, rumbling lungs', knobs: { way: 2, puffs: [1, 2], length: [92, 100], push: [20, 50], chest: [80, 100], wheeze: [40, 80], rumble: [65, 100], mask: [15, 40] } },
+      Scuba: { tip: 'Breathing through a regulator underwater', knobs: { way: 2, puffs: [2, 3], length: [70, 85], push: [55, 85], chest: [15, 40], wheeze: [0, 12], mask: [40, 70] } },
+      'Space suit': { tip: 'Breathing inside a sealed helmet', knobs: { way: 2, puffs: [1, 3], length: [60, 80], push: [30, 60], chest: [20, 50], mask: [70, 100] } },
+      'Cold breath': { tip: 'A cold, trembling breath out, like a ghost', knobs: { way: 1, length: [65, 85], push: [30, 55], chest: [50, 80], shiver: [50, 90], mask: [30, 60] } },
     },
   },
   Nature: {
     knobs: [
-      twoWayKnob('bright', 'Brightness', 'Darker and further away (-), or brighter and closer (+)'),
-      knob('wild', 'Wildness', 'Calmer (under 100) or wilder and more restless (over 100)', { max: 200, normal: 100 }),
+      twoWayKnob('near', 'Nearness', 'Further away and muffled (-), or close and crisp (+)'),
+      knob('wild', 'Restless', 'Calmer (under 100) or wilder and more restless (over 100)', { max: 200, normal: 100 }),
       LENGTH_KNOB,
     ],
     make: (k, maker) => {
-      let s = stretched(shifted(maker.make(), k.bright / 8.33), k.length / 100);
-      if (k.bright) s = { ...s, lowPass: settingOf(s, 'lowPass') < 100 ? settingOf(s, 'lowPass') + k.bright * 0.2 : 100, highPass: settingOf(s, 'highPass') > 0 ? Math.max(1, settingOf(s, 'highPass') + k.bright * 0.15) : 0 };
+      let s = stretched(shifted(maker.make(), k.near / 8.33), k.length / 100);
+      if (k.near) s = { ...s, lowPass: settingOf(s, 'lowPass') < 100 ? settingOf(s, 'lowPass') + k.near * 0.2 : 100, highPass: settingOf(s, 'highPass') > 0 ? Math.max(1, settingOf(s, 'highPass') + k.near * 0.15) : 0 };
       const w = k.wild / 100;
       if (w !== 1) s = { ...s, wander: settingOf(s, 'wander') * w, crackle: settingOf(s, 'crackle') * w, tremolo: Math.min(100, settingOf(s, 'tremolo') * w), vibrato: settingOf(s, 'vibrato') * w };
       return s;
     },
     makers: {
-      Cricket: { tip: 'A high pulsing chirp, lovely as a loop at night', make: () => ({ wave: 'sine', pitch: randomNumber(3800, 5200), tremolo: 100, tremoloSpeed: randomNumber(25, 60), attack: 5, sustain: randomNumber(120, 250), decay: 20, repeats: randomPick([2, 3]), gap: randomNumber(200, 400), volume: 50 }) },
-      Frog: { tip: 'A croak, shaken by fast tremolo', make: () => ({ wave: randomPick(['square', 'sawtooth', 'voice']), vowel: 3, mouth: 120, pitch: randomNumber(90, 200), slide: randomNumber(-8, 8), tremolo: randomNumber(80, 100), tremoloSpeed: randomNumber(18, 35), attack: 5, sustain: randomNumber(150, 300), decay: randomNumber(50, 100), lowPass: randomNumber(40, 60), repeats: randomPick([1, 2]), gap: randomNumber(150, 300) }) },
-      Bee: { tip: 'A buzzing insect that loops', make: () => ({ wave: 'sawtooth', pitch: randomNumber(170, 260), wander: randomNumber(1, 2.5), wanderSpeed: randomNumber(2, 5), vibrato: randomNumber(0.2, 0.5), vibratoSpeed: randomNumber(8, 12), tremolo: randomNumber(10, 20), tremoloSpeed: randomNumber(5, 9), lowPass: randomNumber(45, 65), resonance: randomNumber(20, 40), attack: 0, sustain: 2000, decay: 0, volume: 45, range: 4 }) },
-      Swarm: { tip: 'A cloud of buzzing insects that loops', make: () => ({ wave: 'sawtooth', pitch: randomNumber(180, 320), wander: randomNumber(2, 4), wanderSpeed: randomNumber(4, 10), vibrato: randomNumber(0.3, 0.8), vibratoSpeed: randomNumber(10, 18), flanger: randomNumber(2, 6), tremolo: randomNumber(20, 40), tremoloSpeed: randomNumber(0.3, 1), lowPass: randomNumber(50, 70), resonance: randomNumber(20, 40), highPass: 15, attack: 0, sustain: 3000, decay: 0, volume: 45, range: 8 }) },
-      Wind: { tip: 'Gusting wind that loops. Resonance makes it whistle', make: () => ({ wave: 'pink', pitch: randomNumber(300, 900), wander: randomNumber(6, 12), wanderSpeed: randomNumber(0.3, 1), lowPass: randomNumber(45, 65), resonance: randomNumber(40, 75), tremolo: randomNumber(20, 45), tremoloSpeed: randomNumber(0.2, 0.5), attack: 0, sustain: randomNumber(3000, 4500), decay: 0, volume: 70, range: 20 }) },
-      Blizzard: { tip: 'A howling, icy wind that loops', make: () => ({ wave: 'pink', pitch: randomNumber(900, 1600), wander: randomNumber(8, 14), wanderSpeed: randomNumber(0.5, 1.5), lowPass: randomNumber(60, 75), resonance: randomNumber(65, 85), highPass: randomNumber(25, 40), tremolo: randomNumber(30, 50), tremoloSpeed: randomNumber(0.3, 0.8), crackle: sometimes(randomNumber(100, 250)), crackleLength: 3, crackleDepth: 25, attack: 0, sustain: randomNumber(3500, 4500), decay: 0, volume: 70, range: 20 }) },
+      Chirrup: { tip: 'A high pulsing cricket, lovely as a loop at night', make: () => ({ wave: 'sine', pitch: randomNumber(3800, 5200), tremolo: 100, tremoloSpeed: randomNumber(25, 60), attack: 5, sustain: randomNumber(120, 250), decay: 20, repeats: randomPick([2, 3]), gap: randomNumber(200, 400), volume: 50 }) },
+      Croak: { tip: 'A frog, shaken by fast tremolo', make: () => ({ wave: randomPick(['square', 'sawtooth', 'voice']), vowel: 3, mouth: 120, pitch: randomNumber(90, 200), slide: randomNumber(-8, 8), tremolo: randomNumber(80, 100), tremoloSpeed: randomNumber(18, 35), attack: 5, sustain: randomNumber(150, 300), decay: randomNumber(50, 100), lowPass: randomNumber(40, 60), repeats: randomPick([1, 2]), gap: randomNumber(150, 300) }) },
+      Bumble: { tip: 'A buzzing bee, that loops', make: () => ({ wave: 'sawtooth', pitch: randomNumber(170, 260), wander: randomNumber(1, 2.5), wanderSpeed: randomNumber(2, 5), vibrato: randomNumber(0.2, 0.5), vibratoSpeed: randomNumber(8, 12), tremolo: randomNumber(10, 20), tremoloSpeed: randomNumber(5, 9), lowPass: randomNumber(45, 65), resonance: randomNumber(20, 40), attack: 0, sustain: 2000, decay: 0, volume: 45, range: 4 }) },
+      Midges: { tip: 'A cloud of buzzing insects, that loops', make: () => ({ wave: 'sawtooth', pitch: randomNumber(220, 360), voices: randomPick([4, 5, 6]), detune: randomNumber(50, 90), wander: randomNumber(1, 2), wanderSpeed: randomNumber(4, 10), vibrato: randomNumber(0.3, 0.8), vibratoSpeed: randomNumber(10, 18), tremolo: randomNumber(20, 40), tremoloSpeed: randomNumber(0.3, 1), lowPass: randomNumber(50, 70), resonance: randomNumber(20, 40), highPass: 15, attack: 0, sustain: 3000, decay: 0, volume: 45, range: 8 }) },
+      Breeze: { tip: 'Gusting wind, that loops. Resonance makes it whistle', make: () => ({ wave: 'pink', pitch: randomNumber(300, 900), wander: randomNumber(6, 12), wanderSpeed: randomNumber(0.3, 1), lowPass: randomNumber(45, 65), resonance: randomNumber(40, 75), tremolo: randomNumber(20, 45), tremoloSpeed: randomNumber(0.2, 0.5), attack: 0, sustain: randomNumber(3000, 4500), decay: 0, volume: 70, range: 20 }) },
+      Whiteout: { tip: 'A howling, icy wind, that loops', make: () => ({ wave: 'pink', pitch: randomNumber(900, 1600), wander: randomNumber(8, 14), wanderSpeed: randomNumber(0.5, 1.5), lowPass: randomNumber(60, 75), resonance: randomNumber(65, 85), highPass: randomNumber(25, 40), tremolo: randomNumber(30, 50), tremoloSpeed: randomNumber(0.3, 0.8), crackle: sometimes(randomNumber(100, 250)), crackleLength: 3, crackleDepth: 25, attack: 0, sustain: randomNumber(3500, 4500), decay: 0, volume: 70, range: 20 }) },
       // rain and fire were measured rather than just tried: rain is soft noise with most of its sound
       // between 500 Hz and 8 kHz (white noise is mostly above 8 kHz, which screeches), and fire is a
       // 300-700 Hz roar (no deep rumble) that the crackle only partly chops, so the roar stays under it
-      Rain: { tip: 'Steady pattering rain that loops', make: () => ({ wave: 'pink', pitch: randomNumber(1800, 3000), highPass: randomNumber(45, 52), lowPass: randomNumber(86, 92), crackle: randomNumber(200, 400), crackleLength: randomNumber(6, 12), crackleDepth: randomNumber(45, 65), attack: 0, sustain: 3000, decay: 0, volume: 75, range: 16 }) },
-      Storm: { tip: 'Heavy rain coming and going in waves, that loops', make: () => ({ wave: 'pink', pitch: randomNumber(1200, 2000), highPass: randomNumber(30, 40), lowPass: randomNumber(80, 88), crackle: randomNumber(350, 500), crackleLength: randomNumber(10, 20), crackleDepth: randomNumber(35, 50), wander: randomNumber(3, 6), wanderSpeed: randomNumber(0.2, 0.5), tremolo: randomNumber(20, 35), tremoloSpeed: randomNumber(0.15, 0.3), attack: 0, sustain: 4000, decay: 0, volume: 85, range: 20 }) },
+      Drizzle: { tip: 'Steady pattering rain, that loops', make: () => ({ wave: 'pink', pitch: randomNumber(1800, 3000), highPass: randomNumber(45, 52), lowPass: randomNumber(86, 92), crackle: randomNumber(200, 400), crackleLength: randomNumber(6, 12), crackleDepth: randomNumber(45, 65), attack: 0, sustain: 3000, decay: 0, volume: 75, range: 16 }) },
+      Downpour: { tip: 'Heavy rain coming and going in waves, that loops', make: () => ({ wave: 'pink', pitch: randomNumber(1200, 2000), highPass: randomNumber(30, 40), lowPass: randomNumber(80, 88), crackle: randomNumber(350, 500), crackleLength: randomNumber(10, 20), crackleDepth: randomNumber(35, 50), wander: randomNumber(3, 6), wanderSpeed: randomNumber(0.2, 0.5), tremolo: randomNumber(20, 35), tremoloSpeed: randomNumber(0.15, 0.3), attack: 0, sustain: 4000, decay: 0, volume: 85, range: 20 }) },
       // thunder is a bright crack (white noise with the low-pass wide open, and lots of punch) that the
       // low-pass sweeps down into a deep, ringing rumble. long pops that only partly chop it are the
-      // rolls, and the echo is it bouncing round the sky
-      Thunder: { tip: 'A crack of thunder rolling away', make: () => ({ wave: 'noise', pitch: randomNumber(300, 700), slide: -randomNumber(4, 10), attack: 0, punch: randomNumber(80, 100), sustain: randomNumber(150, 400), decay: randomNumber(2500, 4000), lowPass: randomNumber(80, 90), lowPassSweep: -randomNumber(11, 17), resonance: randomNumber(25, 45), crackle: randomNumber(10, 25), crackleLength: randomNumber(150, 350), crackleDepth: randomNumber(50, 70), echo: randomNumber(180, 320), echoFeedback: randomNumber(40, 55), volume: 100, range: 40 }) },
-      Fire: { tip: 'A roaring, crackling fire that loops', make: () => ({ wave: 'pink', pitch: randomNumber(1000, 1800), highPass: randomNumber(25, 32), lowPass: randomNumber(52, 60), resonance: randomNumber(0, 15), crackle: randomNumber(15, 35), crackleLength: randomNumber(3, 6), crackleDepth: randomNumber(60, 75), attack: 0, sustain: 3000, decay: 0, volume: 90, range: 6 }) },
-      Stream: { tip: 'Babbling water that loops', make: () => ({ wave: 'pink', pitch: randomNumber(700, 1600), crackle: randomNumber(80, 200), crackleLength: randomNumber(15, 40), wander: randomNumber(2, 5), wanderSpeed: randomNumber(2, 6), lowPass: randomNumber(55, 75), highPass: randomNumber(15, 30), attack: 0, sustain: 3000, decay: 0, volume: 95, range: 10 }) },
-      Waterfall: { tip: 'A rushing waterfall that loops', make: () => ({ wave: 'pink', pitch: randomNumber(800, 1400), highPass: randomNumber(15, 25), lowPass: randomNumber(65, 80), crackle: randomNumber(300, 500), crackleLength: randomNumber(10, 25), crackleDepth: randomNumber(25, 40), attack: 0, sustain: 3000, decay: 0, volume: 95, range: 18 }) },
-      Ocean: { tip: 'One wave rolling in and out, that loops', make: () => {
+      // rolls, and the echo and reverb are it bouncing round the sky
+      Thunderclap: { tip: 'A crack of thunder rolling away', make: () => ({ wave: 'noise', pitch: randomNumber(300, 700), slide: -randomNumber(4, 10), attack: 0, punch: randomNumber(80, 100), sustain: randomNumber(150, 400), decay: randomNumber(2500, 4000), lowPass: randomNumber(80, 90), lowPassSweep: -randomNumber(11, 17), resonance: randomNumber(25, 45), crackle: randomNumber(10, 25), crackleLength: randomNumber(150, 350), crackleDepth: randomNumber(50, 70), echo: randomNumber(180, 320), echoFeedback: randomNumber(40, 55), reverb: randomNumber(20, 35), reverbSize: 90, volume: 100, range: 40 }) },
+      Hearth: { tip: 'A roaring, crackling fire, that loops', make: () => ({ wave: 'pink', pitch: randomNumber(1000, 1800), highPass: randomNumber(25, 32), lowPass: randomNumber(52, 60), resonance: randomNumber(0, 15), crackle: randomNumber(15, 35), crackleLength: randomNumber(3, 6), crackleDepth: randomNumber(60, 75), attack: 0, sustain: 3000, decay: 0, volume: 90, range: 6 }) },
+      Brook: { tip: 'Babbling water, that loops', make: () => ({ wave: 'pink', pitch: randomNumber(700, 1600), crackle: randomNumber(80, 200), crackleLength: randomNumber(15, 40), wander: randomNumber(2, 5), wanderSpeed: randomNumber(2, 6), lowPass: randomNumber(55, 75), highPass: randomNumber(15, 30), attack: 0, sustain: 3000, decay: 0, volume: 95, range: 10 }) },
+      Falls: { tip: 'A rushing waterfall, that loops', make: () => ({ wave: 'pink', pitch: randomNumber(800, 1400), highPass: randomNumber(15, 25), lowPass: randomNumber(65, 80), crackle: randomNumber(300, 500), crackleLength: randomNumber(10, 25), crackleDepth: randomNumber(25, 40), attack: 0, sustain: 3000, decay: 0, volume: 95, range: 18 }) },
+      Tide: { tip: 'One wave rolling in and out, that loops', make: () => {
         const sustain = randomNumber(3500, 5000);
         return { wave: 'pink', pitch: randomNumber(500, 1000), lowPass: randomNumber(50, 65), highPass: randomNumber(5, 15), tremolo: randomNumber(70, 90), tremoloSpeed: 1000 / sustain, crackle: randomNumber(80, 160), crackleLength: 30, crackleDepth: 20, wander: 3, wanderSpeed: 0.3, attack: 0, sustain, decay: 0, volume: 90, range: 25 };
       } },
       // a rustle is hundreds of tiny clicks a second over a soft hiss that keeps going (fewer, longer
       // pops that chop it all the way are a firecracker), swelling up and down with the breeze
-      Leaves: { tip: 'Leaves rustling in the breeze, that loops', make: () => ({ wave: 'pink', pitch: randomNumber(2500, 4000), highPass: randomNumber(50, 60), lowPass: randomNumber(90, 97), crackle: randomNumber(400, 500), crackleLength: randomNumber(1.5, 4), crackleDepth: randomNumber(40, 60), wander: randomNumber(3, 6), wanderSpeed: randomNumber(0.5, 1), tremolo: randomNumber(50, 80), tremoloSpeed: randomNumber(0.2, 0.5), attack: 0, sustain: 3000, decay: 0, volume: 100, range: 8 }) },
-      Drip: { tip: 'Water dripping in a cave, that loops', make: () => ({ wave: 'sine', pitch: randomNumber(500, 1100), slide: randomNumber(150, 350), attack: 0, sustain: randomNumber(5, 15), decay: randomNumber(30, 60), repeats: randomPick([1, 2]), gap: randomNumber(600, 1400), repeatPitch: sometimes(randomPick([-3, 2])), echo: randomNumber(150, 300), echoFeedback: randomNumber(35, 55), volume: 50, range: 10 }) },
+      Rustle: { tip: 'Leaves rustling in the breeze, that loops', make: () => ({ wave: 'pink', pitch: randomNumber(2500, 4000), highPass: randomNumber(50, 60), lowPass: randomNumber(90, 97), crackle: randomNumber(400, 500), crackleLength: randomNumber(1.5, 4), crackleDepth: randomNumber(40, 60), wander: randomNumber(3, 6), wanderSpeed: randomNumber(0.5, 1), tremolo: randomNumber(50, 80), tremoloSpeed: randomNumber(0.2, 0.5), attack: 0, sustain: 3000, decay: 0, volume: 100, range: 8 }) },
+      'Cave drip': { tip: 'Water dripping in a cave, that loops', make: () => ({ wave: 'sine', pitch: randomNumber(500, 1100), slide: randomNumber(150, 350), attack: 0, sustain: randomNumber(5, 15), decay: randomNumber(30, 60), repeats: randomPick([1, 2]), gap: randomNumber(600, 1400), repeatPitch: sometimes(randomPick([-3, 2])), echo: randomNumber(150, 300), echoFeedback: randomNumber(35, 55), reverb: randomNumber(35, 55), reverbSize: 85, volume: 50, range: 10 }) },
     },
   },
   // voices are for talking (an npc's voice in npcs.js), so they're one short syllable
@@ -739,10 +946,85 @@ const SOUND_GENERATORS = {
       Alien: { tip: 'Something not from around here. Every press is very different', make: () => voiceSettings({ pitch: randomNumber(150, 600), mouth: randomNumber(45, 150), fm: randomNumber(15, 45), fmRatio: randomNumber(0.5, 3.5), vibrato: randomNumber(0.5, 3), vibratoSpeed: randomNumber(6, 18), vowelSlide: eitherWay(randomNumber(2, 6)), expression: randomNumber(6, 10), talkSpeed: randomNumber(35, 60) }) },
       Robot: { tip: 'A flat, crunchy machine voice', make: () => voiceSettings({ pitch: randomNumber(90, 160), mouth: randomNumber(95, 110), breath: 0, crush: randomNumber(35, 60), flanger: sometimes(randomNumber(0.5, 2)), expression: randomNumber(0, 0.5), talkSpeed: randomNumber(36, 44) }) },
       Monster: { tip: 'A huge growling beast', make: () => voiceSettings({ pitch: randomNumber(45, 70), mouth: randomNumber(135, 160), breath: randomNumber(25, 40), wander: randomNumber(1.5, 3), wanderSpeed: randomNumber(150, 400), growl: randomNumber(30, 60), crush: sometimes(randomNumber(10, 25)), lowPass: randomNumber(55, 75), expression: randomNumber(2, 3), talkSpeed: randomNumber(26, 34), volume: 80 }) },
-      Ghost: { tip: 'A whispery, echoing spirit', make: () => voiceSettings({ pitch: randomNumber(220, 380), mouth: randomNumber(80, 95), breath: randomNumber(75, 95), vibrato: randomNumber(0.5, 1.5), vibratoSpeed: randomNumber(4, 6), flanger: randomNumber(2, 5), echo: randomNumber(150, 250), echoFeedback: randomNumber(30, 45), expression: randomNumber(4, 6), talkSpeed: randomNumber(28, 36), attack: randomNumber(25, 40), decay: randomNumber(80, 120), volume: 85 }) },
+      Ghost: { tip: 'A whispery, echoing spirit', make: () => voiceSettings({ pitch: randomNumber(220, 380), mouth: randomNumber(80, 95), breath: randomNumber(75, 95), vibrato: randomNumber(0.5, 1.5), vibratoSpeed: randomNumber(4, 6), flanger: randomNumber(2, 5), echo: randomNumber(150, 250), echoFeedback: randomNumber(30, 45), reverb: randomNumber(20, 35), reverbSize: 70, expression: randomNumber(4, 6), talkSpeed: randomNumber(28, 36), attack: randomNumber(25, 40), decay: randomNumber(80, 120), volume: 85 }) },
     },
   },
 };
+
+// ---------- levelling ----------
+// every made sound comes out about as loud as the others, the way a good sound effect maker's do, so
+// flicking through them isn't a mix of whispers and ear-splitters. a sound's loudness is the loudest
+// 50 ms of it (rms, which is close to how loud it feels), and its volume is set so that's
+// LEVEL.loudness, unless that would push its loudest peak past LEVEL.peak (a short click is quiet on
+// average but its peak isn't). it's measured on a short version of the sound (at most 3 repeats, short
+// fades, half a second held and a small room, since only its loudest part matters), at a low volume so nothing's rounded off by softClip(), since the sound is
+// just that times the volume
+const LEVEL = { loudness: 0.24, peak: 0.92 };
+
+// how much to multiply a sound's volume by to level it (1 for a silent sound)
+function levelGain(settings) {
+  const s = soundSettings(settings);
+  const probeVolume = 20;
+  const { samples } = renderSound({ ...s, volume: probeVolume, repeats: Math.min(s.repeats, 3), attack: Math.min(s.attack, 200), sustain: Math.min(s.sustain, 500), decay: Math.min(s.decay, 300), reverbSize: Math.min(s.reverbSize, 30) });
+  let peak = 0;
+  for (const v of samples) peak = Math.max(peak, Math.abs(v));
+  const window = Math.round(0.05 * SOUND_RATE);
+  let loudest = 0;
+  for (let from = 0; from < samples.length; from += Math.floor(window / 2)) {
+    const to = Math.min(samples.length, from + window);
+    let sum = 0;
+    for (let i = from; i < to; i++) sum += samples[i] * samples[i];
+    loudest = Math.max(loudest, Math.sqrt(sum / window));
+  }
+  if (loudest < 1e-5) return 1;
+  const volume = Math.min(LEVEL.loudness / loudest, LEVEL.peak / peak) * probeVolume;
+  return volume / s.volume;
+}
+
+// some settings with their volume levelled (levelGain())
+function levelled(settings) {
+  return { ...settings, volume: settingOf(settings, 'volume') * levelGain(settings) };
+}
+
+// which sliders do anything with the other settings as they are. the rest are greyed out (they keep
+// their value, it just doesn't change the sound). a new setting that only matters sometimes needs a
+// line here. the sound editor and squimble sound studio both use it
+function soundSettingMatters(d) {
+  const shaped = Boolean(SOUND_WAVES[d.wave].shape);
+  const repeating = d.repeats > 1;
+  return {
+    pulseWidth: d.wave === 'square',
+    pulseSweep: d.wave === 'square',
+    fm: shaped,
+    fmRatio: shaped && d.fm > 0,
+    resonance: d.lowPass < 100 || d.lowPassSweep !== 0,
+    dropTime: d.drop > 0,
+    jumpAt: d.jump !== 0,
+    jump2At: d.jump2 !== 0,
+    jumpRepeat: d.jump !== 0 || d.jump2 !== 0,
+    repeatPitch: repeating,
+    pitchScatter: repeating,
+    melody: repeating,
+    scale: repeating && d.melody > 0,
+    contour: repeating && d.melody > 0,
+    vibratoSpeed: d.vibrato > 0,
+    wanderSpeed: d.wander > 0,
+    gap: repeating,
+    scatter: repeating && d.gap > 0,
+    tremoloSpeed: d.tremolo > 0,
+    crackleLength: d.crackle > 0,
+    crackleDepth: d.crackle > 0,
+    voices: shaped,
+    detune: shaped && d.voices > 1,
+    chord: shaped && d.voices > 1,
+    echoFeedback: d.echo > 0,
+    reverbSize: d.reverb > 0,
+    vowel: d.wave === 'voice',
+    vowelSlide: d.wave === 'voice',
+    mouth: d.wave === 'voice',
+    breath: d.wave === 'voice',
+  };
+}
 
 // what a New voice starts as: a plain man's voice, so there's something to hear straight away
 const NEW_VOICE = { kind: 'voice', wave: 'voice', pitch: 120, attack: 10, sustain: 60, decay: 50 };
@@ -860,23 +1142,21 @@ const SoundEditor = {
       onClick: (button) => (button.on ? this.play(this.playedPitch) : Sound.stopPreview()),
     }));
     add(new SoundPiano({ x, y: L.pianoTop, w: L.leftWidth, h: L.pianoHeight, onPlay: (note) => this.play(noteFrequency(note)) }));
-    // a tab for each kind of make one button, in two rows (smaller text, so they fit), then that
+    // a tab for each kind of make one button, in rows of 5 (smaller text, so they fit), then that
     // kind's buttons in rows of 3 (they're all made now and the tabs show one kind at a time), then
     // Random and Mutate (not in SOUND_GENERATORS since they work differently, see randomSettings()
     // and mutate())
     const kinds = Object.keys(SOUND_GENERATORS);
-    const perRow = Math.ceil(kinds.length / 2);
+    const perRow = L.kindColumns;
+    const kindW = (L.leftWidth - (perRow - 1) * 4) / perRow;
     kinds.forEach((kind, i) => {
-      const row = Math.floor(i / perRow);
-      const inRow = row === 0 ? perRow : kinds.length - perRow;
-      const kindW = (L.leftWidth - (inRow - 1) * 4) / inRow;
       add(Object.assign(new EditorButton({
-        x: x + (i % perRow) * (kindW + 4), y: L.makersTop + 14 + row * 22, w: kindW, h: 20, label: kind, style: { ...BUTTON_STYLES.editor, textSize: 11 },
+        x: x + (i % perRow) * (kindW + 4), y: L.makersTop + 14 + Math.floor(i / perRow) * 20, w: kindW, h: 18, label: kind, style: { ...BUTTON_STYLES.editor, textSize: 11 },
         isOn: () => this.makers === kind,
         onClick: () => this.showMakers(kind),
       }), { tip: `${kind}: show the ${kind.toLowerCase()} buttons` }));
     });
-    const buttonsTop = L.makersTop + 62;
+    const buttonsTop = L.makersTop + 16 + Math.ceil(kinds.length / perRow) * 20;
     for (const kind of kinds) {
       Object.entries(SOUND_GENERATORS[kind].makers).forEach(([label, maker], i) => add(Object.assign(new Button({
         x: x + (i % 3) * 102, y: buttonsTop + Math.floor(i / 3) * 26, w: 96, h: 22, label, style: 'editor',
@@ -1014,6 +1294,8 @@ const SoundEditor = {
       return SOUND_WAVES[this.draft.wave].shape || this.draft.wave === 'metal' ? `${value} Hz  ${noteName(value)}` : `${value} Hz`;
     }
     if (setting.key === 'vowel') return Number.isInteger(value) ? VOWEL_NAMES[value] : `${VOWEL_NAMES[Math.floor(value)]} to ${VOWEL_NAMES[Math.ceil(value)]}`;
+    if (setting.names) return setting.names[value];
+    if (setting.key === 'voices') return value === 1 ? '1 voice' : `${value} voices`;
     if (setting.off === value) return 'off';
     // log sliders go from tiny to huge, so big values lose their decimals (368.9 shows as 369)
     if (setting.curve === 'log') return `${Number(value.toPrecision(3))} ${setting.unit}`;
@@ -1083,32 +1365,9 @@ const SoundEditor = {
       this.settled = now;
       this.cancelling = false;
     }
-    // sliders that don't do anything with the other settings as they are get greyed out (they keep
-    // their value, it just doesn't change the sound). a new setting that only matters sometimes needs
-    // a line here
-    const shaped = Boolean(SOUND_WAVES[d.wave].shape);
-    const matters = {
-      pulseWidth: d.wave === 'square',
-      pulseSweep: d.wave === 'square',
-      fm: shaped,
-      fmRatio: shaped && d.fm > 0,
-      resonance: d.lowPass < 100 || d.lowPassSweep !== 0,
-      jumpAt: d.jump !== 0,
-      jump2At: d.jump2 !== 0,
-      jumpRepeat: d.jump !== 0 || d.jump2 !== 0,
-      repeatPitch: d.repeats > 1,
-      vibratoSpeed: d.vibrato > 0,
-      wanderSpeed: d.wander > 0,
-      gap: d.repeats > 1,
-      tremoloSpeed: d.tremolo > 0,
-      crackleLength: d.crackle > 0,
-      crackleDepth: d.crackle > 0,
-      echoFeedback: d.echo > 0,
-      vowel: d.wave === 'voice',
-      vowelSlide: d.wave === 'voice',
-      mouth: d.wave === 'voice',
-      breath: d.wave === 'voice',
-    };
+    // sliders that don't do anything with the other settings as they are get greyed out
+    // (soundSettingMatters())
+    const matters = soundSettingMatters(d);
     for (const [key, slider] of Object.entries(this.sliders)) slider.enabled = matters[key] ?? true;
     // a dot on the tabs that have settings that aren't normal, so you can see where the sound is made
     for (const tab of SOUND_EDITOR.tabs) {
@@ -1188,7 +1447,8 @@ const SoundEditor = {
       picked[knob.key] = Math.min(knob.max, Math.max(knob.min, Math.round(value / knob.step) * knob.step));
     }
     const newKind = this.recipe?.kind !== kind;
-    this.recipe = { kind, name, knobs: picked, seed: Math.floor(Math.random() * 2 ** 31), range: this.draft.range, made: null };
+    this.recipe = { kind, name, knobs: picked, seed: Math.floor(Math.random() * 2 ** 31), range: this.draft.range, made: null, gain: 1 };
+    this.recipe.gain = levelGain(this.makeRecipe());
     // turnKnob() ignores these, since they're already the recipe's
     for (const knob of knobs) this.knobSliders[kind][knob.key].set(picked[knob.key]);
     this.replace({ range: this.recipe.range, ...this.makeRecipe() }, this.talks());
@@ -1198,12 +1458,14 @@ const SoundEditor = {
   },
 
   // the recipe's settings: its kind's make() with its knobs, using its own random numbers, so the same
-  // recipe always makes the same sound
+  // recipe always makes the same sound. its volume is multiplied by the gain it got levelled with when
+  // it was pressed (levelGain()), so turning a knob keeps it about as loud without measuring it again
   makeRecipe() {
-    const { kind, name, knobs, seed } = this.recipe;
+    const { kind, name, knobs, seed, gain } = this.recipe;
     makerRandom = seededRandom(seed);
     try {
-      return SOUND_GENERATORS[kind].make(knobs, SOUND_GENERATORS[kind].makers[name]);
+      const made = SOUND_GENERATORS[kind].make(knobs, SOUND_GENERATORS[kind].makers[name]);
+      return { ...made, volume: settingOf(made, 'volume') * gain };
     } finally {
       makerRandom = Math.random;
     }
@@ -1236,19 +1498,19 @@ const SoundEditor = {
   },
 
   // Random: a completely random sound. a random wave, and about a third of the settings moved
-  // somewhere random. the volume shape is kept short enough to hear what it is. it picks a random spot
+  // somewhere random, then levelled. the volume shape is kept short enough to hear what it is. it picks a random spot
   // along each slider (using the slider's curve, borrowed from Slider without making one), so it
   // spreads like the sliders do. it's meant to be wild, a lot of what it makes is noise, press it again
   randomSettings() {
     const settings = { wave: randomPick(Object.keys(SOUND_WAVES).filter((wave) => wave !== 'file')), range: this.draft.range };
     for (const setting of SOUND_SETTINGS) {
-      if (['volume', 'range', 'repeats', 'gap', 'talkSpeed', 'expression'].includes(setting.key) || randomBetween(0, 1) < 0.65) continue;
+      if (['volume', 'range', 'repeats', 'gap', 'talkSpeed', 'expression', 'voices', 'reverbSize'].includes(setting.key) || randomBetween(0, 1) < 0.65) continue;
       settings[setting.key] = Slider.prototype.valueAt.call(setting, randomBetween(0, 1));
     }
     settings.attack = Math.min(settings.attack ?? 5, 300);
     settings.sustain = randomNumber(30, 400);
     settings.decay = Math.min(settings.decay ?? 100, 800);
-    return settings;
+    return levelled(settings);
   },
 
   // Mutate: nudges about half the settings that are doing something a little bit along their sliders

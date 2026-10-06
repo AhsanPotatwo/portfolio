@@ -1,5 +1,6 @@
 // checks the synthesiser (sound.js): loops join smoothly, sounds.json saves back out the same, bad
-// settings get cleaned up, and every make one button makes a sound (soundeditor.js). also the doppler
+// settings get cleaned up, the string, tunes, scatter, reverb and levelling work, and every make one
+// button makes a sound (soundeditor.js). also the doppler
 // maths and moving sound blocks' paths (soundblocks.js). run it with
 // node js/squimble-quest/tests/sound-check.js (no output means it all passed). add "--fix" to rewrite
 // sounds.json in the exported format.
@@ -69,6 +70,73 @@ for (const wave of Object.keys(vm.runInContext('SOUND_WAVES', game)).filter((w) 
   const { samples } = game.renderSound(busy);
   assert(samples.every((v) => !Number.isNaN(v)) && samples.some((v) => Math.abs(v) > 0.05), `${wave} with everything on makes sound`);
 }
+
+// the string plays in tune (its loop is one wave long), found from where the sound best matches itself
+// a wave later
+for (const hz of [110, 440, 1320]) {
+  const { samples } = game.renderSound(game.soundSettings({ wave: 'string', pitch: hz, attack: 0, sustain: 400, decay: 200 }));
+  let bestLag = 0;
+  let best = -Infinity;
+  for (let lag = 20; lag < 600; lag++) {
+    let sum = 0;
+    for (let i = 4410; i < 6410; i++) sum += samples[i] * samples[i + lag];
+    if (sum > best) [best, bestLag] = [sum, lag];
+  }
+  assert(Math.abs(44100 / bestLag / hz - 1) < 0.02, `the string plays ${hz} Hz in tune (got ${(44100 / bestLag).toFixed(1)})`);
+}
+
+// a thin pulse wave is centred on 0, so it doesn't push the sound to one side
+const thin = game.renderSound(game.soundSettings({ wave: 'square', pulseWidth: 15, attack: 10, sustain: 300, decay: 10 })).samples;
+assert(Math.abs(thin.reduce((sum, v) => sum + v, 0) / thin.length) < 0.01, 'a thin pulse has no offset');
+
+// tunes: the same settings make the same tune, the first note is the root, a climbing one ends an
+// octave up and a falling or arching one back on the root
+for (let tune = 1; tune < 40; tune++) {
+  const climbs = game.soundMelody(game.soundSettings({ melody: tune, repeats: 6, contour: 0 }));
+  assert.deepStrictEqual(Array.from(climbs), Array.from(game.soundMelody(game.soundSettings({ melody: tune, repeats: 6, contour: 0 }))), 'a tune is the same every time');
+  assert(climbs[0] === 0 && climbs[5] === 12, `tune ${tune} climbs from the root to its octave`);
+  for (const contour of [1, 2]) assert.strictEqual(game.soundMelody(game.soundSettings({ melody: tune, repeats: 5, contour, scale: tune % 6 })).at(-1), 0, 'falling and arching tunes end on the root');
+}
+assert(game.soundMelody(game.soundSettings({ melody: 0, repeats: 4 })).every((n) => n === 0), 'Tune 0 is off');
+
+// scattered repeats never overlap, the first is on time, and the sound is as long as its timings say
+const scattered = game.soundSettings({ attack: 0, sustain: 30, decay: 30, repeats: 12, gap: 80, scatter: 100, pitchScatter: 5, lastNote: 3 });
+const timings = game.soundTimings(scattered);
+const starts = game.soundRepeats(scattered, timings).map((r) => r.start);
+assert.strictEqual(starts[0], 0, 'the first repeat starts on time');
+for (let n = 1; n < starts.length; n++) assert(starts[n] - starts[n - 1] >= timings.beep, 'scattered repeats never overlap');
+assert(Math.abs(game.renderSound(scattered).seconds - timings.seconds) < 0.001, 'a scattered tune with a long last note is the right length');
+
+// reverb makes a one-shot longer by its tail, and a looping one joins without a click
+const roomy = game.soundSettings({ wave: 'triangle', attack: 5, sustain: 100, decay: 150, repeats: 2, gap: 200, reverb: 60, reverbSize: 70 });
+assert(game.soundTimings(roomy).tail > 0.5, 'reverb adds a tail');
+assert(Math.abs(game.renderSound(roomy).seconds - game.soundTimings(roomy).seconds) < 0.001, 'reverb sounds are the right length');
+{
+  const { samples } = game.renderSound(roomy, true);
+  let biggest = 0;
+  for (let i = 1; i < samples.length; i++) biggest = Math.max(biggest, Math.abs(samples[i] - samples[i - 1]));
+  assert(Math.abs(samples[0] - samples[samples.length - 1]) <= biggest + 1e-6, 'a reverb loop joins without a click');
+}
+
+// levelling: very different makers come out about as loud as each other
+const loudness = (settings) => {
+  const s = game.soundSettings({ ...settings, volume: settingVolume(settings) * game.levelGain(settings) });
+  const { samples } = game.renderSound({ ...s, repeats: Math.min(s.repeats, 3), sustain: Math.min(s.sustain, 500) });
+  let loudest = 0;
+  for (let from = 0; from < samples.length; from += 1102) {
+    let sum = 0;
+    for (let i = from; i < Math.min(samples.length, from + 2205); i++) sum += samples[i] * samples[i];
+    loudest = Math.max(loudest, Math.sqrt(sum / 2205));
+  }
+  return loudest;
+};
+const settingVolume = (settings) => settings.volume ?? 60;
+const levels = [{ wave: 'pink', pitch: 1500, sustain: 1000, lowPass: 55, volume: 90 }, { wave: 'square', pitch: 300, sustain: 300, volume: 100 }, { wave: 'sine', pitch: 2000, sustain: 300, volume: 10 }].map(loudness);
+assert(Math.max(...levels) / Math.min(...levels) < 1.5, `levelled sounds are about as loud (${levels.map((l) => l.toFixed(2)).join(', ')})`);
+
+// the list of which sliders matter only names real settings
+const settingKeys = new Set(vm.runInContext('SOUND_SETTINGS', game).map((s) => s.key));
+for (const key of Object.keys(game.soundSettingMatters(game.soundSettings({})))) assert(settingKeys.has(key), `soundSettingMatters() names a real setting (${key})`);
 
 // growl repeats every two waves, so a growling hum loops at a whole number of pairs of them
 const growling = game.soundSettings({ wave: 'organ', pitch: 110, attack: 0, decay: 0, sustain: 1000, growl: 50 });

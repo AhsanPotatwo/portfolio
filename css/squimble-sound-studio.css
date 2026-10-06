@@ -239,8 +239,8 @@ html:has(.ss-page){ scrollbar-color:#2c3f86 var(--ss-night); }
   border-top:1px solid var(--ss-line);
 }
 .ss-makers-note{ margin:0; font-size:13.5px; line-height:1.5; color:var(--ss-muted); }
-/* two even rows, like the game's */
-.ss-maker-kinds{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:5px; }
+/* rows of 5, like the game's */
+.ss-maker-kinds{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:5px; }
 .ss-maker-kinds .ss-key{ min-height:28px; padding:0 4px; font-size:12.5px; }
 .ss-maker-list{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
 .ss-maker-list .ss-key{ min-height:32px; padding:0 6px; font-size:13px; font-weight:600; background:#16245a; }
@@ -291,7 +291,7 @@ html:has(.ss-page){ scrollbar-color:#2c3f86 var(--ss-night); }
 /* a slider: label, fader, value */
 .ss-slider{
   display:grid;
-  grid-template-columns:108px minmax(0,1fr) 96px;
+  grid-template-columns:124px minmax(0,1fr) 92px;
   align-items:center;
   gap:10px;
   min-height:30px;
