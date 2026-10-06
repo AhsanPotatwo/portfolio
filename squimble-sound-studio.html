@@ -49,7 +49,12 @@
 
     <div class="ss-intro">
       <h1 class="ss-title">Squimble Sound Studio</h1>
-      <p class="ss-lede">The synthesiser I built for <a href="squimble-quest.html">Squimble Quest</a>, on its own page. Every sound is worked out sample by sample in JavaScript, with no recordings and no audio libraries. Make one, then download it or copy it into the game.</p>
+      <p class="ss-lede">The synthesiser I built for <a href="squimble-quest.html">Squimble Quest</a>, on its own page. Every sound is worked out sample by sample in JavaScript, with no recordings. Make one, then download it or copy it into the game.</p>
+      <ul class="ss-tags" aria-label="Built with">
+        <li>JavaScript</li>
+        <li>Web Audio</li>
+        <li>Shares its code with the game</li>
+      </ul>
     </div>
 
     <!-- the instrument. js/squimble-sound-studio/studio.js fills in the parts marked "filled in" -->
@@ -66,7 +71,7 @@
           <button type="button" class="ss-key" data-kind="voice" aria-pressed="false" data-tip="Voice: for npcs to talk with. Type in the Say box on the Voice tab to hear it talk">Voice</button>
         </div>
         <div class="ss-bar-actions">
-          <button type="button" class="ss-key" id="ssUndo" data-tip="Undo: goes back to before the last change">Undo</button>
+          <button type="button" class="ss-key ss-key-line" id="ssUndo" data-tip="Undo: goes back to before the last change">Undo</button>
           <button type="button" class="ss-key ss-key-go" id="ssSave" data-tip="Save it to the library below. Saving under a new name makes a copy">Save to library</button>
         </div>
       </div>
@@ -105,7 +110,7 @@
             <div class="ss-waves-head">
               <h2 class="ss-heading">Wave</h2>
               <span class="ss-file-name" id="ssFileName"></span>
-              <button type="button" class="ss-key ss-key-small" id="ssChooseFile" hidden data-tip="Pick an mp3, wav or ogg from your computer to use instead of a wave">Choose file</button>
+              <button type="button" class="ss-key ss-key-small ss-key-line" id="ssChooseFile" hidden data-tip="Pick an mp3, wav or ogg from your computer to use instead of a wave">Choose file</button>
             </div>
             <!-- filled in: a button per wave -->
             <div class="ss-wave-grid" id="ssWaves" role="group" aria-label="Wave"></div>
@@ -120,10 +125,12 @@
       <p class="ss-tip" id="ssTip"></p>
     </section>
 
+    <div class="ss-ribbon-wrap"><span class="ss-ribbon">Keep your sounds</span></div>
+
     <div class="ss-lower">
       <section class="ss-shelf ss-library" aria-labelledby="ssLibraryTitle">
         <div class="ss-shelf-head">
-          <h2 class="ss-shelf-title" id="ssLibraryTitle">Library</h2>
+          <h2 class="ss-shelf-title" id="ssLibraryTitle">Your <span>library</span></h2>
           <div class="ss-kind" role="group" aria-label="Show">
             <button type="button" class="ss-key ss-key-small" data-library="sound" aria-pressed="true">Sounds</button>
             <button type="button" class="ss-key ss-key-small" data-library="voice" aria-pressed="false">Voices</button>
@@ -136,7 +143,7 @@
       </section>
 
       <section class="ss-shelf ss-export" aria-labelledby="ssExportTitle">
-        <h2 class="ss-shelf-title" id="ssExportTitle">Take it with you</h2>
+        <h2 class="ss-shelf-title" id="ssExportTitle">Take it <span>with you</span></h2>
 
         <div class="ss-export-row">
           <div>
@@ -151,7 +158,7 @@
             <h3>For Squimble Quest</h3>
             <p id="ssCodeNote">One line for the game's sounds file.</p>
           </div>
-          <button type="button" class="ss-key" id="ssCopy">Copy</button>
+          <button type="button" class="ss-key ss-key-line" id="ssCopy">Copy</button>
           <pre class="ss-code"><code id="ssCode"></code></pre>
         </div>
 
@@ -160,7 +167,7 @@
             <h3>The whole library</h3>
             <p>The game's sounds file with everything you've saved in it, plus any audio files you've used. It replaces <code>assets/squimble-quest/sounds/sounds.json</code>.</p>
           </div>
-          <button type="button" class="ss-key" id="ssExportAll">Download sounds.json</button>
+          <button type="button" class="ss-key ss-key-line" id="ssExportAll">Download sounds.json</button>
         </div>
       </section>
     </div>
