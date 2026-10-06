@@ -1523,6 +1523,59 @@ a{ color:inherit; text-decoration:none; }
   paint-order:stroke fill;
 }
 
+/* squimble sound studio card: a sound's waveform in midnight blue, like the studio's scope. on hover
+   an amber playhead sweeps it and the bars pulse as it passes */
+.project-card-studio{
+  position:relative;
+  overflow:hidden;
+  background:radial-gradient(120% 90% at 50% 50%, #16286a, #0a1336 75%);
+}
+.project-card-studio:hover,
+.project-card-studio:focus-within{ background:radial-gradient(120% 90% at 50% 50%, #1b3180, #0b163d 75%); }
+.studio-wave{
+  position:absolute;
+  inset:14px 22px;
+  display:flex; align-items:center; gap:3px;
+}
+.studio-wave i{
+  flex:1;
+  height:calc(var(--h) * 100%);
+  border-radius:2px;
+  background:linear-gradient(#8fe3ff, #3d8fd6 50%, #8fe3ff);
+  opacity:.45;
+}
+.project-card-studio:hover .studio-wave i,
+.project-card-studio:focus-within .studio-wave i{ animation:studio-pulse 1.8s ease-out calc(var(--i) * 1.8s / 44) infinite; }
+@keyframes studio-pulse{
+  0%{ opacity:.95; transform:scaleY(1.18); }
+  30%,100%{ opacity:.45; transform:scaleY(1); }
+}
+.studio-playhead{
+  position:absolute;
+  top:10px; bottom:10px; left:22px;
+  width:2px;
+  background:#ffb84d;
+  box-shadow:0 0 10px 2px rgba(255,184,77,.55);
+  opacity:0;
+}
+.project-card-studio:hover .studio-playhead,
+.project-card-studio:focus-within .studio-playhead{ animation:studio-sweep 1.8s linear infinite; }
+@keyframes studio-sweep{
+  0%{ left:22px; opacity:1; }
+  92%{ opacity:1; }
+  100%{ left:calc(100% - 22px); opacity:0; }
+}
+.studio-title{
+  position:relative; z-index:2;
+  font-family:"Tektur", var(--font-sans);
+  font-weight:800;
+  font-stretch:80%;
+  font-size:clamp(23px,2.6vw,34px);
+  letter-spacing:.01em;
+  color:#eef4ff;
+  text-shadow:0 2px 0 #0a1336, 0 0 18px rgba(10,19,54,.9);
+}
+
 /* contact + footer */
 .contact{ padding-bottom:var(--section-pad); }
 .contact-inner{ display:flex; flex-direction:column; align-items:center; text-align:center; }
@@ -1708,6 +1761,7 @@ a{ color:inherit; text-decoration:none; }
   .project-grid{ grid-template-columns:minmax(0,400px); gap:24px; }
   .project-card{ height:120px; }
   .wizard-title, .pantry-title, .squimble-title{ font-size:28px; }
+  .studio-title{ font-size:26px; }
   .cli-title{ font-size:24px; }
 }
 
@@ -1725,6 +1779,7 @@ a{ color:inherit; text-decoration:none; }
   .design-viewer[open]{ animation:none; }
   .wizard-robe-a, .wizard-robe-b, .wizard-wand-a, .wizard-wand-b, .wand-tip{ animation:none; }
   .cli-ping, .cli-scan{ animation:none; }
+  .studio-wave i, .studio-playhead{ animation:none; }
   .btn::after{ display:none; }
   .pantry-food, .pantry-food-inner{ animation:none; }
 }
