@@ -13,6 +13,9 @@
   --ss-muted:  #94a2d4;
   --ss-warn:   #ff8a97;
   --ss-display: "Tektur", var(--font-sans);
+  /* the studio's own text font, so it has its own feel inside the site: squared-off curves that go
+     with tektur without shouting. the header and footer stay quicksand like every other page */
+  --ss-ui: "Bai Jamjuree", var(--font-sans);
 
   /* overrides for styles.css */
   --bg: var(--ss-night);
@@ -94,7 +97,7 @@ html:has(.ss-page){ scrollbar-color:#2c3f86 var(--ss-night); }
   display:inline-flex; align-items:center; justify-content:center; gap:7px;
   min-height:36px;
   padding:0 14px;
-  font:700 14px/1.1 var(--font-sans);
+  font:700 14px/1.1 var(--ss-ui);
   color:var(--ss-text);
   background:var(--ss-raised);
   border:2px solid transparent;
@@ -136,7 +139,7 @@ html:has(.ss-page){ scrollbar-color:#2c3f86 var(--ss-night); }
 
 .ss-heading{
   margin:0;
-  font:700 16px/1.2 var(--font-sans);
+  font:700 16px/1.2 var(--ss-ui);
   color:var(--ss-text);
 }
 
@@ -152,7 +155,7 @@ html:has(.ss-page){ scrollbar-color:#2c3f86 var(--ss-night); }
 .ss-input{
   height:36px;
   padding:0 12px;
-  font:600 15px var(--font-sans);
+  font:600 15px var(--ss-ui);
   color:var(--ss-text);
   background:var(--ss-well);
   border:1px solid var(--ss-line);
@@ -236,8 +239,9 @@ html:has(.ss-page){ scrollbar-color:#2c3f86 var(--ss-night); }
   border-top:1px solid var(--ss-line);
 }
 .ss-makers-note{ margin:0; font-size:13.5px; line-height:1.5; color:var(--ss-muted); }
-.ss-maker-kinds{ display:flex; flex-wrap:wrap; gap:5px; }
-.ss-maker-kinds .ss-key{ min-height:28px; padding:0 9px; font-size:12.5px; }
+/* two even rows, like the game's */
+.ss-maker-kinds{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:5px; }
+.ss-maker-kinds .ss-key{ min-height:28px; padding:0 4px; font-size:12.5px; }
 .ss-maker-list{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
 .ss-maker-list .ss-key{ min-height:32px; padding:0 6px; font-size:13px; font-weight:600; background:#16245a; }
 .ss-maker-list .ss-key:hover{ background:#22357a; }
@@ -278,7 +282,7 @@ html:has(.ss-page){ scrollbar-color:#2c3f86 var(--ss-night); }
 .ss-section-title{
   display:flex; align-items:center; gap:10px;
   margin:0 0 4px;
-  font:700 13.5px var(--font-sans);
+  font:700 13.5px var(--ss-ui);
   color:var(--ss-muted);
 }
 .ss-section-title::after{ content:""; flex:1; height:1px; background:var(--ss-line); }
@@ -387,7 +391,7 @@ html:has(.ss-page){ scrollbar-color:#2c3f86 var(--ss-night); }
 .ss-new{
   width:100%;
   padding:10px;
-  font:700 15px var(--font-sans);
+  font:700 15px var(--ss-ui);
   color:#cfe0ff;
   background:none;
   border:2px solid #3d68f0;
@@ -415,7 +419,7 @@ html:has(.ss-page){ scrollbar-color:#2c3f86 var(--ss-night); }
 .ss-library-list .ss-key{ min-height:30px; padding:0; }
 .ss-lib-name{
   padding:6px 0;
-  font:600 14.5px var(--font-sans);
+  font:600 14.5px var(--ss-ui);
   color:var(--ss-text);
   text-align:left;
   background:none; border:0;
@@ -428,7 +432,7 @@ html:has(.ss-page){ scrollbar-color:#2c3f86 var(--ss-night); }
 .ss-library-list canvas{ width:80px; height:26px; }
 .ss-lib-forget{
   padding:4px 6px;
-  font:500 12.5px var(--font-sans);
+  font:500 12.5px var(--ss-ui);
   color:var(--ss-muted);
   background:none; border:0;
   text-decoration:underline; text-underline-offset:3px;
@@ -507,3 +511,4 @@ html:has(.ss-page){ scrollbar-color:#2c3f86 var(--ss-night); }
 /* the studio hides parts with the hidden attribute, which loses to display:grid and flex otherwise */
 .ss-page [hidden]{ display:none !important; }
 .ss-readout span + span{ margin-left:16px; }
+.ss-page main{ font-family:var(--ss-ui); }
