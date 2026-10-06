@@ -436,7 +436,10 @@
     const name = cleanMapName(typed);
     $('#ssSavesAs').textContent = name && name !== typed ? `saves as ${name}` : '';
 
-    renderExport(name || (d.kind === 'voice' ? 'my-voice' : 'my-sound'));
+    // a changed sound still under the name it opened with (coin, say) would clash with that one in
+    // sounds.json, so the line gives it a new name until it's renamed or saved
+    const named = name && !(name === Studio.original && Studio.unsaved());
+    renderExport(named ? name : d.kind === 'voice' ? 'my-voice' : 'my-sound', named);
     showTip();
   }
 
@@ -548,8 +551,8 @@
   // on (made to repeat without a click), else the sound playing once
   function wavPlan() {
     if (Studio.talks()) return { say: Studio.sayField.value, loop: false, note: `A WAV file of it saying "${Studio.sayField.value}".` };
-    if (Studio.loopButton.on) return { say: null, loop: true, note: 'One go round of the loop, made to repeat without a click. Loop is on, turn it off for the sound playing once.' };
-    return { say: null, loop: false, note: 'A WAV file of the sound playing once. Turn Loop on for one go round of it that repeats without a click.' };
+    if (Studio.loopButton.on) return { say: null, loop: true, note: 'A WAV file made for looping: set it to repeat in any audio player or game and it plays on and on with no click or gap. Turn Loop off to get the sound played just once.' };
+    return { say: null, loop: false, note: 'A WAV file of the sound played once. Want one that repeats smoothly, like background music? Turn Loop on first.' };
   }
 
   $('#ssWav').addEventListener('click', () => {
@@ -562,7 +565,7 @@
 
   // the sound's line for sounds.json, exactly as the game writes it (soundsToText() in sound.js)
   let codeLine = '';
-  function renderExport(name) {
+  function renderExport(name, named) {
     const d = Studio.draft;
     codeLine = jsonLine(typeToData({ ...d, name }, SOUND_DEFAULTS)).trim();
     if ($('#ssCode').textContent !== codeLine) $('#ssCode').textContent = codeLine;
@@ -570,7 +573,8 @@
       ? `then give an npc voice: '${name}' in npcs.js, or pick it for one in the map editor`
       : `then play it from code with playSound('${name}'), or put it on a sound block in the map editor`;
     const file = d.wave === 'file' && d.file ? ` Put ${d.file} in assets/squimble-quest/sounds/files/ too.` : '';
-    $('#ssCodeNote').textContent = `Paste it into the sounds list in assets/squimble-quest/sounds/sounds.json, ${use}.${file}`;
+    const rename = named ? '' : `It's called ${name} for now, type a new name in the Name box to change it. `;
+    $('#ssCodeNote').textContent = `${rename}Paste it into the sounds list in assets/squimble-quest/sounds/sounds.json, ${use}.${file}`;
     $('#ssWavNote').textContent = wavPlan().note;
   }
 
