@@ -1,6 +1,6 @@
 # Squimble Quest sounds
 
-Every sound in the game is in `sounds.json` in this folder, one per line. Audio files (mp3, wav or ogg) that sounds use go in `files/`. Sounds are made and changed in the game's **sound editor**, a little synthesiser, so you never have to edit `sounds.json` by hand.
+Every sound in the game is its own file in this folder, named after it (`coin.json` is the coin sound), and `index.json` lists them. Voices work the same way in [`voices/`](../voices/). Audio files (mp3, wav or ogg) that sounds use go in `files/`. Sounds are made and changed in the game's **sound editor**, a little synthesiser, so you never have to edit their files by hand. How the data folders work is in the [data README](../README.md).
 
 ## Opening the sound editor
 
@@ -12,7 +12,7 @@ Open the map editor (**`** or **Ctrl + D**, then **B**) and go to the **Sounds**
 
 ## Sounds and voices
 
-There are two kinds: **sounds**, for sound blocks, and **voices**, for npcs to talk with. They're made the same way in the same editor; the **Sound** / **Voice** buttons next to the name say which it is. Sounds show in the map editor's **Sounds** tab and are the only ones sound blocks can play, and voices show in the **Voices** tab and are the only ones npcs can use. Both are saved in `sounds.json`, so a name can only be used once across both.
+There are two kinds: **sounds**, for sound blocks, and **voices**, for npcs to talk with. They're made the same way in the same editor; the **Sound** / **Voice** buttons next to the name say which it is. Sounds show in the map editor's **Sounds** tab and are the only ones sound blocks can play, and voices show in the **Voices** tab and are the only ones npcs can use. Sounds are saved in this folder and voices in `voices/`, and a name can only be used once across both.
 
 ## Using it
 
@@ -144,7 +144,7 @@ Then save it (as a **Voice**) and give it to npcs. In the map editor, either:
 - pick the voice in the **Voices** tab and click an npc on the map (they say their first line with it), or
 - right click an npc on the map and pick its **Voice**. **▶ Say** plays its first line with the voice picked, **Edit voice** opens that voice, and **New voice** makes a new one that the npc gets when you save it.
 
-Each npc on a map can have its own voice (it's saved in the map file, so **Export** the map too). One left on **its own** uses its kind's voice from `voice: 'its-name'` in `defineNpc()` in `js/squimble-quest/npcs.js`. Npcs use the voice by name, so **changing a voice changes every npc that uses it**: make "Man voice 1", give it to five npcs, then tweak it once.
+Each npc on a map can have its own voice (it's saved in the map file, so **Export** the map too). One left on **its own** uses its kind's voice, `"voice": "its-name"` in its file in [`npcs/`](../npcs/). Npcs use the voice by name, so **changing a voice changes every npc that uses it**: make "Man voice 1", give it to five npcs, then tweak it once.
 
 When you talk to them, they say each line as it types out, at the voice's **Talk speed**. Pressing **E** to finish a line early cuts the voice off.
 
@@ -160,12 +160,12 @@ The game can only load files from `files/` in this folder, so a file you choose 
 
 ## Keeping your sounds
 
-Saved sounds work straight away, but only until the page reloads. To keep them, click **Export** in the inspector (next to **New**, on the **Sounds** tab). It downloads:
+Saved sounds work straight away, but only until the page reloads. To keep them, click **Export** in the inspector (next to **New**, on the **Sounds** or **Voices** tab). It downloads:
 
-- `sounds.json`: put it in this folder, replacing the old one.
+- the file of every sound and voice you've made or changed, like `zap.json`: put sounds in this folder and voices in `voices/`, replacing any old ones. For a new one, add its name to `index.json` in that folder.
 - any audio files you've chosen since the page loaded that a sound uses: put them in `files/`.
 
-The message at the top says where each one goes. Exporting without changing anything gives exactly the same `sounds.json`.
+The message at the top says where each one goes (or the browser console, **F12**, if there's a lot). Exporting again only downloads what's changed since.
 
 ## Things to know
 
@@ -184,23 +184,28 @@ Quirks you might run into, so they don't look like bugs:
 - **Step blocks repeat.** A sound block set to play when stepped on plays every time you step onto it, even walking back and forth over it.
 - **The same loop twice is louder.** Two looping sound blocks with the same sound near each other play it twice. For a big area (a river), use one block with a bigger **Heard from**.
 - **Audio file names.** Keep them simple (letters, numbers, `-` and `_`). Two different files with the same name replace each other. A file that fails to load (it's not in `files/`, say) isn't tried again until you reload the page.
-- **Changing the code's normal values changes sounds.** `sounds.json` only stores settings that aren't normal, so if the normal value of a setting changes in `sound.js`, every sound that left it out changes too.
+- **Changing the code's normal values changes sounds.** A sound's file only stores settings that aren't normal, so if the normal value of a setting changes in `sound.js`, every sound that left it out changes too.
 
 ## The file format
 
+`coin.json`:
+
 ```json
 {
-  "format": "squimble-quest-sounds",
-  "version": 1,
-  "sounds": [
-    { "name": "coin", "pitch": 988, "jump": 5, "jumpAt": 60, "attack": 0, "sustain": 60, "punch": 50, "decay": 220 },
-    { "name": "door", "wave": "file", "file": "door.mp3", "sustain": 900 }
-  ]
+  "pitch": 988,
+  "jump": 5,
+  "jumpAt": 60,
+  "attack": 0,
+  "sustain": 60,
+  "punch": 50,
+  "decay": 220
 }
 ```
 
+A sound that plays an audio file, like `door.json`, would be `{ "wave": "file", "file": "door.mp3", "sustain": 900 }`.
+
 Each sound only lists the settings that aren't the normal value. The names are the sliders' settings in `SOUND_SETTINGS` in `js/squimble-quest/sound.js` (`attack`, `sustain` and `decay` are fade in, hold and fade out). Anything out of range is pulled back into range when it loads, and a wave that doesn't exist becomes a square, with a warning in the browser console (F12).
 
-Voices are the lines with `"kind": "voice"`, after the sounds.
+Voices are the same, in `voices/`. Which folder it's in is what makes it a voice.
 
-There's no renaming or deleting in the editor, since sound blocks and npcs on maps use the names. Do those here by hand, and fix anything using the old name: sound blocks (they show red in the editor), npcs' voices (right click them; a missing voice shows as "(missing)"), and any `voice` in `npcs.js`.
+There's no renaming or deleting in the editor, since sound blocks and npcs on maps use the names. Do those by hand (the file and its name in `index.json`), and fix anything using the old name: sound blocks (they show red in the editor), npcs' voices (right click them; a missing voice shows as "(missing)"), and any `"voice"` in an npc's file.

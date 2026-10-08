@@ -1,0 +1,13 @@
+{
+  "pitch": 140,
+  "attack": 0,
+  "sustain": 1000,
+  "decay": 0,
+  "tremolo": 15,
+  "tremoloSpeed": 30,
+  "pulseWidth": 30,
+  "fm": 10,
+  "lowPass": 70,
+  "volume": 50,
+  "range": 12
+}

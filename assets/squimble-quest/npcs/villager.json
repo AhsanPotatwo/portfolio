@@ -1,0 +1,8 @@
+{
+  "label": "Villager",
+  "dialogue": [
+    "It seems like you're on some sort of... squimble quest"
+  ],
+  "voice": "villager-voice",
+  "colour": "#7bd88f"
+}

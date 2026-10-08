@@ -18,8 +18,8 @@
 // hover over anything for a tip along the bottom. right click a slider to put it back to normal, or
 // scroll over it to nudge it. with Loop on, changing anything while it plays starts it again straight
 // away, so you can hear what a slider does while you drag it. Save changes the sound in the game
-// straight away, and Export (next to New in the inspector) downloads sounds.json and any audio files
-// chosen since the page loaded. it's a ui group over the whole screen, like the warp graph
+// straight away, and Export (next to New in the inspector) downloads the file of every new or changed
+// sound and voice, and any audio files chosen since the page loaded. it's a ui group over the whole screen, like the warp graph
 // (warpgraph.js), and the map editor hands it the updates while it's open (Editor.update())
 //
 // ---------- how it's put together ----------
@@ -51,7 +51,7 @@
 //     (cleanMapName() in mapfile.js), so "My Sound" saves as "my-sound" (it says so next to the box).
 //     names are 20 letters at most
 //   - there's no renaming or deleting. saving under a new name makes a copy, and deleting is by hand
-//     in sounds.json (see the sounds README)
+//     (its file, and its line in index.json, see the sounds README)
 //   - switching an existing sound to a voice (or back) moves it to the other library when it's saved,
 //     so sound blocks using it go silent (and red), and so do npcs using a voice made a sound
 //   - with Loop on, every change restarts the sound, and the old one fades out in about 15 ms, so you
@@ -914,7 +914,7 @@ const SOUND_GENERATORS = {
       'Cave drip': { tip: 'Water dripping in a cave, that loops', make: () => ({ wave: 'sine', pitch: randomNumber(500, 1100), slide: randomNumber(150, 350), attack: 0, sustain: randomNumber(5, 15), decay: randomNumber(30, 60), repeats: randomPick([1, 2]), gap: randomNumber(600, 1400), repeatPitch: sometimes(randomPick([-3, 2])), echo: randomNumber(150, 300), echoFeedback: randomNumber(35, 55), reverb: randomNumber(35, 55), reverbSize: 85, volume: 50, range: 10 }) },
     },
   },
-  // voices are for talking (an npc's voice in npcs.js), so they're one short syllable
+  // voices are for talking (an npc's voice), so they're one short syllable
   Voices: {
     knobs: [
       twoWayKnob('age', 'Age', 'Younger (-): higher, quicker and livelier. Older (+): slower, breathier and shakier'),
@@ -1324,7 +1324,7 @@ const SoundEditor = {
   problem() {
     const name = cleanMapName(this.nameField.value); // mapfile.js, sound names follow the same rules
     if (!name) return 'Type a name for it at the top';
-    // sounds and voices share sounds.json, so a name can only be used once across both
+    // a name can only be used once across sounds and voices, so findSound() knows which you mean
     if (name !== this.original && findSound(name)) return `There's already a ${SOUND_KINDS[findSound(name).kind].toLowerCase()} called ${name}, pick another name`;
     if (this.draft.wave === 'file' && !this.draft.file) return 'Choose an audio file first';
     return null;
@@ -1557,16 +1557,15 @@ const SoundEditor = {
     });
   },
 
-  // downloads sounds.json (sound.js) and any audio file chosen since the page loaded that a sound
-  // uses, then says where they go (the download helpers are in utils.js). the inspector's Export
-  // button on the Sounds tab. the browser might ask whether the page can download several files at
-  // once the first time. files that were already in sounds/files/ aren't downloaded again
+  // downloads the file of every sound and voice that's new or changed (datafiles.js), and any audio
+  // file chosen since the page loaded that one uses, then says where they go. the inspector's Export
+  // button on the Sounds and Voices tabs. each audio file only downloads once, and ones that were
+  // already in sounds/files/ never do
   exportSounds() {
-    downloadTextFile('sounds.json', soundsToText());
     const files = [...new Set([...Object.values(SOUNDS), ...Object.values(VOICES)].map((sound) => sound.file))].filter((name) => this.newFiles[name]);
-    for (const name of files) downloadData(name, this.newFiles[name]);
-    const also = files.length > 0 ? `, and ${files.join(', ')} in sounds/files/` : '';
-    showMessage(`Exported! Put sounds.json in assets/squimble-quest/sounds/${also}`);
+    const extras = files.map((name) => ({ name, data: this.newFiles[name], folder: 'sounds/files/' }));
+    for (const name of files) delete this.newFiles[name];
+    DataFiles.export(['sound', 'voice'], extras);
   },
 };
 

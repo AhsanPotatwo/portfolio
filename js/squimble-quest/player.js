@@ -13,7 +13,7 @@ class Player extends Character {
     this.stepTile = null;
   }
 
-  // gives PLAYER.startingItems, starting from slot 1. runs once items.json has loaded (sketch.js)
+  // gives PLAYER.startingItems, starting from slot 1. runs once the item files have loaded (sketch.js)
   giveStartingItems() {
     for (const name of PLAYER.startingItems) this.inventory.add(createItem(name));
   }
@@ -21,7 +21,7 @@ class Player extends Character {
   // the held item's weapon, or null for empty hands or an item that isn't a weapon
   currentWeapon() {
     const item = this.inventory.held();
-    return item && item.type.weapon ? WEAPONS[item.type.weapon] : null;
+    return item?.type.weapon ?? null;
   }
 
   targets(world) {

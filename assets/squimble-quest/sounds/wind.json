@@ -1,0 +1,15 @@
+{
+  "wave": "pink",
+  "pitch": 500,
+  "wander": 9,
+  "wanderSpeed": 0.6,
+  "attack": 0,
+  "sustain": 4000,
+  "decay": 0,
+  "tremolo": 30,
+  "tremoloSpeed": 0.3,
+  "lowPass": 55,
+  "resonance": 60,
+  "volume": 70,
+  "range": 20
+}

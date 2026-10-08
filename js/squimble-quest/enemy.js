@@ -8,7 +8,9 @@ class Enemy extends Character {
   constructor(type, col, row, ai, follows) {
     super(0, 0, ENEMY_TYPES[type]);
     this.type = ENEMY_TYPES[type];
-    this.ai = ai !== undefined ? ENEMY_AIS[ai] : this.type.ai;
+    // the ai function this one uses (ENEMY_AIS), from its spawn's pick or its kind's. Character's think()
+    // runs it
+    this.ai = ENEMY_AIS[ai ?? this.type.ai] ?? null;
     // read by canFollow() (warps.js)
     this.followsThroughWarps = follows ?? this.type.followsThroughWarps;
     // the player it's after, and the seconds since it last saw or heard them (sensePlayer() in
@@ -49,18 +51,14 @@ class Enemy extends Character {
     return { move: towards(x - this.x, y - (this.y + feetBelowCentre(this.settings))), aim: { x, y }, attack: false };
   }
 
-  // uses this.ai rather than the kind's ai, since a spawn can pick a different one
-  think(world, dt) {
-    return this.ai ? this.ai(this, world, dt) : STAND_STILL;
-  }
-
   targets(world) {
     return world.players;
   }
 
-  // runs onDeath first (enemies.js), and if it's still on 0 health after that it's gone for good
+  // runs its onDeath first (ENEMY_DEATHS in enemies.js), and if it's still on 0 health after that it's
+  // gone for good
   die() {
-    if (this.type.onDeath) this.type.onDeath(this);
+    if (this.type.onDeath) ENEMY_DEATHS[this.type.onDeath](this);
     if (this.health <= 0) this.dead = true;
   }
 }

@@ -1,28 +1,34 @@
-// the enemy catalogue: every kind of enemy and how it behaves. works like objects.js. you place them
-// in the editor's Enemies tab. each one appears at its spawn the first time you visit a map, and then
+// the enemy catalogue: every kind of enemy and how it behaves. each kind is a file in
+// assets/squimble-quest/enemies/, like enemies/grunt.json, listed in enemies/index.json
+// (datafiles.js), and the behaviour they can pick from (ais, what happens when they die) is code in
+// here. works like objects.js. you place them in the editor's Enemies tab. each one appears at its spawn the first time you visit a map, and then
 // the map remembers it as you left it (defeated ones stay gone, hurt ones stay hurt) until you reload
 // or open the editor (loadMap(), sketch.js).
 //
 // ============================== how to make an enemy ==============================
 //
-// add a defineEnemy() at the bottom, with only the settings that are different from ENEMY_DEFAULTS:
-//   defineEnemy('slime', { width: 30, height: 24, maxHealth: 40, speed: 70, colour: '#6cc56b' });
+// make a file named after it in enemies/ (copying one that's close is easiest), with only the
+// settings that are different from ENEMY_DEFAULTS, and add its name to enemies/index.json.
+// enemies/slime.json could be:
+//   { "width": 30, "height": 24, "maxHealth": 40, "speed": 70, "colour": "#6cc56b", "ai": "smart" }
 //
 //   width, height          body size in px (this is what attacks hit)
 //   feetWidth, feetHeight  the bit at the bottom that bumps into walls
 //   speed                  walking speed in px/s
 //   maxHealth              how much damage it takes to beat it
-//   weapon                 a weapon name from items.json (weapons.js), or null if it doesn't attack
+//   weapon                 its weapon's settings, like the grunt's claws (weapons.js), or null if it
+//                          doesn't attack
 //   colour, outline        placeholder colours
 //   hurtColour             the flash when it gets hit
 //   healthBarColour        the bar over its head, shown once it's hurt
 //   image                  a picture to use instead of the placeholder
-//   ai                     how it behaves (see below), null just stands still. each spawn can pick
-//                          a different one from ENEMY_AIS (right click it in the editor)
+//   ai                     how it behaves: an ENEMY_AIS name, like "smart" (see below). null just
+//                          stands still. each spawn can pick a different one (right click it in
+//                          the editor)
 //   sightRange             how many px away it can see you from, if there's no wall in the way
 //                          (sensePlayer() below)
 //   attackRange            how close it has to be to swing
-//   sound                  a sound's name (SOUNDS, sounds.json) it loops wherever it goes while you're
+//   sound                  a sound's name (SOUNDS, sounds/) it loops wherever it goes while you're
 //                          in range, like a buzzing wasp or a rumbling machine. it gets the doppler
 //                          effect as it moves (sound.js). each spawn can pick its own (right click it
 //                          in the editor). null is silent
@@ -32,8 +38,8 @@
 //                          one, like it's pressing E. null means it can't open doors, so it gets
 //                          left behind at E warps but still follows through step ones
 //                          (canFollow() in warps.js)
-//   onDeath                (enemy) => { ... } that runs at 0 health. if it's still on 0 afterwards it's
-//                          gone for good, so this can drop loot, or bring it back to life like the dummy
+//   onDeath                what happens at 0 health: an ENEMY_DEATHS name, like "refill" for the
+//                          dummy. if it's still on 0 afterwards it's gone for good. null just dies
 //
 // ---------- ai ----------
 //
@@ -42,8 +48,8 @@
 //   ai: (enemy, world, dt) => ({ move: { x, y }, aim: { x, y }, attack: true or false }),
 // world is { map, players, enemies, npcs, characters }. use sensePlayer() below to find who to go
 // for, so every ai notices you and loses you the same way. return STAND_STILL to do nothing.
-// chasePlayer below is a full example (ai: chasePlayer). write new ones next to it, and add them to
-// ENEMY_AIS so the editor can pick them. walls, bumping into things, damage, tiles and swings already
+// chasePlayer below is a full example. write new ones next to it, and add them to ENEMY_AIS with a
+// name, which is what enemy files and the editor pick them by. walls, bumping into things, damage, tiles and swings already
 // work, the ai just has to decide what to do
 //
 // ====================================================================================
@@ -71,11 +77,26 @@ const ENEMY_DEFAULTS = {
   onDeath: null,
 };
 
+// filled in from the enemy files (bottom of this file)
 const ENEMY_TYPES = {};
 
-// defineType() is in utils.js
+// defineType() is in utils.js. an ai or onDeath that doesn't exist just leaves it out, with a warning
 function defineEnemy(name, settings) {
   defineType(ENEMY_TYPES, ENEMY_DEFAULTS, 'enemy', name, settings);
+  const type = ENEMY_TYPES[name];
+  type.ai = checkAi(type.ai, `the enemy "${name}"`);
+  if (type.onDeath !== null && !ENEMY_DEATHS[type.onDeath]) {
+    console.warn(`The enemy "${name}" has an onDeath "${type.onDeath}" that isn't in ENEMY_DEATHS (enemies.js), so it just dies`);
+    type.onDeath = null;
+  }
+  type.weapon = makeWeapon(type.weapon, `the enemy "${name}"`); // weapons.js
+}
+
+// an ai name from a file if it's in ENEMY_AIS, otherwise null (with a warning). npcs use it too
+function checkAi(ai, owner) {
+  if (ai === null || ai in ENEMY_AIS) return ai;
+  console.warn(`${owner} has an ai "${ai}" that isn't in ENEMY_AIS (enemies.js), so it stands still`);
+  return null;
 }
 
 // ---------- senses ----------
@@ -163,18 +184,25 @@ function chasePlayer(enemy, world, dt) {
   };
 }
 
-// the ais a spawn can pick in the editor (right click an enemy). it gets saved as the spawn's "ai" in
-// the map file and read back by addSpawn() in tilemap.js and Enemy's constructor. the pathfinders
+// the ais an enemy file or a spawn can pick by name. a spawn's (right click an enemy in the editor) gets
+// saved as its "ai" in the map file and read back by addSpawn() in tilemap.js and Enemy's constructor. the pathfinders
 // (pathfinding.js) go round walls, weigh up getting hurt against taking longer, and work round each
 // other. the number is how cautious it is: how many seconds of detour it thinks 1 hp is worth.
-// map files store these names, so renaming one breaks the spawns using it (they go back to their
-// kind's ai, with a console warning). aiName() finds the name for an ai function
+// map and enemy files store these names, so renaming one breaks the ones using it (they go back to
+// their kind's ai or stand still, with a console warning). aiName() finds the name for an ai function
 const ENEMY_AIS = {
   smart: pathfinder(0.15),   // like a player would: avoids harm unless the way round is much longer
   careful: pathfinder(0.5),  // goes a long way round rather than get hurt
   reckless: pathfinder(0.03), // takes damage whenever it's quicker (but won't walk to its death)
   direct: chasePlayer,       // the first one: straight at you, gets stuck behind walls
   still: null,
+};
+
+// what can happen at 0 health, by name (an enemy's onDeath). each one gets the enemy, and if it's
+// still on 0 health afterwards it's gone for good. dropping loot or splitting in two would go here
+const ENEMY_DEATHS = {
+  // fills straight back up, for something to practise on
+  refill: (enemy) => { enemy.health = enemy.maxHealth; },
 };
 
 // the ENEMY_AIS name of an ai function, for the editor and dev mode
@@ -188,27 +216,13 @@ function towards(dx, dy) {
   return { x: Math.abs(dx) > 4 ? Math.sign(dx) : 0, y: Math.abs(dy) > 4 ? Math.sign(dy) : 0 };
 }
 
-// ---------- the enemies ----------
+// ---------- the enemy files ----------
 
-// the basic one: chases you round walls and swipes at you. slower than you and weak on its own. dies
-// in 3 sword hits or 2 axe hits
-defineEnemy('grunt', {
-  width: 28,
-  height: 50,
-  speed: 95,
-  maxHealth: 60,
-  weapon: 'claws',
-  colour: '#d64545',
-  outline: '#6e1f1f',
-  ai: ENEMY_AIS.smart,
-});
-
-// something to practise on: doesn't move or fight back, and fills back up at 0 health
-defineEnemy('dummy', {
-  width: 28,
-  height: 48,
-  maxHealth: 100,
-  colour: '#c9a36b',
-  outline: '#6b4f2a',
-  onDeath: (enemy) => { enemy.health = enemy.maxHealth; },
+// every kind of enemy loads once at the start, before the maps, since maps check their enemies exist
+// (datafiles.js). the grunt (the basic one, it chases you round walls) and the dummy (something to
+// practise on, it fills back up at 0 health) are in there
+DataFiles.register('enemy', {
+  define: defineEnemy,
+  // colours and pictures (utils.js)
+  loaded: () => prepareArt(ENEMY_TYPES, 'enemy'),
 });

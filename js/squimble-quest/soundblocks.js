@@ -19,7 +19,7 @@
 // each block on a map (map.sounds, saved in the map file):
 //   col, row  its tile. one per tile, and it can share the tile with anything else
 //   activate  how it plays, a SOUND_BLOCK_ACTIVATE key
-//   sound     the name of its sound in SOUNDS. a name that doesn't exist (renamed in sounds.json) is
+//   sound     the name of its sound in SOUNDS. a name that doesn't exist (its file was renamed) is
 //             kept, but it's silent and its marker shows red
 //   move      how it moves, a SOUND_BLOCK_MOVES key, left out when it's still
 //   distance  how far it goes in tiles: the length of its path, or a circle's radius
@@ -48,8 +48,8 @@
 //     in and out of step. for a big area of sound, one block with a bigger range is better
 //   - a loop block's sound has to be loopable to sound good. one with a long fade out will pulse,
 //     which is right for some things but not a steady hum (see "loops" atop sound.js)
-//   - they're design, so Export saves them in the map file, but sounds.json has to be exported too
-//     or a new sound they use won't be there after a reload (the block goes red and silent)
+//   - they're design, so Export saves them in the map file, but a new sound has to be exported too
+//     (and added to index.json) or it won't be there after a reload (the block goes red and silent)
 //   - a "past" block jumps back to the start of its path when it gets to the end, which you hear as
 //     the sound jumping, so give it a distance past where it can be heard (its Heard from) to hide it
 //   - a moving one-shot (step or E) plays from wherever it is on its path at the time

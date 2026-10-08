@@ -3,12 +3,11 @@
 //
 // ============================== how to make a weapon ==============================
 //
-// weapons live in assets/squimble-quest/items/items.json along with the items (loadItemFile() in
-// items.js). add a line to "weapons", then either add an item for it in the same file or give it to
-// an enemy (weapon: 'axe'):
-//   { "name": "axe", "damage": 35, "reach": 64, "arc": 150, "swingTime": 0.25, "cooldown": 0.6 }
-// an item's weapon can be changed in the map editor (Edit, then the Weapon tab), and Export downloads
-// items.json.
+// a weapon is part of whatever has it, so it goes in that thing's file as "weapon": an item's (like
+// items/axe.json) or an enemy's (like the grunt's claws in enemies/grunt.json):
+//   "weapon": { "damage": 35, "reach": 68, "arc": 160, "swingTime": 0.25, "cooldown": 0.65 }
+// an item's weapon can be changed in the map editor (Edit, then the Weapon tab), and the inspector's
+// Export downloads the item's file.
 //
 // settings (any that are missing come from WEAPON_DEFAULTS):
 //   damage      damage to each thing it hits
@@ -32,12 +31,16 @@ const WEAPON_DEFAULTS = {
   colour: '#ffffff',
 };
 
-// filled in from items.json (loadItemFile() in items.js)
-const WEAPONS = {};
-
-// defineType() is in utils.js
-function defineWeapon(name, settings) {
-  defineType(WEAPONS, WEAPON_DEFAULTS, 'weapon', name, settings);
+// a weapon's settings from a file with the defaults filled in, or null for no weapon. owner is who it
+// belongs to, for the warnings (withDefaults() in utils.js)
+function makeWeapon(settings, owner) {
+  if (settings === null || settings === undefined) return null;
+  if (typeof settings !== 'object' || Array.isArray(settings)) {
+    console.warn(`The weapon on ${owner} should be { } with its settings in (see weapons.js), so it can't attack`);
+    return null;
+  }
+  const { name, ...weapon } = withDefaults(WEAPON_DEFAULTS, 'weapon', owner, settings);
+  return weapon;
 }
 
 // ---------- a melee swing ----------
@@ -45,7 +48,7 @@ function defineWeapon(name, settings) {
 // one swing. it hits anything in an arc centred on where the owner was aiming when they swung, and
 // each thing only once. Character.attack() (character.js) makes it, updates it and draws it
 class MeleeSwing {
-  // owner: whoever's swinging. weapon: its WEAPONS settings. angle: in radians. backhand: swing the
+  // owner: whoever's swinging. weapon: its settings (makeWeapon()). angle: in radians. backhand: swing the
   // other way, so swings go back and forth
   constructor(owner, weapon, angle, backhand) {
     this.owner = owner;

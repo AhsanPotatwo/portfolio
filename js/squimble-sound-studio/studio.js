@@ -1,6 +1,6 @@
 // squimble sound studio: the sound editor from squimble quest as a web page. the sound all comes from
 // the game's own code, loaded unchanged (squimble-sound-studio.html):
-//   sound.js        the synthesiser, playing sounds, the library (SOUNDS, VOICES) and sounds.json
+//   sound.js        the synthesiser, playing sounds, the library (SOUNDS, VOICES) and their files
 //   soundeditor.js  the make one buttons (SOUND_GENERATORS) and SoundEditor. Studio below is a
 //                   SoundEditor with its p5 screen swapped for this page, so making, knobs, Random,
 //                   Mutate, Undo, choosing a file and exporting all run the game's code
@@ -9,7 +9,7 @@
 // so a change to the synthesiser or a new make one button in the game shows up here by itself.
 //
 // what this file adds is the page: building the controls, keeping them showing the draft, and the
-// web only parts (a library kept in this browser, WAV downloads, the line for sounds.json).
+// web only parts (a library kept in this browser, WAV downloads, a sound's file for the game).
 //
 // like the game's editor, Studio.draft is the sound being changed. the sliders' onChange write into
 // it, the reused SoundEditor methods change it, and frame() runs every animation frame doing what
@@ -107,8 +107,8 @@
       if (problem) return showMessage(problem);
       const name = cleanMapName(nameField.value);
       setSound(name, this.draft);
-      const { name: _, ...data } = typeToData({ ...this.draft, name }, SOUND_DEFAULTS);
-      saved[name] = data;
+      // kind stays in, since this browser keeps sounds and voices in one list
+      saved[name] = typeToData(this.draft, SOUND_DEFAULTS);
       keepSaved();
       this.original = name;
       this.openedAs = JSON.stringify(this.draft);
@@ -436,8 +436,8 @@
     const name = cleanMapName(typed);
     $('#ssSavesAs').textContent = name && name !== typed ? `saves as ${name}` : '';
 
-    // a changed sound still under the name it opened with (coin, say) would clash with that one in
-    // sounds.json, so the line gives it a new name until it's renamed or saved
+    // a changed sound still under the name it opened with (coin, say) would clash with the game's file
+    // for that one, so the file gets a new name until it's renamed or saved
     const named = name && !(name === Studio.original && Studio.unsaved());
     renderExport(named ? name : d.kind === 'voice' ? 'my-voice' : 'my-sound', named);
     showTip();
@@ -564,34 +564,36 @@
     showMessage(`Downloaded ${name}.wav`);
   });
 
-  // the sound's line for sounds.json, exactly as the game writes it (soundsToText() in sound.js)
+  // the sound's file for the game, exactly as the game writes it (soundToData() in sound.js,
+  // datafiles.js). it's named after the sound and goes in sounds/ or voices/
   let codeLine = '';
+  let codeName = '';
   function renderExport(name, named) {
     const d = Studio.draft;
-    codeLine = jsonLine(typeToData({ ...d, name }, SOUND_DEFAULTS)).trim();
+    codeLine = DataFiles.text(soundToData(d));
+    codeName = name;
     if ($('#ssCode').textContent !== codeLine) $('#ssCode').textContent = codeLine;
     const use = d.kind === 'voice'
-      ? `then give an npc voice: '${name}' in npcs.js, or pick it for one in the map editor`
+      ? `then give an npc "voice": "${name}" in its file, or pick it for one in the map editor`
       : `then play it from code with playSound('${name}'), or put it on a sound block in the map editor`;
     const file = d.wave === 'file' && d.file ? ` Put ${d.file} in assets/squimble-quest/sounds/files/ too.` : '';
     const rename = named ? '' : `It's called ${name} for now, type a new name in the Name box to change it. `;
-    $('#ssCodeNote').textContent = `${rename}Paste it into the sounds list in assets/squimble-quest/sounds/sounds.json, ${use}.${file}`;
+    // one the game already has just needs its file swapping, a new one needs adding to the list too
+    const folder = DATA_KINDS[d.kind];
+    const where = DataFiles.listed[d.kind]?.has(name) ? `replace the one in assets/squimble-quest/${folder}` : `put it in assets/squimble-quest/${folder} and add "${name}" to the index.json there`;
+    $('#ssCodeNote').textContent = `${rename}Download it as ${name}.json, ${where}, ${use}.${file}`;
     $('#ssWavNote').textContent = wavPlan().note;
   }
 
   $('#ssCopy').addEventListener('click', () => {
-    navigator.clipboard.writeText(codeLine)
-      .then(() => showMessage('Copied the line for sounds.json'))
-      .catch(() => {
-        getSelection().selectAllChildren($('#ssCode'));
-        showMessage('Couldn\'t copy it, it\'s selected so you can copy it yourself');
-      });
+    downloadTextFile(`${codeName}.json`, codeLine); // utils.js
+    showMessage(`Downloaded ${codeName}.json`);
   });
   $('#ssExportAll').addEventListener('click', () => Studio.exportSounds());
 
   // ---------- the library ----------
 
-  // your sounds, by name, kept in this browser. the game's own, from its sounds.json, are kept too
+  // your sounds, by name, kept in this browser. the game's own, from its sound files, are kept too
   // so Reset can put a changed one back
   const STORE = 'squimble-sound-studio';
   let saved = {};
@@ -605,7 +607,7 @@
     try {
       localStorage.setItem(STORE, JSON.stringify({ sounds: saved }));
     } catch {
-      showMessage('This browser won\'t keep your sounds after the page closes, so download sounds.json to keep them');
+      showMessage('This browser won\'t keep your sounds after the page closes, so download their files to keep them');
     }
   }
 
@@ -733,7 +735,7 @@
   // started changing things)
   Studio.open(null, 'sound');
   requestAnimationFrame(frame);
-  loadSoundFile().then(() => {
+  Promise.all([DataFiles.load('sound'), DataFiles.load('voice')]).then(() => { // datafiles.js
     gameSounds = Object.fromEntries([...Object.values(SOUNDS), ...Object.values(VOICES)].map((sound) => [sound.name, { ...sound }]));
     for (const [name, data] of Object.entries(saved)) setSound(name, data);
     if (!Studio.unsaved() && findSound('coin')) Studio.open('coin');

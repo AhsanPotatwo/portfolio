@@ -1,5 +1,5 @@
 // a friendly character. the stuff it shares with everyone else is in Character (character.js), and
-// its kind (name, dialogue, ai...) is in npcs.js. this file just skips the health bar and adds the
+// its kind (name, dialogue, ai...) is its file in npcs/ (npcs.js). this file just skips the health bar and adds the
 // "press E" prompt (drawKeyPrompt(), which warps use too). Character's targets() is empty, so an npc
 // attacking wouldn't hurt anyone
 class Npc extends Character {
@@ -10,6 +10,8 @@ class Npc extends Character {
     this.type = NPC_TYPES[type];
     // what it talks with in dialogue.js, or null for silent
     this.voice = voice ?? this.type.voice;
+    // the ai function it uses (ENEMY_AIS in enemies.js), or null. Character's think() runs it
+    this.ai = ENEMY_AIS[this.type.ai] ?? null;
     this.placeFeetOnTile(col, row);
     // whether the player is close enough to talk (sketch.js sets this every frame)
     this.canTalk = false;

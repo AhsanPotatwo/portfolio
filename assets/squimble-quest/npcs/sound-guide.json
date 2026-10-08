@@ -1,0 +1,16 @@
+{
+  "label": "Sound Guide",
+  "dialogue": [
+    "Welcome to the sound test! Everything here makes a noise. Walk around and listen.",
+    "Up top, a car races along the road. Stand by it: higher as it comes, lower as it goes. That's the doppler effect.",
+    "On the left road an ambulance drives up and down. Hear its siren bend as it passes you?",
+    "To the right, a tone goes round the roundabout. Stand in the middle and it never changes, since it never gets closer. Stand outside and it wobbles.",
+    "Down below, three tones go up and down: no doppler, normal, and three times as much. Stand on each wooden spot.",
+    "Run along the path to my left, past the hum. You moving bends it too, just a little.",
+    "The bees by the flowers buzz higher as they come round. And the walled room has a grunt with a motor. It whines higher as it chases you!",
+    "The campfire and the rain are at the top left. Open the editor (B) and right click anything to see how it works."
+  ],
+  "voice": "villager-voice",
+  "colour": "#7bc8d8",
+  "outline": "#2f5f6b"
+}

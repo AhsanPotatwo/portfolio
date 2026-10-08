@@ -156,18 +156,18 @@
         <div class="ss-export-row ss-export-code">
           <div>
             <h3>For Squimble Quest</h3>
-            <p id="ssCodeNote">One line for the game's sounds file.</p>
+            <p id="ssCodeNote">The sound's own file for the game.</p>
           </div>
-          <button type="button" class="ss-key ss-key-line" id="ssCopy">Copy</button>
+          <button type="button" class="ss-key ss-key-line" id="ssCopy">Download</button>
           <pre class="ss-code"><code id="ssCode"></code></pre>
         </div>
 
         <div class="ss-export-row">
           <div>
             <h3>The whole library</h3>
-            <p>The game's sounds file with everything you've saved in it, plus any audio files you've used. It replaces <code>assets/squimble-quest/sounds/sounds.json</code>.</p>
+            <p>A file for every sound and voice you've saved or changed, plus any audio files you've used. They go in <code>assets/squimble-quest/sounds/</code> and <code>voices/</code>, and the message says which names to add to each <code>index.json</code>.</p>
           </div>
-          <button type="button" class="ss-key ss-key-line" id="ssExportAll">Download sounds.json</button>
+          <button type="button" class="ss-key ss-key-line" id="ssExportAll">Download changed files</button>
         </div>
       </section>
     </div>
@@ -194,6 +194,7 @@
     const constrain = (value, low, high) => Math.min(high, Math.max(low, value));
   </script>
   <script src="js/squimble-quest/utils.js"></script>
+  <script src="js/squimble-quest/datafiles.js"></script>
   <script src="js/squimble-quest/sound.js"></script>
   <!-- for Slider, whose curves and rounding the studio's sliders use -->
   <script src="js/squimble-quest/formbox.js"></script>

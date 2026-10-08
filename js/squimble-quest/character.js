@@ -114,7 +114,7 @@ class Character {
   // the controls from its ai this frame (enemies.js / npcs.js), or STAND_STILL if it doesn't have
   // one. not used for the player
   think(world, dt) {
-    return this.settings.ai ? this.settings.ai(this, world, dt) : STAND_STILL;
+    return this.ai ? this.ai(this, world, dt) : STAND_STILL;
   }
 
   // ---------- moving ----------
@@ -252,10 +252,10 @@ class Character {
     this.facing = directionFromAngle(this.aimAngle);
   }
 
-  // the weapon it's using right now (WEAPONS settings, weapons.js), or null. an enemy's is fixed in
-  // its settings, and the player replaces this to use whatever item it's holding (player.js)
+  // the weapon it's using right now (its settings, makeWeapon() in weapons.js), or null. an enemy's is
+  // in its file, and the player replaces this to use whatever item it's holding (player.js)
   currentWeapon() {
-    return this.settings.weapon ? WEAPONS[this.settings.weapon] : null;
+    return this.settings.weapon ?? null;
   }
 
   // swing towards where it's aiming, if it has a weapon and it's ready

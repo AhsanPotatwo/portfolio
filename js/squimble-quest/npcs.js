@@ -1,14 +1,17 @@
-// the npc catalogue: friendly characters and what they say. works like enemies.js. you place them in
-// the editor's NPCs tab, and press E to talk to them (dialogue.js).
+// the npc catalogue: friendly characters and what they say. each kind is a file in
+// assets/squimble-quest/npcs/, like npcs/villager.json, listed in npcs/index.json (datafiles.js).
+// works like enemies.js. you place them in the editor's NPCs tab, and press E to talk to them
+// (dialogue.js).
 //
 // ============================== how to make an npc ==============================
 //
-// add a defineNpc() at the bottom, with only the settings that are different from NPC_DEFAULTS:
-//   defineNpc('baker', { label: 'Baker', colour: '#e8c07d', dialogue: ['Fresh bread!', 'Want some?'] });
+// make a file named after it in npcs/ (copying one that's close is easiest), with only the settings
+// that are different from NPC_DEFAULTS, and add its name to npcs/index.json. npcs/baker.json could be:
+//   { "label": "Baker", "dialogue": ["Fresh bread!", "Want some?"], "colour": "#e8c07d" }
 //
 //   label                  their name in the text box
 //   dialogue               lines shown one after another, E goes to the next one
-//   voice                  the voice (VOICES in sound.js, from sounds.json) they say their lines
+//   voice                  the voice (VOICES in sound.js, from voices/) they say their lines
 //                          with, babbling a syllable at a time as the words type out. make one in
 //                          the editor's Voices tab. each one on a map can have its own instead: right
 //                          click it in the editor, or pick a voice and click it. null is silent
@@ -21,8 +24,8 @@
 //   image                  a picture to use instead of the placeholder
 //   portrait               the picture in the text box, like 'assets/squimble-quest/npcs/baker.png'.
 //                          without one they get a placeholder face
-//   ai                     same as an enemy's (enemies.js), null just stands still. something like
-//                          wandering around
+//   ai                     an ENEMY_AIS name, same as an enemy's (enemies.js). null just stands
+//                          still. something like wandering around would be a new one there
 //
 // npcs are Characters (character.js), so walking, walls and facing already work. the player's attacks
 // only hit enemies. later on: choices, quests or shops, which would be new settings here that
@@ -52,35 +55,20 @@ const NPC_DEFAULTS = {
   ai: null,
 };
 
+// filled in from the npc files (bottom of this file)
 const NPC_TYPES = {};
 
-// defineType() is in utils.js
+// defineType() and checkAi() are in utils.js and enemies.js
 function defineNpc(name, settings) {
   defineType(NPC_TYPES, NPC_DEFAULTS, 'npc', name, settings);
+  NPC_TYPES[name].ai = checkAi(NPC_TYPES[name].ai, `the npc "${name}"`);
 }
 
-// ---------- the npcs ----------
+// ---------- the npc files ----------
 
-defineNpc('villager', {
-  label: 'Villager',
-  dialogue: ["It seems like you're on some sort of... squimble quest"],
-  voice: 'villager-voice',
-});
-
-// explains the sound test map (doppler-test.json, guide in the maps README)
-defineNpc('sound-guide', {
-  label: 'Sound Guide',
-  colour: '#7bc8d8',
-  outline: '#2f5f6b',
-  voice: 'villager-voice',
-  dialogue: [
-    'Welcome to the sound test! Everything here makes a noise. Walk around and listen.',
-    'Up top, a car races along the road. Stand by it: higher as it comes, lower as it goes. That\'s the doppler effect.',
-    'On the left road an ambulance drives up and down. Hear its siren bend as it passes you?',
-    'To the right, a tone goes round the roundabout. Stand in the middle and it never changes, since it never gets closer. Stand outside and it wobbles.',
-    'Down below, three tones go up and down: no doppler, normal, and three times as much. Stand on each wooden spot.',
-    'Run along the path to my left, past the hum. You moving bends it too, just a little.',
-    'The bees by the flowers buzz higher as they come round. And the walled room has a grunt with a motor. It whines higher as it chases you!',
-    'The campfire and the rain are at the top left. Open the editor (B) and right click anything to see how it works.',
-  ],
+// every kind of npc loads once at the start, before the maps (datafiles.js)
+DataFiles.register('npc', {
+  define: defineNpc,
+  // colours, pictures and portraits (utils.js)
+  loaded: () => prepareArt(NPC_TYPES, 'npc'),
 });

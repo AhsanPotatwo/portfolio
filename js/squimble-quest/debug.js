@@ -453,13 +453,6 @@ function fpsColour(fps) {
   return fps >= 55 ? '#7bd88f' : fps >= 30 ? '#ffd23f' : '#ff6b6b';
 }
 
-// `words` cut short with … so it fits in maxWidth px, using whatever text settings are on now
-function fitText(words, maxWidth) {
-  if (textWidth(words) <= maxWidth) return words;
-  while (words.length > 0 && textWidth(`${words}…`) > maxWidth) words = words.slice(0, -1);
-  return `${words}…`;
-}
-
 // turns { x: 12.345, y: -6.7 } into "12, -7"
 function formatPoint(p) {
   return `${Math.round(p.x)}, ${Math.round(p.y)}`;

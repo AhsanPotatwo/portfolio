@@ -14,20 +14,20 @@
 //     back when you stop
 //   - picking something in the palette (hover over them for names) sets what Paint uses
 //   - tiles: left click or drag to paint. New, right click or Edit opens the tile editor
-//     (tileeditor.js), which has its own Export that saves tiles.json
+//     (tileeditor.js). Export downloads the files of new or changed tiles (datafiles.js)
 //   - objects: click to place one with its top left on the tile. enemies and npcs: click to place one
 //     standing on the tile
 //   - weapons and items (one tab for each category in items.js): click to drop one on the ground (Export
 //     doesn't save these). Give puts one in your inventory, right click or Edit changes its name,
-//     rarity, colour and weapon numbers, and the inspector's Export saves items.json (items.js)
+//     rarity, colour and weapon numbers, and the inspector's Export downloads changed item files
 //   - sounds: click to place a sound block (soundblocks.js) that plays that sound, and right click it
 //     on the map to pick its sound and how it plays. its green circle shows how far away it can be
 //     heard. New, Edit or right click in the palette opens the sound editor (soundeditor.js), and the
-//     inspector's Export saves sounds.json (sound.js)
+//     inspector's Export downloads the files of new or changed sounds (datafiles.js)
 //   - voices (the voices npcs talk with, VOICES in sound.js): click an npc on the map to give it that
 //     voice, or right click an npc to pick one (or make a new one). New, Edit, right click in the
-//     palette and Export work like sounds', since voices are made in the same editor and saved in the
-//     same sounds.json
+//     palette and Export work like sounds', since voices are made in the same editor and saved the
+//     same way (in voices/)
 //   - Erase, then click or drag: if you start on an object, enemy, npc, item, warp or sound block it
 //     removes those, otherwise it empties tiles (like off the map, so they aren't drawn and can't be
 //     walked on)
@@ -125,7 +125,7 @@ const TRIGGER_TYPES = {
 // the palette tabs, left to right. kind is what the editor calls the things on that tab, types is
 // their catalogue, and place(map, name, col, row) runs when you click the map with one picked.
 // tiles have no place() because they paint while the mouse is held instead (Editor.update()).
-// so a new placeable kind is just a new line here. TILE_TYPES only fills in once tiles.json loads
+// so a new placeable kind is just a new line here. TILE_TYPES only fills in once the tile files load
 // (tiles.js), which is why the palette reads the catalogues every time it draws
 const EDITOR_TABS = [
   { kind: 'tile', label: 'Tiles', types: TILE_TYPES },
@@ -285,11 +285,8 @@ const Editor = {
     ];
     // it's in the same spot as New, so it's never shown on the Tiles tab (update())
     this.giveButton = inspectorButton(1, 'Give', () => this.giveItem(this.selected.name));
-    // every weapon and item, including changes, as items.json (items.js)
-    this.exportItemsButton = inspectorButton(2, 'Export', () => {
-      downloadTextFile('items.json', itemsToText());
-      showMessage('Exported! Put items.json in assets/squimble-quest/items/');
-    });
+    // the file of every item that's new or changed, weapon and all (datafiles.js)
+    this.exportItemsButton = inspectorButton(2, 'Export', () => DataFiles.export(['item']));
 
     UI.showGroup('editor', false);
   },
@@ -567,7 +564,7 @@ const Editor = {
   // otherwise they're gone when you reload
   editItem(name) {
     const type = ITEM_TYPES[name];
-    const weapon = WEAPONS[type.weapon];
+    const weapon = type.weapon;
     const itemRows = [
       { label: 'Name', field: new TextField({ w: 180, value: type.label }) },
       {
@@ -724,7 +721,7 @@ const Editor = {
   // carries around, and whether it follows you through warps ('' is its kind's followsThroughWarps,
   // canFollow() in warps.js). Export saves them
   editEnemy(spawn) {
-    const own = aiName(ENEMY_TYPES[spawn.type].ai);
+    const own = ENEMY_TYPES[spawn.type].ai ?? 'still';
     const follows = (yes) => (yes ? 'follows you through' : 'stays behind');
     FormBox.open({
       title: `Enemy: ${spawn.type}`,
@@ -1137,8 +1134,8 @@ function inspectorInfo(selected) {
       rows: [
         ['Health', type.maxHealth],
         ['Speed', type.speed],
-        kind === 'npc' ? ['Name', type.label] : ['Weapon', type.weapon ?? 'none'],
-        kind === 'enemy' ? ['AI', aiName(type.ai)] : ['Voice', type.voice ?? 'silent'],
+        kind === 'npc' ? ['Name', type.label] : ['Weapon', type.weapon ? `${type.weapon.damage} damage` : 'none'],
+        kind === 'enemy' ? ['AI', type.ai ?? 'still'] : ['Voice', type.voice ?? 'silent'],
       ],
       note: `Right click one on the map to pick its ${kind === 'enemy' ? 'AI' : 'voice'} and sound`,
     };
@@ -1146,7 +1143,7 @@ function inspectorInfo(selected) {
   if (isItemKind(kind)) {
     // like "Weapon · Rare"
     const category = `${type.category[0].toUpperCase()}${type.category.slice(1)} · ${RARITIES[type.rarity].label}`;
-    const weapon = WEAPONS[type.weapon];
+    const weapon = type.weapon;
     if (!weapon) return { title: name, kind: category, rows: [], note: 'Click the map to place one. Give puts one in your inventory' };
     return {
       title: name,
