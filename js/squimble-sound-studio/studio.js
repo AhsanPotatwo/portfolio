@@ -450,10 +450,11 @@
   const readout = $('#ssReadout');
   const colours = getComputedStyle(document.body);
   const colour = (name) => colours.getPropertyValue(name).trim();
+  // the scope is an lcd, so it draws in the screen's inks. SIGNAL is for the library's pictures
   const SIGNAL = colour('--ss-signal');
-  const LIT = colour('--ss-lit');
-  const LINE = 'rgba(140,170,255,.16)';
-  const MUTED = colour('--ss-muted');
+  const INK = colour('--ss-lcd-ink');
+  const FILL = colour('--ss-lcd-fill');
+  const LINE = colour('--ss-lcd-line');
 
   // SoundVisualiser.draw() for a canvas: a close-up of a few waves from just after it gets loud,
   // and the whole sound with a line moving along it while it plays (or it talking, while it's
@@ -481,7 +482,7 @@
     for (const [top, label] of [[0, 'wave'], [wholeY, say === null ? 'whole sound' : 'talking']]) {
       ctx.fillStyle = LINE;
       ctx.fillRect(0, top + panel / 2, w, 1);
-      ctx.fillStyle = MUTED;
+      ctx.fillStyle = FILL;
       ctx.fillText(label, 4, top + 12);
     }
 
@@ -491,7 +492,7 @@
     const spanSeconds = SOUND_WAVES[sound.wave].shape || sound.wave === 'metal' ? closeUpCycles(sound.pitch) / sound.pitch : 0.01;
     const span = Math.max(8, Math.round(spanSeconds * SOUND_RATE));
     const middle = panel / 2 + 4;
-    ctx.strokeStyle = SIGNAL;
+    ctx.strokeStyle = INK;
     ctx.lineWidth = 1.6;
     ctx.lineJoin = 'round';
     ctx.beginPath();
@@ -503,7 +504,7 @@
     const overview = soundOverview(sound, columns, say);
     const centre = wholeY + panel / 2 + 4;
     const height = panel - 18;
-    ctx.fillStyle = 'rgba(98,214,255,.65)';
+    ctx.fillStyle = FILL;
     for (let c = 0; c < columns; c++) {
       const top = centre - overview[c * 2 + 1] * (height / 2);
       ctx.fillRect(c, top, 1, Math.max(1, (overview[c * 2 + 1] - overview[c * 2]) * (height / 2)));
@@ -511,7 +512,7 @@
     if (preview) {
       const played = (millis() - preview.started) / 1000;
       if (preview.loop || played < preview.seconds) {
-        ctx.fillStyle = LIT;
+        ctx.fillStyle = INK;
         ctx.fillRect(((played % preview.seconds) / preview.seconds) * w, wholeY, 1.5, panel);
       }
     }
@@ -672,7 +673,7 @@
     canvas.height = 26 * ratio;
     const ctx = canvas.getContext('2d');
     ctx.scale(ratio, ratio);
-    ctx.fillStyle = 'rgba(98,214,255,.7)';
+    ctx.fillStyle = SIGNAL;
     const overview = soundOverview(sound, 80);
     for (let c = 0; c < 80; c++) {
       const top = 13 - overview[c * 2 + 1] * 12;
