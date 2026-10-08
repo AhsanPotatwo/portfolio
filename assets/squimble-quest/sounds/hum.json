@@ -1,0 +1,11 @@
+{
+  "wave": "organ",
+  "pitch": 110,
+  "vibrato": 0.2,
+  "vibratoSpeed": 4,
+  "attack": 0,
+  "sustain": 1500,
+  "decay": 0,
+  "volume": 70,
+  "range": 5
+}

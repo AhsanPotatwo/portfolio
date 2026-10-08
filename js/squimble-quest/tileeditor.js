@@ -1,5 +1,5 @@
 // the tile editor: for making and changing tiles inside the map editor (editor.js), so you never
-// have to edit tiles.json (tiles.js) by hand.
+// have to edit the tile files (tiles.js) by hand.
 //   - New (in the inspector on the Tiles tab) opens a box for a new tile. right clicking a tile in
 //     the palette (or Edit) opens it for one that already exists
 //   - the tabs are Look, then TILE_BEHAVIOURS' tabs (Behaviours, Effects...), then Dual grid
@@ -8,15 +8,16 @@
 //   - a tile that already exists changes on the map while you edit it (drag the box out of the way to
 //     see). Save keeps the changes, and Cancel, Escape or the x puts it back how it was
 //   - Save changes the game straight away (you can paint with it and walk on it)
-//   - Export (next to New) downloads tiles.json for assets/squimble-quest/tiles/, plus any pictures
+//   - Export (next to New) downloads the file of every new or changed tile for
+//     assets/squimble-quest/tiles/ (DataFiles.export() in datafiles.js), plus any pictures
 //     chosen since the page loaded. the message says which folder they go in
 // there's no renaming or deleting, because maps store tile names, so either one would lose the tile
-// from every map. do those by hand in tiles.json
+// from every map. do those by hand in the tile files
 
 // every setting apart from the look ones (TILE_DEFAULTS in tiles.js), each as a row in the editor on
 // its tab. the tabs come after Look in the order they're first mentioned, and a tab name that's new
 // makes a new tab ("adding a new tile setting" at the top of tiles.js).
-//   key    its name in TILE_DEFAULTS and tiles.json
+//   key    its name in TILE_DEFAULTS and the tile files
 //   tab    which tab it goes on
 //   label  the words before the field
 //   after  optional words after it
@@ -73,7 +74,7 @@ const TileEditor = {
     // the fields are kept in variables instead of reading them from onConfirm's values, because the
     // Name row is only there for new tiles and would shift the rest along
     const nameField = new TextField({ w: 180, value: '' });
-    // false is normal and true is dual grid, same as dualGrid in tiles.json
+    // false is normal and true is dual grid, same as dualGrid in a tile file
     const kindPicker = new Picker({
       w: 180,
       choices: [false, true],
@@ -135,7 +136,7 @@ const TileEditor = {
       if (chosen?.file.name === file) return chosen.img;
       return ownImg;
     };
-    // the settings as they are now, in the same shape as tiles.json (tiles.js)
+    // the settings as they are now, in the same shape as a tile file (tiles.js)
     const settingsNow = () => {
       const settings = {
         name: isNew ? cleanMapName(nameField.value) : type.name,
@@ -253,20 +254,19 @@ const TileEditor = {
     });
   },
 
-  // downloads tiles.json (tiles.js) and any picture that's in use and was chosen since the page loaded,
-  // then says where they go (the download helpers are in utils.js)
+  // downloads the file of every tile that's new or changed (datafiles.js), and any picture that's in
+  // use and was chosen since the page loaded, then says where they go. each picture only downloads
+  // once, so exporting again doesn't repeat it
   exportTiles() {
-    downloadTextFile('tiles.json', tilesDataToText(tilesToData()));
     const pictures = [];
     for (const type of Object.values(TILE_TYPES)) {
       const file = this.newPictures[type.texture];
       // pictures used by more than one tile only download once
       if (!file || pictures.some((p) => p.name === type.texture)) continue;
-      downloadData(type.texture, file);
-      pictures.push({ name: type.texture, folder: this.folderName(type) });
+      pictures.push({ name: type.texture, data: file, folder: `tiles/${this.folderName(type)}/` });
+      delete this.newPictures[type.texture];
     }
-    const also = pictures.map((p) => `, ${p.name} in tiles/${p.folder}/`).join('');
-    showMessage(`Exported! Put tiles.json in assets/squimble-quest/tiles/${also}`);
+    DataFiles.export(['tile'], pictures);
   },
 };
 

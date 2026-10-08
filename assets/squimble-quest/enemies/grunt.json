@@ -1,0 +1,17 @@
+{
+  "width": 28,
+  "height": 50,
+  "speed": 95,
+  "maxHealth": 60,
+  "weapon": {
+    "damage": 8,
+    "reach": 44,
+    "arc": 90,
+    "swingTime": 0.2,
+    "cooldown": 1,
+    "colour": "#ff8a8a"
+  },
+  "colour": "#d64545",
+  "outline": "#6e1f1f",
+  "ai": "smart"
+}

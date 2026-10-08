@@ -5,7 +5,7 @@ const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
 
-// the same lava and spikes as in tiles.json, filled in like TILE_DEFAULTS would
+// the same lava and spikes as tiles/lava.json and tiles/spikes.json, filled in like TILE_DEFAULTS would
 const tile = (name, settings) => ({ name, solid: false, speed: 1, damagePerStep: 0, damagePerSecond: 0, ...settings });
 const TILE_TYPES = {
   '#': tile('wall', { solid: true }),

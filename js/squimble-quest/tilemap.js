@@ -11,8 +11,8 @@
 // editor tab (EDITOR_TABS in editor.js), and a global list that sketch.js makes, updates and draws
 // like enemies and npcs
 const SPAWN_KINDS = {
-  enemy: { list: 'enemySpawns', types: ENEMY_TYPES, file: 'enemies.js', fileKey: 'enemies' },
-  npc:   { list: 'npcSpawns',   types: NPC_TYPES,   file: 'npcs.js',    fileKey: 'npcs' },
+  enemy: { list: 'enemySpawns', types: ENEMY_TYPES, fileKey: 'enemies' },
+  npc:   { list: 'npcSpawns',   types: NPC_TYPES,   fileKey: 'npcs' },
 };
 
 class TileMap {
@@ -157,7 +157,7 @@ class TileMap {
   // type is a name from objects.js, with its top left on col, row
   addObject(type, col, row) {
     if (!OBJECT_TYPES[type]) {
-      console.warn(`There's no object called "${type}", add it in objects.js`);
+      console.warn(`There's no object called "${type}", add its file to ${DATA_FOLDER}${DATA_KINDS.object}`);
       return;
     }
     const obj = { type, col, row };
@@ -196,7 +196,7 @@ class TileMap {
   addSpawn(kind, type, col, row, { ai, voice, sound, follows } = {}) {
     const info = SPAWN_KINDS[kind];
     if (!info.types[type]) {
-      console.warn(`There's no ${kind} called "${type}", add it in ${info.file}`);
+      console.warn(`There's no ${kind} called "${type}", add its file to ${DATA_FOLDER}${DATA_KINDS[kind]}`);
       return;
     }
     if (ai !== undefined && (kind !== 'enemy' || !(ai in ENEMY_AIS))) {

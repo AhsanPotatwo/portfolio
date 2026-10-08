@@ -1,0 +1,13 @@
+{
+  "wave": "sawtooth",
+  "pitch": 85,
+  "attack": 0,
+  "sustain": 1000,
+  "decay": 0,
+  "tremolo": 35,
+  "tremoloSpeed": 24,
+  "lowPass": 55,
+  "resonance": 20,
+  "volume": 75,
+  "range": 16
+}

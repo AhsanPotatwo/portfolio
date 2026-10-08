@@ -1,13 +1,13 @@
 # Squimble Quest maps
 
-Every map in the game is one `.json` file in this folder. The file name is the map's name, so `forest.json` is the map called `forest`.
+Every map in the game is one `.json` file in this folder, and `index.json` lists them. The file name is the map's name, so `forest.json` is the map called `forest`. Everything else the game's made of (tiles, sounds, items, enemies, NPCs, objects) has a folder next to this one that works the same way, see the [data README](../README.md).
 
 A map is made of:
 
-- **Tiles**: the ground. Every spot has exactly one tile (grass, wall, water…), or is empty. Tiles are made in the editor's tile editor and kept in [`tiles/tiles.json`](../tiles/README.md).
-- **Objects**: things placed on top, like furniture and decorations. One object can cover several tiles (a 2 × 1 table), and several can share a tile (a table on a rug). Objects are defined in [`js/squimble-quest/objects.js`](../../../js/squimble-quest/objects.js).
-- **Enemies**: where each enemy starts. They appear there with full health the first time you go to the map. After that, each map remembers its enemies and NPCs as you left them: defeated enemies stay defeated and hurt ones stay hurt, until the page is reloaded. Enemies are defined in [`js/squimble-quest/enemies.js`](../../../js/squimble-quest/enemies.js). Right click a placed enemy to pick its **AI**, its **Sound**, and whether it follows you through **Warps**. AI: **smart** goes round walls and avoids lava and spikes unless the way round is much longer, **careful** goes a long way round rather than get hurt, **reckless** takes harm whenever it's quicker (but not enough to kill it), **direct** is the old straight line (stuck behind walls), and **still** doesn't move. Left as **its own**, it uses the one its kind has in `enemies.js`. The pathfinders also work round each other: they spread out, come at you from different sides and surround you, and give way when they get in each other's way. Every enemy sees you from 15 tiles unless a wall is in the way (water isn't), hears you within 5 tiles even through walls, and tells others nearby. Once it's after you it keeps track round corners, and only loses you after 8 seconds out of sight and out of range; the pathfinders then walk back to where they started. In dev mode each enemy shows its AI, what it's doing and its planned route (**P** hides them).
-- **NPCs**: where each friendly character starts. Walk up to one and press **E** to talk. NPCs, and what they say, are defined in [`js/squimble-quest/npcs.js`](../../../js/squimble-quest/npcs.js). Right click a placed NPC to pick its **voice** (or pick one in the **Voices** tab and click the NPC); left as **its own**, it uses its kind's voice from `npcs.js`. See [voices](../sounds/README.md#voices-and-talking).
+- **Tiles**: the ground. Every spot has exactly one tile (grass, wall, water…), or is empty. Tiles are made in the editor's tile editor and kept in [`tiles/`](../tiles/README.md), a file each.
+- **Objects**: things placed on top, like furniture and decorations. One object can cover several tiles (a 2 × 1 table), and several can share a tile (a table on a rug). Each kind of object is a file in [`objects/`](../objects/) (the guide's at the top of [`objects.js`](../../../js/squimble-quest/objects.js)).
+- **Enemies**: where each enemy starts. They appear there with full health the first time you go to the map. After that, each map remembers its enemies and NPCs as you left them: defeated enemies stay defeated and hurt ones stay hurt, until the page is reloaded. Each kind of enemy is a file in [`enemies/`](../enemies/) (the guide's at the top of [`enemies.js`](../../../js/squimble-quest/enemies.js)). Right click a placed enemy to pick its **AI**, its **Sound**, and whether it follows you through **Warps**. AI: **smart** goes round walls and avoids lava and spikes unless the way round is much longer, **careful** goes a long way round rather than get hurt, **reckless** takes harm whenever it's quicker (but not enough to kill it), **direct** is the old straight line (stuck behind walls), and **still** doesn't move. Left as **its own**, it uses the one in its kind's file. The pathfinders also work round each other: they spread out, come at you from different sides and surround you, and give way when they get in each other's way. Every enemy sees you from 15 tiles unless a wall is in the way (water isn't), hears you within 5 tiles even through walls, and tells others nearby. Once it's after you it keeps track round corners, and only loses you after 8 seconds out of sight and out of range; the pathfinders then walk back to where they started. In dev mode each enemy shows its AI, what it's doing and its planned route (**P** hides them).
+- **NPCs**: where each friendly character starts. Walk up to one and press **E** to talk. Each kind of NPC, and what they say, is a file in [`npcs/`](../npcs/) (the guide's at the top of [`npcs.js`](../../../js/squimble-quest/npcs.js)). Right click a placed NPC to pick its **voice** (or pick one in the **Voices** tab and click the NPC); left as **its own**, it uses its kind's voice from its file. See [voices](../sounds/README.md#voices-and-talking).
 - **Warps**: tiles that take the player to another map, or somewhere else on the same one. That's how doors, cave entrances, manholes, trapdoors, secret passages and teleporters work. See [Warps](#warps) below, and [`js/squimble-quest/warps.js`](../../../js/squimble-quest/warps.js).
 
 ## The maps in this folder
@@ -56,14 +56,10 @@ Rooms below, left to right:
 3. Paint tiles and place objects.
 4. Click **Export** in the toolbar, type a name, and it downloads as `yourname.json`.
 5. Move the file into this folder (`assets/squimble-quest/maps/`).
-6. Add its file name to `MAP_FILES` in [`js/squimble-quest/maps.js`](../../../js/squimble-quest/maps.js):
+6. Add its name (without `.json`) to `index.json` in this folder:
 
-   ```js
-   const MAP_FILES = [
-     'default.json',
-     'example.json',
-     'yourname.json',
-   ];
+   ```json
+   ["default", "example", "yourname"]
    ```
 
 7. Reload the game. Press **M** in developer mode until you reach your map.
@@ -77,7 +73,7 @@ It's laid out like a game engine: a **toolbar** along the top (the map's buttons
 | Control | What it does |
 |---|---|
 | **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** / **Weapons** / **Items** / **Sounds** / **Voices** tabs at the top of the palette | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs, triggers (the player's spawn point, and warps), weapons, other items, sound blocks and NPC voices. When there are more tabs than fit, **‹ ›** (or the mouse wheel over them) scrolls along. **Lights** is an empty example for now |
-| A weapon or item picked | Click the map to put one on the ground (it isn't saved by Export). **Give** in the inspector puts one in your inventory, **Edit** (or right click it in the palette) changes its name, rarity, colour and, for weapons, damage, reach, arc and timings. **Export** in the inspector downloads `items.json`: put it in `assets/squimble-quest/items/` (replacing the old one) to keep the changes |
+| A weapon or item picked | Click the map to put one on the ground (it isn't saved by Export). **Give** in the inspector puts one in your inventory, **Edit** (or right click it in the palette) changes its name, rarity, colour and, for weapons, damage, reach, arc and timings. **Export** in the inspector downloads the file of each item you've changed: put them in `assets/squimble-quest/items/` (replacing the old ones) to keep the changes |
 | **New** / **Open** / **Resize** / **Export** (toolbar) | Make a new map, open a map file, change this map's size, or save it as a file |
 | Click something in the palette | Choose it, and switch to the **Paint** tool. Hover over one to see its name. The mouse wheel scrolls the palette while the mouse is over it |
 | Left click / drag (tile chosen) | Paint that tile, replacing the one there. Tiles with a little badge of two overlapping squares in the corner are dual grid tiles (like grass): their edges round off and blend into the tiles next to them by themselves |
@@ -169,7 +165,7 @@ Right click a sound block to change it:
 
 Sounds get quieter as the player walks away, come more out of the left or right speaker depending on which side they're on, and bend higher or lower when they or the player move (the doppler effect; each sound's **Doppler** setting in the sound editor says how much, and 0 turns it off). How far away a sound can be heard is part of the sound (**Heard from** in the sound editor), and hovering over a sound block shows it as a green circle.
 
-A block whose sound has been renamed or deleted from `sounds.json` is shown in red and makes no sound. Right click it and pick another one.
+A block whose sound has been renamed or deleted is shown in red and makes no sound. Right click it and pick another one.
 
 Enemies and NPCs can carry a sound around too, looping it wherever they go while the player is close enough (a buzzing wasp, a rumbling cart). Right click one on the map and pick its **Sound**; left as **its own**, it uses its kind's `sound` from `enemies.js` or `npcs.js` (none, normally). It stops when the enemy is defeated.
 
@@ -195,7 +191,7 @@ const START_MAP = 'forest';
 
 The **M** key goes through every map in this order:
 
-1. The files in `MAP_FILES`, in the order they're listed
+1. The maps in `index.json`, in the order they're listed
 2. Any maps made, opened or exported since the page loaded
 
 Opening or exporting a map with the same name as one that's already loaded replaces it until you reload the page. Exporting under a **new** name works like "save as": the map you're on becomes the new one, and the old name goes back to its own file (without your unsaved changes).
@@ -261,11 +257,11 @@ You can open a map in any text editor. It looks like this:
 ```
 
 - **`rows`**: the tiles, one line per row, top row first, with a code for each tile separated by spaces.
-- **`legend`**: which code means which tile (the names in `tiles.json`). `..` is always empty. The editor makes a 2-character code for each tile when it exports, from the tile's name where it can: `gr` for grass, then `wt` for water because `wa` is already wall. There are thousands of possible codes, so they won't run out however many tiles you add.
-- **`objects`**: everything placed on the tiles. `type` is the object's name in `objects.js`, and `col`, `row` is the tile its top-left corner is on. They're drawn in list order, so later ones go on top.
-- **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is the name in `enemies.js` or `npcs.js`, and `col`, `row` is the tile it stands on. An enemy's `ai` is only there if one was picked (a name in `ENEMY_AIS` in `enemies.js`); left out, it uses its kind's own. Likewise an NPC's `voice` (a voice's name in `sounds.json`), and either's `sound` (a sound it carries around). An enemy's `follows` is only there if picked: `false` stays behind instead of following through warps, `true` follows even if its kind doesn't. Maps without these lists just have none.
+- **`legend`**: which code means which tile (the tiles' names, from `tiles/`). `..` is always empty. The editor makes a 2-character code for each tile when it exports, from the tile's name where it can: `gr` for grass, then `wt` for water because `wa` is already wall. There are thousands of possible codes, so they won't run out however many tiles you add.
+- **`objects`**: everything placed on the tiles. `type` is the object's name (its file in `objects/`), and `col`, `row` is the tile its top-left corner is on. They're drawn in list order, so later ones go on top.
+- **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is its kind's name (its file in `enemies/` or `npcs/`), and `col`, `row` is the tile it stands on. An enemy's `ai` is only there if one was picked (a name in `ENEMY_AIS` in `enemies.js`); left out, it uses its kind's own. Likewise an NPC's `voice` (a voice's name, from `voices/`), and either's `sound` (a sound it carries around). An enemy's `follows` is only there if picked: `false` stays behind instead of following through warps, `true` follows even if its kind doesn't. Maps without these lists just have none.
 - **`warps`**: see [Warps](#warps). `name` is the warp's name, and `col`, `row` is its tile. `to` is the map it leads to (`""` for nowhere), and `toWarp` is the warp to arrive at on that map (`""` for its spawn point). `activate` is `"step"` or `"interact"` (press E). `enemies` is `true` if enemies chasing the player follow them through it (left out means `false`). Maps without this list just have no warps.
-- **`sounds`**: see [Sound blocks](#sound-blocks). `sound` is the name of a sound in `sounds.json`, `col`, `row` is its tile, and `activate` is `"step"`, `"interact"` (press E) or `"loop"` (constantly nearby). A moving one also has `move` (`"side"`, `"upDown"`, `"past"`, `"pastDown"` or `"circle"`), `distance` and `speed` (tiles, and tiles a second), and one that's seen while playing has `"show": true`. Maps without this list just have no sound blocks.
+- **`sounds`**: see [Sound blocks](#sound-blocks). `sound` is the name of a sound (its file in `sounds/`), `col`, `row` is its tile, and `activate` is `"step"`, `"interact"` (press E) or `"loop"` (constantly nearby). A moving one also has `move` (`"side"`, `"upDown"`, `"past"`, `"pastDown"` or `"circle"`), `distance` and `speed` (tiles, and tiles a second), and one that's seen while playing has `"show": true`. Maps without this list just have no sound blocks.
 - **`left`, `top`**: the tile column and row of the map's top-left corner. Tile `(0, 0)` is at the middle of the world, so `-5, -2` puts the middle of a 10 × 5 map there.
 - **`spawn`**: where the player starts, in pixels (the centre of the player). Easiest to set with **spawn** in the editor's **Triggers** tab.
 
@@ -277,7 +273,7 @@ Maps saved before objects were added (version 1, one character per tile with no 
 
 ## If something goes wrong
 
-- **The map isn't in the M list:** check the file is in this folder, its name is in `MAP_FILES` with `.json` on the end, and the game is running through a local server. The browser console (F12) says which file failed and why.
-- **"This warp is broken" when using a warp:** it leads to a map that isn't loaded, or to a warp name that map doesn't have. Right click the warp in the editor to fix it. Check that the map is in `MAP_FILES`, and that the warp on the other map wasn't renamed.
-- **Some tiles, objects, enemies or NPCs are missing:** the map uses a name the game doesn't know, maybe because it was renamed in `tiles.json`, `objects.js`, `enemies.js` or `npcs.js`, or a code that isn't in the `legend`. The console lists everything it left out. Add it back, or fix the name in the file.
+- **The map isn't in the M list:** check the file is in this folder, its name is in `index.json` (without `.json`), and the game is running through a local server. The browser console (F12) says which file failed and why.
+- **"This warp is broken" when using a warp:** it leads to a map that isn't loaded, or to a warp name that map doesn't have. Right click the warp in the editor to fix it. Check that the map is in `index.json`, and that the warp on the other map wasn't renamed.
+- **Some tiles, objects, enemies or NPCs are missing:** the map uses a name the game doesn't know, maybe because its file was renamed (or isn't in its folder's `index.json`), or a code that isn't in the `legend`. The console lists everything it left out. Add it back, or fix the name in the file.
 - **"This doesn't look like a Squimble Quest map file":** the file isn't a map, or it's been damaged. It needs a `legend` and `rows` at least.

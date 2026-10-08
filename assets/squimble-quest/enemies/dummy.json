@@ -1,0 +1,8 @@
+{
+  "width": 28,
+  "height": 48,
+  "maxHealth": 100,
+  "colour": "#c9a36b",
+  "outline": "#6b4f2a",
+  "onDeath": "refill"
+}

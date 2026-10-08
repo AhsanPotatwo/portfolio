@@ -1,0 +1,10 @@
+{
+  "pitch": 300,
+  "slide": 30,
+  "vibrato": 0.5,
+  "vibratoSpeed": 15,
+  "attack": 0,
+  "sustain": 250,
+  "decay": 150,
+  "volume": 45
+}

@@ -1,21 +1,21 @@
 // the tile catalogue: every kind of tile and what it does. maps (tilemap.js) only store names like
-// 'grass' and look everything else up here. the tiles themselves live in
-// assets/squimble-quest/tiles/tiles.json, and this file loads that into TILE_TYPES and can turn them
-// back into a file.
+// 'grass' and look everything else up here. each tile is a file in assets/squimble-quest/tiles/, like
+// tiles/grass.json, listed in tiles/index.json (datafiles.js), and this file loads them into
+// TILE_TYPES and can turn them back into files.
 //
 // ============================== how to make a tile ==============================
 //
 // in the map editor (dev mode, then B), go to the Tiles tab and press New in the inspector (or right
-// click a tile in the palette to change it). changes show up straight away, and Export tiles downloads
-// tiles.json (plus any new picture) to put in assets/squimble-quest/tiles/. the full guide is
-// assets/squimble-quest/tiles/README.md.
+// click a tile in the palette to change it). changes show up straight away, and Export downloads the
+// files of any tiles that are new or changed (plus any new picture) to put in
+// assets/squimble-quest/tiles/. the full guide is assets/squimble-quest/tiles/README.md.
 //
-// by hand: one line per tile, with only the settings that are different from TILE_DEFAULTS (each one
-// is explained there):
-//   { "name": "lava", "colour": "#e4572e", "speed": 0.7, "damagePerSecond": 25 }
+// by hand: a file named after the tile, like tiles/lava.json, with only the settings that are
+// different from TILE_DEFAULTS (each one is explained there), and its name in tiles/index.json:
+//   { "colour": "#e4572e", "speed": 0.7, "damagePerSecond": 25 }
 // renaming a tile loses it from every map that uses it. the settings work on everyone (walk() and
-// checkTile() in character.js). the order in the file is the order in the editor bar, and where dual
-// grid tiles meet the later one goes on top, so put the lower ones first (dirt before grass)
+// checkTile() in character.js). the order in index.json is the order in the editor bar, and where
+// dual grid tiles meet the later one goes on top, so put the lower ones first (dirt before grass)
 //
 // ---------- adding a new tile setting ----------
 //
@@ -23,18 +23,13 @@
 //   2. make it do something, like in checkTile() in character.js for effects on whoever's standing there
 //   3. add a TILE_BEHAVIOURS line (top of tileeditor.js) so it gets an editor row on the tab it names
 //      (a tab name that doesn't exist yet makes a new tab)
-// older tiles.json files still load fine, missing settings just get the default
+// older tile files still load fine, missing settings just get the default
 //
 // =================================================================================
 
 // paths from the root of the site
-const TILE_FILE = 'assets/squimble-quest/tiles/tiles.json';
 const TILE_IMAGE_FOLDER = 'assets/squimble-quest/tiles/normal/';
 const DUAL_TILESET_FOLDER = 'assets/squimble-quest/tiles/dual-grid/';
-
-// goes at the top of tiles.json, same idea as a map file's (mapfile.js)
-const TILES_FORMAT = 'squimble-quest-tiles';
-const TILES_VERSION = 1;
 
 // every tile starts with these, and they're also the only settings a tile can have
 const TILE_DEFAULTS = {
@@ -90,7 +85,7 @@ const PUSH_DIRECTIONS = {
 // approach() speed, utils.js). 0.9 slippery leaves you a tenth of it
 const SLIPPERY_GRIP = 10;
 
-// every tile by name, from tiles.json (loadTileFile()) and the tile editor. each has its settings plus:
+// every tile by name, from the tile files (bottom of this file) and the tile editor. each has its settings plus:
 //   layer       its position in the list. later dual grid tiles go on top
 //   fill        its colour as a p5 colour, made once
 //   textureImg  the texture (a p5 image) or null. the tile editor shows it
@@ -99,7 +94,7 @@ const SLIPPERY_GRIP = 10;
 // without an img or dualTiles (no texture, or it hasn't loaded) it's drawn in its colour
 const TILE_TYPES = {};
 
-// adds a tile, or changes one, from its tiles.json settings. its texture loads from its folder unless
+// adds a tile, or changes one, from its file's settings plus its name. its texture loads from its folder unless
 // you pass in `picture` (a p5 image, like one just chosen in the tile editor). gives back a promise
 // that finishes when the texture has loaded or failed, so the game can wait for it
 function setTile(settings, picture = null) {
@@ -138,50 +133,23 @@ function useTexture(type, img) {
   type.dualTiles = img && type.dualGrid ? cutDualTileset(img, type.texture) : null;
 }
 
-// ---------- tiles.json ----------
+// ---------- the tile files ----------
 
-// loads every tile and texture. runs once at the start, before the maps (mapfile.js), because those
-// check their tiles exist. the promise finishes when it's done or failed. like with map files,
-// problems are just console warnings and never stop the game
-function loadTileFile() {
-  return fetchJson(TILE_FILE)
-    .then((data) => {
-      if (!Array.isArray(data?.tiles)) throw new Error("it doesn't look like a Squimble Quest tiles file");
-      const textures = [];
-      for (const entry of data.tiles) {
-        if (typeof entry.name !== 'string' || entry.name === '') {
-          console.warn(`A tile in ${TILE_FILE} has no name, so it's been left out`);
-          continue;
-        }
-        // only keys from TILE_DEFAULTS, so a typo can't add junk
-        const settings = { name: entry.name };
-        for (const key of Object.keys(TILE_DEFAULTS)) {
-          if (key in entry) settings[key] = entry[key];
-        }
-        textures.push(setTile(settings));
-      }
-      return Promise.all(textures);
-    })
-    .catch((err) => {
-      console.warn(`Couldn't load the tiles file "${TILE_FILE}": ${err.message}.`);
-    })
-    // this runs either way, since the catch() above dealt with any problem
-    .then(() => {
-      // the blank stand-in map (maps.js) still needs a floor
-      if (Object.keys(TILE_TYPES).length === 0) setTile({ name: 'blank', colour: '#ffffff' });
-    });
-}
-
-// every tile as tiles.json data (typeToData() in utils.js)
-function tilesToData() {
-  const tiles = Object.values(TILE_TYPES)
-    .sort((a, b) => a.layer - b.layer)
-    .map((type) => typeToData(type, TILE_DEFAULTS));
-  return { format: TILES_FORMAT, version: TILES_VERSION, tiles };
-}
-
-// the text of tiles.json, one tile per line (jsonLine() in utils.js)
-function tilesDataToText(data) {
-  const lines = data.tiles.map(jsonLine);
-  return `{\n  "format": "${data.format}",\n  "version": ${data.version},\n  "tiles": [\n${lines.join(',\n')}\n  ]\n}\n`;
-}
+// every tile and its texture loads once at the start, before the maps (mapfile.js), because those
+// check their tiles exist (datafiles.js)
+DataFiles.register('tile', {
+  define: (name, entry) => {
+    // only keys from TILE_DEFAULTS, so a typo can't add junk
+    const settings = { name };
+    for (const key of Object.keys(TILE_DEFAULTS)) {
+      if (key in entry) settings[key] = entry[key];
+    }
+    return setTile(settings);
+  },
+  // the blank stand-in map (maps.js) still needs a floor
+  loaded: () => {
+    if (Object.keys(TILE_TYPES).length === 0) setTile({ name: 'blank', colour: '#ffffff' });
+  },
+  names: () => Object.values(TILE_TYPES).sort((a, b) => a.layer - b.layer).map((type) => type.name),
+  toData: (name) => typeToData(TILE_TYPES[name], TILE_DEFAULTS), // utils.js
+});

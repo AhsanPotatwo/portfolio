@@ -58,38 +58,47 @@ function setText(size, style = BOLD, alignX = CENTER, alignY = CENTER, font = 'Q
 }
 
 // ---------- catalogues ----------
-// objects.js, enemies.js, npcs.js, weapons.js and items.js each keep a catalogue of their kinds by name
-// (like ENEMY_TYPES.grunt), filled in by defineObject(), defineEnemy() and so on, which all use these
+// objects.js, enemies.js, npcs.js and items.js each keep a catalogue of their kinds by name (like
+// ENEMY_TYPES.grunt), filled in from their data files (datafiles.js) by defineObject(), defineEnemy()
+// and so on, which all use these
 
-// adds `name` to the catalogue `types` as the defaults, then its settings on top, plus its name. if a
-// setting isn't in the defaults it's probably a typo (like maxHelth) that would just get ignored, so
-// it warns about it. a setting that's actually new needs a default adding. kind is only for the warning
-function defineType(types, defaults, kind, name, settings) {
+// the defaults with `settings` on top, plus its name. if a setting isn't in the defaults it's probably
+// a typo (like maxHelth) that would just get ignored, so it warns about it. a setting that's actually
+// new needs a default adding. kind is only for the warning
+function withDefaults(defaults, kind, name, settings) {
   for (const key of Object.keys(settings)) {
     if (!(key in defaults)) console.warn(`The ${kind} "${name}" has a setting "${key}" that isn't in the ${kind} defaults. A typo, or a new setting that needs its normal value adding there?`);
   }
-  types[name] = { ...defaults, ...settings, name };
+  return { ...defaults, ...settings, name };
 }
 
-// a catalogue entry turned back into file data (tiles.json, items.json): its name plus any settings
-// that aren't the default. colour always goes in so you can see what every line looks like
+// adds `name` to the catalogue `types` (withDefaults())
+function defineType(types, defaults, kind, name, settings) {
+  types[name] = withDefaults(defaults, kind, name, settings);
+}
+
+// a catalogue entry turned back into the settings for its data file: only the ones that aren't the
+// default (the file's name is its name, so that's left out). colour always goes in so you can see
+// what every one looks like
 function typeToData(type, defaults) {
-  const entry = { name: type.name };
+  const entry = {};
   for (const [key, value] of Object.entries(defaults)) {
     if (key === 'colour' || type[key] !== value) entry[key] = type[key];
   }
   return entry;
 }
 
-// one entry of a json list, squashed onto one indented line. using an indent of 1 and then removing
-// the line breaks leaves a space after every colon and comma, which reads nicely
-function jsonLine(entry) {
-  return `    ${JSON.stringify(entry, null, 1).replace(/\n\s*/g, ' ')}`;
+// `words` cut short with … so it fits in maxWidth px, using whatever text settings are on now
+function fitText(words, maxWidth) {
+  if (textWidth(words) <= maxWidth) return words;
+  while (words.length > 0 && textWidth(`${words}…`) > maxWidth) words = words.slice(0, -1);
+  return `${words}…`;
 }
 
-// loads the pictures and makes the p5 colours once, instead of on every draw. preload() (sketch.js)
-// runs it for objects, enemies and npcs, and items.js runs it once items.json has loaded. tiles do
-// their own thing in setTile() (tiles.js). kind is only for the warning
+// loads the pictures and makes the p5 colours once, instead of on every draw. objects, enemies, npcs
+// and items run it once their files have loaded (their DataFiles.register() calls), and preload()
+// (sketch.js) runs it for the rarities. tiles do their own thing in setTile() (tiles.js). kind is only
+// for the warning
 function prepareArt(types, kind) {
   for (const type of Object.values(types)) {
     type.fill = color(type.colour);

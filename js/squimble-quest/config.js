@@ -36,7 +36,7 @@ const PLAYER = {
   feetWidth: 24,
   feetHeight: 14,
   maxHealth: 100,
-  // what's in the inventory at the start, filling from hotbar slot 1 (names are from items.json). you
+  // what's in the inventory at the start, filling from hotbar slot 1 (names are item files, items/). you
   // attack with the item in the picked slot, and empty hands can't attack
   startingItems: ['sword', 'axe'],
   colour: '#4a7bd8',

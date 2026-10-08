@@ -1,0 +1,11 @@
+{
+  "wave": "triangle",
+  "pitch": 700,
+  "vibrato": 3,
+  "vibratoSpeed": 1.5,
+  "attack": 0,
+  "sustain": 1333,
+  "decay": 0,
+  "volume": 55,
+  "range": 14
+}

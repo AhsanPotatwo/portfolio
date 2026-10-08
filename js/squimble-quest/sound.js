@@ -10,7 +10,7 @@
 //   SOUND_WAVES       here            the kinds of wave, most just a shape(p) function
 //   SOUND_SETTINGS    here            every number setting, which is also its slider in the editor
 //   SOUNDS, VOICES    here            the libraries: every sound and every voice by name, both
-//                                     from sounds.json (see "sounds and voices")
+//                                     from their files (see "sounds and voices")
 //   renderSound()     here            the synthesiser: works out every sample of a sound
 //   voiceMouth()      here            what turns the voice wave's buzz into vowels (see "voices")
 //   renderSpeech()    here            a sound saying some words, a syllable at a time (npcs talking)
@@ -19,7 +19,8 @@
 //   Sound             here            playing: the browser's audio, voices, distance, doppler, the
 //                                     preview
 //   playSound()       here            how everything else plays a sound
-//   sounds.json       assets/squimble-quest/sounds/   one sound per line (user guide: README.md there)
+//   sounds/, voices/  assets/squimble-quest/   a file per sound and voice, plus index.json
+//                                     (datafiles.js, user guide: README.md in sounds/)
 //   files/            assets/squimble-quest/sounds/files/   audio files (mp3, wav, ogg) sounds use
 //   SoundBlocks       soundblocks.js  tiles on maps that play a sound (step on it, press E, or loop),
 //                                     which can move their sound around, and sounds that follow
@@ -53,13 +54,14 @@
 // there are two kinds of sound (SOUND_KINDS), made the same way in the same editor: sounds, for sound
 // blocks and anything else that makes a noise, and voices, for npcs to talk with. each kind has its
 // own library (SOUNDS, VOICES), so sound blocks only offer sounds and npcs only offer voices, and the
-// map editor has a tab for each. they're saved together in sounds.json, voices last with
-// "kind": "voice", so a name can only be used once across both (the sound editor checks).
+// map editor has a tab for each. each one is a file named after it, sounds in sounds/ and voices in
+// voices/ (the folder decides the kind). a name can only be used once across both (the sound editor
+// checks), so findSound() always knows which one you mean.
 // findSound() and playSound() look in both. a voice is any wave, not just the voice wave (a blip voice
 // sounds like old games), it's the kind that makes it a voice.
 //
 // an npc talks with its own voice if one was picked for it on the map (right click it in the editor,
-// saved in the map file as its "voice"), otherwise its kind's (voice in npcs.js). npcs keep the
+// saved in the map file as its "voice"), otherwise its kind's (voice in its npc file). npcs keep the
 // voice's name, not a copy, and dialogue looks it up every line, so changing a voice in the sound
 // editor changes every npc that uses it straight away.
 //
@@ -133,7 +135,7 @@
 //   - a "steady" sound (nothing moving the pitch, one beep, a wave with a shape) gets a loop length
 //     that's a whole number of waves, so the crossfade is between two copies of the same wave and is
 //     perfect
-// tests/sound-check.js checks every sound in sounds.json loops without a click. fades, slides and
+// tests/sound-check.js checks every sound file loops without a click. fades, slides and
 // repeats happen every time round, which is what you want for a siren or a pulsing machine. for a
 // constant hum (or wind, rain, fire) use 0 fade in and fade out.
 //
@@ -153,7 +155,7 @@
 //
 //   a sound      in game: map editor, Sounds tab, New (or right click one to change it), then Export
 //   a voice      in game: map editor, Voices tab, New, then click an npc to give it the voice (or
-//                right click an npc, New voice). voice: 'its-name' in npcs.js gives a whole kind one
+//                right click an npc, New voice). "voice": "its-name" in an npc file gives a whole kind one
 //   a wave       a SOUND_WAVES line with its shape(p, width) and a tip. it gets a button in the sound
 //                editor and its own wave table by itself. a wave without a shape needs its own
 //                branch in renderSound()
@@ -164,7 +166,7 @@
 //   a generator  a line in SOUND_GENERATORS in soundeditor.js (the "make one" buttons, and the
 //                Character tab's knobs for each kind)
 //   a moving sound      in game: right click a sound block, Moving tab. or give an enemy or npc a
-//                sound (right click it, or sound: in enemies.js / npcs.js). from code, pass a place
+//                sound (right click it, or "sound" in its enemy or npc file). from code, pass a place
 //                that moves (see "distance and stereo") and the doppler effect just works. how strong
 //                it is everywhere is SOUND_DOPPLER, and for one sound its Doppler setting
 //   a sound from code   playSound('name', { x, y, map }) for something in the world, or
@@ -253,28 +255,22 @@
 //   - rhythms for tunes (dotted, swung), not just even notes and a long last one
 //   - talking: consonants (a little noise at the start of s, sh, t...), and a different voice for
 //     emotions (a line starting with [angry] could raise the pitch and expression)
-//   - drawing your own wave shape in the sound editor, saved as a list of points in sounds.json
-//   - renaming and deleting sounds in the sound editor (now by hand in sounds.json). renaming would
-//     have to update every sound block and npc voice on every map (and in npcs.js), like renaming a
-//     warp would
-//   - one file per sound instead of one sounds.json, if the list gets long
+//   - drawing your own wave shape in the sound editor, saved as a list of points in its file
+//   - renaming and deleting sounds in the sound editor (now by hand: rename or delete the file and its
+//     line in index.json). renaming would have to update every sound block and npc voice on every map
+//     (and in the npc files), like renaming a warp would
 //
 // ---------- checking changes ----------
 //
 //   - node js/squimble-quest/tests/sound-check.js (no output means it passed). add --fix to rewrite
-//     sounds.json in the exported format after editing it by hand
+//     the sound files in the exported format after editing them by hand
 //   - in the game: the sound editor with Loop on is the quickest way to hear a change, and the Say
 //     box for talking
 //
 // =====================================================================================
 
-// paths from the root of the site
-const SOUND_FILE = 'assets/squimble-quest/sounds/sounds.json';
+// path from the root of the site
 const SOUND_FILE_FOLDER = 'assets/squimble-quest/sounds/files/';
-
-// goes at the top of sounds.json, same idea as tiles.json's (tiles.js)
-const SOUNDS_FORMAT = 'squimble-quest-sounds';
-const SOUNDS_VERSION = 1;
 
 // how loud everything is overall (0 to 1). raw waves are really loud, so this keeps them comfortable.
 // ponytail: one fixed number. a volume setting or mute key would change this (and the gain of every
@@ -292,7 +288,7 @@ const SOUND_LOOP_FADE = 0.03;
 // cycle, and width is the pulse width (0 to 1, only square uses it). the noises, metal and file don't
 // have a shape, renderSound() deals with them itself. label is the text on its button in the sound
 // editor.
-// the key (like 'sawtooth') is what sounds.json saves, so renaming one turns every sound using it into
+// the key (like 'sawtooth') is what sound files save, so renaming one turns every sound using it into
 // a square. a shape only gets worked out once (into a wave table) so it can be as slow as you like.
 // sharp jumps in a shape (like square and saw have) are what make a wave sound bright and buzzy, and
 // smooth shapes (sine) sound soft, which is handy to know when making a new one
@@ -343,17 +339,17 @@ function glottalPulse(p) {
 // is the value that means the setting isn't doing anything, which the slider shows as "off".
 //
 // careful with these:
-//   - key is what sounds.json saves. renaming a key loses that setting from every saved sound
-//   - normal is the default, and sounds.json only saves settings that aren't the default. so
+//   - key is what sound files save. renaming a key loses that setting from every saved sound
+//   - normal is the default, and sound files only save settings that aren't the default. so
 //     changing a normal value changes every sound that left that setting out (most of them)
 //   - attack, sustain and decay are the old synth names for fade in, hold and fade out. the labels
-//     are friendlier but the keys stayed, since they're in sounds.json
+//     are friendlier but the keys stayed, since they're in the sound files
 //   - curve 'log' needs a min above 0, and 'square' on a range either side of 0 needs min to be
 //     exactly -max (see Slider in formbox.js)
 ///   - the section is the little heading it goes under, and it has to be in SOUND_EDITOR.tabs
 //     (soundeditor.js) or it won't get a slider
-//   - order matters: it's the order of the sliders, and of the settings in sounds.json. new ones can
-//     go anywhere, but moving old ones changes how every line of sounds.json is written
+//   - order matters: it's the order of the sliders, and of the settings in sound files. new ones can
+//     go anywhere, but moving old ones changes how every sound file is written
 const SOUND_SETTINGS = [
   { key: 'pitch', section: 'Pitch', label: 'Pitch', min: 20, max: 5000, step: 1, curve: 'log', unit: 'Hz', normal: 440, tip: 'How high it is. 440 is the A above middle C, and doubling it goes up an octave. For a file it\'s how fast it plays' },
   { key: 'slide', section: 'Pitch', label: 'Slide', min: -500, max: 500, step: 1, curve: 'square', unit: 'notes/s', normal: 0, tip: 'Makes the pitch rise (+) or fall (-) while it plays. Up for jumps and power-ups, down for lasers and falling' },
@@ -424,7 +420,7 @@ const SOUND_SETTINGS = [
 ];
 
 // every sound starts with these, and they're the only settings a sound can have. wave first so it's
-// first in each line of sounds.json
+// first in each sound file
 const SOUND_DEFAULTS = {
   // a SOUND_KINDS name: which library it's in
   kind: 'sound',
@@ -437,12 +433,12 @@ const SOUND_DEFAULTS = {
 
 // the kinds of sound, and the words for them. a sound is for sound blocks and anything else that
 // plays a sound, a voice is for npcs to talk with (renderSpeech()). they're made the same way, in the
-// same editor, and saved in the same sounds.json (with "kind": "voice"), but they're kept in their own
-// libraries so sound blocks only offer sounds and npcs only offer voices. a name is only ever used
-// once across both, since they share a file
+// same editor, and saved the same way (voices in voices/ instead of sounds/), but they're kept in
+// their own libraries so sound blocks only offer sounds and npcs only offer voices. a name is only
+// ever used once across both, so findSound() can look in either
 const SOUND_KINDS = { sound: 'Sound', voice: 'Voice' };
 
-// every sound and every voice by name, from sounds.json (loadSoundFile()) and the sound editor
+// every sound and every voice by name, from their files (bottom of this file) and the sound editor
 // (setSound())
 const SOUNDS = {};
 const VOICES = {};
@@ -490,7 +486,7 @@ function soundSettings(from) {
 
 // adds a sound or voice to its library (by its kind) or changes one, and starts loading its audio
 // file if it has one. anything already playing the old version carries on with it, and the next play
-// uses the new one. a changed sound keeps its place in the list (and in sounds.json), and a new one
+// uses the new one. a changed sound keeps its place in the list (and in index.json), and a new one
 // goes on the end. one that's changed kind moves to the other library (and to the end)
 function setSound(name, settings) {
   const sound = { ...soundSettings(settings), name };
@@ -1448,30 +1444,23 @@ const Sound = {
   },
 };
 
-// ---------- sounds.json and audio files ----------
+// ---------- the sound files and audio files ----------
 
-// loads every sound, once at the start, before the maps (mapfile.js) since sound blocks name their
-// sound. the promise finishes when it's done or failed, and problems are just console warnings.
-// audio files load after, in the background
-function loadSoundFile() {
-  return fetchJson(SOUND_FILE)
-    .then((data) => {
-      if (!Array.isArray(data?.sounds)) throw new Error("it doesn't look like a Squimble Quest sounds file");
-      for (const { name, ...settings } of data.sounds) {
-        if (typeof name === 'string' && name !== '') setSound(name, settings);
-        else console.warn(`A sound in ${SOUND_FILE} has no name, so it's been left out`);
-      }
-    })
-    .catch((err) => {
-      console.warn(`Couldn't load the sounds file "${SOUND_FILE}": ${err.message}.`);
-    });
+// a sound's settings for its file: only the ones that aren't normal (typeToData() in utils.js). its
+// kind is left out, since the folder it's in says that
+function soundToData(sound) {
+  const { kind, ...data } = typeToData(sound, SOUND_DEFAULTS);
+  return data;
 }
 
-// every sound then every voice as the text of sounds.json, one per line (typeToData() and jsonLine()
-// in utils.js)
-function soundsToText() {
-  const lines = [...Object.values(SOUNDS), ...Object.values(VOICES)].map((sound) => jsonLine(typeToData(sound, SOUND_DEFAULTS)));
-  return `{\n  "format": "${SOUNDS_FORMAT}",\n  "version": ${SOUNDS_VERSION},\n  "sounds": [\n${lines.join(',\n')}\n  ]\n}\n`;
+// every sound and voice loads once at the start, before the maps (mapfile.js) since sound blocks
+// name their sound (datafiles.js). audio files load after, in the background
+for (const [kind, library] of [['sound', SOUNDS], ['voice', VOICES]]) {
+  DataFiles.register(kind, {
+    define: (name, settings) => setSound(name, { ...settings, kind }),
+    names: () => Object.keys(library),
+    toData: (name) => soundToData(library[name]),
+  });
 }
 
 // file names already asked for, so each file only loads once

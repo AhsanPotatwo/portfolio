@@ -3,19 +3,20 @@
 // this file is the game loop. squimble-quest.html loads all the other files before it, in this order:
 //   config.js     settings: sizes, speeds, controls, button styles
 //   utils.js      helpers: maths, text, catalogues, loading/downloading files
+//   datafiles.js  the data folders: a file per tile, sound, item, enemy... and loading/exporting them
 //   input.js      keyboard and mouse
 //   camera.js     what's on screen, and turning world positions into screen ones and back
-//   tiles.js      tile kinds and what they do, loaded from tiles.json
+//   tiles.js      tile kinds and what they do, from tiles/
 //   dualgrid.js   dual grid tiles: ground that blends into its neighbours
 //   objects.js    object kinds (furniture, decorations...)
 //   pathfinding.js enemy routes round walls and harm, and dev mode's view of them
 //   enemies.js    enemy kinds and their ai (after pathfinding.js)
 //   npcs.js       npc kinds and what they say
 //   weapons.js    weapons and their swings
-//   items.js      item kinds, and loading weapons + items from items.json
+//   items.js      item kinds and their weapons, from items/
 //   itemglow.js   the rarity glow and sparkles drawn around items
 //   tilemap.js    a tile map: storing, drawing, resizing, collision
-//   maps.js       map file list, start map, visited maps
+//   maps.js       start map, visited maps
 //   mapfile.js    saving and loading map files
 //   world.js      draws the world (map + dev mode lines)
 //   character.js  shared by player/enemies/npcs: walking, health, attacking, drawing
@@ -50,11 +51,8 @@ let npcs = [];
 let mapsReady = false;
 
 // p5 waits for anything loaded in here before it runs setup(), so pictures for buttons go here too.
-// tiles and items load in setup() instead, along with the maps
+// the data files (tiles, items, enemies...) load in setup() instead, along with the maps
 function preload() {
-  prepareArt(OBJECT_TYPES, 'object');
-  prepareArt(ENEMY_TYPES, 'enemy');
-  prepareArt(NPC_TYPES, 'npc');
   // the rarity glow pictures and colours (itemglow.js)
   prepareArt(RARITIES, 'rarity');
 }
@@ -75,11 +73,12 @@ function setup() {
   // E or I opens it (it's hidden until then)
   InventoryScreen.init(player.inventory);
 
-  // tiles (tiles.js) and sounds (sound.js) have to load before maps (mapfile.js), since loading a map
-  // checks its tiles and sounds exist. items (items.js) load at the same time. then it starts on
-  // START_MAP (maps.js). this isn't in preload() because there a missing file would stop the game
-  // starting, but here it just gets skipped
-  Promise.all([Promise.all([loadTileFile(), loadSoundFile()]).then(loadMapFiles), loadItemFile()]).then(() => {
+  // every kind of data (DATA_KINDS in datafiles.js) loads at once, then the maps, since loading a map
+  // checks its tiles, sounds and characters exist. then it starts on START_MAP (maps.js). this isn't
+  // in preload() because there a missing file would stop the game starting, but here it just gets
+  // skipped
+  const kinds = Object.keys(DATA_KINDS).filter((kind) => kind !== 'map');
+  Promise.all(kinds.map((kind) => DataFiles.load(kind))).then(() => DataFiles.load('map')).then(() => {
     player.giveStartingItems();
     // the editor starts with the first tile picked, which exists now
     Editor.checkSelected();

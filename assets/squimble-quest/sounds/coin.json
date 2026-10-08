@@ -1,0 +1,11 @@
+{
+  "pitch": 988,
+  "jump": 5,
+  "jumpAt": 60,
+  "attack": 0,
+  "sustain": 60,
+  "punch": 50,
+  "decay": 220,
+  "pulseWidth": 30,
+  "volume": 45
+}

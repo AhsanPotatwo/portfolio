@@ -1,10 +1,11 @@
 # Tiles
 
-Every tile in the game is one line in `tiles.json`, in this folder. The game loads it when it starts, and the map editor shows every tile in it.
+Every tile in the game is its own file in this folder, named after it (`lava.json` is lava), and `index.json` lists them. The game loads them when it starts, and the map editor shows every one. How the data folders work is in the [data README](../README.md).
 
 | File or folder | What it is |
 |---|---|
-| `tiles.json` | Every tile: its name, colour, texture and settings |
+| `grass.json`, `lava.json`… | One tile each: its colour, texture and settings |
+| `index.json` | The names of the tiles the game loads, in palette order |
 | `normal/` | Textures for normal tiles: one picture, drawn on every tile of that kind (planks, a tiled floor, a wall). 16 × 16 pixel art works well |
 | `dual-grid/` | Tilesets for dual grid tiles: ground that rounds off and blends into the tiles next to it (grass, dirt, sand, stone, gravel). A square picture of 4 × 4 pieces, e.g. 64 × 64 with 16 × 16 pieces |
 
@@ -32,28 +33,33 @@ Every tile in the game is one line in `tiles.json`, in this folder. The game loa
 
    Every Behaviours and Effects setting works on enemies and NPCs too.
 4. Click **Save**. It's in the game straight away, so you can paint with it and walk on it.
-5. Click **Export tiles**. It downloads `tiles.json`, and the picture too if you chose a new one. The message on screen says where each goes:
-   - drag `tiles.json` into this folder in VS Code, replacing the old one
+5. Click **Export** in the inspector. It downloads the file of every tile you've made or changed (like `ice.json`), and the picture too if you chose a new one. The message on screen says where each goes:
+   - drag the tile files into this folder in VS Code, replacing any old ones
+   - for a new tile, add its name to `index.json`, like `"ice"`
    - drag the picture into `normal/` or `dual-grid/`
 6. Reload the page. The tile's in the game for good.
 
-If you saved a picture straight into `normal/` or `dual-grid/` before choosing it, only `tiles.json` needs dragging in.
+If you saved a picture straight into `normal/` or `dual-grid/` before choosing it, only the tile's file needs dragging in.
 
 ## Making a dual grid tileset
 
 Copy `dual-grid/grass_tileset.png` and paint over it, keeping every piece where it is. Leave the parts that aren't this ground see-through: the tile next to it shows through there. The layout is `DUAL_TILESET_LAYOUT` in [`dualgrid.js`](../../../js/squimble-quest/dualgrid.js). The tile editor won't save a picture that isn't 4 × 4 pieces as a dual grid tile, and says why.
 
-## Changing tiles.json by hand
+## Changing tile files by hand
 
-Each tile only needs the settings that are different from normal (`TILE_DEFAULTS` in [`tiles.js`](../../../js/squimble-quest/tiles.js), whose guide explains each one):
+Each tile's file only needs the settings that are different from normal (`TILE_DEFAULTS` in [`tiles.js`](../../../js/squimble-quest/tiles.js), whose guide explains each one). `lava.json` is:
 
 ```json
-{ "name": "lava", "colour": "#e4572e", "speed": 0.7, "damagePerSecond": 25 }
+{
+  "colour": "#e4572e",
+  "speed": 0.7,
+  "damagePerSecond": 25
+}
 ```
 
 Do these by hand, since the tile editor doesn't:
 
-- **Reorder tiles**: the order is the order in the editor's palette. Where two dual grid tiles meet, the one further down goes on top, so put the ones underneath first (dirt before grass).
-- **Rename or delete a tile**: maps store tile names, so this loses the tile from every map that uses it. The browser console lists what went missing.
+- **Reorder tiles**: the order in `index.json` is the order in the editor's palette. Where two dual grid tiles meet, the one further down goes on top, so put the ones underneath first (dirt before grass).
+- **Rename or delete a tile**: rename or delete its file and its name in `index.json`. Maps store tile names, so this loses the tile from every map that uses it. The browser console lists what went missing.
 
 If a texture can't be found, the tile is drawn in its colour and the browser console says why.

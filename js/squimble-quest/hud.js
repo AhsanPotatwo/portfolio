@@ -18,12 +18,14 @@ function showMessage(text) {
 function drawMessage() {
   if (!hudMessage || millis() > hudMessage.until) return;
   setText(15);
-  const w = textWidth(hudMessage.text) + 32;
+  // fitText() is in utils.js
+  const shown = fitText(hudMessage.text, GAME_W - 64);
+  const w = textWidth(shown) + 32;
   noStroke();
   fill(0, 0, 0, 190);
   rect((GAME_W - w) / 2, 48, w, 34, 6);
   fill(255);
-  text(hudMessage.text, GAME_W / 2, 65);
+  text(shown, GAME_W / 2, 65);
 }
 
 // shown while the map files load at the start

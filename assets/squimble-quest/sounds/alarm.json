@@ -1,0 +1,10 @@
+{
+  "wave": "triangle",
+  "pitch": 880,
+  "vibrato": 1.5,
+  "vibratoSpeed": 12,
+  "sustain": 140,
+  "decay": 20,
+  "repeats": 4,
+  "gap": 90
+}

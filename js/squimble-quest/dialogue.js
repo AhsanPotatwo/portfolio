@@ -2,7 +2,7 @@
 // pressing E near an npc opens a box along the bottom with their portrait, their name, and their first
 // line (npcs.js) typing itself out. E (or clicking the box) finishes the line, then goes to the next
 // one, and closes after the last. the world keeps going while it's open, and walking away ends it.
-// an npc with a voice (its own picked in the editor, or its kind's in npcs.js, a name in VOICES)
+// an npc with a voice (its own picked in the editor, or its kind's from its npc file, a name in VOICES)
 // says each line with it as it types (renderSpeech() in sound.js), at that voice's talk speed, and
 // finishing a line early cuts the voice off. the voice is looked up by name every line, so changing
 // it in the sound editor changes every npc that uses it

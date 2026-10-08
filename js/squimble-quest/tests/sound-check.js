@@ -1,9 +1,9 @@
-// checks the synthesiser (sound.js): loops join smoothly, sounds.json saves back out the same, bad
+// checks the synthesiser (sound.js): loops join smoothly, every sound file saves back out the same, bad
 // settings get cleaned up, the string, tunes, scatter, reverb and levelling work, and every make one
 // button makes a sound (soundeditor.js). also the doppler
 // maths and moving sound blocks' paths (soundblocks.js). run it with
 // node js/squimble-quest/tests/sound-check.js (no output means it all passed). add "--fix" to rewrite
-// sounds.json in the exported format.
+// the sound and voice files in the exported format.
 //
 // it runs sound.js in node with just enough faked (constrain() from p5, TILE, UIElement), so it can
 // only check the maths. it doesn't play anything, and doesn't touch the browser's audio, sound blocks
@@ -17,14 +17,26 @@ const assert = require('assert');
 // UIElement is faked too, just so soundeditor.js loads (for its make one buttons, SOUND_GENERATORS)
 const game = { TILE: 32, console: { ...console, warn: () => {} }, constrain: (v, a, b) => Math.min(b, Math.max(a, v)), UIElement: class {} };
 vm.createContext(game);
-for (const file of ['utils.js', 'sound.js', 'soundblocks.js', 'soundeditor.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), game);
+for (const file of ['utils.js', 'datafiles.js', 'sound.js', 'soundblocks.js', 'soundeditor.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), game);
 
-const soundsPath = `${__dirname}/../../../assets/squimble-quest/sounds/sounds.json`;
-const text = fs.readFileSync(soundsPath, 'utf8').replace(/\r\n/g, '\n');
+// every sound and voice, loaded like DataFiles.load() does (datafiles.js), then each one written back
+// out has to match its file exactly
 vm.runInContext('loadAudioFile = () => {}', game);
-for (const { name, ...settings } of JSON.parse(text).sounds) game.setSound(name, settings);
-if (process.argv.includes('--fix')) fs.writeFileSync(soundsPath, game.soundsToText());
-else assert.strictEqual(game.soundsToText(), text, 'sounds.json saves back out exactly the same');
+const DataFiles = vm.runInContext('DataFiles', game);
+const files = [];
+for (const kind of ['sound', 'voice']) {
+  const folder = `${__dirname}/../../../assets/squimble-quest/${kind}s/`;
+  for (const name of JSON.parse(fs.readFileSync(`${folder}index.json`, 'utf8'))) {
+    const text = fs.readFileSync(`${folder}${name}.json`, 'utf8').replace(/\r\n/g, '\n');
+    DataFiles.kinds[kind].define(name, JSON.parse(text));
+    files.push({ kind, name, path: `${folder}${name}.json`, text });
+  }
+}
+for (const { kind, name, path, text } of files) {
+  const saved = DataFiles.text(DataFiles.kinds[kind].toData(name));
+  if (process.argv.includes('--fix')) fs.writeFileSync(path, saved);
+  else assert.strictEqual(saved, text, `${kind}s/${name}.json saves back out exactly the same`);
+}
 
 const SOUNDS = vm.runInContext('SOUNDS', game);
 const VOICES = vm.runInContext('VOICES', game);

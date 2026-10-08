@@ -1,0 +1,16 @@
+{
+  "wave": "sawtooth",
+  "pitch": 220,
+  "vibrato": 0.3,
+  "vibratoSpeed": 10,
+  "wander": 1,
+  "wanderSpeed": 4,
+  "attack": 0,
+  "sustain": 2000,
+  "decay": 0,
+  "lowPass": 60,
+  "resonance": 30,
+  "volume": 45,
+  "range": 6,
+  "doppler": 150
+}

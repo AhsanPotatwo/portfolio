@@ -1,0 +1,8 @@
+{
+  "wave": "sine",
+  "pitch": 660,
+  "attack": 0,
+  "sustain": 1000,
+  "decay": 0,
+  "volume": 45
+}

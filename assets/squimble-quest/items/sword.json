@@ -1,0 +1,12 @@
+{
+  "label": "Sword",
+  "category": "weapon",
+  "weapon": {
+    "damage": 20,
+    "reach": 60,
+    "swingTime": 0.1,
+    "cooldown": 0.05,
+    "colour": "#ffffff"
+  },
+  "colour": "#c9d1d9"
+}

@@ -33,7 +33,7 @@
 //     "warps": [                            (warps.js)
 //       { "name": "hut", "col": -11, "row": -5, "to": "hut", "toWarp": "exit", "activate": "interact", "enemies": true }
 //     ],
-//     "sounds": [                           sound blocks (soundblocks.js), a sound from sounds.json.
+//     "sounds": [                           sound blocks (soundblocks.js), a sound's name.
 //       { "sound": "coin", "col": 2, "row": 4, "activate": "step" },    move, distance, speed and show
 //       { "sound": "car", "col": 0, "row": 9, "activate": "loop", "move": "past", "distance": 40, "speed": 14 }
 //     ]                                                                  only if it moves or is seen
@@ -131,7 +131,7 @@ function mapFromData(data) {
   if (data.spawn) map.spawn = { x: data.spawn.x, y: data.spawn.y };
   // older files might have a "showGrid" that isn't used any more (the grid is dev mode only now)
 
-  // anything it doesn't know (like a tile that got renamed in tiles.json) gets left out, with one
+  // anything it doesn't know (like a tile whose file got renamed) gets left out, with one
   // warning that lists them all
   const unknown = new Set();
 
@@ -189,7 +189,7 @@ function mapFromData(data) {
   }
 
   // "sounds", which older maps don't have. the sound's name and tile are needed, and how it plays
-  // defaults to step. a sound that isn't in sounds.json (renamed, say) is kept, so exporting doesn't
+  // defaults to step. a sound that isn't loaded (renamed, say) is kept, so exporting doesn't
   // lose it, but it's silent and red in the editor, like a broken warp
   for (const entry of data.sounds ?? []) {
     if (typeof entry.sound !== 'string' || !Number.isInteger(entry.col) || !Number.isInteger(entry.row)) {
@@ -243,22 +243,11 @@ function registerMap(name, data) {
 
 // ---------- the maps folder ----------
 
-// loads every map in MAP_FILES (maps.js), once at the start. the promise finishes when they've all
-// loaded or failed. any that fail get skipped with a console warning
-function loadMapFiles() {
-  // downloads them all at once (fetchJson() in utils.js), null for any that fail
-  const loads = MAP_FILES.map((file) => fetchJson(MAP_FOLDER + file).catch((err) => {
-    console.warn(`Couldn't load the map file "${file}": ${err.message}.`);
-    return null;
-  }));
-
-  // added in MAP_FILES order rather than whichever finished first, so dev mode's M order never changes
-  return Promise.all(loads).then((results) => {
-    results.forEach((data, i) => {
-      if (data) registerMap(mapNameFromFile(MAP_FILES[i]), data);
-    });
-  });
-}
+// every map in maps/index.json loads once at the start, after everything else since a map checks its
+// tiles, sounds and characters exist (datafiles.js, setup() in sketch.js). they're added in the
+// index's order, so dev mode's M goes through them in that order. a map that fails gets skipped with a
+// console warning
+DataFiles.register('map', { define: registerMap });
 
 // ---------- export and open (map editor buttons) ----------
 
@@ -278,6 +267,10 @@ function exportMap(map, typedName) {
   map.name = name;
 
   downloadTextFile(`${name}.json`, mapDataToText(data));
+  // a new map needs adding to the list too (datafiles.js)
+  const listed = DataFiles.listed.map ??= new Set();
+  DataFiles.tellWhere({ [DATA_KINDS.map]: { files: [`${name}.json`], add: listed.has(name) ? [] : [name] } });
+  listed.add(name);
 }
 
 // lets you pick a map file (pickFile() in utils.js) and goes to it

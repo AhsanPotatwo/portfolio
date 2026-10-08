@@ -1,0 +1,10 @@
+{
+  "pitch": 260,
+  "slide": 40,
+  "attack": 0,
+  "sustain": 100,
+  "decay": 80,
+  "pulseWidth": 35,
+  "lowPass": 70,
+  "volume": 45
+}

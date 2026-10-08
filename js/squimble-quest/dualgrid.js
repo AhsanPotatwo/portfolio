@@ -1,5 +1,5 @@
 // dual grid tiles: ground (grass, dirt, sand) that blends into its neighbours with rounded edges,
-// drawn from a tileset. a tile uses this when it has "dualGrid" in tiles.json. all the drawing for
+// drawn from a tileset. a tile uses this when it has "dualGrid" in its file. all the drawing for
 // them is in this file.
 //
 // maps and the editor don't know anything about it: a map still just stores 'grass', only the drawing

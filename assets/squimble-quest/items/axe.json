@@ -1,0 +1,14 @@
+{
+  "label": "Axe",
+  "category": "weapon",
+  "weapon": {
+    "damage": 35,
+    "reach": 68,
+    "arc": 160,
+    "swingTime": 0.25,
+    "cooldown": 0.65,
+    "colour": "#ffd9a0"
+  },
+  "rarity": "rare",
+  "colour": "#b0773a"
+}

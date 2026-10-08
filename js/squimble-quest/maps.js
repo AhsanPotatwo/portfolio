@@ -1,27 +1,12 @@
-// the list of maps. each map is a file in assets/squimble-quest/maps/ (the README.md in there is the
-// guide). the short version: Export from the editor (dev mode, then B), put the file in that folder,
-// and add it to MAP_FILES
-
-// path from the root of the site
-const MAP_FOLDER = 'assets/squimble-quest/maps/';
-
-// loaded when the game starts. the file name is the map's name ('forest.json' is 'forest'). dev mode's
-// M goes through them in this order
-const MAP_FILES = [
-  'default.json',
-  'example.json',
-  'hut.json',
-  'node-test.json',
-  // rooms testing the enemy ais (pathfinding.js), guide in the maps README
-  'ai-test.json',
-  // the doppler effect and moving sounds (sound.js, soundblocks.js), guide in the maps README
-  'doppler-test.json',
-];
+// the maps. each map is a file in assets/squimble-quest/maps/ (the README.md in there is the guide),
+// and maps/index.json lists them (datafiles.js). the short version: Export from the editor (dev mode,
+// then B), put the file in that folder, and add its name to index.json. the file name is the map's
+// name ('forest.json' is 'forest'), and dev mode's M goes through them in the index's order
 
 const START_MAP = 'example';
 
 // map names, each with a function that builds a fresh copy of that map from its file. filled in from
-// MAP_FILES (loadMapFiles() in mapfile.js) and by the editor's Open and Export. add to it with addMap()
+// maps/index.json (mapfile.js) and by the editor's Open and Export. add to it with addMap()
 const MAPS = {};
 
 // every map that's been built since the page loaded, by name (getMap()). going back to one finds it
