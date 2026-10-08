@@ -11,7 +11,8 @@
 //   toWarp    the warp you arrive at on that map. '' means its spawn
 //   activate  'step' goes off when you step onto it. 'interact' needs E within WARP_REACH (KEYS
 //             in config.js)
-//   enemies   true lets enemies that are chasing you follow you through (sendFollowers())
+//   enemies   true lets enemies that are chasing you follow you through (sendFollowers()), if they
+//             can (canFollow())
 //
 // every warp is both a way out and a place to arrive, so a house needs two that lead to each other.
 // links go by name, so moving a warp is fine, but renaming one breaks any links to it (warpProblem()).
@@ -30,10 +31,6 @@
 // how many px from the middle of your feet to the middle of an 'interact' warp's tile. it's more than
 // a tile so it works from the tile in front, even if the warp's tile can't be walked on
 const WARP_REACH = 40;
-
-// how many seconds a following enemy takes to open an 'interact' warp once it gets there (like it's
-// pressing E)
-const WARP_ENEMY_OPEN_TIME = 1;
 
 // only used in the editor. while playing, the tile and objects show where warps are
 const WARP_COLOURS = {
@@ -84,23 +81,24 @@ const Warps = {
       console.warn(`The warp "${warp.name}" is broken: ${problem}.`);
       return;
     }
-    if (warp.enemies) this.sendFollowers(warp, player);
+    this.sendFollowers(warp, player);
     loadMap(warp.to, warp.toWarp); // in sketch.js
   },
 
-  // enemies chasing `player` follow them through. each one takes as long as it would to walk there in
-  // a straight line, plus WARP_ENEMY_OPEN_TIME for E warps, and then comes out the other end
-  // (comeOut()). on the same map they actually walk there (Enemy.update() in enemy.js). to another map
-  // they can't, because maps the player isn't on stand still, so they leave now and wait in followers.
+  // enemies chasing `player` follow them through, if canFollow() says they can. each one takes as long
+  // as it would to walk there in a straight line, plus its doorOpenTime (enemies.js) for E warps, and
+  // then comes out the other end (comeOut()). on the same map they actually walk there
+  // (Enemy.update() in enemy.js). to another map they can't, because maps the player isn't on stand
+  // still, so they leave now and wait in followers.
   // chasing means enemy.chasing (sensePlayer() in enemies.js). enemies and worldMap are the game's
   // (sketch.js)
   sendFollowers(warp, player) {
     const x = (warp.col + 0.5) * TILE;
     const y = (warp.row + 0.5) * TILE;
-    const open = warp.activate === 'interact' ? WARP_ENEMY_OPEN_TIME : 0;
-    const chasing = enemies.filter((enemy) => !enemy.following && enemy.chasing === player && enemy.speed > 0);
+    const chasing = enemies.filter((enemy) => !enemy.following && enemy.chasing === player && enemy.speed > 0 && canFollow(enemy, warp));
     for (const enemy of chasing) {
       const walk = Math.hypot(x - enemy.x, y - (enemy.y + feetBelowCentre(enemy.settings))) / enemy.speed;
+      const open = warp.activate === 'interact' ? enemy.type.doorOpenTime : 0;
       enemy.following = { warp, time: walk + open };
     }
     if (getMap(warp.to) === worldMap) return;
@@ -116,7 +114,8 @@ const Warps = {
     }
   },
 
-  // a follower comes out where its warp leads. it joins enemies if the player's on that map, otherwise
+  // a follower comes out where its warp leads. this is the moment it goes through, so a door opening
+  // (an animation or sound) would start here. it joins enemies if the player's on that map, otherwise
   // it goes in the characters that map is keeping (loadMap() in sketch.js)
   comeOut(enemy) {
     const warp = enemy.following.warp;
@@ -145,6 +144,16 @@ const Warps = {
     if (warp) drawKeyPrompt((warp.col + 0.5) * TILE, warp.row * TILE - 4); // npc.js
   },
 };
+
+// can `enemy` follow the player through `warp`? the one place that decides, so new rules go here (a
+// locked door, a hole too small for big enemies, a key it has to carry...). the warp has to let
+// enemies through (its enemies box), the enemy has to follow through warps (followsThroughWarps, its
+// kind's or its spawn's, enemy.js), and an E warp counts as a door, so it has to be able to open
+// doors (doorOpenTime isn't null, enemies.js)
+function canFollow(enemy, warp) {
+  if (!warp.enemies || !enemy.followsThroughWarps) return false;
+  return warp.activate !== 'interact' || enemy.type.doorOpenTime !== null;
+}
 
 // [col, row] of the tile under the player's feet right now. like player.tileCol/tileRow
 // (character.js), except those only update when they move. so after dying and respawning in the

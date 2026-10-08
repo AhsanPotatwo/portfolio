@@ -57,6 +57,6 @@
     { "type": "villager", "col": -3, "row": -3 }
   ],
   "warps": [
-    { "name": "hut", "col": -11, "row": -5, "to": "hut", "toWarp": "exit", "activate": "interact" }
+    { "name": "hut", "col": -11, "row": -5, "to": "hut", "toWarp": "exit", "activate": "interact", "enemies": true }
   ]
 }

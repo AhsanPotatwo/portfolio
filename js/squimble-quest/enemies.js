@@ -26,6 +26,12 @@
 //                          in range, like a buzzing wasp or a rumbling machine. it gets the doppler
 //                          effect as it moves (sound.js). each spawn can pick its own (right click it
 //                          in the editor). null is silent
+//   followsThroughWarps    whether it follows you through warps that let enemies through (a warp's
+//                          enemies box). each spawn can change it (right click it in the editor)
+//   doorOpenTime           seconds it takes to open an E warp (a door) when following you through
+//                          one, like it's pressing E. null means it can't open doors, so it gets
+//                          left behind at E warps but still follows through step ones
+//                          (canFollow() in warps.js)
 //   onDeath                (enemy) => { ... } that runs at 0 health. if it's still on 0 afterwards it's
 //                          gone for good, so this can drop loot, or bring it back to life like the dummy
 //
@@ -60,6 +66,8 @@ const ENEMY_DEFAULTS = {
   sightRange: 480,
   attackRange: 44,
   sound: null,
+  followsThroughWarps: true,
+  doorOpenTime: 1,
   onDeath: null,
 };
 
