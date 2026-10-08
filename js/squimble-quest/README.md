@@ -21,7 +21,7 @@ This README and the code comments are the only notes. When you change something:
 
 **Running:** maps load with `fetch`, so serve it locally (see "Running the game locally" in the maps README), e.g. `py -m http.server 8765` from the portfolio root, then `http://localhost:8765/squimble-quest.html`. From `file://` it falls back to a blank stand-in map.
 
-**Dev mode:** **`** or **Ctrl + D**. Then **H** lists keys, **B** map editor, **M** next map, **T** teleport to mouse, **- = 0** zoom out/in/reset, **G** toggle tile grid, **P** toggle enemy AI routes.
+**Dev mode:** **`** or **Ctrl + D**. Then **H** opens the dev menu (pick what the info panel and map show, click tools, see every key), **B** map editor, **M** next map, **T** teleport to mouse, **- = 0** zoom out/in/reset, **G** toggle tile grid, **P** toggle enemy AI routes.
 
 ## How the code is written
 
@@ -48,7 +48,7 @@ This README and the code comments are the only notes. When you change something:
   - Each map's `warps`: `{ name, col, row, to, toWarp, activate, enemies }`. Every warp is both exit and arrival, so a house needs two, each leading to the other.
   - Links go by **name**: `to` a map name, `toWarp` a warp name there (`''` = that map's spawn). Moving a warp is safe; renaming breaks links to it.
   - `activate`: `step` (on stepping onto it) or `interact` (E within `WARP_REACH`, over a tile, so it works from the tile in front).
-  - **Enemies can follow** with `enemies: true`: on use, each enemy with an ai and the player in `sightRange` gets `enemy.following = { warp, time }` (straight-line walk time, plus `WARP_ENEMY_OPEN_TIME` for E warps). Same map: it really walks (`Enemy.followThroughWarp()`). Other map: maps the player isn't on stand still, so it moves into `Warps.followers` and `Warps.update()` counts down. Either way `Warps.comeOut()` places it on the arrival tile when due, even if a wall blocked it. Enemies never use warps on their own.
+  - **Enemies can follow** with `enemies: true`: on use, each enemy chasing the player that `canFollow()` allows gets `enemy.following = { warp, time }` (straight-line walk time, plus its kind's `doorOpenTime` for E warps). `canFollow()` is the one place that decides: the warp's `enemies`, the enemy's `followsThroughWarps` (its kind's, or its spawn's `follows`), and E warps count as doors, so `doorOpenTime: null` kinds get left behind there. New rules (locked doors, keys, size) go in `canFollow()`, and a door animation would start in `comeOut()`. Same map: it really walks (`Enemy.followThroughWarp()`). Other map: maps the player isn't on stand still, so it moves into `Warps.followers` and `Warps.update()` counts down. Either way `Warps.comeOut()` places it on the arrival tile when due, even if a wall blocked it. Enemies never use warps on their own.
   - **Arriving on a step warp doesn't bounce you back:** step warps fire only when the player's tile *changes* onto them, and `Warps.arrived()` marks the landing tile as stepped on (`loadMap` and `Player.respawn` call it).
   - Warps track the player's tile themselves (`feetTile()`), not `player.tileCol`/`tileRow`, which lag a frame after a mid-frame death and respawn; that used to send players back out the warp they arrived by.
   - `warpProblem(warp)` explains a broken target. Used when warping (`showMessage()`, hud.js), for red editor markers, and by `checkAllWarps()` (console warnings once maps load).
@@ -107,7 +107,7 @@ This README and the code comments are the only notes. When you change something:
   - `FormBox` (formbox.js, with `Picker` and `Checkbox`) is the in-game ask box: New/Resize sizes, New's fill, Export's name, warp and tile settings. Give it a title and `rows` (or `tabs` of rows) and it lays out; `side` adds a column beside the rows (the tile editor's pictures). `Picker` is choose-one (`tilePicker()` in editor.js makes a tile one). Any UI element with a `value` can be a row field. It's a window: dragging the title moves the whole `form-box` group, **×** cancels. `onUpdate` runs every frame while open, `onCancel` on closing unconfirmed.
   - `PaletteGrid` is one element that draws and hit-tests every square, reading catalogues each frame, so new tiles appear automatically. It scrolls (clipped) and consumes `Input.wheel` while hovered, so the camera doesn't zoom. **Right click** a tile square for the tile editor. The inspector's **New** and **Export** show only on Tiles, **Edit** while a tile is picked.
   - While WASD pans, the editor UI and dev panels fade (`Editor.uiAlpha`, applied in `sketch.js`).
-- **Dev mode** (`debug.js`): compact status panel top left. Key lists are `DEV_KEYS` and `EDITOR_KEYS`, toggled with **H**.
+- **Dev mode** (`debug.js`): info panel top left, sized to its text (long values cut with `fitText()`). **H** opens `DevMenu`, one `UIElement` that lays itself out each frame: ticks for `DEV_INFO` (panel readouts) and `DEV_OVERLAYS` (map overlays, read with `Debug.shows(name)`), buttons for `DEV_TOOLS`, and `EDITOR_KEYS` while the editor's open. Key chips come from `KEYS` via `keyName()`, so rebinding updates the menu. Ticks are saved in localStorage (`sq-dev-show`).
 
 ## Where to add things
 
@@ -121,7 +121,7 @@ Each file's header has the details.
 | A tile | In game: editor, Tiles tab, **New** in the inspector, then **Export**. |
 | A tile setting | Default in `TILE_DEFAULTS` (tiles.js), behaviour in `walk()` or `checkTile()` (character.js), a `TILE_BEHAVIOURS` line (tileeditor.js) for its editor row and tab. |
 | A map | Export into `assets/squimble-quest/maps/` and add it to `MAP_FILES` (maps.js). |
-| A key | Its action in `KEYS` (config.js), then `Input.isDown/wasPressed('action')`. Dev tools also go in `DEV_KEYS` (debug.js). |
+| A key | Its action in `KEYS` (config.js), then `Input.isDown/wasPressed('action')`. Dev tools also get a line in `DEV_TOOLS` (debug.js). A dev readout is a line in `DEV_INFO`, a dev overlay a line in `DEV_OVERLAYS`. |
 | A placeable kind in the editor | A line in `EDITOR_TABS` (editor.js) with its catalogue and a `place(map, name, col, row)`. A new trigger is a `TRIGGER_TYPES` line with its own `place()`. A new character kind also needs `SPAWN_KINDS` (tilemap.js). |
 | A box that asks for things | `FormBox.open({ title, rows, onConfirm })` (formbox.js); `tabs` instead of `rows` for many settings. |
 | A new UI element kind | A class extending `UIElement` (guide atop ui.js). Buttons: guide in button.js. |

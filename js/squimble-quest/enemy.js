@@ -3,11 +3,14 @@
 // through warps
 class Enemy extends Character {
   // type: an ENEMY_TYPES name. col, row: its tile. ai: the ENEMY_AIS name its spawn picked
-  // (enemies.js), or undefined to use its kind's own
-  constructor(type, col, row, ai) {
+  // (enemies.js), or undefined to use its kind's own. follows: whether its spawn picked to follow you
+  // through warps, or undefined for its kind's followsThroughWarps
+  constructor(type, col, row, ai, follows) {
     super(0, 0, ENEMY_TYPES[type]);
     this.type = ENEMY_TYPES[type];
     this.ai = ai !== undefined ? ENEMY_AIS[ai] : this.type.ai;
+    // read by canFollow() (warps.js)
+    this.followsThroughWarps = follows ?? this.type.followsThroughWarps;
     // the player it's after, and the seconds since it last saw or heard them (sensePlayer() in
     // enemies.js). every ai sets these, and Warps.sendFollowers() (warps.js) and the pathfinders read them
     this.chasing = null;

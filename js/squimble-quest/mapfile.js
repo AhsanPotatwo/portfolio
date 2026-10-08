@@ -23,7 +23,8 @@
 //     ],
 //     "enemies": [                          start tiles (enemies.js), ai only if picked (ENEMY_AIS),
 //       { "type": "dummy", "col": 3, "row": -3 },    sound (a SOUNDS name it loops) only if picked
-//       { "type": "grunt", "col": 6, "row": -3, "ai": "careful", "sound": "bee" }
+//       { "type": "grunt", "col": 6, "row": -3, "ai": "careful", "sound": "bee" },
+//       { "type": "grunt", "col": 8, "row": -3, "follows": false }  follows (through warps) only if picked
 //     ],
 //     "npcs": [                             start tiles (npcs.js), voice (VOICES) and sound only if picked
 //       { "type": "villager", "col": -3, "row": -3 },
@@ -86,8 +87,8 @@ function mapToData(map) {
   };
   // "enemies" and "npcs" (SPAWN_KINDS in tilemap.js)
   for (const info of Object.values(SPAWN_KINDS)) {
-    // ai, voice and sound only go in if one was picked (JSON leaves out undefined)
-    data[info.fileKey] = map[info.list].map(({ type, col, row, ai, voice, sound }) => ({ type, col, row, ai, voice, sound }));
+    // ai, voice, sound and follows only go in if one was picked (JSON leaves out undefined)
+    data[info.fileKey] = map[info.list].map(({ type, col, row, ai, voice, sound, follows }) => ({ type, col, row, ai, voice, sound, follows }));
   }
   data.warps = map.warps.map(({ name, col, row, to, toWarp, activate, enemies }) => ({ name, col, row, to, toWarp, activate, enemies }));
   // sound first, so mapDataToText() squashes each one onto one line. moving and seen ones only
@@ -164,7 +165,7 @@ function mapFromData(data) {
         unknown.add(`${kind} "${spawn.type}"`);
         continue;
       }
-      map.addSpawn(kind, spawn.type, spawn.col, spawn.row, { ai: spawn.ai, voice: spawn.voice, sound: spawn.sound });
+      map.addSpawn(kind, spawn.type, spawn.col, spawn.row, { ai: spawn.ai, voice: spawn.voice, sound: spawn.sound, follows: spawn.follows });
     }
   }
 

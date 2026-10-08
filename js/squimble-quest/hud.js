@@ -1,26 +1,6 @@
-// things drawn over the game that aren't ui elements: messages (showMessage()), text panels and the
-// crosshair. later on health bars and quest text would go here too. they're in screen positions, so
-// draw them after camera.end()
-
-// the space between lines in drawPanel()
-const PANEL_LINE_HEIGHT = 18;
-
-// a see-through dark box with lines of text in it, like the dev mode panels (debug.js). x, y is the
-// top left, and panelHeight() tells you how tall it is so you can put things under it
-function drawPanel(x, y, width, lines, size) {
-  noStroke();
-  fill(0, 0, 0, 160);
-  rect(x, y, width, panelHeight(lines), 6);
-
-  fill(255);
-  // monospace so numbers that keep changing don't jiggle about
-  setText(size, NORMAL, LEFT, TOP, 'Courier Prime');
-  lines.forEach((line, i) => text(line, x + 8, y + 6 + i * PANEL_LINE_HEIGHT));
-}
-
-function panelHeight(lines) {
-  return lines.length * PANEL_LINE_HEIGHT + 12;
-}
+// things drawn over the game that aren't ui elements: messages (showMessage()) and the crosshair
+// (dev mode's panels are in debug.js). later on health bars and quest text would go here too. they're
+// in screen positions, so draw them after camera.end()
 
 // how many seconds a showMessage() stays up
 const MESSAGE_TIME = 4;

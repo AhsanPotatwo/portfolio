@@ -159,7 +159,7 @@ function loadMap(name, warpName = '') {
 function spawnCharacters() {
   // the npc you're talking to is about to be replaced
   if (Dialogue.active) Dialogue.close();
-  enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row, spawn.ai));
+  enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row, spawn.ai, spawn.follows));
   npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row, spawn.voice));
   // the sound each one loops wherever it goes: its own if its spawn picked one, otherwise its kind's
   // (soundblocks.js plays them)
@@ -264,7 +264,7 @@ function draw() {
   // is slow and would slow them down
   if (!WarpGraph.active && !SoundEditor.active) {
     gameCamera.begin();
-    drawWorld(gameCamera, worldMap, Debug.enabled && Debug.showGrid);
+    drawWorld(gameCamera, worldMap, Debug.shows('grid'));
     // sort by feet so whatever's lower on screen is in front. drops sort by their shadow (even while
     // they're being thrown). they show in the editor too, since you can place them there
     const things = [
@@ -274,7 +274,7 @@ function draw() {
     things.sort((a, b) => a.y - b.y);
     for (const thing of things) thing.draw();
     // dev mode: each enemy's ai and its route (pathfinding.js)
-    if (Debug.enabled && Debug.showPaths) drawEnemyPlans(enemies, gameCamera);
+    if (Debug.shows('paths')) drawEnemyPlans(enemies, gameCamera);
     // sound blocks set to be seen (soundblocks.js). the editor draws every block its own way
     if (!Editor.active) SoundBlocks.draw(worldMap);
     if (!Editor.active && !Dialogue.active) {
@@ -291,7 +291,8 @@ function draw() {
   if (Editor.active) drawingContext.globalAlpha = Editor.uiAlpha;
   Debug.draw(player, gameCamera, worldMap, aim);
   if (!Editor.active && !Dialogue.active && !InventoryScreen.active) Hotbar.drawLabel();
-  UI.draw();
+  // dev mode can outline every ui element (debug.js)
+  UI.draw(Debug.shows('hitboxes'));
   InventoryScreen.drawDragged();
   pop();
   drawMessage();

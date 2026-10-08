@@ -57,16 +57,12 @@ const EDITOR_MAX_MAP_SIZE = 500;
 // what a New map is called until it's exported
 const NEW_MAP_NAME = 'new-map';
 
-// added under DEV_KEYS in dev mode's H list (debug.js)
+// [key, what it does], listed in the dev menu while the editor's open (debug.js)
 const EDITOR_KEYS = [
-  'MAP EDITOR KEYS',
-  'left click  paint / place',
-  'right click change settings (warps, sound blocks, enemy ai,',
-  '            npc voices, character sounds, palette tiles,',
-  '            items and sounds)',
-  'WASD        move around',
-  'wheel       zoom',
-  'B           close the editor',
+  ['Left click', 'paint or place'],
+  ['Right click', 'settings'],
+  ['WASD', 'move around'],
+  ['Wheel', 'zoom'],
 ];
 
 // the ui fading out while WASD moves the camera
@@ -254,8 +250,9 @@ const Editor = {
     button('Paint', { isOn: () => this.selected !== null, onClick: () => { this.selected = this.lastPicked; } });
     button('Erase', { isOn: () => this.selected === null, onClick: () => { this.selected = null; } });
     separator();
-    button('Grid', { isOn: () => Debug.showGrid, onClick: () => { Debug.showGrid = !Debug.showGrid; } });
-    button('Keys', { isOn: () => Debug.showKeys, onClick: () => { Debug.showKeys = !Debug.showKeys; } });
+    button('Grid', { isOn: () => Debug.show.grid, onClick: () => Debug.flip('grid') });
+    // the dev menu (debug.js), which has the keys too
+    button('Dev', { isOn: () => Debug.menu.visible, onClick: () => Debug.toggleMenu() });
     // Play goes in the middle like in a game engine, and closes the editor (player and gameCamera are
     // from sketch.js)
     x = Math.max(x + 16, (GAME_W - 64) / 2);
@@ -659,7 +656,7 @@ const Editor = {
       let number = 1;
       while (map.warp(`warp${number}`)) number++;
       // goes nowhere and works by stepping, until you change it
-      warp = { name: `warp${number}`, col, row, to: '', toWarp: '', activate: 'step', enemies: false };
+      warp = { name: `warp${number}`, col, row, to: '', toWarp: '', activate: 'step', enemies: true };
       map.warps.push(warp);
     }
     this.editWarp(map, warp);
@@ -723,10 +720,12 @@ const Editor = {
     });
   },
 
-  // picks an enemy spawn's ai (ENEMY_AIS in enemies.js, '' means its kind's own) and the sound it
-  // carries around. Export saves them
+  // picks an enemy spawn's ai (ENEMY_AIS in enemies.js, '' means its kind's own), the sound it
+  // carries around, and whether it follows you through warps ('' is its kind's followsThroughWarps,
+  // canFollow() in warps.js). Export saves them
   editEnemy(spawn) {
     const own = aiName(ENEMY_TYPES[spawn.type].ai);
+    const follows = (yes) => (yes ? 'follows you through' : 'stays behind');
     FormBox.open({
       title: `Enemy: ${spawn.type}`,
       hint: 'direct is the old straight line, the rest go round',
@@ -739,10 +738,21 @@ const Editor = {
           value: spawn.ai ?? '',
           label: (name) => name || `its own (${own})`,
         }),
-      }, { label: 'Sound', field: this.characterSoundPicker(spawn, ENEMY_TYPES[spawn.type]) }],
-      onConfirm: ([ai, sound]) => {
+      }, { label: 'Sound', field: this.characterSoundPicker(spawn, ENEMY_TYPES[spawn.type]) }, {
+        label: 'Warps',
+        field: new Picker({
+          w: 180,
+          choices: ['', true, false],
+          value: spawn.follows ?? '',
+          label: (yes) => (yes === '' ? `its own (${follows(ENEMY_TYPES[spawn.type].followsThroughWarps)})` : follows(yes)),
+        }),
+      }],
+      onConfirm: ([ai, sound, follows]) => {
         if (ai) spawn.ai = ai;
         else delete spawn.ai;
+        if (follows === '') delete spawn.follows;
+        else spawn.follows = follows;
+        // makes the characters again, so the one on the map picks all of these up
         this.setCharacterSound(spawn, sound);
       },
     });

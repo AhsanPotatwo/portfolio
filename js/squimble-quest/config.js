@@ -164,8 +164,8 @@ const KEYS = {
   // turns dev mode on and off (debug.js). ` is the key under Esc, and Ctrl + D is for keyboards that
   // don't have one. everything below this only works in dev mode
   devMode:   ['Backquote', 'Control+KeyD'],
-  // shows or hides the list of dev mode / editor keys
-  devKeys:   ['KeyH'],
+  // opens and closes the dev menu
+  devMenu:   ['KeyH'],
   zoomIn:    ['Equal', 'NumpadAdd'],
   zoomOut:   ['Minus', 'NumpadSubtract'],
   zoomReset: ['Digit0', 'Numpad0'],
