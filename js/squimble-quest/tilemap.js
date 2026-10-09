@@ -193,8 +193,9 @@ class TileMap {
   // enemies only), voice, a voice's name (VOICES in sound.js, npcs only), and sound, a sound it loops
   // wherever it goes (SOUNDS, either kind). a voice or sound that isn't there is kept, so exporting
   // doesn't lose it, but it's silent. enemies can also have hitParticles and deathParticles, particle
-  // effect names (particles.js) or null for none
-  addSpawn(kind, type, col, row, { ai, voice, sound, follows, hitParticles, deathParticles } = {}) {
+  // effect names (particles.js) or null for none, and wears, item names by EQUIPMENT_SLOTS key
+  // (inventory.js) like { head: 'iron-helmet' }
+  addSpawn(kind, type, col, row, { ai, voice, sound, follows, hitParticles, deathParticles, wears } = {}) {
     const info = SPAWN_KINDS[kind];
     if (!info.types[type]) {
       console.warn(`There's no ${kind} called "${type}", add its file to ${DATA_FOLDER}${DATA_KINDS[kind]}`);
@@ -219,6 +220,19 @@ class TileMap {
     const particles = (name) => (kind === 'enemy' && (name === null || typeof name === 'string') ? name : undefined);
     if (particles(hitParticles) !== undefined) spawn.hitParticles = hitParticles;
     if (particles(deathParticles) !== undefined) spawn.deathParticles = deathParticles;
+    // a missing item is kept like a missing sound, so exporting doesn't lose it, but it doesn't show
+    if (kind === 'enemy' && wears && typeof wears === 'object') {
+      const kept = {};
+      for (const [key, name] of Object.entries(wears)) {
+        if (!EQUIPMENT_SLOTS.some((slot) => slot.key === key) || typeof name !== 'string') {
+          console.warn(`A ${type} wears ${JSON.stringify(name)} on "${key}", which isn't an item name on an EQUIPMENT_SLOTS key (inventory.js), so it's left off`);
+          continue;
+        }
+        if (!ITEM_TYPES[name]) console.warn(`A ${type} wears "${name}", which isn't in ${DATA_FOLDER}${DATA_KINDS.item}, so it doesn't show`);
+        kept[key] = name;
+      }
+      if (Object.keys(kept).length > 0) spawn.wears = kept;
+    }
     this[info.list].push(spawn);
   }
 

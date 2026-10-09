@@ -1,5 +1,7 @@
 {
   "label": "Speedy Shoes",
+  "category": "armour",
+  "wear": "feet",
   "rarity": "uncommon",
   "colour": "#e05a4f"
 }

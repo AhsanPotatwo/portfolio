@@ -22,6 +22,9 @@
 //   label     the name the player sees
 //   category  an ITEM_CATEGORIES key, which decides its editor palette tab
 //   weapon    its weapon's settings (weapons.js) if holding it lets you attack, otherwise null
+//   wear      where it's worn, a WEAR_PLACES key like "feet", or null if it can't be. it fits the
+//             inventory screen's slots for that place (EQUIPMENT_SLOTS in inventory.js), shows on
+//             whoever wears it, and enemies can be given it in the editor. it doesn't do anything yet
 //   rarity    a RARITIES key, which decides its glow (itemglow.js)
 //   colour    placeholder colour in the hotbar
 //   image     like "assets/squimble-quest/items/axe.png"
@@ -35,7 +38,20 @@
 // new tab
 const ITEM_CATEGORIES = {
   weapon: 'Weapons',
+  armour: 'Armour',
   item: 'Items',
+};
+
+// where things can be worn (an item's wear) and the words for each. the inventory screen has a slot for
+// each, and three for accessories (EQUIPMENT_SLOTS in inventory.js). a new place is a line here, its
+// slot there, and a band on the body (WORN_BANDS in character.js) or it goes down the side like
+// accessories do
+const WEAR_PLACES = {
+  head: 'Head',
+  body: 'Body',
+  legs: 'Legs',
+  feet: 'Feet',
+  accessory: 'Accessory',
 };
 
 // from least to most rare, with how they glow (colour, sparkles and image, see itemglow.js). these are
@@ -55,6 +71,7 @@ const ITEM_DEFAULTS = {
   label: '?',
   category: 'item',
   weapon: null,
+  wear: null,
   rarity: 'common',
   colour: '#ff00ff',
   image: null,
@@ -78,6 +95,10 @@ function defineItem(name, settings) {
   if (!ITEM_CATEGORIES[type.category]) {
     console.warn(`The item "${name}" has a category "${type.category}" that isn't in ITEM_CATEGORIES, so it's ${ITEM_DEFAULTS.category}`);
     type.category = ITEM_DEFAULTS.category;
+  }
+  if (type.wear !== null && !WEAR_PLACES[type.wear]) {
+    console.warn(`The item "${name}" has a wear "${type.wear}" that isn't in WEAR_PLACES, so it can't be worn`);
+    type.wear = null;
   }
   type.weapon = makeWeapon(type.weapon, `the item "${name}"`); // weapons.js
   ITEMS_BY_CATEGORY[type.category][name] = type;

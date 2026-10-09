@@ -41,7 +41,7 @@ Replacing a file that's already in the folder (a changed tile, say) is just step
 
 ## Exporting from the editor
 
-The **Export** buttons in the map editor download a file for **everything that's new or changed** since the page loaded: tiles on the Tiles tab, sounds, voices and particles on theirs, and items on the Weapons and Items tabs. New pictures and audio files come too. The message at the top of the screen says where each file goes and which names to add to `index.json`. If there's a lot, the browser console (**F12**) lists it all instead. Exporting again only downloads what's changed since the last time.
+The **Export** buttons in the map editor download a file for **everything that's new or changed** since the page loaded: tiles on the Tiles tab, sounds, voices and particles on theirs, and items on the Weapons, Armour and Items tabs. New pictures and audio files come too. The message at the top of the screen says where each file goes and which names to add to `index.json`. If there's a lot, the browser console (**F12**) lists it all instead. Exporting again only downloads what's changed since the last time.
 
 Enemies, NPCs and objects can't be made in the editor yet. Make those by copying a file.
 

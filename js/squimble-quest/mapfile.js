@@ -27,6 +27,8 @@
 //       { "type": "grunt", "col": 8, "row": -3, "follows": false }  follows (through warps) only if picked
 //       { "type": "grunt", "col": 9, "row": -3, "hitParticles": "sparks", "deathParticles": null }
 //                                           particle effects (particles.js) only if picked, null is none
+//       { "type": "grunt", "col": 10, "row": -3, "wears": { "feet": "speedy-shoes" } }
+//                                           items it wears by EQUIPMENT_SLOTS key (inventory.js), only if any
 //     ],
 //     "npcs": [                             start tiles (npcs.js), voice (VOICES) and sound only if picked
 //       { "type": "villager", "col": -3, "row": -3 },
@@ -89,8 +91,8 @@ function mapToData(map) {
   };
   // "enemies" and "npcs" (SPAWN_KINDS in tilemap.js)
   for (const info of Object.values(SPAWN_KINDS)) {
-    // ai, voice, sound, follows and particles only go in if one was picked (JSON leaves out undefined)
-    data[info.fileKey] = map[info.list].map(({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles }) => ({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles }));
+    // ai, voice, sound, follows, particles and wears only go in if one was picked (JSON leaves out undefined)
+    data[info.fileKey] = map[info.list].map(({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles, wears }) => ({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles, wears }));
   }
   data.warps = map.warps.map(({ name, col, row, to, toWarp, activate, enemies }) => ({ name, col, row, to, toWarp, activate, enemies }));
   // sound first, so mapDataToText() squashes each one onto one line. moving and seen ones only
@@ -167,7 +169,7 @@ function mapFromData(data) {
         unknown.add(`${kind} "${spawn.type}"`);
         continue;
       }
-      map.addSpawn(kind, spawn.type, spawn.col, spawn.row, { ai: spawn.ai, voice: spawn.voice, sound: spawn.sound, follows: spawn.follows, hitParticles: spawn.hitParticles, deathParticles: spawn.deathParticles });
+      map.addSpawn(kind, spawn.type, spawn.col, spawn.row, { ai: spawn.ai, voice: spawn.voice, sound: spawn.sound, follows: spawn.follows, hitParticles: spawn.hitParticles, deathParticles: spawn.deathParticles, wears: spawn.wears });
     }
   }
 

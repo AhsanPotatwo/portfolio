@@ -5,7 +5,7 @@
 //   { move: { x, y }, aim: { x, y } or null, attack: true or false }
 //   move    which way to walk, x and y each -1, 0 or 1 (like Input.direction())
 //   aim     a world position to face, or null to keep facing the same way
-//   attack  start a weapon swing (if it's ready)
+//   attack  swing or shoot its weapon (if it's ready)
 // the player's come from the keyboard and mouse (sketch.js) and enemies' come from their ai
 // (enemies.js), so enemies can do anything the player can.
 //
@@ -14,8 +14,9 @@
 //   colour, outline, hurtColour, hurtFlashTime, healthBarColour, ai (enemies and npcs),
 //   hitParticles, deathParticles (optional)
 //
-// world (for update() and ais) is { map, players, enemies, npcs, characters }, where characters is
-// all of them in one list (sketch.js makes it). players is a list so there can be more than one, so
+// world (for update() and ais) is { map, players, enemies, npcs, characters, arrows }, where characters
+// is all of them in one list and arrows the ones in the air (sketch.js makes it, weapons.js has
+// Arrow). players is a list so there can be more than one, so
 // find them with nearestPlayer() and never assume there's only one
 
 // controls for doing nothing (no ai, or it's waiting for something)
@@ -99,7 +100,7 @@ class Character {
   update(controls, dt, world) {
     this.walk(controls.move, dt, world);
     this.aimAt(controls.aim);
-    if (controls.attack) this.attack();
+    if (controls.attack) this.attack(world);
 
     if (this.swing) {
       this.swing.update(dt, this.targets(world));
@@ -263,13 +264,24 @@ class Character {
     return this.settings.weapon ?? null;
   }
 
-  // swing towards where it's aiming, if it has a weapon and it's ready
-  attack() {
+  // swings or shoots towards where it's aiming (its weapon's attack, weapons.js), if it has a weapon
+  // and it's ready. arrows go in world.arrows, since they keep flying after the attack's over
+  attack(world) {
     const weapon = this.currentWeapon();
     if (!weapon || this.attackCooldown > 0) return;
+    this.attackCooldown = weapon.cooldown;
+    if (weapon.attack === 'shoot') {
+      world.arrows.push(new Arrow(this, weapon, this.aimAngle));
+      return;
+    }
     this.swing = new MeleeSwing(this, weapon, this.aimAngle, this.backhand);
     this.backhand = !this.backhand;
-    this.attackCooldown = weapon.cooldown;
+  }
+
+  // the item types it's wearing (their wear setting, items.js), drawn on its body. the player and
+  // enemies replace this with their own
+  worn() {
+    return [];
   }
 
   // ---------- health ----------
@@ -327,27 +339,65 @@ class Character {
     rect(x, y, w * (this.health / this.maxHealth), 5, 2);
   }
 
-  // the body and which way it's facing, in world positions (inside camera.begin/end)
+  // the body, what it's wearing and which way it's facing, in world positions (inside camera.begin/end)
   drawBody() {
-    const s = this.settings;
-    // top left, rounded to whole pixels so the edges are sharp
-    const left = Math.round(this.x - this.w / 2);
-    const top = Math.round(this.y - this.h / 2);
-
-    if (s.img) {
-      image(s.img, left, top, this.w, this.h);
-    } else {
-      stroke(s.outline);
-      strokeWeight(2);
-      fill(this.hurtTimer > 0 ? s.hurtColour : s.colour);
-      rect(left, top, this.w, this.h);
-    }
-
-    // a dot towards whichever of the 8 directions it's facing, to show which sprite it would use
-    noStroke();
-    fill(s.outline);
-    const dotX = this.x + this.facing.x * this.w * 0.3;
-    const dotY = this.y + this.facing.y * this.h * 0.3;
-    circle(Math.round(dotX), Math.round(dotY), 8);
+    drawCharacter(this.settings, this.x, this.y, { facing: this.facing, hurt: this.hurtTimer > 0, worn: this.worn() });
   }
+}
+
+// where each wear place (WEAR_PLACES in items.js) goes on the placeholder body, as the top and bottom
+// of a band across it, in parts of its height from the top. accessories go down its side instead
+const WORN_BANDS = {
+  head: [0, 0.26],
+  body: [0.3, 0.62],
+  legs: [0.62, 0.86],
+  feet: [0.86, 1],
+};
+
+// a character's body (its picture, or a placeholder rectangle) with what it's wearing on top and a dot
+// towards whichever of the 8 directions it's facing, to show which sprite it would use. settings is
+// PLAYER or an enemy or npc type, and x, y its middle. Character.drawBody() draws it on the map, and
+// the inventory and the editor's enemy and npc boxes draw big ones (CharacterPreview, inventory.js).
+//   facing  { x, y } each -1 to 1 (Character.facing), normally down
+//   hurt    flash its hurtColour
+//   worn    item types it's wearing (Character.worn())
+function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, worn = [] } = {}) {
+  const w = settings.width;
+  const h = settings.height;
+  // top left, rounded to whole pixels so the edges are sharp
+  const left = Math.round(x - w / 2);
+  const top = Math.round(y - h / 2);
+
+  if (settings.img) {
+    image(settings.img, left, top, w, h);
+  } else {
+    stroke(settings.outline);
+    strokeWeight(2);
+    fill(hurt ? settings.hurtColour : settings.colour);
+    rect(left, top, w, h);
+  }
+
+  // ponytail: worn things are bands in their colour (or their picture stretched over the band) until
+  // there are sprites for them, which would be drawn over the body's sprite here instead
+  let accessories = 0;
+  for (const type of worn) {
+    stroke(0, 0, 0, 90);
+    strokeWeight(1);
+    fill(type.fill);
+    const band = WORN_BANDS[type.wear];
+    if (band) {
+      const bandTop = top + Math.round(band[0] * h);
+      const bandH = Math.round((band[1] - band[0]) * h);
+      if (type.img) image(type.img, left - 1, bandTop, w + 2, bandH);
+      else rect(left - 1, bandTop, w + 2, bandH, 2);
+    } else {
+      // accessories: little gems down its right side, from the waist
+      circle(left + w, top + Math.round(h * 0.45) + accessories * 7, 6);
+      accessories++;
+    }
+  }
+
+  noStroke();
+  fill(settings.outline);
+  circle(Math.round(x + facing.x * w * 0.3), Math.round(y + facing.y * h * 0.3), 8);
 }

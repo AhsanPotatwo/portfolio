@@ -12,7 +12,7 @@
 //   pathfinding.js enemy routes round walls and harm, and dev mode's view of them
 //   enemies.js    enemy kinds and their ai (after pathfinding.js)
 //   npcs.js       npc kinds and what they say
-//   weapons.js    weapons and their swings
+//   weapons.js    weapons, their swings and arrows
 //   particles.js  particle effects: bits that fly up, fall and fade (blood when something's hit)
 //   items.js      item kinds and their weapons, from items/
 //   itemglow.js   the rarity glow and sparkles drawn around items
@@ -29,7 +29,7 @@
 //   textfield.js  text and number boxes (after ui.js)
 //   formbox.js    the editors' ask-for-things box, Picker and Checkbox
 //   hud.js        non-ui overlays (crosshair, messages, panels)
-//   inventory.js  inventories, hotbar, inventory screen, items on the ground (after button.js)
+//   inventory.js  inventories, hotbar, inventory screen and equipment, character previews, items on the ground (after button.js)
 //   dialogue.js   talking to npcs: who's in range, the text box
 //   warps.js      warps (doors, caves, teleporters...): using them, checking targets
 //   warpgraph.js  editor's diagram of linked warps (after button.js)
@@ -49,6 +49,9 @@ let worldMap;
 // the enemies and npcs that are alive on it right now (see spawnCharacters())
 let enemies = [];
 let npcs = [];
+// arrows in the air on it (Arrow in weapons.js), from anyone. they're forgotten on changing map, and
+// whenever the characters are made again (spawnCharacters())
+let arrows = [];
 // false until the tiles and maps have loaded, and a loading message shows until then
 let mapsReady = false;
 
@@ -73,7 +76,7 @@ function setup() {
   gameCamera.follow(player);
   Hotbar.init(player.inventory);
   // E or I opens it (it's hidden until then)
-  InventoryScreen.init(player.inventory);
+  InventoryScreen.init(player);
 
   // every kind of data (DATA_KINDS in datafiles.js) loads at once, then the maps, since loading a map
   // checks its tiles, sounds and characters exist. then it starts on START_MAP (maps.js). this isn't
@@ -128,8 +131,11 @@ function loadMap(name, warpName = '') {
   const map = getMap(name);
   const sameMap = map === worldMap;
   worldMap = map;
-  // particles are just for show, so the last map's are forgotten (particles.js)
-  if (!sameMap) Particles.clear();
+  // particles are just for show, so the last map's are forgotten (particles.js), and so are its arrows
+  if (!sameMap) {
+    Particles.clear();
+    arrows = [];
+  }
 
   // a warp that doesn't exist (warpProblem() in warps.js normally catches it first) arrives at the
   // spawn instead
@@ -162,6 +168,8 @@ function loadMap(name, warpName = '') {
 function spawnCharacters() {
   // the npc you're talking to is about to be replaced
   if (Dialogue.active) Dialogue.close();
+  // they'd hang in the air in the editor, or hit the new characters
+  arrows = [];
   enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row, spawn.ai, spawn.follows));
   npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row, spawn.voice));
   // the sound each one loops wherever it goes: its own if its spawn picked one, otherwise its kind's
@@ -173,6 +181,8 @@ function spawnCharacters() {
     const spawn = worldMap.enemySpawns[i];
     if (spawn.hitParticles !== undefined) enemy.hitParticles = spawn.hitParticles;
     if (spawn.deathParticles !== undefined) enemy.deathParticles = spawn.deathParticles;
+    // what it's wearing, by EQUIPMENT_SLOTS key (inventory.js)
+    if (spawn.wears) enemy.wears = spawn.wears;
   });
 }
 
@@ -202,7 +212,7 @@ function draw() {
   } else {
     // what characters know about the world (top of character.js). characters is made once here
     // instead of once per character
-    const world = { map: worldMap, players: [player], enemies, npcs, characters: [player, ...enemies, ...npcs] };
+    const world = { map: worldMap, players: [player], enemies, npcs, characters: [player, ...enemies, ...npcs], arrows };
 
     // the number keys and wheel pick the held item, Q drops it, and the open inventory drags items
     // around (inventory.js). not while talking though, since the dialogue box hides the hotbar
@@ -226,6 +236,9 @@ function draw() {
     // the map keeps this list when you leave, so defeated ones stay gone (loadMap())
     enemies = enemies.filter((enemy) => !enemy.dead);
     for (const npc of npcs) npc.update(dt, world);
+    // after the characters, so arrows shot this frame fly from the start (weapons.js). world.arrows
+    // is the same list, which shooting pushed onto
+    arrows = arrows.filter((arrow) => arrow.update(dt, world));
     // enemies following you to another map come out when it's time (warps.js)
     Warps.update(dt);
     // loop sound blocks start when you come close enough to hear them, and so do the sounds
@@ -283,11 +296,12 @@ function draw() {
     const view = gameCamera.view();
     Particles.drawFloor(view);
     // sort by feet so whatever's lower on screen is in front. drops sort by their shadow (even while
-    // they're being thrown), and so do flying particles. drops show in the editor too, since you can
-    // place them there
+    // they're being thrown), and so do arrows and flying particles. drops show in the editor too,
+    // since you can place them there
     const things = [
       ...[player, ...enemies, ...npcs].map((c) => ({ y: c.y + c.h / 2, draw: () => c.draw() })),
       ...worldMap.drops.map((d) => ({ y: Drops.where(d).y, draw: () => Drops.draw(d) })),
+      ...arrows.map((a) => ({ y: a.y, draw: () => a.draw() })),
       ...Particles.flying(view).map((p) => ({ y: p.y, draw: () => Particles.drawOne(p) })),
     ];
     things.sort((a, b) => a.y - b.y);
