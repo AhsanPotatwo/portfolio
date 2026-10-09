@@ -41,12 +41,12 @@ const ParticleEditor = {
     const savedName = () => cleanMapName(nameField.value); // mapfile.js
     // each setting's field by key, and the tabs they go on in PARTICLE_SETTINGS order
     const fields = {};
-    const tabs = [{ label: 'Amount', rows: [{ label: 'Name', field: nameField }] }];
+    const tabs = [{ label: 'Amount', rows: [{ label: 'Name', field: nameField, tip: 'Saving under a new name makes a copy and leaves this one' }] }];
     for (const line of PARTICLE_SETTINGS) {
       fields[line.key] = particleField(line, draft[line.key]);
       let tab = tabs.find(({ label }) => label === line.tab);
       if (!tab) tabs.push(tab = { label: line.tab, rows: [] });
-      tab.rows.push({ label: line.label, field: fields[line.key] });
+      tab.rows.push({ label: line.label, field: fields[line.key], tip: line.tip });
     }
     const coloursOk = () => PARTICLE_SETTINGS.every((line) => !line.colour || HEX_COLOUR.test(fields[line.key].value)); // textfield.js
 
@@ -104,6 +104,27 @@ const ParticleEditor = {
     DataFiles.export(['particle'], pictures);
   },
 };
+
+// a MultiPicker of particle effects, like the ones a tile keeps making (tileeditor.js). value is a
+// list of names or null, and it gives back null when none are ticked. one that doesn't exist stays in
+// the list, so opening the box doesn't quietly drop it
+function particleMultiPicker(value) {
+  return new MultiPicker({
+    w: 180,
+    choices: [...new Set([...Object.keys(PARTICLE_EFFECTS), ...(value ?? [])])],
+    value,
+    empty: null,
+    label: (name) => (PARTICLE_EFFECTS[name] ? name : `${name} (missing)`),
+    art: drawParticleChoice,
+  });
+}
+
+// an effect's little picture in a picker or its list (size px square at x, y). nothing for a name
+// that isn't an effect (none, its own, a missing one)
+function drawParticleChoice(name, x, y, size) {
+  const effect = PARTICLE_EFFECTS[name];
+  if (effect) drawParticleArt(effect, x + size / 2, y + size / 2, size); // particles.js
+}
 
 // the field for a PARTICLE_SETTINGS line (particles.js), starting on value
 function particleField(line, value) {

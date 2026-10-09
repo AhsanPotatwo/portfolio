@@ -700,7 +700,7 @@ const Editor = {
 
     FormBox.open({
       title: 'Warp',
-      hint: 'Click the right of a choice for the next one',
+      hint: 'Click a choice for the full list, or its arrows to step',
       confirmLabel: 'Save',
       rows: [
         { label: 'Name', field: new TextField({ w: 180, value: warp.name }) },
@@ -737,7 +737,7 @@ const Editor = {
   editEnemy(spawn) {
     const type = ENEMY_TYPES[spawn.type];
     const own = type.ai ?? 'still';
-    const follows = (yes) => (yes ? 'follows you through' : 'stays behind');
+    const follows = (yes) => (yes ? 'follows you' : 'stays behind');
     const hitPicker = this.particlePicker(spawn.hitParticles, type.hitParticles);
     const deathPicker = this.particlePicker(spawn.deathParticles, type.deathParticles);
     // saves this box, then edits the effect the picker means (its kind's for ''). none, or a missing
@@ -803,6 +803,7 @@ const Editor = {
       choices: ['', ...Object.keys(PARTICLE_EFFECTS), null, ...(value && !PARTICLE_EFFECTS[value] ? [value] : [])],
       value: value === undefined ? '' : value,
       label: (name) => (name === '' ? `its own (${say(own)})` : say(name)),
+      art: (name, x, y, size) => drawParticleChoice(name === '' ? own : name, x, y, size), // particleeditor.js
     });
   },
 

@@ -4,15 +4,17 @@
 // Enter or the confirm button says yes, and Escape, Cancel or the x closes it. it works like a window,
 // so you can drag the title bar to move it.
 //   FormBox   the box itself. FormBox.open({ title, rows, onConfirm... }) lays itself out (see open())
-//   Picker    pick one thing from a list with the < > arrows
+//   Picker    pick one thing from a list, with the < > arrows or from a list that drops down
+//   MultiPicker  pick any number of things from a list that drops down, with tick boxes
+//   ChoiceList   that drop down list, for both of them
 //   Checkbox  a tick box that's on or off
 //   Slider    drag to pick a number (the sound editor's knobs)
 // the typing fields are in textfield.js, and the colours are EDITOR_COLOURS (editor.js)
 
 // all in screen px: the box's width, the space between rows, field height, title bar height, footer
 // height (where the buttons go), extra width when there's a side column (open()'s side), and tab
-// height and gap
-const FORM_BOX = { width: 300, rowHeight: 30, fieldHeight: 24, titleHeight: 28, footerHeight: 40, sideWidth: 180, tabHeight: 22, tabGap: 2 };
+// height and gap. tipDelay is the seconds the mouse rests on a row before its tip shows
+const FORM_BOX = { width: 300, rowHeight: 30, fieldHeight: 24, titleHeight: 28, footerHeight: 40, sideWidth: 180, tabHeight: 22, tabGap: 2, tipDelay: 0.4 };
 
 const FormBox = {
   active: false,
@@ -35,8 +37,10 @@ const FormBox = {
   dragFrom: null,
 
   // options: { title, hint, confirmLabel, rows, tabs, canConfirm(values), onConfirm(values) }
-  //   rows        each one is { label, field, after }. field is a TextField, NumberField, Picker or
-  //               Checkbox with its width set. after is an optional word that goes after it, like 'tiles'
+  //   rows        each one is { label, field, after, tip }. field is a TextField, NumberField, Picker,
+  //               MultiPicker, Checkbox or Slider with its width set. after is an optional word that
+  //               goes after it, like 'tiles'. tip is optional words saying what it does, shown in a
+  //               little box under the row while the mouse rests on it (FormBoxTip)
   //   tabs        use this instead of rows: [{ label, rows }]. a row of tabs goes under the title and
   //               it shows one tab's rows at a time. the box is sized for the longest tab so it doesn't
   //               jump around when you switch
@@ -107,6 +111,8 @@ const FormBox = {
       x: x + w - 96, y: buttonY, w: 80, h: 24, label: options.confirmLabel, style: 'editorPrimary',
       onClick: () => this.confirm(),
     }));
+    // last, so it's on top of the fields
+    add(new FormBoxTip());
 
     this.fields = [];
     this.showTab(0);
@@ -117,8 +123,19 @@ const FormBox = {
     return this.tabs[this.tab].rows;
   },
 
+  // the open tab's row the mouse is over (anywhere along it, label and all) as { row, index }, or null
+  rowUnderMouse() {
+    const { x, y } = Input.mouse;
+    if (x < this.box.x || x >= this.box.x + FORM_BOX.width) return null;
+    const gap = (FORM_BOX.rowHeight - FORM_BOX.fieldHeight) / 2;
+    const index = Math.floor((y - this.box.y - this.rowsTop + gap) / FORM_BOX.rowHeight);
+    const row = this.rows()[index];
+    return row ? { row, index } : null;
+  },
+
   // shows tab number `index`, hides the others, and focuses its first field
   showTab(index) {
+    ChoiceList.close();
     for (const field of this.fields) field.blur();
     this.tab = index;
     this.tabButtons.forEach((button, i) => { button.on = i === index; });
@@ -130,6 +147,7 @@ const FormBox = {
 
   // onCancel runs unless it was confirmed
   close(confirmed = false) {
+    ChoiceList.close();
     this.active = false;
     Input.typing = false;
     UI.removeGroup('form-box');
@@ -170,6 +188,11 @@ const FormBox = {
     }
     for (const key of Input.typed) {
       if (key === 'Enter') return this.confirm();
+      // Escape closes a drop down list first, then the box
+      if (key === 'Escape' && ChoiceList.current) {
+        ChoiceList.close();
+        continue;
+      }
       if (key === 'Escape') return this.close();
       // nothing on this tab to type into
       if (this.fields.length === 0) continue;
@@ -268,8 +291,43 @@ class FormBoxBackdrop extends UIElement {
   }
 }
 
-// pick one thing from a list (New map's fill, where a warp goes). clicking the left half goes back
-// and the right half goes forward.
+// the tip of the row the mouse rests on (a row's tip, see FormBox.open()), in a little box under it
+// once it's been there FORM_BOX.tipDelay seconds, like the sound editor's tips. not while a list is
+// dropped down or a mouse button is held (dragging a slider), when it'd be in the way
+class FormBoxTip extends UIElement {
+  constructor() {
+    // just for show, clicks go through
+    super({ interactive: false });
+    // the row under the mouse ({ row, index } or null) and how many seconds it's been there
+    this.under = null;
+    this.time = 0;
+  }
+
+  update() {
+    const under = FormBox.active ? FormBox.rowUnderMouse() : null;
+    this.time = under && under.row === this.under?.row ? this.time + deltaTime / 1000 : 0;
+    this.under = under;
+  }
+
+  draw() {
+    const tip = this.under?.row.tip;
+    if (!tip || this.time < FORM_BOX.tipDelay || ChoiceList.current || Input.buttonsHeld.size > 0) return;
+    setText(11, BOLD, LEFT, CENTER);
+    const w = textWidth(tip) + 16;
+    // under the row, starting under its label, kept on screen
+    const x = constrain(FormBox.box.x + 12, 4, GAME_W - w - 4);
+    const y = FormBox.box.y + FormBox.rowsTop + (this.under.index + 1) * FORM_BOX.rowHeight - 4;
+    noStroke();
+    fill(0, 0, 0, 230);
+    rect(x, y, w, 20, 3);
+    fill(255);
+    text(tip, x + 8, y + 10);
+  }
+}
+
+// pick one thing from a list (New map's fill, where a warp goes). the ‹ › arrows at the ends step
+// back and forward, and clicking anywhere else on it drops down a ChoiceList of every choice, so a
+// long list (every tile, sound or map) doesn't need clicking through one at a time.
 //   choices   any values (names, null...)
 //   value     what it starts on (otherwise the first one)
 //   label     (choice) => the words to show for it
@@ -294,46 +352,261 @@ class Picker extends UIElement {
     return this.choices[this.index];
   }
 
-  // is the mouse over the left (back) half?
-  mouseOnLeft() {
-    return Input.mouse.x < this.x + this.w / 2;
+  // which part the mouse is over: 'back' or 'forward' (the arrows), or 'list' (the middle)
+  mouseZone() {
+    const x = Input.mouse.x;
+    if (x < this.x + PICKER_ARROW_WIDTH) return 'back';
+    if (x >= this.x + this.w - PICKER_ARROW_WIDTH) return 'forward';
+    return 'list';
+  }
+
+  // for its ChoiceList
+  isChosen(choice) {
+    return choice === this.value;
+  }
+
+  pickFromList(index) {
+    ChoiceList.close();
+    this.choose(index);
+  }
+
+  choose(index) {
+    if (index === this.index) return;
+    this.index = index;
+    if (this.onChange) this.onChange(this.value);
   }
 
   update(hovered) {
     this.hovered = hovered;
     if (!hovered || !Input.buttonsPressed.has('left')) return;
+    const zone = this.mouseZone();
+    if (zone === 'list') return ChoiceList.toggle(this);
+    ChoiceList.close();
     const count = this.choices.length;
     // adding count stops it going negative, and % wraps it round
-    this.index = (this.index + (this.mouseOnLeft() ? -1 : 1) + count) % count;
-    if (this.onChange) this.onChange(this.value);
+    this.choose((this.index + (zone === 'back' ? -1 : 1) + count) % count);
   }
 
   draw() {
     const middleY = this.y + this.h / 2;
-    // dark box like the typing fields
-    fill(EDITOR_COLOURS.well);
-    stroke(this.hovered ? 140 : EDITOR_COLOURS.edge);
-    strokeWeight(1);
-    rect(this.x, this.y, this.w, this.h, 3);
+    const zone = this.hovered ? this.mouseZone() : null;
+    const open = ChoiceList.current?.owner === this;
+    drawFieldBox(this, this.hovered || open);
 
     // the arrows at each end, with the hovered one lit up
     noStroke();
     setText(16, BOLD, CENTER, CENTER);
-    fill(this.hovered && this.mouseOnLeft() ? 255 : 120);
+    fill(zone === 'back' ? 255 : 120);
     text('‹', this.x + 10, middleY - 2);
-    fill(this.hovered && !this.mouseOnLeft() ? 255 : 120);
+    fill(zone === 'forward' ? 255 : 120);
     text('›', this.x + this.w - 10, middleY - 2);
 
-    // the little picture if there is one, then the words
-    let textX = this.x + 22;
+    // the little picture if there is one, then the words, cut short to fit before the arrow
+    let textX = this.x + PICKER_ARROW_WIDTH;
     if (this.art) {
-      this.art(this.value, this.x + 22, middleY - 8, 16);
+      this.art(this.value, textX, middleY - 8, 16);
       textX += 22;
     }
     noStroke();
     fill(255);
     setText(12, BOLD, LEFT, CENTER);
-    text(this.label(this.value), textX, middleY);
+    text(fitText(String(this.label(this.value)), this.x + this.w - PICKER_ARROW_WIDTH - textX), textX, middleY);
+  }
+}
+
+// px at each end of a Picker that are its ‹ › arrows
+const PICKER_ARROW_WIDTH = 20;
+
+// the dark box behind a picker, lit up while hovered or its list is open
+function drawFieldBox(field, lit) {
+  fill(EDITOR_COLOURS.well);
+  stroke(lit ? 140 : EDITOR_COLOURS.edge);
+  strokeWeight(1);
+  rect(field.x, field.y, field.w, field.h, 3);
+}
+
+// pick any number of things from a list (which particles a tile makes, which tiles blend onto it). it
+// shows the chosen ones' words, and clicking it drops down a ChoiceList with a tick box for each, so
+// it's always one row however many choices there are.
+//   choices   any values
+//   value     the chosen ones, in any order (null or [] for none)
+//   label     (choice) => the words to show for it
+//   art       optional (choice, x, y, size) => { ... } to draw a little picture in the list
+//   none      optional words for when none are chosen (otherwise 'none')
+//   empty     what value is when none are chosen, [] normally. null suits settings where null means
+//             none, like a tile's particles
+//   onChange  optional, gets called with the new value
+// enabled false greys it out and stops clicks, like a Checkbox. value is the chosen ones in the
+// choices' order
+class MultiPicker extends UIElement {
+  constructor(options) {
+    super(options);
+    this.choices = options.choices;
+    this.label = options.label;
+    this.art = options.art ?? null;
+    this.none = options.none ?? 'none';
+    this.empty = options.empty ?? [];
+    this.onChange = options.onChange ?? null;
+    this.chosen = new Set(options.value ?? []);
+    // its ChoiceList ticks instead of picking one and closing
+    this.multi = true;
+  }
+
+  get value() {
+    const chosen = this.choices.filter((choice) => this.chosen.has(choice));
+    return chosen.length > 0 ? chosen : this.empty;
+  }
+
+  isChosen(choice) {
+    return this.chosen.has(choice);
+  }
+
+  pickFromList(index) {
+    const choice = this.choices[index];
+    if (this.chosen.has(choice)) this.chosen.delete(choice);
+    else this.chosen.add(choice);
+    if (this.onChange) this.onChange(this.value);
+  }
+
+  update(hovered) {
+    this.hovered = hovered && this.enabled;
+    if (!this.enabled && ChoiceList.current?.owner === this) ChoiceList.close();
+    if (this.hovered && Input.buttonsPressed.has('left')) ChoiceList.toggle(this);
+  }
+
+  draw() {
+    push();
+    if (!this.enabled) drawingContext.globalAlpha *= BUTTON_STYLES.default.disabledAlpha;
+    const middleY = this.y + this.h / 2;
+    drawFieldBox(this, this.hovered || ChoiceList.current?.owner === this);
+    noStroke();
+    // a down arrow at the end, since it drops down
+    fill(this.hovered ? 255 : 120);
+    setText(10, BOLD, CENTER, CENTER);
+    text('▼', this.x + this.w - 10, middleY);
+    const chosen = this.choices.filter((choice) => this.chosen.has(choice));
+    fill(chosen.length > 0 ? 255 : EDITOR_COLOURS.dimText);
+    setText(12, BOLD, LEFT, CENTER);
+    const words = chosen.length > 0 ? chosen.map((choice) => this.label(choice)).join(', ') : this.none;
+    text(fitText(words, this.w - 30), this.x + 8, middleY);
+    pop();
+  }
+}
+
+// the list that drops down under a Picker or MultiPicker (its owner), showing every choice at once
+// with its picture. a Picker's picks one and closes, a MultiPicker's ticks and unticks and stays open.
+// it scrolls with the wheel when there are more than CHOICE_LIST.rows. clicking anywhere else,
+// Escape (FormBox.update()), switching tab or the box closing closes it. only one is ever open
+// (ChoiceList.current), and it goes in its owner's ui group so it goes when they go
+const CHOICE_LIST = { rowHeight: 22, rows: 8 };
+
+class ChoiceList extends UIElement {
+  static current = null;
+
+  // opens owner's list, or closes it if it's already open
+  static toggle(owner) {
+    if (ChoiceList.current?.owner === owner) return ChoiceList.close();
+    ChoiceList.close();
+    ChoiceList.current = UI.add(new ChoiceList(owner));
+  }
+
+  static close() {
+    if (ChoiceList.current) UI.remove(ChoiceList.current);
+    ChoiceList.current = null;
+  }
+
+  constructor(owner) {
+    const { rowHeight, rows } = CHOICE_LIST;
+    const h = Math.min(owner.choices.length, rows) * rowHeight + 4;
+    // under the field, or over it if there's no room underneath
+    const below = owner.y + owner.h + 2;
+    super({ x: owner.x, y: below + h <= GAME_H ? below : owner.y - h - 2, w: owner.w, h, group: owner.group });
+    this.owner = owner;
+    // how many rows it's scrolled down. it starts with the first chosen one in view
+    const first = owner.choices.findIndex((choice) => owner.isChosen(choice));
+    this.scroll = constrain(first - Math.floor(rows / 2), 0, this.maxScroll());
+    // the row the mouse is over, or -1
+    this.under = -1;
+  }
+
+  maxScroll() {
+    return Math.max(0, this.owner.choices.length - CHOICE_LIST.rows);
+  }
+
+  update(hovered) {
+    if (ChoiceList.current !== this) return;
+    this.hovered = hovered;
+    // its field got hidden (another tab) or taken away
+    if (!this.owner.visible || !UI.elements.includes(this.owner)) return ChoiceList.close();
+    if (hovered && Input.wheel !== 0) {
+      this.scroll = constrain(this.scroll + Math.sign(Input.wheel), 0, this.maxScroll());
+      // used up so nothing under it scrolls too
+      Input.wheel = 0;
+    }
+    const row = Math.floor((Input.mouse.y - this.y - 2) / CHOICE_LIST.rowHeight) + this.scroll;
+    this.under = hovered && row >= this.scroll && row < this.owner.choices.length ? row : -1;
+    if (!Input.buttonsPressed.has('left')) return;
+    // a click on its own field already opened or closed it
+    if (this.under >= 0) this.owner.pickFromList(this.under);
+    else if (!hovered && !this.owner.hovered) ChoiceList.close();
+  }
+
+  draw() {
+    const C = EDITOR_COLOURS;
+    const { rowHeight, rows } = CHOICE_LIST;
+    const owner = this.owner;
+    fill(C.well);
+    stroke(140);
+    strokeWeight(1);
+    rect(this.x, this.y, this.w, this.h, 3);
+    const last = Math.min(owner.choices.length, this.scroll + rows);
+    for (let i = this.scroll; i < last; i++) {
+      const choice = owner.choices[i];
+      const top = this.y + 2 + (i - this.scroll) * rowHeight;
+      const middleY = top + rowHeight / 2;
+      noStroke();
+      if (i === this.under) {
+        fill(C.tabHover);
+        rect(this.x + 2, top, this.w - 4, rowHeight, 2);
+      }
+      let textX = this.x + 8;
+      if (owner.multi) {
+        // a tick box
+        fill(C.bar);
+        stroke(C.edge);
+        rect(textX, middleY - 6, 12, 12, 2);
+        if (owner.isChosen(choice)) {
+          noFill();
+          stroke(255);
+          strokeWeight(2);
+          line(textX + 3, middleY, textX + 5, middleY + 3);
+          line(textX + 5, middleY + 3, textX + 9, middleY - 3);
+          strokeWeight(1);
+        }
+        textX += 18;
+      } else if (owner.isChosen(choice)) {
+        // the chosen one gets a coloured line down its left
+        fill(C.accent);
+        rect(this.x + 2, top + 3, 3, rowHeight - 6, 1);
+      }
+      if (owner.art) {
+        owner.art(choice, textX, middleY - 8, 16);
+        textX += 22;
+      }
+      noStroke();
+      fill(owner.isChosen(choice) || i === this.under ? 255 : C.text);
+      setText(12, BOLD, LEFT, CENTER);
+      text(fitText(String(owner.label(choice)), this.x + this.w - 14 - textX), textX, middleY);
+    }
+    // a scrollbar when they don't all fit
+    const max = this.maxScroll();
+    if (max > 0) {
+      const track = this.h - 6;
+      const thumb = Math.max(16, (track * rows) / owner.choices.length);
+      noStroke();
+      fill('#5d6575');
+      rect(this.x + this.w - 6, this.y + 3 + (track - thumb) * (this.scroll / max), 3, thumb, 2);
+    }
   }
 }
 

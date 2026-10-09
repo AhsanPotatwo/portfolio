@@ -23,75 +23,54 @@
 // player's own computer in multiplayer. they're forgotten when you change map (loadMap() in sketch.js)
 
 // every setting an effect has, which is also its row in the particle editor: which tab it's on, the
-// words next to it, and its normal value (PARTICLE_DEFAULTS, below). numbers get a slider from min to
-// max going up in step (1 if there's no step). colour: true is a colour box, a true/false normal is a
-// tick box with `tick` next to it, and choices () => [values] is a picker showing say(value).
-// percentages are stored as 0 to 100, as the slider shows them. a new setting is a new line here and
-// whatever it does in ParticleSystem
+// words next to it, its normal value (PARTICLE_DEFAULTS, below), and the tip the editor shows while
+// the mouse is over it, which is also what it does. numbers get a slider from min to max going up in
+// step (1 if there's no step). colour: true is a colour box, a true/false normal is a tick box with
+// `tick` next to it, and choices () => [values] is a picker showing say(value). percentages are
+// stored as 0 to 100, as the slider shows them. a new setting is a new line here and whatever it
+// does in ParticleSystem
 const PARTICLE_SETTINGS = [
-  // how many come out each time, plus or minus up to countRandom more
-  { tab: 'Amount', key: 'count', label: 'How many', normal: 12, min: 0, max: 200 },
-  { tab: 'Amount', key: 'countRandom', label: 'Give or take', normal: 4, min: 0, max: 100 },
-  // they start anywhere in a circle this wide round the spot (0 is all from one point)
-  { tab: 'Amount', key: 'area', label: 'Start area', normal: 4, min: 0, max: 96, unit: 'px' },
+  { tab: 'Amount', key: 'count', label: 'How many', normal: 12, min: 0, max: 200, tip: 'How many come out each burst' },
+  { tab: 'Amount', key: 'countRandom', label: 'Give or take', normal: 4, min: 0, max: 100, tip: 'Up to this many more or fewer each burst' },
+  { tab: 'Amount', key: 'area', label: 'Start area', normal: 4, min: 0, max: 96, unit: 'px', tip: 'They start anywhere in a circle this wide. 0 is all from one point' },
 
-  // how fast they fly out along the floor
-  { tab: 'Launch', key: 'speed', label: 'Speed', normal: 90, min: 0, max: 800, step: 5, unit: 'px/s' },
-  // each one's speed is up to this much faster or slower
-  { tab: 'Launch', key: 'speedRandom', label: 'Speed varies', normal: 60, min: 0, max: 100, unit: '%' },
-  // how wide a fan they fly out in, centred on the burst's angle (away from whoever hit it). 360 is
-  // all round. bursts with no angle (like dying) always go all round
-  { tab: 'Launch', key: 'spread', label: 'Spread', normal: 360, min: 0, max: 360, step: 5, unit: '°' },
-  // how high they'd go before falling, with no air drag
-  { tab: 'Launch', key: 'jumpHeight', label: 'Jump height', normal: 20, min: 0, max: 400, unit: 'px' },
-  { tab: 'Launch', key: 'jumpRandom', label: 'Jump varies', normal: 50, min: 0, max: 100, unit: '%' },
-  // px higher than where they come from that they start, like flames from the top of a campfire
-  { tab: 'Launch', key: 'startHeight', label: 'Start higher', normal: 0, min: 0, max: 200, unit: 'px' },
+  { tab: 'Launch', key: 'speed', label: 'Speed', normal: 90, min: 0, max: 800, step: 5, unit: 'px/s', tip: 'How fast they fly out along the floor' },
+  { tab: 'Launch', key: 'speedRandom', label: 'Speed varies', normal: 60, min: 0, max: 100, unit: '%', tip: "Each one's speed is up to this much faster or slower" },
+  // bursts with no angle (like dying, or tiles and objects) always go all round
+  { tab: 'Launch', key: 'spread', label: 'Spread', normal: 360, min: 0, max: 360, step: 5, unit: '°', tip: 'How wide a fan they fly out in, away from whatever hit it. 360 is all round' },
+  { tab: 'Launch', key: 'jumpHeight', label: 'Jump height', normal: 20, min: 0, max: 400, unit: 'px', tip: 'How high they go before falling (a bit less with air drag)' },
+  { tab: 'Launch', key: 'jumpRandom', label: 'Jump varies', normal: 50, min: 0, max: 100, unit: '%', tip: "Each one's jump is up to this much higher or lower" },
+  { tab: 'Launch', key: 'startHeight', label: 'Start higher', normal: 0, min: 0, max: 200, unit: 'px', tip: 'Start this far above where they come from, like flames from the top of a fire' },
 
-  // pulls them back down. below 0 they float up instead (smoke, bubbles) and never land
-  { tab: 'Physics', key: 'gravity', label: 'Gravity', normal: 700, min: -1000, max: 3000, step: 10, unit: 'px/s²' },
-  // slows them while flying, and slows them along the floor once they've landed
-  { tab: 'Physics', key: 'airDrag', label: 'Air drag', normal: 0.5, min: 0, max: 10, step: 0.1 },
-  { tab: 'Physics', key: 'floorFriction', label: 'Floor grip', normal: 10, min: 0, max: 30, step: 0.5 },
-  // how much of their speed they keep bouncing off the floor or a wall. 0 sticks where it lands
-  { tab: 'Physics', key: 'bounce', label: 'Bounce', normal: 25, min: 0, max: 100, unit: '%' },
-  // pushes them sideways while they're in the air, below 0 is to the left
-  { tab: 'Physics', key: 'wind', label: 'Wind', normal: 0, min: -800, max: 800, step: 10, unit: 'px/s²' },
-  { tab: 'Physics', key: 'hitsWalls', label: 'Walls', normal: true, tick: 'bounce off solid tiles' },
+  { tab: 'Physics', key: 'gravity', label: 'Gravity', normal: 700, min: -1000, max: 3000, step: 10, unit: 'px/s²', tip: 'Pulls them back down. Below 0 they float up instead (smoke) and never land' },
+  { tab: 'Physics', key: 'airDrag', label: 'Air drag', normal: 0.5, min: 0, max: 10, step: 0.1, tip: 'Slows them down while they fly' },
+  { tab: 'Physics', key: 'floorFriction', label: 'Floor grip', normal: 10, min: 0, max: 30, step: 0.5, tip: 'Slows them sliding along the floor once they land. 0 slides like ice' },
+  { tab: 'Physics', key: 'bounce', label: 'Bounce', normal: 25, min: 0, max: 100, unit: '%', tip: 'How much speed they keep bouncing off the floor or walls. 0 sticks' },
+  { tab: 'Physics', key: 'wind', label: 'Wind', normal: 0, min: -800, max: 800, step: 10, unit: 'px/s²', tip: 'Pushes them sideways while flying. Below 0 is to the left' },
+  { tab: 'Physics', key: 'hitsWalls', label: 'Walls', normal: true, tick: 'bounce off solid tiles', tip: 'Untick to let them fly through walls' },
 
-  { tab: 'Look', key: 'shape', label: 'Shape', normal: 'square', choices: () => Object.keys(PARTICLE_SHAPES), say: (shape) => PARTICLE_SHAPES[shape] },
-  // each one gets a random colour between these two
-  { tab: 'Look', key: 'colour', label: 'Colour', normal: '#ffffff', colour: true },
-  { tab: 'Look', key: 'colour2', label: 'Or colour', normal: '#ffffff', colour: true },
-  // width in px (a whole picture keeps its shape)
-  { tab: 'Look', key: 'size', label: 'Size', normal: 4, min: 1, max: 64, unit: 'px' },
-  { tab: 'Look', key: 'sizeRandom', label: 'Size varies', normal: 50, min: 0, max: 100, unit: '%' },
-  // how big it is by the end of its life, compared to the start. 0 shrinks away, 200 grows to double
-  { tab: 'Look', key: 'endSize', label: 'End size', normal: 100, min: 0, max: 300, step: 5, unit: '%' },
-  // each one turns up to this fast, a random way. it stops turning as it slides to a stop
-  { tab: 'Look', key: 'spin', label: 'Spin', normal: 0, min: 0, max: 1080, step: 10, unit: '°/s' },
+  { tab: 'Look', key: 'shape', label: 'Shape', normal: 'square', choices: () => Object.keys(PARTICLE_SHAPES), say: (shape) => PARTICLE_SHAPES[shape], tip: 'Pictures are on the Picture tab' },
+  { tab: 'Look', key: 'colour', label: 'Colour', normal: '#ffffff', colour: true, tip: 'Each one gets a random colour between this and the next one' },
+  { tab: 'Look', key: 'colour2', label: 'Or colour', normal: '#ffffff', colour: true, tip: 'Each one gets a random colour between this and the one above' },
+  { tab: 'Look', key: 'size', label: 'Size', normal: 4, min: 1, max: 64, unit: 'px', tip: 'How wide each one is. A whole picture keeps its shape' },
+  { tab: 'Look', key: 'sizeRandom', label: 'Size varies', normal: 50, min: 0, max: 100, unit: '%', tip: 'Each one is up to this much bigger or smaller' },
+  { tab: 'Look', key: 'endSize', label: 'End size', normal: 100, min: 0, max: 300, step: 5, unit: '%', tip: 'How big they are by the end. 0 shrinks away, 200 grows to double' },
+  { tab: 'Look', key: 'spin', label: 'Spin', normal: 0, min: 0, max: 1080, step: 10, unit: '°/s', tip: 'Each one turns up to this fast, either way, until it slides to a stop' },
 
-  // a file in particles/pictures/ for the picture and bits shapes. '' uses the picture of whatever
-  // it came out of (an enemy's image), or plain colour if that hasn't got one
-  { tab: 'Picture', key: 'picture', label: 'Picture', normal: '', choices: () => ['', ...Object.keys(PARTICLE_PICTURES)], say: (file) => (file ? fitName(file) : "the thing's own") },
-  // the bits shape cuts the picture into a grid this many bits across and down, and each particle
-  // is one random bit. high numbers give single pixels, which is like sampling its colours
-  { tab: 'Picture', key: 'bits', label: 'Bits across', normal: 4, min: 1, max: 32 },
+  // a file in particles/pictures/. '' uses the picture of whatever it came out of (an enemy's image)
+  { tab: 'Picture', key: 'picture', label: 'Picture', normal: '', choices: () => ['', ...Object.keys(PARTICLE_PICTURES)], say: (file) => file || "the thing's own", tip: "For the picture shapes. The thing's own is an enemy's picture, if it has one" },
+  { tab: 'Picture', key: 'bits', label: 'Bits across', normal: 4, min: 1, max: 32, tip: 'Bits cuts the picture into this many across and down. Lots gives single pixels' },
 
-  // seconds each one lasts, give or take lifetimeRandom
-  { tab: 'Life', key: 'lifetime', label: 'Lasts', normal: 3, min: 0.1, max: 30, step: 0.1, unit: 's' },
-  { tab: 'Life', key: 'lifetimeRandom', label: 'Lasts varies', normal: 30, min: 0, max: 100, unit: '%' },
-  // it fades out over its last this many seconds
-  { tab: 'Life', key: 'fadeTime', label: 'Fade out', normal: 1, min: 0, max: 10, step: 0.1, unit: 's' },
-  { tab: 'Life', key: 'opacity', label: 'Opacity', normal: 100, min: 5, max: 100, step: 5, unit: '%' },
-  // adds its colour onto what's behind instead of covering it, for sparks and magic
-  { tab: 'Life', key: 'glow', label: 'Glow', normal: false, tick: 'light up what is behind' },
-  { tab: 'Life', key: 'shadow', label: 'Shadow', normal: true, tick: 'on the floor while flying' },
+  { tab: 'Life', key: 'lifetime', label: 'Lasts', normal: 3, min: 0.1, max: 30, step: 0.1, unit: 's', tip: 'How long each one lasts' },
+  { tab: 'Life', key: 'lifetimeRandom', label: 'Lasts varies', normal: 30, min: 0, max: 100, unit: '%', tip: 'Each one lasts up to this much longer or shorter' },
+  { tab: 'Life', key: 'fadeTime', label: 'Fade out', normal: 1, min: 0, max: 10, step: 0.1, unit: 's', tip: 'They fade away over their last this many seconds' },
+  { tab: 'Life', key: 'opacity', label: 'Opacity', normal: 100, min: 5, max: 100, step: 5, unit: '%', tip: 'How solid they are. Lower is more see-through' },
+  { tab: 'Life', key: 'glow', label: 'Glow', normal: false, tick: 'light up what is behind', tip: 'Adds its colour onto what is behind instead of covering it, for sparks and magic' },
+  { tab: 'Life', key: 'shadow', label: 'Shadow', normal: true, tick: 'on the floor while flying', tip: 'A little shadow under each one while it is in the air' },
 
-  // bursts a second from each tile or object that keeps making this effect (ParticleEmitters, below),
-  // times its particleRate. it doesn't matter for one-off bursts like hits. 'log' gives slow rates
-  // (one every few seconds) as much room on the slider as fast ones
-  { tab: 'Keep going', key: 'rate', label: 'Bursts', normal: 1, min: 0.05, max: 60, step: 0.05, unit: '/s', curve: 'log' },
+  // ParticleEmitters (below) uses it, times the tile's or object's particleRate. 'log' gives slow
+  // rates (one every few seconds) as much room on the slider as fast ones
+  { tab: 'Keep going', key: 'rate', label: 'Bursts', normal: 1, min: 0.05, max: 60, step: 0.05, unit: '/s', curve: 'log', tip: 'For tiles and objects that make it nonstop: bursts a second from each one' },
 ];
 
 const PARTICLE_DEFAULTS = Object.fromEntries(PARTICLE_SETTINGS.map(({ key, normal }) => [key, normal]));
@@ -135,11 +114,6 @@ function defineParticles(name, settings) {
       PARTICLE_PICTURES[effect.picture] = null;
     });
   }
-}
-
-// long file names cut short for the editor
-function fitName(name) {
-  return name.length > 18 ? `${name.slice(0, 17)}…` : name;
 }
 
 // "#rrggbb" as [r, g, b]
