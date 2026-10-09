@@ -33,6 +33,10 @@ class Player extends Character {
     return this.inventory.worn();
   }
 
+  heldItem() {
+    return this.inventory.held()?.type ?? null;
+  }
+
   die() {
     this.respawn();
   }

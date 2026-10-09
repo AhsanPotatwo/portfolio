@@ -284,6 +284,12 @@ class Character {
     return [];
   }
 
+  // the item type in its hand (items.js), drawn small beside it, or null. a kind's own weapon (like the
+  // grunt's claws) isn't an item, so it doesn't show
+  heldItem() {
+    return null;
+  }
+
   // ---------- health ----------
 
   // anything can call this: weapons, tiles, traps...
@@ -341,7 +347,7 @@ class Character {
 
   // the body, what it's wearing and which way it's facing, in world positions (inside camera.begin/end)
   drawBody() {
-    drawCharacter(this.settings, this.x, this.y, { facing: this.facing, hurt: this.hurtTimer > 0, worn: this.worn() });
+    drawCharacter(this.settings, this.x, this.y, { facing: this.facing, hurt: this.hurtTimer > 0, worn: this.worn(), held: this.heldItem() });
   }
 }
 
@@ -361,7 +367,8 @@ const WORN_BANDS = {
 //   facing  { x, y } each -1 to 1 (Character.facing), normally down
 //   hurt    flash its hurtColour
 //   worn    item types it's wearing (Character.worn())
-function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, worn = [] } = {}) {
+//   held    the item type in its hand (Character.heldItem()), or null
+function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, worn = [], held = null } = {}) {
   const w = settings.width;
   const h = settings.height;
   // top left, rounded to whole pixels so the edges are sharp
@@ -396,6 +403,8 @@ function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, 
       accessories++;
     }
   }
+  // its held item, small in its right hand (drawItemIcon() in inventory.js)
+  if (held) drawItemIcon({ type: held }, left + w - 5, top + Math.round(h * 0.5), 12);
 
   noStroke();
   fill(settings.outline);

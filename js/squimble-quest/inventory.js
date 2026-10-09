@@ -283,9 +283,10 @@ function drawWearIcon(wear, x, y, size) {
 // a big picture of a character turned towards the mouse, wearing what it's wearing (drawCharacter() in
 // character.js), standing on a dark floor. the inventory screen shows you in one and the editor's enemy
 // and npc boxes show who's being edited (editor.js). just for show, clicks go through.
-//   look  () => { settings, worn, caption }: settings is PLAYER or an enemy or npc type, worn its
-//         item types, and caption optional lines of text along the bottom. it's read every frame, so
-//         the picture changes as things get put on and taken off
+//   look  () => { settings, worn, held, caption }: settings is PLAYER or an enemy or npc type, worn its
+//         item types, held the item type in its hand (or null), and caption optional lines of text
+//         along the bottom. it's read every frame, so the picture changes as things get put on and
+//         taken off
 class CharacterPreview extends UIElement {
   constructor(options) {
     super({ ...options, interactive: false });
@@ -293,7 +294,7 @@ class CharacterPreview extends UIElement {
   }
 
   draw() {
-    const { settings, worn = [], caption = [] } = this.look();
+    const { settings, worn = [], held = null, caption = [] } = this.look();
     const { x, y, w, h } = this;
     const lineHeight = 14;
     const textH = caption.length * lineHeight;
@@ -315,7 +316,7 @@ class CharacterPreview extends UIElement {
     push();
     translate(cx, cy);
     scale(zoom);
-    drawCharacter(settings, 0, 0, { facing, worn });
+    drawCharacter(settings, 0, 0, { facing, worn, held });
     pop();
 
     noStroke();
@@ -417,7 +418,7 @@ const InventoryScreen = {
     }));
     UI.add(new CharacterPreview({
       x: left + pad + size + previewGap, y: contentTop, w: previewWidth, h: contentH, group: 'inventory', visible: false,
-      look: () => ({ settings: player.settings, worn: player.worn(), caption: [`${Math.ceil(player.health)} / ${player.maxHealth} health`] }),
+      look: () => ({ settings: player.settings, worn: player.worn(), held: player.heldItem(), caption: [`${Math.ceil(player.health)} / ${player.maxHealth} health`] }),
     }));
 
     const slot = (i, x, y, onClick = null) => UI.add(new ItemSlot({ x, y, w: size, h: size, group: 'inventory', visible: false, inventory, slot: i, onClick }));

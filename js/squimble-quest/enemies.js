@@ -17,8 +17,8 @@
 //   speed                  walking speed in px/s
 //   maxHealth              how much damage it takes to beat it
 //   weapon                 its weapon's settings, like the grunt's claws (weapons.js), or null if it
-//                          doesn't attack. a "shoot" weapon (a bow) wants a bigger attackRange, or it
-//                          only shoots from close up. what it wears is picked per spawn in the editor
+//                          doesn't attack. each spawn can hold an item instead (a sword, a bow...),
+//                          and what it wears, both picked by right clicking it in the editor
 //   colour, outline        placeholder colours
 //   hurtColour             the flash when it gets hit
 //   healthBarColour        the bar over its head, shown once it's hurt
@@ -28,7 +28,8 @@
 //                          the editor)
 //   sightRange             how many px away it can see you from, if there's no wall in the way
 //                          (sensePlayer() below)
-//   attackRange            how close it has to be to swing
+//   attackRange            how close it has to be to swing (or its weapon's reach, if that's further).
+//                          a bow shoots from further away by itself (canAttack() below)
 //   sound                  a sound's name (SOUNDS, sounds/) it loops wherever it goes while you're
 //                          in range, like a buzzing wasp or a rumbling machine. it gets the doppler
 //                          effect as it moves (sound.js). each spawn can pick its own (right click it
@@ -172,22 +173,46 @@ function sensePlayer(enemy, world, dt) {
   return enemy.chasing;
 }
 
+// ---------- attacking ----------
+
+// how much of a bow's reach an enemy shoots from. its arrows drop near the end of their reach, so not
+// all of it
+const ENEMY_SHOT_RANGE = 0.85;
+
+// can it hit the player from where it is, with what it's holding (Enemy.currentWeapon(), enemy.js)?
+// a swing reaches attackRange, or further if its weapon does (an axe it's been given in the editor). a
+// shot reaches ENEMY_SHOT_RANGE of its arrows' reach, but only with no wall in the way (clearLine() in
+// tilemap.js), since walls stop arrows. every ai uses this, and stands still to shoot (isShooting()),
+// so an enemy given a bow keeps its distance while it has a clear shot and walks closer when it doesn't
+function canAttack(enemy, world, player) {
+  const weapon = enemy.currentWeapon();
+  if (!weapon) return false;
+  const distance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
+  if (weapon.attack !== 'shoot') return distance < Math.max(enemy.type.attackRange, weapon.reach);
+  const from = enemy.y + feetBelowCentre(enemy.settings); // character.js
+  const to = player.y + feetBelowCentre(player.settings);
+  return distance < weapon.reach * ENEMY_SHOT_RANGE && world.map.clearLine(enemy.x, from, player.x, to);
+}
+
+// is it holding something that shoots? then it stands still while it can attack
+function isShooting(enemy) {
+  return enemy.currentWeapon()?.attack === 'shoot';
+}
+
 // ---------- ais ----------
 
-// heads straight for the player it's after (sensePlayer()) and swings once it's within attackRange.
-// it just slides along walls with no pathfinding, so it gets stuck behind them. this was the first ai
-// I made, and it's kept as "direct"
+// heads straight for the player it's after (sensePlayer()) and attacks once it can (canAttack()), which
+// for a bow means stopping where it is. it just slides along walls with no pathfinding, so it gets
+// stuck behind them. this was the first ai I made, and it's kept as "direct"
 function chasePlayer(enemy, world, dt) {
   const player = sensePlayer(enemy, world, dt);
   if (!player) return STAND_STILL;
-  const dx = player.x - enemy.x;
-  const dy = player.y - enemy.y;
-  const distance = Math.hypot(dx, dy);
+  const attack = canAttack(enemy, world, player);
 
   return {
-    move: towards(dx, dy),
+    move: attack && isShooting(enemy) ? STAND_STILL.move : towards(player.x - enemy.x, player.y - enemy.y),
     aim: { x: player.x, y: player.y },
-    attack: distance < enemy.type.attackRange,
+    attack,
   };
 }
 

@@ -183,6 +183,8 @@ function spawnCharacters() {
     if (spawn.deathParticles !== undefined) enemy.deathParticles = spawn.deathParticles;
     // what it's wearing, by EQUIPMENT_SLOTS key (inventory.js)
     if (spawn.wears) enemy.wears = spawn.wears;
+    // and what it holds instead of its own weapon (enemy.js)
+    if (spawn.holds !== undefined) enemy.holds = spawn.holds;
   });
 }
 

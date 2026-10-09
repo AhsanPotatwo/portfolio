@@ -35,7 +35,7 @@
 //     removes those, otherwise it empties tiles (like off the map, so they aren't drawn and can't be
 //     walked on)
 //   - right click: the settings for a warp, a sound block (its sound, and how it moves), an enemy (its
-//     armour, ai, sound and particles, next to a picture of it) or an npc (its voice and sound) on the
+//     weapon, armour, ai, sound and particles, next to a picture of it) or an npc (its voice and sound) on the
 //     map, or a tile, item, sound or voice in the palette. resting the mouse on a row says what it does
 //   - opening it shows every enemy at its spawn, even defeated ones, so you see the whole design.
 //     closing it puts everyone back at their spawns on full health (outside the editor, maps remember
@@ -758,9 +758,10 @@ const Editor = {
   },
 
   // an enemy spawn's settings, in three tabs with a picture of it down the side that turns to the mouse
-  // and wears what's picked (CharacterPreview in inventory.js):
-  //   Armour     what it wears in each EQUIPMENT_SLOTS slot (inventory.js), saved as its wears. only
-  //              items worn there are listed. it's only for show until armour does something
+  // and holds and wears what's picked (CharacterPreview in inventory.js):
+  //   Gear       what it holds (holdPicker(), saved as its holds), and what it wears in each
+  //              EQUIPMENT_SLOTS slot (inventory.js), saved as its wears. only items worn there are
+  //              listed. armour is only for show until it does something
   //   Behaviour  its ai (ENEMY_AIS in enemies.js, '' means its kind's own) and whether it follows you
   //              through warps ('' is its kind's followsThroughWarps, canFollow() in warps.js)
   //   Effects    the sound it carries around, and the particles it bursts when hit and when it dies
@@ -771,6 +772,10 @@ const Editor = {
     const type = ENEMY_TYPES[spawn.type];
     const own = type.ai ?? 'still';
     const follows = (yes) => (yes ? 'follows you' : 'stays behind');
+    const holdPicker = this.holdPicker(type, spawn.holds);
+    // the item the picker means (null for its own weapon or empty hands), and the weapon it fights with
+    const held = () => ITEM_TYPES[holdPicker.value] ?? null;
+    const weapon = () => (holdPicker.value === '' ? type.weapon : held()?.weapon ?? null);
     const wearPickers = EQUIPMENT_SLOTS.map((slot) => ({ slot, picker: this.wearPicker(slot, spawn.wears?.[slot.key] ?? null) }));
     const aiPicker = new Picker({
       w: 180,
@@ -803,7 +808,6 @@ const Editor = {
     };
     const editButton = (label, picker, key) => ({ label: '', field: new Button({ w: 180, label, style: 'editor', onClick: () => editParticles(picker, key) }) });
     const anyArmour = Object.values(ITEM_TYPES).some((item) => item.wear);
-    const weapon = type.weapon ? `${type.weapon.damage} damage ${type.weapon.attack === 'shoot' ? 'arrows' : 'swings'}` : 'no weapon';
 
     FormBox.open({
       title: `Enemy: ${spawn.type}`,
@@ -811,10 +815,13 @@ const Editor = {
       confirmLabel: 'Save',
       tabs: [
         {
-          label: 'Armour',
-          rows: wearPickers.map(({ slot, picker }) => ({
-            label: slot.label, field: picker, tip: `What it wears there. Only things worn on the ${WEAR_PLACES[slot.wear].toLowerCase()} are listed`,
-          })),
+          label: 'Gear',
+          rows: [
+            { label: 'Weapon', field: holdPicker, tip: 'What it fights with. With a bow it stands back and shoots when it can see you' },
+            ...wearPickers.map(({ slot, picker }) => ({
+              label: slot.label, field: picker, tip: `What it wears there. Only things worn on the ${WEAR_PLACES[slot.wear].toLowerCase()} are listed`,
+            })),
+          ],
         },
         {
           label: 'Behaviour',
@@ -839,12 +846,15 @@ const Editor = {
         look: () => ({
           settings: type,
           worn: wearPickers.map(({ picker }) => ITEM_TYPES[picker.value]).filter(Boolean),
-          caption: [`${type.maxHealth} health, ${type.speed} speed`, weapon],
+          held: held(),
+          caption: [`${type.maxHealth} health, ${type.speed} speed`, weaponSummary(weapon())], // weapons.js
         }),
       })],
       // the fields are read straight from their variables, since the buttons' values (undefined) are
       // mixed in with theirs
       onConfirm: () => {
+        if (holdPicker.value === '') delete spawn.holds;
+        else spawn.holds = holdPicker.value;
         const wears = {};
         for (const { slot, picker } of wearPickers) if (picker.value !== null) wears[slot.key] = picker.value;
         if (Object.keys(wears).length > 0) spawn.wears = wears;
@@ -859,6 +869,28 @@ const Editor = {
         else spawn.deathParticles = deathPicker.value;
         // makes the characters again, so the one on the map picks all of these up
         this.setCharacterSound(spawn, soundPicker.value);
+      },
+    });
+  },
+
+  // a picker for what an enemy spawn holds: '' for its kind's own weapon (like the grunt's claws, which
+  // isn't an item), null for empty hands, or the name of an item with a weapon (the Weapons tab's, or
+  // any other item given one). value is the spawn's holds (undefined is its own). a missing one stays
+  // in the list so opening the box doesn't quietly take it away
+  holdPicker(type, value) {
+    const weapons = Object.keys(ITEM_TYPES).filter((name) => ITEM_TYPES[name].weapon);
+    const missing = typeof value === 'string' && !weapons.includes(value) ? [value] : [];
+    return new Picker({
+      w: 180,
+      choices: ['', null, ...weapons, ...missing],
+      value: value === undefined ? '' : value,
+      label: (name) => {
+        if (name === '') return type.weapon ? 'its own weapon' : 'its own (none)';
+        if (name === null) return 'empty hands';
+        return ITEM_TYPES[name]?.label ?? `${name} (missing)`;
+      },
+      art: (name, x, y, size) => {
+        if (ITEM_TYPES[name]) drawItemIcon({ type: ITEM_TYPES[name] }, x, y, size); // inventory.js
       },
     });
   },
@@ -1278,7 +1310,7 @@ function inspectorInfo(selected) {
         kind === 'npc' ? ['Name', type.label] : ['Weapon', type.weapon ? `${type.weapon.damage} damage` : 'none'],
         kind === 'enemy' ? ['AI', type.ai ?? 'still'] : ['Voice', type.voice ?? 'silent'],
       ],
-      note: `Right click one on the map to pick its ${kind === 'enemy' ? 'armour, AI, sound and particles' : 'voice and sound'}`,
+      note: `Right click one on the map to pick its ${kind === 'enemy' ? 'weapon, armour, AI, sound and particles' : 'voice and sound'}`,
     };
   }
   if (isItemKind(kind)) {
