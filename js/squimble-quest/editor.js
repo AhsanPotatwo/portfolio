@@ -28,11 +28,14 @@
 //     voice, or right click an npc to pick one (or make a new one). New, Edit, right click in the
 //     palette and Export work like sounds', since voices are made in the same editor and saved the
 //     same way (in voices/)
+//   - particles (particles.js): click the map to try one out there, fanned out to the right as if it
+//     was hit from the left. New, Edit or right click in the palette opens the particle editor
+//     (particleeditor.js), and the inspector's Export downloads the files of new or changed effects
 //   - Erase, then click or drag: if you start on an object, enemy, npc, item, warp or sound block it
 //     removes those, otherwise it empties tiles (like off the map, so they aren't drawn and can't be
 //     walked on)
 //   - right click: the settings for a warp, a sound block (its sound, and how it moves), an enemy (its
-//     ai and sound) or an npc (its voice and sound) on the map, or a tile, item, sound or voice in the
+//     ai, sound and particles) or an npc (its voice and sound) on the map, or a tile, item, sound or voice in the
 //     palette
 //   - opening it shows every enemy at its spawn, even defeated ones, so you see the whole design.
 //     closing it puts everyone back at their spawns on full health (outside the editor, maps remember
@@ -143,6 +146,9 @@ const EDITOR_TABS = [
   { kind: 'sound', label: 'Sounds', types: SOUNDS, place: (map, name, col, row) => Editor.placeSoundBlock(map, name, col, row) },
   // npcs' voices (VOICES in sound.js). clicking an npc gives it the voice
   { kind: 'voice', label: 'Voices', types: VOICES, place: (map, name, col, row) => Editor.giveVoice(map, name, col, row) },
+  // particle effects (particles.js). clicking the map bursts one there to try it, as if it was hit from
+  // the left (so you can see the spread), from half a tile up
+  { kind: 'particle', label: 'Particles', types: PARTICLE_EFFECTS, place: (map, name, col, row) => Particles.burst(name, (col + 0.5) * TILE, (row + 0.5) * TILE, { height: TILE / 2, angle: 0 }) },
   // an empty example that just says "Nothing here yet". to use it, give it a catalogue and a
   // place(). if there are too many tabs to fit they scroll (EditorTabStrip)
   { kind: 'light', label: 'Lights', types: {} },
@@ -208,6 +214,7 @@ const Editor = {
   tabStrip: null,
   tileButtons: [],
   soundButtons: [],
+  particleButtons: [],
   exportItemsButton: null,
   editButton: null,
   giveButton: null,
@@ -272,6 +279,7 @@ const Editor = {
     this.editButton = inspectorButton(0, 'Edit', () => {
       if (this.selected.kind === 'tile') TileEditor.open(TILE_TYPES[this.selected.name]);
       else if (isSoundKind(this.selected.kind)) SoundEditor.open(this.selected.name);
+      else if (this.selected.kind === 'particle') ParticleEditor.open(this.selected.name);
       else this.editItem(this.selected.name);
     });
     this.tileButtons = [
@@ -282,6 +290,10 @@ const Editor = {
       // a new sound on Sounds, a new voice on Voices
       inspectorButton(1, 'New', () => SoundEditor.open(null, this.tab)),
       inspectorButton(2, 'Export', () => SoundEditor.exportSounds()),
+    ];
+    this.particleButtons = [
+      inspectorButton(1, 'New', () => ParticleEditor.open(null)),
+      inspectorButton(2, 'Export', () => ParticleEditor.exportEffects()),
     ];
     // it's in the same spot as New, so it's never shown on the Tiles tab (update())
     this.giveButton = inspectorButton(1, 'Give', () => this.giveItem(this.selected.name));
@@ -360,6 +372,7 @@ const Editor = {
     this.tabStrip.reveal(kind);
     for (const button of this.tileButtons) button.visible = kind === 'tile';
     for (const button of this.soundButtons) button.visible = isSoundKind(kind);
+    for (const button of this.particleButtons) button.visible = kind === 'particle';
     this.exportItemsButton.visible = isItemKind(kind);
   },
 
@@ -467,7 +480,7 @@ const Editor = {
     // Edit only shows with a tile or item picked, and Give only with an item (it's in the same spot as
     // New on Tiles)
     const itemPicked = isItemKind(this.selected?.kind);
-    this.editButton.visible = this.selected?.kind === 'tile' || isSoundKind(this.selected?.kind) || itemPicked;
+    this.editButton.visible = this.selected?.kind === 'tile' || this.selected?.kind === 'particle' || isSoundKind(this.selected?.kind) || itemPicked;
     this.giveButton.visible = itemPicked && this.tab !== 'tile';
 
     // dividing by the zoom keeps the speed on screen the same
@@ -718,11 +731,30 @@ const Editor = {
   },
 
   // picks an enemy spawn's ai (ENEMY_AIS in enemies.js, '' means its kind's own), the sound it
-  // carries around, and whether it follows you through warps ('' is its kind's followsThroughWarps,
-  // canFollow() in warps.js). Export saves them
+  // carries around, whether it follows you through warps ('' is its kind's followsThroughWarps,
+  // canFollow() in warps.js), and the particles it bursts when hit and when it dies (particles.js).
+  // the Edit buttons save this box and open the particle editor on the one picked. Export saves them
   editEnemy(spawn) {
-    const own = ENEMY_TYPES[spawn.type].ai ?? 'still';
+    const type = ENEMY_TYPES[spawn.type];
+    const own = type.ai ?? 'still';
     const follows = (yes) => (yes ? 'follows you through' : 'stays behind');
+    const hitPicker = this.particlePicker(spawn.hitParticles, type.hitParticles);
+    const deathPicker = this.particlePicker(spawn.deathParticles, type.deathParticles);
+    // saves this box, then edits the effect the picker means (its kind's for ''). none, or a missing
+    // one, makes a new one. saving it under another name gives it to this enemy
+    const editParticles = (picker, key) => {
+      const effect = picker.value === '' ? type[key] : picker.value;
+      FormBox.confirm();
+      ParticleEditor.open(PARTICLE_EFFECTS[effect] ? effect : null, {
+        img: type.img,
+        onSave: (saved) => {
+          if (saved === effect) return;
+          spawn[key] = saved;
+          spawnCharacters(); // sketch.js
+        },
+      });
+    };
+    const editButton = (label, picker, key) => ({ label: '', field: new Button({ w: 180, label, style: 'editor', onClick: () => editParticles(picker, key) }) });
     FormBox.open({
       title: `Enemy: ${spawn.type}`,
       hint: 'direct is the old straight line, the rest go round',
@@ -735,23 +767,42 @@ const Editor = {
           value: spawn.ai ?? '',
           label: (name) => name || `its own (${own})`,
         }),
-      }, { label: 'Sound', field: this.characterSoundPicker(spawn, ENEMY_TYPES[spawn.type]) }, {
+      }, { label: 'Sound', field: this.characterSoundPicker(spawn, type) }, {
         label: 'Warps',
         field: new Picker({
           w: 180,
           choices: ['', true, false],
           value: spawn.follows ?? '',
-          label: (yes) => (yes === '' ? `its own (${follows(ENEMY_TYPES[spawn.type].followsThroughWarps)})` : follows(yes)),
+          label: (yes) => (yes === '' ? `its own (${follows(type.followsThroughWarps)})` : follows(yes)),
         }),
-      }],
-      onConfirm: ([ai, sound, follows]) => {
+      }, { label: 'Hit', field: hitPicker }, { label: 'Death', field: deathPicker },
+      // last, so their values (undefined) don't shift the ones onConfirm gets
+      editButton('Edit hit particles', hitPicker, 'hitParticles'), editButton('Edit death particles', deathPicker, 'deathParticles')],
+      onConfirm: ([ai, sound, follows, hit, death]) => {
         if (ai) spawn.ai = ai;
         else delete spawn.ai;
         if (follows === '') delete spawn.follows;
         else spawn.follows = follows;
+        if (hit === '') delete spawn.hitParticles;
+        else spawn.hitParticles = hit;
+        if (death === '') delete spawn.deathParticles;
+        else spawn.deathParticles = death;
         // makes the characters again, so the one on the map picks all of these up
         this.setCharacterSound(spawn, sound);
       },
+    });
+  },
+
+  // a picker for an enemy spawn's particle effect (PARTICLE_EFFECTS in particles.js): value is the
+  // spawn's pick, '' (or undefined) its kind's own, which is `own`, and null none. a missing one stays in
+  // the list so opening the box doesn't quietly change it
+  particlePicker(value, own) {
+    const say = (name) => (name === null ? 'none' : PARTICLE_EFFECTS[name] ? name : `${name} (missing)`);
+    return new Picker({
+      w: 180,
+      choices: ['', ...Object.keys(PARTICLE_EFFECTS), null, ...(value && !PARTICLE_EFFECTS[value] ? [value] : [])],
+      value: value === undefined ? '' : value,
+      label: (name) => (name === '' ? `its own (${say(own)})` : say(name)),
     });
   },
 
@@ -1137,7 +1188,7 @@ function inspectorInfo(selected) {
         kind === 'npc' ? ['Name', type.label] : ['Weapon', type.weapon ? `${type.weapon.damage} damage` : 'none'],
         kind === 'enemy' ? ['AI', type.ai ?? 'still'] : ['Voice', type.voice ?? 'silent'],
       ],
-      note: `Right click one on the map to pick its ${kind === 'enemy' ? 'AI' : 'voice'} and sound`,
+      note: `Right click one on the map to pick its ${kind === 'enemy' ? 'AI, sound and particles' : 'voice and sound'}`,
     };
   }
   if (isItemKind(kind)) {
@@ -1167,6 +1218,14 @@ function inspectorInfo(selected) {
       kind: 'Voice',
       rows: [['Pitch', `${type.pitch} Hz (${noteName(type.pitch)})`], ['Talk speed', `${type.talkSpeed} letters/s`]],
       note: 'Click an NPC to give them this voice',
+    };
+  }
+  if (kind === 'particle') {
+    return {
+      title: name,
+      kind: 'Particles',
+      rows: [['How many', `${type.count} ± ${type.countRandom}`], ['Shape', PARTICLE_SHAPES[type.shape]], ['Lasts', `${type.lifetime} s`]],
+      note: 'Click the map to try it. Right click it here (or Edit) to change it',
     };
   }
   if (kind === 'trigger' && name === 'spawn') {
@@ -1368,6 +1427,7 @@ class PaletteGrid extends UIElement {
     if (tab === 'tile' && Input.buttonsPressed.has('right')) TileEditor.open(TILE_TYPES[this.hoveredName]);
     if (isItemKind(tab) && Input.buttonsPressed.has('right')) Editor.editItem(this.hoveredName);
     if (isSoundKind(tab) && Input.buttonsPressed.has('right')) SoundEditor.open(this.hoveredName);
+    if (tab === 'particle' && Input.buttonsPressed.has('right')) ParticleEditor.open(this.hoveredName);
   }
 
   draw() {
@@ -1469,6 +1529,8 @@ function drawPaletteArt(kind, name, x, y, size) {
     stroke(SOUND_COLOURS.edge);
     strokeWeight(1);
     drawSoundShape(VOICES[name], x + 3, y + 3, size - 6, size - 6, 'Hello, how are you today?');
+  } else if (kind === 'particle') {
+    drawParticleArt(PARTICLE_EFFECTS[name], middleX, middleY, size); // particles.js
   } else if (isItemKind(kind)) {
     // like in an inventory slot, with its rarity glow (itemglow.js)
     drawGlowingItem({ type: ITEM_TYPES[name] }, middleX, middleY, size * 0.6, size / 2);

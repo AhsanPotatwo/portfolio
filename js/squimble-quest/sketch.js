@@ -13,6 +13,7 @@
 //   enemies.js    enemy kinds and their ai (after pathfinding.js)
 //   npcs.js       npc kinds and what they say
 //   weapons.js    weapons and their swings
+//   particles.js  particle effects: bits that fly up, fall and fade (blood when something's hit)
 //   items.js      item kinds and their weapons, from items/
 //   itemglow.js   the rarity glow and sparkles drawn around items
 //   tilemap.js    a tile map: storing, drawing, resizing, collision
@@ -37,6 +38,7 @@
 //   editor.js     the map editor, from dev mode (after button.js, textfield.js)
 //   tileeditor.js editor's tile box (after editor.js)
 //   soundeditor.js the sound editor, a full screen synthesiser (after editor.js)
+//   particleeditor.js the particle editor box and its preview (after tileeditor.js)
 //   debug.js      dev mode (` or Ctrl + D)
 
 let player;
@@ -126,6 +128,8 @@ function loadMap(name, warpName = '') {
   const map = getMap(name);
   const sameMap = map === worldMap;
   worldMap = map;
+  // particles are just for show, so the last map's are forgotten (particles.js)
+  if (!sameMap) Particles.clear();
 
   // a warp that doesn't exist (warpProblem() in warps.js normally catches it first) arrives at the
   // spawn instead
@@ -164,6 +168,12 @@ function spawnCharacters() {
   // (soundblocks.js plays them)
   enemies.forEach((enemy, i) => { enemy.sound = worldMap.enemySpawns[i].sound ?? enemy.type.sound; });
   npcs.forEach((npc, i) => { npc.sound = worldMap.npcSpawns[i].sound ?? npc.type.sound; });
+  // and an enemy's particles, where null (none) is a pick too (particles.js)
+  enemies.forEach((enemy, i) => {
+    const spawn = worldMap.enemySpawns[i];
+    if (spawn.hitParticles !== undefined) enemy.hitParticles = spawn.hitParticles;
+    if (spawn.deathParticles !== undefined) enemy.deathParticles = spawn.deathParticles;
+  });
 }
 
 function draw() {
@@ -253,6 +263,8 @@ function draw() {
     }
   }
   gameCamera.update(dt);
+  // in the editor too, so the Particles tab can try them out (particles.js)
+  Particles.update(dt, worldMap);
   // sounds get quieter the further they are from the player's feet, and higher or lower as they and
   // the player move (the doppler effect, sound.js). this runs in the editor too, so finished sounds
   // (like the sound editor's previews) still get tidied up
@@ -264,11 +276,15 @@ function draw() {
   if (!WarpGraph.active && !SoundEditor.active) {
     gameCamera.begin();
     drawWorld(gameCamera, worldMap, Debug.shows('grid'));
+    // particles lying on the floor go under everything (particles.js)
+    Particles.drawFloor();
     // sort by feet so whatever's lower on screen is in front. drops sort by their shadow (even while
-    // they're being thrown). they show in the editor too, since you can place them there
+    // they're being thrown), and so do flying particles. drops show in the editor too, since you can
+    // place them there
     const things = [
       ...[player, ...enemies, ...npcs].map((c) => ({ y: c.y + c.h / 2, draw: () => c.draw() })),
       ...worldMap.drops.map((d) => ({ y: Drops.where(d).y, draw: () => Drops.draw(d) })),
+      ...Particles.flying().map((p) => ({ y: p.y, draw: () => Particles.drawOne(p) })),
     ];
     things.sort((a, b) => a.y - b.y);
     for (const thing of things) thing.draw();

@@ -46,6 +46,8 @@ const PLAYER = {
   hurtFlashTime: 0.15,
   // health bar over their head, only shown once hurt
   healthBarColour: '#4ade80',
+  // the particle effect that bursts out when an enemy's swing hits them (particles.js)
+  hitParticles: 'blood',
 };
 
 // ---------- aiming ----------

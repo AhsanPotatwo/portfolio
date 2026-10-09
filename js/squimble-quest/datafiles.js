@@ -32,6 +32,7 @@ const DATA_KINDS = {
   object: 'objects/',
   enemy:  'enemies/',
   npc:    'npcs/',
+  particle: 'particles/',
   map:    'maps/',
 };
 

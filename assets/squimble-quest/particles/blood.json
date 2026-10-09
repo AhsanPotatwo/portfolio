@@ -1,0 +1,12 @@
+{
+  "count": 14,
+  "speed": 110,
+  "spread": 120,
+  "jumpHeight": 18,
+  "bounce": 10,
+  "colour": "#d4161f",
+  "colour2": "#7a0910",
+  "size": 5,
+  "lifetime": 4,
+  "fadeTime": 1.5
+}
