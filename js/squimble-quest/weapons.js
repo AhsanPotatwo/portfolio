@@ -73,6 +73,8 @@ class MeleeSwing {
       if (this.reaches(target)) {
         this.hit.add(target);
         target.hurt(this.weapon.damage);
+        // its blood (or whatever) flies away from whoever hit it (particles.js)
+        target.burstParticles(target.hitParticles, Math.atan2(target.y - this.owner.y, target.x - this.owner.x));
       }
     }
   }

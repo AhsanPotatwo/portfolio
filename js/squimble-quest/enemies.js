@@ -40,6 +40,10 @@
 //                          (canFollow() in warps.js)
 //   onDeath                what happens at 0 health: an ENEMY_DEATHS name, like "refill" for the
 //                          dummy. if it's still on 0 afterwards it's gone for good. null just dies
+//   hitParticles           the particle effect (PARTICLE_EFFECTS, particles/) that bursts out when a
+//                          swing hits it, flying away from the swing. null is none
+//   deathParticles         the one that bursts out when it dies for good. each spawn can pick its own
+//                          of both (right click it in the editor, which can also edit them)
 //
 // ---------- ai ----------
 //
@@ -75,6 +79,8 @@ const ENEMY_DEFAULTS = {
   followsThroughWarps: true,
   doorOpenTime: 1,
   onDeath: null,
+  hitParticles: 'blood',
+  deathParticles: 'blood-burst',
 };
 
 // filled in from the enemy files (bottom of this file)

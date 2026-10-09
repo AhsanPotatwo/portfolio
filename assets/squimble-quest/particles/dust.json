@@ -1,0 +1,17 @@
+{
+  "count": 6,
+  "area": 10,
+  "speed": 40,
+  "jumpHeight": 4,
+  "floorFriction": 4,
+  "bounce": 0,
+  "shape": "circle",
+  "colour": "#c8b28a",
+  "colour2": "#8f7b5a",
+  "size": 5,
+  "endSize": 0,
+  "lifetime": 0.8,
+  "fadeTime": 0.8,
+  "opacity": 70,
+  "shadow": false
+}

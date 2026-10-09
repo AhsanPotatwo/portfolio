@@ -400,11 +400,14 @@ class Checkbox extends UIElement {
 //   format    optional (value) => the words shown on the right, otherwise the number and unit
 //   unit      optional word after the number, like 'ms'
 //   onChange  optional, called with the new value whenever it changes
+//   labelWidth  optional px for the label, normally 100. 0 leaves it out, for a FormBox row (which has
+//               its own label)
 // enabled false greys it out and stops it changing, like a Button.
 //
 // things to know:
-//   - the label always gets 100 px and the value 72 px, so give it a w of about 250 or more (the sound
-//     editor's are 296). in a FormBox row (which sets x, y and h) a w of 180 would leave a tiny bar
+//   - the label gets 100 px and the value 72 px, so give it a w of about 250 or more (the sound
+//     editor's are 296). in a FormBox row (which sets x, y and h) use labelWidth 0 and a w of 180, like
+//     the particle editor's (particleeditor.js)
 //   - 'log' needs a min above 0, and 'square' on a range either side of 0 needs min to be exactly -max,
 //     otherwise it falls back to squaring from min, which is lopsided
 //   - onChange only runs when the value actually changes, after rounding to step
@@ -423,13 +426,14 @@ class Slider extends UIElement {
     this.onChange = options.onChange ?? null;
     this.value = options.value;
     this.normal = options.normal ?? options.value;
+    this.labelWidth = options.labelWidth ?? 100;
     // being dragged
     this.dragging = false;
   }
 
   // where the bar is, inside the slider: after the label, before the value
   bar() {
-    return { x: this.x + 100, w: this.w - 172 };
+    return { x: this.x + this.labelWidth, w: this.w - this.labelWidth - 72 };
   }
 
   // a position along the bar (0 to 1) as a value, following the curve

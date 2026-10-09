@@ -1,0 +1,13 @@
+{
+  "count": 40,
+  "countRandom": 8,
+  "area": 12,
+  "speed": 140,
+  "jumpHeight": 40,
+  "bounce": 10,
+  "colour": "#c4161f",
+  "colour2": "#4a0408",
+  "size": 5,
+  "lifetime": 6,
+  "fadeTime": 2
+}

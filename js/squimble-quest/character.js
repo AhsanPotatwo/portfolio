@@ -11,7 +11,8 @@
 //
 // the settings come from PLAYER (config.js), ENEMY_TYPES (enemies.js) or NPC_TYPES (npcs.js):
 //   width, height, feetWidth, feetHeight, speed, maxHealth, weapon (enemies),
-//   colour, outline, hurtColour, hurtFlashTime, healthBarColour, ai (enemies and npcs)
+//   colour, outline, hurtColour, hurtFlashTime, healthBarColour, ai (enemies and npcs),
+//   hitParticles, deathParticles (optional)
 //
 // world (for update() and ais) is { map, players, enemies, npcs, characters }, where characters is
 // all of them in one list (sketch.js makes it). players is a list so there can be more than one, so
@@ -66,6 +67,10 @@ class Character {
     this.hurtTimer = 0;
     // died for good. dead enemies get removed (the player respawns instead)
     this.dead = false;
+    // the particle effects (PARTICLE_EFFECTS names, particles.js) that burst out when a swing hits it
+    // and when it dies, or null for none. an enemy spawn can pick its own (spawnCharacters(), sketch.js)
+    this.hitParticles = settings.hitParticles ?? null;
+    this.deathParticles = settings.deathParticles ?? null;
 
     // the tile under its feet (its tiles.js settings) and that tile's column and row. null until the
     // first update
@@ -289,6 +294,15 @@ class Character {
   // runs at 0 health. the player and enemies replace this with their own
   die() {
     this.dead = true;
+  }
+
+  // a particle effect (a PARTICLE_EFFECTS name or null, particles.js) bursting out of the middle of
+  // its body, fanned out towards angle (radians), or all round if that's left out. the picture and
+  // bits shapes use its picture if the effect hasn't got one
+  burstParticles(effect, angle) {
+    if (!effect) return;
+    const down = feetBelowCentre(this.settings);
+    Particles.burst(effect, this.x, this.y + down, { height: down, angle, img: this.settings.img });
   }
 
   // ---------- drawing ----------

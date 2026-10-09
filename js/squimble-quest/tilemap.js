@@ -192,8 +192,9 @@ class TileMap {
   // are optional, used instead of what the kind has in its file: ai, an ENEMY_AIS name (enemies.js,
   // enemies only), voice, a voice's name (VOICES in sound.js, npcs only), and sound, a sound it loops
   // wherever it goes (SOUNDS, either kind). a voice or sound that isn't there is kept, so exporting
-  // doesn't lose it, but it's silent
-  addSpawn(kind, type, col, row, { ai, voice, sound, follows } = {}) {
+  // doesn't lose it, but it's silent. enemies can also have hitParticles and deathParticles, particle
+  // effect names (particles.js) or null for none
+  addSpawn(kind, type, col, row, { ai, voice, sound, follows, hitParticles, deathParticles } = {}) {
     const info = SPAWN_KINDS[kind];
     if (!info.types[type]) {
       console.warn(`There's no ${kind} called "${type}", add its file to ${DATA_FOLDER}${DATA_KINDS[kind]}`);
@@ -213,6 +214,11 @@ class TileMap {
     if (voice !== undefined) spawn.voice = voice;
     if (sound !== undefined) spawn.sound = sound;
     if (follows !== undefined) spawn.follows = follows;
+    // these load at the same time as the maps' kinds, so a missing one only shows as missing in the
+    // editor, and bursts nothing
+    const particles = (name) => (kind === 'enemy' && (name === null || typeof name === 'string') ? name : undefined);
+    if (particles(hitParticles) !== undefined) spawn.hitParticles = hitParticles;
+    if (particles(deathParticles) !== undefined) spawn.deathParticles = deathParticles;
     this[info.list].push(spawn);
   }
 

@@ -1,0 +1,16 @@
+{
+  "count": 16,
+  "speed": 220,
+  "spread": 90,
+  "jumpHeight": 30,
+  "gravity": 900,
+  "bounce": 60,
+  "colour": "#fff3a0",
+  "colour2": "#ff8a1f",
+  "size": 2,
+  "endSize": 0,
+  "lifetime": 0.6,
+  "fadeTime": 0.3,
+  "glow": true,
+  "shadow": false
+}
