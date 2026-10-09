@@ -263,7 +263,10 @@ function draw() {
     }
   }
   gameCamera.update(dt);
-  // in the editor too, so the Particles tab can try them out (particles.js)
+  // in the editor too, so the Particles tab can try them out and tiles show theirs while you edit them
+  // (particles.js). tiles and objects on screen that keep making particles go first, but not under the
+  // full screen editors, where you can't see them
+  if (!WarpGraph.active && !SoundEditor.active) ParticleEmitters.update(dt, worldMap, gameCamera.view());
   Particles.update(dt, worldMap);
   // sounds get quieter the further they are from the player's feet, and higher or lower as they and
   // the player move (the doppler effect, sound.js). this runs in the editor too, so finished sounds
@@ -277,14 +280,15 @@ function draw() {
     gameCamera.begin();
     drawWorld(gameCamera, worldMap, Debug.shows('grid'));
     // particles lying on the floor go under everything (particles.js)
-    Particles.drawFloor();
+    const view = gameCamera.view();
+    Particles.drawFloor(view);
     // sort by feet so whatever's lower on screen is in front. drops sort by their shadow (even while
     // they're being thrown), and so do flying particles. drops show in the editor too, since you can
     // place them there
     const things = [
       ...[player, ...enemies, ...npcs].map((c) => ({ y: c.y + c.h / 2, draw: () => c.draw() })),
       ...worldMap.drops.map((d) => ({ y: Drops.where(d).y, draw: () => Drops.draw(d) })),
-      ...Particles.flying().map((p) => ({ y: p.y, draw: () => Particles.drawOne(p) })),
+      ...Particles.flying(view).map((p) => ({ y: p.y, draw: () => Particles.drawOne(p) })),
     ];
     things.sort((a, b) => a.y - b.y);
     for (const thing of things) thing.draw();

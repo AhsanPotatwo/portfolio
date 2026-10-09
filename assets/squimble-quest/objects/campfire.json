@@ -1,0 +1,9 @@
+{
+  "colour": "#5a3b22",
+  "solid": true,
+  "particles": [
+    "campfire-flames",
+    "campfire-smoke",
+    "campfire-embers"
+  ]
+}

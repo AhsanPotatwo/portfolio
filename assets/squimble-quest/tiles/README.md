@@ -27,6 +27,10 @@ Every tile in the game is its own file in this folder, named after it (`lava.jso
      - **Heal**: how much health it gives back a second while standing on it (like a healing spring).
      - **Slippery**: how much you slide about, 0% is normal and 90% is ice. You keep going the way you were until you bump into something.
      - **Push** and **Push by**: pushes anything on it that way, this many tiles a second (conveyor belts, river currents, wind). Walking is 5 tiles a second.
+   - **Particles** (more effects carry on in **Particles 2**)
+     - **Makes**: tick the particle effects every tile of this kind keeps making, like lava's **lava-bubbles** and **lava-smoke**. Each one bursts from a random spot on the tile as often as its own **Keep going** setting says (made in the particle editor, on the map editor's **Particles** tab).
+     - **How often**: faster or slower than that for this tile, 100% is normal and 0% stops them.
+     Only tiles on screen make particles, so big maps don't slow down. If a lot are on screen at once (zoomed right out over lava), they all make fewer instead of the game slowing down.
 
    - **Dual grid**
      - **Blends**: which dual grid tiles (like grass) round off onto this tile. **every dual grid tile** includes ones made later. **only the ticked ones** lets you untick the ones that look wrong: they stop in a straight line at this tile's edge instead. Good for planks, walls and roofs; leave it on for natural ground like dirt.

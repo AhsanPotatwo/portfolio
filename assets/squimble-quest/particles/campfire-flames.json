@@ -1,0 +1,22 @@
+{
+  "count": 2,
+  "countRandom": 1,
+  "area": 12,
+  "speed": 8,
+  "jumpHeight": 6,
+  "gravity": -180,
+  "airDrag": 2,
+  "colour": "#ffe066",
+  "colour2": "#ff4d1f",
+  "size": 6,
+  "sizeRandom": 40,
+  "endSize": 0,
+  "lifetime": 0.7,
+  "lifetimeRandom": 40,
+  "fadeTime": 0.4,
+  "glow": true,
+  "shadow": false,
+  "hitsWalls": false,
+  "startHeight": 4,
+  "rate": 14
+}

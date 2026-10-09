@@ -3,5 +3,10 @@
   "blood-burst",
   "sparks",
   "smoke",
-  "dust"
+  "dust",
+  "lava-bubbles",
+  "lava-smoke",
+  "campfire-flames",
+  "campfire-smoke",
+  "campfire-embers"
 ]

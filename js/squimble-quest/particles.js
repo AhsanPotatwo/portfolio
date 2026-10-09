@@ -1,7 +1,8 @@
 // particle effects: little bits that burst out of something, fly up, fall back onto the floor, lie
 // there a while and fade, like the bits when you break a block in minecraft. characters burst their
 // hitParticles when a swing hits them (blood, by default) and enemies their deathParticles when they
-// die (Character.burstParticles() in character.js).
+// die (Character.burstParticles() in character.js). tiles and objects can keep making them forever,
+// like lava bubbling or a campfire (ParticleEmitters, near the bottom).
 //
 // the game's top down, so each particle has a spot on the floor (x, y in world px) and a height above
 // that spot (z). it's drawn z px further up the screen than its spot, with a shadow on the spot, which
@@ -15,6 +16,8 @@
 // and bits shapes go in particles/pictures/.
 //
 // to make some appear from code: Particles.burst('blood', x, y, { height, angle, img }) (see burst())
+// to make a tile or object keep making some: "particles": ["lava-bubbles"] in its file (or tick them
+// on the tile editor's Particles tab), and the effect's Keep going rate says how often
 //
 // particles are only for show and never change the game, so like sound they'd just run on each
 // player's own computer in multiplayer. they're forgotten when you change map (loadMap() in sketch.js)
@@ -42,6 +45,8 @@ const PARTICLE_SETTINGS = [
   // how high they'd go before falling, with no air drag
   { tab: 'Launch', key: 'jumpHeight', label: 'Jump height', normal: 20, min: 0, max: 400, unit: 'px' },
   { tab: 'Launch', key: 'jumpRandom', label: 'Jump varies', normal: 50, min: 0, max: 100, unit: '%' },
+  // px higher than where they come from that they start, like flames from the top of a campfire
+  { tab: 'Launch', key: 'startHeight', label: 'Start higher', normal: 0, min: 0, max: 200, unit: 'px' },
 
   // pulls them back down. below 0 they float up instead (smoke, bubbles) and never land
   { tab: 'Physics', key: 'gravity', label: 'Gravity', normal: 700, min: -1000, max: 3000, step: 10, unit: 'px/s²' },
@@ -82,6 +87,11 @@ const PARTICLE_SETTINGS = [
   // adds its colour onto what's behind instead of covering it, for sparks and magic
   { tab: 'Life', key: 'glow', label: 'Glow', normal: false, tick: 'light up what is behind' },
   { tab: 'Life', key: 'shadow', label: 'Shadow', normal: true, tick: 'on the floor while flying' },
+
+  // bursts a second from each tile or object that keeps making this effect (ParticleEmitters, below),
+  // times its particleRate. it doesn't matter for one-off bursts like hits. 'log' gives slow rates
+  // (one every few seconds) as much room on the slider as fast ones
+  { tab: 'Keep going', key: 'rate', label: 'Bursts', normal: 1, min: 0.05, max: 60, step: 0.05, unit: '/s', curve: 'log' },
 ];
 
 const PARTICLE_DEFAULTS = Object.fromEntries(PARTICLE_SETTINGS.map(({ key, normal }) => [key, normal]));
@@ -97,8 +107,13 @@ const PARTICLE_SHAPES = {
 // the most there can be at once in each system (the map's, and the editor's preview). past this the
 // oldest go first, so lots of hits at once can't slow the game down
 const PARTICLE_LIMIT = 2000;
-// slower than this (px/s) after bouncing off the floor and it stops bouncing and lies there
+// slower than this (px/s) after bouncing off the floor and it stops bouncing and lies there. sliding
+// slower than STOP_SPEED along the floor it stops dead, so lying ones cost nearly nothing
 const PARTICLE_REST_SPEED = 30;
+const PARTICLE_STOP_SPEED = 1;
+// how far past the edge of the screen (world px) particles still get drawn, so big ones don't pop
+// out of sight while they're still partly on screen
+const PARTICLE_DRAW_MARGIN = 64;
 
 // filled in from the particle files (bottom of this file)
 const PARTICLE_EFFECTS = {};
@@ -177,7 +192,7 @@ class ParticleSystem {
         effect: e,
         x: x + Math.cos(startAngle) * out,
         y: y + Math.sin(startAngle) * out,
-        z: height,
+        z: height + e.startHeight,
         vx: Math.cos(heading) * speed,
         vy: Math.sin(heading) * speed,
         vz: jump,
@@ -223,11 +238,19 @@ class ParticleSystem {
           if (p.vz < PARTICLE_REST_SPEED) p.vz = 0;
         }
       }
+      p.angle += p.spin * dt;
+      // stopped dead on the floor: nothing left to move
+      if (onFloor && Math.abs(p.vx) < PARTICLE_STOP_SPEED && Math.abs(p.vy) < PARTICLE_STOP_SPEED) {
+        p.vx = 0;
+        p.vy = 0;
+        continue;
+      }
       // x and then y, so it bounces off the side of a wall it hits at an angle. empty and off-map
-      // tiles are solid, so they stay on the map.
+      // tiles are solid, so they stay on the map. one that's inside something solid (a campfire's
+      // flames start inside the solid campfire) ignores walls, or it'd bounce about in there forever.
       // ponytail: walls are as tall as the sky, so a bit flying over a wall still bounces off it.
       // giving tiles a height would fix it
-      const walls = e.hitsWalls && map;
+      const walls = e.hitsWalls && map && !map.isSolid(map.colAt(p.x), map.rowAt(p.y));
       const bounce = -e.bounce / 100;
       const x = p.x + p.vx * dt;
       if (walls && map.isSolid(map.colAt(x), map.rowAt(p.y))) p.vx *= bounce;
@@ -235,21 +258,26 @@ class ParticleSystem {
       const y = p.y + p.vy * dt;
       if (walls && map.isSolid(map.colAt(p.x), map.rowAt(y))) p.vy *= bounce;
       else p.y = y;
-      p.angle += p.spin * dt;
     }
     this.list = this.list.filter((p) => p.age < p.life);
   }
 
   // the ones lying on the floor, in world positions (inside camera.begin/end). they go under
-  // everything else, and flying() ones get sorted in with the characters (sketch.js)
-  drawFloor() {
+  // everything else, and flying() ones get sorted in with the characters (sketch.js). view is the
+  // camera's (camera.view()) so ones off the screen get skipped, or leave it out for all of them
+  drawFloor(view) {
     for (const p of this.list) {
-      if (p.z <= 0) this.drawOne(p);
+      if (p.z <= 0 && this.onScreen(p, view)) this.drawOne(p);
     }
   }
 
-  flying() {
-    return this.list.filter((p) => p.z > 0);
+  flying(view) {
+    return this.list.filter((p) => p.z > 0 && this.onScreen(p, view));
+  }
+
+  onScreen(p, view) {
+    const m = PARTICLE_DRAW_MARGIN;
+    return !view || (p.x > view.left - m && p.x < view.right + m && p.y - p.z > view.top - m && p.y - p.z < view.bottom + m);
   }
 
   // all of them, floor ones first (the editor's preview)
@@ -305,6 +333,88 @@ class ParticleSystem {
 
 // the map's particles. sketch.js updates and draws them
 const Particles = new ParticleSystem();
+
+// ---------- things that keep making particles ----------
+// tiles and objects whose particles setting is a list of effect names (tiles.js, objects.js) keep
+// bursting each of them, the effect's rate times a second times their own particleRate: tiles from a
+// random spot on the tile, objects from the middle of the tiles they cover (moved by particleX,
+// particleY px). only on the map you're on. it's built to stay cheap even on a map covered in lava:
+//   - only ones on screen (or within PARTICLE_EMITTERS.margin of it) make any, so a big map costs the
+//     same as a small one. the tiles only get looked through at all if some kind of tile makes them
+//   - nothing is kept per tile: each frame each one bursts rate x dt times on average (burstsIn()),
+//     so a thousand lava tiles is just one loop
+//   - between them they keep at most PARTICLE_EMITTERS.share of PARTICLE_LIMIT alive. if the ones on
+//     screen would make more (zoomed right out over lava), every one turns down evenly (turnedDown)
+//     rather than the first ones looked at getting it all. that leaves room for hits, so blood always
+//     shows
+//   - particles that have stopped on the floor skip moving, and ones off screen aren't drawn (above)
+const PARTICLE_EMITTERS = {
+  // the part of PARTICLE_LIMIT they can fill
+  share: 0.6,
+  // world px past the screen's edge that still count as on screen, so smoke drifting in from just
+  // off the edge is already going
+  margin: 64,
+};
+
+const ParticleEmitters = {
+  // how much they're turned down (1 is not at all, 0.5 is half as many), worked out from the frame
+  // before. the dev panel shows it (debug.js)
+  turnedDown: 1,
+
+  // every frame from sketch.js. view is the camera's (camera.view())
+  update(dt, map, view) {
+    const m = PARTICLE_EMITTERS.margin;
+    const left = view.left - m;
+    const right = view.right + m;
+    const top = view.top - m;
+    const bottom = view.bottom + m;
+    // how many particles the ones on screen would keep alive at full rate (bursts a second x
+    // particles a burst x seconds each)
+    let wanted = 0;
+    // names: effects. rate: the tile's or object's particleRate. x, y, w, h: the area they start in
+    const emit = (names, rate, x, y, w, h) => {
+      for (const name of names) {
+        const e = PARTICLE_EFFECTS[name];
+        if (!e) continue;
+        wanted += e.rate * rate * e.count * e.lifetime;
+        const bursts = burstsIn(e.rate * rate * this.turnedDown, dt);
+        for (let i = 0; i < bursts; i++) Particles.burst(e, x + randomBetween(0, w), y + randomBetween(0, h));
+      }
+    };
+
+    if (Object.values(TILE_TYPES).some((type) => type.particles)) {
+      // the tiles on screen, like drawTiles() (tilemap.js)
+      const firstCol = Math.max(map.left, map.colAt(left));
+      const lastCol = Math.min(map.left + map.cols - 1, map.colAt(right));
+      const firstRow = Math.max(map.top, map.rowAt(top));
+      const lastRow = Math.min(map.top + map.rows - 1, map.rowAt(bottom));
+      for (let row = firstRow; row <= lastRow; row++) {
+        for (let col = firstCol; col <= lastCol; col++) {
+          const tile = map.get(col, row);
+          if (tile?.particles) emit(tile.particles, tile.particleRate, col * TILE, row * TILE, TILE, TILE);
+        }
+      }
+    }
+    for (const obj of map.objects) {
+      const type = OBJECT_TYPES[obj.type];
+      if (!type?.particles) continue;
+      const x = (obj.col + type.width / 2) * TILE + type.particleX;
+      const y = (obj.row + type.height / 2) * TILE + type.particleY;
+      if (x > left && x < right && y > top && y < bottom) emit(type.particles, type.particleRate, x, y, 0, 0);
+    }
+
+    const room = PARTICLE_LIMIT * PARTICLE_EMITTERS.share;
+    this.turnedDown = wanted > room ? room / wanted : 1;
+  },
+};
+
+// how many bursts to make this frame for something bursting `rate` times a second: the whole ones,
+// plus a chance of one more for the bit left over, so on average it's exactly rate x dt
+function burstsIn(rate, dt) {
+  const expected = rate * dt;
+  const whole = Math.floor(expected);
+  return whole + (randomBetween(0, 1) < expected - whole ? 1 : 0);
+}
 
 // a little fountain of an effect's bits for the editor's palette, always the same, size px square
 // round the middle x, y

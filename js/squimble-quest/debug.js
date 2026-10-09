@@ -69,6 +69,15 @@ const DEV_INFO = [
       return [['enemies', `${here.length}, ${here.filter((enemy) => enemy.chasing).length} chasing${following}`]];
     },
   },
+  {
+    // how many there are of the most there can be, and how much tiles and objects that keep making
+    // them are being turned down to stay under their share (particles.js)
+    name: 'particles', label: 'Particles', note: 'how many, turned down', on: false,
+    lines: () => {
+      const down = ParticleEmitters.turnedDown < 1 ? `, emitters at ${Math.round(ParticleEmitters.turnedDown * 100)}%` : '';
+      return [['particles', `${Particles.list.length} / ${PARTICLE_LIMIT}${down}`]];
+    },
+  },
 ];
 
 // things drawn over the map that the menu can turn on and off. key is a KEYS action that flips it
