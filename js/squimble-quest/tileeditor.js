@@ -2,8 +2,8 @@
 // have to edit the tile files (tiles.js) by hand.
 //   - New (in the inspector on the Tiles tab) opens a box for a new tile. right clicking a tile in
 //     the palette (or Edit) opens it for one that already exists
-//   - the tabs are Look, then TILE_BEHAVIOURS' tabs (Behaviours, Effects...), then Dual grid
-//     (blendsWith)
+//   - the tabs are Look, then TILE_BEHAVIOURS' tabs (Behaviours, Effects, Particles, which also gets
+//     a tick box for each particle effect it can keep making), then Dual grid (blendsWith)
 //   - a column down the side shows the texture file and a little patch of the tile like on the map
 //   - a tile that already exists changes on the map while you edit it (drag the box out of the way to
 //     see). Save keeps the changes, and Cancel, Escape or the x puts it back how it was
@@ -41,6 +41,8 @@ const TILE_BEHAVIOURS = [
     field: (value) => new Picker({ w: 180, choices: [null, ...Object.keys(PUSH_DIRECTIONS)], value, label: (way) => way ?? 'nowhere' }),
   },
   { tab: 'Effects', key: 'pushSpeed', label: 'Push by', after: 'tiles a second', field: (value) => new NumberField({ w: 90, value, max: 20 }) },
+  // the effects it makes are tick boxes added under this (open()), like blendsWith's
+  { tab: 'Particles', key: 'particleRate', label: 'How often', after: '% of normal', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 1000 }) },
 ];
 
 // the most rows on a tab. any more carry on in a numbered tab ("Effects 2"). the box is always this
@@ -116,9 +118,18 @@ const TileEditor = {
       ...blendBoxes.map((field) => ({ label: '', field })),
     ];
 
-    // TILE_BEHAVIOURS' tabs and then Dual grid, split into pages of TILE_EDITOR_ROWS
+    // a tick box for each particle effect it can keep making (particles.js). one it uses that doesn't
+    // exist stays in the list, so opening the box doesn't quietly drop it
+    const particleNames = [...new Set([...Object.keys(PARTICLE_EFFECTS), ...(type?.particles ?? [])])];
+    const particleBoxes = particleNames.map((name) => new Checkbox({
+      w: 180, label: name, value: Boolean(type?.particles?.includes(name)),
+    }));
+
+    // TILE_BEHAVIOURS' tabs and then Dual grid, split into pages of TILE_EDITOR_ROWS. the particle
+    // tick boxes go after the Particles tab's own rows
     const sections = [...new Set(TILE_BEHAVIOURS.map((b) => b.tab))]
       .map((name) => [name, behaviourRows.filter((row) => row.tab === name)]);
+    sections.find(([name]) => name === 'Particles')[1].push(...particleBoxes.map((field, i) => ({ label: i === 0 ? 'Makes' : '', field })));
     sections.push(['Dual grid', blendRows]);
     const tabs = [];
     for (const [name, rows] of sections) {
@@ -146,6 +157,8 @@ const TileEditor = {
       };
       for (const row of behaviourRows) settings[row.key] = row.scale ? row.field.value / row.scale : row.field.value;
       settings.blendsWith = blendPicker.value ? null : blendBoxes.filter((box) => box.value).map((box) => box.label);
+      const particles = particleBoxes.filter((box) => box.value).map((box) => box.label);
+      settings.particles = particles.length > 0 ? particles : null;
       return settings;
     };
     // what the map is showing (the settings as text so changes are easy to spot, and the picture), and

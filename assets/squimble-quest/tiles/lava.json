@@ -1,5 +1,9 @@
 {
   "colour": "#e4572e",
   "speed": 0.7,
-  "damagePerSecond": 25
+  "damagePerSecond": 25,
+  "particles": [
+    "lava-bubbles",
+    "lava-smoke"
+  ]
 }

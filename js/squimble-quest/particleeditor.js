@@ -1,6 +1,7 @@
 // the particle editor: a box for making and changing particle effects (particles.js), with a preview
 // down the side that bursts the effect every PARTICLE_PREVIEW.every seconds (or when you click it), as
-// if something standing there got hit from the left. Geometry Dash's particle creator was the idea. it
+// if something standing there got hit from the left (or on the Keep going tab, nonstop from one tile,
+// like lava making it). Geometry Dash's particle creator was the idea. it
 // opens from the map editor's Particles tab (New, Edit, or right click one in the palette) and from an
 // enemy's settings (Edit particles, editor.js).
 //
@@ -109,7 +110,7 @@ function particleField(line, value) {
   if (line.choices) return new Picker({ w: 180, choices: line.choices(), value, label: line.say });
   if (line.colour) return new ColourField({ w: 180, value });
   if (line.tick) return new Checkbox({ w: 180, value, label: line.tick });
-  return new Slider({ w: 180, labelWidth: 0, label: '', min: line.min, max: line.max, step: line.step ?? 1, unit: line.unit, value, normal: line.normal });
+  return new Slider({ w: 180, labelWidth: 0, label: '', min: line.min, max: line.max, step: line.step ?? 1, curve: line.curve, unit: line.unit, value, normal: line.normal });
 }
 
 // the preview down the side of the particle editor: the effect bursting out of a body outline, seen
@@ -126,13 +127,25 @@ class ParticlePreview extends UIElement {
     this.wait = 0;
   }
 
+  // on the Keep going tab it shows the effect the way a tile makes it, nonstop at its rate from
+  // anywhere on one tile (ParticleEmitters in particles.js). otherwise it's a hit
+  keepGoing() {
+    return FormBox.tabs[FormBox.tab]?.label === 'Keep going';
+  }
+
   update(hovered) {
     this.hovered = hovered;
     const dt = Math.min(deltaTime / 1000, MAX_DT); // config.js
-    this.wait -= dt;
-    if (this.wait <= 0 || (hovered && Input.buttonsPressed.has('left'))) {
-      this.system.burst(this.effect, 0, 0, { height: PARTICLE_PREVIEW.height, angle: 0, img: this.img });
-      this.wait = PARTICLE_PREVIEW.every;
+    const click = hovered && Input.buttonsPressed.has('left');
+    if (this.keepGoing()) {
+      const bursts = burstsIn(this.effect.rate, dt) + (click ? 1 : 0); // particles.js
+      for (let i = 0; i < bursts; i++) this.system.burst(this.effect, randomBetween(-TILE / 2, TILE / 2), randomBetween(-TILE / 2, TILE / 2), { img: this.img });
+    } else {
+      this.wait -= dt;
+      if (this.wait <= 0 || click) {
+        this.system.burst(this.effect, 0, 0, { height: PARTICLE_PREVIEW.height, angle: 0, img: this.img });
+        this.wait = PARTICLE_PREVIEW.every;
+      }
     }
     this.system.update(dt, null);
   }
@@ -140,6 +153,7 @@ class ParticlePreview extends UIElement {
   draw() {
     const { x, y, w, h } = this;
     const { bodyWidth, bodyHeight, zoom } = PARTICLE_PREVIEW;
+    const keepGoing = this.keepGoing();
     noStroke();
     fill(WORLD_COLOURS.outside); // world.js
     rect(x, y, w, h, 3);
@@ -148,18 +162,20 @@ class ParticlePreview extends UIElement {
     drawingContext.beginPath();
     drawingContext.rect(x, y, w, h);
     drawingContext.clip();
-    // the floor spot they come out above, left of the middle since they fly right
-    translate(Math.round(x + w * 0.3), Math.round(y + h * 0.65));
+    // the floor spot they come out above: left of the middle for hits since they fly right, and in
+    // the middle of the tile otherwise
+    translate(Math.round(x + w * (keepGoing ? 0.5 : 0.3)), Math.round(y + h * 0.65));
     scale(zoom);
     noFill();
     stroke(255, 255, 255, 50);
     strokeWeight(1);
-    rect(-bodyWidth / 2, -bodyHeight + 7, bodyWidth, bodyHeight);
+    if (keepGoing) rect(-TILE / 2, -TILE / 2, TILE, TILE);
+    else rect(-bodyWidth / 2, -bodyHeight + 7, bodyWidth, bodyHeight);
     this.system.drawAll();
     pop();
     noStroke();
     fill(EDITOR_COLOURS.dimText); // editor.js
     setText(11, BOLD, CENTER, BOTTOM);
-    text('Click for another', x + w / 2, y + h - 4);
+    text(keepGoing ? 'One tile making it' : 'Click for another', x + w / 2, y + h - 4);
   }
 }

@@ -1,0 +1,21 @@
+{
+  "count": 1,
+  "countRandom": 0,
+  "area": 8,
+  "speed": 8,
+  "jumpHeight": 0,
+  "gravity": -70,
+  "wind": 15,
+  "shape": "circle",
+  "colour": "#8a8a92",
+  "colour2": "#55555c",
+  "size": 7,
+  "endSize": 350,
+  "lifetime": 3,
+  "fadeTime": 2.5,
+  "opacity": 30,
+  "shadow": false,
+  "hitsWalls": false,
+  "startHeight": 24,
+  "rate": 3
+}

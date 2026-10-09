@@ -65,6 +65,11 @@ const TILE_DEFAULTS = {
   // the dual grid tiles that round off onto this one, like ["grass"]. null means all of them and []
   // means none. the rest stop in a straight line at its edge (looks better on planks and walls)
   blendsWith: null,
+  // the particle effects it keeps making, like ["lava-bubbles", "lava-smoke"] (particles/), or null
+  // for none. each one bursts its rate (its Keep going tab) times a second on each tile on screen,
+  // times particleRate (0.5 is half as often) (ParticleEmitters in particles.js)
+  particles: null,
+  particleRate: 1,
 };
 
 // does the dual grid tile `dual` round off onto `tile`? if not, it stops in a straight line at tile's

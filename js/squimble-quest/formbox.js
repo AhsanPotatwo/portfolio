@@ -75,10 +75,11 @@ const FormBox = {
       style: { ...BUTTON_STYLES.editor, fill: 'rgba(0, 0, 0, 0)', border: 'rgba(0, 0, 0, 0)', hoverFill: BUTTON_STYLES.danger.fill, pressedFill: BUTTON_STYLES.danger.pressedFill, textSize: 16 },
       onClick: () => this.close(),
     }));
-    // the tabs under the title, each as wide as its label, all squashed to fit if there are loads
+    // the tabs under the title, each as wide as its label, all squashed to fit if there are loads. they
+    // go across the side column too, which starts under them
     setText(11, BOLD, CENTER, CENTER, BUTTON_STYLES.default.font);
     const tabWidths = this.tabs.map(({ label }) => textWidth(label ?? '') + 14);
-    const room = FORM_BOX.width - 32 - FORM_BOX.tabGap * (this.tabs.length - 1);
+    const room = w - 32 - FORM_BOX.tabGap * (this.tabs.length - 1);
     const squash = Math.min(1, room / tabWidths.reduce((a, b) => a + b, 0));
     let tabX = x + 16;
     this.tabButtons = tabbed ? this.tabs.map(({ label }, i) => {
@@ -96,8 +97,8 @@ const FormBox = {
     for (const { rows } of this.tabs) {
       rows.forEach(({ field }, i) => add(Object.assign(field, { x: x + 100, y: y + this.rowsTop + i * FORM_BOX.rowHeight, h: FORM_BOX.fieldHeight })));
     }
-    // the side column: to the right of the rows, from under the title bar down to the footer
-    const sideTop = FORM_BOX.titleHeight + 12;
+    // the side column: to the right of the rows, from level with them down to the footer
+    const sideTop = this.rowsTop;
     if (options.side) options.side(x + FORM_BOX.width, y + sideTop, FORM_BOX.sideWidth - 16, h - sideTop - FORM_BOX.footerHeight - 6).forEach(add);
     // bottom right, where you'd expect them
     const buttonY = y + h - (FORM_BOX.footerHeight + 24) / 2;

@@ -15,6 +15,11 @@
 //   colour          the placeholder colour when there's no image
 //   image           like 'assets/squimble-quest/objects/table.png', stretched over its tiles (2 x 1 is 64 x 32)
 //   solid           blocks the player
+//   particles       the particle effects it keeps making, like a campfire's
+//                   ["campfire-flames", "campfire-smoke"] (particles/), or null for none. they come
+//                   from the middle of the tiles it covers (ParticleEmitters in particles.js)
+//   particleRate    how often compared to each effect's own rate (its Keep going tab), 2 is twice
+//   particleX, particleY  px to move where they come from, like -20 for the top of a chimney
 //
 // the editor's Objects tab picks it up by itself. later on: things they do, like onInteract for opening
 // a chest
@@ -28,6 +33,10 @@ const OBJECT_DEFAULTS = {
   colour: '#ff00ff',
   image: null,
   solid: false,
+  particles: null,
+  particleRate: 1,
+  particleX: 0,
+  particleY: 0,
 };
 
 // filled in from the object files (bottom of this file)
