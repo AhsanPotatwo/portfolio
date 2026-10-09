@@ -5,8 +5,8 @@ class Player extends Character {
     // PLAYER is in config.js
     super(x, y, PLAYER);
 
-    // the hotbar and then the bag (inventory.js). empty until giveStartingItems()
-    this.inventory = new Inventory(HOTBAR_SIZE + BAG_SIZE);
+    // the hotbar, the bag, then what you're wearing (inventory.js). empty until giveStartingItems()
+    this.inventory = new Inventory(HOTBAR_SIZE + BAG_SIZE, EQUIPMENT_SLOTS);
     // [col, row] of the tile under the feet the last time step triggers checked (Warps.checkStep() in
     // warps.js), so step warps and step sound blocks only go off when you step onto them. it's on the
     // player so each player's steps are tracked separately
@@ -26,6 +26,11 @@ class Player extends Character {
 
   targets(world) {
     return world.enemies;
+  }
+
+  // what's in the equipment slots (inventory.js)
+  worn() {
+    return this.inventory.worn();
   }
 
   die() {

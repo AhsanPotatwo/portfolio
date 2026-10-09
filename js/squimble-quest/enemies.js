@@ -17,7 +17,8 @@
 //   speed                  walking speed in px/s
 //   maxHealth              how much damage it takes to beat it
 //   weapon                 its weapon's settings, like the grunt's claws (weapons.js), or null if it
-//                          doesn't attack
+//                          doesn't attack. a "shoot" weapon (a bow) wants a bigger attackRange, or it
+//                          only shoots from close up. what it wears is picked per spawn in the editor
 //   colour, outline        placeholder colours
 //   hurtColour             the flash when it gets hit
 //   healthBarColour        the bar over its head, shown once it's hurt

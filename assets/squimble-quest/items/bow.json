@@ -1,0 +1,14 @@
+{
+  "label": "Bow",
+  "category": "weapon",
+  "weapon": {
+    "attack": "shoot",
+    "damage": 15,
+    "reach": 420,
+    "cooldown": 0.5,
+    "arrowSpeed": 520,
+    "colour": "#e8e8e8"
+  },
+  "rarity": "uncommon",
+  "colour": "#a0703c"
+}

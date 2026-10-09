@@ -29,6 +29,14 @@ class Enemy extends Character {
     // { warp, time } while it's following the player through a warp, where time is the seconds until
     // it comes out (Warps.sendFollowers() in warps.js). null otherwise
     this.following = null;
+    // what it's wearing: item names by EQUIPMENT_SLOTS key (inventory.js), picked for its spawn in the
+    // editor (spawnCharacters() in sketch.js sets it). only for show for now, armour doesn't do
+    // anything yet
+    this.wears = {};
+  }
+
+  worn() {
+    return Object.values(this.wears).map((name) => ITEM_TYPES[name]).filter(Boolean);
   }
 
   update(dt, world) {

@@ -38,7 +38,7 @@ const PLAYER = {
   maxHealth: 100,
   // what's in the inventory at the start, filling from hotbar slot 1 (names are item files, items/). you
   // attack with the item in the picked slot, and empty hands can't attack
-  startingItems: ['sword', 'axe'],
+  startingItems: ['sword', 'axe', 'bow'],
   colour: '#4a7bd8',
   outline: '#23407a',
   // quick flash when hurt

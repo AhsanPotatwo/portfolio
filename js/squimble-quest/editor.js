@@ -35,8 +35,8 @@
 //     removes those, otherwise it empties tiles (like off the map, so they aren't drawn and can't be
 //     walked on)
 //   - right click: the settings for a warp, a sound block (its sound, and how it moves), an enemy (its
-//     ai, sound and particles) or an npc (its voice and sound) on the map, or a tile, item, sound or voice in the
-//     palette
+//     armour, ai, sound and particles, next to a picture of it) or an npc (its voice and sound) on the
+//     map, or a tile, item, sound or voice in the palette. resting the mouse on a row says what it does
 //   - opening it shows every enemy at its spawn, even defeated ones, so you see the whole design.
 //     closing it puts everyone back at their spawns on full health (outside the editor, maps remember
 //     their characters, loadMap() in sketch.js)
@@ -572,38 +572,57 @@ const Editor = {
     if (!player.inventory.add(createItem(name))) showMessage('No room, your inventory is full');
   },
 
-  // changes an item's name, rarity and colour (items.js), plus its weapon's numbers on a second tab
-  // (weapons.js). the changes happen when you press Save. Export on the item tabs saves them,
-  // otherwise they're gone when you reload
+  // changes an item's name, rarity, colour and where it's worn (items.js), plus its weapon's numbers on
+  // a second tab (weapons.js). the changes happen when you press Save. Export on the item tabs saves
+  // them, otherwise they're gone when you reload
   editItem(name) {
     const type = ITEM_TYPES[name];
     const weapon = type.weapon;
-    const itemRows = [
-      { label: 'Name', field: new TextField({ w: 180, value: type.label }) },
-      {
-        label: 'Rarity',
-        field: new Picker({
-          w: 180,
-          choices: Object.keys(RARITIES),
-          value: type.rarity,
-          label: (rarity) => RARITIES[rarity].label,
-          art: (rarity, x, y, size) => {
-            noStroke();
-            fill(RARITIES[rarity].colour);
-            circle(x + size / 2, y + size / 2, size * 0.8);
-          },
-        }),
+    const labelField = new TextField({ w: 180, value: type.label });
+    const colourField = new ColourField({ w: 180, value: type.colour });
+    const rarityPicker = new Picker({
+      w: 180,
+      choices: Object.keys(RARITIES),
+      value: type.rarity,
+      label: (rarity) => RARITIES[rarity].label,
+      art: (rarity, x, y, size) => {
+        noStroke();
+        fill(RARITIES[rarity].colour);
+        circle(x + size / 2, y + size / 2, size * 0.8);
       },
-      { label: 'Colour', field: new ColourField({ w: 180, value: type.colour }) },
+    });
+    const wearPicker = new Picker({
+      w: 180,
+      choices: [null, ...Object.keys(WEAR_PLACES)],
+      value: type.wear,
+      label: (place) => (place ? WEAR_PLACES[place] : "can't be worn"),
+      art: (place, x, y, size) => drawWearIcon(place, x + size / 2, y + size / 2, size), // inventory.js
+    });
+    const itemRows = [
+      { label: 'Name', field: labelField, tip: 'What the player sees. Its file name stays the same' },
+      { label: 'Rarity', field: rarityPicker, tip: 'Sets its glow, and the colour of its name over the hotbar' },
+      { label: 'Colour', field: colourField, tip: 'Its placeholder colour until it has a picture' },
+      { label: 'Worn on', field: wearPicker, tip: 'Which equipment slot it goes in. Nothing it does yet, it just shows' },
     ];
     // whole numbers only, so the times are in ms
     const number = (value, max) => new NumberField({ w: 90, value: Math.round(value), min: 1, max });
+    const fields = weapon && {
+      attack: new Picker({ w: 180, choices: Object.keys(WEAPON_ATTACKS), value: weapon.attack, label: (attack) => WEAPON_ATTACKS[attack] }),
+      damage: number(weapon.damage, 9999),
+      reach: number(weapon.reach, 9999),
+      arc: number(weapon.arc, 360),
+      swingTime: number(weapon.swingTime * 1000, 9999),
+      cooldown: number(weapon.cooldown * 1000, 9999),
+      arrowSpeed: number(weapon.arrowSpeed, 9999),
+    };
     const weaponRows = weapon ? [
-      { label: 'Damage', field: number(weapon.damage, 9999) },
-      { label: 'Reach', field: number(weapon.reach, 999), after: 'pixels' },
-      { label: 'Arc', field: number(weapon.arc, 360), after: 'degrees' },
-      { label: 'Swing time', field: number(weapon.swingTime * 1000, 9999), after: 'ms' },
-      { label: 'Cooldown', field: number(weapon.cooldown * 1000, 9999), after: 'ms' },
+      { label: 'Attack', field: fields.attack, tip: 'Swing it in an arc, or shoot arrows like a bow' },
+      { label: 'Damage', field: fields.damage, tip: 'Taken off each thing it hits' },
+      { label: 'Reach', field: fields.reach, after: 'pixels', tip: "How far a swing reaches, or how far an arrow flies. A tile's 32" },
+      { label: 'Arc', field: fields.arc, after: 'degrees', tip: 'How wide a swing is, 360 all the way round. Swings only' },
+      { label: 'Swing time', field: fields.swingTime, after: 'ms', tip: 'How long a swing takes. Swings only' },
+      { label: 'Cooldown', field: fields.cooldown, after: 'ms', tip: 'From one attack to the next' },
+      { label: 'Arrow speed', field: fields.arrowSpeed, after: 'px/s', tip: 'How fast its arrows fly. Shooting only' },
     ] : [];
 
     FormBox.open({
@@ -611,11 +630,17 @@ const Editor = {
       hint: 'Export in the inspector to keep changes',
       confirmLabel: 'Save',
       ...(weapon ? { tabs: [{ label: 'Item', rows: itemRows }, { label: 'Weapon', rows: weaponRows }] } : { rows: itemRows }),
-      canConfirm: ([label, , colour]) => label.trim() !== '' && HEX_COLOUR.test(colour),
-      onConfirm: ([label, rarity, colour, damage, reach, arc, swingTime, cooldown]) => {
+      canConfirm: () => labelField.value.trim() !== '' && HEX_COLOUR.test(colourField.value),
+      onConfirm: () => {
+        const colour = colourField.value;
         // fill is the p5 colour it gets drawn with (prepareArt() in utils.js)
-        Object.assign(type, { label: label.trim(), rarity, colour, fill: color(colour) });
-        if (weapon) Object.assign(weapon, { damage, reach, arc, swingTime: swingTime / 1000, cooldown: cooldown / 1000 });
+        Object.assign(type, { label: labelField.value.trim(), rarity: rarityPicker.value, colour, fill: color(colour), wear: wearPicker.value });
+        if (!weapon) return;
+        const value = (key) => fields[key].value;
+        Object.assign(weapon, {
+          attack: value('attack'), damage: value('damage'), reach: value('reach'), arc: value('arc'),
+          swingTime: value('swingTime') / 1000, cooldown: value('cooldown') / 1000, arrowSpeed: value('arrowSpeed'),
+        });
       },
     });
   },
@@ -703,9 +728,9 @@ const Editor = {
       hint: 'Click a choice for the full list, or its arrows to step',
       confirmLabel: 'Save',
       rows: [
-        { label: 'Name', field: new TextField({ w: 180, value: warp.name }) },
-        { label: 'Goes to', field: mapPicker },
-        { label: 'Arrive at', field: arrivePicker },
+        { label: 'Name', field: new TextField({ w: 180, value: warp.name }), tip: 'Other warps link to it by this, so renaming breaks links to it' },
+        { label: 'Goes to', field: mapPicker, tip: 'The map it takes you to. This map makes it a teleport' },
+        { label: 'Arrive at', field: arrivePicker, tip: 'A warp on that map, or its spawn point. Link that one back for a two way door' },
         {
           label: 'Opens by',
           field: new Picker({
@@ -714,12 +739,14 @@ const Editor = {
             value: warp.activate,
             label: (how) => (how === 'step' ? 'stepping on it' : 'pressing E'),
           }),
+          tip: 'E works from the next tile too, so a door can go under a solid object',
         },
-        { label: 'Enemies', field: new Checkbox({ w: 180, value: warp.enemies, label: 'follow you through' }) },
+        { label: 'Enemies', field: new Checkbox({ w: 180, value: warp.enemies, label: 'follow you through' }), tip: 'Enemies chasing you come through after you' },
         // last, so its value (undefined) doesn't shift the ones onConfirm gets
         {
           label: 'Links',
           field: new Button({ w: 180, label: 'Show links', style: 'editor', onClick: () => WarpGraph.open(map.name, warp.name) }),
+          tip: 'A map of every warp linked to this one',
         },
       ],
       // a name no other warp on this map has, so warps can link to it
@@ -730,14 +757,34 @@ const Editor = {
     });
   },
 
-  // picks an enemy spawn's ai (ENEMY_AIS in enemies.js, '' means its kind's own), the sound it
-  // carries around, whether it follows you through warps ('' is its kind's followsThroughWarps,
-  // canFollow() in warps.js), and the particles it bursts when hit and when it dies (particles.js).
-  // the Edit buttons save this box and open the particle editor on the one picked. Export saves them
+  // an enemy spawn's settings, in three tabs with a picture of it down the side that turns to the mouse
+  // and wears what's picked (CharacterPreview in inventory.js):
+  //   Armour     what it wears in each EQUIPMENT_SLOTS slot (inventory.js), saved as its wears. only
+  //              items worn there are listed. it's only for show until armour does something
+  //   Behaviour  its ai (ENEMY_AIS in enemies.js, '' means its kind's own) and whether it follows you
+  //              through warps ('' is its kind's followsThroughWarps, canFollow() in warps.js)
+  //   Effects    the sound it carries around, and the particles it bursts when hit and when it dies
+  //              (particles.js). the Edit buttons save this box and open the particle editor on the
+  //              one picked
+  // Export saves them all in the map
   editEnemy(spawn) {
     const type = ENEMY_TYPES[spawn.type];
     const own = type.ai ?? 'still';
     const follows = (yes) => (yes ? 'follows you' : 'stays behind');
+    const wearPickers = EQUIPMENT_SLOTS.map((slot) => ({ slot, picker: this.wearPicker(slot, spawn.wears?.[slot.key] ?? null) }));
+    const aiPicker = new Picker({
+      w: 180,
+      choices: ['', ...Object.keys(ENEMY_AIS)],
+      value: spawn.ai ?? '',
+      label: (name) => name || `its own (${own})`,
+    });
+    const followsPicker = new Picker({
+      w: 180,
+      choices: ['', true, false],
+      value: spawn.follows ?? '',
+      label: (yes) => (yes === '' ? `its own (${follows(type.followsThroughWarps)})` : follows(yes)),
+    });
+    const soundPicker = this.characterSoundPicker(spawn, type);
     const hitPicker = this.particlePicker(spawn.hitParticles, type.hitParticles);
     const deathPicker = this.particlePicker(spawn.deathParticles, type.deathParticles);
     // saves this box, then edits the effect the picker means (its kind's for ''). none, or a missing
@@ -755,40 +802,79 @@ const Editor = {
       });
     };
     const editButton = (label, picker, key) => ({ label: '', field: new Button({ w: 180, label, style: 'editor', onClick: () => editParticles(picker, key) }) });
+    const anyArmour = Object.values(ITEM_TYPES).some((item) => item.wear);
+    const weapon = type.weapon ? `${type.weapon.damage} damage ${type.weapon.attack === 'shoot' ? 'arrows' : 'swings'}` : 'no weapon';
+
     FormBox.open({
       title: `Enemy: ${spawn.type}`,
-      hint: 'direct is the old straight line, the rest go round',
+      hint: anyArmour ? 'Rest the mouse on a row to see what it does' : 'No armour yet: give an item a wear (items.js)',
       confirmLabel: 'Save',
-      rows: [{
-        label: 'AI',
-        field: new Picker({
-          w: 180,
-          choices: ['', ...Object.keys(ENEMY_AIS)],
-          value: spawn.ai ?? '',
-          label: (name) => name || `its own (${own})`,
+      tabs: [
+        {
+          label: 'Armour',
+          rows: wearPickers.map(({ slot, picker }) => ({
+            label: slot.label, field: picker, tip: `What it wears there. Only things worn on the ${WEAR_PLACES[slot.wear].toLowerCase()} are listed`,
+          })),
+        },
+        {
+          label: 'Behaviour',
+          rows: [
+            { label: 'AI', field: aiPicker, tip: 'smart, careful and reckless go round walls (and harm), direct goes straight at you' },
+            { label: 'Warps', field: followsPicker, tip: 'Whether it follows you through warps that let enemies through' },
+          ],
+        },
+        {
+          label: 'Effects',
+          rows: [
+            { label: 'Sound', field: soundPicker, tip: 'A sound it loops wherever it goes, like buzzing' },
+            { label: 'Hit', field: hitPicker, tip: 'The particles that burst out when something hits it' },
+            editButton('Edit hit particles', hitPicker, 'hitParticles'),
+            { label: 'Death', field: deathPicker, tip: 'The particles that burst out when it dies for good' },
+            editButton('Edit death particles', deathPicker, 'deathParticles'),
+          ],
+        },
+      ],
+      side: (x, y, w, h) => [new CharacterPreview({
+        x, y, w, h,
+        look: () => ({
+          settings: type,
+          worn: wearPickers.map(({ picker }) => ITEM_TYPES[picker.value]).filter(Boolean),
+          caption: [`${type.maxHealth} health, ${type.speed} speed`, weapon],
         }),
-      }, { label: 'Sound', field: this.characterSoundPicker(spawn, type) }, {
-        label: 'Warps',
-        field: new Picker({
-          w: 180,
-          choices: ['', true, false],
-          value: spawn.follows ?? '',
-          label: (yes) => (yes === '' ? `its own (${follows(type.followsThroughWarps)})` : follows(yes)),
-        }),
-      }, { label: 'Hit', field: hitPicker }, { label: 'Death', field: deathPicker },
-      // last, so their values (undefined) don't shift the ones onConfirm gets
-      editButton('Edit hit particles', hitPicker, 'hitParticles'), editButton('Edit death particles', deathPicker, 'deathParticles')],
-      onConfirm: ([ai, sound, follows, hit, death]) => {
-        if (ai) spawn.ai = ai;
+      })],
+      // the fields are read straight from their variables, since the buttons' values (undefined) are
+      // mixed in with theirs
+      onConfirm: () => {
+        const wears = {};
+        for (const { slot, picker } of wearPickers) if (picker.value !== null) wears[slot.key] = picker.value;
+        if (Object.keys(wears).length > 0) spawn.wears = wears;
+        else delete spawn.wears;
+        if (aiPicker.value) spawn.ai = aiPicker.value;
         else delete spawn.ai;
-        if (follows === '') delete spawn.follows;
-        else spawn.follows = follows;
-        if (hit === '') delete spawn.hitParticles;
-        else spawn.hitParticles = hit;
-        if (death === '') delete spawn.deathParticles;
-        else spawn.deathParticles = death;
+        if (followsPicker.value === '') delete spawn.follows;
+        else spawn.follows = followsPicker.value;
+        if (hitPicker.value === '') delete spawn.hitParticles;
+        else spawn.hitParticles = hitPicker.value;
+        if (deathPicker.value === '') delete spawn.deathParticles;
+        else spawn.deathParticles = deathPicker.value;
         // makes the characters again, so the one on the map picks all of these up
-        this.setCharacterSound(spawn, sound);
+        this.setCharacterSound(spawn, soundPicker.value);
+      },
+    });
+  },
+
+  // a picker for what's worn in an equipment slot (EQUIPMENT_SLOTS in inventory.js): null for nothing,
+  // or the name of an item worn there (its wear, items.js). a missing one stays in the list so opening
+  // the box doesn't quietly take it off
+  wearPicker(slot, value) {
+    const fitting = Object.keys(ITEM_TYPES).filter((name) => ITEM_TYPES[name].wear === slot.wear);
+    return new Picker({
+      w: 180,
+      choices: [null, ...fitting, ...(value !== null && !fitting.includes(value) ? [value] : [])],
+      value,
+      label: (name) => (name === null ? 'nothing' : ITEM_TYPES[name]?.label ?? `${name} (missing)`),
+      art: (name, x, y, size) => {
+        if (ITEM_TYPES[name]) drawItemIcon({ type: ITEM_TYPES[name] }, x, y, size); // inventory.js
       },
     });
   },
@@ -848,9 +934,12 @@ const Editor = {
       title: `NPC: ${type.label}`,
       hint: 'Voices are made in the Voices tab',
       confirmLabel: 'Save',
+      // a picture of them, like the enemy box's (CharacterPreview in inventory.js)
+      side: (x, y, w, h) => [new CharacterPreview({ x, y, w, h, look: () => ({ settings: type, caption: [`"${type.dialogue[0]}"`] }) })],
+      minRows: 6,
       rows: [
-        { label: 'Voice', field: picker },
-        { label: 'Sound', field: this.characterSoundPicker(spawn, type) },
+        { label: 'Voice', field: picker, tip: 'What they talk with. Say plays their first line with it' },
+        { label: 'Sound', field: this.characterSoundPicker(spawn, type), tip: 'A sound they loop wherever they go, like a jingling cart' },
         // buttons last, so their (undefined) values don't shift the ones onConfirm gets
         button('▶  Say', () => Sound.preview(VOICES[voiceOf(picker.value)], { say: type.dialogue[0] })),
         button('Edit voice', () => {
@@ -1189,18 +1278,20 @@ function inspectorInfo(selected) {
         kind === 'npc' ? ['Name', type.label] : ['Weapon', type.weapon ? `${type.weapon.damage} damage` : 'none'],
         kind === 'enemy' ? ['AI', type.ai ?? 'still'] : ['Voice', type.voice ?? 'silent'],
       ],
-      note: `Right click one on the map to pick its ${kind === 'enemy' ? 'AI, sound and particles' : 'voice and sound'}`,
+      note: `Right click one on the map to pick its ${kind === 'enemy' ? 'armour, AI, sound and particles' : 'voice and sound'}`,
     };
   }
   if (isItemKind(kind)) {
     // like "Weapon · Rare"
     const category = `${type.category[0].toUpperCase()}${type.category.slice(1)} · ${RARITIES[type.rarity].label}`;
     const weapon = type.weapon;
-    if (!weapon) return { title: name, kind: category, rows: [], note: 'Click the map to place one. Give puts one in your inventory' };
+    const worn = type.wear ? [['Worn on', WEAR_PLACES[type.wear]]] : [];
+    if (!weapon) return { title: name, kind: category, rows: worn, note: 'Click the map to place one. Give puts one in your inventory' };
+    const shoots = weapon.attack === 'shoot';
     return {
       title: name,
       kind: category,
-      rows: [['Damage', weapon.damage], ['Reach', `${weapon.reach} px`], ['Cooldown', `${weapon.cooldown} s`]],
+      rows: [['Damage', weapon.damage], [shoots ? 'Range' : 'Reach', `${weapon.reach} px`], ['Cooldown', `${weapon.cooldown} s`], ...worn],
     };
   }
   if (kind === 'sound') {
