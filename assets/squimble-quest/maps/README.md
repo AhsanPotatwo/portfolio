@@ -103,7 +103,7 @@ While the editor's open, everyone stands still. Opening it brings back every ene
 
 Click **New** in the toolbar. A box asks for the width and height in tiles: click a number (or press **Tab**) to type into it, then press **Enter** or **Make map** (**Escape** or **Cancel** closes it). The smallest is 1 × 1 and the biggest is 500 × 500. Tile `(0, 0)` is in the middle of the new map, and that's where the player spawns.
 
-**Fill** is what every tile starts as. It starts on `blank` (plain white). Click its right half to go forward through the tiles, or its left half to go back. After the last tile comes **empty**: the map starts with no tiles at all.
+**Fill** is what every tile starts as. It starts on `blank` (plain white). Click it to pick from a list of every tile (with their pictures), or use its **‹ ›** arrows to step through them. The last one is **empty**: the map starts with no tiles at all.
 
 **Rooms that aren't rectangles** (L-shapes, crosses, rooms joined by corridors): fill with **empty**, make the map big enough to fit the whole shape, then paint the floor in the shape you want. Everything you don't paint stays empty, and empty tiles work like walls. Remember to put the spawn point (**Triggers** tab) on the floor.
 
@@ -127,7 +127,7 @@ A warp is a tile that takes the player somewhere else: a door into a house, a ca
    - **Opens by**: **stepping on it**, or **pressing E** when close enough. A warp that opens with E works from the tile in front too, so it can go on a wall or under a solid object.
    - **Enemies**: tick **follow you through** to let enemies chasing the player follow them through it. A follower takes about as long as it would to walk to the warp, plus a second to open it if it opens with E (an E warp counts as a door, and kinds of enemy that can't open doors get left behind), then comes out where the player arrived. New warps start with this ticked. Each enemy can also be told not to follow: right click it and set **Warps** to **stays behind**. On a warp to the same map you can watch them walk to it. On a warp to another map they turn up a moment after you.
    - **Show links**: shows every warp linked to this one, then every warp linked to those, and so on, like a family tree (see below).
-3. Click the right half of a choice for the next one, or the left half to go back. Then click **Save**.
+3. Click a choice to pick from a list of all of them, or its **‹ ›** arrows for the next or last one. Then click **Save**.
 
 In the editor, warps that open with E have an **E** on their marker. A warp shows **red** when it leads to a map or warp that doesn't exist. Going through one of those shows a message and the player stays where they are, and the browser console lists them all when the game loads.
 

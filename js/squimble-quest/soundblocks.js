@@ -236,7 +236,7 @@ const SoundBlocks = {
     const showBox = new Checkbox({ w: 180, value: Boolean(block.show), label: 'see it while playing' });
     FormBox.open({
       title: 'Sound block',
-      hint: 'Click the right of a choice for the next one',
+      hint: 'Click a choice for the full list, or its arrows to step',
       confirmLabel: 'Save',
       tabs: [
         {
