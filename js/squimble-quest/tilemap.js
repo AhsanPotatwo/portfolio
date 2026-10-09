@@ -193,9 +193,10 @@ class TileMap {
   // enemies only), voice, a voice's name (VOICES in sound.js, npcs only), and sound, a sound it loops
   // wherever it goes (SOUNDS, either kind). a voice or sound that isn't there is kept, so exporting
   // doesn't lose it, but it's silent. enemies can also have hitParticles and deathParticles, particle
-  // effect names (particles.js) or null for none, and wears, item names by EQUIPMENT_SLOTS key
-  // (inventory.js) like { head: 'iron-helmet' }
-  addSpawn(kind, type, col, row, { ai, voice, sound, follows, hitParticles, deathParticles, wears } = {}) {
+  // effect names (particles.js) or null for none, wears, item names by EQUIPMENT_SLOTS key
+  // (inventory.js) like { head: 'iron-helmet' }, and holds, the item it holds instead of its kind's
+  // weapon (null for empty hands)
+  addSpawn(kind, type, col, row, { ai, voice, sound, follows, hitParticles, deathParticles, wears, holds } = {}) {
     const info = SPAWN_KINDS[kind];
     if (!info.types[type]) {
       console.warn(`There's no ${kind} called "${type}", add its file to ${DATA_FOLDER}${DATA_KINDS[kind]}`);
@@ -232,6 +233,10 @@ class TileMap {
         kept[key] = name;
       }
       if (Object.keys(kept).length > 0) spawn.wears = kept;
+    }
+    if (kind === 'enemy' && (holds === null || typeof holds === 'string')) {
+      if (holds !== null && !ITEM_TYPES[holds]?.weapon) console.warn(`A ${type} holds "${holds}", which isn't a weapon in ${DATA_FOLDER}${DATA_KINDS.item}, so it can't attack`);
+      spawn.holds = holds;
     }
     this[info.list].push(spawn);
   }

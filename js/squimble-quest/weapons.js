@@ -239,11 +239,7 @@ class Arrow {
     const tipY = this.y - this.height;
     push();
     if (this.stuck !== null) drawingContext.globalAlpha *= Math.min(1, 3 * (1 - this.stuck / ARROW.stickTime));
-    if (this.height > 1) {
-      stroke(0, 0, 0, 60);
-      strokeWeight(2);
-      line(this.x - dx, this.y - dy, this.x, this.y);
-    }
+    if (this.height > 1) drawArrowShadow(this);
     stroke(ARROW.shaft);
     strokeWeight(2);
     line(tipX - dx, tipY - dy, tipX, tipY);
@@ -262,4 +258,42 @@ class Arrow {
     line(...along(-ARROW.length, 0), ...along(-ARROW.length - 3, 3));
     pop();
   }
+}
+
+// ---------- an arrow's shadow (temporary) ----------
+//
+// ponytail: a stand-in until there's a proper shadow system. to take it out, delete this section and
+// its one call in Arrow.draw().
+//
+// it's a dash on the floor under the middle of the arrow. the arrow is drawn height px up the screen
+// from the floor, so a shadow the same shape as the arrow lines up end to end with it when it flies up
+// or down the screen, and looks like one long arrow. so the dash keeps its full length across the
+// screen but is squashed up and down (upDown), which also flattens it for diagonal shots
+const ARROW_SHADOW = {
+  // 0 to 255
+  alpha: 60,
+  // px thick
+  width: 3,
+  // how much of its up and down length it keeps. 1 is the same shape as the arrow
+  upDown: 0.25,
+};
+
+function drawArrowShadow(arrow) {
+  const cos = Math.cos(arrow.angle);
+  const sin = Math.sin(arrow.angle);
+  const half = ARROW.length / 2;
+  // under the middle of the arrow, not its tip
+  const x = arrow.x - cos * half;
+  const y = arrow.y - sin * half;
+  const dx = cos * half;
+  const dy = sin * half * ARROW_SHADOW.upDown;
+  stroke(0, 0, 0, ARROW_SHADOW.alpha);
+  strokeWeight(ARROW_SHADOW.width);
+  line(x - dx, y - dy, x + dx, y + dy);
+}
+
+// a weapon in a few words, like "15 damage, shoots 420 px", for the editor (editor.js)
+function weaponSummary(weapon) {
+  if (!weapon) return 'no weapon';
+  return `${weapon.damage} damage, ${weapon.attack === 'shoot' ? 'shoots' : 'reaches'} ${weapon.reach} px`;
 }

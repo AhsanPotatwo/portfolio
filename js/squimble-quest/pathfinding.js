@@ -219,10 +219,17 @@ function huntAlongPath(enemy, world, dt, caution) {
     return walked(enemy, STAND_STILL);
   }
   const aim = player ? { x: player.x, y: player.y } : null;
-  const attack = !!player && Math.hypot(player.x - enemy.x, player.y - enemy.y) < enemy.type.attackRange;
+  // canAttack() and isShooting() are in enemies.js
+  const attack = !!player && canAttack(enemy, world, player);
 
   // 3. being stuck, and giving way
   const stuck = checkStuck(enemy, world, dt, attack);
+  // one with a bow and a clear shot stands and shoots instead of walking up. with no plan, the others
+  // guess it's staying put (crowdCosts())
+  if (attack && isShooting(enemy)) {
+    enemy.plan = null;
+    return walked(enemy, { move: STAND_STILL.move, aim, attack });
+  }
   // giving way (checkStuck()) ends once the one with right of way has moved on or died, or the wait's up
   const s = enemy.stuck;
   const leader = s.yieldTo;

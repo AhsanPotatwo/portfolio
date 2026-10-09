@@ -33,10 +33,24 @@ class Enemy extends Character {
     // editor (spawnCharacters() in sketch.js sets it). only for show for now, armour doesn't do
     // anything yet
     this.wears = {};
+    // what it's holding, picked for its spawn in the editor (spawnCharacters() sets it): an item's name
+    // (items.js), null for empty hands, or undefined for its kind's own weapon (like the grunt's claws)
+    this.holds = undefined;
   }
 
   worn() {
     return Object.values(this.wears).map((name) => ITEM_TYPES[name]).filter(Boolean);
+  }
+
+  // the held item's weapon, or its kind's own if it isn't holding anything picked. an item that's
+  // missing or isn't a weapon means it can't attack
+  currentWeapon() {
+    if (this.holds === undefined) return this.type.weapon;
+    return ITEM_TYPES[this.holds]?.weapon ?? null;
+  }
+
+  heldItem() {
+    return ITEM_TYPES[this.holds] ?? null;
   }
 
   update(dt, world) {
