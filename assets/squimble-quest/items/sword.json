@@ -24,7 +24,7 @@
         "knockback": 700,
         "stagger": 0.6,
         "recoil": 260,
-        "shake": 11,
+        "shake": 6.5,
         "shakeTime": 0.45,
         "hitStop": 0.07
       }
