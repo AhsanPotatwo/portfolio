@@ -335,8 +335,8 @@ class MeleeSwing {
 // in px unless said: width is how wide a jab's point is (it hits a body this close to its tip), and
 // checkEvery the most the point moves between hit checks (less than a body's width, so it can't skip
 // through someone). extend is the part of its swingTime the point takes to get all the way out, then
-// it's held there for the rest. length is how long the spear looks, and shaft its wood
-const JAB = { width: 10, checkEvery: 6, extend: 0.5, length: 40, shaft: '#8b5a2b' };
+// it's held there for the rest
+const JAB = { width: 10, checkEvery: 6, extend: 0.5 };
 
 // one jab from a "jab" weapon, like the spear: its point goes straight out from the owner's middle
 // towards where they aimed, out to its reach, and stops at the first body it touches, hitting whatever's
@@ -371,26 +371,33 @@ class Jab extends MeleeSwing {
     } while (this.tip < out);
   }
 
-  // the spear: a shaft ending at the point, with a head in its colour. while winding up it's drawn back
-  // behind the owner's middle and brightening, like a swing's blade. world positions (inside
-  // camera.begin/end)
+  // a see-through band from the owner's middle out to the point, as wide as the point hits (JAB.width),
+  // with a thin line down the middle, like a swing's swoosh and blade. while winding up it's just a
+  // short line brightening, like a swing's raised blade. world positions (inside camera.begin/end)
   //
-  // ponytail: like the swing's swoosh, the point is the jab's real point (what hitTargets() checks),
-  // there to see its range until weapons have sprites. a spear sprite would be drawn along it here
+  // ponytail: like the swing's swoosh, the band is the jab's real reach and width (what hitTargets()
+  // checks), there to see its range until weapons have sprites. a spear sprite would be drawn along it
+  // here, or on top with the band moved behind a dev mode overlay (DEV_OVERLAYS, debug.js)
   draw() {
-    const raised = this.windingUp ? 1 + this.time / this.weapon.windup : 1;
-    const point = this.windingUp ? -12 * raised : this.tip;
-    const cos = Math.cos(this.angle);
-    const sin = Math.sin(this.angle);
-    const at = (along, side = 0) => [this.owner.x + cos * along - sin * side, this.owner.y + sin * along + cos * side];
-    const head = color(this.weapon.colour);
-    head.setAlpha(this.windingUp ? 60 + 195 * raised : 255);
-    stroke(JAB.shaft);
-    strokeWeight(3);
-    line(...at(point - JAB.length), ...at(point - 6));
-    noStroke();
-    fill(head);
-    triangle(...at(point), ...at(point - 9, -4), ...at(point - 9, 4));
+    const { x, y } = this.owner;
+    const along = (px) => [x + Math.cos(this.angle) * px, y + Math.sin(this.angle) * px];
+    if (this.windingUp) {
+      const raised = 1 + this.time / this.weapon.windup;
+      const glint = color(this.weapon.colour);
+      glint.setAlpha(60 + 195 * raised);
+      stroke(glint);
+      strokeWeight(1 + raised);
+      line(x, y, ...along(this.weapon.reach * 0.25));
+      return;
+    }
+    const band = color(this.weapon.colour);
+    band.setAlpha(90);
+    stroke(band);
+    strokeWeight(JAB.width);
+    line(x, y, ...along(this.tip));
+    stroke(this.weapon.colour);
+    strokeWeight(1.5);
+    line(x, y, ...along(this.tip));
   }
 }
 
