@@ -56,7 +56,7 @@ const UI = {
   // the element under the mouse, or null
   hovered: null,
   // how big the ui is drawn (sketch.js), and so Input.mouse is in ui pixels, divided by this
-  // (Input.update()). 1, except while the sound editor's open on a screen smaller than the design size,
+  // (Input.update()). 1, except while the sound editor's open with fewer game px than the design size,
   // where everything is laid out on a design sized screen and drawn smaller to fit (soundeditor.js)
   scale: 1,
 

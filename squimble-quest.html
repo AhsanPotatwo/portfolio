@@ -85,35 +85,40 @@
 
         <p class="sq-note">Squimble Quest is still being built. Check back soon to play it.</p>
 
-        <!-- developer tool: reloads the game at another screen size (GAME_W and GAME_H read ?screen= in
-             js/squimble-quest/config.js, and ?actual shows it one page px per game px, sketch.js) -->
+        <!-- the full screen button. sketch.js hooks it up (toggleFullscreen()), and F does the same -->
+        <button class="sq-fullscreen-btn" id="sqFullscreen" type="button">Full screen <kbd>F</kbd></button>
+
+        <!-- developer tool: reloads the game with another screen shape and ui scale (?screen= and &ui= are
+             read in js/squimble-quest/config.js, and &actual sets the frame's width in sketch.js) -->
         <details class="sq-dev-screen">
           <summary>Screen size debug <span class="sq-dev-tag">Developer use only</span></summary>
-          <p class="sq-dev-warning">For developer use only. This reloads the game at another screen size, to compare how much room each leaves for the interface. The world is scaled so the same amount of it shows at every size. Anything not exported is lost on reload.</p>
-          <p class="sq-dev-hint"><b>Fit</b> stretches it to the frame, like the page does now. <b>Actual size</b> shows one game pixel per screen pixel, so text and buttons are the size they'd really be (it can't go wider than the page).</p>
+          <p class="sq-dev-warning">For developer use only. This reloads the game with another screen shape and interface size. Anything not exported is lost on reload.</p>
+          <p class="sq-dev-hint">Each opens at its real width on the page (as far as the page allows), always drawn sharp, with the same amount of world showing. <b>Same UI</b> scales the interface with the screen, so 1920 x 1080 looks like the main game, just sharper. <b>1x UI</b> keeps one game pixel per screen pixel, so the interface is smaller and there's more room for it. Press <b>F</b> in any of them to see it full screen at your monitor's size.</p>
           <table class="sq-dev-sizes">
             <thead><tr><th>Size</th><th>Shape</th><th>From</th><th colspan="2">Show</th></tr></thead>
             <tbody>
-              <tr class="is-main"><td>960 x 540</td><td>16:9</td><td>Squimble Quest now (the main size)</td><td><a href="squimble-quest.html">Fit</a></td><td><a href="squimble-quest.html?actual">Actual size</a></td></tr>
-              <tr><td>640 x 480</td><td>4:3</td><td>Classic VGA. One of the most common Flash game sizes, and Undertale's</td><td><a href="?screen=640x480">Fit</a></td><td><a href="?screen=640x480&amp;actual">Actual size</a></td></tr>
-              <tr><td>760 x 480</td><td>~16:10</td><td>Club Penguin's game window</td><td><a href="?screen=760x480">Fit</a></td><td><a href="?screen=760x480&amp;actual">Actual size</a></td></tr>
-              <tr><td>765 x 503</td><td>~3:2</td><td>Old School RuneScape's fixed client, chat box and side panels included</td><td><a href="?screen=765x503">Fit</a></td><td><a href="?screen=765x503&amp;actual">Actual size</a></td></tr>
-              <tr><td>800 x 600</td><td>4:3</td><td>Classic PC games, Toontown's window</td><td><a href="?screen=800x600">Fit</a></td><td><a href="?screen=800x600&amp;actual">Actual size</a></td></tr>
-              <tr><td>854 x 480</td><td>16:9</td><td>480p widescreen</td><td><a href="?screen=854x480">Fit</a></td><td><a href="?screen=854x480&amp;actual">Actual size</a></td></tr>
-              <tr><td>1024 x 576</td><td>16:9</td><td>A step up from now</td><td><a href="?screen=1024x576">Fit</a></td><td><a href="?screen=1024x576&amp;actual">Actual size</a></td></tr>
-              <tr><td>1024 x 768</td><td>4:3</td><td>Big monitors in the early 2000s</td><td><a href="?screen=1024x768">Fit</a></td><td><a href="?screen=1024x768&amp;actual">Actual size</a></td></tr>
-              <tr><td>1280 x 720</td><td>16:9</td><td>720p HD</td><td><a href="?screen=1280x720">Fit</a></td><td><a href="?screen=1280x720&amp;actual">Actual size</a></td></tr>
-              <tr><td>1280 x 800</td><td>16:10</td><td>Steam Deck</td><td><a href="?screen=1280x800">Fit</a></td><td><a href="?screen=1280x800&amp;actual">Actual size</a></td></tr>
-              <tr><td>1366 x 768</td><td>~16:9</td><td>The most common laptop screen for years</td><td><a href="?screen=1366x768">Fit</a></td><td><a href="?screen=1366x768&amp;actual">Actual size</a></td></tr>
-              <tr><td>1440 x 900</td><td>16:10</td><td>16:10 laptops</td><td><a href="?screen=1440x900">Fit</a></td><td><a href="?screen=1440x900&amp;actual">Actual size</a></td></tr>
-              <tr><td>1920 x 1080</td><td>16:9</td><td>1080p, most desktop monitors today</td><td><a href="?screen=1920x1080">Fit</a></td><td><a href="?screen=1920x1080&amp;actual">Actual size</a></td></tr>
-              <tr><td>2560 x 1080</td><td>21:9</td><td>Ultrawide monitors</td><td><a href="?screen=2560x1080">Fit</a></td><td><a href="?screen=2560x1080&amp;actual">Actual size</a></td></tr>
+              <tr class="is-main"><td>960 x 540</td><td>16:9</td><td>Squimble Quest now (the main size)</td><td colspan="2"><a href="squimble-quest.html">Back to normal</a></td></tr>
+              <tr><td>640 x 480</td><td>4:3</td><td>Classic VGA. One of the most common Flash game sizes, and Undertale's</td><td><a href="?screen=640x480&amp;actual">Same UI</a></td><td><a href="?screen=640x480&amp;ui=1&amp;actual">1x UI</a></td></tr>
+              <tr><td>760 x 480</td><td>~16:10</td><td>Club Penguin's game window</td><td><a href="?screen=760x480&amp;actual">Same UI</a></td><td><a href="?screen=760x480&amp;ui=1&amp;actual">1x UI</a></td></tr>
+              <tr><td>765 x 503</td><td>~3:2</td><td>Old School RuneScape's fixed client, chat box and side panels included</td><td><a href="?screen=765x503&amp;actual">Same UI</a></td><td><a href="?screen=765x503&amp;ui=1&amp;actual">1x UI</a></td></tr>
+              <tr><td>800 x 600</td><td>4:3</td><td>Classic PC games, Toontown's window</td><td><a href="?screen=800x600&amp;actual">Same UI</a></td><td><a href="?screen=800x600&amp;ui=1&amp;actual">1x UI</a></td></tr>
+              <tr><td>854 x 480</td><td>16:9</td><td>480p widescreen</td><td><a href="?screen=854x480&amp;actual">Same UI</a></td><td><a href="?screen=854x480&amp;ui=1&amp;actual">1x UI</a></td></tr>
+              <tr><td>1024 x 576</td><td>16:9</td><td>A step up from now</td><td><a href="?screen=1024x576&amp;actual">Same UI</a></td><td><a href="?screen=1024x576&amp;ui=1&amp;actual">1x UI</a></td></tr>
+              <tr><td>1024 x 768</td><td>4:3</td><td>Big monitors in the early 2000s</td><td><a href="?screen=1024x768&amp;actual">Same UI</a></td><td><a href="?screen=1024x768&amp;ui=1&amp;actual">1x UI</a></td></tr>
+              <tr><td>1280 x 720</td><td>16:9</td><td>720p HD</td><td><a href="?screen=1280x720&amp;actual">Same UI</a></td><td><a href="?screen=1280x720&amp;ui=1&amp;actual">1x UI</a></td></tr>
+              <tr><td>1280 x 800</td><td>16:10</td><td>Steam Deck</td><td><a href="?screen=1280x800&amp;actual">Same UI</a></td><td><a href="?screen=1280x800&amp;ui=1&amp;actual">1x UI</a></td></tr>
+              <tr><td>1366 x 768</td><td>~16:9</td><td>The most common laptop screen for years</td><td><a href="?screen=1366x768&amp;actual">Same UI</a></td><td><a href="?screen=1366x768&amp;ui=1&amp;actual">1x UI</a></td></tr>
+              <tr><td>1440 x 900</td><td>16:10</td><td>16:10 laptops</td><td><a href="?screen=1440x900&amp;actual">Same UI</a></td><td><a href="?screen=1440x900&amp;ui=1&amp;actual">1x UI</a></td></tr>
+              <tr><td>1920 x 1080</td><td>16:9</td><td>1080p, most desktop monitors today</td><td><a href="?screen=1920x1080&amp;actual">Same UI</a></td><td><a href="?screen=1920x1080&amp;ui=1&amp;actual">1x UI</a></td></tr>
+              <tr><td>2560 x 1080</td><td>21:9</td><td>Ultrawide monitors</td><td><a href="?screen=2560x1080&amp;actual">Same UI</a></td><td><a href="?screen=2560x1080&amp;ui=1&amp;actual">1x UI</a></td></tr>
             </tbody>
           </table>
-          <!-- any other size. a plain form, so it just reloads the page with ?screen= -->
+          <!-- any other size or ui scale. a plain form, so it just reloads the page with them. a blank box
+               leaves that one normal -->
           <form class="sq-dev-custom" method="get">
-            <label>Other size <input name="screen" placeholder="1100x620" pattern="\d{3,4}x\d{3,4}" title="Width x height, like 1100x620 (3 or 4 digits each)" required></label>
-            <label><input type="checkbox" name="actual"> Actual size</label>
+            <label>Size <input name="screen" placeholder="1100x620" pattern="\d{3,4}x\d{3,4}" title="Width x height, like 1100x620 (3 or 4 digits each)"></label>
+            <label>UI scale <input name="ui" type="number" min="0.5" max="4" step="0.05" placeholder="fit" title="Screen pixels per game pixel. Blank scales it to fit, like Same UI"></label>
+            <label><input type="checkbox" name="actual" checked> Actual size</label>
             <button type="submit">Try it</button>
           </form>
         </details>

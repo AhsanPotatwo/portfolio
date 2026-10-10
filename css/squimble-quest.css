@@ -135,20 +135,55 @@ html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
 }
 /* while playing, the game draws its own crosshair (ui.js) in place of the cursor */
 .sq-game-stage canvas:focus{ outline:none; cursor:none; }
-/* 16:9 is the main screen size. sketch.js sets the real shape when trying another (config.js) */
+/* the game's shape. sketch.js sets --sq-aspect on the frame (16:9 normally, config.js) */
 .sq-game-stage{
-  aspect-ratio:16/9;
+  aspect-ratio:var(--sq-aspect, 16/9);
   border-radius:14px;
   overflow:hidden;
   background:var(--sq-moss);
 }
-/* p5 puts a fixed px size on the canvas inline, this scales the canvas (960x540 now) to the frame.
-   p5 still works out mouseX/mouseY correctly when the canvas is scaled like this */
+/* p5 puts a fixed px size on the canvas inline, this sizes it to the frame instead. sketch.js's
+   fitResolution() then draws it at the resolution it's shown at, so it's sharp at any size */
 .sq-game-stage canvas{
   display:block;
   width:100% !important;
   height:100% !important;
   image-rendering:pixelated;
+}
+/* full screen (F, or the button under the game, sketch.js): the frame fills the screen and the game
+   sits in the middle at its own shape, with black bars if the screen's another shape */
+.sq-game-frame:fullscreen{
+  display:flex; align-items:center; justify-content:center;
+  padding:0;
+  border-radius:0;
+  background:#000;
+  box-shadow:none;
+}
+.sq-game-frame:fullscreen .sq-game-stage{
+  width:min(100vw, calc(100vh * var(--sq-aspect, 16/9)));
+  border-radius:0;
+}
+.sq-fullscreen-btn{
+  display:block;
+  margin:16px auto 0;
+  padding:8px 18px;
+  border-radius:999px;
+  border:1px solid rgba(123,216,143,.45);
+  background:rgba(123,216,143,.1);
+  color:var(--sq-green);
+  font:inherit;
+  font-size:15px;
+  font-weight:600;
+  cursor:pointer;
+}
+.sq-fullscreen-btn:hover{ background:rgba(123,216,143,.2); }
+.sq-fullscreen-btn kbd{
+  margin-left:6px;
+  padding:1px 7px;
+  border-radius:6px;
+  border:1px solid rgba(123,216,143,.45);
+  font-family:'Courier Prime', monospace;
+  font-size:13px;
 }
 .sq-note{
   margin:20px auto 0;
@@ -194,7 +229,7 @@ html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
 .sq-dev-sizes tr.is-main td{ color:var(--sq-green); }
 .sq-dev-sizes a{ color:var(--sq-green); white-space:nowrap; }
 .sq-dev-custom{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:14px; }
-.sq-dev-custom input[name="screen"]{ width:110px; padding:4px 8px; font:inherit; }
+.sq-dev-custom input[name="screen"], .sq-dev-custom input[name="ui"]{ width:110px; padding:4px 8px; font:inherit; }
 .sq-dev-custom button{ padding:4px 14px; font:inherit; cursor:pointer; }
 
 /* message for phones/tablets, hidden everywhere else */
@@ -226,6 +261,6 @@ html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
 /* touch screen with no mouse = phone or tablet. goes by input type rather than width
    so a small desktop window still gets the game. keep in sync with setup() in sketch.js */
 @media (hover:none) and (pointer:coarse){
-  .sq-game-frame, .sq-note, .sq-dev-screen{ display:none; }
+  .sq-game-frame, .sq-note, .sq-dev-screen, .sq-fullscreen-btn{ display:none; }
   .sq-mobile-note{ display:block; }
 }

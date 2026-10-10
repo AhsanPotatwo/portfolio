@@ -81,8 +81,8 @@
 //     opens again
 
 // layout, in ui px. it's laid out for at least the design screen size (DESIGN_W x DESIGN_H, config.js):
-// on a bigger screen the slider columns stretch and the bottom row moves down, and on a smaller one
-// it's laid out at that size anyway and the whole ui is drawn smaller to fit (UI.scale, set by open())
+// with more game px the slider columns stretch and the bottom row moves down, and with fewer it's
+// still laid out at the design size and the whole ui is drawn smaller to fit (UI.scale, set by open())
 const SOUND_EDITOR = {
   // the screen it's laid out on, in ui px
   get width() { return GAME_W / UI.scale; },
@@ -1111,7 +1111,7 @@ const SoundEditor = {
     Input.typing = true;
     Sound.stopAll();
 
-    // a screen smaller than the design size draws everything smaller instead (close() puts it back)
+    // fewer game px than the design size draws everything smaller instead (close() puts it back)
     UI.scale = Math.min(1, GAME_W / DESIGN_W, GAME_H / DESIGN_H);
     const L = SOUND_EDITOR;
     const W = L.width;

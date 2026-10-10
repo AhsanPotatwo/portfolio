@@ -66,12 +66,18 @@ function preload() {
 function setup() {
   const canvas = createCanvas(GAME_W, GAME_H);
   canvas.parent('sqCanvas');
-  // the page's frame is 16:9 in its css, so it's given the screen's real shape (config.js). the screen
-  // size debug's "actual size" (?actual on the address) also makes it one page px per game px, so
-  // the ui is the size it'd really be. the frame's 18px padding is on both sides
-  canvas.elt.parentElement.style.aspectRatio = `${GAME_W} / ${GAME_H}`;
-  if (/[?&]actual(=|&|$)/.test(location.search)) canvas.elt.closest('.sq-game-frame').style.maxWidth = `${GAME_W + 36}px`;
-  // keeps pixel art sharp when it's scaled up
+  // the game's shape (config.js) for the page's css, which keeps it in the frame and in full screen. the
+  // screen size debug's "actual size" (?actual on the address) makes the frame SCREEN_W page px wide
+  // (plus its 18px padding each side), so the ui is the size it'd really be on that screen
+  const frame = canvas.elt.closest('.sq-game-frame');
+  frame.style.setProperty('--sq-aspect', GAME_W / GAME_H);
+  if (/[?&]actual(=|&|$)/.test(location.search)) frame.style.maxWidth = `${SCREEN_W + 36}px`;
+  // draws at the resolution it's shown at, now and whenever that changes (full screen, resizing the
+  // window, browser zoom)
+  new ResizeObserver(fitResolution).observe(canvas.elt.parentElement);
+  // the full screen button under the game (squimble-quest.html). F does it too (draw())
+  document.getElementById('sqFullscreen')?.addEventListener('click', toggleFullscreen);
+  // keeps pixel art sharp when it's scaled up. p5 keeps it when fitResolution() changes the resolution
   noSmooth();
 
   // canvas.elt is the actual <canvas> element
@@ -122,6 +128,33 @@ function setup() {
 
   // phones and tablets get a message instead (squimble-quest.css), so don't run the game
   if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) noLoop();
+}
+
+// makes the canvas draw at the resolution it's shown at: its width on the page times the screen's own
+// pixels per page px (devicePixelRatio, 2 on most high res screens). the game is still GAME_W x GAME_H
+// game px (config.js), so only how sharp it is changes: 960 x 540 full screen on a 1080p monitor draws
+// 1920 x 1080 real pixels. at the page's normal 960 px wide it's the same as before this existed. capped
+// at 4 (3840 x 2160) so a huge screen doesn't slow it down
+function fitResolution() {
+  const shown = drawingContext.canvas.getBoundingClientRect().width;
+  // 0 while it's hidden (phones get a message instead)
+  if (!shown) return;
+  const density = Math.min(4, Math.round(shown * window.devicePixelRatio) / GAME_W);
+  if (Math.abs(density - pixelDensity()) > 0.001) pixelDensity(density);
+}
+
+// full screen on and off, for the frame round the game, which then fills the screen with the game in
+// the middle at its own shape (squimble-quest.css). the browser only allows it just after a click or key
+// press, which the button under the game and F always are
+function toggleFullscreen() {
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    drawingContext.canvas.closest('.sq-game-frame').requestFullscreen()
+      .catch(() => showMessage("The browser didn't allow full screen")); // hud.js
+  }
+  // the button took the keyboard, so give it back to the game
+  drawingContext.canvas.focus();
 }
 
 // goes to map `name` (MAPS, maps.js), arriving on warp `warpName` (warps.js), or on the map's spawn
@@ -209,6 +242,7 @@ function draw() {
   Input.update();
   // before anything else uses the mouse, so clicking on the ui doesn't also count as a click in the game
   UI.update();
+  if (Input.wasPressed('fullscreen')) toggleFullscreen();
 
   // the mouse in world positions
   const aimScreen = Input.aimPoint();

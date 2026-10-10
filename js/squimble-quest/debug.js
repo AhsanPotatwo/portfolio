@@ -57,8 +57,8 @@ const DEV_INFO = [
     },
   },
   {
-    name: 'camera', label: 'Camera', note: 'where, zoom, screen size', on: false,
-    lines: ({ camera }) => [['camera', formatPoint(camera)], ['zoom', `${Math.round(camera.zoom / VIEW_ZOOM * 100)}%`], ['screen', `${GAME_W} x ${GAME_H}`]],
+    name: 'camera', label: 'Camera', note: 'where, zoom, screen size and sharpness', on: false,
+    lines: ({ camera }) => [['camera', formatPoint(camera)], ['zoom', `${Math.round(camera.zoom / VIEW_ZOOM * 100)}%`], ['screen', `${GAME_W} x ${GAME_H}, drawn x${pixelDensity().toFixed(2)}`]],
   },
   {
     name: 'enemies', label: 'Enemies', note: 'how many, chasing', on: false,

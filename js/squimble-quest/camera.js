@@ -207,10 +207,12 @@ class Camera {
     pop();
   }
 
-  // rounds to a whole screen pixel (that's why the zoom is in there), because drawing the world half
-  // a pixel off blurs every edge
+  // rounds to a whole pixel on the real screen (that's why the zoom and pixelDensity() are in there,
+  // see fitResolution() in sketch.js), because drawing the world half a pixel off blurs every edge. on
+  // a sharper screen that means smaller steps, so the camera glides smoother
   pixelSnap(value) {
-    return Math.round(value * this.zoom) / this.zoom;
+    const px = this.zoom * pixelDensity();
+    return Math.round(value * px) / px;
   }
 
   // exactly where begin() puts a world position on the screen. unlike worldToScreen() this uses the
