@@ -32,7 +32,8 @@
 //                          twice as far (hitWith() in weapons.js)
 //   staggerTaken           the same for how long hits stagger it
 //   sightRange             how many px away it can see you from, if there's no wall in the way
-//                          (sensePlayer() below)
+//                          (sensePlayer() below). world px, so it's the same on any screen size
+//                          (15 tiles is half the design screen's width)
 //   hearing                how many px away it hears you from, even through walls
 //   chaseRange             once it's after you, how far away you have to be (and unseen for its
 //                          memory) before it gives up
@@ -91,9 +92,9 @@ const ENEMY_DEFAULTS = {
   attackSpeed: 1,
   knockbackTaken: 1,
   staggerTaken: 1,
-  sightRange: 480,
+  sightRange: 15 * TILE,
   hearing: 5 * TILE,
-  chaseRange: 480,
+  chaseRange: 15 * TILE,
   memory: 8,
   alertRange: 8 * TILE,
   attackRange: 44,

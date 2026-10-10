@@ -4,8 +4,8 @@
 //
 // make them once in setup() (sketch.js) and UI takes care of hovering, clicking and drawing:
 //   UI.add(new Button({ x: 20, y: 20, w: 120, h: 40, label: 'Play', onClick: () => startGame() }));
-// x, y is the top left and w, h the size, in screen pixels (always 960 x 540). buttons added later
-// draw on top.
+// x, y is the top left and w, h the size, in screen pixels (0 to GAME_W, GAME_H, config.js). buttons
+// added later draw on top.
 //
 // options (only x, y, w, h are needed):
 //   label         text in the middle (works over images too)

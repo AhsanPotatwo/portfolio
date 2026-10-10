@@ -1204,9 +1204,10 @@ class EditorStatusBar extends UIElement {
     fill(C.text);
     text(where, this.x + 10, middleY);
     fill(C.dimText);
-    text(`Left click: ${click}   ·   Right click: settings   ·   WASD: move   ·   Wheel: zoom`, this.x + 180, middleY);
+    // cut short on a narrow screen so it doesn't run into the zoom (about 80px on the right)
+    text(fitText(`Left click: ${click}   ·   Right click: settings   ·   WASD: move   ·   Wheel: zoom`, this.w - 180 - 80), this.x + 180, middleY);
     textAlign(RIGHT, CENTER);
-    text(`Zoom ${Math.round(gameCamera.zoom * 100)}%`, this.x + this.w - 10, middleY);
+    text(`Zoom ${Math.round(gameCamera.zoom / VIEW_ZOOM * 100)}%`, this.x + this.w - 10, middleY);
   }
 }
 

@@ -135,13 +135,14 @@ html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
 }
 /* while playing, the game draws its own crosshair (ui.js) in place of the cursor */
 .sq-game-stage canvas:focus{ outline:none; cursor:none; }
+/* 16:9 is the main screen size. sketch.js sets the real shape when trying another (config.js) */
 .sq-game-stage{
   aspect-ratio:16/9;
   border-radius:14px;
   overflow:hidden;
   background:var(--sq-moss);
 }
-/* p5 puts a fixed px size on the canvas inline, this scales the 960x540 canvas to the frame.
+/* p5 puts a fixed px size on the canvas inline, this scales the canvas (960x540 now) to the frame.
    p5 still works out mouseX/mouseY correctly when the canvas is scaled like this */
 .sq-game-stage canvas{
   display:block;
@@ -155,6 +156,46 @@ html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
   color:var(--muted);
   font-size:15px;
 }
+
+/* screen size debug, a developer tool under the game (squimble-quest.html) */
+.sq-dev-screen{
+  max-width:960px;
+  margin:20px auto 0;
+  text-align:left;
+  color:var(--muted);
+  font-size:14px;
+}
+.sq-dev-screen summary{
+  display:inline-flex; align-items:center; gap:10px;
+  padding:8px 16px;
+  border-radius:999px;
+  border:1px dashed rgba(123,216,143,.45);
+  color:var(--sq-green);
+  font-weight:600;
+  cursor:pointer;
+}
+.sq-dev-tag{
+  padding:2px 8px;
+  border-radius:999px;
+  background:rgba(224,80,80,.15);
+  color:#f08a8a;
+  font-size:12px;
+}
+.sq-dev-warning{ color:#f08a8a; margin:14px 0 6px; }
+.sq-dev-hint{ margin:0 0 12px; }
+.sq-dev-sizes{ width:100%; border-collapse:collapse; }
+.sq-dev-sizes th, .sq-dev-sizes td{
+  padding:6px 10px;
+  border-bottom:1px solid rgba(123,216,143,.15);
+  text-align:left;
+}
+.sq-dev-sizes th{ color:var(--sq-green); font-size:13px; }
+.sq-dev-sizes td:first-child{ white-space:nowrap; font-family:'Courier Prime', monospace; }
+.sq-dev-sizes tr.is-main td{ color:var(--sq-green); }
+.sq-dev-sizes a{ color:var(--sq-green); white-space:nowrap; }
+.sq-dev-custom{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:14px; }
+.sq-dev-custom input[name="screen"]{ width:110px; padding:4px 8px; font:inherit; }
+.sq-dev-custom button{ padding:4px 14px; font:inherit; cursor:pointer; }
 
 /* message for phones/tablets, hidden everywhere else */
 .sq-mobile-note{
@@ -185,6 +226,6 @@ html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
 /* touch screen with no mouse = phone or tablet. goes by input type rather than width
    so a small desktop window still gets the game. keep in sync with setup() in sketch.js */
 @media (hover:none) and (pointer:coarse){
-  .sq-game-frame, .sq-note{ display:none; }
+  .sq-game-frame, .sq-note, .sq-dev-screen{ display:none; }
   .sq-mobile-note{ display:block; }
 }

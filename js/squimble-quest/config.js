@@ -1,12 +1,26 @@
 // all the numbers you might want to tweak, kept in one place
 
 // ---------- screen ----------
-// the game is always drawn at 960x540 (16:9). css stretches the canvas to fit the page, so the game
-// maths never has to care about the real screen size
-const GAME_W = 960;
-const GAME_H = 540;
+// the game is drawn at GAME_W x GAME_H. css stretches the canvas to fit the page, so the game maths
+// never has to care about the real screen size.
+// the screen size isn't settled yet. 960x540 (16:9) is the main one, but I'm trying others to see how
+// much ui fits, so build everything to work at any size: place ui from GAME_W and GAME_H (the edges or
+// the middle), never from fixed numbers like x: 900. the "Screen size debug" under the game (the
+// page's ?screen=1280x720) tries one without changing this file
+const DESIGN_W = 960;
+const DESIGN_H = 540;
+// a plain regex on globalThis.location because the node tests load this file too, with no page address
+// or URLSearchParams
+const SCREEN_PARAM = /[?&]screen=(\d{3,4})x(\d{3,4})(&|$)/.exec(globalThis.location?.search ?? '');
+const GAME_W = SCREEN_PARAM ? Number(SCREEN_PARAM[1]) : DESIGN_W;
+const GAME_H = SCREEN_PARAM ? Number(SCREEN_PARAM[2]) : DESIGN_H;
+// a bigger screen is for more room for ui, not more world, so the camera's normal zoom (Camera,
+// camera.js) scales the world to show the same DESIGN_W x DESIGN_H of it. a different shape (4:3,
+// ultrawide) shows all of that plus a bit more one way
+const VIEW_ZOOM = Math.min(GAME_W / DESIGN_W, GAME_H / DESIGN_H);
 
-// tile size in px. 960x540 fits 30 x about 17 tiles. the camera scrolls, so the half row doesn't matter
+// tile size in px. the design size fits 30 x about 17 tiles. the camera scrolls, so the half row
+// doesn't matter
 const TILE = 32;
 
 // the most seconds one frame can count as. without this the player would jump forward after the tab
@@ -19,7 +33,8 @@ const CAMERA = {
   followSpeed: 8,
   // same thing but for zoom
   zoomSpeed: 10,
-  // 1 is normal, 2 is twice as big, 0.5 is half size (so you see twice as much)
+  // compared to the normal zoom (VIEW_ZOOM): 1 is normal, 2 is twice as big, 0.5 is half size (so you
+  // see twice as much)
   minZoom: 0.25,
   maxZoom: 3,
 };

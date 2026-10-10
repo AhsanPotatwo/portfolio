@@ -66,6 +66,11 @@ function preload() {
 function setup() {
   const canvas = createCanvas(GAME_W, GAME_H);
   canvas.parent('sqCanvas');
+  // the page's frame is 16:9 in its css, so it's given the screen's real shape (config.js). the screen
+  // size debug's "actual size" (?actual on the address) also makes it one page px per game px, so
+  // the ui is the size it'd really be. the frame's 18px padding is on both sides
+  canvas.elt.parentElement.style.aspectRatio = `${GAME_W} / ${GAME_H}`;
+  if (/[?&]actual(=|&|$)/.test(location.search)) canvas.elt.closest('.sq-game-frame').style.maxWidth = `${GAME_W + 36}px`;
   // keeps pixel art sharp when it's scaled up
   noSmooth();
 
@@ -333,6 +338,8 @@ function draw() {
   if (Editor.active) drawingContext.globalAlpha = Editor.uiAlpha;
   Debug.draw(player, gameCamera, worldMap, aim);
   if (!Editor.active && !Dialogue.active && !InventoryScreen.active) Hotbar.drawLabel();
+  // drawn smaller while the sound editor needs a bigger screen than this one (UI.scale, ui.js)
+  scale(UI.scale);
   // dev mode can outline every ui element (debug.js)
   UI.draw(Debug.shows('hitboxes'));
   InventoryScreen.drawDragged();
@@ -340,7 +347,11 @@ function draw() {
   drawMessage();
   if (worldMap.name === FALLBACK_MAP) drawNoMapsMessage();
   if (Input.focused) {
+    // Input.mouse is in ui pixels
+    push();
+    scale(UI.scale);
     drawCrosshair(Input.mouse, Input.mouseHeld('left'), UI.hovered !== null);
+    pop();
   } else {
     drawClickToPlay();
   }

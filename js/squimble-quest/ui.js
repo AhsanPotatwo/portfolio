@@ -3,9 +3,9 @@
 //   UIElement  the base class: position, size, shown/hidden, enabled/disabled and group. Button
 //              (button.js) is built on it
 //   UI         the list of elements. it updates them, draws them and finds the one under the mouse
-// everything uses screen positions (camera.js), which are always 960 x 540, so x: 900 is always near
-// the right edge. they're drawn in the order they were added, so later ones go on top. for buttons
-// see button.js.
+// everything uses screen positions (camera.js), from (0, 0) to (GAME_W, GAME_H). the screen size isn't
+// settled (config.js), so place things from the edges or the middle (x: GAME_W - 60, not x: 900).
+// they're drawn in the order they were added, so later ones go on top. for buttons see button.js.
 //
 // to make a new kind of element (a slider, a slot, a text box...):
 //   1. a new file, e.g. slider.js: class Slider extends UIElement { ... }
@@ -55,6 +55,10 @@ const UI = {
   elements: [],
   // the element under the mouse, or null
   hovered: null,
+  // how big the ui is drawn (sketch.js), and so Input.mouse is in ui pixels, divided by this
+  // (Input.update()). 1, except while the sound editor's open on a screen smaller than the design size,
+  // where everything is laid out on a design sized screen and drawn smaller to fit (soundeditor.js)
+  scale: 1,
 
   // ---------- adding and removing ----------
 
