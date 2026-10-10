@@ -1,0 +1,21 @@
+{
+  "label": "Spear",
+  "category": "weapon",
+  "weapon": {
+    "attack": "jab",
+    "damage": 22,
+    "reach": 110,
+    "swingTime": 0.18,
+    "cooldown": 0.5,
+    "colour": "#dfe6ee",
+    "windup": 0.06,
+    "knockback": 260,
+    "stagger": 0.35,
+    "lunge": 90,
+    "shake": 4,
+    "hitStop": 0.05,
+    "carrySpeed": 0.95
+  },
+  "rarity": "uncommon",
+  "colour": "#8b6b45"
+}

@@ -424,8 +424,9 @@ class Character {
       world.arrows.push(new Arrow(this, hit, this.aimAngle));
       return;
     }
-    // a swing lunges once its windup's over (MeleeSwing.update())
-    this.swing = new MeleeSwing(this, hit, this.aimAngle, this.backhand);
+    // a swing or jab lunges once its windup's over (MeleeSwing.update()). a jab (a spear) is a straight
+    // thrust that stops at the first thing it hits (Jab in weapons.js)
+    this.swing = hit.attack === 'jab' ? new Jab(this, hit, this.aimAngle) : new MeleeSwing(this, hit, this.aimAngle, this.backhand);
     this.backhand = !this.backhand;
   }
 

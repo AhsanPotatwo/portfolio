@@ -14,19 +14,24 @@
 // chargeTime you hold attack to draw it and let go to shoot, harder the longer it's drawn:
 //   "weapon": { "attack": "shoot", "damage": 25, "reach": 420, "arrowSpeed": 620, "chargeTime": 0.8 }
 //
+// a spear is "attack": "jab": a straight thrust out to its reach that stops at the first thing it hits
+// (Jab), so it reaches far but hits one at a time:
+//   "weapon": { "attack": "jab", "damage": 22, "reach": 110, "swingTime": 0.16, "cooldown": 0.5 }
+//
 // settings (any that are missing come from WEAPON_DEFAULTS):
-//   attack      how it attacks, a WEAPON_ATTACKS name: "swing" (a MeleeSwing) or "shoot" (an Arrow)
+//   attack      how it attacks, a WEAPON_ATTACKS name: "swing" (a MeleeSwing), "jab" (a Jab) or
+//               "shoot" (an Arrow)
 //   damage      damage to each thing it hits
-//   reach       a swing: how many px from the middle of whoever's swinging. an arrow: how many px it
-//               flies before it drops to the ground
+//   reach       a swing or jab: how many px from the middle of whoever's attacking. an arrow: how many
+//               px it flies before it drops to the ground
 //   arc         how wide the swing is in degrees, 360 is all the way round (swings only)
-//   swingTime   how many seconds the swing lasts. anything in the arc during it gets hit once (swings
-//               only)
+//   swingTime   how many seconds the swing lasts. anything in the arc during it gets hit once. a jab's
+//               point gets all the way out in the first JAB.extend of it and is held there for the rest
 //   cooldown    seconds from the start of one attack to the next
 //   arrowSpeed  how fast its arrows fly in px/s (shooting only)
 //   colour      colour of the swoosh, or an arrow's head and feathers
 //   windup      seconds a swing is held back before it sweeps, the weapon raised and glowing, so heavy
-//               hits feel heavy and you can see them coming (swings only)
+//               hits feel heavy and you can see them coming (swings and jabs)
 //   knockback   px/s it shoves whatever it hits away (slowing at COMBAT.pushFade, config.js, so it
 //               slides about knockback / 8 px). it can't walk against it until it's slowed down
 //               (Character.pushedHard())
@@ -56,8 +61,9 @@
 // every setting from damage to hitStop (and windup) can be different for each hit of a combo (HIT_SETTINGS in
 // weaponeditor.js). the rest are for the whole weapon
 //
-// a new kind of attack (a spell, a thrown spear) would be a class next to MeleeSwing and Arrow, a line
-// in WEAPON_ATTACKS, and a branch in Character.attack() (character.js)
+// a new kind of attack (a spell, a thrown spear) would be a class next to MeleeSwing, Jab and Arrow, a
+// line in WEAPON_ATTACKS, and a branch in Character.attack() (character.js). a melee one can extend
+// MeleeSwing and replace hitTargets() and draw(), like Jab does
 //
 // where each setting does its thing, to change how one works:
 //   Character.attack()    (character.js) the next combo hit (comboHit()), a charged shot's power
@@ -66,7 +72,9 @@
 //   Character.updateCharge()  chargeTime and minPower. Character.walk(): carrySpeed and chargeSlow
 //   MeleeSwing            windup, swingTime, arc and reach, lunge when the sweep starts, recoil on the
 //                         first thing it hits, the swinger's hit stop
-//   Arrow                 arrowSpeed, reach (how far it flies, dropping at the end)
+//   Jab                   a MeleeSwing whose reach is a straight line that stops at the first hit
+//                         (hitTargets()), and JAB for its point's width and how fast it goes out
+//   Arrow                arrowSpeed, reach (how far it flies, dropping at the end)
 //   hitWith()             everything that happens to what's hit: knockback (times its knockbackTaken),
 //                         stagger (times its staggerTaken), hit stop, screen shake, then damage
 //   drawing               MeleeSwing.draw() (bolder the more knockback), drawChargeLine()
@@ -103,6 +111,7 @@ const WEAPON_DEFAULTS = {
 // each way a weapon can attack (its attack setting), with the words the item editor shows for it
 const WEAPON_ATTACKS = {
   swing: 'swing',
+  jab: 'jab (one target)',
   shoot: 'shoot arrows',
 };
 
@@ -224,19 +233,25 @@ class MeleeSwing {
     if (this.windingUp) return;
     // the lunge goes with the sweep, not the windup
     if (before <= 0) this.owner.pushTowards(this.angle, this.weapon.lunge);
+    this.hitTargets(targets);
+  }
+
+  // hits everything in the arc it hasn't hit yet. a Jab does its own
+  hitTargets(targets) {
     for (const target of targets) {
       if (!target.hittable() || this.hit.has(target)) continue;
-      if (this.reaches(target)) {
-        this.hit.add(target);
-        // knocked away from whoever hit it
-        const angle = Math.atan2(target.y - this.owner.y, target.x - this.owner.x);
-        hitWith(this.owner, target, this.weapon, angle);
-        // the swinger stops for the hit too, which is what makes it feel like it connected, and bounces
-        // back off the first thing it hits
-        this.owner.freeze(this.weapon.hitStop);
-        if (this.hit.size === 1) this.owner.pushTowards(angle + Math.PI, this.weapon.recoil, true);
-      }
+      // knocked away from whoever hit it
+      if (this.reaches(target)) this.strike(target, Math.atan2(target.y - this.owner.y, target.x - this.owner.x));
     }
+  }
+
+  // hits one target, knocking it towards angle (radians). the swinger stops for the hit too, which is
+  // what makes it feel like it connected, and bounces back off the first thing it hits
+  strike(target, angle) {
+    this.hit.add(target);
+    hitWith(this.owner, target, this.weapon, angle);
+    this.owner.freeze(this.weapon.hitStop);
+    if (this.hit.size === 1) this.owner.pushTowards(angle + Math.PI, this.weapon.recoil, true);
   }
 
   // is any part of the target's body inside the swing?
@@ -312,6 +327,70 @@ class MeleeSwing {
       ox + Math.cos(blade) * this.weapon.reach * 0.3, oy + Math.sin(blade) * this.weapon.reach * 0.3,
       ox + Math.cos(blade) * this.weapon.reach, oy + Math.sin(blade) * this.weapon.reach
     );
+  }
+}
+
+// ---------- a jab ----------
+
+// in px unless said: width is how wide a jab's point is (it hits a body this close to its tip), and
+// checkEvery the most the point moves between hit checks (less than a body's width, so it can't skip
+// through someone). extend is the part of its swingTime the point takes to get all the way out, then
+// it's held there for the rest. length is how long the spear looks, and shaft its wood
+const JAB = { width: 10, checkEvery: 6, extend: 0.5, length: 40, shaft: '#8b5a2b' };
+
+// one jab from a "jab" weapon, like the spear: its point goes straight out from the owner's middle
+// towards where they aimed, out to its reach, and stops at the first body it touches, hitting whatever's
+// touching the point right then. so it hits one thing (or a few stood right on top of each other) and
+// never anything behind that, and it has to be aimed, which is the price of its long reach. something
+// walking onto the held point still gets hit. windup, lunge, recoil, hit stop and a stagger cancelling it
+// work like a swing's (MeleeSwing), and arc does nothing. Character.attack() (character.js) makes it
+class Jab extends MeleeSwing {
+  constructor(owner, weapon, angle) {
+    super(owner, weapon, angle, false);
+    // px from the owner's middle out to the point
+    this.tip = 0;
+  }
+
+  // moves the point out, checking every JAB.checkEvery px and at least once a frame, and stops at the
+  // first thing it touches
+  hitTargets(targets) {
+    if (this.hit.size > 0) return;
+    const out = this.weapon.reach * Math.min(1, this.time / (this.weapon.swingTime * JAB.extend));
+    const r = JAB.width / 2;
+    do {
+      this.tip = Math.min(out, this.tip + JAB.checkEvery);
+      const x = this.owner.x + Math.cos(this.angle) * this.tip;
+      const y = this.owner.y + Math.sin(this.angle) * this.tip;
+      const touching = (b) => x > b.x - r && x < b.x + b.w + r && y > b.y - r && y < b.y + b.h + r;
+      const struck = targets.filter((target) => target.hittable() && touching(target.bodyBox()));
+      if (struck.length > 0) {
+        // knocked the way it was jabbed
+        for (const target of struck) this.strike(target, this.angle);
+        return;
+      }
+    } while (this.tip < out);
+  }
+
+  // the spear: a shaft ending at the point, with a head in its colour. while winding up it's drawn back
+  // behind the owner's middle and brightening, like a swing's blade. world positions (inside
+  // camera.begin/end)
+  //
+  // ponytail: like the swing's swoosh, the point is the jab's real point (what hitTargets() checks),
+  // there to see its range until weapons have sprites. a spear sprite would be drawn along it here
+  draw() {
+    const raised = this.windingUp ? 1 + this.time / this.weapon.windup : 1;
+    const point = this.windingUp ? -12 * raised : this.tip;
+    const cos = Math.cos(this.angle);
+    const sin = Math.sin(this.angle);
+    const at = (along, side = 0) => [this.owner.x + cos * along - sin * side, this.owner.y + sin * along + cos * side];
+    const head = color(this.weapon.colour);
+    head.setAlpha(this.windingUp ? 60 + 195 * raised : 255);
+    stroke(JAB.shaft);
+    strokeWeight(3);
+    line(...at(point - JAB.length), ...at(point - 6));
+    noStroke();
+    fill(head);
+    triangle(...at(point), ...at(point - 9, -4), ...at(point - 9, 4));
   }
 }
 

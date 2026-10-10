@@ -34,15 +34,15 @@
 const HIT_SETTINGS = [
   { key: 'damage', tab: 'Hit', label: 'Damage', min: 0, max: 200, tip: 'Taken off each thing it hits' },
   { key: 'reach', tab: 'Hit', label: 'Reach', min: 8, max: 600, unit: 'px', tip: "How far a swing reaches from your middle, or how far an arrow flies. A tile's 32" },
-  { key: 'arc', tab: 'Hit', label: 'Arc', min: 5, max: 360, unit: '°', tip: 'How wide a swing is, 360 all the way round. Narrow is a stab. Swings only' },
+  { key: 'arc', tab: 'Hit', label: 'Arc', min: 5, max: 360, unit: '°', tip: 'How wide a swing is, 360 all the way round. Swings only, a jab is a straight line' },
   { key: 'windup', tab: 'Hit', label: 'Windup', min: 0, max: 1, step: 0.01, unit: 's', tip: 'A pause with the weapon raised before it swings. Heavy, and shows it coming. Getting hit stops it' },
-  { key: 'swingTime', tab: 'Hit', label: 'Swing time', min: 0.02, max: 1, step: 0.01, unit: 's', tip: 'How long a swing takes to sweep across. Swings only' },
+  { key: 'swingTime', tab: 'Hit', label: 'Swing time', min: 0.02, max: 1, step: 0.01, unit: 's', tip: 'How long a swing takes to sweep across, or a jab is out for (its point gets there in the first half)' },
   { key: 'cooldown', tab: 'Hit', label: 'Cooldown', min: 0.02, max: 3, step: 0.01, unit: 's', tip: 'From this attack to the next. Longer on a big last hit' },
   { key: 'arrowSpeed', tab: 'Hit', label: 'Arrow speed', min: 50, max: 1500, step: 10, unit: 'px/s', tip: 'How fast its arrows fly. Shooting only' },
   { key: 'knockback', tab: 'Feel', label: 'Knockback', min: 0, max: 1500, step: 10, unit: 'px/s', tip: 'How hard it shoves what it hits. They slide about an eighth of this in px' },
   { key: 'stagger', tab: 'Feel', label: 'Stagger', min: 0, max: 2, step: 0.05, unit: 's', tip: "How long what it hits can't walk or attack" },
   { key: 'lunge', tab: 'Feel', label: 'Lunge', min: 0, max: 800, step: 10, unit: 'px/s', tip: 'Steps the attacker forwards with each attack, hit or miss' },
-  { key: 'recoil', tab: 'Feel', label: 'Recoil', min: 0, max: 800, step: 10, unit: 'px/s', tip: 'Shoves the attacker back when a swing lands. Swings only' },
+  { key: 'recoil', tab: 'Feel', label: 'Recoil', min: 0, max: 800, step: 10, unit: 'px/s', tip: 'Shoves the attacker back when a swing or jab lands' },
   { key: 'shake', tab: 'Feel', label: 'Shake', min: 0, max: 30, step: 0.5, unit: 'px', tip: 'How hard the screen shakes when the player lands it, or gets hit by it' },
   { key: 'shakeTime', tab: 'Feel', label: 'Shake time', min: 0.05, max: 1.5, step: 0.05, unit: 's', tip: 'How long the shake takes to settle' },
   { key: 'hitStop', tab: 'Feel', label: 'Hit stop', min: 0, max: 0.3, step: 0.01, unit: 's', tip: 'How long both sides freeze when it lands. Makes it feel heavy' },
@@ -101,7 +101,7 @@ function weaponForm(weapon, { attacker, target }) {
     {
       label: 'Weapon',
       rows: [
-        { label: 'Attack', field: attackPicker, tip: 'Swing it in an arc, or shoot arrows like a bow' },
+        { label: 'Attack', field: attackPicker, tip: 'Swing it in an arc, jab straight out at one thing like a spear, or shoot arrows like a bow' },
         { label: 'Combo', field: comboPicker, tip: 'How many hits before it starts over. Each gets its own numbers on Hit and Feel' },
         ...WEAPON_WIDE_SETTINGS.map((line) => ({ label: line.label, field: wideSliders[line.key], tip: line.tip })),
         { label: 'Colour', field: colourField, tip: "The swoosh, or the arrows' heads and feathers" },
@@ -261,7 +261,9 @@ class WeaponPreview extends UIElement {
       });
     }
     this.attacker.x = 0;
-    this.target.x = (this.weapon.attack === 'shoot' ? WEAPON_PREVIEW.shootGap : WEAPON_PREVIEW.gap) + this.target.w / 2;
+    // a jab starts near the end of its reach, to show it off
+    const gap = { shoot: WEAPON_PREVIEW.shootGap, jab: this.weapon.reach * 0.8 }[this.weapon.attack] ?? WEAPON_PREVIEW.gap;
+    this.target.x = gap + this.target.w / 2;
     this.world.arrows = [];
     // seconds it's been waiting since the combo finished
     this.waited = 0;
