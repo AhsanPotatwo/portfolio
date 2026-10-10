@@ -5,7 +5,7 @@
 //   { move: { x, y }, aim: { x, y } or null, attack: true or false }
 //   move    which way to walk, x and y each -1, 0 or 1 (like Input.direction())
 //   aim     a world position to face, or null to keep facing the same way
-//   attack  swing or shoot its weapon (if it's ready)
+//   attack  swing or shoot its weapon (if it's ready, or within COMBAT.attackBuffer of being ready)
 // the player's come from the keyboard and mouse (sketch.js) and enemies' come from their ai
 // (enemies.js), so enemies can do anything the player can.
 //
@@ -61,6 +61,9 @@ class Character {
     this.speed = settings.speed;
     // px/s. only really matters on slippery tiles, where it keeps you sliding (walk())
     this.velocity = { x: 0, y: 0 };
+    // px/s it's being shoved on top of walking, by knockback, lunges and recoil (pushTowards()). it
+    // slows to a stop (COMBAT.pushFade) or stops at whatever it hits
+    this.pushVelocity = { x: 0, y: 0 };
 
     this.maxHealth = settings.maxHealth;
     this.health = this.maxHealth;
@@ -90,17 +93,37 @@ class Character {
     this.swing = null;
     // seconds until it can attack again
     this.attackCooldown = 0;
+    // seconds an attack it asked for is still waiting to happen (COMBAT.attackBuffer)
+    this.attackBuffer = 0;
     // flips every swing so they go back and forth
     this.backhand = false;
+    // its weapon's combo (weapons.js): the hit it's on (from 0), the weapon that's for, and the seconds
+    // left to attack again before it starts over
+    this.comboStep = 0;
+    this.comboWeapon = null;
+    this.comboLeft = 0;
+
+    // getting hit (hitWith() in weapons.js). frozen: seconds it stands still mid-hit (the hit stop).
+    // stagger: seconds it can't walk or attack
+    this.frozen = 0;
+    this.stagger = 0;
   }
 
   // ---------- every frame ----------
 
   // controls and world are explained at the top of this file. dt is the seconds since last frame
   update(controls, dt, world) {
-    this.walk(controls.move, dt, world);
+    // remembered first, so a click during a hit stop or just before the weapon's ready still counts
+    if (controls.attack) this.attackBuffer = COMBAT.attackBuffer;
+    if (this.frozen > 0) {
+      this.frozen -= dt;
+      return;
+    }
+
+    const staggered = this.stagger > 0;
+    this.walk(staggered ? STAND_STILL.move : controls.move, dt, world);
     this.aimAt(controls.aim);
-    if (controls.attack) this.attack(world);
+    if (!staggered && this.attackBuffer > 0) this.attack(world);
 
     if (this.swing) {
       this.swing.update(dt, this.targets(world));
@@ -108,8 +131,9 @@ class Character {
     }
 
     this.checkTile(world.map, dt);
-    this.hurtTimer = Math.max(0, this.hurtTimer - dt);
-    this.attackCooldown = Math.max(0, this.attackCooldown - dt);
+    for (const timer of ['hurtTimer', 'attackCooldown', 'attackBuffer', 'comboLeft', 'stagger']) {
+      this[timer] = Math.max(0, this[timer] - dt);
+    }
   }
 
   // who its attacks can hurt. the player and enemies replace this with their own
@@ -151,18 +175,23 @@ class Character {
     this.velocity.x = approach(this.velocity.x, dx * speed + (push ? push.x * pushSpeed : 0), grip, dt);
     this.velocity.y = approach(this.velocity.y, dy * speed + (push ? push.y * pushSpeed : 0), grip, dt);
 
-    // x and then y, so it slides along things it hits at an angle. for each one the map stops the feet
-    // at walls (tilemap.js), and then other characters' feet can cut it shorter
-    const feet = this.feetBox();
-    const moveX = this.stopAtOthers(world, feet, 'x', map.moveAlongX(feet, this.velocity.x * dt));
-    feet.x += moveX;
-    const moveY = this.stopAtOthers(world, feet, 'y', map.moveAlongY(feet, this.velocity.y * dt));
-    this.x += moveX;
-    this.y += moveY;
+    const moved = this.moveBy(world, this.velocity.x * dt, this.velocity.y * dt);
     // bumping into something stops you sliding that way
     if (dt > 0) {
-      this.velocity.x = moveX / dt;
-      this.velocity.y = moveY / dt;
+      this.velocity.x = moved.x / dt;
+      this.velocity.y = moved.y / dt;
+    }
+
+    // being shoved (pushTowards()) goes on top, slowing down, and bumping into something stops it
+    // that way too
+    const shove = this.pushVelocity;
+    if (shove.x || shove.y) {
+      const want = { x: shove.x * dt, y: shove.y * dt };
+      const pushed = this.moveBy(world, want.x, want.y);
+      for (const axis of ['x', 'y']) {
+        shove[axis] = pushed[axis] === want[axis] ? approach(shove[axis], 0, COMBAT.pushFade, dt) : 0;
+      }
+      if (Math.hypot(shove.x, shove.y) < 5) shove.x = shove.y = 0;
     }
 
     // the feet stop at the edge of the map, but the head could still poke off the top, so stop that
@@ -171,6 +200,26 @@ class Character {
     const edges = map.bounds();
     const headLimit = edges.top + this.h / 2;
     if (edges.bottom - edges.top >= this.h && this.y < headLimit) this.y = headLimit;
+  }
+
+  // moves it by dx, dy px as far as it can go, and gives back how far it went. x and then y, so it
+  // slides along things it hits at an angle. for each one the map stops the feet at walls
+  // (tilemap.js), and then other characters' feet can cut it shorter
+  moveBy(world, dx, dy) {
+    const feet = this.feetBox();
+    const x = this.stopAtOthers(world, feet, 'x', world.map.moveAlongX(feet, dx));
+    feet.x += x;
+    const y = this.stopAtOthers(world, feet, 'y', world.map.moveAlongY(feet, dy));
+    this.x += x;
+    this.y += y;
+    return { x, y };
+  }
+
+  // shoves it speed px/s towards angle (radians), on top of anything already shoving it. knockback,
+  // lunges and recoil all use this
+  pushTowards(angle, speed) {
+    this.pushVelocity.x += Math.cos(angle) * speed;
+    this.pushVelocity.y += Math.sin(angle) * speed;
   }
 
   // cuts down amount (movement along 'x' or 'y') so the feet stop right up against any living
@@ -265,16 +314,25 @@ class Character {
   }
 
   // swings or shoots towards where it's aiming (its weapon's attack, weapons.js), if it has a weapon
-  // and it's ready. arrows go in world.arrows, since they keep flying after the attack's over
+  // and it's ready, lunging forwards with it. a weapon with a combo does its next hit, or starts over
+  // if it waited too long or changed weapon. arrows go in world.arrows, since they keep flying after the
+  // attack's over
   attack(world) {
     const weapon = this.currentWeapon();
     if (!weapon || this.attackCooldown > 0) return;
-    this.attackCooldown = weapon.cooldown;
-    if (weapon.attack === 'shoot') {
-      world.arrows.push(new Arrow(this, weapon, this.aimAngle));
+    if (weapon !== this.comboWeapon || this.comboLeft <= 0) this.comboStep = 0;
+    const hit = comboHit(weapon, this.comboStep); // weapons.js
+    this.comboWeapon = weapon;
+    this.comboStep++;
+    this.comboLeft = hit.cooldown + weapon.comboWindow;
+    this.attackCooldown = hit.cooldown;
+    this.attackBuffer = 0;
+    this.pushTowards(this.aimAngle, hit.lunge);
+    if (hit.attack === 'shoot') {
+      world.arrows.push(new Arrow(this, hit, this.aimAngle));
       return;
     }
-    this.swing = new MeleeSwing(this, weapon, this.aimAngle, this.backhand);
+    this.swing = new MeleeSwing(this, hit, this.aimAngle, this.backhand);
     this.backhand = !this.backhand;
   }
 
@@ -301,6 +359,12 @@ class Character {
       this.health = 0;
       this.die();
     }
+  }
+
+  // the hit stop: stands still for a moment after hitting or being hit by something with this impact
+  // (weapons.js)
+  freeze(impact) {
+    this.frozen = Math.max(this.frozen, impact * COMBAT.freezePerImpact);
   }
 
   // heals up to max health. anything can call this: tiles, potions...

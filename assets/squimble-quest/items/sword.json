@@ -2,11 +2,31 @@
   "label": "Sword",
   "category": "weapon",
   "weapon": {
-    "damage": 20,
-    "reach": 60,
-    "swingTime": 0.1,
-    "cooldown": 0.05,
-    "colour": "#ffffff"
+    "damage": 15,
+    "reach": 62,
+    "arc": 130,
+    "swingTime": 0.12,
+    "cooldown": 0.24,
+    "colour": "#ffffff",
+    "knockback": 110,
+    "stagger": 0.3,
+    "impact": 0.5,
+    "combo": [
+      {},
+      {},
+      {
+        "damage": 30,
+        "reach": 90,
+        "arc": 30,
+        "swingTime": 0.14,
+        "cooldown": 0.6,
+        "knockback": 700,
+        "stagger": 0.6,
+        "recoil": 260,
+        "impact": 1.2
+      }
+    ],
+    "comboWindow": 0.35
   },
   "colour": "#c9d1d9"
 }

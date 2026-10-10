@@ -229,8 +229,7 @@ function draw() {
     player.update(InventoryScreen.active ? STAND_STILL : {
       move: Input.direction(),
       aim,
-      attack: !Dialogue.active && Input.mousePressed('left'),
-    }, dt, world);
+      attack: !Dialogue.active && Input.mousePressed('left'),    }, dt, world);
     // picks up items that are close enough (inventory.js)
     Drops.update(worldMap, player, dt);
 

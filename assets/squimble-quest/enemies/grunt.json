@@ -9,7 +9,11 @@
     "arc": 90,
     "swingTime": 0.2,
     "cooldown": 1,
-    "colour": "#ff8a8a"
+    "colour": "#ff8a8a",
+    "knockback": 220,
+    "stagger": 0.15,
+    "lunge": 120,
+    "impact": 0.6
   },
   "colour": "#d64545",
   "outline": "#6e1f1f",

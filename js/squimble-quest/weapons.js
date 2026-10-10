@@ -23,6 +23,23 @@
 //   cooldown    seconds from the start of one attack to the next
 //   arrowSpeed  how fast its arrows fly in px/s (shooting only)
 //   colour      colour of the swoosh, or an arrow's head and feathers
+//   knockback   px/s it shoves whatever it hits away (slowing at COMBAT.pushFade, config.js, so it
+//               slides about knockback / 8 px)
+//   stagger     seconds whatever it hits can't walk or attack afterwards
+//   lunge       px/s the attacker steps forwards with each attack, so swings carry you in
+//   recoil      px/s the attacker is shoved back when a swing lands (once per swing, however many it
+//               hits), like the sword's last stab bouncing you off
+//   impact      how heavy a hit feels: the screen shakes (CAMERA.shakePerImpact) when the player hits
+//               or gets hit, and both sides freeze for a moment (COMBAT.freezePerImpact, the hit stop.
+//               arrows don't freeze whoever shot them). 1 is a big hit
+//   combo       a list of hits, each the settings that are different from the ones above, or null
+//               for every attack the same. attacking again soon enough does the next hit, and after
+//               the last it starts over. the last is usually the big one, with a longer cooldown:
+//                 "combo": [{}, {}, { "damage": 30, "knockback": 560, "cooldown": 0.6 }]
+//   comboWindow seconds after an attack's cooldown that attacking still carries on the combo
+//
+// the item editor's Weapon tab changes the settings above combo, so a combo hit that has its own
+// damage (say) keeps it
 //
 // a new kind of attack (a spell, a thrown spear) would be a class next to MeleeSwing and Arrow, a line
 // in WEAPON_ATTACKS, and a branch in Character.attack() (character.js)
@@ -38,6 +55,13 @@ const WEAPON_DEFAULTS = {
   cooldown: 0.3,
   arrowSpeed: 500,
   colour: '#ffffff',
+  knockback: 120,
+  stagger: 0.1,
+  lunge: 0,
+  recoil: 0,
+  impact: 0.3,
+  combo: null,
+  comboWindow: 0.3,
 };
 
 // each way a weapon can attack (its attack setting), with the words the item editor shows for it
@@ -59,7 +83,33 @@ function makeWeapon(settings, owner) {
     console.warn(`The weapon on ${owner} has an attack "${weapon.attack}" that isn't in WEAPON_ATTACKS (weapons.js), so it swings`);
     weapon.attack = WEAPON_DEFAULTS.attack;
   }
+  if (weapon.combo !== null && (!Array.isArray(weapon.combo) || weapon.combo.length === 0)) {
+    console.warn(`The weapon on ${owner} has a combo that isn't a list of hits [{ }, { }] (weapons.js), so it has no combo`);
+    weapon.combo = null;
+  }
+  // warns about typos in each hit (utils.js)
+  weapon.combo?.forEach((hit) => withDefaults(WEAPON_DEFAULTS, 'weapon', `${owner}'s combo`, hit));
   return weapon;
+}
+
+// the settings for hit number `step` (from 0) of a weapon's combo, or the weapon itself if it hasn't
+// got one. Character.attack() (character.js) keeps count
+function comboHit(weapon, step) {
+  return weapon.combo ? { ...weapon, ...weapon.combo[step % weapon.combo.length] } : weapon;
+}
+
+// everything a hit does, for swings and arrows alike: damage, the target's particles flying the way it
+// was hit (angle, radians), knockback the same way, stagger, the hit stop on the target, and the
+// screen shake if this computer's player is in it (player and gameCamera are sketch.js's). weapon is
+// the hit's settings (comboHit()). the damage goes last, so a player it kills respawns without the
+// knockback (Player.placeAt())
+function hitWith(attacker, target, weapon, angle) {
+  target.burstParticles(target.hitParticles, angle); // particles.js
+  target.pushTowards(angle, weapon.knockback);
+  target.stagger = Math.max(target.stagger, weapon.stagger);
+  target.freeze(weapon.impact);
+  if (attacker === player || target === player) gameCamera.shake(weapon.impact * CAMERA.shakePerImpact);
+  target.hurt(weapon.damage);
 }
 
 // ---------- a melee swing ----------
@@ -91,9 +141,13 @@ class MeleeSwing {
       if (target.dead || this.hit.has(target)) continue;
       if (this.reaches(target)) {
         this.hit.add(target);
-        target.hurt(this.weapon.damage);
-        // its blood (or whatever) flies away from whoever hit it (particles.js)
-        target.burstParticles(target.hitParticles, Math.atan2(target.y - this.owner.y, target.x - this.owner.x));
+        // knocked away from whoever hit it
+        const angle = Math.atan2(target.y - this.owner.y, target.x - this.owner.x);
+        hitWith(this.owner, target, this.weapon, angle);
+        // the swinger stops for the hit too, which is what makes it feel like it connected, and bounces
+        // back off the first thing it hits
+        this.owner.freeze(this.weapon.impact);
+        if (this.hit.size === 1) this.owner.pushTowards(angle + Math.PI, this.weapon.recoil);
       }
     }
   }
@@ -138,15 +192,17 @@ class MeleeSwing {
     // a see-through pie slice from the start to the blade. arc() wants the smaller angle first. the
     // p5 colour gets made here instead of being stored on the swing, so the swing stays as plain data
     // that a server without p5 could run
+    // heavier hits (a combo's last) are bolder
+    const heavy = Math.min(this.weapon.impact, 1.5);
     const swoosh = color(this.weapon.colour);
-    swoosh.setAlpha(70);
+    swoosh.setAlpha(50 + 50 * heavy);
     noStroke();
     fill(swoosh);
     arc(ox, oy, this.weapon.reach * 2, this.weapon.reach * 2, Math.min(start, blade), Math.max(start, blade), PIE);
 
     // the blade itself
     stroke(this.weapon.colour);
-    strokeWeight(3);
+    strokeWeight(2 + 2 * heavy);
     line(
       ox + Math.cos(blade) * this.weapon.reach * 0.3, oy + Math.sin(blade) * this.weapon.reach * 0.3,
       ox + Math.cos(blade) * this.weapon.reach, oy + Math.sin(blade) * this.weapon.reach
@@ -213,9 +269,8 @@ class Arrow {
       this.height = this.startHeight * (1 - (this.travelled / this.weapon.reach) ** 4);
       const target = this.owner.targets(world).find((t) => !t.dead && this.touches(t));
       if (target) {
-        target.hurt(this.weapon.damage);
-        // its blood (or whatever) flies on the way the arrow was going (particles.js)
-        target.burstParticles(target.hitParticles, this.angle);
+        // knocked on the way the arrow was going
+        hitWith(this.owner, target, this.weapon, this.angle);
         return false;
       }
     }

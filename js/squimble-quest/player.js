@@ -58,8 +58,7 @@ class Player extends Character {
   respawn() {
     this.health = this.maxHealth;
     // worldMap is the game's (sketch.js)
-    this.x = worldMap.spawn.x;
-    this.y = worldMap.spawn.y;
+    this.placeAt(worldMap.spawn.x, worldMap.spawn.y);
     Warps.arrived(this, worldMap);
   }
 
@@ -67,6 +66,9 @@ class Player extends Character {
   placeAt(x, y) {
     this.x = x;
     this.y = y;
+    // the knockback that killed you (or anything else shoving you) doesn't carry on after
+    this.pushVelocity = { x: 0, y: 0 };
+    this.stagger = 0;
     // forget the tile from the last map, so this one counts as just stepped on
     this.tile = null;
     this.tileCol = null;

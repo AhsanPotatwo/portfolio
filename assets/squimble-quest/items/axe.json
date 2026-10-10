@@ -2,12 +2,31 @@
   "label": "Axe",
   "category": "weapon",
   "weapon": {
-    "damage": 35,
+    "damage": 30,
     "reach": 68,
     "arc": 160,
     "swingTime": 0.25,
-    "cooldown": 0.65,
-    "colour": "#ffd9a0"
+    "cooldown": 0.6,
+    "colour": "#ffd9a0",
+    "knockback": 300,
+    "stagger": 0.45,
+    "lunge": 120,
+    "impact": 0.9,
+    "combo": [
+      {},
+      {
+        "damage": 45,
+        "reach": 76,
+        "arc": 220,
+        "swingTime": 0.3,
+        "cooldown": 0.95,
+        "knockback": 850,
+        "stagger": 0.8,
+        "lunge": 220,
+        "impact": 1.6
+      }
+    ],
+    "comboWindow": 0.4
   },
   "rarity": "rare",
   "colour": "#b0773a"

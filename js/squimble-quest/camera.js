@@ -27,6 +27,19 @@ class Camera {
     this.glide = null;
     // the target and zoom from before focusOn(), so release() can go back to them
     this.beforeFocus = null;
+
+    // screen shake (shake()): how many px it's shaking by, settling to 0, and this frame's jolt, which
+    // only moves the drawing (begin(), drawnPosition()), never the camera itself
+    this.shaking = 0;
+    this.shakeX = 0;
+    this.shakeY = 0;
+  }
+
+  // shakes the screen by up to px (CAMERA.maxShake), settling over a moment. a bigger shake takes over
+  // a smaller one instead of adding up, so lots of little hits don't turn into an earthquake. weapons
+  // shake it when the player hits or gets hit (hitWith() in weapons.js)
+  shake(px) {
+    this.shaking = Math.min(CAMERA.maxShake, Math.max(this.shaking, px));
   }
 
   // ---------- telling the camera what to do ----------
@@ -101,18 +114,28 @@ class Camera {
   update(dt) {
     if (this.glide) {
       this.updateGlide(dt);
-      this.keepInBounds();
-      return;
+    } else {
+      this.zoom = approach(this.zoom, this.targetZoom, this.zoomSpeed, dt);
+      if (this.target) {
+        this.x = approach(this.x, this.target.x, this.followSpeed, dt);
+        this.y = approach(this.y, this.target.y, this.followSpeed, dt);
+      }
     }
-
-    this.zoom = approach(this.zoom, this.targetZoom, this.zoomSpeed, dt);
-
-    if (this.target) {
-      this.x = approach(this.x, this.target.x, this.followSpeed, dt);
-      this.y = approach(this.y, this.target.y, this.followSpeed, dt);
-    }
-
     this.keepInBounds();
+    this.updateShake(dt);
+  }
+
+  // a new random jolt every frame, kept inside the bounds so a shake by the edge of the map doesn't
+  // show past it. it's only for show, so it uses Math.random() rather than randomBetween() (utils.js)
+  updateShake(dt) {
+    this.shaking = this.shaking < 0.5 ? 0 : approach(this.shaking, 0, CAMERA.shakeFade, dt);
+    const jolt = () => (Math.random() * 2 - 1) * this.shaking;
+    this.shakeX = jolt();
+    this.shakeY = jolt();
+    if (!this.bounds || !this.shaking) return;
+    const half = this.halfView();
+    this.shakeX = this.clampAxis(this.x + this.shakeX, half.w, this.bounds.left, this.bounds.right) - this.x;
+    this.shakeY = this.clampAxis(this.y + this.shakeY, half.h, this.bounds.top, this.bounds.bottom) - this.y;
   }
 
   updateGlide(dt) {
@@ -161,7 +184,7 @@ class Camera {
     push();
     translate(GAME_W / 2, GAME_H / 2);
     scale(this.zoom);
-    translate(-this.pixelSnap(this.x), -this.pixelSnap(this.y));
+    translate(-this.pixelSnap(this.x + this.shakeX), -this.pixelSnap(this.y + this.shakeY));
   }
 
   end() {
@@ -179,8 +202,8 @@ class Camera {
   // camera (the tiles in tilemap.js need this)
   drawnPosition(wx, wy) {
     return {
-      x: (wx - this.pixelSnap(this.x)) * this.zoom + GAME_W / 2,
-      y: (wy - this.pixelSnap(this.y)) * this.zoom + GAME_H / 2,
+      x: (wx - this.pixelSnap(this.x + this.shakeX)) * this.zoom + GAME_W / 2,
+      y: (wy - this.pixelSnap(this.y + this.shakeY)) * this.zoom + GAME_H / 2,
     };
   }
 

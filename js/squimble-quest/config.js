@@ -22,6 +22,25 @@ const CAMERA = {
   // 1 is normal, 2 is twice as big, 0.5 is half size (so you see twice as much)
   minZoom: 0.25,
   maxZoom: 3,
+  // screen shake (Camera.shake()): px it shakes per 1 of a weapon's impact (weapons.js), the most it
+  // can shake, and how fast it settles, higher is quicker
+  shakePerImpact: 9,
+  maxShake: 18,
+  shakeFade: 7,
+};
+
+// ---------- combat ----------
+// how hits feel, for everyone. each weapon's own numbers (knockback, impact...) are in weapons.js
+const COMBAT = {
+  // how fast knockback, lunges and recoil slow down, higher stops sooner. something pushed at speed v
+  // slides about v / pushFade px
+  pushFade: 8,
+  // seconds both the hitter and whoever got hit freeze per 1 of the weapon's impact (hit stop), which
+  // is most of what makes a hit feel heavy
+  freezePerImpact: 0.06,
+  // seconds an attack click is remembered, so clicking just before the weapon's ready (or during a
+  // hit stop) still attacks as soon as it can. makes combos easy to keep going
+  attackBuffer: 0.2,
 };
 
 // ---------- player ----------
@@ -29,8 +48,8 @@ const PLAYER = {
   // a bit under 32x64 (1 x 2 tiles) so it'll fit through 1 tile gaps later
   width: 28,
   height: 56,
-  // px/s. 160 is 5 tiles a second
-  speed: 160,
+  // px/s. 170 is about 5 tiles a second
+  speed: 170,
   // only the feet bump into walls (feetBox() in character.js). smaller than a tile both ways so the
   // player fits through 1 tile gaps
   feetWidth: 24,
