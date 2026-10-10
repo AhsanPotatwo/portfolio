@@ -57,8 +57,8 @@ const DEV_INFO = [
     },
   },
   {
-    name: 'camera', label: 'Camera', note: 'where, zoom, screen size and sharpness', on: false,
-    lines: ({ camera }) => [['camera', formatPoint(camera)], ['zoom', `${Math.round(camera.zoom / VIEW_ZOOM * 100)}%`], ['screen', `${GAME_W} x ${GAME_H}, drawn x${pixelDensity().toFixed(2)}`]],
+    name: 'camera', label: 'Camera', note: 'where, zoom, sharpness', on: false,
+    lines: ({ camera }) => [['camera', formatPoint(camera)], ['zoom', `${Math.round(camera.zoom * 100)}%`], ['drawn', `x${pixelDensity().toFixed(2)} (fitResolution())`]],
   },
   {
     name: 'enemies', label: 'Enemies', note: 'how many, chasing', on: false,
@@ -94,7 +94,7 @@ const DEV_TOOLS = [
   { label: 'Map editor', keys: ['editor'], run: () => Editor.toggle(player, gameCamera) },
   { label: 'Next map', keys: ['nextMap'], run: () => Debug.nextMap() },
   { label: 'Teleport to mouse', keys: ['teleport'] },
-  { label: 'Zoom out, in, reset', keys: ['zoomOut', 'zoomIn', 'zoomReset'], run: () => gameCamera.zoomTo(VIEW_ZOOM) },
+  { label: 'Zoom out, in, reset', keys: ['zoomOut', 'zoomIn', 'zoomReset'], run: () => gameCamera.zoomTo(1) },
   { label: 'Dev mode off', keys: ['devMode'], run: () => Debug.toggle(player, gameCamera) },
 ];
 
@@ -161,7 +161,7 @@ const Debug = {
       // the editor is part of dev mode so it closes too
       if (Editor.active) Editor.close(player, camera);
       // don't leave the game zoomed in or out
-      camera.zoomTo(VIEW_ZOOM);
+      camera.zoomTo(1);
     }
   },
 
@@ -191,7 +191,7 @@ const Debug = {
     if (Editor.active && !FormBox.active && !SoundEditor.active && Input.wheel !== 0) {
       camera.zoomTo(camera.targetZoom * Math.exp(-Input.wheel * DEV_WHEEL_ZOOM_RATE));
     }
-    if (Input.wasPressed('zoomReset')) camera.zoomTo(VIEW_ZOOM);
+    if (Input.wasPressed('zoomReset')) camera.zoomTo(1);
 
     if (Input.wasPressed('nextMap')) {
       this.nextMap();

@@ -80,13 +80,8 @@
 //   - save the recipe with a sound (its kind, maker, knobs and seed), so its knobs come back when it
 //     opens again
 
-// layout, in ui px. it's laid out for at least the design screen size (DESIGN_W x DESIGN_H, config.js):
-// with more game px the slider columns stretch and the bottom row moves down, and with fewer it's
-// still laid out at the design size and the whole ui is drawn smaller to fit (UI.scale, set by open())
+// layout, in screen px. the game is always 960 x 540, so these are just where things go
 const SOUND_EDITOR = {
-  // the screen it's laid out on, in ui px
-  get width() { return GAME_W / UI.scale; },
-  get height() { return GAME_H / UI.scale; },
   headerHeight: 36,
   footerHeight: 30,
   // the left column, and where its parts go down it
@@ -102,9 +97,8 @@ const SOUND_EDITOR = {
   kindColumns: 5,
   // the right side: where it starts, each column of sliders' width, and the gap between columns
   right: 336,
+  columnWidth: 296,
   columnGap: 16,
-  // two columns fill the right side, leaving 16 at the edge. 296 at the design size
-  get columnWidth() { return (this.width - this.right - 16 - this.columnGap) / 2; },
   // the wave buttons, in rows of waveColumns
   wavesTop: 56,
   waveColumns: 8,
@@ -1111,20 +1105,16 @@ const SoundEditor = {
     Input.typing = true;
     Sound.stopAll();
 
-    // fewer game px than the design size draws everything smaller instead (close() puts it back)
-    UI.scale = Math.min(1, GAME_W / DESIGN_W, GAME_H / DESIGN_H);
     const L = SOUND_EDITOR;
-    const W = L.width;
-    const H = L.height;
     const add = (element) => UI.add(Object.assign(element, { group: 'sound-editor' }));
-    add(new SoundEditorPanel({ x: 0, y: 0, w: W, h: H }));
+    add(new SoundEditorPanel({ x: 0, y: 0, w: GAME_W, h: GAME_H }));
 
     // the top: name, Undo, Cancel and Save
     this.nameField = add(new TextField({ x: 170, y: 6, w: 160, h: 24, value: name ?? '' }));
     this.typeInto(this.nameField);
-    this.undoButton = add(new Button({ x: W - 280, y: 6, w: 80, h: 24, label: 'Undo', style: 'editor', onClick: () => this.undo() }));
-    add(new Button({ x: W - 194, y: 6, w: 80, h: 24, label: 'Cancel', style: 'editor', onClick: () => this.cancel() }));
-    this.saveButton = add(new Button({ x: W - 108, y: 6, w: 92, h: 24, label: 'Save', style: 'editorPrimary', onClick: () => this.save() }));
+    this.undoButton = add(new Button({ x: GAME_W - 280, y: 6, w: 80, h: 24, label: 'Undo', style: 'editor', onClick: () => this.undo() }));
+    add(new Button({ x: GAME_W - 194, y: 6, w: 80, h: 24, label: 'Cancel', style: 'editor', onClick: () => this.cancel() }));
+    this.saveButton = add(new Button({ x: GAME_W - 108, y: 6, w: 92, h: 24, label: 'Save', style: 'editorPrimary', onClick: () => this.save() }));
     // Sound or Voice: which library it goes in when it's saved
     Object.entries(SOUND_KINDS).forEach(([kind, label], i) => add(Object.assign(new EditorButton({
       x: 340 + i * 64, y: 6, w: 60, h: 24, label,
@@ -1173,7 +1163,7 @@ const SoundEditor = {
         onClick: () => this.generate(kind, label),
       }), { makers: kind, tip: `${label}: ${maker.tip}. Press it again for another one, then change it in the Character tab` })));
     }
-    const lastRow = H - L.footerHeight - 34;
+    const lastRow = GAME_H - L.footerHeight - 34;
     add(Object.assign(new Button({
       x, y: lastRow, w: 148, h: 24, label: 'Random', style: 'editorPrimary',
       onClick: () => {
@@ -1195,7 +1185,7 @@ const SoundEditor = {
       // file asks for a file the first time, and goes back to the chosen one after that
       onClick: () => (wave === 'file' && !this.draft.file ? this.chooseFile() : this.change({ wave })),
     }), { tip: `${SOUND_WAVES[wave].label}: ${SOUND_WAVES[wave].tip}` })));
-    this.chooseFileButton = add(new Button({ x: W - 16 - 110, y: L.wavesTop - 20, w: 110, h: 18, label: 'Choose file...', style: 'editor', onClick: () => this.chooseFile() }));
+    this.chooseFileButton = add(new Button({ x: GAME_W - 16 - 110, y: L.wavesTop - 20, w: 110, h: 18, label: 'Choose file...', style: 'editor', onClick: () => this.chooseFile() }));
     const tabW = (L.columnWidth * 2 + L.columnGap - (L.tabs.length - 1) * 4) / L.tabs.length;
     L.tabs.forEach((tab, i) => {
       this.tabButtons[tab.name] = add(Object.assign(new EditorButton({
@@ -1249,7 +1239,7 @@ const SoundEditor = {
     const sayTop = this.hintTop.Voice;
     this.sayField = add(Object.assign(new TextField({ x: L.right + 36, y: sayTop, w: L.columnWidth * 2 + L.columnGap - 36 - 96, h: 24, value: L.sayText, maxLength: 52, allowed: /^[^\x00-\x1f\x7f]$/ }),
       { tab: 'Voice', tip: 'Say: type something here, then press Say (or Enter) to hear this sound saying it' }));
-    add(Object.assign(new Button({ x: W - 16 - 90, y: sayTop, w: 90, h: 24, label: '▶  Say', style: 'editorPrimary', onClick: () => this.speak() }),
+    add(Object.assign(new Button({ x: GAME_W - 16 - 90, y: sayTop, w: 90, h: 24, label: '▶  Say', style: 'editorPrimary', onClick: () => this.speak() }),
       { tab: 'Voice', tip: 'Say: plays this sound saying the words in the box, the way an npc with it as their voice talks' }));
     this.hintTop.Voice = sayTop + 32;
     this.showTab(this.tab);
@@ -1328,7 +1318,6 @@ const SoundEditor = {
     Input.typing = false;
     Sound.stopPreview();
     UI.removeGroup('sound-editor');
-    UI.scale = 1;
   },
 
   // why it can't be saved (shown along the bottom, and Save is greyed out), or null
@@ -1589,15 +1578,15 @@ class SoundEditorPanel extends UIElement {
     const editor = SoundEditor;
     noStroke();
     fill(C.bar);
-    rect(0, 0, this.w, this.h);
+    rect(0, 0, GAME_W, GAME_H);
     fill(C.header);
-    rect(0, 0, this.w, L.headerHeight);
-    rect(0, this.h - L.footerHeight, this.w, L.footerHeight);
+    rect(0, 0, GAME_W, L.headerHeight);
+    rect(0, GAME_H - L.footerHeight, GAME_W, L.footerHeight);
     fill(C.edge);
-    rect(0, L.headerHeight, this.w, 1);
-    rect(0, this.h - L.footerHeight, this.w, 1);
+    rect(0, L.headerHeight, GAME_W, 1);
+    rect(0, GAME_H - L.footerHeight, GAME_W, 1);
     // a line between the left and the right
-    rect(L.right - 10, L.headerHeight + 8, 1, this.h - L.headerHeight - L.footerHeight - 16);
+    rect(L.right - 10, L.headerHeight + 8, 1, GAME_H - L.headerHeight - L.footerHeight - 16);
 
     fill(C.text);
     setText(14, BOLD, LEFT, CENTER);
@@ -1631,7 +1620,7 @@ class SoundEditorPanel extends UIElement {
     if (draft.wave === 'file') {
       fill(SOUND_COLOURS.edge);
       setText(11, BOLD, RIGHT, TOP);
-      text(draft.file ? `${draft.file}${SOUND_FILES[draft.file] ? '' : ' (not loaded)'}` : 'no file chosen', this.w - 16 - 118, L.wavesTop - 16);
+      text(draft.file ? `${draft.file}${SOUND_FILES[draft.file] ? '' : ' (not loaded)'}` : 'no file chosen', GAME_W - 16 - 118, L.wavesTop - 16);
     }
     // the open tab's help, and the Say box's label
     const tab = L.tabs.find((t) => t.name === editor.tab);
@@ -1672,7 +1661,7 @@ class SoundEditorPanel extends UIElement {
       line = problem;
     }
     // in a box, so a long tip wraps onto a second line
-    text(line, 16, this.h - L.footerHeight, this.w - 32, L.footerHeight);
+    text(line, 16, GAME_H - L.footerHeight, GAME_W - 32, L.footerHeight);
   }
 }
 

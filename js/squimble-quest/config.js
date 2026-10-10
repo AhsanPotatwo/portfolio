@@ -1,37 +1,15 @@
 // all the numbers you might want to tweak, kept in one place
 
 // ---------- screen ----------
-// the game is laid out in game px, GAME_W x GAME_H (960 x 540 normally). that's separate from how
-// sharp it's drawn: the canvas always draws at the resolution it's shown at on the page (sketch.js's
-// fitResolution()), so it's the same game at 960 x 540 in the page and at 1920 x 1080 full screen, just
-// sharper. so the game maths never cares about the real screen size.
-// the shape and ui size aren't settled yet. 960 x 540 (16:9) is the main one, but I'm trying others to
-// see how much ui fits, so build everything to work at any GAME_W x GAME_H: place ui from GAME_W and
-// GAME_H (the edges or the middle), never from fixed numbers like x: 900. the "Screen size debug" under
-// the game tries them without changing this file
-const DESIGN_W = 960;
-const DESIGN_H = 540;
-// the page's address can ask for a screen (?screen=1280x720) and a ui scale (&ui=1.5). a plain regex on
-// globalThis.location because the node tests load this file too, with no page address or
-// URLSearchParams
-const SCREEN_PARAM = /[?&]screen=(\d{3,4})x(\d{3,4})(&|$)/.exec(globalThis.location?.search ?? '');
-const UI_PARAM = /[?&]ui=(\d*\.?\d+)(&|$)/.exec(globalThis.location?.search ?? '');
-// the screen being tried, in screen px. only its shape, and its width for the debug's "actual size"
-// (sketch.js), matter. the game is laid out in game px below
-const SCREEN_W = SCREEN_PARAM ? Number(SCREEN_PARAM[1]) : DESIGN_W;
-const SCREEN_H = SCREEN_PARAM ? Number(SCREEN_PARAM[2]) : DESIGN_H;
-// screen px per game px. normally the most that keeps the design size on screen, so 1920 x 1080 is
-// 960 x 540 doubled and looks the same. a smaller ui scale leaves more game px, so more room for ui
-const UI_ZOOM = UI_PARAM ? Math.max(0.5, Number(UI_PARAM[1])) : Math.min(SCREEN_W / DESIGN_W, SCREEN_H / DESIGN_H);
-const GAME_W = Math.round(SCREEN_W / UI_ZOOM);
-const GAME_H = Math.round(SCREEN_H / UI_ZOOM);
-// extra game px are for ui, not more world, so the camera's normal zoom (Camera, camera.js) scales the
-// world to show the same DESIGN_W x DESIGN_H of it. 1 unless the ui scale was changed. a different shape
-// (4:3, ultrawide) shows all of that plus a bit more one way
-const VIEW_ZOOM = Math.min(GAME_W / DESIGN_W, GAME_H / DESIGN_H);
+// the game is laid out and played at 960 x 540 game px (16:9). that's separate from how sharp it's
+// drawn: the canvas draws at the resolution it's shown at (fitResolution() in sketch.js), so it's the
+// same game in the page and full screen at 1920 x 1080, just sharper. the game maths never cares about
+// the real screen size
+const GAME_W = 960;
+const GAME_H = 540;
 
-// tile size in px. the design size fits 30 x about 17 tiles. the camera scrolls, so the half row
-// doesn't matter
+// tile size in px. 960 x 540 fits 30 x about 17 tiles. the camera scrolls, so the half row doesn't
+// matter
 const TILE = 32;
 
 // the most seconds one frame can count as. without this the player would jump forward after the tab
@@ -44,8 +22,7 @@ const CAMERA = {
   followSpeed: 8,
   // same thing but for zoom
   zoomSpeed: 10,
-  // compared to the normal zoom (VIEW_ZOOM): 1 is normal, 2 is twice as big, 0.5 is half size (so you
-  // see twice as much)
+  // 1 is normal, 2 is twice as big, 0.5 is half size (so you see twice as much)
   minZoom: 0.25,
   maxZoom: 3,
 };
@@ -225,7 +202,7 @@ const KEYS = {
   inventory: ['KeyE', 'KeyI'],
   // drop the held item (inventory.js)
   drop: ['KeyQ'],
-  // full screen on and off (toggleFullscreen() in sketch.js). Escape also leaves it (the browser does that)
+  // full screen on and off (toggleFullscreen() in sketch.js). holding Escape leaves it too
   fullscreen: ['KeyF'],
 
   // turns dev mode on and off (debug.js). ` is the key under Esc, and Ctrl + D is for keyboards that

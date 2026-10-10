@@ -8,14 +8,12 @@ class Camera {
   constructor(x = 0, y = 0) {
     this.x = x;
     this.y = y;
-    // VIEW_ZOOM (config.js) is the normal zoom, 1 at the design screen size. it's bigger on a bigger
-    // screen so the same amount of world shows and the extra room goes to the ui
-    this.zoom = VIEW_ZOOM;
+    this.zoom = 1;
 
     // eased towards every frame in update(). target can be anything with an x and y (the player, or a
     // point like { x: 100, y: 50 }), or null to stay where it is
     this.target = null;
-    this.targetZoom = VIEW_ZOOM;
+    this.targetZoom = 1;
 
     // copied from the config so they can be changed on the fly (like a slow pan for a cutscene)
     this.followSpeed = CAMERA.followSpeed;
@@ -66,14 +64,9 @@ class Camera {
     this.target = { x, y };
   }
 
-  // smoothly zoom, like camera.zoomTo(2 * VIEW_ZOOM) for twice as close as normal
+  // smoothly zoom, like camera.zoomTo(2)
   zoomTo(zoom) {
-    this.targetZoom = this.limitZoom(zoom);
-  }
-
-  // CAMERA's limits are compared to the normal zoom, so they're the same on any screen size
-  limitZoom(zoom) {
-    return constrain(zoom, CAMERA.minZoom * VIEW_ZOOM, CAMERA.maxZoom * VIEW_ZOOM);
+    this.targetZoom = constrain(zoom, CAMERA.minZoom, CAMERA.maxZoom);
   }
 
   // glide to a point and zoom over `duration` seconds, then stay there until release(). it eases in
@@ -82,7 +75,7 @@ class Camera {
   focusOn(x, y, zoom, duration) {
     // only saved the first time, so focusing again mid conversation still goes back to the player
     if (!this.beforeFocus) this.beforeFocus = { target: this.target, zoom: this.targetZoom };
-    this.startGlide({ x, y }, this.limitZoom(zoom), duration, false);
+    this.startGlide({ x, y }, constrain(zoom, CAMERA.minZoom, CAMERA.maxZoom), duration, false);
   }
 
   // glide back to the target and zoom from before focusOn() over `duration` seconds, then carry on

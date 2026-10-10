@@ -118,11 +118,18 @@ html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
 }
 
 /* ---------- game ---------- */
+/* the game is 960 x 540 game px (js/squimble-quest/config.js), shown as big as fits: up to 1920 x 1080
+   page px, never wider than the window, and no taller than the window either (190px leaves room for
+   the sticky site header, the frame's padding and the bar under the game) so all of it fits under the
+   header, unless that's less than the 960 it always used to be. sketch.js's
+   fitResolution() draws it at the resolution it's shown at, so it's sharp at any size */
 .sq-game-frame{
-  width:100%;
-  max-width:996px; /* 960 canvas + padding */
-  margin:0 auto;
-  padding:18px;
+  --sq-pad:18px;
+  --sq-game-w:min(1920px, calc(100vw - 2 * var(--gutter) - 2 * var(--sq-pad)), max(960px, calc((100vh - 190px) * 16 / 9)));
+  width:calc(var(--sq-game-w) + 2 * var(--sq-pad));
+  /* it can be wider than the page's container, so this centres it on the page instead */
+  margin:0 0 0 calc(50% - var(--sq-game-w) / 2 - var(--sq-pad));
+  padding:var(--sq-pad);
   border-radius:26px;
   background:linear-gradient(160deg, rgba(63,143,82,.35), rgba(27,42,31,.2));
   box-shadow:0 0 0 1px rgba(123,216,143,.2), 0 25px 60px rgba(0,0,0,.45);
@@ -135,38 +142,29 @@ html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
 }
 /* while playing, the game draws its own crosshair (ui.js) in place of the cursor */
 .sq-game-stage canvas:focus{ outline:none; cursor:none; }
-/* the game's shape. sketch.js sets --sq-aspect on the frame (16:9 normally, config.js) */
 .sq-game-stage{
-  aspect-ratio:var(--sq-aspect, 16/9);
+  aspect-ratio:16/9;
   border-radius:14px;
   overflow:hidden;
   background:var(--sq-moss);
 }
-/* p5 puts a fixed px size on the canvas inline, this sizes it to the frame instead. sketch.js's
-   fitResolution() then draws it at the resolution it's shown at, so it's sharp at any size */
+/* p5 puts a fixed px size on the canvas inline, this sizes it to the frame instead */
 .sq-game-stage canvas{
   display:block;
   width:100% !important;
   height:100% !important;
   image-rendering:pixelated;
 }
-/* full screen (F, or the button under the game, sketch.js): the frame fills the screen and the game
-   sits in the middle at its own shape, with black bars if the screen's another shape */
-.sq-game-frame:fullscreen{
-  display:flex; align-items:center; justify-content:center;
-  padding:0;
-  border-radius:0;
-  background:#000;
-  box-shadow:none;
-}
-.sq-game-frame:fullscreen .sq-game-stage{
-  width:min(100vw, calc(100vh * var(--sq-aspect, 16/9)));
-  border-radius:0;
+
+/* the bar under the game, with the full screen button on the right like a video player */
+.sq-game-bar{
+  display:flex;
+  justify-content:flex-end;
+  margin-top:12px;
 }
 .sq-fullscreen-btn{
-  display:block;
-  margin:16px auto 0;
-  padding:8px 18px;
+  display:inline-flex; align-items:center; gap:8px;
+  padding:6px 14px;
   border-radius:999px;
   border:1px solid rgba(123,216,143,.45);
   background:rgba(123,216,143,.1);
@@ -175,62 +173,44 @@ html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
   font-size:15px;
   font-weight:600;
   cursor:pointer;
+  transition:background .15s ease;
 }
-.sq-fullscreen-btn:hover{ background:rgba(123,216,143,.2); }
+.sq-fullscreen-btn:hover{ background:rgba(123,216,143,.22); }
+.sq-fullscreen-btn:focus-visible{ outline:2px solid var(--sq-green); outline-offset:2px; }
+.sq-fullscreen-btn svg{
+  width:18px; height:18px;
+  fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round;
+}
 .sq-fullscreen-btn kbd{
-  margin-left:6px;
-  padding:1px 7px;
+  padding:0 7px;
   border-radius:6px;
   border:1px solid rgba(123,216,143,.45);
   font-family:'Courier Prime', monospace;
   font-size:13px;
 }
+
+/* full screen (F, or the button, toggleFullscreen() in sketch.js): the frame fills the screen and the
+   game sits in the middle, with black bars if the monitor isn't 16:9. the browser makes the frame fill
+   the screen itself, whatever its width and margin say */
+.sq-game-frame:fullscreen{
+  display:flex; align-items:center; justify-content:center;
+  padding:0;
+  border-radius:0;
+  background:#000;
+  box-shadow:none;
+}
+.sq-game-frame:fullscreen .sq-game-stage{
+  width:min(100vw, calc(100vh * 16 / 9));
+  border-radius:0;
+}
+.sq-game-frame:fullscreen .sq-game-bar{ display:none; }
+
 .sq-note{
   margin:20px auto 0;
   max-width:560px;
   color:var(--muted);
   font-size:15px;
 }
-
-/* screen size debug, a developer tool under the game (squimble-quest.html) */
-.sq-dev-screen{
-  max-width:960px;
-  margin:20px auto 0;
-  text-align:left;
-  color:var(--muted);
-  font-size:14px;
-}
-.sq-dev-screen summary{
-  display:inline-flex; align-items:center; gap:10px;
-  padding:8px 16px;
-  border-radius:999px;
-  border:1px dashed rgba(123,216,143,.45);
-  color:var(--sq-green);
-  font-weight:600;
-  cursor:pointer;
-}
-.sq-dev-tag{
-  padding:2px 8px;
-  border-radius:999px;
-  background:rgba(224,80,80,.15);
-  color:#f08a8a;
-  font-size:12px;
-}
-.sq-dev-warning{ color:#f08a8a; margin:14px 0 6px; }
-.sq-dev-hint{ margin:0 0 12px; }
-.sq-dev-sizes{ width:100%; border-collapse:collapse; }
-.sq-dev-sizes th, .sq-dev-sizes td{
-  padding:6px 10px;
-  border-bottom:1px solid rgba(123,216,143,.15);
-  text-align:left;
-}
-.sq-dev-sizes th{ color:var(--sq-green); font-size:13px; }
-.sq-dev-sizes td:first-child{ white-space:nowrap; font-family:'Courier Prime', monospace; }
-.sq-dev-sizes tr.is-main td{ color:var(--sq-green); }
-.sq-dev-sizes a{ color:var(--sq-green); white-space:nowrap; }
-.sq-dev-custom{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:14px; }
-.sq-dev-custom input[name="screen"], .sq-dev-custom input[name="ui"]{ width:110px; padding:4px 8px; font:inherit; }
-.sq-dev-custom button{ padding:4px 14px; font:inherit; cursor:pointer; }
 
 /* message for phones/tablets, hidden everywhere else */
 .sq-mobile-note{
@@ -254,13 +234,13 @@ html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
 }
 
 @media (max-width:600px){
-  .sq-game-frame{ padding:6px; border-radius:14px; }
+  .sq-game-frame{ --sq-pad:6px; border-radius:14px; }
   .sq-game-stage{ border-radius:10px; }
 }
 
 /* touch screen with no mouse = phone or tablet. goes by input type rather than width
    so a small desktop window still gets the game. keep in sync with setup() in sketch.js */
 @media (hover:none) and (pointer:coarse){
-  .sq-game-frame, .sq-note, .sq-dev-screen, .sq-fullscreen-btn{ display:none; }
+  .sq-game-frame, .sq-note{ display:none; }
   .sq-mobile-note{ display:block; }
 }

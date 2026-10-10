@@ -22,9 +22,8 @@ const Input = {
   typed: [],
 
   // ---------- mouse ----------
-  // screen position in ui pixels (0 to GAME_W, GAME_H, unless UI.scale isn't 1, ui.js), whatever size
-  // the canvas is on the page. aimPoint() is it in game pixels, which the camera turns into a world
-  // position. x/y are null until the mouse moves over the page. inside means
+  // screen position in game pixels (0 to GAME_W, GAME_H), whatever size the canvas is on the page. the
+  // camera turns it into a world position. x/y are null until the mouse moves over the page. inside means
   // it's over the game
   mouse: { x: null, y: null, inside: false },
   // held buttons by name, 'left'/'right' (MOUSE_BUTTONS in config.js)
@@ -176,11 +175,10 @@ const Input = {
     // page pixels to game pixels, using the canvas's size on the page. done every frame because
     // scrolling the page moves the canvas
     const rect = this._el.getBoundingClientRect();
-    // then ui pixels, which are game pixels unless the ui's drawn smaller (UI.scale, ui.js)
-    this.mouse.x = (this._clientX - rect.left) * (GAME_W / rect.width) / UI.scale;
-    this.mouse.y = (this._clientY - rect.top) * (GAME_H / rect.height) / UI.scale;
-    this.mouse.inside = this.mouse.x >= 0 && this.mouse.x < GAME_W / UI.scale &&
-                        this.mouse.y >= 0 && this.mouse.y < GAME_H / UI.scale;
+    this.mouse.x = (this._clientX - rect.left) * (GAME_W / rect.width);
+    this.mouse.y = (this._clientY - rect.top) * (GAME_H / rect.height);
+    this.mouse.inside = this.mouse.x >= 0 && this.mouse.x < GAME_W &&
+                        this.mouse.y >= 0 && this.mouse.y < GAME_H;
   },
 
   // ---------- keyboard ----------
@@ -232,6 +230,6 @@ const Input = {
   // game isn't focused or the mouse hasn't been seen yet
   aimPoint() {
     if (!this.focused || this.mouse.x === null) return null;
-    return { x: this.mouse.x * UI.scale, y: this.mouse.y * UI.scale };
+    return { x: this.mouse.x, y: this.mouse.y };
   },
 };

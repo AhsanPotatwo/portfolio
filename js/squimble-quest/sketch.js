@@ -66,17 +66,23 @@ function preload() {
 function setup() {
   const canvas = createCanvas(GAME_W, GAME_H);
   canvas.parent('sqCanvas');
-  // the game's shape (config.js) for the page's css, which keeps it in the frame and in full screen. the
-  // screen size debug's "actual size" (?actual on the address) makes the frame SCREEN_W page px wide
-  // (plus its 18px padding each side), so the ui is the size it'd really be on that screen
-  const frame = canvas.elt.closest('.sq-game-frame');
-  frame.style.setProperty('--sq-aspect', GAME_W / GAME_H);
-  if (/[?&]actual(=|&|$)/.test(location.search)) frame.style.maxWidth = `${SCREEN_W + 36}px`;
   // draws at the resolution it's shown at, now and whenever that changes (full screen, resizing the
   // window, browser zoom)
   new ResizeObserver(fitResolution).observe(canvas.elt.parentElement);
-  // the full screen button under the game (squimble-quest.html). F does it too (draw())
+  // the full screen button in the bar under the game (squimble-quest.html). F does it too (draw())
   document.getElementById('sqFullscreen')?.addEventListener('click', toggleFullscreen);
+  // the "full screen" message (toggleFullscreen()) is out of date once it's left, however it was left
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) hudMessage = null; // hud.js
+  });
+  // the page sizes the game to fit the window (squimble-quest.css), so clicking to play brings all of
+  // it into view if it's partly scrolled off. centred below the sticky header (the page's
+  // scroll-padding-top, styles.css)
+  const frame = canvas.elt.closest('.sq-game-frame');
+  canvas.elt.addEventListener('pointerdown', () => {
+    const edges = frame.getBoundingClientRect();
+    if (!Input.focused && (edges.top < 0 || edges.bottom > window.innerHeight)) frame.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
   // keeps pixel art sharp when it's scaled up. p5 keeps it when fitResolution() changes the resolution
   noSmooth();
 
@@ -133,8 +139,8 @@ function setup() {
 // makes the canvas draw at the resolution it's shown at: its width on the page times the screen's own
 // pixels per page px (devicePixelRatio, 2 on most high res screens). the game is still GAME_W x GAME_H
 // game px (config.js), so only how sharp it is changes: 960 x 540 full screen on a 1080p monitor draws
-// 1920 x 1080 real pixels. at the page's normal 960 px wide it's the same as before this existed. capped
-// at 4 (3840 x 2160) so a huge screen doesn't slow it down
+// 1920 x 1080 real pixels, and the page shows it as big as the window allows (squimble-quest.css).
+// capped at 4 (3840 x 2160) so a huge screen doesn't slow it down
 function fitResolution() {
   const shown = drawingContext.canvas.getBoundingClientRect().width;
   // 0 while it's hidden (phones get a message instead)
@@ -144,17 +150,26 @@ function fitResolution() {
 }
 
 // full screen on and off, for the frame round the game, which then fills the screen with the game in
-// the middle at its own shape (squimble-quest.css). the browser only allows it just after a click or key
-// press, which the button under the game and F always are
+// the middle, black bars if the monitor isn't 16:9 (squimble-quest.css). the browser only allows it
+// just after a click or key press, which the button under the game and F always are.
+// Escape normally leaves full screen straight away, but the editor's boxes use it too (formbox.js,
+// soundeditor.js, warpgraph.js), so in browsers that can (Chrome, Edge) the keyboard lock keeps a tap of
+// Escape for the game and holding it leaves (the browser says so at the top). others leave on a tap
 function toggleFullscreen() {
+  const canvas = drawingContext.canvas;
+  // the button took the keyboard, so give it back to the game. this also starts the game if it was
+  // waiting for a click
+  canvas.focus();
   if (document.fullscreenElement) {
     document.exitFullscreen();
-  } else {
-    drawingContext.canvas.closest('.sq-game-frame').requestFullscreen()
-      .catch(() => showMessage("The browser didn't allow full screen")); // hud.js
+    return;
   }
-  // the button took the keyboard, so give it back to the game
-  drawingContext.canvas.focus();
+  canvas.closest('.sq-game-frame').requestFullscreen()
+    .then(() => {
+      navigator.keyboard?.lock(['Escape']).catch(() => {});
+      showMessage(`Full screen. Press ${keyName(KEYS.fullscreen[0])} or ${navigator.keyboard ? 'hold' : 'press'} Esc to leave`); // hud.js
+    })
+    .catch(() => showMessage("The browser didn't allow full screen"));
 }
 
 // goes to map `name` (MAPS, maps.js), arriving on warp `warpName` (warps.js), or on the map's spawn
@@ -372,8 +387,6 @@ function draw() {
   if (Editor.active) drawingContext.globalAlpha = Editor.uiAlpha;
   Debug.draw(player, gameCamera, worldMap, aim);
   if (!Editor.active && !Dialogue.active && !InventoryScreen.active) Hotbar.drawLabel();
-  // drawn smaller while the sound editor needs a bigger screen than this one (UI.scale, ui.js)
-  scale(UI.scale);
   // dev mode can outline every ui element (debug.js)
   UI.draw(Debug.shows('hitboxes'));
   InventoryScreen.drawDragged();
@@ -381,11 +394,7 @@ function draw() {
   drawMessage();
   if (worldMap.name === FALLBACK_MAP) drawNoMapsMessage();
   if (Input.focused) {
-    // Input.mouse is in ui pixels
-    push();
-    scale(UI.scale);
     drawCrosshair(Input.mouse, Input.mouseHeld('left'), UI.hovered !== null);
-    pop();
   } else {
     drawClickToPlay();
   }
