@@ -1,0 +1,9 @@
+{
+  "wave": "string",
+  "pitch": 220,
+  "attack": 0,
+  "sustain": 20,
+  "decay": 220,
+  "range": 12,
+  "doppler": 0
+}

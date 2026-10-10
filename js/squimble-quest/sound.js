@@ -237,11 +237,10 @@
 //
 // ---------- ideas for later ----------
 //
-//   - sounds for things that happen: sword swings and hits (weapons.js), footsteps (a stepSound
-//     setting on tiles, played from walk() in character.js), doors (a sound on warps), enemies
-//     getting hurt or dying, ui clicks. all of them are just playSound() calls
-//   - a little random pitch on each play so repeated sounds (footsteps) don't all sound the same.
-//     it'd go through randomBetween() (utils.js) like all game randomness
+//   - sounds for more things that happen (fights already have theirs, COMBAT.sounds in config.js and
+//     combatSound() in weapons.js): footsteps (a stepSound setting on tiles, played from walk() in
+//     character.js), doors (a sound on warps), ui clicks. all of them are just playSound() calls.
+//     combatSound() shows how to give repeats a little random pitch (the voice's playbackRate)
 //   - an npc's voice could come from where they stand (and bend as they walk), with a place like a
 //     character sound's
 //   - sounds take time to arrive: something far away could be heard a little after it happens

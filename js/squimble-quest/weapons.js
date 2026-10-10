@@ -76,7 +76,8 @@
 //                         (hitTargets()), and JAB for its point's width and how fast it goes out
 //   Arrow                arrowSpeed, reach (how far it flies, dropping at the end)
 //   hitWith()             everything that happens to what's hit: knockback (times its knockbackTaken),
-//                         stagger (times its staggerTaken), hit stop, screen shake, then damage
+//                         stagger (times its staggerTaken), hit stop, damage, screen shake, and the
+//                         squash, damage number and sound (COMBAT in config.js has their settings)
 //   drawing               MeleeSwing.draw() (bolder the more knockback), drawChargeLine()
 //
 // ====================================================================================
@@ -187,7 +188,9 @@ function drawChargeLine(owner, weapon, seconds) {
 // was hit (angle, radians), knockback the same way, stagger, the hit stop on the target, and the
 // screen shake if either side has a camera (only this computer's player does, Character.camera, so
 // it's multiplayer-safe). weapon is the hit's settings (comboHit()). the damage goes last, so a player
-// it kills respawns without the knockback (Player.placeAt())
+// it kills respawns without the knockback (Player.placeAt()). then the bits that are just for show:
+// the squash, the target's hitInvincible blink (PLAYER in config.js), a damage number, the sound, and a
+// bigger shake for a kill
 function hitWith(attacker, target, weapon, angle) {
   target.burstParticles(target.hitParticles, angle); // particles.js
   // an enemy can take more or less of these (knockbackTaken and staggerTaken, enemies.js). the dummy
@@ -195,9 +198,91 @@ function hitWith(attacker, target, weapon, angle) {
   target.pushTowards(angle, weapon.knockback * (target.settings.knockbackTaken ?? 1), true);
   target.stagger = Math.max(target.stagger, weapon.stagger * (target.settings.staggerTaken ?? 1));
   target.freeze(weapon.hitStop);
-  (attacker.camera ?? target.camera)?.shake(weapon.shake, weapon.shakeTime);
+  // before the damage, which can respawn the player somewhere else
+  if (!target.inPreview) DamageNumbers.add(target, weapon.damage, Boolean(target.camera));
   target.hurt(weapon.damage);
+  target.squash = COMBAT.squashTime;
+  target.invincible = target.settings.hitInvincible ?? 0;
+  // the dummy refills instead of dying (ENEMY_DEATHS in enemies.js), so it's never a kill
+  const kill = target.dead;
+  (attacker.camera ?? target.camera)?.shake(weapon.shake + (kill ? COMBAT.killShake : 0), weapon.shakeTime);
+  combatSound(target, kill ? 'kill' : 'hit', heaviness(weapon));
+  if (target.camera) combatSound(target, 'hurt');
 }
+
+// how deep a hit sounds, 1 normally and lower the more knockback it has, so a combo's big last hit
+// thuds. for combatSound()
+function heaviness(weapon) {
+  return 1.1 - Math.min(weapon.knockback / 1000, 0.4);
+}
+
+// plays one of COMBAT.sounds (config.js) from where `who` is, at `rate` times its speed (lower is
+// deeper), give or take COMBAT.soundWobble. the weapon editor's preview characters stay quiet, since
+// they'd play on the map
+function combatSound(who, sound, rate = 1) {
+  if (who.inPreview) return;
+  // worldMap is the game's (sketch.js)
+  const voice = playSound(COMBAT.sounds[sound], { x: who.x, y: who.y, map: worldMap }); // sound.js
+  if (voice) voice.source.playbackRate.value = rate * randomBetween(1 - COMBAT.soundWobble, 1 + COMBAT.soundWobble);
+}
+
+// ---------- damage numbers ----------
+
+// how each hit's damage pops up from what it hit (DamageNumbers). in px, px/s and seconds: it jumps up
+// at rise, falls back with gravity and fades out over time. size is how big a number is, up to bigSize
+// for a hit of big or more damage. the player's are in playerColour, so you can tell they're yours
+const DAMAGE_NUMBER = { time: 0.75, rise: 150, gravity: 380, spread: 40, size: 12, bigSize: 22, big: 30, colour: '#ffffff', playerColour: '#ff6b6b', outline: '#1a1a1a' };
+
+// the damage numbers flying, for everyone's hits. hitWith() adds them, sketch.js moves and draws them
+// on top of everything and forgets them on changing map
+const DamageNumbers = {
+  // each { x, y, vx, vy, age, text, size, colour }, x and y in world px
+  list: [],
+
+  // amount is the hit's damage, mine is whether it hit this computer's player
+  add(target, amount, mine) {
+    const shown = Math.round(amount);
+    if (shown <= 0) return;
+    const size = DAMAGE_NUMBER.size + (DAMAGE_NUMBER.bigSize - DAMAGE_NUMBER.size) * Math.min(1, shown / DAMAGE_NUMBER.big);
+    this.list.push({
+      x: target.x, y: target.y - target.h / 2,
+      vx: randomBetween(-DAMAGE_NUMBER.spread, DAMAGE_NUMBER.spread), vy: -DAMAGE_NUMBER.rise,
+      age: 0, text: String(shown), size, colour: mine ? DAMAGE_NUMBER.playerColour : DAMAGE_NUMBER.colour,
+    });
+  },
+
+  update(dt) {
+    for (const n of this.list) {
+      n.age += dt;
+      n.vy += DAMAGE_NUMBER.gravity * dt;
+      n.x += n.vx * dt;
+      n.y += n.vy * dt;
+    }
+    this.list = this.list.filter((n) => n.age < DAMAGE_NUMBER.time);
+  },
+
+  // world positions (inside camera.begin/end). each pops in bigger, then shrinks back and fades
+  draw() {
+    for (const n of this.list) {
+      const t = n.age / DAMAGE_NUMBER.time;
+      const pop = 1 + 0.5 * Math.max(0, 1 - t * 8);
+      const alpha = 255 * Math.min(1, 3 * (1 - t));
+      setText(n.size * pop); // utils.js
+      const outline = color(DAMAGE_NUMBER.outline);
+      const c = color(n.colour);
+      outline.setAlpha(alpha);
+      c.setAlpha(alpha);
+      stroke(outline);
+      strokeWeight(3);
+      fill(c);
+      text(n.text, n.x, n.y);
+    }
+  },
+
+  clear() {
+    this.list = [];
+  },
+};
 
 // ---------- a melee swing ----------
 
@@ -231,8 +316,11 @@ class MeleeSwing {
     const before = this.time;
     this.time += dt;
     if (this.windingUp) return;
-    // the lunge goes with the sweep, not the windup
-    if (before <= 0) this.owner.pushTowards(this.angle, this.weapon.lunge);
+    // the lunge and the whoosh go with the sweep, not the windup
+    if (before <= 0) {
+      this.owner.pushTowards(this.angle, this.weapon.lunge);
+      combatSound(this.owner, 'swing', heaviness(this.weapon));
+    }
     this.hitTargets(targets);
   }
 
@@ -246,11 +334,12 @@ class MeleeSwing {
   }
 
   // hits one target, knocking it towards angle (radians). the swinger stops for the hit too, which is
-  // what makes it feel like it connected, and bounces back off the first thing it hits
+  // what makes it feel like it connected (longer for a kill, COMBAT.killHitStop), and bounces back off
+  // the first thing it hits
   strike(target, angle) {
     this.hit.add(target);
     hitWith(this.owner, target, this.weapon, angle);
-    this.owner.freeze(this.weapon.hitStop);
+    this.owner.freeze(target.dead ? Math.max(this.weapon.hitStop, COMBAT.killHitStop) : this.weapon.hitStop);
     if (this.hit.size === 1) this.owner.pushTowards(angle + Math.PI, this.weapon.recoil, true);
   }
 

@@ -123,6 +123,14 @@ class Character {
     // stagger: seconds it can't walk or attack
     this.frozen = 0;
     this.stagger = 0;
+    // seconds it can't be hit again after a hit, blinking (its hitInvincible), and seconds it's drawn
+    // squashed (COMBAT.squashTime)
+    this.invincible = 0;
+    this.squash = 0;
+    // where the light trail of lost health on its health bar has drained down to (drawHealthBar())
+    this.trailHealth = this.maxHealth;
+    // set on the weapon editor's preview characters, which don't make sounds or damage numbers
+    this.inPreview = false;
     // the camera (camera.js) that shakes when it hits something or gets hit, or null. only this
     // computer's player has one (sketch.js), and the weapon editor's preview has its own
     this.camera = null;
@@ -179,7 +187,10 @@ class Character {
     }
 
     this.checkTile(world.map, dt);
-    for (const timer of ['hurtTimer', 'attackCooldown', 'attackBuffer', 'comboLeft', 'stagger', 'rollCooldown', 'rollBuffer']) {
+    // the trail waits for the hurt flash, then drains down. healing tops it straight up
+    if (this.hurtTimer === 0) this.trailHealth = Math.max(this.health, this.trailHealth - this.maxHealth * COMBAT.healthDrain * dt);
+    this.trailHealth = Math.max(this.trailHealth, this.health);
+    for (const timer of ['hurtTimer', 'attackCooldown', 'attackBuffer', 'comboLeft', 'stagger', 'rollCooldown', 'rollBuffer', 'invincible', 'squash']) {
       this[timer] = Math.max(0, this[timer] - dt);
     }
   }
@@ -306,10 +317,11 @@ class Character {
     if (this.roll.time >= ROLL.time) this.roll = null;
   }
 
-  // can attacks hit it? not once it's dead, or in the invincible start of a roll (ROLL.invincible).
-  // swings and arrows check this (weapons.js), so a swing it rolls through can still catch it after
+  // can attacks hit it? not once it's dead, in the invincible start of a roll (ROLL.invincible), or
+  // just after a hit (its hitInvincible). swings and arrows check this (weapons.js), so a swing it rolls
+  // through can still catch it after
   hittable() {
-    return !this.dead && !(this.roll && this.roll.time < ROLL.invincible);
+    return !this.dead && this.invincible === 0 && !(this.roll && this.roll.time < ROLL.invincible);
   }
 
   // cuts down amount (movement along 'x' or 'y') so the feet stop right up against any living
@@ -421,6 +433,8 @@ class Character {
     this.attackBuffer = 0;
     if (hit.attack === 'shoot') {
       this.pushTowards(this.aimAngle, hit.lunge);
+      // a weaker shot twangs higher (weapons.js)
+      combatSound(this, 'shoot', 1.3 - 0.3 * power);
       world.arrows.push(new Arrow(this, hit, this.aimAngle));
       return;
     }
@@ -507,13 +521,14 @@ class Character {
   draw() {
     this.drawBody();
     // health bar once it's been hurt
-    if (this.health < this.maxHealth) this.drawHealthBar();
+    if (this.trailHealth < this.maxHealth) this.drawHealthBar();
     if (this.swing) this.swing.draw();
     // how far the shot it's drawing would fly (weapons.js)
     if (this.charge !== null) drawChargeLine(this, this.chargeWeapon, this.charge);
   }
 
-  // the health bar over its head, in healthBarColour
+  // the health bar over its head, in healthBarColour, with the health it just lost as a light trail
+  // that drains away (trailHealth)
   drawHealthBar() {
     const w = this.w + 8;
     const x = Math.round(this.x - w / 2);
@@ -521,6 +536,8 @@ class Character {
     noStroke();
     fill(0, 0, 0, 160);
     rect(x - 1, y - 1, w + 2, 7, 2);
+    fill(255, 255, 255, 200);
+    rect(x, y, w * (this.trailHealth / this.maxHealth), 5, 2);
     fill(this.settings.healthBarColour);
     rect(x, y, w * (this.health / this.maxHealth), 5, 2);
   }
@@ -530,9 +547,18 @@ class Character {
   // ponytail: the rectangle is its hitbox (bodyBox()), so you see exactly what attacks hit, squashed
   // while rolling. nothing in the game reads what's drawn, so a sprite can go here at its own size,
   // with the box moved behind a dev mode overlay (DEV_OVERLAYS, debug.js)
+  //
+  // just hit, it's squashed wide and short on its feet (COMBAT.squash), and while it can't be hit
+  // again (invincible) it blinks see-through
   drawBody() {
     const body = this.bodyBox();
-    drawCharacter(this.settings, this.x, body.y + body.h / 2, { w: body.w, h: body.h, facing: this.facing, hurt: this.hurtTimer > 0, worn: this.worn(), held: this.heldItem() });
+    const squash = COMBAT.squash * (this.squash / COMBAT.squashTime);
+    const w = body.w * (1 + squash);
+    const h = body.h * (1 - squash);
+    push();
+    if (this.invincible > 0 && Math.floor(this.invincible * 12) % 2 === 0) drawingContext.globalAlpha *= 0.35;
+    drawCharacter(this.settings, this.x, body.y + body.h - h / 2, { w, h, facing: this.facing, hurt: this.hurtTimer > 0, worn: this.worn(), held: this.heldItem() });
+    pop();
   }
 }
 

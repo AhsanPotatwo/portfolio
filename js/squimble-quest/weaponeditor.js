@@ -239,8 +239,8 @@ class WeaponPreview extends UIElement {
     this.weapon = options.weapon;
     // only its shake is used (Camera.shake())
     this.camera = new Camera();
-    // no particles, since they'd burst onto the map
-    const character = (settings) => Object.assign(new Character(0, 0, settings), { camera: this.camera, hitParticles: null });
+    // no particles, sounds or damage numbers, since they'd go onto the map
+    const character = (settings) => Object.assign(new Character(0, 0, settings), { camera: this.camera, hitParticles: null, inPreview: true });
     this.attacker = character(options.attacker);
     this.target = character(options.target);
     this.attacker.currentWeapon = () => this.weapon;
@@ -258,6 +258,7 @@ class WeaponPreview extends UIElement {
       Object.assign(c, {
         y: 0, health: c.maxHealth, pushVelocity: { x: 0, y: 0 }, pushLocked: false, stagger: 0, frozen: 0, swing: null,
         attackCooldown: 0, attackBuffer: 0, comboStep: 0, comboLeft: 0, backhand: false, charge: null, roll: null,
+        invincible: 0, squash: 0,
       });
     }
     this.attacker.x = 0;

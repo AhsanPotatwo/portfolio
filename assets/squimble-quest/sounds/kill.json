@@ -1,0 +1,14 @@
+{
+  "wave": "noise",
+  "pitch": 260,
+  "slide": -10,
+  "drop": 18,
+  "attack": 0,
+  "sustain": 40,
+  "punch": 80,
+  "decay": 320,
+  "crush": 30,
+  "volume": 100,
+  "range": 14,
+  "doppler": 0
+}

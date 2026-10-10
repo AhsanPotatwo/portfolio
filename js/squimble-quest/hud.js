@@ -28,6 +28,18 @@ function drawMessage() {
   text(shown, GAME_W / 2, 65);
 }
 
+// a red glow round the edges of the screen that fades fast after the player's hit, through the start of
+// their hitInvincible (config.js). the middle stays clear so you can still see the fight
+function drawHurtFlash(player) {
+  const left = player.invincible / (player.settings.hitInvincible || 1);
+  if (left <= 0) return;
+  const glow = drawingContext.createRadialGradient(GAME_W / 2, GAME_H / 2, GAME_H * 0.3, GAME_W / 2, GAME_H / 2, GAME_W * 0.6);
+  glow.addColorStop(0, 'rgba(200, 20, 20, 0)');
+  glow.addColorStop(1, `rgba(200, 20, 20, ${0.45 * left ** 3})`);
+  drawingContext.fillStyle = glow;
+  drawingContext.fillRect(0, 0, GAME_W, GAME_H);
+}
+
 // shown while the map files load at the start
 function drawLoading() {
   background(WORLD_COLOURS.outside); // world.js

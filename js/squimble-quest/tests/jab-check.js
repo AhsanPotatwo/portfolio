@@ -6,7 +6,7 @@ const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
 
-const game = { PUSH_DIRECTIONS: {}, SLIPPERY_GRIP: 10, console };
+const game = { PUSH_DIRECTIONS: {}, SLIPPERY_GRIP: 10, console, playSound: () => null, worldMap: null };
 vm.createContext(game);
 // const and class don't end up on game by themselves, so put the ones used here there
 vm.runInContext(['config.js', 'utils.js', 'weapons.js', 'character.js'].map((f) => fs.readFileSync(`${__dirname}/../${f}`, 'utf8')).join('\n')

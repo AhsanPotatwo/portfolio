@@ -40,6 +40,23 @@ const COMBAT = {
   // seconds an attack click is remembered, so clicking just before the weapon's ready (or during a
   // hit stop) still attacks as soon as it can. makes combos easy to keep going
   attackBuffer: 0.2,
+  // a killing blow: the swinger's hit stop is at least this many seconds, and the screen shakes this
+  // many px more, so finishing something off feels like it (hitWith(), MeleeSwing.strike())
+  killHitStop: 0.09,
+  killShake: 2,
+  // seconds something that's hit gets squashed wide and short for, and how much (0.25 is 25% wider).
+  // only how it's drawn, the hitbox stays the same (Character.drawBody())
+  squashTime: 0.14,
+  squash: 0.25,
+  // how much of a health bar the light trail of lost health drains a second, once the hurt flash is
+  // over (Character.drawHealthBar())
+  healthDrain: 0.6,
+  // the sounds (sound files' names, sounds/) for each part of a fight. change how they sound in the
+  // map editor's Sounds tab. they play from where it happens, a little higher or lower each time
+  // (soundWobble, 0.06 is up to 6% either way) so repeats don't sound the same, and heavier hits
+  // (more knockback) play deeper (combatSound() in weapons.js)
+  sounds: { swing: 'swing', shoot: 'twang', hit: 'thwack', kill: 'kill', hurt: 'hurt' },
+  soundWobble: 0.06,
 };
 
 // the dodge roll (Character.startRoll()), only while wearing an item with roll (the quick charm,
@@ -82,6 +99,9 @@ const PLAYER = {
   // quick flash when hurt
   hurtColour: '#e05050',
   hurtFlashTime: 0.15,
+  // seconds after a weapon hits them that nothing else can (they blink), so a crowd can't hit them
+  // over and over in one go. any character can have this, enemies don't by default (hitWith())
+  hitInvincible: 0.6,
   // health bar over their head, only shown once hurt
   healthBarColour: '#4ade80',
   // the particle effect that bursts out when an enemy's swing hits them (particles.js)

@@ -190,6 +190,7 @@ function loadMap(name, warpName = '') {
   // particles are just for show, so the last map's are forgotten (particles.js), and so are its arrows
   if (!sameMap) {
     Particles.clear();
+    DamageNumbers.clear(); // weapons.js
     arrows = [];
   }
 
@@ -344,6 +345,7 @@ function draw() {
   // full screen editors, where you can't see them
   if (!WarpGraph.active && !SoundEditor.active) ParticleEmitters.update(dt, worldMap, gameCamera.view());
   Particles.update(dt, worldMap);
+  DamageNumbers.update(dt);
   // sounds get quieter the further they are from the player's feet, and higher or lower as they and
   // the player move (the doppler effect, sound.js). this runs in the editor too, so finished sounds
   // (like the sound editor's previews) still get tidied up
@@ -369,6 +371,8 @@ function draw() {
     ];
     things.sort((a, b) => a.y - b.y);
     for (const thing of things) thing.draw();
+    // over everything, so they're never hidden behind someone (weapons.js)
+    DamageNumbers.draw();
     // dev mode: each enemy's ai and its route (pathfinding.js)
     if (Debug.shows('paths')) drawEnemyPlans(enemies, gameCamera);
     // sound blocks set to be seen (soundblocks.js). the editor draws every block its own way
@@ -379,6 +383,8 @@ function draw() {
     }
     if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
     gameCamera.end();
+    // red round the edges when the player's just been hit (hud.js)
+    if (!Editor.active) drawHurtFlash(player);
   }
 
   // the ui, in screen positions. the editor fades it out while you move (editor.js), and globalAlpha

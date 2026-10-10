@@ -1,0 +1,13 @@
+{
+  "pitch": 330,
+  "slide": -70,
+  "attack": 0,
+  "sustain": 50,
+  "punch": 40,
+  "decay": 140,
+  "pulseWidth": 30,
+  "lowPass": 70,
+  "volume": 45,
+  "range": 10,
+  "doppler": 0
+}
