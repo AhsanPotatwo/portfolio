@@ -371,33 +371,43 @@ class Jab extends MeleeSwing {
     } while (this.tip < out);
   }
 
-  // a see-through band from the owner's middle out to the point, as wide as the point hits (JAB.width),
-  // with a thin line down the middle, like a swing's swoosh and blade. while winding up it's just a
-  // short line brightening, like a swing's raised blade. world positions (inside camera.begin/end)
+  // drawn the same way as a swing's swoosh (MeleeSwing.draw()): a see-through band from the owner's
+  // middle out to the point, as wide as the point hits (JAB.width), with the blade along it from 0.3 of
+  // the way out to the point, both bolder for harder hits. while winding up it's the blade brightening,
+  // pulled back. world positions (inside camera.begin/end)
   //
   // ponytail: like the swing's swoosh, the band is the jab's real reach and width (what hitTargets()
   // checks), there to see its range until weapons have sprites. a spear sprite would be drawn along it
   // here, or on top with the band moved behind a dev mode overlay (DEV_OVERLAYS, debug.js)
   draw() {
     const { x, y } = this.owner;
-    const along = (px) => [x + Math.cos(this.angle) * px, y + Math.sin(this.angle) * px];
+    const cos = Math.cos(this.angle);
+    const sin = Math.sin(this.angle);
+    // a point px out along the jab and side px off to one side of it
+    const along = (px, side = 0) => [x + cos * px - sin * side, y + sin * px + cos * side];
+    const reach = this.weapon.reach;
     if (this.windingUp) {
+      // 0 to 1 through the windup, the same blade a swing raises, pulled back instead of round
       const raised = 1 + this.time / this.weapon.windup;
+      const back = reach * 0.3 * raised;
       const glint = color(this.weapon.colour);
       glint.setAlpha(60 + 195 * raised);
       stroke(glint);
-      strokeWeight(1 + raised);
-      line(x, y, ...along(this.weapon.reach * 0.25));
+      strokeWeight(3 + 2 * raised);
+      line(...along(reach * 0.3 - back), ...along(reach * 0.6 - back));
       return;
     }
+    // harder hits (more knockback) are bolder, like a swing
+    const heavy = Math.min(this.weapon.knockback / 500, 1.5);
     const band = color(this.weapon.colour);
-    band.setAlpha(90);
-    stroke(band);
-    strokeWeight(JAB.width);
-    line(x, y, ...along(this.tip));
+    band.setAlpha(50 + 50 * heavy);
+    noStroke();
+    fill(band);
+    const half = JAB.width / 2;
+    quad(...along(0, -half), ...along(this.tip, -half), ...along(this.tip, half), ...along(0, half));
     stroke(this.weapon.colour);
-    strokeWeight(1.5);
-    line(x, y, ...along(this.tip));
+    strokeWeight(2 + 2 * heavy);
+    line(...along(this.tip * 0.3), ...along(this.tip));
   }
 }
 
