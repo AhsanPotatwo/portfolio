@@ -4,5 +4,6 @@
   "maxHealth": 100,
   "colour": "#c9a36b",
   "outline": "#6b4f2a",
+  "knockbackTaken": 0,
   "onDeath": "refill"
 }

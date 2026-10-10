@@ -4,10 +4,14 @@
 class Enemy extends Character {
   // type: an ENEMY_TYPES name. col, row: its tile. ai: the ENEMY_AIS name its spawn picked
   // (enemies.js), or undefined to use its kind's own. follows: whether its spawn picked to follow you
-  // through warps, or undefined for its kind's followsThroughWarps
-  constructor(type, col, row, ai, follows) {
-    super(0, 0, ENEMY_TYPES[type]);
-    this.type = ENEMY_TYPES[type];
+  // through warps, or undefined for its kind's followsThroughWarps. stats: its spawn's own
+  // ENEMY_SPAWN_STATS (enemies.js) like { maxHealth: 120 }, or undefined
+  constructor(type, col, row, ai, follows, stats) {
+    // its kind with the spawn's stats laid over, so everything reading enemy.type (health, speed, senses)
+    // gets them. the weapon is the same object, so editing the kind's weapon still changes it
+    const settings = stats ? { ...ENEMY_TYPES[type], ...stats } : ENEMY_TYPES[type];
+    super(0, 0, settings);
+    this.type = settings;
     // the ai function this one uses (ENEMY_AIS), from its spawn's pick or its kind's. Character's think()
     // runs it
     this.ai = ENEMY_AIS[ai ?? this.type.ai] ?? null;

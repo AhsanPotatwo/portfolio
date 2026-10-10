@@ -738,13 +738,17 @@ const Editor = {
     });
   },
 
-  // an enemy spawn's settings, in three tabs with a picture of it down the side that turns to the mouse
+  // an enemy spawn's settings, in four tabs with a picture of it down the side that turns to the mouse
   // and holds and wears what's picked (CharacterPreview in inventory.js):
   //   Gear       what it holds (holdPicker(), saved as its holds), and what it wears in each
   //              EQUIPMENT_SLOTS slot (inventory.js), saved as its wears. only items worn there are
   //              listed. armour is only for show until it does something
-  //   Behaviour  its ai (ENEMY_AIS in enemies.js, '' means its kind's own) and whether it follows you
-  //              through warps ('' is its kind's followsThroughWarps, canFollow() in warps.js)
+  //   Stats      sliders for its health, speed, damage, attack rate, and knockback and stagger taken
+  //   Behaviour  its ai (ENEMY_AIS in enemies.js, '' means its kind's own), whether it follows you
+  //              through warps ('' is its kind's followsThroughWarps, canFollow() in warps.js), and
+  //              sliders for its senses and attack range
+  //              the sliders are its ENEMY_SPAWN_STATS (enemies.js), saved as its stats when they
+  //              differ from its kind's, which the bar marks. right click or Reset goes back to them
   //   Effects    the sound it carries around, and the particles it bursts when hit and when it dies
   //              (particles.js). the Edit buttons save this box and open the particle editor on the
   //              one picked
@@ -789,10 +793,26 @@ const Editor = {
     };
     const editButton = (label, picker, key) => ({ label: '', field: new Button({ w: 180, label, style: 'editor', onClick: () => editParticles(picker, key) }) });
     const anyArmour = Object.values(ITEM_TYPES).some((item) => item.wear);
+    // its own ENEMY_SPAWN_STATS (enemies.js), each starting on the spawn's or its kind's, with its
+    // kind's marked on the bar once it's moved (right click goes back to it)
+    const statSliders = Object.fromEntries(ENEMY_SPAWN_STATS.map((line) => [line.key, rowSlider(line, spawn.stats?.[line.key] ?? type[line.key], type[line.key])])); // formbox.js
+    const statRows = (tab) => [
+      ...ENEMY_SPAWN_STATS.filter((line) => line.tab === tab).map((line) => ({
+        label: line.label, field: statSliders[line.key], tip: `${line.tip}. A ${spawn.type}'s is ${type[line.key]}`,
+      })),
+      {
+        label: '',
+        field: new Button({
+          w: 180, label: `Reset to a ${spawn.type}'s`, style: 'editor',
+          onClick: () => ENEMY_SPAWN_STATS.filter((line) => line.tab === tab).forEach(({ key }) => { statSliders[key].value = type[key]; }),
+        }),
+        tip: `Puts every slider on this tab back to what a ${spawn.type} has in its file`,
+      },
+    ];
 
     FormBox.open({
       title: `Enemy: ${spawn.type}`,
-      hint: anyArmour ? 'Rest the mouse on a row to see what it does' : 'No armour yet: give an item a wear (items.js)',
+      hint: anyArmour ? 'Right click a slider to go back to its kind\'s' : 'No armour yet: give an item a wear (items.js)',
       confirmLabel: 'Save',
       tabs: [
         {
@@ -804,11 +824,13 @@ const Editor = {
             })),
           ],
         },
+        { label: 'Stats', rows: statRows('Stats') },
         {
           label: 'Behaviour',
           rows: [
             { label: 'AI', field: aiPicker, tip: 'smart, careful and reckless go round walls (and harm), direct goes straight at you' },
             { label: 'Warps', field: followsPicker, tip: 'Whether it follows you through warps that let enemies through' },
+            ...statRows('Behaviour'),
           ],
         },
         {
@@ -828,7 +850,11 @@ const Editor = {
           settings: type,
           worn: wearPickers.map(({ picker }) => ITEM_TYPES[picker.value]).filter(Boolean),
           held: held(),
-          caption: [`${type.maxHealth} health, ${type.speed} speed`, weaponSummary(weapon())], // weapons.js
+          // its weapon's damage after its Damage multiplier (wieldedHit() in weapons.js)
+          caption: [
+            `${statSliders.maxHealth.value} health, ${statSliders.speed.value} speed`,
+            weaponSummary(weapon() && wieldedHit(weapon(), { damageScale: statSliders.damageScale.value })),
+          ],
         }),
       })],
       // the fields are read straight from their variables, since the buttons' values (undefined) are
@@ -848,6 +874,11 @@ const Editor = {
         else spawn.hitParticles = hitPicker.value;
         if (deathPicker.value === '') delete spawn.deathParticles;
         else spawn.deathParticles = deathPicker.value;
+        // only the stats that aren't its kind's
+        const stats = {};
+        for (const { key } of ENEMY_SPAWN_STATS) if (statSliders[key].value !== type[key]) stats[key] = statSliders[key].value;
+        if (Object.keys(stats).length > 0) spawn.stats = stats;
+        else delete spawn.stats;
         // makes the characters again, so the one on the map picks all of these up
         this.setCharacterSound(spawn, soundPicker.value);
       },

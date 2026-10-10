@@ -62,6 +62,9 @@ function weaponForm(weapon, { attacker, target }) {
   // every hit's settings in full (comboHit() in weapons.js), and which one the sliders show
   const hits = Array.from({ length: weapon.combo?.length ?? 1 }, (_, i) => onlyHitSettings(comboHit(weapon, i)));
   let shown = 0;
+  // how each hit was when the box opened, which the sliders mark and right click goes back to (a hit
+  // added since copies the last one's)
+  const opened = hits.map((hit) => ({ ...hit }));
 
   const attackPicker = new Picker({ w: 180, choices: Object.keys(WEAPON_ATTACKS), value: weapon.attack, label: (attack) => WEAPON_ATTACKS[attack] });
   const comboPicker = new Picker({
@@ -70,11 +73,11 @@ function weaponForm(weapon, { attacker, target }) {
     value: hits.length,
     label: (n) => (n === 1 ? 'none (1 hit)' : `${n} hits`),
   });
-  const wideSliders = Object.fromEntries(WEAPON_WIDE_SETTINGS.map((line) => [line.key, weaponSlider(line, weapon[line.key])]));
+  const wideSliders = Object.fromEntries(WEAPON_WIDE_SETTINGS.map((line) => [line.key, rowSlider(line, weapon[line.key])]));
   const colourField = new ColourField({ w: 180, value: weapon.colour }); // textfield.js
   // the Hit and Feel tabs have one each, kept on the same hit
   const hitPickers = [0, 1].map(() => new Picker({ w: 180, choices: [...hits.keys()], value: 0, label: (i) => `${i + 1} of ${hits.length}` }));
-  const sliders = Object.fromEntries(HIT_SETTINGS.map((line) => [line.key, weaponSlider(line, hits[0][line.key])]));
+  const sliders = Object.fromEntries(HIT_SETTINGS.map((line) => [line.key, rowSlider(line, hits[0][line.key])]));
 
   const tabs = [
     {
@@ -104,7 +107,7 @@ function weaponForm(weapon, { attacker, target }) {
     const picked = hitPickers.find((picker) => picker.value !== shown)?.value ?? shown;
     if (picked !== shown || shown >= hits.length) {
       shown = Math.min(picked, hits.length - 1);
-      for (const { key } of HIT_SETTINGS) Object.assign(sliders[key], { value: hits[shown][key], normal: hits[shown][key] });
+      for (const { key } of HIT_SETTINGS) Object.assign(sliders[key], { value: hits[shown][key], normal: (opened[shown] ?? opened[opened.length - 1])[key] });
     }
     for (const picker of hitPickers) {
       if (picker.choices.length !== hits.length || picker.value !== shown) picker.setChoices([...hits.keys()], shown);
@@ -126,11 +129,6 @@ function weaponForm(weapon, { attacker, target }) {
       Object.assign(weapon, draft);
     },
   };
-}
-
-// a slider for a FormBox row (formbox.js), for a HIT_SETTINGS line or anything like one
-function weaponSlider(line, value) {
-  return new Slider({ w: 180, labelWidth: 0, label: '', min: line.min, max: line.max, step: line.step ?? 1, unit: line.unit, value });
 }
 
 // just the HIT_SETTINGS out of a weapon's settings

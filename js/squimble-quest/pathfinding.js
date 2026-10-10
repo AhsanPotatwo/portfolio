@@ -76,7 +76,8 @@
 //   crowd    crowdCosts(), further down
 // the hp is a tile's damagePerStep plus damagePerSecond * the seconds it takes to cross it
 // (stepCost()). a route that would kill it, or leave it with less than PATH_SAFETY of its health,
-// counts as a wall, even for reckless. that margin is there because the walk never goes exactly like
+// counts as a wall, even for reckless. so one already that low won't take any harm at all, but still
+// walks harmless tiles. that margin is there because the walk never goes exactly like
 // the plan. if there's no way at all (water in between, or the search ran out) it goes to the closest
 // free tile it found that isn't lava and waits there, labelled "(no way)". diagonal steps never cut
 // past a wall corner (the feet would catch on it), or past a tile that's worse to stand on than
@@ -117,8 +118,8 @@
 // ---------- tuning ----------
 //
 //   caution            ENEMY_AIS (enemies.js): how much each ai cares about getting hurt
-//   sightRange         set for each kind of enemy (ENEMY_DEFAULTS). ENEMY_HEARING, ENEMY_ALERT_RANGE
-//                      and ENEMY_MEMORY (enemies.js) are for the rest of its senses
+//   sightRange         set for each kind of enemy (ENEMY_DEFAULTS), with hearing, chaseRange, memory
+//                      and alertRange for the rest of its senses (each spawn can change them)
 //   PATH_REPLAN_TIME   lower reacts quicker to a player dodging about, but takes more time each frame
 //   PATH_CROWD         higher spreads them out more. too high and they take silly detours instead of
 //                      sharing a corridor
@@ -497,8 +498,10 @@ function planPath(map, enemy, startCol, startRow, goalCol, goalRow, caution, cro
       const step = stepCost(next, enemy, dx !== 0 && dy !== 0);
       if (!step) continue;
       const hp = damage.get(current) + step.damage;
-      // would kill it, or nearly (the walk never goes exactly like the plan)
-      if (hp >= enemy.health - PATH_SAFETY * enemy.maxHealth) continue;
+      // would kill it, or nearly (the walk never goes exactly like the plan). only a step that hurts
+      // can do that: below PATH_SAFETY of its health the margin is 0 or less, and checking harmless
+      // steps too made every tile a wall, so it stood still saying "(no way)"
+      if (step.damage > 0 && hp >= enemy.health - PATH_SAFETY * enemy.maxHealth) continue;
       const i = map.index(c, r);
       const total = cost.get(current) + step.time + step.damage * weight + (crowd.get(i) ?? 0);
       if (cost.has(i) && cost.get(i) <= total) continue;

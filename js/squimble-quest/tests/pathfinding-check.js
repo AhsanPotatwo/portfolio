@@ -81,6 +81,9 @@ const lethal = plan([
 ], 0, 30);
 assert(!lethal.reached && !lethal.tiles.includes('L'), "won't walk to its death");
 assert(plan(['#######', '#ELLLP#', '#######'], 0, 60).reached, 'crosses when it would survive');
+// below PATH_SAFETY of its health it still walks harmless tiles (it used to see every tile as a wall)
+assert(plan(['.......', '.E...P.', '.......'], 0.15, 3).reached, 'nearly dead still walks over floor');
+assert.strictEqual(plan(spikeOrDetour, 0, 3).damage, 0, 'nearly dead takes no harm at all');
 
 // no diagonal step past lava on the corner: going from (1,1) to (2,2) would brush (1,2)
 const corner = plan([

@@ -26,10 +26,22 @@
 //   ai                     how it behaves: an ENEMY_AIS name, like "smart" (see below). null just
 //                          stands still. each spawn can pick a different one (right click it in
 //                          the editor)
+//   damageScale            its weapon's damage is multiplied by this (Character.attack())
+//   attackSpeed            how much quicker it attacks again: its weapon's cooldown is divided by this
+//   knockbackTaken         how much of a hit's knockback it takes, 0 never moves (the dummy), 2 flies
+//                          twice as far (hitWith() in weapons.js)
+//   staggerTaken           the same for how long hits stagger it
 //   sightRange             how many px away it can see you from, if there's no wall in the way
 //                          (sensePlayer() below)
+//   hearing                how many px away it hears you from, even through walls
+//   chaseRange             once it's after you, how far away you have to be (and unseen for its
+//                          memory) before it gives up
+//   memory                 seconds you have to be out of sight and past chaseRange before it forgets you
+//   alertRange             allies within this many px get told when it spots you
 //   attackRange            how close it has to be to swing (or its weapon's reach, if that's further).
 //                          a bow shoots from further away by itself (canAttack() below)
+// each spawn can change any of the ENEMY_SPAWN_STATS ones (right click it in the editor, Stats and
+// Behaviour tabs), which Enemy (enemy.js) lays over its kind's
 //   sound                  a sound's name (SOUNDS, sounds/) it loops wherever it goes while you're
 //                          in range, like a buzzing wasp or a rumbling machine. it gets the doppler
 //                          effect as it moves (sound.js). each spawn can pick its own (right click it
@@ -75,7 +87,15 @@ const ENEMY_DEFAULTS = {
   healthBarColour: '#e05050',
   image: null,
   ai: null,
+  damageScale: 1,
+  attackSpeed: 1,
+  knockbackTaken: 1,
+  staggerTaken: 1,
   sightRange: 480,
+  hearing: 5 * TILE,
+  chaseRange: 480,
+  memory: 8,
+  alertRange: 8 * TILE,
   attackRange: 44,
   sound: null,
   followsThroughWarps: true,
@@ -87,6 +107,25 @@ const ENEMY_DEFAULTS = {
 
 // filled in from the enemy files (bottom of this file)
 const ENEMY_TYPES = {};
+
+// the settings each spawn can have its own of, saved in the map as its stats (only the ones that are
+// different from its kind's, mapfile.js), with their sliders in the editor's enemy box (editEnemy() in
+// editor.js): the tab, words, range and tip. a new one is a line here (and an ENEMY_DEFAULTS one, read
+// through enemy.type like the rest)
+const ENEMY_SPAWN_STATS = [
+  { key: 'maxHealth', tab: 'Stats', label: 'Health', min: 1, max: 1000, unit: 'hp', tip: 'How much damage it takes to beat it' },
+  { key: 'speed', tab: 'Stats', label: 'Speed', min: 0, max: 400, step: 5, unit: 'px/s', tip: "How fast it walks. The player's is 170" },
+  { key: 'damageScale', tab: 'Stats', label: 'Damage', min: 0, max: 5, step: 0.05, unit: '×', tip: "Its weapon's damage is multiplied by this" },
+  { key: 'attackSpeed', tab: 'Stats', label: 'Attack rate', min: 0.25, max: 4, step: 0.05, unit: '×', tip: 'How much quicker it attacks again after each attack' },
+  { key: 'knockbackTaken', tab: 'Stats', label: 'Knockback', min: 0, max: 3, step: 0.05, unit: '×', tip: 'How much knockback it takes. 0 never moves, 2 flies twice as far' },
+  { key: 'staggerTaken', tab: 'Stats', label: 'Stagger', min: 0, max: 3, step: 0.05, unit: '×', tip: "How long hits stop it walking and attacking. 0 can't be stopped" },
+  { key: 'sightRange', tab: 'Behaviour', label: 'Sight', min: 0, max: 1500, step: 10, unit: 'px', tip: "How far it sees you from when there's no wall in the way. A tile's 32" },
+  { key: 'hearing', tab: 'Behaviour', label: 'Hearing', min: 0, max: 600, step: 8, unit: 'px', tip: 'How far it hears you from, even through walls' },
+  { key: 'chaseRange', tab: 'Behaviour', label: 'Chase range', min: 0, max: 2000, step: 10, unit: 'px', tip: "Once it's after you, how far you have to get before it can give up" },
+  { key: 'memory', tab: 'Behaviour', label: 'Memory', min: 0, max: 30, step: 0.5, unit: 's', tip: 'How long you have to be out of sight and past its chase range before it forgets you' },
+  { key: 'alertRange', tab: 'Behaviour', label: 'Alerts', min: 0, max: 1000, step: 8, unit: 'px', tip: 'Allies this close get told when it spots you, even through walls' },
+  { key: 'attackRange', tab: 'Behaviour', label: 'Attack range', min: 0, max: 300, step: 2, unit: 'px', tip: "How close it gets before swinging, or its weapon's reach if that's further. Bows shoot from further" },
+];
 
 // defineType() is in utils.js. an ai or onDeath that doesn't exist just leaves it out, with a warning
 function defineEnemy(name, settings) {
@@ -115,15 +154,16 @@ function checkAi(ai, owner) {
 //   noticing  it goes for the nearest player (nearestPlayer(), so it works with more than one) that
 //             it can either see or hear. seeing means within sightRange with no wall in between
 //             (clearLine() in tilemap.js. seeThrough tiles like water don't block it, and objects
-//             never do). hearing means within ENEMY_HEARING, even through walls
-//   alerting  the moment it notices someone, any allies within ENEMY_ALERT_RANGE that aren't already
+//             never do). hearing means within its hearing, even through walls
+//   alerting  the moment it notices someone, any allies within its alertRange that aren't already
 //             after someone get told too, even through walls. this only happens when it notices you
 //             itself, so it doesn't chain right across the whole map
-//   tracking  once it's after you, it knows where you are as long as you're within sightRange, seen
-//             or not. so ducking round a corner or behind a house doesn't shake it off. unseen counts
-//             the seconds since it last saw or heard you
-//   losing    it only gives up after ENEMY_MEMORY seconds unseen while you're further away than
-//             sightRange. the pathfinders then walk home, and direct ones just stand where they are
+//   tracking  once it's after you, it knows where you are as long as you're within its chaseRange,
+//             seen or not. so ducking round a corner or behind a house doesn't shake it off. unseen
+//             counts the seconds since it last saw or heard you
+//   losing    it only gives up after its memory (seconds) unseen while you're further away than its
+//             chaseRange. the pathfinders then walk home, and direct ones just stand where they are
+// the ranges and memory are its kind's settings (ENEMY_DEFAULTS above), and each spawn can change them
 // all of this is stored on the enemy as chasing (the player) and unseen (seconds), which are set up
 // in enemy.js. they also get read by Warps.sendFollowers() (warps.js, which decides who follows you
 // through a warp), crowdCosts() in pathfinding.js (a direct chaser is guessed to be heading for who
@@ -131,13 +171,6 @@ function checkAi(ai, owner) {
 // limits: sight is just one line from feet to feet, and hearing ignores walls completely, so a thin
 // wall between you and an enemy 5 tiles away doesn't hide you. a new sense (like noticing when it gets
 // hit) would go here.
-
-// how many px away it can hear you from, through walls
-const ENEMY_HEARING = 5 * TILE;
-// allies within this many px get told when it spots you
-const ENEMY_ALERT_RANGE = 8 * TILE;
-// how many seconds you have to be out of sight (and out of sightRange) before it forgets you
-const ENEMY_MEMORY = 8;
 
 // the player it's after (enemy.chasing), or null. see "senses" above. call it once per frame for
 // each enemy, since it uses dt to count unseen
@@ -147,7 +180,7 @@ function sensePlayer(enemy, world, dt) {
     const a = feet(enemy);
     const b = feet(player);
     const distance = Math.hypot(b.x - a.x, b.y - a.y);
-    return distance <= ENEMY_HEARING || (distance <= enemy.type.sightRange && world.map.clearLine(a.x, a.y, b.x, b.y));
+    return distance <= enemy.type.hearing || (distance <= enemy.type.sightRange && world.map.clearLine(a.x, a.y, b.x, b.y));
   };
 
   // a player it's only just noticed (or one nearer than who it's after) takes over, and the allies
@@ -156,7 +189,7 @@ function sensePlayer(enemy, world, dt) {
   if (near && near !== enemy.chasing && notices(near)) {
     enemy.chasing = near;
     for (const ally of world.enemies) {
-      if (ally !== enemy && !ally.chasing && ally.ai && Math.hypot(ally.x - enemy.x, ally.y - enemy.y) <= ENEMY_ALERT_RANGE) {
+      if (ally !== enemy && !ally.chasing && ally.ai && Math.hypot(ally.x - enemy.x, ally.y - enemy.y) <= enemy.type.alertRange) {
         ally.chasing = near;
         ally.unseen = 0;
       }
@@ -169,7 +202,7 @@ function sensePlayer(enemy, world, dt) {
     return null;
   }
   enemy.unseen = notices(target) ? 0 : enemy.unseen + dt;
-  if (enemy.unseen > ENEMY_MEMORY && Math.hypot(target.x - enemy.x, target.y - enemy.y) > enemy.type.sightRange) enemy.chasing = null;
+  if (enemy.unseen > enemy.type.memory && Math.hypot(target.x - enemy.x, target.y - enemy.y) > enemy.type.chaseRange) enemy.chasing = null;
   return enemy.chasing;
 }
 

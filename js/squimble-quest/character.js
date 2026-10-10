@@ -350,7 +350,7 @@ class Character {
     const weapon = this.currentWeapon();
     if (!weapon || this.attackCooldown > 0) return;
     if (weapon !== this.comboWeapon || this.comboLeft <= 0) this.comboStep = 0;
-    const hit = poweredHit(comboHit(weapon, this.comboStep), power); // weapons.js
+    const hit = wieldedHit(poweredHit(comboHit(weapon, this.comboStep), power), this.settings); // weapons.js
     this.comboWeapon = weapon;
     this.comboStep++;
     this.comboLeft = hit.cooldown + weapon.comboWindow;

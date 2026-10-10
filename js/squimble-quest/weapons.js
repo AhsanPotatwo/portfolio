@@ -136,6 +136,14 @@ function poweredHit(hit, power) {
   return { ...hit, damage: Math.round(hit.damage * power), reach: hit.reach * power, arrowSpeed: hit.arrowSpeed * power, knockback: hit.knockback * power };
 }
 
+// a hit's settings for whoever's using it: an enemy's damageScale and attackSpeed (enemies.js). the
+// player has neither, so it's the same hit
+function wieldedHit(hit, settings) {
+  const damage = settings.damageScale ?? 1;
+  const rate = settings.attackSpeed ?? 1;
+  return damage === 1 && rate === 1 ? hit : { ...hit, damage: hit.damage * damage, cooldown: hit.cooldown / rate };
+}
+
 // a shot being drawn: a line from the shooter along their aim, as far as it'd fly if let go now, in its
 // colour. dotted while drawing, solid once fully drawn. enemies show it too, so you can see an archer
 // getting ready. world positions (inside camera.begin/end)
@@ -159,8 +167,10 @@ function drawChargeLine(owner, weapon, seconds) {
 // it kills respawns without the knockback (Player.placeAt())
 function hitWith(attacker, target, weapon, angle) {
   target.burstParticles(target.hitParticles, angle); // particles.js
-  target.pushTowards(angle, weapon.knockback, true);
-  target.stagger = Math.max(target.stagger, weapon.stagger);
+  // an enemy can take more or less of these (knockbackTaken and staggerTaken, enemies.js). the dummy
+  // takes no knockback
+  target.pushTowards(angle, weapon.knockback * (target.settings.knockbackTaken ?? 1), true);
+  target.stagger = Math.max(target.stagger, weapon.stagger * (target.settings.staggerTaken ?? 1));
   target.freeze(weapon.hitStop);
   (attacker.camera ?? target.camera)?.shake(weapon.shake, weapon.shakeTime);
   target.hurt(weapon.damage);
@@ -427,5 +437,5 @@ function drawArrowShadow(arrow) {
 // a weapon in a few words, like "15 damage, shoots 420 px", for the editor (editor.js)
 function weaponSummary(weapon) {
   if (!weapon) return 'no weapon';
-  return `${weapon.damage} damage, ${weapon.attack === 'shoot' ? 'shoots' : 'reaches'} ${weapon.reach} px`;
+  return `${Math.round(weapon.damage)} damage, ${weapon.attack === 'shoot' ? 'shoots' : 'reaches'} ${weapon.reach} px`;
 }

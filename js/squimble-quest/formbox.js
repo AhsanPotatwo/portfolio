@@ -671,6 +671,9 @@ class Checkbox extends UIElement {
 //             like -100 to 100 the ones near 0, so small amounts are easy to pick
 //   value     where it starts
 //   normal    what right click puts it back to (otherwise value)
+//   showNormal  optional, true marks normal on the bar and turns the value yellow once it's been moved
+//               off it, so you can see how far from the intended value it is (the weapon and enemy
+//               boxes)
 //   format    optional (value) => the words shown on the right, otherwise the number and unit
 //   unit      optional word after the number, like 'ms'
 //   onChange  optional, called with the new value whenever it changes
@@ -700,6 +703,7 @@ class Slider extends UIElement {
     this.onChange = options.onChange ?? null;
     this.value = options.value;
     this.normal = options.normal ?? options.value;
+    this.showNormal = options.showNormal ?? false;
     this.labelWidth = options.labelWidth ?? 100;
     // being dragged
     this.dragging = false;
@@ -782,13 +786,27 @@ class Slider extends UIElement {
     const at = bar.x + bar.w * this.positionOf(this.value);
     fill(EDITOR_COLOURS.accent);
     rect(Math.min(from, at), middleY - 3, Math.abs(at - from), 6, 3);
+    // with showNormal, once it's moved off normal a tick shows where normal is (right click goes back
+    // to it), and the value goes yellow
+    const changed = this.showNormal && this.value !== this.normal;
+    if (changed) {
+      fill(EDITOR_COLOURS.picked);
+      rect(Math.round(bar.x + bar.w * this.positionOf(this.normal)) - 1, middleY - 7, 2, 14, 1);
+    }
     // the knob
     fill(this.dragging ? 255 : this.hovered ? 230 : 200);
     circle(at, middleY, this.dragging ? 12 : 10);
 
-    fill(EDITOR_COLOURS.text);
+    fill(changed ? EDITOR_COLOURS.picked : EDITOR_COLOURS.text);
     setText(11, BOLD, RIGHT, CENTER);
     text(this.format ? this.format(this.value) : `${this.value} ${this.unit}`, this.x + this.w, middleY);
     pop();
   }
+}
+
+// a Slider for a FormBox row, from a settings line like HIT_SETTINGS (weaponeditor.js) or
+// ENEMY_SPAWN_STATS (enemies.js): { min, max, step, unit }. normal is what right click goes back to
+// and the bar marks once it's moved (otherwise value)
+function rowSlider(line, value, normal = value) {
+  return new Slider({ w: 180, labelWidth: 0, label: '', min: line.min, max: line.max, step: line.step ?? 1, unit: line.unit, value, normal, showNormal: true });
 }

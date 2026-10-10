@@ -173,7 +173,7 @@ function spawnCharacters() {
   if (Dialogue.active) Dialogue.close();
   // they'd hang in the air in the editor, or hit the new characters
   arrows = [];
-  enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row, spawn.ai, spawn.follows));
+  enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row, spawn.ai, spawn.follows, spawn.stats));
   npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row, spawn.voice));
   // the sound each one loops wherever it goes: its own if its spawn picked one, otherwise its kind's
   // (soundblocks.js plays them)
