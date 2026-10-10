@@ -10,7 +10,8 @@
     "colour": "#e8e8e8",
     "knockback": 140,
     "stagger": 0.15,
-    "impact": 0.25
+    "shake": 2,
+    "shakeTime": 0.25
   },
   "rarity": "uncommon",
   "colour": "#a0703c"

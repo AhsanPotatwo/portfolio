@@ -252,9 +252,18 @@ function towards(dx, dy) {
 
 // every kind of enemy loads once at the start, before the maps, since maps check their enemies exist
 // (datafiles.js). the grunt (the basic one, it chases you round walls) and the dummy (something to
-// practise on, it fills back up at 0 health) are in there
+// practise on, it fills back up at 0 health) are in there. only their weapons can be changed in the
+// editor so far (weaponeditor.js), and the Weapons tab's Export saves them
 DataFiles.register('enemy', {
   define: defineEnemy,
   // colours and pictures (utils.js)
   loaded: () => prepareArt(ENEMY_TYPES, 'enemy'),
+  names: () => Object.keys(ENEMY_TYPES),
+  // only the settings that aren't normal, weapon too (typeToData() in utils.js)
+  toData: (name) => {
+    const type = ENEMY_TYPES[name];
+    const data = typeToData(type, ENEMY_DEFAULTS);
+    if (data.weapon) data.weapon = typeToData(type.weapon, WEAPON_DEFAULTS);
+    return data;
+  },
 });

@@ -28,18 +28,25 @@ class Camera {
     // the target and zoom from before focusOn(), so release() can go back to them
     this.beforeFocus = null;
 
-    // screen shake (shake()): how many px it's shaking by, settling to 0, and this frame's jolt, which
-    // only moves the drawing (begin(), drawnPosition()), never the camera itself
+    // screen shake (shake()): the px it started at, its seconds long and left, how many px it's shaking
+    // by now, and this frame's jolt, which only moves the drawing (begin(), drawnPosition()), never the
+    // camera itself
+    this.shakeSize = 0;
+    this.shakeTime = 0;
+    this.shakeLeft = 0;
     this.shaking = 0;
     this.shakeX = 0;
     this.shakeY = 0;
   }
 
-  // shakes the screen by up to px (CAMERA.maxShake), settling over a moment. a bigger shake takes over
-  // a smaller one instead of adding up, so lots of little hits don't turn into an earthquake. weapons
-  // shake it when the player hits or gets hit (hitWith() in weapons.js)
-  shake(px) {
-    this.shaking = Math.min(CAMERA.maxShake, Math.max(this.shaking, px));
+  // shakes the screen by px, settling to nothing over `time` seconds, quickly at first. a bigger shake
+  // takes over a smaller one instead of adding up, so lots of little hits don't turn into an
+  // earthquake. weapons shake it with their shake and shakeTime (hitWith() in weapons.js)
+  shake(px, time) {
+    if (px <= this.shaking || time <= 0) return;
+    this.shakeSize = px;
+    this.shakeTime = time;
+    this.shakeLeft = time;
   }
 
   // ---------- telling the camera what to do ----------
@@ -128,7 +135,8 @@ class Camera {
   // a new random jolt every frame, kept inside the bounds so a shake by the edge of the map doesn't
   // show past it. it's only for show, so it uses Math.random() rather than randomBetween() (utils.js)
   updateShake(dt) {
-    this.shaking = this.shaking < 0.5 ? 0 : approach(this.shaking, 0, CAMERA.shakeFade, dt);
+    this.shakeLeft = Math.max(0, this.shakeLeft - dt);
+    this.shaking = this.shakeLeft > 0 ? this.shakeSize * (this.shakeLeft / this.shakeTime) ** 2 : 0;
     const jolt = () => (Math.random() * 2 - 1) * this.shaking;
     this.shakeX = jolt();
     this.shakeY = jolt();

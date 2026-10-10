@@ -13,7 +13,9 @@
     "knockback": 220,
     "stagger": 0.15,
     "lunge": 120,
-    "impact": 0.6
+    "shake": 5.5,
+    "shakeTime": 0.35,
+    "hitStop": 0.04
   },
   "colour": "#d64545",
   "outline": "#6e1f1f",

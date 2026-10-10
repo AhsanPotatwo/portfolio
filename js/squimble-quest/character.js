@@ -107,6 +107,9 @@ class Character {
     // stagger: seconds it can't walk or attack
     this.frozen = 0;
     this.stagger = 0;
+    // the camera (camera.js) that shakes when it hits something or gets hit, or null. only this
+    // computer's player has one (sketch.js), and the weapon editor's preview has its own
+    this.camera = null;
   }
 
   // ---------- every frame ----------
@@ -361,10 +364,9 @@ class Character {
     }
   }
 
-  // the hit stop: stands still for a moment after hitting or being hit by something with this impact
-  // (weapons.js)
-  freeze(impact) {
-    this.frozen = Math.max(this.frozen, impact * COMBAT.freezePerImpact);
+  // the hit stop: stands still for `seconds` after hitting or being hit (a weapon's hitStop, weapons.js)
+  freeze(seconds) {
+    this.frozen = Math.max(this.frozen, seconds);
   }
 
   // heals up to max health. anything can call this: tiles, potions...

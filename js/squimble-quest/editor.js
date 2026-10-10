@@ -19,7 +19,9 @@
 //     standing on the tile
 //   - weapons and items (one tab for each category in items.js): click to drop one on the ground (Export
 //     doesn't save these). Give puts one in your inventory, right click or Edit changes its name,
-//     rarity, colour and weapon numbers, and the inspector's Export downloads changed item files
+//     rarity, colour and everything about its weapon (weaponeditor.js), and the inspector's Export
+//     downloads changed item files. the Weapons tab ends with the enemies' own weapons (with a badge),
+//     which clicking opens, and Export saves their enemy files too
 //   - sounds: click to place a sound block (soundblocks.js) that plays that sound, and right click it
 //     on the map to pick its sound and how it plays. its green circle shows how far away it can be
 //     heard. New, Edit or right click in the palette opens the sound editor (soundeditor.js), and the
@@ -297,8 +299,9 @@ const Editor = {
     ];
     // it's in the same spot as New, so it's never shown on the Tiles tab (update())
     this.giveButton = inspectorButton(1, 'Give', () => this.giveItem(this.selected.name));
-    // the file of every item that's new or changed, weapon and all (datafiles.js)
-    this.exportItemsButton = inspectorButton(2, 'Export', () => DataFiles.export(['item']));
+    // the file of every item that's new or changed, weapon and all (datafiles.js), and of every enemy
+    // whose own weapon was changed on the Weapons tab (weaponeditor.js)
+    this.exportItemsButton = inspectorButton(2, 'Export', () => DataFiles.export(['item', 'enemy']));
 
     UI.showGroup('editor', false);
   },
@@ -572,9 +575,9 @@ const Editor = {
     if (!player.inventory.add(createItem(name))) showMessage('No room, your inventory is full');
   },
 
-  // changes an item's name, rarity, colour and where it's worn (items.js), plus its weapon's numbers on
-  // a second tab (weapons.js). the changes happen when you press Save. Export on the item tabs saves
-  // them, otherwise they're gone when you reload
+  // changes an item's name, rarity, colour and where it's worn (items.js), plus everything about its
+  // weapon on the tabs after (weaponeditor.js). the changes happen when you press Save. Export on the
+  // item tabs saves them, otherwise they're gone when you reload
   editItem(name) {
     const type = ITEM_TYPES[name];
     const weapon = type.weapon;
@@ -604,43 +607,21 @@ const Editor = {
       { label: 'Colour', field: colourField, tip: 'Its placeholder colour until it has a picture' },
       { label: 'Worn on', field: wearPicker, tip: 'Which equipment slot it goes in. Nothing it does yet, it just shows' },
     ];
-    // whole numbers only, so the times are in ms
-    const number = (value, max) => new NumberField({ w: 90, value: Math.round(value), min: 1, max });
-    const fields = weapon && {
-      attack: new Picker({ w: 180, choices: Object.keys(WEAPON_ATTACKS), value: weapon.attack, label: (attack) => WEAPON_ATTACKS[attack] }),
-      damage: number(weapon.damage, 9999),
-      reach: number(weapon.reach, 9999),
-      arc: number(weapon.arc, 360),
-      swingTime: number(weapon.swingTime * 1000, 9999),
-      cooldown: number(weapon.cooldown * 1000, 9999),
-      arrowSpeed: number(weapon.arrowSpeed, 9999),
-    };
-    const weaponRows = weapon ? [
-      { label: 'Attack', field: fields.attack, tip: 'Swing it in an arc, or shoot arrows like a bow' },
-      { label: 'Damage', field: fields.damage, tip: 'Taken off each thing it hits' },
-      { label: 'Reach', field: fields.reach, after: 'pixels', tip: "How far a swing reaches, or how far an arrow flies. A tile's 32" },
-      { label: 'Arc', field: fields.arc, after: 'degrees', tip: 'How wide a swing is, 360 all the way round. Swings only' },
-      { label: 'Swing time', field: fields.swingTime, after: 'ms', tip: 'How long a swing takes. Swings only' },
-      { label: 'Cooldown', field: fields.cooldown, after: 'ms', tip: 'From one attack to the next' },
-      { label: 'Arrow speed', field: fields.arrowSpeed, after: 'px/s', tip: 'How fast its arrows fly. Shooting only' },
-    ] : [];
+    // the Weapon, Hit and Feel tabs and the preview of the player using it on the first enemy kind
+    // (weaponeditor.js)
+    const form = weapon && weaponForm(weapon, { attacker: PLAYER, target: Object.values(ENEMY_TYPES)[0] ?? PLAYER });
 
     FormBox.open({
       title: `Item: ${name}`,
-      hint: 'Export in the inspector to keep changes',
+      hint: 'Right click a slider to undo it. Export in the inspector to keep changes',
       confirmLabel: 'Save',
-      ...(weapon ? { tabs: [{ label: 'Item', rows: itemRows }, { label: 'Weapon', rows: weaponRows }] } : { rows: itemRows }),
-      canConfirm: () => labelField.value.trim() !== '' && HEX_COLOUR.test(colourField.value),
+      ...(form ? { tabs: [{ label: 'Item', rows: itemRows }, ...form.tabs], side: form.side, onUpdate: form.update } : { rows: itemRows }),
+      canConfirm: () => labelField.value.trim() !== '' && HEX_COLOUR.test(colourField.value) && (!form || form.ok()),
       onConfirm: () => {
         const colour = colourField.value;
         // fill is the p5 colour it gets drawn with (prepareArt() in utils.js)
         Object.assign(type, { label: labelField.value.trim(), rarity: rarityPicker.value, colour, fill: color(colour), wear: wearPicker.value });
-        if (!weapon) return;
-        const value = (key) => fields[key].value;
-        Object.assign(weapon, {
-          attack: value('attack'), damage: value('damage'), reach: value('reach'), arc: value('arc'),
-          swingTime: value('swingTime') / 1000, cooldown: value('cooldown') / 1000, arrowSpeed: value('arrowSpeed'),
-        });
+        form?.save();
       },
     });
   },
@@ -1498,8 +1479,10 @@ class PaletteGrid extends UIElement {
     this.hoveredName = null;
   }
 
+  // the Weapons tab also has the enemies' own weapons at the end (weaponeditor.js)
   names() {
-    return Object.keys(EDITOR_CATALOGUES[Editor.tab]);
+    const names = Object.keys(EDITOR_CATALOGUES[Editor.tab]);
+    return Editor.tab === 'weapon' ? [...names, ...enemyWeaponNames()] : names;
   }
 
   columns() {
@@ -1547,6 +1530,12 @@ class PaletteGrid extends UIElement {
       return x >= cell.x && x < cell.x + size && y >= cell.y && y < cell.y + size;
     }) ?? null;
     if (!this.hoveredName) return;
+    // an enemy's own weapon can't be placed or given, so any click opens it
+    const enemy = tab === 'weapon' && enemyWithWeapon(this.hoveredName);
+    if (enemy) {
+      if (Input.buttonsPressed.has('left') || Input.buttonsPressed.has('right')) editEnemyWeapon(enemy);
+      return;
+    }
     if (Input.buttonsPressed.has('left')) Editor.pick({ kind: tab, name: this.hoveredName });
     if (tab === 'tile' && Input.buttonsPressed.has('right')) TileEditor.open(TILE_TYPES[this.hoveredName]);
     if (isItemKind(tab) && Input.buttonsPressed.has('right')) Editor.editItem(this.hoveredName);
@@ -1655,6 +1644,9 @@ function drawPaletteArt(kind, name, x, y, size) {
     drawSoundShape(VOICES[name], x + 3, y + 3, size - 6, size - 6, 'Hello, how are you today?');
   } else if (kind === 'particle') {
     drawParticleArt(PARTICLE_EFFECTS[name], middleX, middleY, size); // particles.js
+  } else if (kind === 'weapon' && enemyWithWeapon(name)) {
+    // an enemy's own weapon, with a badge (weaponeditor.js)
+    drawEnemyWeaponArt(enemyWithWeapon(name), x, y, size);
   } else if (isItemKind(kind)) {
     // like in an inventory slot, with its rarity glow (itemglow.js)
     drawGlowingItem({ type: ITEM_TYPES[name] }, middleX, middleY, size * 0.6, size / 2);

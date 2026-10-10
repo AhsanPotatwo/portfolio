@@ -22,22 +22,15 @@ const CAMERA = {
   // 1 is normal, 2 is twice as big, 0.5 is half size (so you see twice as much)
   minZoom: 0.25,
   maxZoom: 3,
-  // screen shake (Camera.shake()): px it shakes per 1 of a weapon's impact (weapons.js), the most it
-  // can shake, and how fast it settles, higher is quicker
-  shakePerImpact: 9,
-  maxShake: 18,
-  shakeFade: 7,
 };
 
 // ---------- combat ----------
-// how hits feel, for everyone. each weapon's own numbers (knockback, impact...) are in weapons.js
+// how hits feel, for everyone. each weapon's own numbers (knockback, shake, hit stop...) are its
+// settings (weapons.js), changed in the editor's Weapons tab
 const COMBAT = {
   // how fast knockback, lunges and recoil slow down, higher stops sooner. something pushed at speed v
   // slides about v / pushFade px
   pushFade: 8,
-  // seconds both the hitter and whoever got hit freeze per 1 of the weapon's impact (hit stop), which
-  // is most of what makes a hit feel heavy
-  freezePerImpact: 0.06,
   // seconds an attack click is remembered, so clicking just before the weapon's ready (or during a
   // hit stop) still attacks as soon as it can. makes combos easy to keep going
   attackBuffer: 0.2,

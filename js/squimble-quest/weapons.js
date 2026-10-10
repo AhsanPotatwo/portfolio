@@ -6,8 +6,9 @@
 // a weapon is part of whatever has it, so it goes in that thing's file as "weapon": an item's (like
 // items/axe.json) or an enemy's (like the grunt's claws in enemies/grunt.json):
 //   "weapon": { "damage": 35, "reach": 68, "arc": 160, "swingTime": 0.25, "cooldown": 0.65 }
-// an item's weapon can be changed in the map editor (Edit, then the Weapon tab), and the inspector's
-// Export downloads the item's file.
+// every weapon can be changed in the map editor's Weapons tab (weaponeditor.js): Edit or right click
+// an item's for its Weapon, Hit and Feel tabs, or click an enemy's own (the ones with a badge). the
+// inspector's Export downloads the changed item and enemy files.
 //
 // a bow is the same with "attack": "shoot", and its reach is how far the arrow flies:
 //   "weapon": { "attack": "shoot", "damage": 15, "reach": 420, "cooldown": 0.5, "arrowSpeed": 520 }
@@ -29,17 +30,19 @@
 //   lunge       px/s the attacker steps forwards with each attack, so swings carry you in
 //   recoil      px/s the attacker is shoved back when a swing lands (once per swing, however many it
 //               hits), like the sword's last stab bouncing you off
-//   impact      how heavy a hit feels: the screen shakes (CAMERA.shakePerImpact) when the player hits
-//               or gets hit, and both sides freeze for a moment (COMBAT.freezePerImpact, the hit stop.
-//               arrows don't freeze whoever shot them). 1 is a big hit
+//   shake       px the screen shakes when the player lands a hit or gets hit with it. so an enemy's
+//               weapon sets how hard you get shaken
+//   shakeTime   seconds the shake takes to settle
+//   hitStop     seconds both sides freeze when it lands, which is most of what makes a hit feel heavy
+//               (arrows don't freeze whoever shot them)
 //   combo       a list of hits, each the settings that are different from the ones above, or null
 //               for every attack the same. attacking again soon enough does the next hit, and after
 //               the last it starts over. the last is usually the big one, with a longer cooldown:
 //                 "combo": [{}, {}, { "damage": 30, "knockback": 560, "cooldown": 0.6 }]
 //   comboWindow seconds after an attack's cooldown that attacking still carries on the combo
 //
-// the item editor's Weapon tab changes the settings above combo, so a combo hit that has its own
-// damage (say) keeps it
+// every setting from damage to hitStop can be different for each hit of a combo (HIT_SETTINGS in
+// weaponeditor.js). attack, colour and comboWindow are for the whole weapon
 //
 // a new kind of attack (a spell, a thrown spear) would be a class next to MeleeSwing and Arrow, a line
 // in WEAPON_ATTACKS, and a branch in Character.attack() (character.js)
@@ -59,7 +62,9 @@ const WEAPON_DEFAULTS = {
   stagger: 0.1,
   lunge: 0,
   recoil: 0,
-  impact: 0.3,
+  shake: 3,
+  shakeTime: 0.3,
+  hitStop: 0.02,
   combo: null,
   comboWindow: 0.3,
 };
@@ -100,15 +105,15 @@ function comboHit(weapon, step) {
 
 // everything a hit does, for swings and arrows alike: damage, the target's particles flying the way it
 // was hit (angle, radians), knockback the same way, stagger, the hit stop on the target, and the
-// screen shake if this computer's player is in it (player and gameCamera are sketch.js's). weapon is
-// the hit's settings (comboHit()). the damage goes last, so a player it kills respawns without the
-// knockback (Player.placeAt())
+// screen shake if either side has a camera (only this computer's player does, Character.camera, so
+// it's multiplayer-safe). weapon is the hit's settings (comboHit()). the damage goes last, so a player
+// it kills respawns without the knockback (Player.placeAt())
 function hitWith(attacker, target, weapon, angle) {
   target.burstParticles(target.hitParticles, angle); // particles.js
   target.pushTowards(angle, weapon.knockback);
   target.stagger = Math.max(target.stagger, weapon.stagger);
-  target.freeze(weapon.impact);
-  if (attacker === player || target === player) gameCamera.shake(weapon.impact * CAMERA.shakePerImpact);
+  target.freeze(weapon.hitStop);
+  (attacker.camera ?? target.camera)?.shake(weapon.shake, weapon.shakeTime);
   target.hurt(weapon.damage);
 }
 
@@ -146,7 +151,7 @@ class MeleeSwing {
         hitWith(this.owner, target, this.weapon, angle);
         // the swinger stops for the hit too, which is what makes it feel like it connected, and bounces
         // back off the first thing it hits
-        this.owner.freeze(this.weapon.impact);
+        this.owner.freeze(this.weapon.hitStop);
         if (this.hit.size === 1) this.owner.pushTowards(angle + Math.PI, this.weapon.recoil);
       }
     }
@@ -192,8 +197,8 @@ class MeleeSwing {
     // a see-through pie slice from the start to the blade. arc() wants the smaller angle first. the
     // p5 colour gets made here instead of being stored on the swing, so the swing stays as plain data
     // that a server without p5 could run
-    // heavier hits (a combo's last) are bolder
-    const heavy = Math.min(this.weapon.impact, 1.5);
+    // harder hits (more knockback, like a combo's last) are bolder
+    const heavy = Math.min(this.weapon.knockback / 500, 1.5);
     const swoosh = color(this.weapon.colour);
     swoosh.setAlpha(50 + 50 * heavy);
     noStroke();

@@ -10,7 +10,8 @@
     "colour": "#ffffff",
     "knockback": 110,
     "stagger": 0.3,
-    "impact": 0.5,
+    "shake": 4.5,
+    "hitStop": 0.03,
     "combo": [
       {},
       {},
@@ -23,7 +24,9 @@
         "knockback": 700,
         "stagger": 0.6,
         "recoil": 260,
-        "impact": 1.2
+        "shake": 11,
+        "shakeTime": 0.45,
+        "hitStop": 0.07
       }
     ],
     "comboWindow": 0.35

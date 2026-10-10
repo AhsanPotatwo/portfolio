@@ -39,6 +39,7 @@
 //   tileeditor.js editor's tile box (after editor.js)
 //   soundeditor.js the sound editor, a full screen synthesiser (after editor.js)
 //   particleeditor.js the particle editor box and its preview (after tileeditor.js)
+//   weaponeditor.js the weapon editor tabs, enemy weapons in the palette, and the combo preview (after editor.js)
 //   debug.js      dev mode (` or Ctrl + D)
 
 let player;
@@ -74,6 +75,8 @@ function setup() {
   player = new Player(0, 0);
   gameCamera = new Camera();
   gameCamera.follow(player);
+  // shakes when the player hits or gets hit (hitWith() in weapons.js)
+  player.camera = gameCamera;
   Hotbar.init(player.inventory);
   // E or I opens it (it's hidden until then)
   InventoryScreen.init(player);
