@@ -118,11 +118,25 @@ class Character {
     // the camera (camera.js) that shakes when it hits something or gets hit, or null. only this
     // computer's player has one (sketch.js), and the weapon editor's preview has its own
     this.camera = null;
+    // new combat state that shouldn't carry over needs resetting in two places too: Player.placeAt()
+    // (respawning, warps) and WeaponPreview.start() (each go of the editor's preview, weaponeditor.js)
   }
 
   // ---------- every frame ----------
 
-  // controls and world are explained at the top of this file. dt is the seconds since last frame
+  // controls and world are explained at the top of this file. dt is the seconds since last frame.
+  // the order matters:
+  //   1. an attack click is remembered (attackBuffer) before anything can skip it
+  //   2. frozen (the hit stop, freeze()) skips everything else, timers too, so it all picks up where
+  //      it left off, and knockback from the hit starts once the freeze is over
+  //   3. staggered or being shoved hard (pushedHard()) means no walking. a stagger also cancels a swing
+  //      that's still winding up, and stops attacking
+  //   4. walking, including any shove (walk(), pushVelocity)
+  //   5. attacking: a bow with a chargeTime draws and lets go (updateCharge()), anything else attacks
+  //      straight away if one's been asked for (attack(), which handles combos)
+  //   6. the swing in progress hits things (MeleeSwing.update() in weapons.js, which calls hitWith())
+  //   7. tile damage, then every timer counts down
+  // everything combat keeps is per character (nothing pauses the world), so it's multiplayer-safe
   update(controls, dt, world) {
     // remembered first, so a click during a hit stop or just before the weapon's ready still counts
     if (controls.attack) this.attackBuffer = COMBAT.attackBuffer;

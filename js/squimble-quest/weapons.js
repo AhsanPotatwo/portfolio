@@ -59,8 +59,22 @@
 // a new kind of attack (a spell, a thrown spear) would be a class next to MeleeSwing and Arrow, a line
 // in WEAPON_ATTACKS, and a branch in Character.attack() (character.js)
 //
+// where each setting does its thing, to change how one works:
+//   Character.attack()    (character.js) the next combo hit (comboHit()), a charged shot's power
+//                         (poweredHit()), the wielder's damageScale and attackSpeed (wieldedHit()),
+//                         cooldown, comboWindow, and lunge for shots
+//   Character.updateCharge()  chargeTime and minPower. Character.walk(): carrySpeed and chargeSlow
+//   MeleeSwing            windup, swingTime, arc and reach, lunge when the sweep starts, recoil on the
+//                         first thing it hits, the swinger's hit stop
+//   Arrow                 arrowSpeed, reach (how far it flies, dropping at the end)
+//   hitWith()             everything that happens to what's hit: knockback (times its knockbackTaken),
+//                         stagger (times its staggerTaken), hit stop, screen shake, then damage
+//   drawing               MeleeSwing.draw() (bolder the more knockback), drawChargeLine()
+//
 // ====================================================================================
 
+// every setting's normal value, which a file can leave out. the order here is the order files list
+// them in when exported (typeToData() in utils.js), so new ones go next to their friends
 const WEAPON_DEFAULTS = {
   attack: 'swing',
   damage: 10,

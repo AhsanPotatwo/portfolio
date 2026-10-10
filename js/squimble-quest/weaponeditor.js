@@ -10,7 +10,25 @@
 // away. Save writes the first hit as the weapon's own settings and every hit's differences from it as
 // its combo, the same as a file written by hand. it changes a copy, so Cancel leaves the weapon alone.
 //
-// a new per-hit setting is a WEAPON_DEFAULTS line (weapons.js) and a HIT_SETTINGS line here
+// the tabs: Weapon (attack, combo, then WEAPON_WIDE_SETTINGS: combo time, the bow's charge settings,
+// carry speed, then colour), Hit and Feel (the HIT_SETTINGS, for the hit picked at the top). every
+// slider marks the value it had when the box opened (rowSlider() and Slider.showNormal in formbox.js),
+// per hit, and right click goes back to it.
+//
+// adding a setting: a WEAPON_DEFAULTS line (weapons.js), then a HIT_SETTINGS line here if each combo
+// hit can have its own, or a WEAPON_WIDE_SETTINGS line if it's the whole weapon's. nothing else here
+// needs changing. the min and max are only the sliders' ends: a file can go past them (the slider then
+// sits at its end until moved).
+//
+// things to know:
+//   - the draft (weaponForm()) has to stay one object for as long as the box is open, because
+//     Character.attack() starts a combo over whenever the weapon object changes. update() writes into
+//     it in place every frame
+//   - Save only writes HIT_SETTINGS into each combo hit (hitsToSettings()), so a hit's own colour or
+//     attack written by hand in a file is dropped. attack and colour are the whole weapon's here
+//   - the preview's characters are plain Characters with targets(), currentWeapon() and die() swapped
+//     out, so anything new that hits or moves characters works in it for free, as long as it only asks
+//     the map for what PREVIEW_FLOOR has
 
 // the sliders on the Hit and Feel tabs, one for each setting a combo hit can have its own of
 const HIT_SETTINGS = [
