@@ -12,7 +12,7 @@
 // enemies/slime.json could be:
 //   { "width": 30, "height": 24, "maxHealth": 40, "speed": 70, "colour": "#6cc56b", "ai": "smart" }
 //
-//   width, height          body size in px (this is what attacks hit)
+//   width, height          its hitbox in px, what attacks hit. a sprite can be any size over it
 //   feetWidth, feetHeight  the bit at the bottom that bumps into walls
 //   speed                  walking speed in px/s
 //   maxHealth              how much damage it takes to beat it

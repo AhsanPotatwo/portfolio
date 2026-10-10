@@ -70,6 +70,7 @@ class Player extends Character {
     this.pushVelocity = { x: 0, y: 0 };
     this.pushLocked = false;
     this.stagger = 0;
+    this.roll = null;
     // forget the tile from the last map, so this one counts as just stepped on
     this.tile = null;
     this.tileCol = null;

@@ -234,7 +234,10 @@ function draw() {
       aim,
       attack: !Dialogue.active && Input.mousePressed('left'),
       // held, for drawing a bow. pressed counts too, so a click that's let go within a frame still shoots
-      charge: !Dialogue.active && (Input.mouseHeld('left') || Input.mousePressed('left')),    }, dt, world);
+      charge: !Dialogue.active && (Input.mouseHeld('left') || Input.mousePressed('left')),
+      // shift, while wearing the quick charm (Character.canRoll())
+      roll: !Dialogue.active && Input.wasPressed('roll'),
+    }, dt, world);
     // picks up items that are close enough (inventory.js)
     Drops.update(worldMap, player, dt);
 

@@ -257,7 +257,7 @@ class WeaponPreview extends UIElement {
     for (const c of [this.attacker, this.target]) {
       Object.assign(c, {
         y: 0, health: c.maxHealth, pushVelocity: { x: 0, y: 0 }, pushLocked: false, stagger: 0, frozen: 0, swing: null,
-        attackCooldown: 0, attackBuffer: 0, comboStep: 0, comboLeft: 0, backhand: false, charge: null,
+        attackCooldown: 0, attackBuffer: 0, comboStep: 0, comboLeft: 0, backhand: false, charge: null, roll: null,
       });
     }
     this.attacker.x = 0;

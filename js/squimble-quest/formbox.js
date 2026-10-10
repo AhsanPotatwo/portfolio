@@ -101,9 +101,11 @@ const FormBox = {
     for (const { rows } of this.tabs) {
       rows.forEach(({ field }, i) => add(Object.assign(field, { x: x + 100, y: y + this.rowsTop + i * FORM_BOX.rowHeight, h: FORM_BOX.fieldHeight })));
     }
-    // the side column: to the right of the rows, from level with them down to the footer
+    // the side column: to the right of the rows, from level with them down to the hint (which goes
+    // all the way across, so it isn't hidden under it) or the footer
     const sideTop = this.rowsTop;
-    if (options.side) options.side(x + FORM_BOX.width, y + sideTop, FORM_BOX.sideWidth - 16, h - sideTop - FORM_BOX.footerHeight - 6).forEach(add);
+    const sideBottom = h - FORM_BOX.footerHeight - (options.hint ? 20 : 0);
+    if (options.side) options.side(x + FORM_BOX.width, y + sideTop, FORM_BOX.sideWidth - 16, sideBottom - sideTop - 6).forEach(add);
     // bottom right, where you'd expect them
     const buttonY = y + h - (FORM_BOX.footerHeight + 24) / 2;
     add(new Button({ x: x + w - 182, y: buttonY, w: 80, h: 24, label: 'Cancel', style: 'editor', onClick: () => this.close() }));

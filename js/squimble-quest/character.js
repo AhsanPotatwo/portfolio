@@ -9,6 +9,8 @@
 //   charge  optional, attack is being held down, for weapons that draw before shooting (a bow with a
 //           chargeTime, updateCharge()). ais leave it out and just keep attacking, which lets go once
 //           it's fully drawn
+//   roll    optional, dodge roll (startRoll()), only while wearing something that lets it
+//           (canRoll()). ais leave it out
 // the player's come from the keyboard and mouse (sketch.js) and enemies' come from their ai
 // (enemies.js), so enemies can do anything the player can.
 //
@@ -110,6 +112,12 @@ class Character {
     // seconds it's been drawing a shot (updateCharge()) and the weapon it's drawing, or null
     this.charge = null;
     this.chargeWeapon = null;
+    // the dodge roll that's happening ({ angle, time }, time is seconds since it started), or null.
+    // seconds until it can roll again, and seconds a roll it asked for is still waiting (like
+    // attackBuffer)
+    this.roll = null;
+    this.rollCooldown = 0;
+    this.rollBuffer = 0;
 
     // getting hit (hitWith() in weapons.js). frozen: seconds it stands still mid-hit (the hit stop).
     // stagger: seconds it can't walk or attack
@@ -130,32 +138,39 @@ class Character {
   //   2. frozen (the hit stop, freeze()) skips everything else, timers too, so it all picks up where
   //      it left off, and knockback from the hit starts once the freeze is over
   //   3. staggered or being shoved hard (pushedHard()) means no walking. a stagger also cancels a swing
-  //      that's still winding up, and stops attacking
-  //   4. walking, including any shove (walk(), pushVelocity)
-  //   5. attacking: a bow with a chargeTime draws and lets go (updateCharge()), anything else attacks
-  //      straight away if one's been asked for (attack(), which handles combos)
-  //   6. the swing in progress hits things (MeleeSwing.update() in weapons.js, which calls hitWith())
-  //   7. tile damage, then every timer counts down
+  //      that's still winding up or a roll, and stops attacking
+  //   4. a roll starts if one's been asked for and it can (canRoll()), and moves it along (rollOn())
+  //   5. walking, including any shove (walk(), pushVelocity). not while rolling
+  //   6. attacking: a bow with a chargeTime draws and lets go (updateCharge()), anything else attacks
+  //      straight away if one's been asked for (attack(), which handles combos). not while rolling
+  //   7. the swing in progress hits things (MeleeSwing.update() in weapons.js, which calls hitWith())
+  //   8. tile damage, then every timer counts down
   // everything combat keeps is per character (nothing pauses the world), so it's multiplayer-safe
   update(controls, dt, world) {
     // remembered first, so a click during a hit stop or just before the weapon's ready still counts
     if (controls.attack) this.attackBuffer = COMBAT.attackBuffer;
+    if (controls.roll) this.rollBuffer = COMBAT.attackBuffer;
     if (this.frozen > 0) {
       this.frozen -= dt;
       return;
     }
 
     const staggered = this.stagger > 0;
-    // getting hit while winding up a heavy swing stops it (MeleeSwing in weapons.js)
+    // getting hit while winding up a heavy swing stops it (MeleeSwing in weapons.js), and getting hit
+    // once a roll's invincible bit is over stops the roll
     if (staggered && this.swing?.windingUp) this.swing = null;
-    this.walk(staggered || this.pushedHard() ? STAND_STILL.move : controls.move, dt, world);
+    if (staggered) this.roll = null;
+    if (this.rollBuffer > 0 && this.canRoll(staggered)) this.startRoll(controls.move);
+    // before walk(), which keeps the head on the map
+    if (this.roll) this.rollOn(dt, world);
+    this.walk(staggered || this.roll || this.pushedHard() ? STAND_STILL.move : controls.move, dt, world);
     this.aimAt(controls.aim);
     const weapon = this.currentWeapon();
     if (chargesUp(weapon)) {
-      this.updateCharge(controls, weapon, staggered, dt, world);
+      this.updateCharge(controls, weapon, staggered || this.roll !== null, dt, world);
     } else {
       this.charge = null;
-      if (!staggered && this.attackBuffer > 0) this.attack(world);
+      if (!staggered && !this.roll && this.attackBuffer > 0) this.attack(world);
     }
 
     if (this.swing) {
@@ -164,7 +179,7 @@ class Character {
     }
 
     this.checkTile(world.map, dt);
-    for (const timer of ['hurtTimer', 'attackCooldown', 'attackBuffer', 'comboLeft', 'stagger']) {
+    for (const timer of ['hurtTimer', 'attackCooldown', 'attackBuffer', 'comboLeft', 'stagger', 'rollCooldown', 'rollBuffer']) {
       this[timer] = Math.max(0, this[timer] - dt);
     }
   }
@@ -265,6 +280,38 @@ class Character {
     return this.pushLocked;
   }
 
+  // ---------- dodge rolling ----------
+
+  // only while wearing something that lets it (an item with roll, like the quick charm, items.js), and
+  // not mid-swing, staggered, being shoved hard or already rolling. a press that can't roll yet is
+  // remembered (rollBuffer)
+  canRoll(staggered) {
+    return this.worn().some((type) => type.roll) && !this.roll && !this.swing && !staggered && this.rollCooldown === 0 && !this.pushedHard();
+  }
+
+  // a roll (ROLL in config.js) the way it's walking, or the way it's facing if it's standing still
+  startRoll(move) {
+    const angle = move.x || move.y ? Math.atan2(move.y, move.x) : this.aimAngle;
+    this.roll = { angle, time: 0 };
+    this.rollCooldown = ROLL.cooldown;
+    this.rollBuffer = 0;
+  }
+
+  // moves it along its roll until ROLL.time is up. slower on the same tiles and with the same weapons
+  // walking is (walk())
+  rollOn(dt, world) {
+    const speed = ROLL.speed * (this.tile ? this.tile.speed : 1) * (this.currentWeapon()?.carrySpeed ?? 1);
+    this.moveBy(world, Math.cos(this.roll.angle) * speed * dt, Math.sin(this.roll.angle) * speed * dt);
+    this.roll.time += dt;
+    if (this.roll.time >= ROLL.time) this.roll = null;
+  }
+
+  // can attacks hit it? not once it's dead, or in the invincible start of a roll (ROLL.invincible).
+  // swings and arrows check this (weapons.js), so a swing it rolls through can still catch it after
+  hittable() {
+    return !this.dead && !(this.roll && this.roll.time < ROLL.invincible);
+  }
+
   // cuts down amount (movement along 'x' or 'y') so the feet stop right up against any living
   // character's feet. only feet bump, so bodies can overlap (one standing in front of another). it
   // loops world.characters directly since every character does this every frame. nobody pushes
@@ -303,9 +350,11 @@ class Character {
     };
   }
 
-  // the whole body, which is what attacks hit
+  // its hitbox, what attacks hit: its width x height, or only ROLL.height as tall while rolling, still
+  // standing on its feet. what's drawn doesn't change it (drawBody())
   bodyBox() {
-    return { x: this.x - this.w / 2, y: this.y - this.h / 2, w: this.w, h: this.h };
+    const h = this.roll ? this.h * ROLL.height : this.h;
+    return { x: this.x - this.w / 2, y: this.y + this.h / 2 - h, w: this.w, h };
   }
 
   placeFeetOnTile(col, row) {
@@ -475,9 +524,14 @@ class Character {
     rect(x, y, w * (this.health / this.maxHealth), 5, 2);
   }
 
-  // the body, what it's wearing and which way it's facing, in world positions (inside camera.begin/end)
+  // the body, what it's wearing and which way it's facing, in world positions (inside camera.begin/end).
+  //
+  // ponytail: the rectangle is its hitbox (bodyBox()), so you see exactly what attacks hit, squashed
+  // while rolling. nothing in the game reads what's drawn, so a sprite can go here at its own size,
+  // with the box moved behind a dev mode overlay (DEV_OVERLAYS, debug.js)
   drawBody() {
-    drawCharacter(this.settings, this.x, this.y, { facing: this.facing, hurt: this.hurtTimer > 0, worn: this.worn(), held: this.heldItem() });
+    const body = this.bodyBox();
+    drawCharacter(this.settings, this.x, body.y + body.h / 2, { w: body.w, h: body.h, facing: this.facing, hurt: this.hurtTimer > 0, worn: this.worn(), held: this.heldItem() });
   }
 }
 
@@ -498,9 +552,8 @@ const WORN_BANDS = {
 //   hurt    flash its hurtColour
 //   worn    item types it's wearing (Character.worn())
 //   held    the item type in its hand (Character.heldItem()), or null
-function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, worn = [], held = null } = {}) {
-  const w = settings.width;
-  const h = settings.height;
+//   w, h    its size, normally its width and height (a roll squashes it, Character.drawBody())
+function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, worn = [], held = null, w = settings.width, h = settings.height } = {}) {
   // top left, rounded to whole pixels so the edges are sharp
   const left = Math.round(x - w / 2);
   const top = Math.round(y - h / 2);

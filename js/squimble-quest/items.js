@@ -24,7 +24,9 @@
 //   weapon    its weapon's settings (weapons.js) if holding it lets you attack, otherwise null
 //   wear      where it's worn, a WEAR_PLACES key like "feet", or null if it can't be. it fits the
 //             inventory screen's slots for that place (EQUIPMENT_SLOTS in inventory.js), shows on
-//             whoever wears it, and enemies can be given it in the editor. it doesn't do anything yet
+//             whoever wears it, and enemies can be given it in the editor. on its own it doesn't do
+//             anything, it's settings like roll that do
+//   roll      true if wearing it lets you dodge roll (Shift, ROLL in config.js), like the quick charm
 //   rarity    a RARITIES key, which decides its glow (itemglow.js)
 //   colour    placeholder colour in the hotbar
 //   image     like "assets/squimble-quest/items/axe.png"
@@ -72,6 +74,7 @@ const ITEM_DEFAULTS = {
   category: 'item',
   weapon: null,
   wear: null,
+  roll: false,
   rarity: 'common',
   colour: '#ff00ff',
   image: null,

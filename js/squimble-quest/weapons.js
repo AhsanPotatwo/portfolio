@@ -225,7 +225,7 @@ class MeleeSwing {
     // the lunge goes with the sweep, not the windup
     if (before <= 0) this.owner.pushTowards(this.angle, this.weapon.lunge);
     for (const target of targets) {
-      if (target.dead || this.hit.has(target)) continue;
+      if (!target.hittable() || this.hit.has(target)) continue;
       if (this.reaches(target)) {
         this.hit.add(target);
         // knocked away from whoever hit it
@@ -267,6 +267,10 @@ class MeleeSwing {
   // a swoosh that sweeps across the arc with the blade at its front edge. while winding up it's just
   // the blade, drawn back past the start of the arc and brightening. world positions (inside
   // camera.begin/end)
+  //
+  // ponytail: the swoosh is the swing's real reach and arc (what reaches() hits), there to see its range
+  // until weapons have sprites. nothing reads it, so a weapon sprite can replace this, or go on top with
+  // the swoosh moved behind a dev mode overlay (DEV_OVERLAYS, debug.js)
   draw() {
     const ox = this.owner.x;
     const oy = this.owner.y;
@@ -368,7 +372,7 @@ class Arrow {
       this.travelled += step;
       // level for most of the way, then down onto the floor right at its reach
       this.height = this.startHeight * (1 - (this.travelled / this.weapon.reach) ** 4);
-      const target = this.owner.targets(world).find((t) => !t.dead && this.touches(t));
+      const target = this.owner.targets(world).find((t) => t.hittable() && this.touches(t));
       if (target) {
         // knocked on the way the arrow was going
         hitWith(this.owner, target, this.weapon, this.angle);

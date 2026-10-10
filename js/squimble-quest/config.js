@@ -39,9 +39,29 @@ const COMBAT = {
   attackBuffer: 0.2,
 };
 
+// the dodge roll (Character.startRoll()), only while wearing an item with roll (the quick charm,
+// items.js), whatever's in your hand. it goes where you're walking, or the way you're facing if you're
+// standing still. a press during a swing is remembered for COMBAT.attackBuffer and rolls once the
+// swing's over
+const ROLL = {
+  // px/s and seconds, so it goes speed * time px (about 3 tiles). sand and heavy weapons (carrySpeed)
+  // make it shorter, like walking
+  speed: 380,
+  time: 0.28,
+  // seconds from the start where nothing can hit it at all, the dodge itself. after that it can be
+  // hit, but its hitbox is still small
+  invincible: 0.2,
+  // how tall its hitbox (bodyBox()) is while rolling, in parts of its standing height. it stays on its
+  // feet, so it ducks under things aimed high
+  height: 0.5,
+  // seconds from the start of one roll to the next
+  cooldown: 0.6,
+};
+
 // ---------- player ----------
 const PLAYER = {
-  // a bit under 32x64 (1 x 2 tiles) so it'll fit through 1 tile gaps later
+  // its hitbox, what attacks hit (bodyBox() in character.js). the rectangle you see is drawn this
+  // size, but a sprite can be any size. a bit under 32x64 (1 x 2 tiles)
   width: 28,
   height: 56,
   // px/s. 170 is about 5 tiles a second
@@ -162,6 +182,8 @@ const KEYS = {
   down:  ['KeyS', 'ArrowDown'],
   left:  ['KeyA', 'ArrowLeft'],
   right: ['KeyD', 'ArrowRight'],
+  // dodge roll, while wearing the quick charm (ROLL)
+  roll:  ['ShiftLeft', 'ShiftRight'],
 
   // hotbar slots (inventory.js)
   slot1: ['Digit1', 'Numpad1'],
