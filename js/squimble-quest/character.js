@@ -67,6 +67,8 @@ class Character {
     // px/s it's being shoved on top of walking, by knockback, lunges and recoil (pushTowards()). it
     // slows to a stop (COMBAT.pushFade) or stops at whatever it hits
     this.pushVelocity = { x: 0, y: 0 };
+    // a shove that takes over walking is going (pushTowards(), pushedHard())
+    this.pushLocked = false;
 
     this.maxHealth = settings.maxHealth;
     this.health = this.maxHealth;
@@ -130,7 +132,9 @@ class Character {
     }
 
     const staggered = this.stagger > 0;
-    this.walk(staggered ? STAND_STILL.move : controls.move, dt, world);
+    // getting hit while winding up a heavy swing stops it (MeleeSwing in weapons.js)
+    if (staggered && this.swing?.windingUp) this.swing = null;
+    this.walk(staggered || this.pushedHard() ? STAND_STILL.move : controls.move, dt, world);
     this.aimAt(controls.aim);
     const weapon = this.currentWeapon();
     if (chargesUp(weapon)) {
@@ -177,9 +181,11 @@ class Character {
       dy *= Math.SQRT1_2;
     }
 
-    // the tile's speed (sand slows you down), and slower while drawing a shot (chargeSlow, weapons.js)
+    // the tile's speed (sand slows you down), the weapon in hand's carrySpeed (a heavy axe slows you),
+    // and slower while drawing a shot (chargeSlow, weapons.js)
     const tile = this.tile;
-    const speed = this.speed * (tile ? tile.speed : 1) * (this.charge !== null ? this.chargeWeapon.chargeSlow : 1);
+    const carry = this.currentWeapon()?.carrySpeed ?? 1;
+    const speed = this.speed * (tile ? tile.speed : 1) * carry * (this.charge !== null ? this.chargeWeapon.chargeSlow : 1);
 
     // the velocity it wants plus any push from the tile (pushSpeed is in tiles)
     const push = PUSH_DIRECTIONS[tile?.pushDirection];
@@ -231,10 +237,18 @@ class Character {
   }
 
   // shoves it speed px/s towards angle (radians), on top of anything already shoving it. knockback,
-  // lunges and recoil all use this
-  pushTowards(angle, speed) {
+  // lunges and recoil all use this. takeOver (knockback and recoil) means it can't walk until the shove
+  // has slowed to COMBAT.pushLockEnd, so walking against it doesn't cut it short (pushedHard())
+  pushTowards(angle, speed, takeOver = false) {
     this.pushVelocity.x += Math.cos(angle) * speed;
     this.pushVelocity.y += Math.sin(angle) * speed;
+    if (takeOver && speed > 0) this.pushLocked = true;
+  }
+
+  // is a takeOver shove (pushTowards()) still going strong enough to stop it walking?
+  pushedHard() {
+    if (this.pushLocked && Math.hypot(this.pushVelocity.x, this.pushVelocity.y) < COMBAT.pushLockEnd) this.pushLocked = false;
+    return this.pushLocked;
   }
 
   // cuts down amount (movement along 'x' or 'y') so the feet stop right up against any living
@@ -342,11 +356,12 @@ class Character {
     this.comboLeft = hit.cooldown + weapon.comboWindow;
     this.attackCooldown = hit.cooldown;
     this.attackBuffer = 0;
-    this.pushTowards(this.aimAngle, hit.lunge);
     if (hit.attack === 'shoot') {
+      this.pushTowards(this.aimAngle, hit.lunge);
       world.arrows.push(new Arrow(this, hit, this.aimAngle));
       return;
     }
+    // a swing lunges once its windup's over (MeleeSwing.update())
     this.swing = new MeleeSwing(this, hit, this.aimAngle, this.backhand);
     this.backhand = !this.backhand;
   }

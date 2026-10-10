@@ -68,6 +68,7 @@ class Player extends Character {
     this.y = y;
     // the knockback that killed you (or anything else shoving you) doesn't carry on after
     this.pushVelocity = { x: 0, y: 0 };
+    this.pushLocked = false;
     this.stagger = 0;
     // forget the tile from the last map, so this one counts as just stepped on
     this.tile = null;

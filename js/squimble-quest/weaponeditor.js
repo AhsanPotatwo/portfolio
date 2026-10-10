@@ -17,6 +17,7 @@ const HIT_SETTINGS = [
   { key: 'damage', tab: 'Hit', label: 'Damage', min: 0, max: 200, tip: 'Taken off each thing it hits' },
   { key: 'reach', tab: 'Hit', label: 'Reach', min: 8, max: 600, unit: 'px', tip: "How far a swing reaches from your middle, or how far an arrow flies. A tile's 32" },
   { key: 'arc', tab: 'Hit', label: 'Arc', min: 5, max: 360, unit: '°', tip: 'How wide a swing is, 360 all the way round. Narrow is a stab. Swings only' },
+  { key: 'windup', tab: 'Hit', label: 'Windup', min: 0, max: 1, step: 0.01, unit: 's', tip: 'A pause with the weapon raised before it swings. Heavy, and shows it coming. Getting hit stops it' },
   { key: 'swingTime', tab: 'Hit', label: 'Swing time', min: 0.02, max: 1, step: 0.01, unit: 's', tip: 'How long a swing takes to sweep across. Swings only' },
   { key: 'cooldown', tab: 'Hit', label: 'Cooldown', min: 0.02, max: 3, step: 0.01, unit: 's', tip: 'From this attack to the next. Longer on a big last hit' },
   { key: 'arrowSpeed', tab: 'Hit', label: 'Arrow speed', min: 50, max: 1500, step: 10, unit: 'px/s', tip: 'How fast its arrows fly. Shooting only' },
@@ -35,6 +36,7 @@ const WEAPON_WIDE_SETTINGS = [
   { key: 'chargeTime', label: 'Charge time', min: 0, max: 3, step: 0.05, unit: 's', tip: 'Shooting only. Seconds holding attack to fully draw, then let go to shoot. 0 shoots on click' },
   { key: 'minPower', label: 'Tap power', min: 0.05, max: 1, step: 0.05, unit: '×', tip: 'How strong a shot let go straight away is. Damage, range, speed and knockback grow to full' },
   { key: 'chargeSlow', label: 'Draw walk', min: 0.1, max: 1, step: 0.05, unit: '×', tip: 'How fast you walk while drawing. 1 is normal speed' },
+  { key: 'carrySpeed', label: 'Carry walk', min: 0.3, max: 1.5, step: 0.05, unit: '×', tip: 'How fast you walk while holding it. Below 1 for heavy weapons' },
 ];
 
 // the most hits the Combo picker goes up to
@@ -238,7 +240,7 @@ class WeaponPreview extends UIElement {
   start() {
     for (const c of [this.attacker, this.target]) {
       Object.assign(c, {
-        y: 0, health: c.maxHealth, pushVelocity: { x: 0, y: 0 }, stagger: 0, frozen: 0, swing: null,
+        y: 0, health: c.maxHealth, pushVelocity: { x: 0, y: 0 }, pushLocked: false, stagger: 0, frozen: 0, swing: null,
         attackCooldown: 0, attackBuffer: 0, comboStep: 0, comboLeft: 0, backhand: false, charge: null,
       });
     }
@@ -280,11 +282,14 @@ class WeaponPreview extends UIElement {
     // the shake is in screen px, like the real one
     translate(Math.round(x + w * 0.25 + this.camera.shakeX), Math.round(y + h * 0.5 + this.camera.shakeY));
     scale(WEAPON_PREVIEW.zoom);
-    // the floor line they stand on
-    stroke(255, 255, 255, 40);
-    strokeWeight(1);
-    const floor = this.attacker.h / 2;
-    line(-w, floor, w * 2, floor);
+    // a faint tile grid fixed to the floor, so you can see how far things move
+    const left = -w * 0.25 / WEAPON_PREVIEW.zoom;
+    const right = w * 0.75 / WEAPON_PREVIEW.zoom;
+    const half = h / 2 / WEAPON_PREVIEW.zoom;
+    stroke(255, 255, 255, 18);
+    strokeWeight(1 / WEAPON_PREVIEW.zoom);
+    for (let gx = Math.ceil(left / TILE) * TILE; gx < right; gx += TILE) line(gx, -half, gx, half);
+    for (let gy = Math.ceil(-half / TILE) * TILE; gy < half; gy += TILE) line(left, gy, right, gy);
     this.target.draw();
     this.attacker.draw();
     for (const arrow of this.world.arrows) arrow.draw();

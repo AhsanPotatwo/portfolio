@@ -25,12 +25,16 @@
 //   cooldown    seconds from the start of one attack to the next
 //   arrowSpeed  how fast its arrows fly in px/s (shooting only)
 //   colour      colour of the swoosh, or an arrow's head and feathers
+//   windup      seconds a swing is held back before it sweeps, the weapon raised and glowing, so heavy
+//               hits feel heavy and you can see them coming (swings only)
 //   knockback   px/s it shoves whatever it hits away (slowing at COMBAT.pushFade, config.js, so it
-//               slides about knockback / 8 px)
+//               slides about knockback / 8 px). it can't walk against it until it's slowed down
+//               (Character.pushedHard())
 //   stagger     seconds whatever it hits can't walk or attack afterwards
 //   lunge       px/s the attacker steps forwards with each attack, so swings carry you in
 //   recoil      px/s the attacker is shoved back when a swing lands (once per swing, however many it
-//               hits), like the sword's last stab bouncing you off
+//               hits), like the sword's last stab bouncing you off. it takes over walking like
+//               knockback does
 //   shake       px the screen shakes when the player lands a hit or gets hit with it. so an enemy's
 //               weapon sets how hard you get shaken
 //   shakeTime   seconds the shake takes to settle
@@ -47,8 +51,9 @@
 //   minPower    how strong a shot let go straight away is, from 0 to 1 of a full draw. damage, reach
 //               (how far it flies), arrowSpeed and knockback all scale with it (chargePower())
 //   chargeSlow  how fast you walk while drawing, 1 is normal speed
+//   carrySpeed  how fast you walk while holding it, 1 is normal speed (a heavy axe slows you down)
 //
-// every setting from damage to hitStop can be different for each hit of a combo (HIT_SETTINGS in
+// every setting from damage to hitStop (and windup) can be different for each hit of a combo (HIT_SETTINGS in
 // weaponeditor.js). the rest are for the whole weapon
 //
 // a new kind of attack (a spell, a thrown spear) would be a class next to MeleeSwing and Arrow, a line
@@ -65,6 +70,7 @@ const WEAPON_DEFAULTS = {
   cooldown: 0.3,
   arrowSpeed: 500,
   colour: '#ffffff',
+  windup: 0,
   knockback: 120,
   stagger: 0.1,
   lunge: 0,
@@ -77,6 +83,7 @@ const WEAPON_DEFAULTS = {
   chargeTime: 0,
   minPower: 0.3,
   chargeSlow: 0.5,
+  carrySpeed: 1,
 };
 
 // each way a weapon can attack (its attack setting), with the words the item editor shows for it
@@ -152,7 +159,7 @@ function drawChargeLine(owner, weapon, seconds) {
 // it kills respawns without the knockback (Player.placeAt())
 function hitWith(attacker, target, weapon, angle) {
   target.burstParticles(target.hitParticles, angle); // particles.js
-  target.pushTowards(angle, weapon.knockback);
+  target.pushTowards(angle, weapon.knockback, true);
   target.stagger = Math.max(target.stagger, weapon.stagger);
   target.freeze(weapon.hitStop);
   (attacker.camera ?? target.camera)?.shake(weapon.shake, weapon.shakeTime);
@@ -171,8 +178,8 @@ class MeleeSwing {
     this.weapon = weapon;
     this.angle = angle;
     this.backhand = backhand;
-    // seconds since it started
-    this.time = 0;
+    // seconds since it started sweeping, below 0 while it's still winding up (its windup)
+    this.time = -weapon.windup;
     // everything it's already hit
     this.hit = new Set();
   }
@@ -181,9 +188,18 @@ class MeleeSwing {
     return this.time >= this.weapon.swingTime;
   }
 
+  // still winding up, so it hasn't hit anything yet. a stagger cancels it then (Character.update())
+  get windingUp() {
+    return this.time < 0;
+  }
+
   // targets: who it's allowed to hurt (enemies for the player's swing, the player for an enemy's)
   update(dt, targets) {
+    const before = this.time;
     this.time += dt;
+    if (this.windingUp) return;
+    // the lunge goes with the sweep, not the windup
+    if (before <= 0) this.owner.pushTowards(this.angle, this.weapon.lunge);
     for (const target of targets) {
       if (target.dead || this.hit.has(target)) continue;
       if (this.reaches(target)) {
@@ -194,7 +210,7 @@ class MeleeSwing {
         // the swinger stops for the hit too, which is what makes it feel like it connected, and bounces
         // back off the first thing it hits
         this.owner.freeze(this.weapon.hitStop);
-        if (this.hit.size === 1) this.owner.pushTowards(angle + Math.PI, this.weapon.recoil);
+        if (this.hit.size === 1) this.owner.pushTowards(angle + Math.PI, this.weapon.recoil, true);
       }
     }
   }
@@ -224,7 +240,8 @@ class MeleeSwing {
     return Math.abs(angleDifference(toPoint, this.angle)) <= halfArc;
   }
 
-  // a swoosh that sweeps across the arc with the blade at its front edge. world positions (inside
+  // a swoosh that sweeps across the arc with the blade at its front edge. while winding up it's just
+  // the blade, drawn back past the start of the arc and brightening. world positions (inside
   // camera.begin/end)
   draw() {
     const ox = this.owner.x;
@@ -233,8 +250,21 @@ class MeleeSwing {
     const progress = constrain(this.time / this.weapon.swingTime, 0, 1);
 
     // where the blade starts and where it is now. backhand swings go the other way
-    const start = this.backhand ? this.angle + halfArc : this.angle - halfArc;
-    const blade = this.backhand ? start - progress * halfArc * 2 : start + progress * halfArc * 2;
+    const way = this.backhand ? -1 : 1;
+    const start = this.angle - way * halfArc;
+    const blade = start + way * progress * halfArc * 2;
+
+    if (this.windingUp) {
+      // 0 to 1 through the windup
+      const raised = 1 + this.time / this.weapon.windup;
+      const back = start - way * radians(30) * raised;
+      const glint = color(this.weapon.colour);
+      glint.setAlpha(60 + 195 * raised);
+      stroke(glint);
+      strokeWeight(3 + 2 * raised);
+      line(ox + Math.cos(back) * this.weapon.reach * 0.3, oy + Math.sin(back) * this.weapon.reach * 0.3, ox + Math.cos(back) * this.weapon.reach, oy + Math.sin(back) * this.weapon.reach);
+      return;
+    }
 
     // a see-through pie slice from the start to the blade. arc() wants the smaller angle first. the
     // p5 colour gets made here instead of being stored on the swing, so the swing stays as plain data

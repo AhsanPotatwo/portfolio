@@ -31,6 +31,9 @@ const COMBAT = {
   // how fast knockback, lunges and recoil slow down, higher stops sooner. something pushed at speed v
   // slides about v / pushFade px
   pushFade: 8,
+  // knockback and recoil take over walking until they've slowed to this many px/s
+  // (Character.pushedHard())
+  pushLockEnd: 40,
   // seconds an attack click is remembered, so clicking just before the weapon's ready (or during a
   // hit stop) still attacks as soon as it can. makes combos easy to keep going
   attackBuffer: 0.2,
