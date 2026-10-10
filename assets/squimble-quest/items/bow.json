@@ -3,15 +3,18 @@
   "category": "weapon",
   "weapon": {
     "attack": "shoot",
-    "damage": 15,
+    "damage": 25,
     "reach": 420,
-    "cooldown": 0.5,
-    "arrowSpeed": 520,
+    "cooldown": 0.35,
+    "arrowSpeed": 620,
     "colour": "#e8e8e8",
-    "knockback": 140,
-    "stagger": 0.15,
-    "shake": 2,
-    "shakeTime": 0.25
+    "knockback": 180,
+    "stagger": 0.2,
+    "shake": 2.5,
+    "shakeTime": 0.25,
+    "chargeTime": 0.8,
+    "minPower": 0.25,
+    "chargeSlow": 0.45
   },
   "rarity": "uncommon",
   "colour": "#a0703c"

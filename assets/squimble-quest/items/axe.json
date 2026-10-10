@@ -10,7 +10,6 @@
     "colour": "#ffd9a0",
     "knockback": 300,
     "stagger": 0.45,
-    "lunge": 120,
     "shake": 8,
     "shakeTime": 0.4,
     "hitStop": 0.05,
@@ -24,8 +23,7 @@
         "cooldown": 0.95,
         "knockback": 850,
         "stagger": 0.8,
-        "lunge": 220,
-        "shake": 14,
+        "shake": 6,
         "shakeTime": 0.5,
         "hitStop": 0.1
       }

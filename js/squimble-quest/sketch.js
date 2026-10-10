@@ -232,7 +232,9 @@ function draw() {
     player.update(InventoryScreen.active ? STAND_STILL : {
       move: Input.direction(),
       aim,
-      attack: !Dialogue.active && Input.mousePressed('left'),    }, dt, world);
+      attack: !Dialogue.active && Input.mousePressed('left'),
+      // held, for drawing a bow. pressed counts too, so a click that's let go within a frame still shoots
+      charge: !Dialogue.active && (Input.mouseHeld('left') || Input.mousePressed('left')),    }, dt, world);
     // picks up items that are close enough (inventory.js)
     Drops.update(worldMap, player, dt);
 

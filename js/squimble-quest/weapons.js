@@ -10,8 +10,9 @@
 // an item's for its Weapon, Hit and Feel tabs, or click an enemy's own (the ones with a badge). the
 // inspector's Export downloads the changed item and enemy files.
 //
-// a bow is the same with "attack": "shoot", and its reach is how far the arrow flies:
-//   "weapon": { "attack": "shoot", "damage": 15, "reach": 420, "cooldown": 0.5, "arrowSpeed": 520 }
+// a bow is the same with "attack": "shoot", and its reach is how far the arrow flies. with a
+// chargeTime you hold attack to draw it and let go to shoot, harder the longer it's drawn:
+//   "weapon": { "attack": "shoot", "damage": 25, "reach": 420, "arrowSpeed": 620, "chargeTime": 0.8 }
 //
 // settings (any that are missing come from WEAPON_DEFAULTS):
 //   attack      how it attacks, a WEAPON_ATTACKS name: "swing" (a MeleeSwing) or "shoot" (an Arrow)
@@ -40,9 +41,15 @@
 //               the last it starts over. the last is usually the big one, with a longer cooldown:
 //                 "combo": [{}, {}, { "damage": 30, "knockback": 560, "cooldown": 0.6 }]
 //   comboWindow seconds after an attack's cooldown that attacking still carries on the combo
+//   chargeTime  shooting only: seconds of holding attack to fully draw it, then letting go shoots
+//               (Character.updateCharge()). 0 shoots straight away on click. getting staggered while
+//               drawing loses the shot
+//   minPower    how strong a shot let go straight away is, from 0 to 1 of a full draw. damage, reach
+//               (how far it flies), arrowSpeed and knockback all scale with it (chargePower())
+//   chargeSlow  how fast you walk while drawing, 1 is normal speed
 //
 // every setting from damage to hitStop can be different for each hit of a combo (HIT_SETTINGS in
-// weaponeditor.js). attack, colour and comboWindow are for the whole weapon
+// weaponeditor.js). the rest are for the whole weapon
 //
 // a new kind of attack (a spell, a thrown spear) would be a class next to MeleeSwing and Arrow, a line
 // in WEAPON_ATTACKS, and a branch in Character.attack() (character.js)
@@ -67,6 +74,9 @@ const WEAPON_DEFAULTS = {
   hitStop: 0.02,
   combo: null,
   comboWindow: 0.3,
+  chargeTime: 0,
+  minPower: 0.3,
+  chargeSlow: 0.5,
 };
 
 // each way a weapon can attack (its attack setting), with the words the item editor shows for it
@@ -101,6 +111,38 @@ function makeWeapon(settings, owner) {
 // got one. Character.attack() (character.js) keeps count
 function comboHit(weapon, step) {
   return weapon.combo ? { ...weapon, ...weapon.combo[step % weapon.combo.length] } : weapon;
+}
+
+// does it draw before shooting (a bow with a chargeTime)?
+function chargesUp(weapon) {
+  return weapon?.attack === 'shoot' && weapon.chargeTime > 0;
+}
+
+// how strong a shot drawn for `seconds` is: its minPower straight away, up to 1 at its chargeTime
+function chargePower(weapon, seconds) {
+  return weapon.minPower + (1 - weapon.minPower) * Math.min(1, seconds / weapon.chargeTime);
+}
+
+// a hit's settings (comboHit()) for a shot at `power` (chargePower())
+function poweredHit(hit, power) {
+  if (power >= 1) return hit;
+  return { ...hit, damage: Math.round(hit.damage * power), reach: hit.reach * power, arrowSpeed: hit.arrowSpeed * power, knockback: hit.knockback * power };
+}
+
+// a shot being drawn: a line from the shooter along their aim, as far as it'd fly if let go now, in its
+// colour. dotted while drawing, solid once fully drawn. enemies show it too, so you can see an archer
+// getting ready. world positions (inside camera.begin/end)
+function drawChargeLine(owner, weapon, seconds) {
+  const full = seconds >= weapon.chargeTime;
+  const length = weapon.reach * chargePower(weapon, seconds);
+  const lineColour = color(weapon.colour);
+  lineColour.setAlpha(full ? 200 : 110);
+  push();
+  stroke(lineColour);
+  strokeWeight(full ? 2 : 1.5);
+  if (!full) drawingContext.setLineDash([4, 6]);
+  line(owner.x, owner.y, owner.x + Math.cos(owner.aimAngle) * length, owner.y + Math.sin(owner.aimAngle) * length);
+  pop();
 }
 
 // everything a hit does, for swings and arrows alike: damage, the target's particles flying the way it

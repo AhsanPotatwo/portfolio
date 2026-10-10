@@ -6,6 +6,9 @@
 //   move    which way to walk, x and y each -1, 0 or 1 (like Input.direction())
 //   aim     a world position to face, or null to keep facing the same way
 //   attack  swing or shoot its weapon (if it's ready, or within COMBAT.attackBuffer of being ready)
+//   charge  optional, attack is being held down, for weapons that draw before shooting (a bow with a
+//           chargeTime, updateCharge()). ais leave it out and just keep attacking, which lets go once
+//           it's fully drawn
 // the player's come from the keyboard and mouse (sketch.js) and enemies' come from their ai
 // (enemies.js), so enemies can do anything the player can.
 //
@@ -102,6 +105,9 @@ class Character {
     this.comboStep = 0;
     this.comboWeapon = null;
     this.comboLeft = 0;
+    // seconds it's been drawing a shot (updateCharge()) and the weapon it's drawing, or null
+    this.charge = null;
+    this.chargeWeapon = null;
 
     // getting hit (hitWith() in weapons.js). frozen: seconds it stands still mid-hit (the hit stop).
     // stagger: seconds it can't walk or attack
@@ -126,7 +132,13 @@ class Character {
     const staggered = this.stagger > 0;
     this.walk(staggered ? STAND_STILL.move : controls.move, dt, world);
     this.aimAt(controls.aim);
-    if (!staggered && this.attackBuffer > 0) this.attack(world);
+    const weapon = this.currentWeapon();
+    if (chargesUp(weapon)) {
+      this.updateCharge(controls, weapon, staggered, dt, world);
+    } else {
+      this.charge = null;
+      if (!staggered && this.attackBuffer > 0) this.attack(world);
+    }
 
     if (this.swing) {
       this.swing.update(dt, this.targets(world));
@@ -165,9 +177,9 @@ class Character {
       dy *= Math.SQRT1_2;
     }
 
-    // the tile's speed (sand slows you down)
+    // the tile's speed (sand slows you down), and slower while drawing a shot (chargeSlow, weapons.js)
     const tile = this.tile;
-    const speed = this.speed * (tile ? tile.speed : 1);
+    const speed = this.speed * (tile ? tile.speed : 1) * (this.charge !== null ? this.chargeWeapon.chargeSlow : 1);
 
     // the velocity it wants plus any push from the tile (pushSpeed is in tiles)
     const push = PUSH_DIRECTIONS[tile?.pushDirection];
@@ -319,12 +331,12 @@ class Character {
   // swings or shoots towards where it's aiming (its weapon's attack, weapons.js), if it has a weapon
   // and it's ready, lunging forwards with it. a weapon with a combo does its next hit, or starts over
   // if it waited too long or changed weapon. arrows go in world.arrows, since they keep flying after the
-  // attack's over
-  attack(world) {
+  // attack's over. power is how far drawn a shot was (chargePower() in weapons.js), 1 for full
+  attack(world, power = 1) {
     const weapon = this.currentWeapon();
     if (!weapon || this.attackCooldown > 0) return;
     if (weapon !== this.comboWeapon || this.comboLeft <= 0) this.comboStep = 0;
-    const hit = comboHit(weapon, this.comboStep); // weapons.js
+    const hit = poweredHit(comboHit(weapon, this.comboStep), power); // weapons.js
     this.comboWeapon = weapon;
     this.comboStep++;
     this.comboLeft = hit.cooldown + weapon.comboWindow;
@@ -337,6 +349,27 @@ class Character {
     }
     this.swing = new MeleeSwing(this, hit, this.aimAngle, this.backhand);
     this.backhand = !this.backhand;
+  }
+
+  // drawing a weapon that charges up (chargesUp() in weapons.js): it starts drawing once it's ready
+  // and attack is held, walks slower while drawing (walk()), and shoots when let go, harder the longer
+  // it was drawn. the player holds the mouse (controls.charge); ais leave that out and keep attacking,
+  // so they let go once it's fully drawn. getting staggered or changing weapon loses the shot
+  updateCharge(controls, weapon, staggered, dt, world) {
+    if (staggered || (this.charge !== null && this.chargeWeapon !== weapon)) {
+      this.charge = null;
+      return;
+    }
+    const holding = controls.charge ?? (controls.attack && (this.charge ?? 0) < weapon.chargeTime);
+    if (holding && this.charge !== null) {
+      this.charge += dt;
+    } else if (holding && this.attackCooldown === 0) {
+      this.charge = 0;
+      this.chargeWeapon = weapon;
+    } else if (!holding && this.charge !== null) {
+      this.attack(world, chargePower(weapon, this.charge));
+      this.charge = null;
+    }
   }
 
   // the item types it's wearing (their wear setting, items.js), drawn on its body. the player and
@@ -397,6 +430,8 @@ class Character {
     // health bar once it's been hurt
     if (this.health < this.maxHealth) this.drawHealthBar();
     if (this.swing) this.swing.draw();
+    // how far the shot it's drawing would fly (weapons.js)
+    if (this.charge !== null) drawChargeLine(this, this.chargeWeapon, this.charge);
   }
 
   // the health bar over its head, in healthBarColour

@@ -29,6 +29,14 @@ const HIT_SETTINGS = [
   { key: 'hitStop', tab: 'Feel', label: 'Hit stop', min: 0, max: 0.3, step: 0.01, unit: 's', tip: 'How long both sides freeze when it lands. Makes it feel heavy' },
 ];
 
+// the sliders on the Weapon tab, for settings that are the whole weapon's rather than one hit's
+const WEAPON_WIDE_SETTINGS = [
+  { key: 'comboWindow', label: 'Combo time', min: 0, max: 1.5, step: 0.05, unit: 's', tip: 'Seconds after the cooldown that attacking still carries on the combo' },
+  { key: 'chargeTime', label: 'Charge time', min: 0, max: 3, step: 0.05, unit: 's', tip: 'Shooting only. Seconds holding attack to fully draw, then let go to shoot. 0 shoots on click' },
+  { key: 'minPower', label: 'Tap power', min: 0.05, max: 1, step: 0.05, unit: '×', tip: 'How strong a shot let go straight away is. Damage, range, speed and knockback grow to full' },
+  { key: 'chargeSlow', label: 'Draw walk', min: 0.1, max: 1, step: 0.05, unit: '×', tip: 'How fast you walk while drawing. 1 is normal speed' },
+];
+
 // the most hits the Combo picker goes up to
 const MAX_COMBO = 6;
 
@@ -60,7 +68,7 @@ function weaponForm(weapon, { attacker, target }) {
     value: hits.length,
     label: (n) => (n === 1 ? 'none (1 hit)' : `${n} hits`),
   });
-  const windowSlider = weaponSlider({ min: 0, max: 1.5, step: 0.05, unit: 's' }, weapon.comboWindow);
+  const wideSliders = Object.fromEntries(WEAPON_WIDE_SETTINGS.map((line) => [line.key, weaponSlider(line, weapon[line.key])]));
   const colourField = new ColourField({ w: 180, value: weapon.colour }); // textfield.js
   // the Hit and Feel tabs have one each, kept on the same hit
   const hitPickers = [0, 1].map(() => new Picker({ w: 180, choices: [...hits.keys()], value: 0, label: (i) => `${i + 1} of ${hits.length}` }));
@@ -72,7 +80,7 @@ function weaponForm(weapon, { attacker, target }) {
       rows: [
         { label: 'Attack', field: attackPicker, tip: 'Swing it in an arc, or shoot arrows like a bow' },
         { label: 'Combo', field: comboPicker, tip: 'How many hits before it starts over. Each gets its own numbers on Hit and Feel' },
-        { label: 'Combo time', field: windowSlider, tip: 'Seconds after the cooldown that attacking still carries on the combo' },
+        ...WEAPON_WIDE_SETTINGS.map((line) => ({ label: line.label, field: wideSliders[line.key], tip: line.tip })),
         { label: 'Colour', field: colourField, tip: "The swoosh, or the arrows' heads and feathers" },
       ],
     },
@@ -99,7 +107,8 @@ function weaponForm(weapon, { attacker, target }) {
     for (const picker of hitPickers) {
       if (picker.choices.length !== hits.length || picker.value !== shown) picker.setChoices([...hits.keys()], shown);
     }
-    Object.assign(draft, hitsToSettings(hits), { attack: attackPicker.value, comboWindow: windowSlider.value });
+    Object.assign(draft, hitsToSettings(hits), { attack: attackPicker.value });
+    for (const { key } of WEAPON_WIDE_SETTINGS) draft[key] = wideSliders[key].value;
     // a colour that's halfway through being typed waits until it's finished
     if (HEX_COLOUR.test(colourField.value)) draft.colour = colourField.value;
   };
@@ -230,7 +239,7 @@ class WeaponPreview extends UIElement {
     for (const c of [this.attacker, this.target]) {
       Object.assign(c, {
         y: 0, health: c.maxHealth, pushVelocity: { x: 0, y: 0 }, stagger: 0, frozen: 0, swing: null,
-        attackCooldown: 0, attackBuffer: 0, comboStep: 0, comboLeft: 0, backhand: false,
+        attackCooldown: 0, attackBuffer: 0, comboStep: 0, comboLeft: 0, backhand: false, charge: null,
       });
     }
     this.attacker.x = 0;
