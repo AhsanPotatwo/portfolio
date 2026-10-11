@@ -41,6 +41,15 @@ Every tile in the game is its own file in this folder, named after it (`lava.jso
 
      Tile sounds only play in the game, not while the editor's open.
 
+   - **Footsteps**
+     - **Steps**: click it and tick the sounds walking on this tile makes, like grass's **grass-step** and dirt's **dirt-step**. Each step plays one of them at random and never the same one twice in a row, so ticking a few slightly different takes sounds more natural.
+     - **Volume**: louder or quieter than the sound normally is, 100% is normal.
+     - **Pitch**: over 100% is higher and snappier, under is lower and heavier. One step sound can do for a few tiles this way, like dirt-step at 70% for mud.
+     - **Pitch varies**: each step is a little higher or lower at random, up to this much, so no two sound exactly alike.
+     - **Heard from**: how many tiles away you hear enemies' and NPCs' steps. 0 uses each sound's own **Heard from**.
+
+     Everyone makes footsteps, but other people's are quieter than yours. How far apart steps are, how quickly the first one comes, and how quiet other people's are, are `FOOTSTEPS` in [`config.js`](../../../js/squimble-quest/config.js). Slow tiles give slower steps by themselves, and sliding, being pushed or walking into a wall makes none.
+
    - **Dual grid**
      - **Blends**: which dual grid tiles (like grass) round off onto this tile. **every dual grid tile** includes ones made later. **only the ticked ones** lets you untick the ones that look wrong in **Ticked** (click it for the list): they stop in a straight line at this tile's edge instead. Good for planks, walls and roofs; leave it on for natural ground like dirt.
 

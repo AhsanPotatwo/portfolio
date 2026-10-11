@@ -237,10 +237,10 @@
 //
 // ---------- ideas for later ----------
 //
-//   - sounds for more things that happen (weapons already have theirs, weaponSound() in weapons.js):
-//     footsteps (a stepSound setting on tiles, played from walk() in character.js), doors (a sound
-//     on warps), ui clicks. all of them are just playSound() calls. weaponSound() shows how to give
-//     repeats a little random pitch (play()'s rate option)
+//   - sounds for more things that happen (weapons already have theirs, weaponSound() in weapons.js,
+//     and footsteps theirs, a tile's stepSounds and Character.footstep()): doors (a sound on warps),
+//     ui clicks. all of them are just playSound() calls. weaponSound() shows how to give repeats a
+//     little random pitch (play()'s rate option)
 //   - an npc's voice could come from where they stand (and bend as they walk), with a place like a
 //     character sound's
 //   - sounds take time to arrive: something far away could be heard a little after it happens

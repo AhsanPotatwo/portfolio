@@ -447,7 +447,8 @@ class MultiPicker extends UIElement {
     this.label = options.label;
     this.art = options.art ?? null;
     this.none = options.none ?? 'none';
-    this.empty = options.empty ?? [];
+    // not ??, which would turn empty: null into []
+    this.empty = 'empty' in options ? options.empty : [];
     this.onChange = options.onChange ?? null;
     this.chosen = new Set(options.value ?? []);
     // its ChoiceList ticks instead of picking one and closing

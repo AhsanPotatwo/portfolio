@@ -1,3 +1,6 @@
 {
-  "colour": "#a47148"
+  "colour": "#a47148",
+  "stepSounds": [
+    "dirt-step"
+  ]
 }

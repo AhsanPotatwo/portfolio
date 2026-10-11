@@ -10,6 +10,6 @@
   "gap": 260,
   "scatter": 85,
   "lowPass": 70,
-  "volume": 110,
+  "volume": 50,
   "range": 6
 }

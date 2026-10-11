@@ -73,6 +73,18 @@ const ROLL = {
 };
 
 // ---------- player ----------
+// footsteps (Character.footstep()), for everyone. which sound each step makes is up to the tile it
+// lands on (its stepSounds, tiles.js, or the tile editor's Footsteps tab)
+const FOOTSTEPS = {
+  // px walked between steps. the player walks 170 px/s, so 44 is about 4 steps a second, and slow
+  // tiles (sand, dirt) give slower steps by themselves
+  stride: 44,
+  // how far into a stride you are when you start walking (0 to 1), so the first step comes quickly
+  firstStep: 0.6,
+  // enemies' and npcs' steps, times as loud as yours. 0 turns them off
+  othersVolume: 0.6,
+};
+
 const PLAYER = {
   // its hitbox, what attacks hit (bodyBox() in character.js). the rectangle you see is drawn this
   // size, but a sprite can be any size. a bit under 32x64 (1 x 2 tiles)

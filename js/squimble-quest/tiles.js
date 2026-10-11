@@ -84,6 +84,19 @@ const TILE_DEFAULTS = {
   // each of those plays up to this much higher or lower (0.1 is 10%), picked at random when it
   // starts, so they don't sound like copies of each other
   soundPitchVariety: 0.08,
+  // footsteps on it, like ["grass-step"] (sounds/), or null for none. each step plays one at random,
+  // never the same one twice in a row, so a few takes of a step sound less like a machine
+  // (Character.footstep() in character.js, how often is FOOTSTEPS in config.js)
+  stepSounds: null,
+  // times how loud they are, 0.5 is half
+  stepVolume: 1,
+  // times how fast they play, so higher and shorter (2) or lower and longer (0.5). lets one step sound
+  // do for a few materials, like dirt-step at 0.7 for mud
+  stepPitch: 1,
+  // each step plays up to this much higher or lower (0.1 is 10%), at random
+  stepPitchVariety: 0.1,
+  // how many tiles away other people's steps are heard, or 0 for each sound's own Heard from
+  stepRange: 0,
 };
 
 // does the dual grid tile `dual` round off onto `tile`? if not, it stops in a straight line at tile's

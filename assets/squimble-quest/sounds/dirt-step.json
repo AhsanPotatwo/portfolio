@@ -1,0 +1,15 @@
+{
+  "wave": "noise",
+  "pitch": 220,
+  "drop": 12,
+  "dropTime": 15,
+  "attack": 1,
+  "sustain": 10,
+  "decay": 70,
+  "crackle": 120,
+  "crackleLength": 4,
+  "crackleDepth": 40,
+  "lowPass": 45,
+  "volume": 100,
+  "range": 6
+}

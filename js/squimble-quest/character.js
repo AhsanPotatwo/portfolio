@@ -71,6 +71,9 @@ class Character {
     this.pushVelocity = { x: 0, y: 0 };
     // a shove that takes over walking is going (pushTowards(), pushedHard())
     this.pushLocked = false;
+    // px walked since the last footstep, and that step's sound (footstep())
+    this.stepDistance = FOOTSTEPS.stride * FOOTSTEPS.firstStep;
+    this.lastStep = null;
 
     this.maxHealth = settings.maxHealth;
     this.health = this.maxHealth;
@@ -245,6 +248,10 @@ class Character {
       this.velocity.x = moved.x / dt;
       this.velocity.y = moved.y / dt;
     }
+    // steps go by how far walking really moved it, so walking into a wall is silent, and so are
+    // sliding and being pushed while standing still
+    if (dx || dy) this.footstep(map, Math.hypot(moved.x, moved.y));
+    else this.stepDistance = FOOTSTEPS.stride * FOOTSTEPS.firstStep;
 
     // being shoved (pushTowards()) goes on top, slowing down, and bumping into something stops it
     // that way too
@@ -277,6 +284,31 @@ class Character {
     this.x += x;
     this.y += y;
     return { x, y };
+  }
+
+  // counts up px walked, and every FOOTSTEPS.stride (config.js) plays a step from the tile it's on
+  // (stepSounds and the rest in tiles.js) at its feet. one of the tile's sounds at random, never the
+  // last one again if there's a choice. other people's are quieter (othersVolume), and ones too far
+  // away to hear don't play at all, so a crowd of enemies doesn't pile up sounds. doppler's off, or
+  // your own steps would bend as you walk away from them
+  footstep(map, walked) {
+    this.stepDistance += walked;
+    if (this.stepDistance < FOOTSTEPS.stride) return;
+    this.stepDistance %= FOOTSTEPS.stride;
+    const tile = this.tile;
+    // the editor's weapon preview walks too (weaponeditor.js)
+    if (!tile?.stepSounds?.length || this.inPreview) return;
+    const choices = tile.stepSounds.length > 1 ? tile.stepSounds.filter((name) => name !== this.lastStep) : tile.stepSounds;
+    const name = choices[Math.floor(Math.random() * choices.length)];
+    this.lastStep = name;
+    const sound = SOUNDS[name]; // sound.js
+    const volume = tile.stepVolume * (this.camera ? 1 : FOOTSTEPS.othersVolume);
+    const feet = this.feetBox();
+    const at = { x: feet.x + feet.w / 2, y: feet.y + feet.h / 2, map };
+    const range = tile.stepRange || sound?.range;
+    if (!sound || volume <= 0 || Sound.volumeAt(at, range) === 0) return;
+    const vary = tile.stepPitchVariety;
+    playSound(sound, at, null, { rate: tile.stepPitch * randomBetween(1 - vary, 1 + vary), volume, range, doppler: 0 });
   }
 
   // shoves it speed px/s towards angle (radians), on top of anything already shoving it. knockback,

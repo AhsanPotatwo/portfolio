@@ -1,5 +1,8 @@
 {
   "colour": "#6fae4f",
   "dualGrid": true,
-  "texture": "grass_tileset.png"
+  "texture": "grass_tileset.png",
+  "stepSounds": [
+    "grass-step"
+  ]
 }

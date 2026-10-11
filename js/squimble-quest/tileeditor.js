@@ -2,7 +2,7 @@
 // have to edit the tile files (tiles.js) by hand.
 //   - New (in the inspector on the Tiles tab) opens a box for a new tile. right clicking a tile in
 //     the palette (or Edit) opens it for one that already exists
-//   - the tabs are Look, then TILE_BEHAVIOURS' tabs (Behaviours, Effects, Sounds), then Dual grid
+//   - the tabs are Look, then TILE_BEHAVIOURS' tabs (Behaviours, Effects, Sounds, Footsteps), then Dual grid
 //     (blendsWith). settings with lots of choices (particles, which tiles blend onto it) are one row
 //     each with a list that drops down (MultiPicker in formbox.js), so the tabs never spill over
 //   - a column down the side shows the texture file and a little patch of the tile like on the map
@@ -53,6 +53,14 @@ const TILE_BEHAVIOURS = [
   // at least 1, or it would never play
   { tab: 'Sounds', key: 'soundSpots', label: 'At most', after: 'tiles at once', field: (value) => new NumberField({ w: 90, value, min: 1, max: 8 }), tip: 'Each sound only plays from this many of the closest tiles, however many there are. More is fuller in a big patch' },
   { tab: 'Sounds', key: 'soundPitchVariety', label: 'Pitch varies', after: '%', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 50 }), tip: "Each of those tiles plays up to this much higher or lower, so they don't sound like copies" },
+
+  // what walking on it sounds like (Character.footstep() in character.js)
+  { tab: 'Footsteps', key: 'stepSounds', label: 'Steps', field: (value) => soundMultiPicker(value), tip: 'Each step plays one of these at random, never the same twice in a row. Tick a few takes for variety' },
+  { tab: 'Footsteps', key: 'stepVolume', label: 'Volume', after: '% of normal', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 400 }) },
+  // at least 10%, since 0 would never finish playing
+  { tab: 'Footsteps', key: 'stepPitch', label: 'Pitch', after: '% of normal', scale: 100, field: (value) => new NumberField({ w: 90, value, min: 10, max: 400 }), tip: 'Higher and shorter over 100, lower and longer under. Lets one step sound do for a few materials' },
+  { tab: 'Footsteps', key: 'stepPitchVariety', label: 'Pitch varies', after: '%', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 50 }), tip: 'Each step plays up to this much higher or lower, so they never sound exactly the same' },
+  { tab: 'Footsteps', key: 'stepRange', label: 'Heard from', after: 'tiles', field: (value) => new NumberField({ w: 90, value, max: 50 }), tip: "How far away enemies' and npcs' steps are heard. 0 uses each sound's own Heard from" },
 ];
 
 // the most rows on a tab. any more carry on in a numbered tab ("Effects 2"). the box is always this
