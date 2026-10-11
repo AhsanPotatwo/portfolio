@@ -129,7 +129,8 @@ class Character {
     this.squash = 0;
     // where the light trail of lost health on its health bar has drained down to (drawHealthBar())
     this.trailHealth = this.maxHealth;
-    // set on the weapon editor's preview characters, which don't make sounds or damage numbers
+    // set on the weapon editor's preview characters, which make no damage numbers, and sounds only
+    // while they're audible (WeaponPreview, weaponeditor.js)
     this.inPreview = false;
     // the camera (camera.js) that shakes when it hits something or gets hit, or null. only this
     // computer's player has one (sketch.js), and the weapon editor's preview has its own
@@ -434,7 +435,7 @@ class Character {
     if (hit.attack === 'shoot') {
       this.pushTowards(this.aimAngle, hit.lunge);
       // a weaker shot twangs higher (weapons.js)
-      combatSound(this, 'shoot', 1.3 - 0.3 * power);
+      weaponSound(this, hit.attackSound, hit, heaviness(hit, power));
       world.arrows.push(new Arrow(this, hit, this.aimAngle));
       return;
     }

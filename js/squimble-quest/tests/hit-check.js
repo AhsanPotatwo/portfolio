@@ -1,6 +1,7 @@
 // checks what a landing hit does on top of the knockback (hitWith() in weapons.js): the player's
 // hitInvincible stops a second hit until it runs out, a killing blow holds the swinger's hit stop for
-// COMBAT.killHitStop, the damage pops up as a number, and the health bar's trail drains down after.
+// COMBAT.killHitStop, the damage pops up as a number, the health bar's trail drains down after, and
+// each plays its weapon's own sounds (weaponSound()), heard from afar when it's the player's own hit.
 // run it with node js/squimble-quest/tests/hit-check.js
 // no output means it all passed
 const fs = require('fs');
@@ -8,7 +9,7 @@ const vm = require('vm');
 const assert = require('assert');
 
 const sounds = [];
-const game = { PUSH_DIRECTIONS: {}, SLIPPERY_GRIP: 10, console, playSound: (name) => { sounds.push(name); return null; }, worldMap: null };
+const game = { PUSH_DIRECTIONS: {}, SLIPPERY_GRIP: 10, console, playSound: (name, at, key, options) => { sounds.push({ name, ...options }); return null; }, worldMap: null };
 vm.createContext(game);
 // const and class don't end up on game by themselves, so put the ones used here there
 vm.runInContext(['config.js', 'utils.js', 'weapons.js', 'character.js'].map((f) => fs.readFileSync(`${__dirname}/../${f}`, 'utf8')).join('\n')
@@ -40,7 +41,21 @@ assert.strictEqual(enemy.trailHealth, enemy.health);
 
 // a number popped up for each hit, and each made a sound
 assert.strictEqual(DamageNumbers.list.length, 2);
-assert(sounds.includes(COMBAT.sounds.hit) && sounds.includes(COMBAT.sounds.hurt));
+// the enemy's hit on the player: its hit sound at normal distance, and the player's own ouch
+const names = () => sounds.map((s) => s.name);
+assert.deepStrictEqual(names(), ['thwack', PLAYER.hurtSound, 'thwack']);
+assert.strictEqual(sounds[0].minVolume, 0);
+// the player's hit on the enemy is heard however far away (hitHeard)
+assert.strictEqual(sounds[2].minVolume, weapon.hitHeard);
+
+// a weapon's own sounds, volume and pitch, and none plays nothing
+sounds.length = 0;
+const loud = game.makeWeapon({ damage: 1, hitSound: 'laser', soundVolume: 2, soundPitch: 2, soundWobble: 0, soundWeight: 0 }, 'loud');
+hitWith(body(PLAYER), body(PLAYER, 30), loud, 0);
+assert.deepStrictEqual(sounds, [{ name: 'laser', rate: 2, volume: 2, minVolume: 0 }]);
+sounds.length = 0;
+hitWith(body(PLAYER), body(PLAYER, 30), game.makeWeapon({ hitSound: null }, 'quiet'), 0);
+assert.strictEqual(sounds.length, 0);
 
 // a killing blow holds the swinger longer, and sounds like a kill
 const swinger = body(PLAYER);
@@ -48,4 +63,8 @@ const victim = body({ ...PLAYER, maxHealth: 5 }, 30);
 new MeleeSwing(swinger, weapon, 0, false).strike(victim, 0);
 assert(victim.dead);
 assert.strictEqual(swinger.frozen, COMBAT.killHitStop);
-assert.strictEqual(sounds.at(-1), COMBAT.sounds.kill);
+assert.strictEqual(sounds.at(-1).name, weapon.killSound);
+// no kill sound uses the hit sound
+const fallback = body({ ...PLAYER, maxHealth: 1 }, 30);
+hitWith(swinger, fallback, game.makeWeapon({ killSound: null }, 'no kill sound'), 0);
+assert.strictEqual(sounds.at(-1).name, 'thwack');

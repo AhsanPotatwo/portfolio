@@ -211,19 +211,7 @@ const SoundBlocks = {
   // the sound itself, so every block using it changes too. Moving: how its sound moves, how far and
   // how fast, and whether it's seen in the game
   edit(block) {
-    const soundPicker = new Picker({
-      w: 180,
-      // a missing sound stays in the list so opening the box doesn't quietly change it
-      choices: SOUNDS[block.sound] ? Object.keys(SOUNDS) : [...Object.keys(SOUNDS), block.sound],
-      value: block.sound,
-      label: (name) => (SOUNDS[name] ? name : `${name} (missing)`),
-      art: (name, x, y, size) => {
-        if (!SOUNDS[name]) return;
-        stroke(SOUND_COLOURS.edge);
-        strokeWeight(1);
-        drawSoundShape(SOUNDS[name], x, y, size, size);
-      },
-    });
+    const soundPicker = pickSound(block.sound);
     const activatePicker = new Picker({
       w: 180,
       choices: Object.keys(SOUND_BLOCK_ACTIVATE),
@@ -285,6 +273,26 @@ const SoundBlocks = {
     });
   },
 };
+
+// a Picker (formbox.js) of every sound in SOUNDS with its shape, starting on `value`. none adds null
+// at the start, shown as "none". a missing sound stays in the list so opening a box doesn't quietly
+// change it. sound blocks and the weapon editor's Sound tab use it (weaponeditor.js)
+function pickSound(value, none = false) {
+  const names = Object.keys(SOUNDS);
+  if (value && !SOUNDS[value]) names.push(value);
+  return new Picker({
+    w: 180,
+    choices: none ? [null, ...names] : names,
+    value,
+    label: (name) => (name === null ? 'none' : SOUNDS[name] ? name : `${name} (missing)`),
+    art: (name, x, y, size) => {
+      if (!SOUNDS[name]) return;
+      stroke(SOUND_COLOURS.edge);
+      strokeWeight(1);
+      drawSoundShape(SOUNDS[name], x, y, size, size);
+    },
+  });
+}
 
 // a little sound marker: a dot with two sound waves coming off it, at x, y in world px, size 1 is
 // about half a tile. for blocks set to be seen, and moving blocks in the editor

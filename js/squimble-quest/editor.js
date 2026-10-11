@@ -607,7 +607,7 @@ const Editor = {
       { label: 'Colour', field: colourField, tip: 'Its placeholder colour until it has a picture' },
       { label: 'Worn on', field: wearPicker, tip: 'Which equipment slot it goes in. Nothing it does yet, it just shows' },
     ];
-    // the Weapon, Hit and Feel tabs and the preview of the player using it on the first enemy kind
+    // the Weapon, Hit, Feel and Sound tabs and the preview of the player using it on the first enemy kind
     // (weaponeditor.js)
     const form = weapon && weaponForm(weapon, { attacker: PLAYER, target: Object.values(ENEMY_TYPES)[0] ?? PLAYER });
 

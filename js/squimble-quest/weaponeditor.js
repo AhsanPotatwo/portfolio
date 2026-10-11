@@ -1,4 +1,4 @@
-// the weapon editor: the Weapon, Hit and Feel tabs for changing any weapon (weapons.js), with a preview
+// the weapon editor: the Weapon, Hit, Feel and Sound tabs for changing any weapon (weapons.js), with a preview
 // down the side that keeps doing the whole combo on a dummy, so you can see and feel the reach,
 // knockback, hit stop and screen shake as you drag. the map editor's Weapons tab opens it: Edit or right
 // click an item (Editor.editItem() puts these tabs after its Item tab), or click one of the enemies' own
@@ -10,8 +10,10 @@
 // away. Save writes the first hit as the weapon's own settings and every hit's differences from it as
 // its combo, the same as a file written by hand. it changes a copy, so Cancel leaves the weapon alone.
 //
-// the tabs: Weapon (attack, combo, then WEAPON_WIDE_SETTINGS: combo time, the bow's charge settings,
-// carry speed, then colour), Hit and Feel (the HIT_SETTINGS, for the hit picked at the top). every
+// the tabs: Weapon (attack, combo, then WEAPON_WIDE_SETTINGS without a tab: combo time, the bow's
+// charge settings, carry speed, then colour), Hit and Feel (the HIT_SETTINGS, for the hit picked at the
+// top), Sound (the WEAPON_SOUNDS pickers, then the WEAPON_WIDE_SETTINGS with tab 'Sound'; the preview
+// only makes its sounds while this tab's open, at full volume). every
 // slider marks the value it had when the box opened (rowSlider() and Slider.showNormal in formbox.js),
 // per hit, and right click goes back to it.
 //
@@ -55,6 +57,19 @@ const WEAPON_WIDE_SETTINGS = [
   { key: 'minPower', label: 'Tap power', min: 0.05, max: 1, step: 0.05, unit: '×', tip: 'How strong a shot let go straight away is. Damage, range, speed and knockback grow to full' },
   { key: 'chargeSlow', label: 'Draw walk', min: 0.1, max: 1, step: 0.05, unit: '×', tip: 'How fast you walk while drawing. 1 is normal speed' },
   { key: 'carrySpeed', label: 'Carry walk', min: 0.3, max: 1.5, step: 0.05, unit: '×', tip: 'How fast you walk while holding it. Below 1 for heavy weapons' },
+  // the Sound tab's, under its WEAPON_SOUNDS
+  { key: 'soundVolume', tab: 'Sound', label: 'Volume', min: 0, max: 3, step: 0.05, unit: '×', tip: 'How loud all its sounds are. 1 is as loud as the sound itself' },
+  { key: 'soundPitch', tab: 'Sound', label: 'Pitch', min: 0.25, max: 4, step: 0.05, unit: '×', tip: 'How high all its sounds are. 2 is an octave up, 0.5 an octave down' },
+  { key: 'soundWobble', tab: 'Sound', label: 'Random pitch', min: 0, max: 0.5, step: 0.01, unit: '±', tip: 'How much higher or lower each play is at random, so it never sounds samey. 0 is the same every time' },
+  { key: 'soundWeight', tab: 'Sound', label: 'Weight', min: 0, max: 3, step: 0.1, unit: '×', tip: 'How much deeper hits with more knockback sound, like a combo\'s big last hit. Weak bow shots go higher. 0 is off' },
+  { key: 'hitHeard', tab: 'Sound', label: 'Heard hits', min: 0, max: 1, step: 0.05, unit: '×', tip: 'How loud your hits are at least, however far away they land, so you hear a bow shot hit. 0 fades with distance like any sound' },
+];
+
+// the sound pickers at the top of the Sound tab, each a sound file's name or null for none
+const WEAPON_SOUNDS = [
+  { key: 'attackSound', label: 'Attack', tip: 'When it swings, jabs or shoots. Picking one plays it' },
+  { key: 'hitSound', label: 'Hit', tip: 'When it hits something' },
+  { key: 'killSound', label: 'Kill', tip: 'When it kills something. None uses the hit sound' },
 ];
 
 // the most hits the Combo picker goes up to
@@ -93,6 +108,13 @@ function weaponForm(weapon, { attacker, target }) {
   });
   const wideSliders = Object.fromEntries(WEAPON_WIDE_SETTINGS.map((line) => [line.key, rowSlider(line, weapon[line.key])]));
   const colourField = new ColourField({ w: 180, value: weapon.colour }); // textfield.js
+  // soundblocks.js. picking one plays it at the weapon's pitch and volume
+  const soundPickers = Object.fromEntries(WEAPON_SOUNDS.map(({ key }) => {
+    const picker = pickSound(weapon[key], true);
+    picker.onChange = (name) => SOUNDS[name] && Sound.preview(SOUNDS[name], { rate: draft.soundPitch, volume: draft.soundVolume });
+    return [key, picker];
+  }));
+  const wideRow = (line) => ({ label: line.label, field: wideSliders[line.key], tip: line.tip });
   // the Hit and Feel tabs have one each, kept on the same hit
   const hitPickers = [0, 1].map(() => new Picker({ w: 180, choices: [...hits.keys()], value: 0, label: (i) => `${i + 1} of ${hits.length}` }));
   const sliders = Object.fromEntries(HIT_SETTINGS.map((line) => [line.key, rowSlider(line, hits[0][line.key])]));
@@ -103,7 +125,7 @@ function weaponForm(weapon, { attacker, target }) {
       rows: [
         { label: 'Attack', field: attackPicker, tip: 'Swing it in an arc, jab straight out at one thing like a spear, or shoot arrows like a bow' },
         { label: 'Combo', field: comboPicker, tip: 'How many hits before it starts over. Each gets its own numbers on Hit and Feel' },
-        ...WEAPON_WIDE_SETTINGS.map((line) => ({ label: line.label, field: wideSliders[line.key], tip: line.tip })),
+        ...WEAPON_WIDE_SETTINGS.filter((line) => !line.tab).map(wideRow),
         { label: 'Colour', field: colourField, tip: "The swoosh, or the arrows' heads and feathers" },
       ],
     },
@@ -114,6 +136,13 @@ function weaponForm(weapon, { attacker, target }) {
         ...HIT_SETTINGS.filter((line) => line.tab === tab).map((line) => ({ label: line.label, field: sliders[line.key], tip: line.tip })),
       ],
     })),
+    {
+      label: 'Sound',
+      rows: [
+        ...WEAPON_SOUNDS.map(({ key, label, tip }) => ({ label, field: soundPickers[key], tip })),
+        ...WEAPON_WIDE_SETTINGS.filter((line) => line.tab === 'Sound').map(wideRow),
+      ],
+    },
   ];
 
   // every frame: the sliders go into the hit they show, then the hits into the draft
@@ -132,13 +161,15 @@ function weaponForm(weapon, { attacker, target }) {
     }
     Object.assign(draft, hitsToSettings(hits), { attack: attackPicker.value });
     for (const { key } of WEAPON_WIDE_SETTINGS) draft[key] = wideSliders[key].value;
+    for (const { key } of WEAPON_SOUNDS) draft[key] = soundPickers[key].value;
     // a colour that's halfway through being typed waits until it's finished
     if (HEX_COLOUR.test(colourField.value)) draft.colour = colourField.value;
   };
 
   return {
     tabs,
-    side: (x, y, w, h) => [new WeaponPreview({ x, y, w, h, weapon: draft, attacker, target })],
+    // it makes its sounds only while the Sound tab is open (FormBox.showTab() hides the other tabs' fields)
+    side: (x, y, w, h) => [new WeaponPreview({ x, y, w, h, weapon: draft, attacker, target, audible: () => soundPickers.attackSound.visible })],
     update,
     ok: () => HEX_COLOUR.test(colourField.value),
     // into the real weapon, so everyone using it changes straight away
@@ -233,10 +264,13 @@ const PREVIEW_FLOOR = {
 //   weapon    the settings to use (weaponForm()'s draft, which changes as you drag)
 //   attacker  the settings of whose body uses it (PLAYER, or the enemy kind it belongs to)
 //   target    the settings of whose body gets hit (an enemy kind, or PLAYER for an enemy's weapon)
+//   audible   a function that says whether its sounds play right now (the weapon form's Sound tab is open)
 class WeaponPreview extends UIElement {
   constructor(options) {
     super(options);
     this.weapon = options.weapon;
+    // whether its sounds play right now (weaponSound() in weapons.js), or never if it's left out
+    this.audible = options.audible ?? (() => false);
     // only its shake is used (Camera.shake())
     this.camera = new Camera();
     // no particles, sounds or damage numbers, since they'd go onto the map
@@ -274,6 +308,7 @@ class WeaponPreview extends UIElement {
     this.hovered = hovered;
     const dt = Math.min(deltaTime / 1000, MAX_DT); // config.js
     const { attacker, target, weapon } = this;
+    attacker.audible = target.audible = this.audible();
     const attacking = attacker.comboStep < (weapon.combo?.length ?? 1);
     // once the combo's finished and settled, a pause and then another go
     if (!attacking && attacker.attackCooldown === 0 && !attacker.swing) this.waited += dt;

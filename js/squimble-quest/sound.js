@@ -237,10 +237,10 @@
 //
 // ---------- ideas for later ----------
 //
-//   - sounds for more things that happen (fights already have theirs, COMBAT.sounds in config.js and
-//     combatSound() in weapons.js): footsteps (a stepSound setting on tiles, played from walk() in
-//     character.js), doors (a sound on warps), ui clicks. all of them are just playSound() calls.
-//     combatSound() shows how to give repeats a little random pitch (the voice's playbackRate)
+//   - sounds for more things that happen (weapons already have theirs, weaponSound() in weapons.js):
+//     footsteps (a stepSound setting on tiles, played from walk() in character.js), doors (a sound
+//     on warps), ui clicks. all of them are just playSound() calls. weaponSound() shows how to give
+//     repeats a little random pitch (play()'s rate option)
 //   - an npc's voice could come from where they stand (and bend as they walk), with a place like a
 //     character sound's
 //   - sounds take time to arrive: something far away could be heard a little after it happens
@@ -1324,8 +1324,11 @@ const Sound = {
   // plays some settings (playSound() is the way in, it looks names up). every play makes its own
   // little set of browser nodes, which is cheap, and they're thrown away when it finishes. there's no
   // limit on how many play at once, so something that plays every frame would pile up. an idea if
-  // that's ever a problem: stop the last voice with the same key first
-  play(sound, at, key, { loop = false, pitch = sound.pitch, say = null } = {}) {
+  // that's ever a problem: stop the last voice with the same key first. rate, volume and minVolume
+  // change one play without working the sound out again: rate is how fast it plays (2 is an octave up,
+  // on top of the doppler effect), volume times how loud, and minVolume the quietest distance can make
+  // it (0 to 1), so it's heard from anywhere on the map (weaponSound() in weapons.js uses all three)
+  play(sound, at, key, { loop = false, pitch = sound.pitch, say = null, rate = 1, volume = 1, minVolume = 0 } = {}) {
     const ctx = this.context();
     if (!ctx) return null;
     const result = this.render(sound, loop, pitch, say);
@@ -1336,15 +1339,16 @@ const Sound = {
     const source = ctx.createBufferSource();
     source.buffer = result.buffer;
     source.loop = loop;
+    source.playbackRate.value = rate;
     // it goes through out (volume from distance) then pan (left or right) to the speakers
     const out = ctx.createGain();
     const pan = ctx.createStereoPanner();
-    out.gain.value = SOUND_MASTER_VOLUME * this.volumeAt(at, sound.range);
+    // was is where it was last frame, for the doppler effect (update())
+    const voice = { source, out, pan, at, range: sound.range, doppler: sound.doppler, key, loop, ended: false, was: at && { x: at.x, y: at.y, map: at.map }, rate, volume, minVolume };
+    out.gain.value = this.loudness(voice);
     pan.pan.value = this.panAt(at, sound.range);
     source.connect(out).connect(pan).connect(ctx.destination);
     source.start();
-    // was is where it was last frame, for the doppler effect (update())
-    const voice = { source, out, pan, at, range: sound.range, doppler: sound.doppler, key, loop, ended: false, was: at && { x: at.x, y: at.y, map: at.map } };
     // the browser says when it's finished. the doppler effect changes how fast it plays, so it can't
     // be worked out from its length
     source.onended = () => { voice.ended = true; };
@@ -1376,6 +1380,14 @@ const Sound = {
   // 0 to 1, how loud a sound at `at` is from where the listener is. full volume right on top of it,
   // fading to nothing at range tiles away. null (no place) is always full volume, and a sound on
   // another map is silent
+  // a voice's gain: from its distance (volumeAt()), but never under its minVolume, times its own volume.
+  // one on another map is still silent
+  loudness(voice) {
+    const near = this.volumeAt(voice.at, voice.range);
+    if (voice.at && voice.at.map !== this.listener?.map) return 0;
+    return SOUND_MASTER_VOLUME * voice.volume * Math.max(voice.minVolume, near);
+  },
+
   volumeAt(at, range) {
     if (!at) return 1;
     const you = this.listener;
@@ -1409,20 +1421,20 @@ const Sound = {
         continue;
       }
       if (!voice.at) continue;
-      const volume = this.volumeAt(voice.at, voice.range);
+      const volume = this.loudness(voice);
       if (voice.loop && volume === 0) {
         this.stop(voice);
         continue;
       }
       // setTargetAtTime glides there quickly instead of jumping, which would click
-      voice.out.gain.setTargetAtTime(SOUND_MASTER_VOLUME * volume, now, 0.05);
+      voice.out.gain.setTargetAtTime(volume, now, 0.05);
       voice.pan.pan.setTargetAtTime(this.panAt(voice.at, voice.range), now, 0.05);
       // the place is read again every frame, so a moving one (a moving sound block, a character) has
       // a speed. playing faster is higher, slower is lower
       const at = { x: voice.at.x, y: voice.at.y, map: voice.at.map };
       if (voice.doppler > 0 && at.map === listener.map) {
         const shift = dopplerShift(listener, this.listenerVelocity, at, soundVelocity(voice.was, at, dt), voice.doppler);
-        voice.source.playbackRate.setTargetAtTime(shift, now, SOUND_DOPPLER.glide);
+        voice.source.playbackRate.setTargetAtTime(shift * voice.rate, now, SOUND_DOPPLER.glide);
       }
       voice.was = at;
     }

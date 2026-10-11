@@ -7,7 +7,7 @@
 // items/axe.json) or an enemy's (like the grunt's claws in enemies/grunt.json):
 //   "weapon": { "damage": 35, "reach": 68, "arc": 160, "swingTime": 0.25, "cooldown": 0.65 }
 // every weapon can be changed in the map editor's Weapons tab (weaponeditor.js): Edit or right click
-// an item's for its Weapon, Hit and Feel tabs, or click an enemy's own (the ones with a badge). the
+// an item's for its Weapon, Hit, Feel and Sound tabs, or click an enemy's own (the ones with a badge). the
 // inspector's Export downloads the changed item and enemy files.
 //
 // a bow is the same with "attack": "shoot", and its reach is how far the arrow flies. with a
@@ -57,6 +57,20 @@
 //               (how far it flies), arrowSpeed and knockback all scale with it (chargePower())
 //   chargeSlow  how fast you walk while drawing, 1 is normal speed
 //   carrySpeed  how fast you walk while holding it, 1 is normal speed (a heavy axe slows you down)
+//   attackSound the sound (a sound file's name, sounds/) when it swings, jabs or shoots, or null for none
+//   hitSound    the sound when it hits something, or null
+//   killSound   the sound when it kills something, or null for its hitSound
+//   soundVolume how loud all its sounds are, 1 is as loud as the sound files
+//   soundPitch  how high all its sounds are, 1 is the sound files' own pitch, 2 an octave up
+//   soundWobble how much higher or lower each play is at random, 0.06 is up to 6% either way, so the
+//               same sound over and over doesn't get samey. 0 is exactly the same every time
+//   soundWeight how much deeper heavier hits sound (more knockback, like a combo's big last hit), 0 for
+//               all the same. a weak bow shot twangs higher by this much too (heaviness())
+//   hitHeard    how loud your own hits are at least, 0 to 1, however far away they land, so you hear a
+//               bow shot land across the map. only for this computer's player (weaponSound())
+//
+// the editor's Sound tab changes these, and the preview plays them while it's open. the sounds
+// themselves change in the map editor's Sounds tab
 //
 // every setting from damage to hitStop (and windup) can be different for each hit of a combo (HIT_SETTINGS in
 // weaponeditor.js). the rest are for the whole weapon
@@ -107,6 +121,14 @@ const WEAPON_DEFAULTS = {
   minPower: 0.3,
   chargeSlow: 0.5,
   carrySpeed: 1,
+  attackSound: 'swing',
+  hitSound: 'thwack',
+  killSound: 'kill',
+  soundVolume: 1,
+  soundPitch: 1,
+  soundWobble: 0.06,
+  soundWeight: 1,
+  hitHeard: 0.5,
 };
 
 // each way a weapon can attack (its attack setting), with the words the item editor shows for it
@@ -206,24 +228,33 @@ function hitWith(attacker, target, weapon, angle) {
   // the dummy refills instead of dying (ENEMY_DEATHS in enemies.js), so it's never a kill
   const kill = target.dead;
   (attacker.camera ?? target.camera)?.shake(weapon.shake + (kill ? COMBAT.killShake : 0), weapon.shakeTime);
-  combatSound(target, kill ? 'kill' : 'hit', heaviness(weapon));
-  if (target.camera) combatSound(target, 'hurt');
+  // heard across the map if this computer's player landed it (hitHeard)
+  const heard = attacker.camera ? weapon.hitHeard : 0;
+  weaponSound(target, (kill && weapon.killSound) || weapon.hitSound, weapon, heaviness(weapon), heard);
+  // the player's own ouch (PLAYER in config.js)
+  if (target.camera) weaponSound(target, target.settings.hurtSound);
 }
 
-// how deep a hit sounds, 1 normally and lower the more knockback it has, so a combo's big last hit
-// thuds. for combatSound()
-function heaviness(weapon) {
-  return 1.1 - Math.min(weapon.knockback / 1000, 0.4);
+// how deep a hit sounds: lower the more knockback it has, so a combo's big last hit thuds, by the
+// weapon's soundWeight. 1 for a weight of 0. power is how far a shot was drawn (chargePower()), and a
+// weak one twangs higher. never below 0.1, where a big weight would stop it playing
+function heaviness(weapon, power = 1) {
+  return Math.max(0.1, 1 + weapon.soundWeight * (0.1 - Math.min(weapon.knockback / 1000, 0.4) + 0.3 * (1 - power)));
 }
 
-// plays one of COMBAT.sounds (config.js) from where `who` is, at `rate` times its speed (lower is
-// deeper), give or take COMBAT.soundWobble. the weapon editor's preview characters stay quiet, since
-// they'd play on the map
-function combatSound(who, sound, rate = 1) {
-  if (who.inPreview) return;
+// plays the sound called `name` (a sound file, or null for none) from where `who` is, with the weapon's
+// soundVolume, soundPitch and soundWobble (weapon null for none of them), at `rate` times its speed
+// (heaviness()), and never quieter than minVolume (0 to 1) however far away. the weapon editor's
+// preview characters only play while its Sound tab is open (WeaponPreview's audible), at full volume
+function weaponSound(who, name, weapon = null, rate = 1, minVolume = 0) {
+  if (!name || (who.inPreview && !who.audible)) return;
+  const wobble = weapon?.soundWobble ?? 0;
   // worldMap is the game's (sketch.js)
-  const voice = playSound(COMBAT.sounds[sound], { x: who.x, y: who.y, map: worldMap }); // sound.js
-  if (voice) voice.source.playbackRate.value = rate * randomBetween(1 - COMBAT.soundWobble, 1 + COMBAT.soundWobble);
+  playSound(name, who.inPreview ? null : { x: who.x, y: who.y, map: worldMap }, null, { // sound.js
+    rate: rate * (weapon?.soundPitch ?? 1) * randomBetween(1 - wobble, 1 + wobble),
+    volume: weapon?.soundVolume ?? 1,
+    minVolume,
+  });
 }
 
 // ---------- damage numbers ----------
@@ -319,7 +350,7 @@ class MeleeSwing {
     // the lunge and the whoosh go with the sweep, not the windup
     if (before <= 0) {
       this.owner.pushTowards(this.angle, this.weapon.lunge);
-      combatSound(this.owner, 'swing', heaviness(this.weapon));
+      weaponSound(this.owner, this.weapon.attackSound, this.weapon, heaviness(this.weapon));
     }
     this.hitTargets(targets);
   }
