@@ -8,7 +8,7 @@ Everything the game is made of lives in these folders, **one file per thing**, n
 | `sounds/` | sound, for sound blocks and anything that makes a noise. Audio files go in `sounds/files/` | [sounds README](sounds/README.md) |
 | `voices/` | voice that NPCs talk with (made like sounds) | [sounds README](sounds/README.md) |
 | `items/` | item. A weapon's numbers are inside its item's file | the top of [`items.js`](../../js/squimble-quest/items.js) and [`weapons.js`](../../js/squimble-quest/weapons.js) |
-| `objects/` | kind of object (tables, rugs…) | the top of [`objects.js`](../../js/squimble-quest/objects.js) |
+| `objects/` | kind of object (tables, rugs, chests…) | the top of [`objects.js`](../../js/squimble-quest/objects.js) |
 | `enemies/` | kind of enemy. Its weapon (the grunt's claws) is inside it | the top of [`enemies.js`](../../js/squimble-quest/enemies.js) |
 | `npcs/` | kind of NPC, with what they say | the top of [`npcs.js`](../../js/squimble-quest/npcs.js) |
 | `particles/` | particle effect (blood when something's hit, sparks, smoke…). Pictures go in `particles/pictures/` | the top of [`particles.js`](../../js/squimble-quest/particles.js) |

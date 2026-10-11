@@ -161,6 +161,10 @@ class TileMap {
       return;
     }
     const obj = { type, col, row };
+    // a chest or anything else with storage (objects.js) gets its own inventory. what's in it is
+    // progress like drops, so map files don't save it and it's empty again after a reload
+    const storage = OBJECT_TYPES[type].storage;
+    if (storage) obj.inventory = new Inventory(storage.slots);
     this.objects.push(obj);
     // only marks this object's tiles instead of redoing all of them
     this.markSolid(obj);

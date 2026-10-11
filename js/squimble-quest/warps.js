@@ -25,8 +25,8 @@
 // shows you there's a warp is whatever's on its tile (a door or trapdoor object, a gap in a wall). an
 // 'interact' warp works under a solid object, since WARP_REACH reaches it from the next tile.
 //
-// warps only move the player. other things you press E on (signs, chests, levers) should be their own
-// kind of trigger, copying how inReach() works
+// warps only move the player. other things you press E on (signs, levers) should be their own kind of
+// trigger, copying how inReach() works, like chests do (StorageObjects in inventory.js)
 
 // how many px from the middle of your feet to the middle of an 'interact' warp's tile. it's more than
 // a tile so it works from the tile in front, even if the warp's tile can't be walked on
@@ -164,7 +164,7 @@ function feetTile(player, map) {
 }
 
 // the closest of `things` (anything with a col and row) within WARP_REACH of the player's feet, or
-// null. used for everything you press E on: warps, and sound blocks (soundblocks.js)
+// null. used for everything you press E on: warps, chests (inventory.js) and sound blocks (soundblocks.js)
 function closestInReach(player, things) {
   const feetX = player.x;
   const feetY = player.y + feetBelowCentre(player.settings);

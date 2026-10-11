@@ -315,13 +315,15 @@ function draw() {
 
     // while talking, E moves the conversation on and nothing else is in reach.
     // otherwise E talks to the npc in range (it shows an E), or if there isn't one uses an E warp in
-    // reach (warps.js), or if there isn't one plays an E sound block in reach (soundblocks.js), or if
-    // there's none of those either opens or closes the inventory (I always does). nothing's in reach
-    // while the inventory is open
+    // reach (warps.js), or if there isn't one opens a chest in reach (StorageObjects in inventory.js),
+    // or if there isn't one plays an E sound block in reach (soundblocks.js), or if there's none of
+    // those either opens or closes the inventory (I always does, and closes a chest too). nothing's in
+    // reach while the inventory is open
     const talkTo = InventoryScreen.active || Dialogue.active ? null : Dialogue.npcInRange(player, npcs);
     for (const npc of npcs) npc.canTalk = npc === talkTo;
     Warps.reachable = talkTo || InventoryScreen.active || Dialogue.active ? null : Warps.inReach(player, worldMap);
-    SoundBlocks.reachable = talkTo || Warps.reachable || InventoryScreen.active || Dialogue.active ? null : SoundBlocks.inReach(player, worldMap);
+    StorageObjects.reachable = talkTo || Warps.reachable || InventoryScreen.active || Dialogue.active ? null : StorageObjects.inReach(player, worldMap);
+    SoundBlocks.reachable = talkTo || Warps.reachable || StorageObjects.reachable || InventoryScreen.active || Dialogue.active ? null : SoundBlocks.inReach(player, worldMap);
     if (Dialogue.active) {
       Dialogue.update(player, dt);
       SoundBlocks.checkStep(player, worldMap);
@@ -331,6 +333,8 @@ function draw() {
       Dialogue.open(talkTo, player, gameCamera);
     } else if (Warps.reachable && Input.wasPressed('interact')) {
       Warps.use(Warps.reachable, player);
+    } else if (StorageObjects.reachable && Input.wasPressed('interact')) {
+      StorageObjects.open(StorageObjects.reachable);
     } else if (SoundBlocks.reachable && Input.wasPressed('interact')) {
       SoundBlocks.play(SoundBlocks.reachable, worldMap);
     } else {
@@ -386,6 +390,7 @@ function draw() {
     if (!Editor.active) SoundBlocks.draw(worldMap);
     if (!Editor.active && !Dialogue.active) {
       Warps.drawPrompt();
+      StorageObjects.drawPrompt();
       SoundBlocks.drawPrompt();
     }
     if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);

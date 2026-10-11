@@ -20,9 +20,12 @@
 //                   from the middle of the tiles it covers (ParticleEmitters in particles.js)
 //   particleRate    how often compared to each effect's own rate (its Keep going tab), 2 is twice
 //   particleX, particleY  px to move where they come from, like -20 for the top of a chimney
+//   storage         makes it something you keep items in (a chest, barrel, wardrobe), or null if it
+//                   isn't. it's its own settings, only the ones that differ from STORAGE_DEFAULTS, like
+//                   objects/chest.json's { "label": "Chest", "slots": 10 }. E opens it beside your
+//                   inventory (StorageObjects in inventory.js)
 //
-// the editor's Objects tab picks it up by itself. later on: things they do, like onInteract for opening
-// a chest
+// the editor's Objects tab picks it up by itself.
 //
 // ====================================================================================
 
@@ -37,6 +40,19 @@ const OBJECT_DEFAULTS = {
   particleRate: 1,
   particleX: 0,
   particleY: 0,
+  storage: null,
+};
+
+// what an object's storage setting starts from. a new thing every storage object can have (only
+// taking some categories of item, a lock) gets its normal value here, and gets used in
+// StorageObjects or Inventory (inventory.js)
+const STORAGE_DEFAULTS = {
+  // the name along the top of its box
+  label: 'Storage',
+  slots: 10,
+  // slots in each row of its box. its box goes above yours on the inventory screen, so about 4 rows
+  // fit (more slots want more columns, up to about 18)
+  columns: 5,
 };
 
 // filled in from the object files (bottom of this file)
@@ -45,12 +61,13 @@ const OBJECT_TYPES = {};
 // defineType() is in utils.js
 function defineObject(name, settings) {
   defineType(OBJECT_TYPES, OBJECT_DEFAULTS, 'object', name, settings);
+  const type = OBJECT_TYPES[name];
+  if (type.storage) type.storage = withDefaults(STORAGE_DEFAULTS, 'storage', name, type.storage);
 }
 
 // ---------- the object files ----------
 
-// every kind of object loads once at the start, before the maps (datafiles.js). just two test ones for
-// now: a solid table and a rug you can walk over
+// every kind of object loads once at the start, before the maps (datafiles.js)
 DataFiles.register('object', {
   define: defineObject,
   // colours and pictures (utils.js)

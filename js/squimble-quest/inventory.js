@@ -11,6 +11,8 @@
 //   E or I       open or close the inventory screen (if there's an npc in reach E talks to them
 //                instead). drag between slots to move things, or out of the box to drop them
 //   Q            drop the held item. walk away and come back to pick it up again
+//   E by a chest opens it (or anything with storage, StorageObjects at the bottom). its box goes above
+//                the inventory screen and you drag things between them
 
 // how many hotbar slots there are. they're the first ones in the inventory
 const HOTBAR_SIZE = 5;
@@ -109,8 +111,13 @@ class Inventory {
   // also works for moving into an empty slot. does nothing and gives false if either item can't go
   // where the other one was (fits())
   swap(a, b) {
-    if (!this.fits(a, this.slots[b]) || !this.fits(b, this.slots[a])) return false;
-    [this.slots[a], this.slots[b]] = [this.slots[b], this.slots[a]];
+    return this.swapWith(a, this, b);
+  }
+
+  // the same between this inventory's slot and another's, like yours and a chest's
+  swapWith(slot, other, otherSlot) {
+    if (!this.fits(slot, other.slots[otherSlot]) || !other.fits(otherSlot, this.slots[slot])) return false;
+    [this.slots[slot], other.slots[otherSlot]] = [other.slots[otherSlot], this.slots[slot]];
     return true;
   }
 }
@@ -205,7 +212,7 @@ const INVENTORY_COLOURS = {
   slotEdge: 90,
 };
 
-// a slot on the hotbar or the inventory screen. it's a Button so it gets clicking for free, and it
+// a slot on the hotbar, the inventory screen or a chest's box. it's a Button so it gets clicking for free, and it
 // draws the slot and its item. hotbar slots show their number, and a ring when they're picked. empty
 // equipment slots show what goes in them, and while an item's being dragged the ones it can be worn
 // in light up and the rest fade
@@ -216,12 +223,17 @@ class ItemSlot extends Button {
     this.slot = options.slot;
   }
 
+  // what's in it, or null
+  get item() {
+    return this.inventory.slots[this.slot];
+  }
+
   draw() {
-    const onHotbar = this.slot < HOTBAR_SIZE;
+    const onHotbar = this.inventory === Hotbar.inventory && this.slot < HOTBAR_SIZE;
     const selected = onHotbar && this.inventory.selected === this.slot;
-    const item = this.inventory.slots[this.slot];
+    const item = this.item;
     const equipment = this.inventory.equipmentAt(this.slot);
-    const dragged = InventoryScreen.dragging === null ? null : this.inventory.slots[InventoryScreen.dragging];
+    const dragged = InventoryScreen.dragging?.item ?? null;
     const fits = equipment && dragged && this.inventory.fits(this.slot, dragged);
     const C = INVENTORY_COLOURS;
 
@@ -236,7 +248,7 @@ class ItemSlot extends Button {
     // faded out while it's being dragged
     if (item) {
       const pad = 8;
-      if (InventoryScreen.dragging === this.slot) drawingContext.globalAlpha *= 0.3;
+      if (InventoryScreen.dragging === this) drawingContext.globalAlpha *= 0.3;
       drawGlowingItem(item, this.x + this.w / 2, this.y + this.h / 2, this.w - pad * 2, this.w / 2);
     }
     pop();
@@ -330,8 +342,8 @@ class CharacterPreview extends UIElement {
 
 // in screen px (the slots use HOTBAR_LAYOUT): padding round the edge, the headings along the top, the
 // label above the hotbar row, the hint along the bottom, the picture of you between the equipment
-// columns and the space either side of it, and the gap between the equipment and the bag (with a line
-// down the middle)
+// columns and the space either side of it, the gap between the equipment and the bag (with a line
+// down the middle), and the gap between a chest's box and yours
 const INVENTORY_LAYOUT = {
   pad: 16,
   titleHeight: 40,
@@ -340,6 +352,7 @@ const INVENTORY_LAYOUT = {
   previewWidth: 112,
   previewGap: 8,
   sectionGap: 33,
+  storageGap: 10,
 };
 
 // the panel behind the inventory screen's slots. it's a ui element so clicks on it never reach the game.
@@ -383,13 +396,19 @@ class InventoryPanel extends UIElement {
 }
 
 // opened with E or I. shows every slot: what you're wearing down either side of a picture of you on
-// the left, and the bag with the hotbar underneath on the right. the game keeps going but the player
-// stands still (sketch.js)
+// the left, and the bag with the hotbar underneath on the right. opening a chest (StorageObjects) shows
+// it with the chest's box above. the game keeps going but the player stands still (sketch.js)
 const InventoryScreen = {
   active: false,
   inventory: null,
-  // the slot being dragged, or null
+  // the ItemSlot being dragged from (yours or a chest's), or null
   dragging: null,
+  // the chest (or other object with storage) that's open, or null
+  storage: null,
+  // the top of the box where init() put it, and how many px it's been moved down to make room for a
+  // chest's box
+  top: 0,
+  shifted: 0,
 
   // called once from setup() with the player. makes the panel, the picture and the slots, hidden to
   // start with
@@ -409,6 +428,7 @@ const InventoryScreen = {
     const h = titleHeight + contentH + hintHeight;
     const left = Math.round((GAME_W - w) / 2);
     const top = Math.round((GAME_H - h) / 2);
+    this.top = top;
     const contentTop = top + titleHeight;
     const bagLeft = left + pad + equipmentW + sectionGap;
     // added first so everything else draws on top of it
@@ -443,51 +463,92 @@ const InventoryScreen = {
   // the words along the bottom: what the item under the mouse is (and where it's worn), what an empty
   // equipment slot is for, or how it works
   hint() {
-    const slot = UI.hovered instanceof ItemSlot && UI.hovered.group === 'inventory' ? UI.hovered.slot : null;
-    const item = slot === null ? null : this.inventory.slots[slot];
+    const slot = this.hoveredSlot();
+    const item = slot?.item;
     if (item) return item.type.wear ? `${item.type.label} (${WEAR_PLACES[item.type.wear]})` : item.type.label;
-    const equipment = slot === null ? null : this.inventory.equipmentAt(slot);
+    const equipment = slot?.inventory.equipmentAt(slot.slot);
     if (equipment) return `${equipment.label}: drag something you wear there into it`;
+    if (this.storage) return 'Drag items between the boxes, or outside to drop them';
     return 'Drag to move items or put things on, or outside to drop';
   },
 
-  // the real hotbar hides while this is open, since its row is in the box anyway
-  show(open) {
+  // the slot under the mouse, yours or the chest's, or null
+  hoveredSlot() {
+    const el = UI.hovered;
+    return el instanceof ItemSlot && (el.group === 'inventory' || el.group === 'storage') ? el : null;
+  },
+
+  // the real hotbar hides while this is open, since its row is in the box anyway. storage is the
+  // chest (or other object with storage) to show above it, or null
+  show(open, storage = null) {
     this.active = open;
     this.dragging = null;
+    this.storage = open ? storage : null;
     UI.showGroup('inventory', open);
     Hotbar.show(!open);
+    // back how init() made it, without the last chest's box
+    UI.removeGroup('storage');
+    this.moveBy(-this.shifted);
+    if (this.storage) this.addStorageBox(this.storage);
+  },
+
+  moveBy(dy) {
+    for (const el of UI.group('inventory')) el.y += dy;
+    this.shifted += dy;
+  },
+
+  // a box of the chest's slots above yours. it's made fresh each time since every kind can have its
+  // own number of slots (STORAGE_DEFAULTS in objects.js). the two boxes get centred together, so yours
+  // moves down to make room
+  addStorageBox(obj) {
+    const { slotSize: size, gap } = HOTBAR_LAYOUT;
+    const { pad, titleHeight, storageGap } = INVENTORY_LAYOUT;
+    const { label, columns } = OBJECT_TYPES[obj.type].storage;
+    const inventory = obj.inventory;
+    const cols = Math.min(columns, inventory.size);
+    const rows = Math.ceil(inventory.size / cols);
+    const w = pad * 2 + cols * (size + gap) - gap;
+    const h = titleHeight + rows * (size + gap) - gap + pad;
+    const shift = Math.round((h + storageGap) / 2);
+    this.moveBy(shift);
+    const left = Math.round((GAME_W - w) / 2);
+    const top = this.top + shift - storageGap - h;
+    UI.add(new StoragePanel({ x: left, y: top, w, h, group: 'storage', label }));
+    for (let i = 0; i < inventory.size; i++) {
+      UI.add(new ItemSlot({
+        x: left + pad + (i % cols) * (size + gap), y: top + titleHeight + Math.floor(i / cols) * (size + gap), w: size, h: size,
+        group: 'storage', inventory, slot: i,
+      }));
+    }
   },
 
   // every frame while it's open, after UI.update() (ui.js) has found which element the mouse is over.
   // map and player are for when you drop something out of the box
   update(map, player) {
-    const hovered = UI.hovered instanceof ItemSlot && UI.hovered.group === 'inventory' ? UI.hovered.slot : null;
+    const hovered = this.hoveredSlot();
 
     // press on an item to start dragging it
-    if (Input.buttonsPressed.has('left') && hovered !== null && this.inventory.slots[hovered]) {
-      this.dragging = hovered;
-    }
+    if (Input.buttonsPressed.has('left') && hovered?.item) this.dragging = hovered;
 
-    // when you let go: over a slot it swaps them, outside the box but over the game it drops it, and
-    // anywhere else it just goes back
-    if (this.dragging !== null && Input.buttonsReleased.has('left')) {
-      if (hovered !== null) {
-        this.inventory.swap(this.dragging, hovered);
+    // when you let go: over a slot (yours or the chest's) it swaps them, outside the boxes but over the
+    // game it drops it, and anywhere else it just goes back
+    if (this.dragging && Input.buttonsReleased.has('left')) {
+      if (hovered) {
+        this.dragging.inventory.swapWith(this.dragging.slot, hovered.inventory, hovered.slot);
       } else if (UI.hovered === null && Input.mouse.inside) {
-        Drops.drop(map, player, this.dragging);
+        Drops.drop(map, player, this.dragging.slot, this.dragging.inventory);
       }
       this.dragging = null;
     }
     // like if focus was lost mid drag (so the release never got seen), or Q dropped it
-    if (!Input.buttonsHeld.has('left') || !this.inventory.slots[this.dragging]) this.dragging = null;
+    if (!Input.buttonsHeld.has('left') || !this.dragging?.item) this.dragging = null;
   },
 
   // the dragged item under the mouse. drawn after UI.draw() so it's on top
   drawDragged() {
-    if (this.dragging === null) return;
+    if (!this.dragging) return;
     const size = 28;
-    drawItemIcon(this.inventory.slots[this.dragging], Input.mouse.x - size / 2, Input.mouse.y - size / 2, size);
+    drawItemIcon(this.dragging.item, Input.mouse.x - size / 2, Input.mouse.y - size / 2, size);
   },
 };
 
@@ -520,11 +581,12 @@ const THROW_HEIGHT = 24;
 // throw started (under the player) and how high. flight goes from 0 to 1 while it's in the air
 // (THROW_TIME), and it can't be picked up until it's landed
 const Drops = {
-  // takes the item out of the slot and throws it roughly where you're aiming. it tries a few random
+  // takes the item out of the slot (of your inventory, or another like a chest's) and throws it roughly
+  // where you're aiming. it tries a few random
   // spots and keeps the first one that's DROP_GAP away from other drops (or the clearest one if it's
   // crowded)
-  drop(map, player, slot) {
-    const item = player.inventory.take(slot);
+  drop(map, player, slot, inventory = player.inventory) {
+    const item = inventory.take(slot);
     if (!item) return;
     let best = null;
     for (let i = 0; i < 10; i++) {
@@ -617,5 +679,62 @@ const Drops = {
     // the seed is the landing spot, which stays the same for the whole throw, so the glow doesn't
     // jump about as it moves
     drawGlowingItem(drop.item, x, y, size, GLOW_PIXEL_SIZE, drop.x + drop.y);
+  },
+};
+
+// ---------- storage (chests) ----------
+
+// the panel behind a chest's slots, with its label along the top. it's a ui element so clicks on it
+// never reach the game
+class StoragePanel extends UIElement {
+  constructor(options) {
+    super(options);
+    this.label = options.label;
+  }
+
+  draw() {
+    fill(20, 22, 28, 235);
+    stroke(90);
+    strokeWeight(1.5);
+    rect(this.x, this.y, this.w, this.h, 8);
+    noStroke();
+    fill(255);
+    setText(15);
+    text(this.label, this.x + this.w / 2, this.y + INVENTORY_LAYOUT.titleHeight / 2 + 2);
+  }
+}
+
+// objects you keep items in, like chests: object kinds with a storage setting (objects.js). each one
+// on a map has its own Inventory, obj.inventory (TileMap.addObject()). E next to one opens the
+// inventory screen with its box above yours. while it's open InventoryScreen.storage is it, so a lid
+// picture or opening animation can check that in drawObjects() (tilemap.js)
+const StorageObjects = {
+  // the one you can open with E this frame, or null. sketch.js sets it while playing, like
+  // Warps.reachable
+  reachable: null,
+
+  // the closest one with any of its tiles in reach of your feet (closestInReach() in warps.js), so a
+  // wide one opens from anywhere along it
+  inReach(player, map) {
+    const tiles = [];
+    for (const obj of map.objects) {
+      if (!obj.inventory) continue;
+      const type = OBJECT_TYPES[obj.type];
+      for (let col = obj.col; col < obj.col + type.width; col++) {
+        for (let row = obj.row; row < obj.row + type.height; row++) tiles.push({ col, row, obj });
+      }
+    }
+    return closestInReach(player, tiles)?.obj ?? null;
+  },
+
+  // a sound or the lid opening would start here (and closing in InventoryScreen.show())
+  open(obj) {
+    InventoryScreen.show(true, obj);
+  },
+
+  // the E over the middle of its top edge (npc.js)
+  drawPrompt() {
+    const obj = this.reachable;
+    if (obj) drawKeyPrompt((obj.col + OBJECT_TYPES[obj.type].width / 2) * TILE, obj.row * TILE - 4);
   },
 };
