@@ -238,6 +238,9 @@ const KEYS = {
   nextMap:   ['KeyM'],
   // B for build (E is already used for talking)
   editor:    ['KeyB'],
+  // the shader before and after this one (shaders.js)
+  shaderPrev: ['BracketLeft'],
+  shaderNext: ['BracketRight'],
 };
 
 // browser mouse button numbers to names. I left middle click out because on windows it starts auto

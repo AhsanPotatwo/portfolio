@@ -9,6 +9,7 @@
 //     it scrolls instead (outside the editor the wheel changes hotbar slot)
 //   - T teleports the player to the mouse (if it's somewhere you can stand)
 //   - M goes to the next map (maps.js), and B opens the map editor (editor.js)
+//   - [ and ] go through the shaders (shaders.js), which only show in dev mode for now
 //
 // to add something:
 //   - a readout: a line in DEV_INFO
@@ -78,6 +79,10 @@ const DEV_INFO = [
       return [['particles', `${Particles.list.length} / ${PARTICLE_LIMIT}${down}`]];
     },
   },
+  {
+    name: 'shader', label: 'Shader', note: 'which is on', on: true,
+    lines: () => [['shader', SHADERS[Shaders.current].label]], // shaders.js
+  },
 ];
 
 // things drawn over the map that the menu can turn on and off. key is a KEYS action that flips it
@@ -95,6 +100,7 @@ const DEV_TOOLS = [
   { label: 'Next map', keys: ['nextMap'], run: () => Debug.nextMap() },
   { label: 'Teleport to mouse', keys: ['teleport'] },
   { label: 'Zoom out, in, reset', keys: ['zoomOut', 'zoomIn', 'zoomReset'], run: () => gameCamera.zoomTo(1) },
+  { label: 'Shader', keys: ['shaderPrev', 'shaderNext'], run: () => Shaders.next(1) },
   { label: 'Dev mode off', keys: ['devMode'], run: () => Debug.toggle(player, gameCamera) },
 ];
 
@@ -180,6 +186,8 @@ const Debug = {
     if (Input.wasPressed('editor')) Editor.toggle(player, camera);
     if (Input.wasPressed('devMenu')) this.toggleMenu();
     for (const overlay of DEV_OVERLAYS) if (overlay.key && Input.wasPressed(overlay.key)) this.flip(overlay.name);
+    if (Input.wasPressed('shaderPrev')) Shaders.next(-1);
+    if (Input.wasPressed('shaderNext')) Shaders.next(1);
 
     this.fps = approach(this.fps, frameRate(), 4, dt);
 

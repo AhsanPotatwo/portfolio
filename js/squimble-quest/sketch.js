@@ -40,6 +40,7 @@
 //   soundeditor.js the sound editor, a full screen synthesiser (after editor.js)
 //   particleeditor.js the particle editor box and its preview (after tileeditor.js)
 //   weaponeditor.js the weapon editor tabs, enemy weapons in the palette, and the combo preview (after editor.js)
+//   shaders.js    WebGL effects over the world (lighting, shadows, screen effects), dev mode only for now
 //   debug.js      dev mode (` or Ctrl + D)
 
 let player;
@@ -124,8 +125,9 @@ function setup() {
     mapsReady = true;
   });
 
-  // turns dev mode back on if it was on last time
+  // turns dev mode back on if it was on last time, and the shader that was on
   Debug.init();
+  Shaders.init();
   Editor.init();
   Dialogue.init();
 
@@ -383,6 +385,8 @@ function draw() {
     }
     if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
     gameCamera.end();
+    // the dev mode shader over the world, but not the ui (shaders.js)
+    Shaders.apply(gameCamera, worldMap, player, aim);
     // red round the edges when the player's just been hit (hud.js)
     if (!Editor.active) drawHurtFlash(player);
   }
