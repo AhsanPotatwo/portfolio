@@ -362,6 +362,8 @@ function draw() {
     // particles lying on the floor go under everything (particles.js)
     const view = gameCamera.view();
     Particles.drawFloor(view);
+    // shaders like Sun tell what's standing on the ground by what changes from here... (shaders.js)
+    Shaders.capture('ground');
     // sort by feet so whatever's lower on screen is in front. drops sort by their shadow (even while
     // they're being thrown), and so do arrows and flying particles. drops show in the editor too,
     // since you can place them there
@@ -373,6 +375,8 @@ function draw() {
     ];
     things.sort((a, b) => a.y - b.y);
     for (const thing of things) thing.draw();
+    // ...to here
+    Shaders.capture('things');
     // over everything, so they're never hidden behind someone (weapons.js)
     DamageNumbers.draw();
     // dev mode: each enemy's ai and its route (pathfinding.js)

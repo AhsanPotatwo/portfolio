@@ -1,20 +1,41 @@
-// shaders: effects worked out by the graphics card (WebGL) over the world, like lighting, shadows and
-// screen effects. for now they're dev mode only, to try things out: [ and ] go through SHADERS (or the
-// dev menu's tool), the info panel says which is on, and this browser remembers it.
+// shaders: effects worked out by the graphics card (WebGL 2) over the world, like lighting, shadows,
+// sunlight and screen effects. for now they're dev mode only, to try things out: [ and ] go through
+// SHADERS (or the dev menu's tool), the info panel says which is on, and this browser remembers it.
 //
-// how it works: the game still draws everything onto its normal 2D canvas. once the world's drawn
-// (before the ui), Shaders.apply() copies the canvas into a texture on a hidden WebGL canvas, runs the
-// shader on every pixel of it, and draws the result back over the 2D canvas. so a shader only changes
-// how the world looks, never the ui, and nothing else in the game knows it's there. with no shader on
-// it does nothing at all, so it costs nothing.
+// ---------- how it works ----------
+// the game still draws everything onto its normal 2D canvas, the same as with no shader. once the
+// world's drawn (before the ui), Shaders.apply() copies the canvas into a texture on a hidden WebGL
+// canvas, runs the shader on every pixel of it, and draws the result back over the 2D canvas. so a
+// shader only changes how the world looks, never the ui, and nothing else in the game knows it's
+// there. with no shader on it does nothing at all, so it costs nothing. the order each frame:
+//   1. sketch.js draws the ground (tiles, objects, the dev grid, particles on the floor)
+//   2. Shaders.capture('ground')  only for shaders with casters (below)
+//   3. sketch.js draws the things standing on it: characters, their swings, items, arrows, flying
+//      particles
+//   4. Shaders.capture('things')  only for shaders with casters
+//   5. sketch.js draws the rest of the world (damage numbers, dev mode's enemy routes)
+//   6. Shaders.apply()  sends the walls, lights and settings, runs the shader, draws it back
 //
-// to add one: a line in SHADERS whose glsl (the graphics card's language, a bit like C) has a
-// `vec3 effect()` giving back this pixel's colour. SHADER_COMMON goes on top of it, so it can use:
+// ---------- adding a shader ----------
+// a line in SHADERS: { name, label, note, glsl }, plus uniforms and casters if it needs them.
+//   name      what's remembered in localStorage. keep it the same once it's used
+//   label     what the info panel and the message say, and note says a bit more in the message
+//   glsl      the shader, in GLSL (the graphics card's language, a bit like C). it has to have a
+//             `vec3 effect()` that gives back this pixel's colour, 0 to 1 red, green, blue. it runs
+//             once for every pixel on the screen, every frame, all at the same time
+//   uniforms  (optional) a function given the time in seconds, giving back its own settings as
+//             { u_name: number or [2, 3 or 4 numbers] }, sent every frame. declare each one in the glsl
+//             as a float or vec2/3/4 (see the sun's sunUniforms())
+//   casters   (optional) true if it needs to know what's standing on the ground (thingAt() below).
+//             it costs two more copies of the canvas a frame, so only shaders that use it have it
+//
+// SHADER_COMMON goes on top of every shader and SHADER_MAIN after it, so effect() can use:
 //   scene(uv)        the world as drawn, at uv (0 to 1, from the bottom left like WebGL does it)
 //   v_uv             this pixel's uv
 //   gamePos          this pixel in game px, (0, 0) at the top left to (960, 540), like Input.mouse
 //   worldPos         this pixel in world px, so patterns can stay put on the ground as the camera moves
-//   toUv(p)          game px to uv, for scene(toUv(gamePos + wobble))
+//   toUv(p), toGame(w)  game px to uv, and world px to game px. scene(toUv(toGame(w))) is the colour
+//                    drawn at world px w
 //   u_time           seconds since the page loaded
 //   u_zoom           the camera's zoom. multiply world sizes by it to get game px
 //   u_player         the player's middle, in game px. u_health is their health, 0 to 1
@@ -22,16 +43,30 @@
 //   lighting(ambient, shadows)  the light reaching this pixel from every light (Shaders.lights()) on
 //                    top of ambient. multiply the scene by it. with shadows true, walls block it
 //   seen(from, to)   1 if no wall is between two points in game px, 0 if one is
+//   wallAt(t), wallAtWorld(w)  whether tile t (counted from the walls texture's corner) or the tile at
+//                    world px w is a wall
+//   thingAt(w)       (casters only) whether something's standing at world px w (step 3 above)
 //   hash(p), noise(p), luma(colour)  a random 0 to 1 for p, smooth noise, and how bright a colour is
 //
-// the lights come from the game each frame (Shaders.lights()): the player's torch, the mouse, items on
-// the ground (their rarity's colour) and glowing particles, set in SHADER_LIGHTS. walls are the tiles
-// that block sight, the same rule as clearLine() (tilemap.js), sent as a texture with a pixel per tile.
+// where the data comes from:
+//   lights   Shaders.lights() each frame: the player's torch, the mouse, items on the ground (their
+//            rarity's colour) and glowing particles, set in SHADER_LIGHTS. one inside a wall is moved
+//            out first (outOfWalls())
+//   walls    Shaders.walls(): the tiles that block light (blocksLight(), the same rule as clearLine()
+//            in tilemap.js), a byte per tile, round the screen
+//   things   the difference between the two captures, so anything drawn in step 3 counts, and it'll
+//            follow sprites' real shapes when there are some
+//
+// ---------- when something's wrong ----------
+// a shader that doesn't compile says why in the console (with the line number in the glsl, counting
+// SHADER_COMMON's lines first) and shows a message, and the game carries on without it. Lights only
+// shows just the light and shadows, which is the easiest way to see what the lighting is doing. to
+// see a value, return it as a colour from effect(), like `return vec3(thingAt(worldPos) ? 1.0 : 0.0);`
 //
 // ponytail: one shader at a time. stacking them (lighting then bloom) needs the passes to draw into
 // textures in turn (framebuffers), which would go in apply() once a real look is picked
-// ponytail: shadows are hard edged and a whole tile at a time, since they're worked out on the tile
-// grid. softer ones would sample a few spots round each light
+// ponytail: torch shadows are hard edged and a whole tile at a time, since they're worked out on the
+// tile grid. softer ones would sample a few spots round each light
 // ponytail: lights only come from things already in the game. placed ones would come from the
 // editor's Lights tab (empty for now, editor.js) into lights()
 
@@ -49,6 +84,56 @@ const SHADER_LIGHTS = {
 const MAX_SHADER_LIGHTS = 32;
 // the localStorage key for which one's on
 const SHADER_STORAGE_KEY = 'sq-dev-shader';
+
+// the Sun shader: a sun off screen that rises on the left, goes over the top of the screen and sets
+// on the right, so shadows start long pointing right, get short pointing down at midday, and end long
+// pointing left. then it starts again (it's dim at both ends, so the jump back isn't sudden)
+const SHADER_SUN = {
+  // seconds from sunrise to sunset
+  dayLength: 30,
+  // degrees above the horizon at midday. lower makes midday shadows longer
+  highest: 55,
+  // how tall walls and things standing on the ground (characters, items, arrows, swings) count as, in
+  // world px. a shadow is this long when the sun's at 45 degrees
+  wallHeight: 32,
+  thingHeight: 20,
+  // the most px of shadow for each px of height. the sun's on the horizon at sunrise, which would
+  // make them endless
+  longest: 3,
+  // world px for each shadow pixel. 1 matches the art (a tile is 32 x 32 art pixels), 2 or 4 make
+  // them chunkier. whole numbers keep them lined up with the tiles
+  pixel: 1,
+  // what shadow multiplies the colour by: darker, and a bit blue like light from the sky
+  shade: [0.5, 0.55, 0.72],
+  // the sunlight's colour low in the sky and at midday
+  low: [1, 0.66, 0.45],
+  midday: [1, 0.98, 0.94],
+};
+
+// the Sun shader's settings for this moment (`uniforms` in SHADERS). where it is in the day goes 0
+// (sunrise) to 1 (sunset)
+function sunUniforms(time) {
+  const S = SHADER_SUN;
+  const day = (time / S.dayLength) % 1;
+  // 0 on the horizon, 1 at midday
+  const up = Math.sin(Math.PI * day);
+  // round from the left (PI) over the top (PI / 2) to the right (0). y is down the screen, so the top
+  // is -y. shadows point the other way, away from the sun
+  const around = Math.PI * (1 - day);
+  const height = radians(S.highest * up);
+  // dim and shadowless right at the ends, so the jump from sunset back to sunrise is hidden
+  const strength = Math.min(1, up * 4);
+  const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+  return {
+    u_sunDir: [-Math.cos(around), Math.sin(around)],
+    u_sunStretch: Math.min(S.longest, 1 / Math.tan(Math.max(height, 0.01))),
+    u_sunColour: mix(S.low, S.midday, Math.sqrt(up)).map((v) => v * (0.45 + 0.55 * strength)),
+    u_shade: mix([1, 1, 1], S.shade, strength),
+    u_wallHeight: S.wallHeight,
+    u_thingHeight: S.thingHeight,
+    u_shadowPixel: S.pixel,
+  };
+}
 
 // draws a triangle bigger than the screen, so every pixel gets the effect. it needs no data from the
 // game: gl_VertexID (0, 1, 2) makes the corners
@@ -82,6 +167,10 @@ uniform sampler2D u_walls;
 uniform vec2 u_wallsCorner;
 uniform vec2 u_wallsSize;
 uniform float u_tile;
+// casters only: the canvas just before and just after the things standing on the ground were drawn
+// (Shaders.capture())
+uniform sampler2D u_ground;
+uniform sampler2D u_things;
 in vec2 v_uv;
 out vec4 outColour;
 vec2 gamePos;
@@ -89,6 +178,9 @@ vec2 worldPos;
 
 vec3 scene(vec2 uv) { return texture(u_scene, uv).rgb; }
 vec2 toUv(vec2 p) { return vec2(p.x, u_game.y - p.y) / u_game; }
+// the other way to worldPos. u_camera is pixel snapped like the drawing (Camera.begin()), so world px
+// land exactly where they were drawn
+vec2 toGame(vec2 w) { return (w - u_camera) * u_zoom + u_game / 2.0; }
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p) {
   vec2 i = floor(p);
@@ -102,6 +194,17 @@ float luma(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }
 float wallAt(vec2 t) {
   if (any(lessThan(t, vec2(0))) || any(greaterThanEqual(t, u_wallsSize))) return 0.0;
   return texelFetch(u_walls, ivec2(t), 0).r;
+}
+bool wallAtWorld(vec2 w) { return wallAt(floor((toGame(w) - u_wallsCorner) / u_tile)) > 0.5; }
+
+// casters only. something's standing at world px w if the canvas there changed a lot while the things
+// were being drawn. a little change is something see-through, like a drop's shadow or the faint edge
+// of an item's glow, which shouldn't throw a shadow of its own. off screen nothing is, since there's
+// no canvas there
+bool thingAt(vec2 w) {
+  vec2 uv = toUv(toGame(w));
+  if (any(lessThan(uv, vec2(0))) || any(greaterThan(uv, vec2(1)))) return false;
+  return distance(texture(u_things, uv).rgb, texture(u_ground, uv).rgb) > 0.2;
 }
 
 // whether a line from a to b (in tiles) gets to b's tile without going through a wall. it goes through
@@ -217,6 +320,55 @@ vec3 effect() {
   ambient += vec3(0.35, 0.1, -0.08) * max(0.0, 1.0 - abs(sun - 0.4) * 5.0);
   vec3 lamps = lighting(vec3(0), true) * (1.0 - day);
   return scene(v_uv) * (ambient + lamps);
+}`,
+  },
+
+  {
+    // SHADER_SUN has its settings and sunUniforms() where the sun is. for each pixel it looks back
+    // towards the sun: if there's a wall or a thing close enough that way, its shadow reaches here.
+    // how far it looks is the caster's height times u_sunStretch, which grows as the sun gets lower
+    // ponytail: objects (furniture) are drawn with the ground, before capture('ground'), so they
+    // don't cast. they'd need drawing between the captures, or a height setting and a texture like
+    // the walls'
+    // ponytail: things only cast while they're on screen (thingAt() reads the canvas), so a long
+    // shadow can pop in at the edge. walls reach past it (walls())
+    // ponytail: every pixel looks up to wallHeight * longest px back, about 100 steps at sunrise. if
+    // it's slow on a real screen, work it out once per art pixel into a small texture first
+    name: 'sun', label: 'Sun', note: 'rises on the left, sets on the right, walls and things cast pixel shadows',
+    casters: true,
+    uniforms: sunUniforms,
+    glsl: `
+// which way shadows point (world px, length 1), and px of shadow per px of height
+uniform vec2 u_sunDir;
+uniform float u_sunStretch;
+// the sunlight's colour, and what shadow multiplies it by
+uniform vec3 u_sunColour;
+uniform vec3 u_shade;
+// SHADER_SUN's heights and shadow pixel size, in world px
+uniform float u_wallHeight;
+uniform float u_thingHeight;
+uniform float u_shadowPixel;
+
+// the middle of the shadow pixel that world px w is in
+vec2 snapped(vec2 w) { return (floor(w / u_shadowPixel) + 0.5) * u_shadowPixel; }
+
+vec3 effect() {
+  vec3 c = scene(v_uv) * u_sunColour;
+  // worked out for the middle of this screen pixel's art pixel, so the whole art pixel comes out the
+  // same and the shadows are as blocky as the art at any zoom or screen size
+  vec2 p = snapped(worldPos);
+  // the tops of walls are always in the sun
+  if (wallAtWorld(p)) return c;
+  // the ground gets shadows from walls and things, but things only from walls, or each one would
+  // shade itself
+  bool thing = thingAt(p);
+  float wallReach = u_wallHeight * u_sunStretch;
+  float thingReach = thing ? 0.0 : u_thingHeight * u_sunStretch;
+  for (float d = u_shadowPixel; d <= max(wallReach, thingReach); d += u_shadowPixel) {
+    vec2 q = snapped(p - u_sunDir * d);
+    if ((d <= wallReach && wallAtWorld(q)) || (d <= thingReach && thingAt(q))) return c * u_shade;
+  }
+  return c;
 }`,
   },
 
@@ -415,12 +567,14 @@ vec3 effect() {
 const Shaders = {
   // which SHADERS entry is on
   current: 0,
-  // the hidden WebGL canvas, its context and the two textures, made the first time one's used. gl is
-  // false if the browser can't do WebGL 2
+  // the hidden WebGL canvas, its context and the textures, made the first time one's used. gl is
+  // false if the browser can't do WebGL 2. ground and things are the captures (capture())
   canvas: null,
   gl: null,
   sceneTexture: null,
   wallsTexture: null,
+  groundTexture: null,
+  thingsTexture: null,
   // compiled programs by SHADERS name, false for ones that didn't compile
   programs: {},
   // the last left click in world px, and when (seconds)
@@ -440,6 +594,20 @@ const Shaders = {
     const shader = SHADERS[this.current];
     try { localStorage.setItem(SHADER_STORAGE_KEY, shader.name); } catch (e) {}
     showMessage(`Shader: ${shader.label}${shader.note ? `  (${shader.note})` : ''}`); // hud.js
+  },
+
+  // copies the canvas as it is now, for shaders with casters. sketch.js calls it with 'ground' just
+  // before the things standing on the ground are drawn and 'things' just after, so thingAt() can tell
+  // what changed. it does nothing for any other shader
+  capture(which) {
+    if (!Debug.enabled || !SHADERS[this.current].casters) return;
+    const gl = this.setUp();
+    if (!gl) return;
+    // units 2 and 3, next to the scene's 0 and the walls' 1 (apply())
+    gl.activeTexture(which === 'ground' ? gl.TEXTURE2 : gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, which === 'ground' ? this.groundTexture : this.thingsTexture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, drawingContext.canvas);
   },
 
   // every frame, after the world's drawn and gameCamera.end() (sketch.js). aim is the mouse in world
@@ -482,12 +650,17 @@ const Shaders = {
       colourData.set(l.colour, i * 3);
     });
     const at = (name) => gl.getUniformLocation(program, name);
-    const playerAt = camera.drawnPosition(player.x, player.y);
+    // Line of sight looks from here, so it can't see through a wall the player's against either
+    const playerOut = this.outOfWalls(map, player.x, player.y);
+    const playerAt = camera.drawnPosition(playerOut.x, playerOut.y);
     const rippleAt = camera.drawnPosition(this.ripple.x, this.ripple.y);
     gl.uniform1i(at('u_scene'), 0);
     gl.uniform1i(at('u_walls'), 1);
+    gl.uniform1i(at('u_ground'), 2);
+    gl.uniform1i(at('u_things'), 3);
     gl.uniform2f(at('u_game'), GAME_W, GAME_H);
-    gl.uniform2f(at('u_camera'), camera.x + camera.shakeX, camera.y + camera.shakeY);
+    // pixel snapped like Camera.begin(), so worldPos is exactly where things were drawn
+    gl.uniform2f(at('u_camera'), camera.pixelSnap(camera.x + camera.shakeX), camera.pixelSnap(camera.y + camera.shakeY));
     gl.uniform1f(at('u_time'), time);
     gl.uniform1f(at('u_zoom'), camera.zoom);
     gl.uniform2f(at('u_player'), playerAt.x, playerAt.y);
@@ -499,6 +672,11 @@ const Shaders = {
     gl.uniform2f(at('u_wallsCorner'), walls.corner.x, walls.corner.y);
     gl.uniform2f(at('u_wallsSize'), walls.cols, walls.rows);
     gl.uniform1f(at('u_tile'), TILE * camera.zoom);
+    // the shader's own settings (uniforms in SHADERS): a number is a float, a list of 2 to 4 a vec
+    for (const [name, value] of Object.entries(shader.uniforms?.(time) ?? {})) {
+      const values = [value].flat();
+      gl[`uniform${values.length}fv`](at(name), values);
+    }
     gl.drawArrays(gl.TRIANGLES, 0, 3);
 
     // 'copy' swaps the canvas for the result instead of drawing it on top
@@ -534,6 +712,8 @@ const Shaders = {
     };
     this.sceneTexture = texture(gl.LINEAR);
     this.wallsTexture = texture(gl.NEAREST);
+    this.groundTexture = texture(gl.NEAREST);
+    this.thingsTexture = texture(gl.NEAREST);
     // rows of the walls texture are any number of bytes long, not a multiple of 4
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     return gl;
@@ -566,11 +746,12 @@ const Shaders = {
   },
 
   // the tiles round the screen that block light, a byte each (255 if it blocks), plus where the top
-  // left one's corner is drawn. it reaches a light's radius past the screen, since a light just off
-  // screen still throws shadows onto it
+  // left one's corner is drawn. it reaches past the screen as far as the biggest light or the longest
+  // sun shadow, since a wall just off screen still throws shadows onto it
   walls(camera, map) {
     const view = camera.view();
-    const reach = Math.ceil(Math.max(...Object.values(SHADER_LIGHTS).map((l) => l.radius)) / TILE) + 1;
+    const furthest = Math.max(...Object.values(SHADER_LIGHTS).map((l) => l.radius), SHADER_SUN.wallHeight * SHADER_SUN.longest);
+    const reach = Math.ceil(furthest / TILE) + 1;
     const left = map.colAt(view.left) - reach;
     const top = map.rowAt(view.top) - reach;
     const cols = map.colAt(view.right) + reach - left + 1;
@@ -578,13 +759,38 @@ const Shaders = {
     const data = new Uint8Array(cols * rows);
     for (let row = 0; row < rows; row++) {
       for (let col = 0; col < cols; col++) {
-        // like clearLine() (tilemap.js), except empty and off-map tiles don't, so the dark outside the
-        // map doesn't throw shadows
-        const type = map.get(left + col, top + row);
-        if (type && type.solid && !type.seeThrough) data[row * cols + col] = 255;
+        if (this.blocksLight(map, left + col, top + row)) data[row * cols + col] = 255;
       }
     }
     return { cols, rows, data, corner: camera.drawnPosition(left * TILE, top * TILE) };
+  },
+
+  // like clearLine() (tilemap.js), except empty and off-map tiles don't, so the dark outside the map
+  // doesn't throw shadows
+  blocksLight(map, col, row) {
+    const type = map.get(col, row);
+    return Boolean(type && type.solid && !type.seeThrough);
+  },
+
+  // a light inside a wall shines out of every open side of it, so through the wall. the player's
+  // middle is above their feet, so it's in the wall when they walk up against one, and the mouse can
+  // be over one. this moves the point (world px) just outside the wall's nearest open side. in the
+  // middle of a block, with no open side, it stays put and the walls round it keep the light in
+  outOfWalls(map, x, y) {
+    const col = map.colAt(x);
+    const row = map.rowAt(y);
+    if (!this.blocksLight(map, col, row)) return { x, y };
+    const left = col * TILE;
+    const top = row * TILE;
+    // each side: how far away it is, and the point just past it
+    const sides = [
+      [-1, 0, x - left, { x: left - 0.5, y }],
+      [1, 0, left + TILE - x, { x: left + TILE + 0.5, y }],
+      [0, -1, y - top, { x, y: top - 0.5 }],
+      [0, 1, top + TILE - y, { x, y: top + TILE + 0.5 }],
+    ].filter(([dc, dr]) => !this.blocksLight(map, col + dc, row + dr));
+    if (sides.length === 0) return { x, y };
+    return sides.reduce((a, b) => (b[2] < a[2] ? b : a))[3];
   },
 
   // every light that reaches the screen, in game px, closest to the middle first, up to
@@ -592,7 +798,8 @@ const Shaders = {
   lights(camera, map, player, aim, time) {
     const list = [];
     const add = (settings, x, y, colour = settings.colour) => {
-      const at = camera.drawnPosition(x, y);
+      const out = this.outOfWalls(map, x, y);
+      const at = camera.drawnPosition(out.x, out.y);
       const radius = settings.radius * camera.zoom;
       if (at.x < -radius || at.x > GAME_W + radius || at.y < -radius || at.y > GAME_H + radius) return;
       // two waves that don't line up, so it wavers without a clear rhythm
