@@ -104,12 +104,10 @@ float wallAt(vec2 t) {
   return texelFetch(u_walls, ivec2(t), 0).r;
 }
 
-// goes through every tile the line crosses, in order (a "DDA" grid walk). I tried stepping a third of
-// a tile at a time first, but it missed corners and made the shadow edges jagged. the tile it ends in
-// doesn't count, so a wall facing a light gets lit itself while the tiles behind it don't
-float seen(vec2 from, vec2 to) {
-  vec2 a = (from - u_wallsCorner) / u_tile;
-  vec2 b = (to - u_wallsCorner) / u_tile;
+// whether a line from a to b (in tiles) gets to b's tile without going through a wall. it goes through
+// every tile the line crosses, in order (a "DDA" grid walk). I tried stepping a third of a tile at a
+// time first, but it missed corners and made the shadow edges jagged
+float clearTo(vec2 a, vec2 b) {
   vec2 tile = floor(a);
   vec2 end = floor(b);
   vec2 dir = sign(b - a);
@@ -118,20 +116,48 @@ float seen(vec2 from, vec2 to) {
   vec2 across = 1.0 / max(abs(b - a), 1e-6);
   vec2 edge = mix(a - tile, tile + 1.0 - a, step(0.0, dir)) * across;
   for (int i = 0; i < 256; i++) {
-    float t;
+    if (tile == end || min(edge.x, edge.y) >= 1.0) return 1.0;
+    // going exactly through a corner: a wall on either side blocks it, or a thin line of light gets
+    // between two walls that only touch at a corner
+    if (abs(edge.x - edge.y) < 1e-4 && max(wallAt(tile + vec2(dir.x, 0)), wallAt(tile + vec2(0, dir.y))) > 0.5) return 0.0;
     if (edge.x < edge.y) {
-      t = edge.x;
       edge.x += across.x;
       tile.x += dir.x;
     } else {
-      t = edge.y;
       edge.y += across.y;
       tile.y += dir.y;
     }
-    if (t >= 1.0 || tile == end) return 1.0;
-    if (wallAt(tile) > 0.5) return 0.0;
+    if (tile != end && wallAt(tile) > 0.5) return 0.0;
   }
   return 1.0;
+}
+
+// a point just inside the wall tile, on the side facing a (dir is which side, across then down),
+// away from its corners. or one far away if that side faces another wall, so it never counts
+vec2 sideFacing(vec2 a, vec2 tile, vec2 dir, bool down) {
+  vec2 next = down ? vec2(0, dir.y) : vec2(dir.x, 0);
+  if (next == vec2(0) || wallAt(tile + next) > 0.5) return vec2(-1e5);
+  // a thousandth of a tile in from that side
+  vec2 inside = clamp(a, tile + 0.05, tile + 0.95);
+  return down ? vec2(inside.x, tile.y + 0.5 + 0.499 * dir.y) : vec2(tile.x + 0.5 + 0.499 * dir.x, inside.y);
+}
+
+// 1 if no wall is between the two points (game px). a pixel on a wall is lit all over or not at all,
+// by whether from can see a side of that wall tile that faces it and isn't against another wall.
+// before, each wall pixel had its own line, which let light in through a wall's other sides, so the
+// walls of a thick block got lit and dark wedges in them
+float seen(vec2 from, vec2 to) {
+  vec2 a = (from - u_wallsCorner) / u_tile;
+  vec2 b = (to - u_wallsCorner) / u_tile;
+  vec2 tile = floor(b);
+  if (wallAt(tile) < 0.5 || floor(a) == tile) return clearTo(a, b);
+  // which way a is from the tile, across and down (0 if it's level with it)
+  vec2 dir = sign(a - clamp(a, tile, tile + 1.0));
+  vec2 across = sideFacing(a, tile, dir, false);
+  vec2 down = sideFacing(a, tile, dir, true);
+  float lit = across.x > -1e4 ? clearTo(a, across) : 0.0;
+  if (down.x > -1e4) lit = max(lit, clearTo(a, down));
+  return lit;
 }
 
 vec3 lighting(vec3 ambient, bool shadows) {

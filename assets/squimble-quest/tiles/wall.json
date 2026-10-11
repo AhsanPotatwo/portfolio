@@ -1,4 +1,6 @@
 {
   "colour": "#5f6470",
-  "solid": true
+  "solid": true,
+  "blendsWith": [],
+  "particles": []
 }
