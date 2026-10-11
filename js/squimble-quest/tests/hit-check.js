@@ -2,6 +2,7 @@
 // hitInvincible stops a second hit until it runs out, a killing blow holds the swinger's hit stop for
 // COMBAT.killHitStop, the damage pops up as a number, the health bar's trail drains down after, and
 // each plays its weapon's own sounds (weaponSound()), heard from afar when it's the player's own hit.
+// a bow's drawSound plays while it's drawn and is cut off when it shoots or the shot's lost.
 // run it with node js/squimble-quest/tests/hit-check.js
 // no output means it all passed
 const fs = require('fs');
@@ -9,7 +10,8 @@ const vm = require('vm');
 const assert = require('assert');
 
 const sounds = [];
-const game = { PUSH_DIRECTIONS: {}, SLIPPERY_GRIP: 10, console, playSound: (name, at, key, options) => { sounds.push({ name, ...options }); return null; }, worldMap: null };
+const stopped = [];
+const game = { PUSH_DIRECTIONS: {}, SLIPPERY_GRIP: 10, console, playSound: (name, at, key, options) => { sounds.push({ name, ...options }); return sounds.at(-1); }, Sound: { stop: (voice) => stopped.push(voice) }, worldMap: null };
 vm.createContext(game);
 // const and class don't end up on game by themselves, so put the ones used here there
 vm.runInContext(['config.js', 'utils.js', 'weapons.js', 'character.js'].map((f) => fs.readFileSync(`${__dirname}/../${f}`, 'utf8')).join('\n')
@@ -68,3 +70,22 @@ assert.strictEqual(sounds.at(-1).name, weapon.killSound);
 const fallback = body({ ...PLAYER, maxHealth: 1 }, 30);
 hitWith(swinger, fallback, game.makeWeapon({ killSound: null }, 'no kill sound'), 0);
 assert.strictEqual(sounds.at(-1).name, 'thwack');
+
+// a bow's draw sound starts with the draw, and stops when it shoots, or when a stagger loses the shot
+const bow = game.makeWeapon({ attack: 'shoot', chargeTime: 0.5, drawSound: 'bow-draw', attackSound: 'arrow-shot' }, 'bow');
+const archer = Object.assign(body({ ...PLAYER, weapon: bow }), { targets: () => [] });
+const world = { map: floor, characters: [archer], arrows: [] };
+const hold = (charge, frames) => { for (let i = 0; i < frames; i++) archer.update({ move: { x: 0, y: 0 }, aim: null, attack: charge, charge }, 1 / 60, world); };
+sounds.length = 0;
+hold(true, 10);
+assert.deepStrictEqual(names(), ['bow-draw']);
+const drawing = sounds[0];
+hold(false, 1);
+assert.deepStrictEqual(names(), ['bow-draw', 'arrow-shot']);
+assert.deepStrictEqual(stopped, [drawing]);
+hold(false, 30);
+hold(true, 5);
+archer.stagger = 0.2;
+hold(true, 1);
+assert.strictEqual(stopped.at(-1), sounds.at(-1), 'staggered mid-draw cuts the draw sound');
+assert.strictEqual(archer.charge, null);

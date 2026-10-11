@@ -68,6 +68,7 @@ const WEAPON_WIDE_SETTINGS = [
 // the sound pickers at the top of the Sound tab, each a sound file's name or null for none
 const WEAPON_SOUNDS = [
   { key: 'attackSound', label: 'Attack', tip: 'When it swings, jabs or shoots. Picking one plays it' },
+  { key: 'drawSound', label: 'Draw', tip: 'While a bow with a charge time is drawn back. Cut off when it shoots' },
   { key: 'hitSound', label: 'Hit', tip: 'When it hits something' },
   { key: 'killSound', label: 'Kill', tip: 'When it kills something. None uses the hit sound' },
 ];
@@ -291,9 +292,10 @@ class WeaponPreview extends UIElement {
     for (const c of [this.attacker, this.target]) {
       Object.assign(c, {
         y: 0, health: c.maxHealth, pushVelocity: { x: 0, y: 0 }, pushLocked: false, stagger: 0, frozen: 0, swing: null,
-        attackCooldown: 0, attackBuffer: 0, comboStep: 0, comboLeft: 0, backhand: false, charge: null, roll: null,
+        attackCooldown: 0, attackBuffer: 0, comboStep: 0, comboLeft: 0, backhand: false, roll: null,
         invincible: 0, squash: 0,
       });
+      c.stopDrawing();
     }
     this.attacker.x = 0;
     // a jab starts near the end of its reach, to show it off

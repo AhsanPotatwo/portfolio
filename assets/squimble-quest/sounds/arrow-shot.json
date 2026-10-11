@@ -1,0 +1,15 @@
+{
+  "wave": "pink",
+  "pitch": 1800,
+  "slide": -40,
+  "drop": 12,
+  "dropTime": 30,
+  "attack": 0,
+  "sustain": 10,
+  "punch": 70,
+  "decay": 140,
+  "highPass": 30,
+  "volume": 110,
+  "range": 12,
+  "doppler": 0
+}

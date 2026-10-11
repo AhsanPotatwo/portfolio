@@ -58,6 +58,9 @@
 //   chargeSlow  how fast you walk while drawing, 1 is normal speed
 //   carrySpeed  how fast you walk while holding it, 1 is normal speed (a heavy axe slows you down)
 //   attackSound the sound (a sound file's name, sounds/) when it swings, jabs or shoots, or null for none
+//   drawSound   shooting with a chargeTime only: the sound while it's drawn back, or null. it's cut off
+//               when it shoots or the shot's lost (Character.stopDrawing()), so a long hold that
+//               outlasts the sound just goes quiet
 //   hitSound    the sound when it hits something, or null
 //   killSound   the sound when it kills something, or null for its hitSound
 //   soundVolume how loud all its sounds are, 1 is as loud as the sound files
@@ -122,6 +125,7 @@ const WEAPON_DEFAULTS = {
   chargeSlow: 0.5,
   carrySpeed: 1,
   attackSound: 'swing',
+  drawSound: null,
   hitSound: 'thwack',
   killSound: 'kill',
   soundVolume: 1,
@@ -245,12 +249,13 @@ function heaviness(weapon, power = 1) {
 // plays the sound called `name` (a sound file, or null for none) from where `who` is, with the weapon's
 // soundVolume, soundPitch and soundWobble (weapon null for none of them), at `rate` times its speed
 // (heaviness()), and never quieter than minVolume (0 to 1) however far away. the weapon editor's
-// preview characters only play while its Sound tab is open (WeaponPreview's audible), at full volume
+// preview characters only play while its Sound tab is open (WeaponPreview's audible), at full volume.
+// gives back the voice (for Sound.stop()), or null if nothing played
 function weaponSound(who, name, weapon = null, rate = 1, minVolume = 0) {
-  if (!name || (who.inPreview && !who.audible)) return;
+  if (!name || (who.inPreview && !who.audible)) return null;
   const wobble = weapon?.soundWobble ?? 0;
   // worldMap is the game's (sketch.js)
-  playSound(name, who.inPreview ? null : { x: who.x, y: who.y, map: worldMap }, null, { // sound.js
+  return playSound(name, who.inPreview ? null : { x: who.x, y: who.y, map: worldMap }, null, { // sound.js
     rate: rate * (weapon?.soundPitch ?? 1) * randomBetween(1 - wobble, 1 + wobble),
     volume: weapon?.soundVolume ?? 1,
     minVolume,

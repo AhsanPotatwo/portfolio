@@ -1,0 +1,19 @@
+{
+  "wave": "sawtooth",
+  "pitch": 70,
+  "slide": 8,
+  "wander": 0.5,
+  "wanderSpeed": 20,
+  "attack": 120,
+  "sustain": 650,
+  "decay": 120,
+  "hiss": 15,
+  "crackle": 40,
+  "crackleLength": 15,
+  "crackleDepth": 70,
+  "lowPass": 30,
+  "lowPassSweep": 20,
+  "volume": 50,
+  "range": 10,
+  "doppler": 0
+}

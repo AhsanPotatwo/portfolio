@@ -112,6 +112,8 @@ class Character {
     // seconds it's been drawing a shot (updateCharge()) and the weapon it's drawing, or null
     this.charge = null;
     this.chargeWeapon = null;
+    // its weapon's drawSound playing while it draws (Sound.play()'s voice), or null
+    this.drawVoice = null;
     // the dodge roll that's happening ({ angle, time }, time is seconds since it started), or null.
     // seconds until it can roll again, and seconds a roll it asked for is still waiting (like
     // attackBuffer)
@@ -178,7 +180,7 @@ class Character {
     if (chargesUp(weapon)) {
       this.updateCharge(controls, weapon, staggered || this.roll !== null, dt, world);
     } else {
-      this.charge = null;
+      this.stopDrawing();
       if (!staggered && !this.roll && this.attackBuffer > 0) this.attack(world);
     }
 
@@ -448,10 +450,11 @@ class Character {
   // drawing a weapon that charges up (chargesUp() in weapons.js): it starts drawing once it's ready
   // and attack is held, walks slower while drawing (walk()), and shoots when let go, harder the longer
   // it was drawn. the player holds the mouse (controls.charge); ais leave that out and keep attacking,
-  // so they let go once it's fully drawn. getting staggered or changing weapon loses the shot
+  // so they let go once it's fully drawn. getting staggered or changing weapon loses the shot. its
+  // drawSound plays from the start of the draw until it shoots or loses it
   updateCharge(controls, weapon, staggered, dt, world) {
     if (staggered || (this.charge !== null && this.chargeWeapon !== weapon)) {
-      this.charge = null;
+      this.stopDrawing();
       return;
     }
     const holding = controls.charge ?? (controls.attack && (this.charge ?? 0) < weapon.chargeTime);
@@ -460,10 +463,18 @@ class Character {
     } else if (holding && this.attackCooldown === 0) {
       this.charge = 0;
       this.chargeWeapon = weapon;
+      this.drawVoice = weaponSound(this, weapon.drawSound, weapon); // weapons.js
     } else if (!holding && this.charge !== null) {
       this.attack(world, chargePower(weapon, this.charge));
-      this.charge = null;
+      this.stopDrawing();
     }
+  }
+
+  // not drawing a shot any more (charge), and its drawSound is cut off
+  stopDrawing() {
+    this.charge = null;
+    if (this.drawVoice) Sound.stop(this.drawVoice); // sound.js
+    this.drawVoice = null;
   }
 
   // the item types it's wearing (their wear setting, items.js), drawn on its body. the player and

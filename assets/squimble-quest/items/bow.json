@@ -15,7 +15,8 @@
     "chargeTime": 0.8,
     "minPower": 0.25,
     "chargeSlow": 0.45,
-    "attackSound": "twang"
+    "attackSound": "arrow-shot",
+    "drawSound": "bow-draw"
   },
   "rarity": "uncommon",
   "colour": "#a0703c"
