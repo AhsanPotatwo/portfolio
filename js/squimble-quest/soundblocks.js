@@ -16,6 +16,10 @@
 // enemies.js or npcs.js, or its own picked by right clicking it in the editor) loops it from where
 // it is while you're in range (updateCharacters()), so something chasing you gets higher as it comes.
 //
+// and sounds that tiles make: a tile kind with sounds (like lava's bubbling, its "sounds" in tiles.js,
+// or its Sounds tab in the tile editor) loops each one from only the closest few tiles of that kind
+// you can hear (soundSpots), so a big lake of lava is a few loops, not hundreds (updateTiles()).
+//
 // each block on a map (map.sounds, saved in the map file):
 //   col, row  its tile. one per tile, and it can share the tile with anything else
 //   activate  how it plays, a SOUND_BLOCK_ACTIVATE key
@@ -33,7 +37,7 @@
 // leave it (Sound.update() stops it)
 //
 // where it hooks into the rest of the game:
-//   sketch.js    every frame while playing: SoundBlocks.update() (loops), reachable (the E block),
+//   sketch.js    every frame while playing: SoundBlocks.update() (loops), updateTiles(), reachable (the E block),
 //                SoundBlocks.play() on E, checkStep() before Warps.checkStep(), and drawPrompt()
 //   tilemap.js   map.sounds, soundAt(), removeSoundAt(), and resize() dropping blocks cut off
 //   mapfile.js   saving and loading "sounds" in map files ({ sound, col, row, activate })
@@ -55,6 +59,9 @@
 //   - a moving one-shot (step or E) plays from wherever it is on its path at the time
 //   - a character's sound loops the whole time it's in range, standing still or not, and stops when
 //     it's defeated
+//   - a tile sound comes from the middle of its closest tiles, so a long thin river of them sounds a
+//     little louder off its end than off its side (fewer of them close by), and big patches sound
+//     louder than small ones (more spots close by). raise or lower soundSpots to taste
 //
 // ideas for later:
 //   - paths you draw (a list of tiles to go along), for a train on a track
@@ -63,7 +70,8 @@
 //   - letting enemies set off step blocks (a creaky floor that gives them away)
 //   - sounds tied to objects (a fire object that crackles), which could reuse this, just placed with
 //     the object
-//   - blocks bigger than one tile, for an area like a river that's loudest anywhere along it
+//   - blocks bigger than one tile, for an area like a river that's loudest anywhere along it (a tile
+//     with sounds does most of this already, see updateTiles())
 
 // how a block plays, and the words for it in the settings box
 const SOUND_BLOCK_ACTIVATE = {
@@ -159,6 +167,52 @@ const SoundBlocks = {
       if (Sound.volumeAt(at, SOUNDS[character.sound].range) === 0) continue;
       const voice = playSound(character.sound, at, character, { loop: true });
       if (voice) this.following.set(character, voice);
+    }
+  },
+
+  // tile sounds that are playing, `${tile name} ${sound}` => its spots, each { at, tile, voice }: where
+  // it plays from (Sound.update() reads it every frame), which tile that is ('col,row'), and
+  // Sound.play()'s voice
+  tileSpots: new Map(),
+
+  // every frame while playing: each tile sound (a tile's sounds, tiles.js) loops from the closest few
+  // tiles of its kind you can hear (its soundSpots), however many there are. a spot whose tile isn't
+  // one of the closest any more moves onto one that is, instead of stopping and starting again, so
+  // walking along a lava river is one steady sound. volume and pan glide there (Sound.update()), so
+  // the jump doesn't click, and doppler is off because the jump would bend the pitch. spots start as
+  // tiles come into range and stop when there aren't enough close ones left
+  updateTiles(map) {
+    const groups = tileSoundSpots(map, Sound.listener);
+    for (const key of new Set([...this.tileSpots.keys(), ...groups.keys()])) {
+      const group = groups.get(key);
+      const wanted = group?.tiles ?? [];
+      // ones that were stopped (you left their range, or the editor opened) start again below if
+      // they're still wanted
+      const spots = (this.tileSpots.get(key) ?? []).filter((spot) => Sound.voices.includes(spot.voice));
+      const free = wanted.filter((tile) => !spots.some((spot) => spot.tile === tile.key));
+      const kept = [];
+      for (const spot of spots) {
+        if (!wanted.some((tile) => tile.key === spot.tile)) {
+          const tile = free.shift();
+          if (!tile) {
+            Sound.stop(spot.voice);
+            continue;
+          }
+          Object.assign(spot.at, { x: tile.x, y: tile.y, map });
+          spot.tile = tile.key;
+        }
+        kept.push(spot);
+      }
+      for (const tile of free) {
+        const at = { x: tile.x, y: tile.y, map };
+        const vary = group.type.soundPitchVariety;
+        const voice = playSound(group.sound, at, 'tile', {
+          loop: true, range: group.range, doppler: 0, volume: group.type.soundVolume, rate: 1 + randomBetween(-vary, vary),
+        });
+        if (voice) kept.push({ at, tile: tile.key, voice });
+      }
+      if (kept.length) this.tileSpots.set(key, kept);
+      else this.tileSpots.delete(key);
     }
   },
 
@@ -274,6 +328,52 @@ const SoundBlocks = {
   },
 };
 
+// the closest tiles for each tile sound to play from (updateTiles()), as `${tile name} ${sound}` =>
+// { type, sound, range, tiles }. range is in tiles (the tile's soundRange, or the sound's own), and
+// tiles are the type's soundSpots closest ones in range of the listener, closest first, each
+// { key: 'col,row', x, y, away } (its middle, and how far that is, in world px). it only looks at
+// tiles close enough to hear.
+// ponytail: scans a square as wide as the longest range every frame, 101 x 101 tiles at the most
+// (50). fine for a few tile sounds, keep a list of each kind's tiles per map if it ever shows up
+function tileSoundSpots(map, listener) {
+  const groups = new Map();
+  if (!listener || listener.map !== map) return groups;
+  // a silent tile would be stopped by Sound.update() and started again every frame
+  const heard = (type, sound) => SOUNDS[sound] && type.soundVolume > 0;
+  let reach = 0;
+  for (const type of Object.values(TILE_TYPES)) {
+    for (const sound of type.sounds ?? []) {
+      if (heard(type, sound)) reach = Math.max(reach, type.soundRange || SOUNDS[sound].range);
+    }
+  }
+  if (reach === 0) return groups;
+  const firstCol = Math.max(map.left, map.colAt(listener.x - reach * TILE));
+  const lastCol = Math.min(map.left + map.cols - 1, map.colAt(listener.x + reach * TILE));
+  const firstRow = Math.max(map.top, map.rowAt(listener.y - reach * TILE));
+  const lastRow = Math.min(map.top + map.rows - 1, map.rowAt(listener.y + reach * TILE));
+  for (let row = firstRow; row <= lastRow; row++) {
+    for (let col = firstCol; col <= lastCol; col++) {
+      const type = map.get(col, row);
+      if (!type?.sounds) continue;
+      const x = (col + 0.5) * TILE;
+      const y = (row + 0.5) * TILE;
+      const away = Math.hypot(x - listener.x, y - listener.y);
+      for (const sound of type.sounds) {
+        if (!heard(type, sound)) continue;
+        const range = type.soundRange || SOUNDS[sound].range;
+        if (away >= range * TILE) continue;
+        const key = `${type.name} ${sound}`;
+        if (!groups.has(key)) groups.set(key, { type, sound, range, tiles: [] });
+        groups.get(key).tiles.push({ key: `${col},${row}`, x, y, away });
+      }
+    }
+  }
+  for (const group of groups.values()) {
+    group.tiles = group.tiles.sort((a, b) => a.away - b.away).slice(0, group.type.soundSpots);
+  }
+  return groups;
+}
+
 // a Picker (formbox.js) of every sound in SOUNDS with its shape, starting on `value`. none adds null
 // at the start, shown as "none". a missing sound stays in the list so opening a box doesn't quietly
 // change it. sound blocks and the weapon editor's Sound tab use it (weaponeditor.js)
@@ -285,13 +385,29 @@ function pickSound(value, none = false) {
     choices: none ? [null, ...names] : names,
     value,
     label: (name) => (name === null ? 'none' : SOUNDS[name] ? name : `${name} (missing)`),
-    art: (name, x, y, size) => {
-      if (!SOUNDS[name]) return;
-      stroke(SOUND_COLOURS.edge);
-      strokeWeight(1);
-      drawSoundShape(SOUNDS[name], x, y, size, size);
-    },
+    art: drawSoundChoice,
   });
+}
+
+// the same for a tile's sounds (tileeditor.js): tick any number of them in a list that drops down
+// (MultiPicker in formbox.js)
+function soundMultiPicker(value) {
+  return new MultiPicker({
+    w: 180,
+    choices: [...new Set([...Object.keys(SOUNDS), ...(value ?? [])])],
+    value,
+    empty: null,
+    label: (name) => (SOUNDS[name] ? name : `${name} (missing)`),
+    art: drawSoundChoice,
+  });
+}
+
+// a sound's shape in a picker or its list (size px square at x, y). nothing for none or a missing one
+function drawSoundChoice(name, x, y, size) {
+  if (!SOUNDS[name]) return;
+  stroke(SOUND_COLOURS.edge);
+  strokeWeight(1);
+  drawSoundShape(SOUNDS[name], x, y, size, size);
 }
 
 // a little sound marker: a dot with two sound waves coming off it, at x, y in world px, size 1 is

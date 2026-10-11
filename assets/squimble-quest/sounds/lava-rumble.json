@@ -1,0 +1,15 @@
+{
+  "wave": "pink",
+  "pitch": 90,
+  "wander": 6,
+  "wanderSpeed": 0.8,
+  "attack": 0,
+  "sustain": 4000,
+  "decay": 0,
+  "crackle": 8,
+  "crackleLength": 80,
+  "crackleDepth": 45,
+  "lowPass": 30,
+  "volume": 160,
+  "range": 5
+}

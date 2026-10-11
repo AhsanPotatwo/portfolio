@@ -2,7 +2,7 @@
 // have to edit the tile files (tiles.js) by hand.
 //   - New (in the inspector on the Tiles tab) opens a box for a new tile. right clicking a tile in
 //     the palette (or Edit) opens it for one that already exists
-//   - the tabs are Look, then TILE_BEHAVIOURS' tabs (Behaviours, Effects), then Dual grid
+//   - the tabs are Look, then TILE_BEHAVIOURS' tabs (Behaviours, Effects, Sounds), then Dual grid
 //     (blendsWith). settings with lots of choices (particles, which tiles blend onto it) are one row
 //     each with a list that drops down (MultiPicker in formbox.js), so the tabs never spill over
 //   - a column down the side shows the texture file and a little patch of the tile like on the map
@@ -45,6 +45,14 @@ const TILE_BEHAVIOURS = [
   // the particle effects it keeps making, ticked in a list that drops down (particleeditor.js)
   { tab: 'Effects', key: 'particles', label: 'Particles', field: (value) => particleMultiPicker(value), tip: 'Particle effects every tile of this kind keeps making (on screen)' },
   { tab: 'Effects', key: 'particleRate', label: 'How often', after: '% of normal', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 1000 }), tip: "Faster or slower than each effect's own Keep going rate. 0 stops them" },
+
+  // the sounds it keeps making, ticked in a list that drops down (soundblocks.js)
+  { tab: 'Sounds', key: 'sounds', label: 'Sounds', field: (value) => soundMultiPicker(value), tip: 'Loops every tile of this kind keeps playing, heard from the closest ones' },
+  { tab: 'Sounds', key: 'soundVolume', label: 'Volume', after: '% of normal', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 400 }) },
+  { tab: 'Sounds', key: 'soundRange', label: 'Heard from', after: 'tiles', field: (value) => new NumberField({ w: 90, value, max: 50 }), tip: "How far away they're heard. 0 uses each sound's own Heard from" },
+  // at least 1, or it would never play
+  { tab: 'Sounds', key: 'soundSpots', label: 'At most', after: 'tiles at once', field: (value) => new NumberField({ w: 90, value, min: 1, max: 8 }), tip: 'Each sound only plays from this many of the closest tiles, however many there are. More is fuller in a big patch' },
+  { tab: 'Sounds', key: 'soundPitchVariety', label: 'Pitch varies', after: '%', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 50 }), tip: "Each of those tiles plays up to this much higher or lower, so they don't sound like copies" },
 ];
 
 // the most rows on a tab. any more carry on in a numbered tab ("Effects 2"). the box is always this

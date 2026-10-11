@@ -5,5 +5,9 @@
   "particles": [
     "lava-bubbles",
     "lava-smoke"
+  ],
+  "sounds": [
+    "lava-bubbling",
+    "lava-rumble"
   ]
 }

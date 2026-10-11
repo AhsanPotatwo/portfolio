@@ -32,6 +32,15 @@ Every tile in the game is its own file in this folder, named after it (`lava.jso
 
      Only tiles on screen make particles, so big maps don't slow down. If a lot are on screen at once (zoomed right out over lava), they all make fewer instead of the game slowing down.
 
+   - **Sounds**
+     - **Sounds**: click it and tick the sounds every tile of this kind keeps playing, like lava's **lava-bubbling** and **lava-rumble** (made in the sound editor, on the map editor's **Sounds** tab). They loop while you're close enough to hear them, getting louder as you walk up.
+     - **Volume**: louder or quieter than the sound normally is, 100% is normal.
+     - **Heard from**: how many tiles away you can hear them. 0 uses each sound's own **Heard from**.
+     - **At most**: each sound only plays from this many of the closest tiles, however many there are, so a lake of lava doesn't play hundreds of loops. More sounds fuller in the middle of a big patch, fewer is calmer.
+     - **Pitch varies**: each of those tiles plays a little higher or lower, up to this much, so they don't sound like copies of each other.
+
+     Tile sounds only play in the game, not while the editor's open.
+
    - **Dual grid**
      - **Blends**: which dual grid tiles (like grass) round off onto this tile. **every dual grid tile** includes ones made later. **only the ticked ones** lets you untick the ones that look wrong in **Ticked** (click it for the list): they stop in a straight line at this tile's edge instead. Good for planks, walls and roofs; leave it on for natural ground like dirt.
 

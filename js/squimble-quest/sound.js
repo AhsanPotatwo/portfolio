@@ -1327,8 +1327,9 @@ const Sound = {
   // that's ever a problem: stop the last voice with the same key first. rate, volume and minVolume
   // change one play without working the sound out again: rate is how fast it plays (2 is an octave up,
   // on top of the doppler effect), volume times how loud, and minVolume the quietest distance can make
-  // it (0 to 1), so it's heard from anywhere on the map (weaponSound() in weapons.js uses all three)
-  play(sound, at, key, { loop = false, pitch = sound.pitch, say = null, rate = 1, volume = 1, minVolume = 0 } = {}) {
+  // it (0 to 1), so it's heard from anywhere on the map (weaponSound() in weapons.js uses all three).
+  // range and doppler replace the sound's own (tile sounds, SoundBlocks.updateTiles() in soundblocks.js)
+  play(sound, at, key, { loop = false, pitch = sound.pitch, say = null, rate = 1, volume = 1, minVolume = 0, range = sound.range, doppler = sound.doppler } = {}) {
     const ctx = this.context();
     if (!ctx) return null;
     const result = this.render(sound, loop, pitch, say);
@@ -1344,9 +1345,9 @@ const Sound = {
     const out = ctx.createGain();
     const pan = ctx.createStereoPanner();
     // was is where it was last frame, for the doppler effect (update())
-    const voice = { source, out, pan, at, range: sound.range, doppler: sound.doppler, key, loop, ended: false, was: at && { x: at.x, y: at.y, map: at.map }, rate, volume, minVolume };
+    const voice = { source, out, pan, at, range, doppler, key, loop, ended: false, was: at && { x: at.x, y: at.y, map: at.map }, rate, volume, minVolume };
     out.gain.value = this.loudness(voice);
-    pan.pan.value = this.panAt(at, sound.range);
+    pan.pan.value = this.panAt(at, range);
     source.connect(out).connect(pan).connect(ctx.destination);
     source.start();
     // the browser says when it's finished. the doppler effect changes how fast it plays, so it can't

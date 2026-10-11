@@ -70,6 +70,20 @@ const TILE_DEFAULTS = {
   // times particleRate (0.5 is half as often) (ParticleEmitters in particles.js)
   particles: null,
   particleRate: 1,
+  // the sounds it keeps making, like ["lava-bubbling", "lava-rumble"] (sounds/), or null for none.
+  // each one loops from the closest few tiles of this kind you can hear (SoundBlocks.updateTiles() in
+  // soundblocks.js)
+  sounds: null,
+  // times how loud they are, 0.5 is half
+  soundVolume: 1,
+  // how many tiles away they're heard, or 0 for each sound's own Heard from
+  soundRange: 0,
+  // the most tiles of this kind each sound plays from at once, the closest ones. it's what stops a
+  // lake of lava being hundreds of loops: more is fuller and louder in the middle of a big patch
+  soundSpots: 3,
+  // each of those plays up to this much higher or lower (0.1 is 10%), picked at random when it
+  // starts, so they don't sound like copies of each other
+  soundPitchVariety: 0.08,
 };
 
 // does the dual grid tile `dual` round off onto `tile`? if not, it stops in a straight line at tile's

@@ -1,0 +1,15 @@
+{
+  "wave": "sine",
+  "pitch": 160,
+  "slide": 180,
+  "pitchScatter": 7,
+  "attack": 3,
+  "sustain": 25,
+  "decay": 45,
+  "repeats": 16,
+  "gap": 260,
+  "scatter": 85,
+  "lowPass": 70,
+  "volume": 110,
+  "range": 6
+}

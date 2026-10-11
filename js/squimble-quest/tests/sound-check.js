@@ -233,3 +233,15 @@ for (let t = 0; t < 20; t += 0.37) {
     assert(Math.abs(at.x - middle.x) <= 96 + 1e-6 && Math.abs(at.y - middle.y) <= 96 + 1e-6 && (at.x === middle.x || at.y === middle.y), `${move} stays on its line`);
   }
 }
+
+// tile sounds only play from the closest soundSpots tiles of their kind in range (tileSoundSpots()),
+// a missing sound is skipped, and nothing plays for a listener on another map. lava fills columns 0 to
+// 19 of a 40 x 40 map, and the listener is in the middle of tile 23, 20
+vm.runInContext("TILE_TYPES = { lava: { name: 'lava', sounds: ['fire', 'missing'], soundVolume: 1, soundRange: 0, soundSpots: 3 }, grass: { name: 'grass', sounds: null } }", game);
+const lavaMap = { left: 0, top: 0, cols: 40, rows: 40, colAt: (x) => Math.floor(x / 32), rowAt: (y) => Math.floor(y / 32), get: (col) => game.TILE_TYPES[col < 20 ? 'lava' : 'grass'] };
+const listener = { x: 23 * 32 + 16, y: 20 * 32 + 16, map: lavaMap };
+const spots = game.tileSoundSpots(lavaMap, listener);
+assert.deepStrictEqual([...spots.keys()], ['lava fire'], 'one group, for the sound that exists');
+assert.deepStrictEqual([...spots.get('lava fire').tiles].map((tile) => tile.key).sort(), ['19,19', '19,20', '19,21'], 'the 3 closest lava tiles');
+assert.strictEqual(game.tileSoundSpots(lavaMap, { ...listener, x: 30 * 32 }).size, 0, 'none past its range (fire is heard from 6 tiles)');
+assert.strictEqual(game.tileSoundSpots(lavaMap, { ...listener, map: {} }).size, 0, 'none from another map');

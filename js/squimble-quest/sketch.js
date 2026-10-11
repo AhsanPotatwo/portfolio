@@ -308,9 +308,10 @@ function draw() {
     // enemies following you to another map come out when it's time (warps.js)
     Warps.update(dt);
     // loop sound blocks start when you come close enough to hear them, and so do the sounds
-    // characters carry around (soundblocks.js)
+    // characters carry around and tiles make, like lava bubbling (soundblocks.js)
     SoundBlocks.update(worldMap);
     SoundBlocks.updateCharacters([...enemies, ...npcs], worldMap);
+    SoundBlocks.updateTiles(worldMap);
 
     // while talking, E moves the conversation on and nothing else is in reach.
     // otherwise E talks to the npc in range (it shows an E), or if there isn't one uses an E warp in
