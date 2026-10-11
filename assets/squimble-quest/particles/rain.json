@@ -1,0 +1,23 @@
+{
+  "count": 1,
+  "countRandom": 0,
+  "area": 0,
+  "speed": 0,
+  "jumpHeight": 0,
+  "startHeight": 200,
+  "gravity": 1500,
+  "airDrag": 0,
+  "hitsWalls": false,
+  "shape": "streak",
+  "size": 8,
+  "sizeRandom": 20,
+  "stretch": 200,
+  "colour": "#a8c8ff",
+  "colour2": "#7aa0e0",
+  "lifetime": 2,
+  "opacity": 60,
+  "shadow": false,
+  "then": "rain-splash",
+  "goesAt": "lands",
+  "rate": 1.5
+}

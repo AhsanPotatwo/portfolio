@@ -8,5 +8,13 @@
   "lava-smoke",
   "campfire-flames",
   "campfire-smoke",
-  "campfire-embers"
+  "campfire-embers",
+  "firework",
+  "firework-trail",
+  "firework-bang",
+  "confetti",
+  "snow",
+  "rain",
+  "rain-splash",
+  "magic"
 ]

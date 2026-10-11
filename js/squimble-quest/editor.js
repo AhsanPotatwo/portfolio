@@ -1361,7 +1361,7 @@ function inspectorInfo(selected) {
     return {
       title: name,
       kind: 'Particles',
-      rows: [['How many', `${type.count} ± ${type.countRandom}`], ['Shape', PARTICLE_SHAPES[type.shape]], ['Lasts', `${type.lifetime} s`]],
+      rows: [['How many', `${type.count} ± ${type.countRandom}`], ['Shape', PARTICLE_SHAPES[type.shape].say], ['Lasts', `${type.lifetime} s`]],
       note: 'Click the map to try it. Right click it here (or Edit) to change it',
     };
   }

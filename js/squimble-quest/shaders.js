@@ -930,7 +930,7 @@ const Shaders = {
       // ones on the floor are drawn with the ground, so they don't cast. flying ones are drawn z px
       // above their floor spot (Particles.drawOne() in particles.js), growing up to their endSize
       if (p.z <= 0) continue;
-      const half = p.size * Math.max(1, p.effect.endSize / 100) / 2 + 1;
+      const half = p.size * Math.max(1, p.effect.endSize / 100, p.effect.stretch / 100) / 2 + 1;
       add(p.x - half, p.y - p.z - half, p.x + half, p.y - p.z + half, p.y);
     }
     const middle = (c) => ((c.left + c.right) / 2 - camera.x) ** 2 + (c.foot - camera.y) ** 2;
@@ -987,8 +987,8 @@ const Shaders = {
     }
     for (const p of Particles.list) {
       if (!p.effect.glow) continue;
-      // p.colour is 'rgb(r, g, b)' (particles.js)
-      const [r, g, b] = p.colour.match(/\d+/g).map(Number);
+      // its colour now, as it turns to its end colour (particles.js)
+      const [r, g, b] = particleRgb(p);
       add(SHADER_LIGHTS.particle, p.x, p.y - p.z, [r / 255, g / 255, b / 255]);
     }
     const middle = (l) => (l.x - GAME_W / 2) ** 2 + (l.y - GAME_H / 2) ** 2;

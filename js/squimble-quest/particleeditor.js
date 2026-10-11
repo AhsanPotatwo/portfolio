@@ -63,8 +63,8 @@ const ParticleEditor = {
             PARTICLE_PICTURES[file.name] = picture;
             this.newPictures[file.name] = file;
             fields.picture.setChoices(fields.picture.choices.includes(file.name) ? fields.picture.choices : [...fields.picture.choices, file.name], file.name);
-            // a picture doesn't show as squares or circles, so switch to bits of it
-            if (fields.shape.value === 'square' || fields.shape.value === 'circle') fields.shape.setChoices(fields.shape.choices, 'bits');
+            // a picture doesn't show on a drawn shape (squares, stars...), so switch to bits of it
+            if (PARTICLE_SHAPES[fields.shape.value].path) fields.shape.setChoices(fields.shape.choices, 'bits');
           }),
         }),
       ],
@@ -128,7 +128,7 @@ function drawParticleChoice(name, x, y, size) {
 
 // the field for a PARTICLE_SETTINGS line (particles.js), starting on value
 function particleField(line, value) {
-  if (line.choices) return new Picker({ w: 180, choices: line.choices(), value, label: line.say });
+  if (line.choices) return new Picker({ w: 180, choices: line.choices(), value, label: line.say, art: line.art });
   if (line.colour) return new ColourField({ w: 180, value });
   if (line.tick) return new Checkbox({ w: 180, value, label: line.tick });
   return new Slider({ w: 180, labelWidth: 0, label: '', min: line.min, max: line.max, step: line.step ?? 1, curve: line.curve, unit: line.unit, value, normal: line.normal });
@@ -173,8 +173,11 @@ class ParticlePreview extends UIElement {
 
   draw() {
     const { x, y, w, h } = this;
-    const { bodyWidth, bodyHeight, zoom } = PARTICLE_PREVIEW;
+    const { bodyWidth, bodyHeight } = PARTICLE_PREVIEW;
     const keepGoing = this.keepGoing();
+    // zoomed out for ones that go high (rain, fireworks), so the top of their jump stays in the box
+    const top = (keepGoing ? 0 : PARTICLE_PREVIEW.height) + this.effect.startHeight + this.effect.jumpHeight;
+    const zoom = Math.min(PARTICLE_PREVIEW.zoom, (h * 0.6) / Math.max(1, top));
     noStroke();
     fill(WORLD_COLOURS.outside); // world.js
     rect(x, y, w, h, 3);

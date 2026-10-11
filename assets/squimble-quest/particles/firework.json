@@ -1,0 +1,22 @@
+{
+  "count": 1,
+  "countRandom": 0,
+  "area": 0,
+  "speed": 0,
+  "jumpHeight": 110,
+  "jumpRandom": 20,
+  "gravity": 300,
+  "airDrag": 0,
+  "hitsWalls": false,
+  "shape": "streak",
+  "size": 5,
+  "sizeRandom": 0,
+  "colourMode": "rainbow",
+  "lifetime": 5,
+  "glow": true,
+  "trail": "firework-trail",
+  "trailRate": 30,
+  "then": "firework-bang",
+  "goesAt": "peak",
+  "rate": 0.5
+}

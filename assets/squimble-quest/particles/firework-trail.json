@@ -1,0 +1,18 @@
+{
+  "count": 1,
+  "countRandom": 0,
+  "area": 2,
+  "speed": 10,
+  "jumpHeight": 0,
+  "gravity": 60,
+  "hitsWalls": false,
+  "size": 2,
+  "sizeRandom": 0,
+  "endSize": 0,
+  "colourMode": "parent",
+  "twinkle": 60,
+  "lifetime": 0.5,
+  "fadeTime": 0.5,
+  "glow": true,
+  "shadow": false
+}
