@@ -72,6 +72,33 @@
 // shows just the light and shadows, which is the easiest way to see what the lighting is doing. to
 // see a value, return it as a colour from effect(), like `return vec3(thingAt(worldPos) ? 1.0 : 0.0);`
 //
+// ---------- experimental, and plans for later ----------
+// everything here is an experiment: dev mode only, nothing in the game depends on it, and any of it
+// can change or go. none of this is built, but it's how I'd go about it:
+//
+// upright buildings (like pokemon houses, drawn standing up instead of as flat tiles). two ways,
+// probably both together:
+//   - as a thing: draw the house with the characters, sorted by where things stand (so you can walk
+//     behind it), which makes it a caster by itself (step 3 above), and add it to Shaders.casters()
+//     with its base as its foot. it'd need its own depth (a house is tiles deep, characters are
+//     SHADER_SUN.depth), which can go in the caster texture's spare row 1 slots (y, z, w)
+//   - as a footprint: mark its tiles as blocking with a height, like walls (a per-tile height
+//     setting instead of the one SHADER_SUN.wallHeight, stored in the walls texture instead of 0 or
+//     255). then torchlight, line of sight and sun shadows all treat it as a solid block
+//
+// light and shadow changing the game (monsters spawning in the dark, vampires burning in sunlight).
+// gameplay must never read what a shader drew: it's on the graphics card (slow to read back), only
+// covers the screen, changes with zoom and screen size, only exists while that shader's on, and a
+// multiplayer server couldn't run it. so the game works out light itself and the shader only draws it:
+//   - a world clock as game state (time of day), which the Sun shader reads instead of millis()
+//   - inSunlight(map, x, y): the same check as wallShadow() in the Sun shader, in javascript, for one
+//     point like a vampire's feet, using SHADER_SUN's settings so the picture and the rule agree (a
+//     small test can check they match at a few points)
+//   - lightLevel(map, x, y): daylight plus nearby lights (lights() already lists them), with
+//     clearLine() (tilemap.js) for walls. spawning would check it on the tiles it might use
+// walls and buildings would match the picture exactly since they're tiles. shadows from characters
+// and items come from the drawn pixels, so for gameplay those would have to be rough boxes
+//
 // ponytail: one shader at a time. stacking them (lighting then bloom) needs the passes to draw into
 // textures in turn (framebuffers), which would go in apply() once a real look is picked
 // ponytail: torch shadows are hard edged and a whole tile at a time, since they're worked out on the
