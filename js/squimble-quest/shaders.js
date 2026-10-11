@@ -26,8 +26,9 @@
 //   uniforms  (optional) a function given the time in seconds, giving back its own settings as
 //             { u_name: number or [2, 3 or 4 numbers] }, sent every frame. declare each one in the glsl
 //             as a float or vec2/3/4 (see the sun's sunUniforms())
-//   casters   (optional) true if it needs to know what's standing on the ground (thingAt() below).
-//             it costs two more copies of the canvas a frame, so only shaders that use it have it
+//   casters   (optional) true if it needs to know what's standing on the ground (thingAt() and the
+//             caster list below). it costs two more copies of the canvas a frame, so only shaders
+//             that use it have it
 //
 // SHADER_COMMON goes on top of every shader and SHADER_MAIN after it, so effect() can use:
 //   scene(uv)        the world as drawn, at uv (0 to 1, from the bottom left like WebGL does it)
@@ -46,6 +47,8 @@
 //   wallAt(t), wallAtWorld(w)  whether tile t (counted from the walls texture's corner) or the tile at
 //                    world px w is a wall
 //   thingAt(w)       (casters only) whether something's standing at world px w (step 3 above)
+//   casterBox(i), casterFoot(i)  (casters only) for i up to u_casterCount: the box round each thing
+//                    standing on the ground, and the y its feet touch the ground at, in world px
 //   hash(p), noise(p), luma(colour)  a random 0 to 1 for p, smooth noise, and how bright a colour is
 //
 // where the data comes from:
@@ -54,8 +57,14 @@
 //            out first (outOfWalls())
 //   walls    Shaders.walls(): the tiles that block light (blocksLight(), the same rule as clearLine()
 //            in tilemap.js), a byte per tile, round the screen
-//   things   the difference between the two captures, so anything drawn in step 3 counts, and it'll
-//            follow sprites' real shapes when there are some
+//   things   what they look like is the difference between the two captures, so anything drawn in
+//            step 3 counts, and it'll follow sprites' real shapes when there are some. where each
+//            one is and where it stands comes from Shaders.casters(): characters, drops, arrows and
+//            flying particles
+//
+// the game's seen from an angle (like pokemon or undertale), not straight down, so up the screen is
+// both further back and higher up. anything about height (shadows, light over walls) has to start
+// from where a thing stands (casterFoot()), not where its pixels are. the Sun shader's notes explain
 //
 // ---------- when something's wrong ----------
 // a shader that doesn't compile says why in the console (with the line number in the glsl, counting
@@ -82,21 +91,29 @@ const SHADER_LIGHTS = {
 // the most lights a shader gets, the closest to the middle of the screen. MAX_LIGHTS in
 // SHADER_COMMON has to match
 const MAX_SHADER_LIGHTS = 32;
+// the most things that cast shadows at once (Shaders.casters()), the closest to the middle of the
+// screen. a burst of particles is a lot of them
+const MAX_SHADER_CASTERS = 128;
 // the localStorage key for which one's on
 const SHADER_STORAGE_KEY = 'sq-dev-shader';
 
-// the Sun shader: a sun off screen that rises on the left, goes over the top of the screen and sets
-// on the right, so shadows start long pointing right, get short pointing down at midday, and end long
-// pointing left. then it starts again (it's dim at both ends, so the jump back isn't sudden)
+// the Sun shader: a sun off screen that rises on the left, goes over the top of the screen (behind
+// everyone, since the top is further back) and sets on the right. so shadows start long along the
+// ground to the right, get short and fall in front of things (down the screen) at midday, and end long
+// to the left. then it starts again (it's dim at both ends, so the jump back isn't sudden). how the
+// shadows are worked out is above the Sun shader in SHADERS
 const SHADER_SUN = {
   // seconds from sunrise to sunset
   dayLength: 30,
   // degrees above the horizon at midday. lower makes midday shadows longer
   highest: 55,
-  // how tall walls and things standing on the ground (characters, items, arrows, swings) count as, in
-  // world px. a shadow is this long when the sun's at 45 degrees
+  // how tall walls count as, in world px (their tiles are drawn flat, so the art doesn't say). a
+  // shadow is as long as the height when the sun's at 45 degrees. things' heights come from their
+  // outline on the screen instead
   wallHeight: 32,
-  thingHeight: 20,
+  // how deep things are front to back, in world px. a thing's shadow is its outline laid on the
+  // ground, so with the sun straight to the side it'd be a line without this
+  depth: 8,
   // the most px of shadow for each px of height. the sun's on the horizon at sunrise, which would
   // make them endless
   longest: 3,
@@ -130,7 +147,7 @@ function sunUniforms(time) {
     u_sunColour: mix(S.low, S.midday, Math.sqrt(up)).map((v) => v * (0.45 + 0.55 * strength)),
     u_shade: mix([1, 1, 1], S.shade, strength),
     u_wallHeight: S.wallHeight,
-    u_thingHeight: S.thingHeight,
+    u_depth: S.depth,
     u_shadowPixel: S.pixel,
   };
 }
@@ -171,6 +188,10 @@ uniform float u_tile;
 // (Shaders.capture())
 uniform sampler2D u_ground;
 uniform sampler2D u_things;
+// casters only: the things standing on the ground (Shaders.casters()), one column each. row 0 is the
+// box round it (left, top, right, bottom, world px), row 1 x is its foot (where it touches the ground)
+uniform sampler2D u_casters;
+uniform int u_casterCount;
 in vec2 v_uv;
 out vec4 outColour;
 vec2 gamePos;
@@ -206,6 +227,10 @@ bool thingAt(vec2 w) {
   if (any(lessThan(uv, vec2(0))) || any(greaterThan(uv, vec2(1)))) return false;
   return distance(texture(u_things, uv).rgb, texture(u_ground, uv).rgb) > 0.2;
 }
+// casters only. caster i's box (left, top, right, bottom) and the y its feet touch the ground at, in
+// world px. go through them with for (int i = 0; i < u_casterCount; i++)
+vec4 casterBox(int i) { return texelFetch(u_casters, ivec2(i, 0), 0); }
+float casterFoot(int i) { return texelFetch(u_casters, ivec2(i, 1), 0).x; }
 
 // whether a line from a to b (in tiles) gets to b's tile without going through a wall. it goes through
 // every tile the line crosses, in order (a "DDA" grid walk). I tried stepping a third of a tile at a
@@ -324,17 +349,36 @@ vec3 effect() {
   },
 
   {
-    // SHADER_SUN has its settings and sunUniforms() where the sun is. for each pixel it looks back
-    // towards the sun: if there's a wall or a thing close enough that way, its shadow reaches here.
-    // how far it looks is the caster's height times u_sunStretch, which grows as the sun gets lower
+    // SHADER_SUN has its settings and sunUniforms() where the sun is.
+    //
+    // the game's seen from an angle (like pokemon or undertale), not straight down: up the screen is
+    // both further back on the ground and higher in the air. so a character's rectangle is its body
+    // standing up on its feet, and a pixel near its head is high up, not further north. the shadows
+    // follow that:
+    //   walls     a wall's tile is where it stands, so its shadow starts at the tile and goes away
+    //             from the sun along the ground, as long as wallHeight times u_sunStretch
+    //   things    each one in Shaders.casters() says where its feet touch the ground (foot). a pixel
+    //             of its outline (thingAt()) foot - y px up is that high, and its shadow lands that far
+    //             times u_sunStretch from the feet, away from the sun. so the shadow starts at the feet,
+    //             falls in front of them (down the screen) with the sun behind (up the screen) and lies
+    //             along the ground to the side with the sun to the side. u_depth is how deep things are
+    //             front to back, so a shadow has some thickness even then
+    //   on things a thing is shaded by a wall if the wall's shadow reaches where it stands (foot) and
+    //             is taller than that bit of it, so a tall one can stick its head out of a low shadow
+    // a thing's own outline isn't shaded by things, or each one would shade itself, and wall tops are
+    // always in the sun.
+    //
     // ponytail: objects (furniture) are drawn with the ground, before capture('ground'), so they
     // don't cast. they'd need drawing between the captures, or a height setting and a texture like
     // the walls'
     // ponytail: things only cast while they're on screen (thingAt() reads the canvas), so a long
     // shadow can pop in at the edge. walls reach past it (walls())
-    // ponytail: every pixel looks up to wallHeight * longest px back, about 100 steps at sunrise. if
-    // it's slow on a real screen, work it out once per art pixel into a small texture first
-    name: 'sun', label: 'Sun', note: 'rises on the left, sets on the right, walls and things cast pixel shadows',
+    // ponytail: one foot per thing, so a long arrow pointing up the screen counts its back end as
+    // higher than its tip
+    // ponytail: every pixel looks up to wallHeight * longest px back for walls, about 100 steps at
+    // sunrise, and through every caster near it. if it's slow on a real screen, work it out once per
+    // art pixel into a small texture first
+    name: 'sun', label: 'Sun', note: 'rises on the left, sets on the right, walls and things cast pixel shadows from where they stand',
     casters: true,
     uniforms: sunUniforms,
     glsl: `
@@ -344,13 +388,49 @@ uniform float u_sunStretch;
 // the sunlight's colour, and what shadow multiplies it by
 uniform vec3 u_sunColour;
 uniform vec3 u_shade;
-// SHADER_SUN's heights and shadow pixel size, in world px
+// SHADER_SUN's wall height, thing depth and shadow pixel size, in world px
 uniform float u_wallHeight;
-uniform float u_thingHeight;
+uniform float u_depth;
 uniform float u_shadowPixel;
 
 // the middle of the shadow pixel that world px w is in
 vec2 snapped(vec2 w) { return (floor(w / u_shadowPixel) + 0.5) * u_shadowPixel; }
+
+// whether a wall's shadow covers something standing at ground point g that's h px up. it looks back
+// towards the sun: the sun's line rises 1 px for every u_sunStretch px back, so a wall that far back
+// is tall enough to block it until (wallHeight - h) * stretch
+bool wallShadow(vec2 g, float h) {
+  float reach = (u_wallHeight - h) * u_sunStretch;
+  for (float d = u_shadowPixel; d <= reach; d += u_shadowPixel) {
+    if (wallAtWorld(snapped(g - u_sunDir * d))) return true;
+  }
+  return false;
+}
+
+// whether caster i's shadow covers ground point g. it goes through each height the caster has pixels
+// at: the shadow of that height lands u_sunStretch times as far from the feet, so this works out
+// which pixel of its outline would land on g, and checks it's there
+bool casterShadow(int i, vec2 g) {
+  vec4 box = casterBox(i);
+  float foot = casterFoot(i);
+  vec2 k = u_sunDir * u_sunStretch;
+  float low = max(0.0, foot - box.w);
+  float high = foot - box.y;
+  if (high < low) return false;
+  // first a quick check that g's anywhere near where its shadow could be
+  vec2 a = k * low;
+  vec2 b = k * high;
+  if (g.x < box.x + min(a.x, b.x) - 1.0 || g.x > box.z + max(a.x, b.x) + 1.0) return false;
+  if (g.y < foot - u_depth + min(a.y, b.y) - 1.0 || g.y > foot + max(a.y, b.y) + 1.0) return false;
+  for (float h = low; h <= high; h += u_shadowPixel) {
+    // how far behind the feet the shadow of height h would have to start to reach g
+    float back = foot + k.y * h - g.y;
+    if (back < 0.0 || back > u_depth) continue;
+    vec2 pixel = vec2(g.x - k.x * h, foot - h);
+    if (pixel.x >= box.x && pixel.x <= box.z && thingAt(snapped(pixel))) return true;
+  }
+  return false;
+}
 
 vec3 effect() {
   vec3 c = scene(v_uv) * u_sunColour;
@@ -359,14 +439,18 @@ vec3 effect() {
   vec2 p = snapped(worldPos);
   // the tops of walls are always in the sun
   if (wallAtWorld(p)) return c;
-  // the ground gets shadows from walls and things, but things only from walls, or each one would
-  // shade itself
-  bool thing = thingAt(p);
-  float wallReach = u_wallHeight * u_sunStretch;
-  float thingReach = thing ? 0.0 : u_thingHeight * u_sunStretch;
-  for (float d = u_shadowPixel; d <= max(wallReach, thingReach); d += u_shadowPixel) {
-    vec2 q = snapped(p - u_sunDir * d);
-    if ((d <= wallReach && wallAtWorld(q)) || (d <= thingReach && thingAt(q))) return c * u_shade;
+  if (thingAt(p)) {
+    // part of a thing: where it stands and how high up this bit is, from the caster it's in
+    for (int i = 0; i < u_casterCount; i++) {
+      vec4 box = casterBox(i);
+      float foot = casterFoot(i);
+      if (p.x < box.x || p.x > box.z || p.y < box.y || p.y > box.w) continue;
+      return wallShadow(vec2(p.x, foot - 0.5), max(0.0, foot - p.y)) ? c * u_shade : c;
+    }
+  }
+  if (wallShadow(p, 0.0)) return c * u_shade;
+  for (int i = 0; i < u_casterCount; i++) {
+    if (casterShadow(i, p)) return c * u_shade;
   }
   return c;
 }`,
@@ -575,6 +659,8 @@ const Shaders = {
   wallsTexture: null,
   groundTexture: null,
   thingsTexture: null,
+  // the things standing on the ground, for casters shaders (casters())
+  castersTexture: null,
   // compiled programs by SHADERS name, false for ones that didn't compile
   programs: {},
   // the last left click in world px, and when (seconds)
@@ -641,6 +727,18 @@ const Shaders = {
     gl.bindTexture(gl.TEXTURE_2D, this.wallsTexture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, walls.cols, walls.rows, 0, gl.RED, gl.UNSIGNED_BYTE, walls.data);
+    // a column per caster (casterBox() and casterFoot() read it), as exact numbers (floats) rather
+    // than 0 to 255 like a picture
+    const casters = shader.casters ? this.casters(camera, map, player) : [];
+    const width = Math.max(1, casters.length);
+    const casterData = new Float32Array(width * 2 * 4);
+    casters.forEach((c, i) => {
+      casterData.set([c.left, c.top, c.right, c.bottom], i * 4);
+      casterData[(width + i) * 4] = c.foot;
+    });
+    gl.activeTexture(gl.TEXTURE4);
+    gl.bindTexture(gl.TEXTURE_2D, this.castersTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, 2, 0, gl.RGBA, gl.FLOAT, casterData);
 
     const lights = this.lights(camera, map, player, aim, time);
     const lightData = new Float32Array(MAX_SHADER_LIGHTS * 4);
@@ -658,6 +756,8 @@ const Shaders = {
     gl.uniform1i(at('u_walls'), 1);
     gl.uniform1i(at('u_ground'), 2);
     gl.uniform1i(at('u_things'), 3);
+    gl.uniform1i(at('u_casters'), 4);
+    gl.uniform1i(at('u_casterCount'), casters.length);
     gl.uniform2f(at('u_game'), GAME_W, GAME_H);
     // pixel snapped like Camera.begin(), so worldPos is exactly where things were drawn
     gl.uniform2f(at('u_camera'), camera.pixelSnap(camera.x + camera.shakeX), camera.pixelSnap(camera.y + camera.shakeY));
@@ -714,6 +814,7 @@ const Shaders = {
     this.wallsTexture = texture(gl.NEAREST);
     this.groundTexture = texture(gl.NEAREST);
     this.thingsTexture = texture(gl.NEAREST);
+    this.castersTexture = texture(gl.NEAREST);
     // rows of the walls texture are any number of bytes long, not a multiple of 4
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     return gl;
@@ -763,6 +864,50 @@ const Shaders = {
       }
     }
     return { cols, rows, data, corner: camera.drawnPosition(left * TILE, top * TILE) };
+  },
+
+  // the things standing on the ground, for casters shaders: each { left, top, right, bottom, foot },
+  // the box round what's drawn of it and the y its feet touch the ground at, in world px. what it
+  // looks like comes from the canvas (thingAt()), so this only says where each one is and where it
+  // stands. a new kind of thing that should cast goes here. only ones near the screen, the
+  // MAX_SHADER_CASTERS closest to its middle. enemies, npcs and arrows are the game's (sketch.js)
+  casters(camera, map, player) {
+    const view = camera.view();
+    // a long shadow reaches this far onto the screen from something off it
+    const margin = SHADER_SUN.wallHeight * SHADER_SUN.longest;
+    const list = [];
+    const add = (left, top, right, bottom, foot) => {
+      if (right < view.left - margin || left > view.right + margin || bottom < view.top - margin || top > view.bottom + margin) return;
+      list.push({ left, top, right, bottom, foot });
+    };
+    for (const c of [player, ...enemies, ...npcs]) {
+      // its feet are the bottom of its body (Character.bodyBox()). a hit squashes it a quarter wider
+      const foot = c.y + c.h / 2;
+      const half = c.w * 0.65;
+      // a swing reaches round its middle, so the box grows to hold it. it's still held from the feet
+      const reach = c.swing ? c.swing.weapon.reach : 0;
+      add(c.x - Math.max(half, reach), Math.min(foot - c.h, c.y - reach), c.x + Math.max(half, reach), Math.max(foot, c.y + reach), foot);
+    }
+    for (const drop of map.drops) {
+      // the item floats above its landing spot, glow and all (Drops.draw() in inventory.js)
+      const spot = Drops.where(drop);
+      const top = spot.y - 16 - spot.height - 3 - GLOW_PIXEL_SIZE;
+      add(spot.x - GLOW_PIXEL_SIZE, top, spot.x + GLOW_PIXEL_SIZE, spot.y + 3, spot.y);
+    }
+    for (const arrow of arrows) {
+      // drawn round its tip, height px above its floor spot (Arrow.draw() in weapons.js)
+      const r = ARROW.length + 4;
+      add(arrow.x - r, arrow.y - arrow.height - r, arrow.x + r, arrow.y - arrow.height + r, arrow.y);
+    }
+    for (const p of Particles.list) {
+      // ones on the floor are drawn with the ground, so they don't cast. flying ones are drawn z px
+      // above their floor spot (Particles.drawOne() in particles.js), growing up to their endSize
+      if (p.z <= 0) continue;
+      const half = p.size * Math.max(1, p.effect.endSize / 100) / 2 + 1;
+      add(p.x - half, p.y - p.z - half, p.x + half, p.y - p.z + half, p.y);
+    }
+    const middle = (c) => ((c.left + c.right) / 2 - camera.x) ** 2 + (c.foot - camera.y) ** 2;
+    return list.sort((a, b) => middle(a) - middle(b)).slice(0, MAX_SHADER_CASTERS);
   },
 
   // like clearLine() (tilemap.js), except empty and off-map tiles don't, so the dark outside the map
