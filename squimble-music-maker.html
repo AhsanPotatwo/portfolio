@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Squimble Music Maker — Ahsan</title>
+  <meta name="description"
+    content="Squimble Music Maker: music that writes itself from a seed word, using music theory rather than AI. Pick a mood, then change the chords, instruments, melodies and arrangement, and download it as a WAV.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/squimble-music-maker.css">
+</head>
+
+<body class="mm-page">
+
+  <a class="skip-link" href="#maker">Skip to the music maker</a>
+
+  <header class="site-header" id="header">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html#home"><span class="brand-bracket">[</span>Ahsan<span class="brand-bracket">]</span></a>
+
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="nav" id="primaryNav" aria-label="Primary">
+        <a href="index.html#home" class="nav-link">Home</a>
+        <a href="index.html#about" class="nav-link">About</a>
+        <a href="index.html#skills" class="nav-link">Skills</a>
+        <a href="index.html#projects" class="nav-link is-active">Projects</a>
+        <a href="index.html#contact" class="nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <div class="mm-intro">
+      <h1 class="mm-title">Squimble Music Maker</h1>
+      <p class="mm-lede">Music that writes itself from a seed word. Pick a mood and it chooses a key, writes chord progressions and melodies, and puts together a band to play them. It uses the music theory composers have relied on for centuries, not AI, and the instruments are synthesisers built from the browser's own oscillators. Then pull it apart: change the chords, swap the instruments, redraw a melody note by note. I'm building it to score <a href="squimble-quest.html">Squimble Quest</a>.</p>
+      <ul class="mm-tags" aria-label="Built with">
+        <li>JavaScript</li>
+        <li>Web Audio</li>
+        <li>Music theory</li>
+        <li>No AI, no samples</li>
+      </ul>
+    </div>
+
+    <!-- the machine. js/squimble-music-maker/maker.js fills in the parts marked "filled in" -->
+    <section class="mm-machine" id="maker" aria-label="Music maker">
+
+      <div class="mm-bar">
+        <div class="mm-label">
+          <label class="mm-label-name">
+            <span class="mm-visually-hidden">Song name</span>
+            <input id="mmName" type="text" maxlength="40" autocomplete="off" spellcheck="false" data-tip="The song's name, for your library and the files you download">
+          </label>
+          <label class="mm-label-seed">
+            <span>Seed</span>
+            <input id="mmSeed" type="text" maxlength="60" autocomplete="off" spellcheck="false" data-tip="Seed: every random choice comes from this. Type any words and press Enter for the song they make. The same seed and mood always make the same song">
+          </label>
+        </div>
+        <button type="button" class="mm-key mm-key-go" id="mmNew" data-tip="New song: a new seed in the same mood and style"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="5.2" cy="5.2" r="1.3"/><circle cx="10.8" cy="10.8" r="1.3"/><circle cx="8" cy="8" r="1.3"/></svg>New song</button>
+        <div class="mm-bar-actions">
+          <button type="button" class="mm-key mm-key-line" id="mmUndo" data-tip="Undo: back to before the last change (Ctrl + Z)">Undo</button>
+          <button type="button" class="mm-key mm-key-line" id="mmRedo" data-tip="Redo: forward again (Ctrl + Y)">Redo</button>
+          <button type="button" class="mm-key mm-key-go" id="mmSave" data-tip="Save it to your library below, kept in this browser">Save</button>
+        </div>
+      </div>
+
+      <div class="mm-moods-wrap">
+        <div class="mm-row-head">
+          <h2 class="mm-heading">Mood</h2>
+          <div class="mm-style" role="group" aria-label="Style">
+            <button type="button" class="mm-key mm-key-small" data-style="ambient" aria-pressed="true" data-tip="Ambient: slow, drifting, mostly held sounds and space. For exploring, menus and quiet places">Ambient</button>
+            <button type="button" class="mm-key mm-key-small" data-style="tune" aria-pressed="false" data-tip="Tune: a melody you could hum, with a bass line and usually a beat. For towns, fights and title screens">Tune</button>
+          </div>
+        </div>
+        <!-- filled in: a key per mood -->
+        <div class="mm-moods" id="mmMoods" role="group" aria-label="Mood"></div>
+      </div>
+
+      <div class="mm-transport">
+        <button type="button" class="mm-key mm-key-play" id="mmPlay" data-tip="Play from the marker, or stop (Space, when nothing's being typed in)"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg><span>Play</span></button>
+        <button type="button" class="mm-key" id="mmLoop" aria-pressed="true" data-tip="Loop: go back to the start when it ends, like a game's music"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M9.5 4.5A4 4 0 1 0 10 7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.6 1.6v3.6H7z"/></svg>Loop</button>
+        <p class="mm-readout" id="mmReadout" aria-live="off"></p>
+      </div>
+
+      <div class="mm-score-wrap">
+        <canvas id="mmScore" role="img" aria-label="The score: every layer's notes from start to end, with the sections and chords along the top"></canvas>
+      </div>
+
+      <div class="mm-remix">
+        <h2 class="mm-heading">Remix</h2>
+        <!-- filled in: a key for each part of the song to pick again -->
+        <div class="mm-remix-keys" id="mmRemix" role="group" aria-label="Remix"></div>
+      </div>
+
+      <div class="mm-tabs" id="mmTabs" role="tablist" aria-label="Settings">
+        <button type="button" class="mm-tab" role="tab" data-tab="song" aria-selected="true" aria-controls="mmPanel">Song</button>
+        <button type="button" class="mm-tab" role="tab" data-tab="layers" aria-selected="false" aria-controls="mmPanel">Band</button>
+        <button type="button" class="mm-tab" role="tab" data-tab="arrange" aria-selected="false" aria-controls="mmPanel">Arrange</button>
+        <button type="button" class="mm-tab" role="tab" data-tab="space" aria-selected="false" aria-controls="mmPanel">Room</button>
+      </div>
+      <!-- filled in: the open tab's settings -->
+      <div class="mm-panel" id="mmPanel" role="tabpanel"></div>
+
+      <p class="mm-tip" id="mmTip"></p>
+    </section>
+
+    <h2 class="mm-ribbon">Keep your songs</h2>
+
+    <div class="mm-lower">
+      <section class="mm-shelf" aria-labelledby="mmLibraryTitle">
+        <h2 class="mm-shelf-title" id="mmLibraryTitle">Your library</h2>
+        <p class="mm-shelf-note">Songs you save are kept in this browser.</p>
+        <!-- filled in -->
+        <ul class="mm-library" id="mmLibrary"></ul>
+      </section>
+
+      <section class="mm-shelf mm-export" aria-labelledby="mmExportTitle">
+        <h2 class="mm-shelf-title" id="mmExportTitle">Take it with you</h2>
+
+        <div class="mm-export-row">
+          <div>
+            <h3>As audio</h3>
+            <p>A WAV of the whole song. The loop version runs its end straight back into its start, with no gap, so it can repeat forever under a game.</p>
+          </div>
+          <div class="mm-export-keys">
+            <button type="button" class="mm-key mm-key-go" id="mmWav">Download WAV</button>
+            <button type="button" class="mm-key mm-key-line" id="mmWavLoop">Loop WAV</button>
+          </div>
+        </div>
+
+        <div class="mm-export-row">
+          <div>
+            <h3>As a song file</h3>
+            <p>The song's settings as a small file. It plays back exactly the same from the seed, and it's what Squimble Quest will load.</p>
+          </div>
+          <div class="mm-export-keys">
+            <button type="button" class="mm-key mm-key-line" id="mmFile">Download file</button>
+            <label class="mm-key mm-key-line mm-open">Open a file<input type="file" id="mmOpen" accept=".json,application/json"></label>
+          </div>
+        </div>
+
+        <div class="mm-export-row">
+          <div>
+            <h3>As a link</h3>
+            <p>The whole song, changes and all, fits in a link.</p>
+          </div>
+          <div class="mm-export-keys">
+            <button type="button" class="mm-key mm-key-line" id="mmLink">Copy link</button>
+          </div>
+        </div>
+        <p class="mm-export-status" id="mmStatus" role="status"></p>
+      </section>
+    </div>
+
+    <div class="page-back">
+      <a href="index.html#projects"><span aria-hidden="true">&larr;</span> Back to all projects</a>
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Made in <span id="year">2026</span> by pondering my crystal orb ~ Ahsan, Full Stack Wizard</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <!-- synth.js first: music.js picks instruments from its INSTRUMENTS -->
+  <script src="js/squimble-music-maker/synth.js"></script>
+  <script src="js/squimble-music-maker/music.js"></script>
+  <script src="js/squimble-music-maker/maker.js"></script>
+</body>
+
+</html>

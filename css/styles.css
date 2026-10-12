@@ -1581,6 +1581,64 @@ a{ color:inherit; text-decoration:none; }
   paint-order:stroke fill;
 }
 
+/* squimble music maker card: a scrap of the maker's score on its cream paper, in the maker's warm
+   black bezel. on hover a playhead sweeps it and each note goes dark as it's played */
+.project-card-music{
+  position:relative;
+  overflow:hidden;
+  background:#292520;
+}
+.project-card-music:hover,
+.project-card-music:focus-within{ background:#332e28; }
+.project-card-music .project-card-link{
+  inset:12px;
+  background:
+    linear-gradient(90deg, rgba(44,39,33,.08) 1px, transparent 1px) 0 0/12.5% 100%,
+    #efe6d3;
+  border:5px solid #12100d;
+  border-radius:6px;
+}
+.music-roll{ position:absolute; inset:8px 12px; }
+.music-roll i{
+  position:absolute;
+  left:var(--x); top:var(--y);
+  width:var(--w); height:5px;
+  background:var(--c);
+}
+.project-card-music:hover .music-roll i,
+.project-card-music:focus-within .music-roll i{ animation:music-play 2.4s linear infinite; animation-delay:calc(var(--p) * 2.4s); }
+@keyframes music-play{
+  0%,8%{ background:#2c2721; }
+  12%,100%{ background:var(--c); }
+}
+.music-playhead{
+  position:absolute;
+  top:4px; bottom:4px; left:12px;
+  width:2px;
+  background:#2c2721;
+  opacity:0;
+}
+.project-card-music:hover .music-playhead,
+.project-card-music:focus-within .music-playhead{ animation:music-sweep 2.4s linear infinite; }
+@keyframes music-sweep{
+  0%{ left:12px; opacity:1; }
+  94%{ opacity:1; }
+  100%{ left:calc(100% - 12px); opacity:0; }
+}
+.music-title{
+  position:relative; z-index:2;
+  font-family:"Archivo", var(--font-sans);
+  font-weight:900;
+  font-stretch:125%;
+  font-size:clamp(17px,1.9vw,24px);
+  text-transform:uppercase;
+  color:#2c2721;
+  -webkit-text-stroke:6px #efe6d3;
+  paint-order:stroke fill;
+  text-align:center;
+  line-height:1.05;
+}
+
 /* contact + footer */
 .contact{ padding-bottom:var(--section-pad); }
 .contact-inner{ display:flex; flex-direction:column; align-items:center; text-align:center; }
@@ -1767,6 +1825,7 @@ a{ color:inherit; text-decoration:none; }
   .project-card{ height:120px; }
   .wizard-title, .pantry-title, .squimble-title{ font-size:28px; }
   .studio-title{ font-size:24px; }
+  .music-title{ font-size:20px; }
   .cli-title{ font-size:24px; }
 }
 
@@ -1785,6 +1844,7 @@ a{ color:inherit; text-decoration:none; }
   .wizard-robe-a, .wizard-robe-b, .wizard-wand-a, .wizard-wand-b, .wand-tip{ animation:none; }
   .cli-ping, .cli-scan{ animation:none; }
   .studio-wave i, .studio-playhead{ animation:none; }
+  .music-roll i, .music-playhead{ animation:none; }
   .btn::after{ display:none; }
   .pantry-food, .pantry-food-inner{ animation:none; }
 }
