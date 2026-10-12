@@ -32,9 +32,9 @@
 //     (modal music), and roots wandering by odd intervals for horror
 //   - voice leading: each chord's notes go as close as they can to the last chord's, so pads glide
 //     instead of jumping (voiceChord)
-//   - melodies are built from a motif (a short rhythm and shape) that repeats and varies over a
-//     phrase, landing on chord notes on strong beats and coming to rest at the ends of phrases, the
-//     way people write tunes, rather than random notes (composers.melody)
+//   - melodies are built from one motif (a short rhythm and shape) the way game composers write
+//     themes: repeated, sequenced, answered, paired into question and answer phrases, and brought
+//     back changed in other parts, landing on chord notes on strong beats (see "melodies", tune())
 //   - one groove for the whole band: drum patterns written out by hand like old drum machine charts,
 //     with the bass and chord stabs playing the same rhythm, so the parts lock together (GROOVES)
 //   - brian eno's tape loops (music for airports): the bells repeat on loops of different lengths, so
@@ -309,15 +309,15 @@ const instrumentFits = (id, role) => {
 
 // how each role can play. the first is its default
 const PATTERNS = {
-  melody:  { phrases: 'Phrases', calls: 'Calls and gaps', long: 'Long notes' },
+  melody:  { phrases: 'Phrases', calls: 'Calls and gaps', long: 'Long notes', riff: 'Riff', fragments: 'Fragments' },
   counter: { answer: 'Answers', harmony: 'Harmony', free: 'Its own tune' },
   arp:     { up: 'Up', down: 'Down', updown: 'Up and down', converge: 'Inwards', random: 'Random' },
   bells:   { phasing: 'Drifting loops', sparkle: 'Chimes on the chords' },
   keys:    { broken: 'Broken chords', block: 'Block chords', strum: 'Strummed', waltz: 'Oom-pah' },
-  pad:     { sustain: 'Held', swell: 'Swells', pulse: 'Pulsing', stabs: 'Stabs' },
+  pad:     { sustain: 'Held', swell: 'Swells', pulse: 'Pulsing', stabs: 'Stabs', pump: 'Pumping' },
   drone:   { tonic: 'Home note', fifths: 'Open fifths', follow: 'Follows chords', cluster: 'Cluster' },
   bass:    { held: 'Held', pulse: 'Pulse', rootfifth: 'Root and fifth', octave: 'Octaves', walking: 'Walking', synco: 'Syncopated' },
-  drums:   { groove: 'Groove', halftime: 'Half time', brush: 'Brushes', pulse: 'Pulse', tribal: 'Tribal', march: 'March', sparse: 'Sparse' },
+  drums:   { groove: 'Groove', halftime: 'Half time', brush: 'Brushes', pulse: 'Pulse', tribal: 'Tribal', march: 'March', sparse: 'Sparse', four: 'Four to the floor', break: 'Breakbeat' },
   texture: { steady: 'Steady' },
 };
 // the patterns that use a layer's speed (rate)
@@ -348,11 +348,12 @@ const MOODS = {
     chords: ['I IV', 'I - IV -', 'I vi IV I', 'IV I', 'I iii IV IV', 'Imaj7 IVmaj7', 'ii I', 'I V vi IV'],
     richness: [0.3, 0.75], energy: 0.25, space: 0.65, bright: 0.55, dark: 0.05,
     palette: {
-      pad: ['warm-pad', 'glass-pad', 'strings', 'air-pad'], melody: ['flute', 'felt-keys', 'ocarina', 'soft-lead'],
-      counter: ['felt-keys', 'harp', 'soft-lead'], keys: ['felt-keys', 'harp', 'e-piano'], arp: ['harp', 'kalimba', 'felt-keys'],
-      bells: ['glass-bell', 'chime', 'vibes'], bass: ['sub-bass', 'round-bass', 'upright'], drone: ['organ-drone', 'deep-drone', 'cello-drone'],
+      pad: ['warm-pad', 'glass-pad', 'strings', 'air-pad', 'analog-pad'], melody: ['flute', 'felt-keys', 'ocarina', 'soft-lead', 'pan-flute'],
+      counter: ['felt-keys', 'harp', 'soft-lead', 'nylon'], keys: ['felt-keys', 'harp', 'e-piano', 'nylon'], arp: ['harp', 'kalimba', 'felt-keys', 'nylon'],
+      bells: ['glass-bell', 'chime', 'vibes', 'sine-bell'], bass: ['sub-bass', 'round-bass', 'upright'], drone: ['organ-drone', 'deep-drone', 'cello-drone'],
     },
-    textures: ['wind', 'ocean', 'crickets', 'rain'], kits: ['soft-kit'], drums: [0.1, 0.35], patterns: { drums: ['pulse', 'sparse', 'brush'] },
+    textures: ['birds', 'ocean', 'crickets', 'rain'], kits: ['soft-kit'], drums: [0.1, 0.35],
+    patterns: { drums: ['pulse', 'sparse', 'brush'], melody: ['phrases', 'fragments', 'phrases', 'long'] },
   },
   dreamy: {
     name: 'Dreamy', colour: '#c3b1ea', style: 'ambient',
@@ -360,11 +361,11 @@ const MOODS = {
     chords: ['I II', 'I iii IV iv', 'IV V iii vi', 'Imaj7 iii vi IVmaj7', 'I II iii II', 'IVmaj7 Imaj7', 'I bVII IV iv'],
     richness: [0.6, 1], energy: 0.2, space: 0.9, bright: 0.6, dark: 0.1,
     palette: {
-      pad: ['glass-pad', 'shimmer', 'choir-oo', 'air-pad'], melody: ['music-box', 'glass-bell', 'flute', 'whistle'],
+      pad: ['glass-pad', 'shimmer', 'choir-oo', 'air-pad', 'reverse-piano', 'analog-pad'], melody: ['music-box', 'glass-bell', 'flute', 'whistle', 'sine-bell'],
       counter: ['harp', 'celesta'], keys: ['harp', 'e-piano', 'celesta'], arp: ['harp', 'celesta', 'music-box'],
-      bells: ['glass-bell', 'music-box', 'celesta', 'chime'], bass: ['sub-bass', 'round-bass'], drone: ['organ-drone', 'deep-drone'],
+      bells: ['glass-bell', 'music-box', 'celesta', 'chime', 'sine-bell'], bass: ['sub-bass', 'round-bass'], drone: ['organ-drone', 'deep-drone', 'tape-loop'],
     },
-    textures: ['wind', 'ocean', 'hum'], kits: [], drums: [0, 0], fx: { wobble: 0.3 },
+    textures: ['ocean', 'hum', 'drips', 'birds'], kits: [], drums: [0, 0], fx: { wobble: 0.3 },
   },
   heavenly: {
     name: 'Heavenly', colour: '#bcdcf2', style: 'ambient',
@@ -374,9 +375,9 @@ const MOODS = {
     palette: {
       pad: ['choir-ah', 'organ', 'shimmer', 'strings'], melody: ['choir-oo', 'flute', 'glass-bell', 'violin'],
       counter: ['harp', 'celesta', 'choir-oo'], keys: ['harp', 'celesta', 'organ'], arp: ['harp', 'celesta'],
-      bells: ['bell', 'glass-bell', 'celesta', 'chime'], bass: ['sub-bass', 'round-bass'], drone: ['organ-drone', 'cello-drone'],
+      bells: ['bell', 'glass-bell', 'celesta', 'chime', 'sine-bell'], bass: ['sub-bass', 'round-bass'], drone: ['organ-drone', 'cello-drone'],
     },
-    textures: ['wind'], kits: [], drums: [0, 0], patterns: { drone: ['fifths', 'tonic'] },
+    textures: ['wind', 'birds'], kits: [], drums: [0, 0], patterns: { drone: ['fifths', 'tonic'] },
   },
   happy: {
     name: 'Happy', colour: '#ffcf4d', style: 'tune',
@@ -385,11 +386,11 @@ const MOODS = {
     chords: ['I V vi IV', 'I IV V IV', 'I vi IV V', 'I IV I V', 'I iii IV V', 'vi IV I V', 'I IV vi V', 'I V IV V'],
     richness: [0.1, 0.5], energy: 0.65, space: 0.4, bright: 0.75, dark: 0,
     palette: {
-      pad: ['warm-pad', 'strings', 'organ'], melody: ['flute', 'ocarina', 'whistle', 'marimba', 'square-lead'],
-      counter: ['marimba', 'kalimba', 'pizzicato'], keys: ['e-piano', 'felt-keys', 'marimba'], arp: ['kalimba', 'marimba', 'pluck-lead', 'harp'],
-      bells: ['chime', 'celesta', 'vibes'], bass: ['pluck-bass', 'round-bass', 'upright'], drone: ['organ-drone'],
+      pad: ['warm-pad', 'strings', 'organ'], melody: ['flute', 'ocarina', 'whistle', 'marimba', 'square-lead', 'pulse-lead', 'pan-flute'],
+      counter: ['marimba', 'kalimba', 'pizzicato', 'nylon'], keys: ['e-piano', 'felt-keys', 'marimba', 'nylon'], arp: ['kalimba', 'marimba', 'pluck-lead', 'harp', 'nylon'],
+      bells: ['chime', 'celesta', 'vibes'], bass: ['pluck-bass', 'round-bass', 'upright', 'chip-bass'], drone: ['organ-drone'],
     },
-    textures: ['crickets'], kits: ['tight-kit', 'soft-kit'], drums: [0.1, 0.85], swing: 0.2, patterns: { drums: ['groove', 'groove', 'halftime'] },
+    textures: ['birds', 'crickets'], kits: ['tight-kit', 'soft-kit', 'chip-kit'], drums: [0.1, 0.85], swing: 0.2, patterns: { drums: ['groove', 'groove', 'halftime'] },
   },
   playful: {
     name: 'Playful', colour: '#f5a3c7', style: 'tune',
@@ -398,12 +399,28 @@ const MOODS = {
     chords: ['I IV V I', 'I vi ii V', 'I II IV I', 'I bVII IV I', 'IV V I vi', 'I iii IV V', 'I I7 IV iv'],
     richness: [0.1, 0.5], energy: 0.7, space: 0.35, bright: 0.8, dark: 0,
     palette: {
-      pad: ['organ', 'warm-pad'], melody: ['pizzicato', 'marimba', 'whistle', 'kalimba', 'square-lead', 'music-box'],
+      pad: ['organ', 'warm-pad'], melody: ['pizzicato', 'marimba', 'whistle', 'kalimba', 'square-lead', 'music-box', 'pulse-lead'],
       counter: ['pizzicato', 'kalimba', 'celesta'], keys: ['marimba', 'felt-keys', 'music-box'], arp: ['kalimba', 'pizzicato', 'celesta'],
-      bells: ['celesta', 'music-box', 'chime'], bass: ['pluck-bass', 'upright', 'round-bass'], drone: ['organ-drone'],
+      bells: ['celesta', 'music-box', 'chime'], bass: ['pluck-bass', 'upright', 'round-bass', 'chip-bass'], drone: ['organ-drone'],
     },
-    textures: ['crickets'], kits: ['clockwork', 'tight-kit', 'soft-kit'], drums: [0.1, 0.85], swing: 0.35,
-    patterns: { drums: ['groove', 'march'], bass: ['octave', 'rootfifth', 'walking'], keys: ['waltz', 'block', 'broken'], melody: ['phrases', 'calls'] },
+    textures: ['birds', 'crickets'], kits: ['clockwork', 'tight-kit', 'soft-kit', 'chip-kit'], drums: [0.1, 0.85], swing: 0.35,
+    patterns: { drums: ['groove', 'march'], bass: ['octave', 'rootfifth', 'walking'], keys: ['waltz', 'block', 'broken'], melody: ['phrases', 'calls', 'riff'] },
+  },
+  // undertale, deltarune, terraria: chip leads and a bouncing bass under a tune you can't get out of
+  // your head, with the odd jazzy or borrowed chord (deltarune leans on the "royal road", IV V iii vi)
+  spirited: {
+    name: 'Spirited', colour: '#4fb0e8', style: 'tune',
+    scales: { major: 3, mixolydian: 1, dorian: 1.5, minor: 1.2, majorPentatonic: 1 }, tempo: [76, 96], tuneTempo: [112, 148],
+    meters: { '4/4': 6, '3/4': 1, '6/8': 1.5 },
+    chords: ['I V vi IV', 'IVmaj7 V7 iii vi', 'i bVI bVII i', 'i bVII bVI bVII', 'vi IV I V', 'I iii IV iv', 'ii V I vi', 'I bVII IV I', 'IV V iii vi'],
+    richness: [0.2, 0.65], energy: 0.75, space: 0.4, bright: 0.75, dark: 0.1, edge: 0.85, swing: 0.15,
+    palette: {
+      pad: ['strings', 'organ', 'warm-pad'], melody: ['pulse-lead', 'square-lead', 'pan-flute', 'synth-brass', 'felt-keys'],
+      counter: ['pulse-lead', 'nylon', 'marimba'], keys: ['felt-keys', 'nylon', 'e-piano'], arp: ['pulse-lead', 'nylon', 'kalimba', 'harp'],
+      bells: ['celesta', 'glass-bell', 'music-box'], bass: ['chip-bass', 'pluck-bass', 'upright', 'round-bass'], drone: ['organ-drone'],
+    },
+    textures: ['birds'], kits: ['chip-kit', 'tight-kit'], drums: [0.15, 0.95],
+    patterns: { drums: ['groove', 'march', 'break', 'groove'], bass: ['octave', 'walking', 'synco', 'rootfifth'], melody: ['phrases', 'riff', 'phrases', 'calls'] },
   },
   upbeat: {
     name: 'Upbeat', colour: '#ff8f45', style: 'tune',
@@ -412,12 +429,12 @@ const MOODS = {
     chords: ['I V vi IV', 'I bVII IV I', 'vi IV I V', 'I IV vi V', 'i bVII bVI bVII', 'ii V I I', 'I iii vi IV'],
     richness: [0.2, 0.6], energy: 0.9, space: 0.35, bright: 0.8, dark: 0,
     palette: {
-      pad: ['warm-pad', 'strings', 'shimmer'], melody: ['saw-lead', 'square-lead', 'pluck-lead', 'whistle'],
+      pad: ['warm-pad', 'strings', 'shimmer', 'analog-pad'], melody: ['saw-lead', 'square-lead', 'pluck-lead', 'whistle', 'synth-brass', 'pulse-lead'],
       counter: ['pluck-lead', 'e-piano', 'marimba'], keys: ['e-piano', 'felt-keys'], arp: ['pluck-lead', 'kalimba', 'e-piano', 'saw-lead'],
       bells: ['vibes', 'chime'], bass: ['synth-bass', 'pluck-bass', 'growl-bass'], drone: ['deep-drone'],
     },
-    textures: [], kits: ['tight-kit', 'lofi-kit'], drums: [0.15, 0.95], edge: 1,
-    patterns: { bass: ['octave', 'synco', 'pulse', 'rootfifth'], drums: ['groove', 'groove', 'halftime'] },
+    textures: [], kits: ['tight-kit', 'lofi-kit', 'club-kit'], drums: [0.15, 0.95], edge: 1,
+    patterns: { bass: ['octave', 'synco', 'pulse', 'rootfifth'], drums: ['groove', 'groove', 'halftime', 'four', 'break'] },
   },
   cozy: {
     name: 'Cozy', colour: '#c9875f', style: 'tune',
@@ -425,8 +442,8 @@ const MOODS = {
     chords: ['Imaj7 vi ii V7', 'I IV iii vi ii V', 'IVmaj7 iii ii Imaj7', 'I vi ii V', 'ii V7 Imaj7 -', 'Imaj7 IVmaj7', 'vi ii V7 Imaj7'],
     richness: [0.6, 1], energy: 0.45, space: 0.45, bright: 0.4, dark: 0.05, swing: 0.8,
     palette: {
-      pad: ['warm-pad', 'organ', 'strings'], melody: ['e-piano', 'felt-keys', 'flute', 'vibes', 'soft-lead'],
-      counter: ['felt-keys', 'vibes', 'harp'], keys: ['e-piano', 'felt-keys'], arp: ['e-piano', 'harp', 'vibes'],
+      pad: ['warm-pad', 'organ', 'strings'], melody: ['e-piano', 'felt-keys', 'flute', 'vibes', 'soft-lead', 'nylon'],
+      counter: ['felt-keys', 'vibes', 'harp', 'nylon'], keys: ['e-piano', 'felt-keys', 'nylon'], arp: ['e-piano', 'harp', 'vibes', 'nylon'],
       bells: ['vibes', 'chime'], bass: ['upright', 'round-bass', 'sub-bass'], drone: ['organ-drone'],
     },
     textures: ['vinyl', 'fire', 'rain'], kits: ['brushes'], drums: [0.05, 0.55],
@@ -438,11 +455,12 @@ const MOODS = {
     chords: ['I iii IV iv', 'IV iv I', 'I V vi iii IV I IV V', 'vi IV I V', 'I bVII IV I', 'Imaj7 IVmaj7 iii vi', 'IV I V vi', 'I III IV iv'],
     richness: [0.4, 0.85], energy: 0.35, space: 0.7, bright: 0.45, dark: 0.15,
     palette: {
-      pad: ['strings', 'warm-pad', 'glass-pad', 'choir-oo'], melody: ['music-box', 'e-piano', 'celesta', 'flute', 'violin'],
+      pad: ['strings', 'warm-pad', 'glass-pad', 'choir-oo', 'analog-pad', 'reverse-piano'], melody: ['music-box', 'e-piano', 'celesta', 'flute', 'violin', 'nylon'],
       counter: ['harp', 'felt-keys', 'celesta'], keys: ['felt-keys', 'e-piano', 'harp'], arp: ['harp', 'music-box', 'celesta'],
-      bells: ['music-box', 'celesta', 'glass-bell'], bass: ['round-bass', 'sub-bass', 'upright'], drone: ['cello-drone', 'organ-drone'],
+      bells: ['music-box', 'celesta', 'glass-bell'], bass: ['round-bass', 'sub-bass', 'upright'], drone: ['cello-drone', 'organ-drone', 'tape-loop'],
     },
-    textures: ['vinyl', 'rain', 'wind'], kits: ['brushes'], drums: [0.05, 0.45], patterns: { drums: ['brush', 'sparse'] }, fx: { wobble: 0.45 },
+    textures: ['vinyl', 'rain', 'birds'], kits: ['brushes'], drums: [0.05, 0.45],
+    patterns: { drums: ['brush', 'sparse'], melody: ['fragments', 'phrases', 'long'] }, fx: { wobble: 0.45 },
   },
   sad: {
     name: 'Sad', colour: '#6b95d8', style: 'ambient',
@@ -450,11 +468,28 @@ const MOODS = {
     chords: ['i bVI bIII bVII', 'i iv bVI V', 'vi IV I V', 'i bVII bVI bVII', 'i iv i v', 'i - bVI -', 'iv i', 'i bVI iv V', 'i bIII bVII iv'],
     richness: [0.3, 0.8], energy: 0.3, space: 0.7, bright: 0.35, dark: 0.3,
     palette: {
-      pad: ['strings', 'warm-pad', 'choir-oo', 'dark-pad'], melody: ['felt-keys', 'violin', 'flute', 'e-piano', 'music-box'],
+      pad: ['strings', 'warm-pad', 'choir-oo', 'dark-pad', 'fuzz-wall', 'reverse-piano'], melody: ['felt-keys', 'violin', 'flute', 'e-piano', 'music-box'],
       counter: ['felt-keys', 'harp', 'violin'], keys: ['felt-keys', 'harp', 'e-piano'], arp: ['harp', 'felt-keys'],
-      bells: ['glass-bell', 'music-box'], bass: ['sub-bass', 'round-bass', 'upright'], drone: ['cello-drone', 'deep-drone'],
+      bells: ['glass-bell', 'music-box'], bass: ['sub-bass', 'round-bass', 'upright', 'chorus-bass'], drone: ['cello-drone', 'deep-drone'],
     },
-    textures: ['rain', 'wind'], kits: ['soft-kit', 'brushes'], drums: [0.05, 0.4], patterns: { drums: ['sparse', 'pulse', 'brush'] },
+    textures: ['rain', 'vinyl', 'wind'], kits: ['soft-kit', 'brushes'], drums: [0.05, 0.4], patterns: { drums: ['sparse', 'pulse', 'brush'] },
+  },
+  // have a nice life: a slow wall of fuzz, a lone chanted line, a cheap drum machine in a huge room,
+  // all of it worn and washed out. serious rather than sad
+  bleak: {
+    name: 'Bleak', colour: '#6f7d8c', style: 'ambient',
+    scales: { minor: 3, dorian: 1.5, phrygian: 1 }, tempo: [50, 68], tuneTempo: [72, 92],
+    chords: ['i bVI bIII bVII', 'i - bVI -', 'i v bVI iv', 'i bVII', 'i - - - bVI - - -', 'iv i', 'i bIII iv bVI', 'i bVI'],
+    methods: { bank: 5, markov: 1, vamp: 2 },
+    richness: [0.15, 0.5], energy: 0.4, space: 1, bright: 0.3, dark: 0.55,
+    palette: {
+      pad: ['fuzz-wall', 'choir-ah', 'choir-oo', 'dark-pad'], melody: ['violin', 'whistle', 'felt-keys', 'nylon', 'choir-oo'],
+      counter: ['strings', 'felt-keys', 'nylon'], keys: ['felt-keys', 'e-piano', 'nylon'], arp: ['nylon', 'felt-keys', 'sine-bell'],
+      bells: ['sine-bell', 'glass-bell'], bass: ['chorus-bass', 'sub-bass', 'round-bass'], drone: ['deep-drone', 'cello-drone', 'organ-drone', 'tape-loop'],
+    },
+    textures: ['vinyl', 'rain', 'hum'], kits: ['machine'], drums: [0.35, 0.8],
+    patterns: { drums: ['halftime', 'pulse', 'groove'], melody: ['long', 'phrases', 'fragments'], bass: ['held', 'pulse', 'rootfifth'], pad: ['sustain', 'swell'] },
+    fx: { wobble: 0.35, drive: 0.25 },
   },
   mysterious: {
     name: 'Mysterious', colour: '#8b6fd0', style: 'ambient',
@@ -465,9 +500,9 @@ const MOODS = {
     palette: {
       pad: ['choir-oo', 'air-pad', 'glass-pad', 'dark-pad'], melody: ['kalimba', 'flute', 'glass-bell', 'ocarina', 'whistle'],
       counter: ['kalimba', 'harp', 'pizzicato'], keys: ['harp', 'kalimba', 'celesta'], arp: ['kalimba', 'harp', 'marimba'],
-      bells: ['glass-bell', 'bell', 'chime'], bass: ['sub-bass', 'pluck-bass', 'upright'], drone: ['deep-drone', 'void', 'cello-drone'],
+      bells: ['glass-bell', 'bell', 'chime', 'metal-ping', 'sine-bell'], bass: ['sub-bass', 'pluck-bass', 'upright'], drone: ['deep-drone', 'void', 'cello-drone', 'tape-loop'],
     },
-    textures: ['wind', 'crickets', 'hum'], kits: ['clockwork', 'heartbeat'], drums: [0.15, 0.6], patterns: { drums: ['sparse', 'pulse'] },
+    textures: ['drips', 'crickets', 'hum', 'wind'], kits: ['clockwork', 'heartbeat'], drums: [0.15, 0.6], patterns: { drums: ['sparse', 'pulse'] },
   },
   deep: {
     name: 'Deep', colour: '#2f9db0', style: 'ambient',
@@ -475,11 +510,11 @@ const MOODS = {
     chords: ['i bVII', 'I II', 'i iv', 'Imaj7 bVII', 'i bVI bVII i', 'IVmaj7 Imaj7', 'i - iv -'],
     richness: [0.5, 1], energy: 0.2, space: 1, bright: 0.25, dark: 0.35,
     palette: {
-      pad: ['warm-pad', 'glass-pad', 'air-pad', 'dark-pad'], melody: ['vibes', 'glass-bell', 'soft-lead', 'whistle'],
+      pad: ['warm-pad', 'glass-pad', 'air-pad', 'dark-pad', 'analog-pad'], melody: ['vibes', 'glass-bell', 'soft-lead', 'whistle', 'sine-bell'],
       counter: ['vibes', 'harp'], keys: ['vibes', 'e-piano', 'harp'], arp: ['vibes', 'glass-bell', 'harp'],
-      bells: ['glass-bell', 'vibes', 'chime'], bass: ['sub-bass', 'round-bass'], drone: ['deep-drone', 'void', 'organ-drone'],
+      bells: ['glass-bell', 'vibes', 'chime', 'sine-bell'], bass: ['sub-bass', 'round-bass'], drone: ['deep-drone', 'void', 'organ-drone', 'tape-loop'],
     },
-    textures: ['ocean', 'hum', 'rumble'], kits: ['heartbeat', 'soft-kit'], drums: [0.08, 0.35], patterns: { drums: ['pulse'] }, fx: { wobble: 0.25 },
+    textures: ['ocean', 'drips', 'hum', 'rumble'], kits: ['heartbeat', 'soft-kit'], drums: [0.08, 0.35], patterns: { drums: ['pulse'] }, fx: { wobble: 0.25 },
   },
   tense: {
     name: 'Tense', colour: '#c4573a', style: 'tune',
@@ -488,11 +523,11 @@ const MOODS = {
     methods: { bank: 5, markov: 1, vamp: 2, chromatic: 1 },
     richness: [0.2, 0.6], energy: 0.65, space: 0.5, bright: 0.4, dark: 0.65,
     palette: {
-      pad: ['strings', 'dark-pad', 'haunted-pad'], melody: ['violin', 'saw-lead', 'horn', 'pluck-lead'],
+      pad: ['strings', 'dark-pad', 'haunted-pad', 'analog-pad'], melody: ['violin', 'saw-lead', 'horn', 'pluck-lead', 'synth-brass'],
       counter: ['pizzicato', 'pluck-lead', 'strings'], keys: ['felt-keys', 'pizzicato', 'harp'], arp: ['pluck-lead', 'pizzicato', 'saw-lead', 'marimba'],
-      bells: ['bell', 'glass-bell'], bass: ['synth-bass', 'sub-bass', 'growl-bass'], drone: ['deep-drone', 'cello-drone', 'bowed-metal'],
+      bells: ['bell', 'glass-bell', 'metal-ping'], bass: ['synth-bass', 'sub-bass', 'growl-bass', 'reese'], drone: ['deep-drone', 'cello-drone', 'bowed-metal'],
     },
-    textures: ['rumble', 'hum', 'wind'], kits: ['heartbeat', 'clockwork', 'taiko'], drums: [0.3, 0.9], edge: 0.9,
+    textures: ['rumble', 'hum', 'creaks', 'geiger'], kits: ['heartbeat', 'clockwork', 'taiko', 'machine'], drums: [0.3, 0.9], edge: 0.9,
     patterns: { bass: ['pulse', 'synco', 'octave'], drums: ['pulse', 'tribal', 'halftime', 'sparse'], pad: ['sustain', 'pulse'] },
   },
   angry: {
@@ -502,12 +537,30 @@ const MOODS = {
     chords: ['i bVI bVII i', 'i bII i bVII', 'i iv V i', 'i bVI bIII bVII', 'i - bVI V', 'i bVII bVI V', 'i iv bVI bVII'],
     richness: [0.1, 0.4], energy: 1, space: 0.35, bright: 0.65, dark: 0.5,
     palette: {
-      pad: ['strings', 'dark-pad', 'choir-ah'], melody: ['saw-lead', 'horn', 'violin', 'square-lead'],
+      pad: ['strings', 'dark-pad', 'choir-ah'], melody: ['saw-lead', 'horn', 'violin', 'square-lead', 'bit-lead'],
       counter: ['horn', 'strings', 'pluck-lead'], keys: ['pizzicato', 'felt-keys'], arp: ['saw-lead', 'pluck-lead', 'pizzicato'],
-      bells: ['bell'], bass: ['growl-bass', 'synth-bass', 'pluck-bass'], drone: ['deep-drone', 'cello-drone'],
+      bells: ['bell'], bass: ['growl-bass', 'synth-bass', 'pluck-bass', 'reese'], drone: ['deep-drone', 'cello-drone'],
     },
-    textures: ['rumble', 'fire'], kits: ['taiko', 'tight-kit', 'lofi-kit'], drums: [0.3, 1], edge: 1,
-    patterns: { bass: ['octave', 'pulse', 'synco'], drums: ['tribal', 'march', 'groove'], pad: ['sustain', 'stabs', 'pulse'] }, fx: { drive: 0.45 },
+    textures: ['rumble', 'fire'], kits: ['taiko', 'tight-kit', 'lofi-kit', 'club-kit'], drums: [0.3, 1], edge: 1,
+    patterns: { bass: ['octave', 'pulse', 'synco'], drums: ['tribal', 'march', 'groove', 'break'], pad: ['sustain', 'stabs', 'pulse'] }, fx: { drive: 0.45 },
+  },
+  // crystal castles, and the synths of dying light: dark and serious, a crushed chip lead over pumping
+  // pads, octave bass and a club kick. as ambient it's the slower night drive, arps pulsing under pads
+  neon: {
+    name: 'Neon', colour: '#d43fb4', style: 'tune',
+    scales: { minor: 3, phrygian: 1, dorian: 1, harmonicMinor: 1 }, tempo: [80, 100], tuneTempo: [124, 140],
+    meters: { '4/4': 1 },
+    chords: ['i bVI bIII bVII', 'i - bVI -', 'i bVII bVI bVII', 'i iv', 'i bIII bVII iv', 'i v bVI iv', 'i - bII -', 'i bVI iv V'],
+    methods: { bank: 5, markov: 1, vamp: 2 },
+    richness: [0.1, 0.45], energy: 0.85, space: 0.6, bright: 0.6, dark: 0.6, edge: 1,
+    palette: {
+      pad: ['analog-pad', 'dark-pad', 'choir-ah', 'glass-pad'], melody: ['bit-lead', 'pulse-lead', 'saw-lead', 'sine-bell'],
+      counter: ['pluck-lead', 'pulse-lead', 'synth-brass'], keys: ['e-piano', 'pluck-lead'], arp: ['pluck-lead', 'pulse-lead', 'sine-bell', 'saw-lead'],
+      bells: ['sine-bell', 'glass-bell'], bass: ['synth-bass', 'reese', 'growl-bass', 'sub-bass'], drone: ['deep-drone', 'void'],
+    },
+    textures: ['hum', 'vinyl'], kits: ['club-kit', 'machine', 'chip-kit'], drums: [0.35, 1],
+    patterns: { drums: ['four', 'four', 'break', 'halftime'], pad: ['pump', 'pump', 'sustain'], bass: ['octave', 'synco', 'pulse'], melody: ['riff', 'phrases', 'riff'] },
+    fx: { drive: 0.35 },
   },
   eerie: {
     name: 'Eerie', colour: '#9fcf4f', style: 'ambient',
@@ -516,12 +569,29 @@ const MOODS = {
     methods: { chromatic: 4, bank: 3, vamp: 1 },
     richness: [0.4, 1], energy: 0.2, space: 0.9, bright: 0.3, dark: 1,
     palette: {
-      pad: ['haunted-pad', 'dark-pad', 'choir-oo', 'air-pad'], melody: ['music-box', 'glass-bell', 'whistle', 'violin'],
+      pad: ['haunted-pad', 'dark-pad', 'choir-oo', 'air-pad', 'reverse-piano'], melody: ['music-box', 'glass-bell', 'whistle', 'violin'],
       counter: ['music-box', 'celesta', 'bowed-metal'], keys: ['music-box', 'celesta', 'felt-keys'], arp: ['music-box', 'celesta', 'glass-bell'],
-      bells: ['bell', 'glass-bell', 'music-box'], bass: ['sub-bass', 'deep-drone'], drone: ['void', 'bowed-metal', 'deep-drone', 'cello-drone'],
+      bells: ['bell', 'glass-bell', 'music-box', 'metal-ping'], bass: ['sub-bass', 'deep-drone'], drone: ['void', 'bowed-metal', 'deep-drone', 'cello-drone', 'tape-loop'],
     },
-    textures: ['rumble', 'wind', 'hum'], kits: ['heartbeat', 'clockwork'], drums: [0.15, 0.4],
-    patterns: { drone: ['cluster', 'tonic', 'cluster'], drums: ['pulse', 'sparse'], melody: ['long', 'phrases'] },
+    textures: ['creaks', 'drips', 'hum', 'geiger'], kits: ['heartbeat', 'clockwork'], drums: [0.15, 0.4],
+    patterns: { drone: ['cluster', 'tonic', 'cluster'], drums: ['pulse', 'sparse'], melody: ['long', 'phrases', 'fragments'] },
+  },
+  // fallout 1 and 2, and aphex twin's darker ambient: a wasteland after it all ended. low drones and
+  // bowed metal, a lone plucked or bell line with long silences, pipes pinging, a geiger counter
+  desolate: {
+    name: 'Desolate', colour: '#a8925f', style: 'ambient',
+    scales: { minor: 2, phrygian: 1.5, dorian: 1.5, hungarianMinor: 0.5 }, tempo: [48, 66], tuneTempo: [70, 92],
+    chords: ['i - bVI -', 'i bII', 'i v', 'i bVII bVI bVII', 'i - iv -', 'i bVI', 'i - - - bII - - -'],
+    methods: { bank: 4, vamp: 3, chromatic: 1 },
+    richness: [0.2, 0.7], energy: 0.25, space: 0.95, bright: 0.3, dark: 0.75, edge: 0.8,
+    palette: {
+      pad: ['dark-pad', 'reverse-piano', 'analog-pad', 'haunted-pad'], melody: ['nylon', 'sine-bell', 'felt-keys', 'whistle'],
+      counter: ['nylon', 'felt-keys', 'metal-ping'], keys: ['felt-keys', 'nylon', 'e-piano'], arp: ['nylon', 'sine-bell', 'felt-keys'],
+      bells: ['metal-ping', 'sine-bell', 'glass-bell'], bass: ['sub-bass', 'reese', 'round-bass'], drone: ['bowed-metal', 'deep-drone', 'tape-loop', 'void'],
+    },
+    textures: ['geiger', 'creaks', 'drips', 'wind'], kits: ['machine', 'heartbeat'], drums: [0.12, 0.5],
+    patterns: { drums: ['sparse', 'pulse'], melody: ['fragments', 'long', 'fragments'], drone: ['tonic', 'cluster', 'fifths'], bells: ['phasing', 'sparkle'] },
+    fx: { wobble: 0.2 },
   },
   heroic: {
     name: 'Heroic', colour: '#d4a13a', style: 'tune',
@@ -530,7 +600,7 @@ const MOODS = {
     chords: ['I bVII IV I', 'i bVI bIII bVII', 'I V vi IV', 'IV V iii vi', 'I bVI bVII I', 'i bVI bVII i', 'I IV V I', 'I iii IV V'],
     richness: [0.1, 0.45], energy: 0.8, space: 0.6, bright: 0.65, dark: 0.2,
     palette: {
-      pad: ['strings', 'choir-ah', 'warm-pad', 'organ'], melody: ['horn', 'violin', 'flute', 'saw-lead'],
+      pad: ['strings', 'choir-ah', 'warm-pad', 'organ'], melody: ['horn', 'violin', 'flute', 'saw-lead', 'synth-brass'],
       counter: ['horn', 'strings', 'violin'], keys: ['harp', 'pizzicato', 'felt-keys'], arp: ['harp', 'pizzicato', 'pluck-lead'],
       bells: ['bell', 'chime'], bass: ['pluck-bass', 'synth-bass', 'round-bass'], drone: ['cello-drone', 'organ-drone'],
     },
@@ -542,12 +612,12 @@ const MOODS = {
 // the patterns each style leans towards, when the mood doesn't say
 const STYLE_PATTERNS = {
   ambient: {
-    melody: ['phrases', 'long', 'phrases'], counter: ['harmony', 'answer'], arp: ['up', 'updown', 'random', 'converge'],
+    melody: ['phrases', 'long', 'phrases', 'fragments'], counter: ['harmony', 'answer'], arp: ['up', 'updown', 'random', 'converge'],
     bells: ['phasing', 'sparkle', 'sparkle'], keys: ['strum', 'broken'], pad: ['sustain', 'sustain', 'swell'],
     drone: ['tonic', 'fifths', 'follow'], bass: ['held', 'held', 'rootfifth'], drums: ['pulse', 'sparse'], texture: ['steady'],
   },
   tune: {
-    melody: ['phrases', 'phrases', 'calls'], counter: ['answer', 'harmony'], arp: ['up', 'down', 'updown', 'converge', 'random'],
+    melody: ['phrases', 'phrases', 'calls', 'riff'], counter: ['answer', 'harmony'], arp: ['up', 'down', 'updown', 'converge', 'random'],
     bells: ['sparkle', 'phasing'], keys: ['broken', 'block', 'strum', 'waltz'], pad: ['sustain', 'swell', 'pulse', 'stabs'],
     drone: ['tonic', 'fifths'], bass: ['rootfifth', 'pulse', 'octave', 'walking', 'synco', 'held'],
     drums: ['groove', 'groove', 'halftime'], texture: ['steady'],
@@ -761,7 +831,9 @@ function pickInstrument(song, layer, rng) {
   }
   const cap = maxEdge(mood, role);
   const taken = new Set(song.layers.filter((other) => other !== layer && roleFamily(other.role) === 'tonal').map((other) => other.instrument));
-  const fits = (id) => INSTRUMENTS[id].edge <= cap && !taken.has(id);
+  // a reversed sound swells over its whole note, and a drone's note is a whole section: minutes of
+  // swelling, then a sudden stop
+  const fits = (id) => INSTRUMENTS[id].edge <= cap && !taken.has(id) && !(role === 'drone' && INSTRUMENTS[id].reverse);
   const palette = mood.palette[role].filter(fits);
   const wild = anything.filter((id) => WILDCARDS[role].includes(INSTRUMENTS[id].family) && fits(id));
   if (palette.length && !(wild.length && rng.chance(0.12))) return rng.pick(palette);
@@ -1266,6 +1338,19 @@ const GROOVES = {
       { k: 'x...............', h: '-...-...-...-...', p: '..........-.....', c: 'x.......x.......' },
       { k: 'x.......-.......', h: '....-.......-...', c: 'x...............' },
     ],
+    // four to the floor: a kick on every beat and the hats on the off beats, the club beat (crystal
+    // castles). the stabs and bass sit off the beat, between the kicks
+    four: [
+      { k: 'x...x...x...x...', s: '....x.......x...', h: '..x...x...x...x.', c: '..x...x...x...x.' },
+      { k: 'x...x...x...x...', s: '....x.......x...', h: 'x-.-x-.-x-.-x-.-', o: '..x...x...x...x.', c: '..x...x...x...x.' },
+      { k: 'x...x...x...x..-', s: '....x.......x...', h: '-.x.-.x.-.x.-.x.', p: '.......-......-.', c: 'x..x..x...x..x..' },
+    ],
+    // a breakbeat: the kick skipping round a snare that's mostly on 2 and 4, with ghost notes. the
+    // drum machine grooves under aphex twin's ambient, and dying light's chases
+    break: [
+      { k: 'x.x.......x.....', s: '....x..-.x..x..-', h: 'x.x.x.x.x.x.x.x.', c: 'x.x.......x.....' },
+      { k: 'x.........xx....', s: '....x.......x...', h: 'x-x-x-x-x-x-x-x-', p: '......-.......-.', c: 'x.........x.....' },
+    ],
   },
   '3/4': {
     groove: [
@@ -1278,6 +1363,8 @@ const GROOVES = {
     tribal: [{ k: 'x...........', l: 'x..x..x.x...', p: '..-...-...-.', c: 'x..x..x.....' }],
     march: [{ k: 'x...........', s: 'x.xxx.x.x.x.', h: 'x...x...x...', c: 'x...x...x...' }],
     sparse: [{ k: 'x...........', h: '-...-...-...', c: 'x...........' }],
+    four: [{ k: 'x...x...x...', s: '........x...', h: '..x...x...x.', c: '..x...x...x.' }],
+    break: [{ k: 'x.x.......x.', s: '....x..-.x..', h: 'x.x.x.x.x.x.', c: 'x.x.......x.' }],
   },
   '6/8': {
     groove: [
@@ -1290,6 +1377,8 @@ const GROOVES = {
     tribal: [{ k: 'x.....', l: 'x.xx.x', p: '.-..-.', c: 'x.xx.x' }],
     march: [{ k: 'x..x..', s: 'x-xx-x', h: 'x..x..', c: 'x..x..' }],
     sparse: [{ k: 'x.....', h: '-..-..', c: 'x.....' }],
+    four: [{ k: 'x..x..', s: '...x..', h: '.xx.xx', c: '.x..x.' }],
+    break: [{ k: 'x.x...', s: '...x.-', h: 'xxxxxx', c: 'x.x...' }],
   },
   // 5/4 as three beats then two, like take five
   '5/4': {
@@ -1300,12 +1389,14 @@ const GROOVES = {
     tribal: [{ k: 'x...........x.......', l: 'x..x..x.....x..x....', p: '..-...-...-...-...-.', c: 'x..x..x.....x.......' }],
     march: [{ k: 'x...........x.......', s: 'x.xxx.x.x.x.x.xxx.x.', h: 'x...x...x...x...x...', c: 'x...x...x...x...x...' }],
     sparse: [{ k: 'x...................', h: '-...-...-...-...-...', c: 'x...................' }],
+    four: [{ k: 'x...x...x...x...x...', s: '....x.......x.......', h: '..x...x...x...x...x.', c: '..x...x...x...x...x.' }],
+    break: [{ k: 'x.x.......x...x.....', s: '....x..-.x......x...', h: 'x.x.x.x.x.x.x.x.x.x.', c: 'x.x.......x...x.....' }],
   },
 };
 // the drum each groove line plays (KIT_SLOTS order in synth.js)
 const GROOVE_SLOTS = { k: 0, s: 1, h: 2, o: 3, p: 4, l: 5 };
 // the grooves that get busier in B parts, and the ones whose fills and section crashes are loud
-const LIFTS = { groove: true, halftime: true, march: true };
+const LIFTS = { groove: true, halftime: true, march: true, four: true, break: true };
 
 // a pitched drum (a kick, a tom, a tick, a rim, the body of a snare) moved to the nearest home note
 // or fifth of the song's key, in hz. where the kits had them they were out of key with everything
@@ -1389,9 +1480,11 @@ const isStrong = (c, t) => {
 // rhythm cells, in beats: a bar of melody is a few of these end to end
 const CELLS = {
   2: {
-    slow: [[2], [4], [3, 1], [1.5, 0.5, 2], [2, 2], [1, 3]],
-    mid: [[1, 1], [1.5, 0.5], [0.5, 0.5, 1], [1, 0.5, 0.5], [2], [0.75, 0.25, 1], [1]],
-    fast: [[0.5, 0.5], [0.25, 0.25, 0.5], [0.5, 0.25, 0.25], [0.75, 0.25], [1], [0.5, 1, 0.5]],
+    // [1.5, 1.5, 1] and [0.75, 0.75, 0.5] are the tresillo (3 + 3 + 2), the push under countless
+    // game and club riffs
+    slow: [[2], [4], [3, 1], [1.5, 0.5, 2], [2, 2], [1, 3], [1.5, 1.5, 1]],
+    mid: [[1, 1], [1.5, 0.5], [0.5, 0.5, 1], [1, 0.5, 0.5], [2], [0.75, 0.25, 1], [1], [0.75, 0.75, 0.5]],
+    fast: [[0.5, 0.5], [0.25, 0.25, 0.5], [0.5, 0.25, 0.25], [0.75, 0.25], [1], [0.5, 1, 0.5], [0.75, 0.75, 0.5]],
   },
   3: {
     slow: [[1], [2], [2 / 3, 1 / 3, 1], [1, 1]],
@@ -1403,16 +1496,17 @@ const CELLS = {
 // a bar's rhythm: cells end to end until it's full. busier layers pick faster cells, quieter ones
 // slower (longer notes). there are no rests inside a bar: I used to turn random notes into gaps, and
 // because the motif repeats, the same holes came back every bar and the tune sounded like it kept
-// cutting out. a sparse melody is long notes instead, and it breathes at the ends of phrases (tune())
-function makeBar(rng, c, density) {
+// cutting out. a sparse melody is long notes instead, and it breathes at the ends of phrases (tune()).
+// length: beats to fill, a bar unless it's half of one (a hook, makeMotif)
+function makeBar(rng, c, density, length = c.bpb) {
   const cells = CELLS[c.sub];
   const out = [];
   let t = 0;
-  while (t < c.bpb - 1e-6) {
+  while (t < length - 1e-6) {
     const speed = rng.weighted({ slow: 1.2 - density, mid: 0.6, fast: Math.max(0, density - 0.35) * 1.5 });
-    for (const length of rng.pick(cells[speed])) {
-      if (t >= c.bpb - 1e-6) break;
-      const dur = Math.min(length, c.bpb - t);
+    for (const cell of rng.pick(cells[speed])) {
+      if (t >= length - 1e-6) break;
+      const dur = Math.min(cell, length - t);
       out.push({ t, dur });
       t += dur;
     }
@@ -1444,68 +1538,183 @@ function compHits(c, chord, density) {
   return out;
 }
 
-// the next step of a melody's shape, in scale degrees: mostly small steps, the odd leap
-const stepShape = (rng) => rng.weighted([[1, 3], [-1, 3.2], [2, 1.4], [-2, 1.5], [0, 1], [3, 0.5], [-3, 0.5], [4, 0.3], [-4, 0.3]]);
+// ---------- melodies ----------
+//
+// a tune people remember is mostly one idea coming back. game composers (koji kondo, toby fox, c418)
+// build whole themes from one short motif: played again, moved up or down a step (a sequence), turned
+// upside down, answered, and brought back changed in other parts (a leitmotif). so every melody here
+// grows from one motif. it used to be a random walk of steps, a new one every part, and nothing in it
+// came back for you to remember
+//   - the motif is a rhythm and a shape (CONTOURS): the shapes memorable tunes take, like a leap up and
+//     steps back down, an arch, or a note repeated then left
+//   - it's made from the layer's own seed, so it's the same tune in every part. part B either sings it
+//     higher or has its own, answering one, and part C slows it down or has its own (tune())
+//   - a short motif is played twice in its bar, the second time a step away: a hook
+//   - phrases are four bars of it following a plan (PHRASE_PLANS), and they pair up as a question and
+//     an answer, a period: both start the same, the first stops on a note that wants to go on and the
+//     second comes home. most game themes and nursery rhymes do this
+//   - a phrase can start with a pickup, a note or two leading into its first beat
+//   - strong beats still land on the chord's notes, so it fits whatever chords are under it
 
-// how a phrase is built from its motif, bar by bar: m the motif, v a variation of it, i the motif
-// upside down, e the ending (half the motif, then a long note to rest on)
-const PHRASE_PLANS = [['m', 'm', 'v', 'e'], ['m', 'v', 'm', 'e'], ['m', 'i', 'm', 'e'], ['m', 'v', 'i', 'e'], ['m', 'm', 'm', 'e']];
+// how far each note of a motif sits from its first, in scale steps. each is set up with the motif's
+// random numbers, then gives the step for note i of n
+const CONTOURS = {
+  // a leap up, then steps back down into the gap it left
+  leap: (rng) => { const up = rng.int(3, 5); return (i) => (i ? up - (i - 1) : 0); },
+  // up and back down, highest around the middle
+  arch: (rng) => { const top = rng.int(2, 4); return (i, n) => Math.round(top * Math.sin((Math.PI * i) / Math.max(2, n))); },
+  // round one note and back to it, a turn
+  turn: (rng) => { const way = rng.pick([1, -1]); return (i) => [0, way, 0, -way][i % 4]; },
+  // a run up the scale, or one falling from above
+  climb: () => (i) => Math.min(i, 5),
+  fall: (rng) => { const top = rng.int(3, 5); return (i) => top - Math.min(i, top + 2); },
+  // one note a few times, then away and back: a rhythm you could tap (toby fox's favourite)
+  repeat: (rng) => { const move = rng.pick([1, 2, 3, -1, -2]); const hold = rng.int(2, 3); return (i, n) => (i < Math.min(hold, n - 1) || (i - Math.min(hold, n - 1)) % 2 ? 0 : move); },
+  // rocking between two notes, like a call
+  pendulum: (rng) => { const gap = rng.pick([2, 3, 4, -2, -3]); return (i) => (i % 2 ? gap : 0); },
+};
+// ambient tunes drift and circle more, tunes leap and repeat more
+const CONTOUR_WEIGHTS = {
+  ambient: { arch: 3, turn: 2, pendulum: 2, fall: 2, leap: 1.5, climb: 1, repeat: 0.5 },
+  tune: { leap: 2.5, arch: 2, repeat: 2, climb: 1.5, turn: 1.5, pendulum: 1, fall: 1.5 },
+};
 
-function tune(c, { density, low, high, plan4 }) {
-  const { rng } = c;
-  const phraseBars = c.bars >= 4 && (plan4 || rng.chance(0.6)) ? 4 : Math.min(2, c.bars);
-  const motif = makeBar(rng, c, density);
-  const shape = motif.map(() => stepShape(rng));
-  const variant = makeBar(rng, c, density);
-  const variantShape = variant.map(() => stepShape(rng));
-  const plan = phraseBars === 4 ? rng.pick(PHRASE_PLANS) : phraseBars === 2 ? ['m', 'e'] : ['e'];
+// a motif: one bar of notes, { t, dur, step }. hook: half a bar played twice, the second time the
+// same or a step away. contour and rhythm can be passed in, to keep one of them from another motif.
+// it tries a few times for a rhythm with at least two lengths of note (or one long one, in a slow
+// tune): notes all the same length are what make a tune sound like a scale exercise
+function makeMotif(rng, c, density, hook, contour = null, rhythm = null) {
+  const shape = contour || CONTOURS[rng.weighted(CONTOUR_WEIGHTS[c.song.style])](rng);
+  if (!rhythm) {
+    const length = hook ? c.bpb / 2 : c.bpb;
+    for (let tries = 0; tries < 6; tries++) {
+      rhythm = makeBar(rng, c, density, length);
+      if ((rhythm.length === 1 && density < 0.5) || new Set(rhythm.map((n) => n.dur.toFixed(3))).size > 1) break;
+    }
+    if (hook) rhythm = [...rhythm, ...rhythm.map((n) => ({ t: n.t + length, dur: n.dur, again: true }))];
+  }
+  const half = rhythm.filter((n) => !n.again).length;
+  const echo = rng.pick([0, 1, -1, 2]);
+  const notes = rhythm.map((n, i) => ({ t: n.t, dur: n.dur, step: n.again ? shape(i - half, half) + echo : shape(i, half) }));
+  return { notes, rhythm, contour: shape };
+}
+
+// where a phrase comes to rest: an answer on the chord's root, a question on its third or fifth,
+// which leave it hanging
+function landing(c, degree, chord, closed) {
+  for (let k = 0; k <= 4; k++) {
+    for (const d of [degree - k, degree + k]) {
+      const pc = mod12(degreeMidi(c, d));
+      if (closed ? pc === chord.root : chord.pcs.has(pc) && pc !== chord.root) return d;
+    }
+  }
+  return chordDegree(c, degree, chord);
+}
+
+// how a phrase is built from its motif, bar by bar: m the motif, s the motif a step up or down (each
+// s further along), v the motif's rhythm with new notes, i the motif upside down, e the ending (the
+// motif's first half, then a long note to rest on). riffs repeat it bar after bar, with no ending
+// until the section's last bar
+const PHRASE_PLANS = [['m', 'm', 'v', 'e'], ['m', 's', 'm', 'e'], ['m', 's', 's', 'e'], ['m', 'v', 'm', 'e'], ['m', 'i', 'm', 'e'], ['m', 'm', 's', 'e'], ['m', 'v', 's', 'e']];
+const RIFF_PLANS = [['m', 'm', 'm', 'm'], ['m', 'm', 's', 'm'], ['m', 's', 'm', 's'], ['m', 'm', 'm', 'v']];
+
+// a melody (or a counter melody's own tune). riff: a hook over and over. rests: every other two bar
+// phrase is left empty and the last note rings into it, for the sparse piano of c418 and aphex twin
+function tune(c, { density, low, high, plan4, riff, rests }) {
+  const { song, layer, rng } = c;
+  // the layer's theme, the same in every part
+  const theme = makeRng(song.seed, layer.seed, 'motif', layer.role);
+  const hook = c.bpb % 2 === 0 && theme.chance(riff ? 1 : song.style === 'tune' ? 0.45 : 0.25);
+  let motif = makeMotif(theme, c, density, hook);
+  let variant = makeMotif(theme, c, density, hook, null, motif.rhythm);
+  const seq = theme.pick([1, -1, -1, 2]);
+  let base = theme.int(0, 2);
+  const pickup = !rests && density >= 0.4 && theme.chance(song.style === 'tune' ? 0.5 : 0.25);
+  // what this part does with it. A plays it as it is
+  const treat = makeRng(song.seed, layer.seed, 'treat', c.section.part);
+  const way = c.section.part === 'B' ? treat.weighted({ raise: 2, own: 2 }) : c.section.part === 'C' ? treat.weighted({ slow: 2, own: 1 }) : 'same';
+  if (way === 'raise') base += treat.int(2, 3);
+  if (way === 'own') motif = makeMotif(treat, c, density, hook);
+  if (way === 'slow') motif = makeMotif(treat, c, density * 0.45, false, motif.contour);
+  if (way === 'own' || way === 'slow') variant = makeMotif(treat, c, density, false, null, motif.rhythm);
+
+  const phraseBars = rests ? 2 : c.bars >= 4 && (plan4 || riff || rng.chance(0.75)) ? 4 : Math.min(2, c.bars);
+  const plans = riff ? RIFF_PLANS : PHRASE_PLANS;
+  const plan = phraseBars === 4 ? rng.pick(plans) : phraseBars === 2 ? ['m', 'e'] : ['e'];
   // a later time round a part can change how its last phrase goes (c.vary is per time round)
-  const lastPlan = c.section.take > 0 && c.vary.chance(0.5) ? c.vary.pick(PHRASE_PLANS).slice(4 - phraseBars) : plan;
+  const lastPlan = c.section.take > 0 && c.vary.chance(0.5) ? c.vary.pick(plans).slice(4 - phraseBars) : plan;
+  // each phrase starts from an anchor, moved so the motif's whole span stays inside the range
+  const steps = [...motif.notes, ...variant.notes].flatMap((n) => [n.step, -n.step]);
+  const top = Math.max(0, ...steps) + Math.max(0, seq * 2);
+  const bottom = Math.min(0, ...steps) + Math.min(0, seq * 2);
+  const fit = (degree) => Math.max(low - bottom, Math.min(high - top, degree));
+  const anchorAt = (bar) => chordDegree(c, fit(base), chordAt(c, c.start + bar * c.bpb));
+  const unit = 1 / c.sub;
+
   const notes = [];
-  let degree = chordDegree(c, rng.int(-1, 3), c.chords[0]);
   for (let bar = 0; bar < c.bars; bar++) {
     const barStart = c.start + bar * c.bpb;
     const place = bar % phraseBars;
-    const last = bar >= c.bars - phraseBars;
-    const kind = (last ? lastPlan : plan)[place];
-    let rhythm = kind === 'v' ? variant : motif;
-    let steps = kind === 'v' ? variantShape : kind === 'i' ? shape.map((s) => -s) : shape;
+    const phrase = Math.floor(bar / phraseBars);
+    if (rests && phrase % 2) continue;
+    const lastPhrase = bar >= c.bars - phraseBars;
+    const thisPlan = lastPhrase ? lastPlan : plan;
+    // the section's last bar always ends, even when the phrases don't divide it evenly
+    const kind = bar === c.bars - 1 ? 'e' : thisPlan[place];
+    const anchor = anchorAt(bar - place);
+    const climbs = thisPlan.slice(0, place + 1).filter((k) => k === 's').length;
+    let cells;
     if (kind === 'e') {
       // the first half of the motif, then one long note. only motif notes that finish by half way:
       // a motif of one whole bar note used to be kept whole, and the long note then spilled into the
       // next bar as a stray blip on top of its first note
-      rhythm = motif.filter((n) => n.t + n.dur <= c.bpb / 2 + 1e-6);
-      const from = rhythm.length ? rhythm[rhythm.length - 1].t + rhythm[rhythm.length - 1].dur : 0;
-      rhythm = [...rhythm, { t: from, dur: c.bpb - from, end: true }];
-      steps = [...shape];
+      const head = motif.notes.filter((n) => n.t + n.dur <= c.bpb / 2 + 1e-6);
+      cells = head.map((n) => ({ t: n.t, dur: n.dur, degree: anchor + n.step }));
+      const from = head.length ? head[head.length - 1].t + head[head.length - 1].dur : 0;
+      // questions and answers: the first of each pair of phrases ends open, the second comes home
+      const closed = lastPhrase || (rests ? phrase / 2 : phrase) % 2 >= 1;
+      const target = landing(c, cells.length ? cells[cells.length - 1].degree : anchor, chordAt(c, barStart + from), closed);
+      // a pickup: the long note stops short, and a note or two step into the next phrase's first
+      const into = bar + 1 < c.bars && pickup ? anchorAt(bar + 1) : null;
+      const lead = into === null ? 0 : c.bpb - from >= 1 + 2 * unit && theme.chance(0.5) ? 2 : c.bpb - from >= 1 + unit ? 1 : 0;
+      // with rests it rings on into the empty bars, but not past the section's end, where it ran over
+      // the next section's first note
+      const ring = rests && bar + 1 < c.bars;
+      const until = ring ? c.bpb * 1.5 : c.bpb - lead * unit;
+      cells.push({ t: from, dur: until - from, degree: target, settled: true, breath: !lead && !ring });
+      const side = seq > 0 ? -1 : 1;
+      for (let k = lead; k >= 1; k--) cells.push({ t: c.bpb - k * unit, dur: unit, degree: into + side * k, settled: true, soft: true });
+    } else {
+      const source = kind === 'v' ? variant : motif;
+      cells = source.notes.map((n) => ({ t: n.t, dur: n.dur, degree: anchor + (kind === 'i' ? -n.step : n.step) + (kind === 's' ? climbs * seq : 0) }));
     }
-    // each new phrase starts back near a chord note, so the tune doesn't wander off
-    if (place === 0 && bar > 0) degree = chordDegree(c, Math.round(degree / 2) + rng.int(-1, 2), chordAt(c, barStart));
-    rhythm.forEach((cell, i) => {
+    let raw = null;
+    let played = null;
+    for (const cell of cells) {
       const t = barStart + cell.t;
-      degree += steps[i % steps.length] || 0;
-      if (degree > high) degree -= 2 * Math.abs(steps[i % steps.length] || 1);
-      if (degree < low) degree += 2 * Math.abs(steps[i % steps.length] || 1);
       const chord = chordAt(c, t);
-      if (cell.end) {
-        // phrases end on a chord note, and the last phrase of a section on the chord's root if it can
-        degree = chordDegree(c, degree, chord);
-        if (last && bar === c.bars - 1) {
-          for (let k = 0; k <= 3; k++) {
-            if (mod12(degreeMidi(c, degree - k)) === chord.root) { degree -= k; break; }
-            if (mod12(degreeMidi(c, degree + k)) === chord.root) { degree += k; break; }
-          }
-        }
-      } else if (isStrong(c, t) || cell.dur >= 1) degree = chordDegree(c, degree, chord);
-      const gap = cell.end ? Math.min(0.5, cell.dur * 0.25) : 0;
+      let { degree } = cell;
+      // strong beats and long notes go onto a chord note, the nearest one the way the shape was
+      // heading. plain nearest pulled a step up straight back onto the note before, and long, slow
+      // tunes flattened into the same note over and over
+      if (!cell.settled && (isStrong(c, t) || cell.dur >= 1)) {
+        const way = raw === null ? 0 : Math.sign(cell.degree - raw);
+        const ahead = [0, 1, 2].map((k) => degree + way * k).find((d) => chord.pcs.has(mod12(degreeMidi(c, d))) && (!way || (d - played) * way > 0));
+        degree = ahead ?? chordDegree(c, degree, chord);
+      }
+      raw = cell.degree;
+      played = degree;
+      if (degree > high + 2) degree -= c.steps.length;
+      if (degree < low - 2) degree += c.steps.length;
+      const gap = cell.breath ? Math.min(0.5, cell.dur * 0.25) : 0;
       notes.push({
         // nearly legato, so the line sings rather than ticks. never longer than its cell: 6/8's sixth
         // of a beat notes were stretched to a whole step, so two melody notes sounded at once
         t, dur: Math.max(Math.min(c.step, cell.dur * 0.97), (cell.dur - gap) * 0.97),
         midi: fitToChord(degreeMidi(c, degree), chord, c.scalePcs),
-        vel: (isStrong(c, t) ? 0.85 : 0.68) + rng.range(-0.05, 0.05),
+        vel: (cell.soft ? 0.62 : isStrong(c, t) ? 0.85 : 0.68) + rng.range(-0.05, 0.05),
       });
-    });
+    }
   }
   return notes;
 }
@@ -1538,6 +1747,10 @@ const COMPOSERS = {
   melody(c) {
     const { pattern, density } = c.layer;
     if (pattern === 'long') return tune(c, { density: density * 0.3, low: -3, high: 7, plan4: true });
+    // riff: a hook played bar after bar, with only small changes, like a chiptune or club lead
+    if (pattern === 'riff') return tune(c, { density: Math.max(0.75, density), low: -4, high: 7, riff: true });
+    // fragments: two bars of tune, then two of space with the last note ringing (minecraft's piano)
+    if (pattern === 'fragments') return tune(c, { density: density * 0.6, low: -3, high: 7, rests: true });
     const notes = tune(c, { density, low: -4, high: 7 });
     if (pattern !== 'calls') return notes;
     // calls: a bar of tune, its last note held on through half the next bar, then quiet for the other
@@ -1703,8 +1916,12 @@ const COMPOSERS = {
         for (let t = chord.t; t < end - 1e-6; t += step) hits.push([t, step * 0.55, Math.abs((t - c.start) % 1) < 1e-6 ? 0.62 : 0.48]);
       } else if (pattern === 'stabs') {
         for (const [t, dur, vel] of compHits(c, chord, density)) hits.push([t, Math.min(dur * 0.6, 0.75), vel]);
+      } else if (pattern === 'pump') {
+        // the chord again every beat, ducking out on the beat and swelling back between (pump in
+        // synth.js), the way a club mix squashes the pads under every kick (crystal castles)
+        for (let t = chord.t; t < end - 1e-6; t += 1) hits.push([t, Math.min(1, end - t), 0.62, true]);
       } else hits.push([chord.t, chord.dur, 0.6]);
-      for (const [t, dur, vel] of hits) for (const midi of voiced) notes.push({ t, dur, midi, vel });
+      for (const [t, dur, vel, pump] of hits) for (const midi of voiced) notes.push({ t, dur, midi, vel, ...(pump ? { pump } : {}) });
     }
     return notes;
   },

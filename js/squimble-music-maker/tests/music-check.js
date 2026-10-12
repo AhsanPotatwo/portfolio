@@ -3,8 +3,9 @@
 // melodies land on chord notes on strong beats, the band shares one groove, and the rules for a band
 // that fits (README.md) hold: harshness caps, no doubled instruments, no holes in melodies, no
 // blinking layers, bells on the beat, the right drums for each mood, kits on patterns they suit,
-// drums and textures in key, textures under the tune, and the band listening (the tune on top, nothing
-// rubbing against it). run it with
+// drums and textures in key, textures under the tune, the band listening (the tune on top, nothing
+// rubbing against it), melodies whose motif comes back, and moods that only name real instruments.
+// run it with
 // node js/squimble-music-maker/tests/music-check.js (no output means it all passed).
 //
 // synth.js is loaded too, for INSTRUMENTS. it doesn't play anything here, nothing in it touches web
@@ -90,8 +91,15 @@ for (const seed of ['mossy-lantern', 'quiet-tide', 'rusty-tower', 'x']) {
 const { INSTRUMENTS, maxEdge, roleFamily } = vm.runInContext('({ INSTRUMENTS, maxEdge, roleFamily })', page);
 // every tonal instrument has an edge: the organ had none, so it never fitted under any cap
 for (const [id, inst] of Object.entries(INSTRUMENTS)) if (inst.family !== 'kit' && inst.family !== 'texture') assert(Number.isFinite(inst.edge), `${id} has an edge`);
+// every instrument a mood names is real, and every drum pattern has a groove in every time signature
+const { PATTERNS } = vm.runInContext('({ PATTERNS })', page);
+for (const [id, mood] of Object.entries(MOODS)) {
+  for (const name of [...Object.values(mood.palette).flat(), ...mood.kits, ...mood.textures]) assert(INSTRUMENTS[name], `${id} names ${name}, which isn't an instrument`);
+}
+for (const pattern of Object.keys(PATTERNS.drums)) for (const meter of Object.keys(METERS)) assert(GROOVES[meter][pattern]?.length, `${pattern} has a groove in ${meter}`);
 let stuck = 0;
 let lines = 0;
+let motifs = 0;
 for (const mood of Object.keys(MOODS)) {
   for (const style of ['ambient', 'tune']) {
     for (let n = 0; n < 12; n++) {
@@ -114,13 +122,24 @@ for (const mood of Object.keys(MOODS)) {
         // no blinking: the melody doesn't sit out one section between two it plays in, apart from a C break
         const on = song.sections.map((s) => s.play.includes('melody'));
         for (let i = 1; i < on.length - 1; i++) assert(!(on[i - 1] && !on[i] && on[i + 1]) || song.sections[i].part === 'C', `${where}: the melody doesn't drop out of section ${i} and back`);
-        // no holes mid phrase: phrases are near legato, calls rest for at most half a bar
-        const allowed = melody.pattern === 'calls' ? comp.bpb / 2 + 0.05 : 1;
+        // no holes mid phrase: phrases are near legato, calls rest for at most half a bar, and
+        // fragments leave two bars of space at most
+        const allowed = { calls: comp.bpb / 2 + 0.05, fragments: comp.bpb * 2 + 0.05 }[melody.pattern] || 1;
+        // one note at a time: a note left ringing ran over the next section's first
+        const all = comp.notes.filter((note) => note.layer === 'melody').sort((a, b) => a.gt - b.gt);
+        for (let i = 1; i < all.length; i++) assert(all[i - 1].gt + all[i - 1].dur <= all[i].gt + 1e-6, `${where}: melody notes overlap at beat ${all[i].gt}`);
         for (const section of comp.sections) {
           const notes = comp.notes.filter((note) => note.layer === 'melody' && note.gt >= section.start && note.gt < section.end).sort((a, b) => a.gt - b.gt);
           // and one note at a time: two starting together was a stray blip clashing with the tune
           for (let i = 1; i < notes.length; i++) assert(notes[i].gt - notes[i - 1].gt > 1e-6, `${where}: two melody notes start together at beat ${notes[i].gt}`);
           for (let i = 1; i < notes.length; i++) assert(notes[i].gt - (notes[i - 1].gt + notes[i - 1].dur) <= allowed, `${where}: a gap of ${(notes[i].gt - notes[i - 1].gt - notes[i - 1].dur).toFixed(2)} beats in the ${melody.pattern} melody`);
+          // the tune comes back: the second phrase starts with the same rhythm as the first (a
+          // random walk of steps, new every bar, gave you nothing to remember)
+          if (section.bars >= 8) {
+            const starts = (bar) => notes.filter((n) => n.gt >= section.start + bar * comp.bpb - 1e-6 && n.gt < section.start + (bar + 1) * comp.bpb - 1e-6).map((n) => (n.gt - section.start - bar * comp.bpb).toFixed(3)).join();
+            assert.strictEqual(starts(4), starts(0), `${where}: the motif comes back in the section's second phrase`);
+            motifs++;
+          }
         }
       }
       const bells = song.layers.find((l) => l.role === 'bells' && l.pattern === 'phasing');
@@ -169,6 +188,7 @@ for (const mood of Object.keys(MOODS)) {
 }
 
 assert(stuck / lines < 0.01, `single lines nearly never rub against the tune (${stuck} of ${lines})`);
+assert(motifs > 50, `enough long sections to check motifs come back (${motifs})`);
 
 // a note the band moved can still be removed by hand: the page removes it by the pitch it was written at
 {

@@ -17,7 +17,17 @@ This README and the code comments are the only notes. When you change something:
 | `music.js` | The composer: settings to notes. Plain maths with no page or audio, so node can run it and the game can load it as it is. Its header explains songs, the theory and times. |
 | `synth.js` | The band: `INSTRUMENTS`, drums, textures, the room (reverb, echo, tape) and the player (`MusicPlayer` live, `renderSong()` to WAV), all on Web Audio. Load it before `music.js`, because the composer picks from `INSTRUMENTS`. |
 | `maker.js` | The page: controls, the score, the note editor, the library and exports. The game won't need it. |
-| `tests/music-check.js` | `node js/squimble-music-maker/tests/music-check.js`. No output means it all passed. It takes about 20 seconds. |
+| `tests/music-check.js` | `node js/squimble-music-maker/tests/music-check.js`. No output means it all passed. It takes about 25 seconds. |
+| `tests/levels.html` | How loud every instrument and texture is, weighted the way ears hear. Open it in a browser and wait about a minute. Set a new sound's `gain` so it sits with its neighbours. |
+
+## Where the sounds come from
+
+The moods and sounds are aimed at particular game and ambient music:
+
+- **Ambient:** Aphex Twin's Selected Ambient Works (analog pad, sine bell, tape loop, drum machine), the Fallout 1 and 2 scores (Desolate: bowed metal, metal pings, Geiger counter, creaking metal), Dying Light (analog pad, Reese bass, synth brass, the slower side of Neon) and Minecraft (felt piano and nylon guitar playing Fragments, cave drips).
+- **Melodic and upbeat:** Undertale and Deltarune (Spirited: pulse lead, triangle bass, chip kit, riffs, the "royal road" IV V iii vi), Terraria (pan flute, nylon guitar, birdsong) and Minecraft.
+- **Mellow and serious:** Have a Nice Life (Bleak: fuzz wall, chanted choir, chorus bass, a drum machine in a huge room).
+- **Dark electronic:** Crystal Castles (Neon: bit lead, pumping pads, four to the floor, club kit).
 
 ## How a song is made
 
@@ -52,7 +62,7 @@ Every one of these is here because the song sounded wrong without it. The code c
 - **Gentle bells use harmonic overtone ratios** (glass bell 2, wind chime 7). The old ones (1.4 and 7.1) clashed with every chord.
 - **Backing sits at least 0.1 under the melody's volume.**
 - **Drums sit under the band.** Their volume follows the mood's energy, they play at 70% inside the synth, their brightness is capped by energy, and a big room doesn't make them ring longer.
-- **Textures are scenery.** A texture sits at no more than 55% of the melody's volume (0.42 with no melody). Wind gusts and ocean swells move about 6 dB, not 15.
+- **Textures are scenery, and mostly sparse.** Wind, ocean, rumble, drips, birds, the Geiger counter and creaks happen now and then with quiet between (`moments()` and `swells()` in synth.js), the way the vinyl crackle does. Every texture's `gain` puts it near the vinyl's loudness (`tests/levels.html`). A texture also sits at no more than 55% of the melody's volume (0.42 with no melody).
 - **Plucked strings start soft and ring on.** `soft` mixes a finger's smooth pull into the string's starting noise, high strings ring for less time than low ones, and tunes don't cut a pluck's release short.
 
 **Listening** (`listen` and `COMPOSERS.drums` in music.js)
@@ -65,13 +75,17 @@ Every one of these is here because the song sounded wrong without it. The code c
 
 **Parts**
 - **An arp or a counter melody, never both.** With an arp, keys hold their chords and pads don't pulse, because two layers doing the same job tangle.
-- **Melodies have no rests inside a bar.** They breathe at the ends of phrases. "Calls" holds its last note through half the next bar before its gap.
+- **A melody grows from one motif** (`tune()`, "melodies" in music.js). The motif is a rhythm and a shape from `CONTOURS` (leap and fill, arch, turn, repeat...), made from the layer's seed so every part hears it. Phrases follow `PHRASE_PLANS`: repeat it, sequence it up or down, answer it with new notes on its rhythm, or turn it upside down. Phrases pair up as question and answer: both start the same, and the first ends open (the chord's third or fifth) while the second comes home (the root). Part B sings it higher or has its own; part C slows it down or has its own. Short motifs are played twice in a bar as a hook, and phrases can start with a pickup.
+- **Strong beats snap the way the shape was heading.** A step up goes to the next chord note up, not back to the last one.
+- **A motif has at least two lengths of note** (or one long note in a slow tune). The tresillo (3 + 3 + 2) is one of the rhythm cells.
+- **Melodies have no rests inside a bar.** They breathe at the ends of phrases. "Calls" holds its last note through half the next bar before its gap. "Fragments" leaves every other two bar phrase empty, its last note ringing into the space, but never past the section's end.
+- **Riffs** repeat the hook bar after bar (`RIFF_PLANS`), busy enough (75%) to have a rhythm, and only end on the section's last bar.
 - **Counter melodies answer in whole bars** where the melody rests, or else harmonise in thirds or sixths.
 - **Bells are predictable.** Drifting loops are whole beats long (2 to 4 bars, give or take a beat or two). Chimes are one short figure, rung as the chords change.
 - **A layer that's in stays in.** It only drops out for a real change of gear, like a break or the outro.
 
 **Moods**
-- **Each mood says how likely drums are** (`drums: [ambient, tune]`) and which kits and patterns suit it. Dreamy and Heavenly have none. Cozy and Wistful use brushes on a jazz ride. Calm and Sad only get rare soft pulses.
+- **Each mood says how likely drums are** (`drums: [ambient, tune]`) and which kits and patterns suit it. Dreamy and Heavenly have none. Cozy and Wistful use brushes on a jazz ride. Calm and Sad only get rare soft pulses. Neon is four to the floor on the club kit, with pumping pads. Bleak's drum machine plays half time. Desolate only gets sparse pulses.
 - **Mutate and remixes only pick patterns from the mood's list,** so a cozy song can't mutate into a tribal beat.
 - **Progressions are picked to suit the scale.** Ones with notes outside it are less likely.
 
@@ -109,15 +123,23 @@ Kept so nobody (me included) undoes a fix by accident.
 | A chord's seventh grinding against the tune | Added notes didn't know what the melody was playing | Nothing rubs against the tune |
 | Organ never chosen | It had no `edge`, so it never fitted under any cap | `edge: 0.35`, and a check that every tonal instrument has one |
 | Two melody notes at once in fast 6/8 | Sixth of a beat notes were stretched to a third of a beat | Notes never longer than their cell |
+| Wind deafening, and adding little | A steady roar of noise about 24 dB louder than the vinyl (weighted), and the campfire, ocean, hum and rain 15 to 20 dB louder | Wind, ocean and rumble come and go with quiet between, and every texture's gain sits near the vinyl's |
+| Melodies forgettable | A random walk of steps, new in every part, so nothing came back | One motif per layer, phrases built from it, question and answer phrases, a leitmotif across parts |
+| Slow tunes flattening into one note | Long notes snapped to the nearest chord note, often the one just played | Snapping follows the shape's direction |
+| Hooks of one repeated note | The arch and repeat shapes went flat on two note motifs, and two equal notes passed the "two lengths" rule | Shapes that work at any length, and a stricter rule |
+| A fragment's last note ringing over the next section | It rang on into the next bar even at a section's end | It rings only inside its section |
 
 ## Adding things
 
-- **An instrument:** a line in `INSTRUMENTS` (synth.js) with a family, an `edge` judged by ear, and an engine. It can then appear in mood palettes. A drum kit needs `suits` instead: the patterns it sounds right playing.
+- **An instrument:** a line in `INSTRUMENTS` (synth.js) with a family, an `edge` judged by ear, and an engine. Set its `gain` with `tests/levels.html` so it's about as loud as the others in its family. It can then appear in mood palettes. A drum kit needs `suits` instead: the patterns it sounds right playing.
+- **A texture:** a line in `INSTRUMENTS` and a function in `TEXTURES`. Make it something that happens now and then (`moments()`, `swells()`) rather than a steady wash, and bring its gain near the vinyl's with `tests/levels.html`.
 - **A mood:** an entry in `MOODS` (music.js). The comment above `MOODS` lists every field. Set `drums`, and keep its palettes within its edge cap.
-- **A groove:** a line in `GROOVES`. Every line must be a bar long; the check tests that.
+- **A groove:** a line in `GROOVES`. Every line must be a bar long, and a new drum pattern needs a groove in every time signature; the check tests both.
 
 ## Known issues
 
+- The new moods (Desolate, Neon, Bleak, Spirited), instruments, kits and textures, and the motif melodies, were set from measured levels and printed melodies, not heard yet. Judge them by ear, and adjust a sound's `gain` or `edge` if it sits wrong.
+- Mood patterns apply to both styles, so an ambient Neon song can get four to the floor, just slower.
 - The drum, texture and harp changes above were worked out from the levels and the maths, not heard yet. If drums are now too quiet in energetic moods, raise the 0.24 in `volumes.drums` (dressLayer) before touching the 70% in synth.js.
 - Listening only looks at the melody. Two backing parts can still rub against each other, and a texture doesn't duck when the band gets busy within a section.
 - Instrument volumes and `edge` ratings were set by working out the levels, not by listening to every pairing. If a pairing sounds wrong, adjust that instrument's `edge` or `gain` rather than adding a special case.
