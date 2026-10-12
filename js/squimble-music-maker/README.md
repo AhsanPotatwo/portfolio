@@ -29,7 +29,7 @@ This README and the code comments are the only notes. When you change something:
 4. **pickArrangement:** the sections, and who plays in each.
 5. **pickSpace:** reverb, echo, warmth, wobble and drive.
 
-`composeSong(song)` turns those settings into notes, one composer per role (`COMPOSERS`). The drums, a syncopated bass and the chord stabs all read the same groove (`GROOVES`, `grooveFor`). The remix buttons re-run one pick with a fresh seed (`rerollSong`).
+`composeSong(song)` turns those settings into notes, one composer per role (`COMPOSERS`). The drums, a syncopated bass and the chord stabs all read the same groove (`GROOVES`, `grooveFor`). Once every part is written, the band listens to each other (`listen`, see below) before the notes get their swing and humanising (`feel`). The remix buttons re-run one pick with a fresh seed (`rerollSong`).
 
 ## Rules for a band that fits
 
@@ -42,6 +42,7 @@ Every one of these is here because the song sounded wrong without it. The code c
 - **Humanising moves the band together.** Every note on the same spot gets the same nudge (`pocket`). Drums and bass add almost none of their own (`LOOSE`).
 - **No swing in 6/8.** No swing at all unless the mood asks for it.
 - **Drums and bass stay dry.** They get no echo and little reverb.
+- **Heartbeat's second thump is on the grid.** It lands a whole number of groove steps after the first.
 
 **Sound**
 - **Every tonal instrument has an `edge`** (how harsh it is, 0 to 1, in `synth.js`). Each mood caps it (`maxEdge`), and backing layers get 75% of the cap. The melody is allowed to be the brightest thing; nothing under it buzzes.
@@ -50,6 +51,17 @@ Every one of these is here because the song sounded wrong without it. The code c
 - **No two layers share an instrument.**
 - **Gentle bells use harmonic overtone ratios** (glass bell 2, wind chime 7). The old ones (1.4 and 7.1) clashed with every chord.
 - **Backing sits at least 0.1 under the melody's volume.**
+- **Drums sit under the band.** Their volume follows the mood's energy, they play at 70% inside the synth, their brightness is capped by energy, and a big room doesn't make them ring longer.
+- **Textures are scenery.** A texture sits at no more than 55% of the melody's volume (0.42 with no melody). Wind gusts and ocean swells move about 6 dB, not 15.
+- **Plucked strings start soft and ring on.** `soft` mixes a finger's smooth pull into the string's starting noise, high strings ring for less time than low ones, and tunes don't cut a pluck's release short.
+
+**Listening** (`listen` and `COMPOSERS.drums` in music.js)
+- **Everyone writes their part, then the band listens.** It's a pass over all the parts before `feel`. Notes added by hand are left alone. A note it moves keeps the pitch it was written at (`written`), which the note editor uses to remove it.
+- **The tune stays on top.** Keys, an arp or a counter melody that would start above the melody note that's playing drop an octave, if that keeps them in their range. Pads (a wash) and bells (meant to ring above) stay put.
+- **Nothing rubs against the tune.** A minor second or ninth against a melody note half a beat or longer is the harshest clash there is. Pads and keys drop the chord's added note (seventh, ninth) when that's what rubs. Arps, bells and counter melodies move to the nearest chord note that doesn't rub and doesn't climb over the tune.
+- **Everything with a pitch is in the key.** Kicks, toms, ticks, rims and the snare's body are tuned to the song's home note or fifth (`tuneDrum`). The hum hums the home note, and the crickets sing it and the note above.
+- **The drummer plays to the room.** With fewer than half the others playing (an intro, a break), the drums play softer and leave out ghost notes.
+- **A kit only plays patterns it suits** (`suits` in synth.js). `fitBand` changes the pattern, from the mood's list where it can.
 
 **Parts**
 - **An arp or a counter melody, never both.** With an arp, keys hold their chords and pads don't pulse, because two layers doing the same job tangle.
@@ -83,15 +95,31 @@ Kept so nobody (me included) undoes a fix by accident.
 | Bells at random times | Half-beat loop lengths, and "sparkle" was pure chance | Whole-beat loops, and chimes on chord changes |
 | Layers blinking in and out | Random wobble on each section's energy | Once in, stays in |
 | Cozy songs with a hip hop beat | The lo-fi kit on pop grooves | Brushes on a jazz ride |
+| The whole band pumping on every kick | Drums at full level drove the master compressor down on every hit | Drums at 70% in the synth, and drum volume follows the mood's energy |
+| Drums not fitting the song | Kicks, toms, ticks and rims sat at fixed pitches, out of key with the bass and chords | `tuneDrum`: the home note or fifth |
+| Drums too much in calm songs | Same level, brightness and ring in every mood, and as hard under one layer as under seven | Energy sets their level and brightness, and they play softer in thin sections |
+| Heartbeat thumps out of time | The second thump was 0.24 seconds later at any tempo | A whole number of groove steps later |
+| Heartbeat on a busy beat, clockwork ticks on tribal toms | The kit and the pattern were picked separately | `suits` on each kit |
+| Wind or rain burying the tune | Textures as loud as the melody, and wind gusts swinging 15 dB | Textures capped under the melody, and gentler gusts and swells |
+| A hum droning out of key | The hum was always an A | It hums the song's home note |
+| Crickets like a piercing beep | A fixed high pitch, chopped on and off by a square wave | In the key, quieter, and chopped by a triangle |
+| Harp hitting hard and metallic, and notes ending harshly | Pure noise to start the string, no filter, every string ringing as long, and tunes cutting its release short | `soft`, a filter, shorter high strings, a longer release, and no tune cut for plucks |
+| Harp chords slightly out of tune in dark moods | Dark moods detuned struck instruments up to about 4 cents a note | Much less detune for struck and plucked instruments |
+| Arp running over the tune | Its second octave sat above most melodies | The tune stays on top |
+| A chord's seventh grinding against the tune | Added notes didn't know what the melody was playing | Nothing rubs against the tune |
+| Organ never chosen | It had no `edge`, so it never fitted under any cap | `edge: 0.35`, and a check that every tonal instrument has one |
+| Two melody notes at once in fast 6/8 | Sixth of a beat notes were stretched to a third of a beat | Notes never longer than their cell |
 
 ## Adding things
 
-- **An instrument:** a line in `INSTRUMENTS` (synth.js) with a family, an `edge` judged by ear, and an engine. It can then appear in mood palettes.
+- **An instrument:** a line in `INSTRUMENTS` (synth.js) with a family, an `edge` judged by ear, and an engine. It can then appear in mood palettes. A drum kit needs `suits` instead: the patterns it sounds right playing.
 - **A mood:** an entry in `MOODS` (music.js). The comment above `MOODS` lists every field. Set `drums`, and keep its palettes within its edge cap.
 - **A groove:** a line in `GROOVES`. Every line must be a bar long; the check tests that.
 
 ## Known issues
 
+- The drum, texture and harp changes above were worked out from the levels and the maths, not heard yet. If drums are now too quiet in energetic moods, raise the 0.24 in `volumes.drums` (dressLayer) before touching the 70% in synth.js.
+- Listening only looks at the melody. Two backing parts can still rub against each other, and a texture doesn't duck when the band gets busy within a section.
 - Instrument volumes and `edge` ratings were set by working out the levels, not by listening to every pairing. If a pairing sounds wrong, adjust that instrument's `edge` or `gain` rather than adding a special case.
 - Notes you add by hand aren't held to these rules. That's on purpose: it's your song.
 - Saved songs from before a change to the composer open fine, but may not play quite the same, because the random picks changed.

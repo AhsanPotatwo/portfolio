@@ -906,7 +906,8 @@
       if (hit) {
         const relative = hit.gt - sec.start;
         if (hit.added) changes.add = changes.add.filter(([at, midi]) => !(Math.abs(at - relative) < 1e-3 && midi === hit.midi));
-        else changes.remove.push(editKey(relative, hit.midi));
+        // a note the band moved (listen in music.js) is still known by the pitch it was written at
+        else changes.remove.push(editKey(relative, hit.written ?? hit.midi));
         changed(false);
         return;
       }

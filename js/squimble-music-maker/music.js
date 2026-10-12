@@ -49,8 +49,10 @@
 // for backing (maxEdge, edge in synth.js), no two layers on one instrument (pickInstrument), no
 // vibrato on struck things (dressLayer), no arp and counter melody together (pickLayers, fitBand),
 // layers that stay in once they're in (pickArrangement), melodies without holes (makeBar, tune), and
-// moods that say how much drums they want (MOODS drums). README.md lists them all with what sounded
-// wrong before each one. read it before changing any of them.
+// moods that say how much drums they want (MOODS drums). once every part is written, the band listens
+// to each other (listen): the tune stays on top and nothing rubs against it. the drummer listens as it
+// plays: in key, and softer when few others are in (COMPOSERS.drums). README.md lists them all with
+// what sounded wrong before each one. read it before changing any of them.
 //
 // ---------- times ----------
 //
@@ -465,7 +467,7 @@ const MOODS = {
       counter: ['kalimba', 'harp', 'pizzicato'], keys: ['harp', 'kalimba', 'celesta'], arp: ['kalimba', 'harp', 'marimba'],
       bells: ['glass-bell', 'bell', 'chime'], bass: ['sub-bass', 'pluck-bass', 'upright'], drone: ['deep-drone', 'void', 'cello-drone'],
     },
-    textures: ['wind', 'crickets', 'hum'], kits: ['clockwork', 'heartbeat'], drums: [0.15, 0.6], patterns: { drums: ['sparse', 'pulse', 'tribal'] },
+    textures: ['wind', 'crickets', 'hum'], kits: ['clockwork', 'heartbeat'], drums: [0.15, 0.6], patterns: { drums: ['sparse', 'pulse'] },
   },
   deep: {
     name: 'Deep', colour: '#2f9db0', style: 'ambient',
@@ -776,7 +778,8 @@ function dressLayer(song, layer, rng, fresh) {
   const instrument = INSTRUMENTS[layer.instrument];
   const edge = instrument.edge || 0;
   // struck and plucked things (keys, bells, basses) get no vibrato and hardly any detune: a wobbling
-  // piano under a steady pad sounds out of tune rather than warm
+  // piano under a steady pad sounds out of tune rather than warm, and a strummed harp chord in a dark
+  // mood had its strings beating against each other
   const struck = instrument.family === 'keys' || instrument.family === 'bell' || instrument.family === 'bass';
   if (fresh) {
     layer.seed = newToken(rng);
@@ -787,7 +790,9 @@ function dressLayer(song, layer, rng, fresh) {
   }
   const busy = song.style === 'tune' ? 0.35 + mood.energy * 0.5 : 0.3 + mood.energy * 0.5;
   layer.density = clamp01(busy + rng.range(-0.15, 0.2));
-  const volumes = { melody: 0.68, counter: 0.5, arp: 0.42, bells: 0.45, keys: 0.52, pad: 0.55, drone: 0.48, bass: 0.68, drums: 0.66, texture: 0.5 };
+  // drums follow the mood's energy: as loud under a calm song as under an angry one, they were the
+  // first thing you heard
+  const volumes = { melody: 0.68, counter: 0.5, arp: 0.42, bells: 0.45, keys: 0.52, pad: 0.55, drone: 0.48, bass: 0.68, drums: 0.42 + mood.energy * 0.24, texture: 0.5 };
   // harsher backing sits lower in the mix
   layer.volume = clamp01((volumes[role] + rng.range(-0.06, 0.06)) * (BACKING[role] ? 1 - edge * 0.25 : 1));
   const centred = role === 'bass' || role === 'drums' || role === 'drone';
@@ -798,17 +803,24 @@ function dressLayer(song, layer, rng, fresh) {
   layer.reverb = clamp01(mood.space * wet[role] * rng.range(0.75, 1.15));
   const echoes = { melody: 0.4, counter: 0.3, arp: 0.5, bells: 0.6, keys: 0.25 };
   layer.echo = clamp01((echoes[role] || 0) * mood.space * rng.range(0.4, 1.3));
-  // in a tune, chords have to arrive on the beat with the drums, so pads swell in and let go quicker
-  const chordy = song.style === 'tune' && (role === 'pad' || role === 'keys' || role === 'drone');
+  // in a tune, chords have to arrive on the beat with the drums, so pads swell in and let go quicker.
+  // not plucked strings: they already start at once, and cutting their ring short is what made the
+  // harp's notes end harshly
+  const chordy = song.style === 'tune' && (role === 'pad' || role === 'keys' || role === 'drone') && instrument.kind !== 'pluck';
   // brightness: near the mood's, a touch darker for backing, and never pushing a harsh instrument
   // brighter than it was made (edge 1 stays at 1x at most, a soft one can go to 1.6x). it used to swing
-  // anywhere from 0.4x to 2.2x on anything, and doubled saw leads and bells were painful
+  // anywhere from 0.4x to 2.2x on anything, and doubled saw leads and bells were painful. drums and
+  // textures have no edge, so the mood's energy caps them instead: hi hats at 1.5x in a calm song
+  // hissed over everything, and so did bright rain
   const bright = 2 ** (rng.range(-0.35, 0.35) + (mood.bright - 0.5) * 0.8) * (BACKING[role] ? 0.85 : 1);
+  const ceiling = role === 'drums' ? 0.75 + mood.energy * 0.35 : role === 'texture' ? 0.9 : 1 + (1 - edge) * 0.6;
+  // drums ring the length their kit gives them, not longer in a big room: that made every kick boom
+  const release = rng.range(0.7, 1.6) * (0.7 + mood.space * 0.5) * (chordy ? 0.55 : 1);
   layer.tone = {
     attack: rng.range(0.6, 1.6) * (mood.energy > 0.7 ? 0.7 : 1) * (chordy ? 0.4 : 1),
-    release: rng.range(0.7, 1.6) * (0.7 + mood.space * 0.5) * (chordy ? 0.55 : 1),
-    bright: Math.min(bright, 1 + (1 - edge) * 0.6),
-    detune: struck ? mood.dark * rng.range(0, 10) + rng.range(0, 2) : mood.dark * rng.range(0, 20) + rng.range(0, 4),
+    release: role === 'drums' ? Math.min(1.1, release) : release,
+    bright: Math.min(bright, ceiling),
+    detune: struck ? mood.dark * rng.range(0, 4) + rng.range(0, 1.5) : mood.dark * rng.range(0, 20) + rng.range(0, 4),
     vibrato: !struck && rng.chance(0.35) ? rng.range(2, 10) : 0,
   };
 }
@@ -820,6 +832,11 @@ function dressLayer(song, layer, rng, fresh) {
 //   - a pad pulsing under an arp: the same tangle
 //   - a counter melody "in harmony" with no melody to harmonise: it answers instead
 //   - backing louder than the melody: the tune got lost, so backing sits at least 0.1 under it
+//   - a kit playing a pattern it doesn't suit (suits in synth.js): heartbeat's lub-dub on a busy
+//     groove was a pile of thumps, and clockwork ticks on tribal toms a toy piano. the pattern
+//     changes to one the kit suits, from the mood's list where it can
+//   - a texture as loud as the band: it's scenery, so it sits well under the tune, and a little
+//     under everything when there's no tune. wind and rain used to bury the melody
 function fitBand(song) {
   const find = (role) => song.layers.find((layer) => layer.role === role);
   const arp = find('arp');
@@ -829,6 +846,12 @@ function fitBand(song) {
     if (arp && layer.role === 'pad' && layer.pattern === 'pulse') layer.pattern = 'sustain';
     if (!melody && layer.role === 'counter' && layer.pattern === 'harmony') layer.pattern = 'answer';
     if (melody && BACKING[layer.role] && layer.role !== 'bass') layer.volume = Math.min(layer.volume, Math.max(0.2, melody.volume - 0.1));
+    const suits = layer.role === 'drums' && INSTRUMENTS[layer.instrument]?.suits;
+    if (suits && !suits.includes(layer.pattern)) {
+      const wanted = MOODS[song.mood].patterns?.drums || STYLE_PATTERNS[song.style].drums;
+      layer.pattern = wanted.find((pattern) => suits.includes(pattern)) || suits[0];
+    }
+    if (layer.role === 'texture') layer.volume = Math.min(layer.volume, melody ? melody.volume * 0.55 : 0.42);
   }
 }
 
@@ -1022,9 +1045,11 @@ function composeSong(song) {
   const melodyBySection = {};
   const grooves = {};
   for (const part of PARTS) grooves[part] = grooveFor(song, part);
-  const notes = [];
+  // everyone writes their part, then the band listens to each other (listen), then it's played with
+  // feel. listening comes before feel, so it compares the notes where they sit on the grid
+  const parts = {};
   for (const layer of layers) {
-    let out = [];
+    const out = [];
     for (const section of sections) {
       if (!section.play.includes(layer.id)) continue;
       const c = {
@@ -1047,6 +1072,12 @@ function composeSong(song) {
       if (layer.role === 'melody' && !melodyBySection[section.index]) melodyBySection[section.index] = made;
       out.push(...made);
     }
+    parts[layer.id] = out;
+  }
+  listen(song, sections, parts);
+  const notes = [];
+  for (const layer of layers) {
+    let out = parts[layer.id];
     if (layer.role === 'drone' || layer.role === 'texture') out = joinHeld(out);
     feel(out, song, layer);
     for (const note of out) note.layer = layer.id;
@@ -1054,6 +1085,80 @@ function composeSong(song) {
   }
   notes.sort((a, b) => a.t - b.t);
   return { beats: start, bpb: meter.beats, sub: meter.sub, step: gridStep(song.meter), sections, notes };
+}
+
+// ---------- listening ----------
+//
+// each composer writes its own part. then the band listens to each other and gives way where two
+// parts would sound wrong together, the way players in a real band do without being told. the drums
+// listen as they play instead (COMPOSERS.drums). notes added by hand are left alone: they're yours.
+//   - the tune stays on top: keys, an arp or a counter melody that would sound above the melody note
+//     playing as they start drop an octave, unless that takes them out of their range. an arp
+//     running up over the tune fought it for your ear. pads are a wash behind everything and bells
+//     ring above on purpose, so they stay where they are
+//   - nobody rubs against the tune: a minor second (or ninth) between a note and a longer melody note
+//     it's heard against is the harshest clash there is. pads and keys drop the chord's added note
+//     (a seventh, a ninth) when that's what rubs, and still have the chord without it. single lines
+//     (an arp, bells, a counter melody) move to the nearest chord note that doesn't rub instead
+const ON_TOP = { keys: true, arp: true, counter: true };
+const GIVE_WAY = { keys: 'drop', pad: 'drop', arp: 'move', bells: 'move', counter: 'move' };
+// the upper of two notes a minor second (or a minor ninth, or more octaves) above the lower
+const rubs = (a, b) => mod12(Math.max(a, b) - Math.min(a, b)) === 1;
+
+function listen(song, sections, parts) {
+  const melody = song.layers.find((layer) => layer.role === 'melody');
+  const tune = melody ? [...parts[melody.id]].sort((a, b) => a.t - b.t) : [];
+  if (!tune.length) return;
+  // the last melody note starting at or before t
+  const lastBefore = (t) => {
+    let low = 0;
+    let high = tune.length;
+    while (low < high) {
+      const middle = (low + high) >> 1;
+      if (tune[middle].t <= t + 1e-6) low = middle + 1;
+      else high = middle;
+    }
+    return low - 1;
+  };
+  const chordOf = (t) => {
+    const section = sections.find((one) => t < one.end - 1e-6) || sections[sections.length - 1];
+    return section.chords.find((chord) => t < chord.t + chord.dur - 1e-6) || section.chords[section.chords.length - 1];
+  };
+  for (const layer of song.layers) {
+    const rule = GIVE_WAY[layer.role];
+    if (!rule) continue;
+    const floor = ROLES[layer.role].center + layer.octave * 12 - 12;
+    parts[layer.id] = parts[layer.id].filter((note) => {
+      if (note.added) return true;
+      const at = lastBefore(note.t);
+      const lead = tune[at];
+      const ceiling = ON_TOP[layer.role] && lead && note.t < lead.t + lead.dur - 1e-6 ? lead.midi : Infinity;
+      // written: the pitch the composer wrote, which hand edits know the note by (applyEdits)
+      while (note.midi > ceiling && note.midi - 12 >= floor) {
+        note.written ??= note.midi;
+        note.midi -= 12;
+      }
+      // the melody notes it's heard against: the one playing as it starts and any that start while
+      // it sounds, leaving out quick passing notes
+      const heard = [];
+      for (let i = Math.max(0, at); i < tune.length && tune[i].t < note.t + note.dur - 1e-6; i++) {
+        if (tune[i].dur >= 0.5 && tune[i].t + tune[i].dur > note.t + 1e-6) heard.push(tune[i].midi);
+      }
+      const clashes = (midi) => heard.some((other) => rubs(midi, other));
+      if (!clashes(note.midi)) return true;
+      const chord = chordOf(note.t);
+      if (rule === 'drop') return chord.tones.slice(0, 3).some((tone) => mod12(chord.root + tone) === mod12(note.midi));
+      for (const step of [1, -1, 2, -2, 3, -3, 4, -4]) {
+        const midi = note.midi + step;
+        if (chord.pcs.has(mod12(midi)) && !clashes(midi) && (midi <= ceiling || note.midi > ceiling)) {
+          note.written ??= note.midi;
+          note.midi = midi;
+          break;
+        }
+      }
+      return true;
+    });
+  }
 }
 
 // a note's key for edits: where it starts in its section, and its pitch
@@ -1201,6 +1306,15 @@ const GROOVES = {
 const GROOVE_SLOTS = { k: 0, s: 1, h: 2, o: 3, p: 4, l: 5 };
 // the grooves that get busier in B parts, and the ones whose fills and section crashes are loud
 const LIFTS = { groove: true, halftime: true, march: true };
+
+// a pitched drum (a kick, a tom, a tick, a rim, the body of a snare) moved to the nearest home note
+// or fifth of the song's key, in hz. where the kits had them they were out of key with everything
+// else: a kick a semitone off the bass, a woodblock ticking a wrong note on every beat
+function tuneDrum(hz, key) {
+  const midi = 69 + 12 * Math.log2(hz / 440);
+  const [best] = [key, key + 7].map((pc) => near(pc, Math.round(midi))).sort((a, b) => Math.abs(a - midi) - Math.abs(b - midi));
+  return 440 * 2 ** ((best - 69) / 12);
+}
 
 // a part's groove, as numbers: 1 a hit, 0.5 a soft one, 0 nothing. songs without drums still get one
 // (the style's usual), so their bass and stabs keep to a steady rhythm
@@ -1385,8 +1499,9 @@ function tune(c, { density, low, high, plan4 }) {
       } else if (isStrong(c, t) || cell.dur >= 1) degree = chordDegree(c, degree, chord);
       const gap = cell.end ? Math.min(0.5, cell.dur * 0.25) : 0;
       notes.push({
-        // nearly legato, so the line sings rather than ticks
-        t, dur: Math.max(c.step, (cell.dur - gap) * 0.97),
+        // nearly legato, so the line sings rather than ticks. never longer than its cell: 6/8's sixth
+        // of a beat notes were stretched to a whole step, so two melody notes sounded at once
+        t, dur: Math.max(Math.min(c.step, cell.dur * 0.97), (cell.dur - gap) * 0.97),
         midi: fitToChord(degreeMidi(c, degree), chord, c.scalePcs),
         vel: (isStrong(c, t) ? 0.85 : 0.68) + rng.range(-0.05, 0.05),
       });
@@ -1667,12 +1782,21 @@ const COMPOSERS = {
   // drums: the note is which drum (KIT_SLOTS in synth.js): 0 kick, 1 snare, 2 hat, 3 open hat,
   // 4 perc, 5 low perc
   // the part's groove (grooveFor), the same every bar, so it repeats like a real drummer's would.
-  // busy adds the soft ghost notes (and fills the hats out to 16ths when it's high)
+  // busy adds the soft ghost notes (and fills the hats out to 16ths when it's high).
+  // the drummer listens to the band as it plays: its pitched drums are in the song's key (tuneDrum,
+  // carried on each note as tune), and with only a few of the others playing (an intro, a break) it
+  // plays softer and leaves the ghost notes out. it used to hit as hard under a lone pad as under the
+  // whole band
   drums(c) {
     const { pattern, density } = c.layer;
     const { lines, steps, perBeat, grid } = c.groove;
     const notes = [];
-    const hit = (t, slot, vel) => notes.push({ t, dur: grid, midi: slot, vel });
+    const tunes = (INSTRUMENTS[c.layer.instrument]?.slots || []).map((slot) => slot.tune && tuneDrum(slot.tune, c.song.key));
+    const others = c.song.layers.filter((layer) => layer.role !== 'drums' && layer.role !== 'texture');
+    const fullness = others.length ? others.filter((layer) => c.section.play.includes(layer.id)).length / others.length : 1;
+    const level = 0.7 + 0.3 * fullness;
+    const ghosts = density >= 0.35 && fullness >= 0.5;
+    const hit = (t, slot, vel) => notes.push({ t, dur: grid, midi: slot, vel: vel * level, ...(tunes[slot] ? { tune: tunes[slot] } : {}) });
     // a fill when the next section is a different part: the last beat on the snare (toms for the
     // quieter patterns), getting louder, then an open hat on the next bar's first beat like a crash
     // the quiet patterns (pulse, sparse) never fill: a drum roll in the middle of a calm song made
@@ -1694,17 +1818,18 @@ const COMPOSERS = {
         }
         for (const [name, slot] of Object.entries(GROOVE_SLOTS)) {
           const v = lines[name][i];
-          if (!v || (v < 1 && density < 0.35)) continue;
+          if (!v || (v < 1 && !ghosts)) continue;
           const loud = name === 'h' ? 0.6 : name === 'p' ? 0.55 : 0.88;
           hit(t, slot, (v < 1 ? 0.3 : loud) * (onBeat ? 1 : 0.85));
         }
-        if (density > 0.72 && perBeat === 4 && i % 2 && !lines.h[i] && lines.h.some((v) => v)) hit(t, 2, 0.24);
+        if (ghosts && density > 0.72 && perBeat === 4 && i % 2 && !lines.h[i] && lines.h.some((v) => v)) hit(t, 2, 0.24);
       }
     }
     return notes;
   },
 
+  // the note is the song's home note, which the hum and the crickets sing (TEXTURES in synth.js)
   texture(c) {
-    return [{ t: c.start, dur: c.end - c.start, midi: 60, vel: 1 }];
+    return [{ t: c.start, dur: c.end - c.start, midi: near(c.song.key, 60), vel: 1 }];
   },
 };

@@ -2,7 +2,9 @@
 // the same song, songs save and load back the same, junk files get cleaned up, chords parse,
 // melodies land on chord notes on strong beats, the band shares one groove, and the rules for a band
 // that fits (README.md) hold: harshness caps, no doubled instruments, no holes in melodies, no
-// blinking layers, bells on the beat, the right drums for each mood. run it with
+// blinking layers, bells on the beat, the right drums for each mood, kits on patterns they suit,
+// drums and textures in key, textures under the tune, and the band listening (the tune on top, nothing
+// rubbing against it). run it with
 // node js/squimble-music-maker/tests/music-check.js (no output means it all passed).
 //
 // synth.js is loaded too, for INSTRUMENTS. it doesn't play anything here, nothing in it touches web
@@ -86,6 +88,10 @@ for (const seed of ['mossy-lantern', 'quiet-tide', 'rusty-tower', 'x']) {
 
 // a band that fits (fitBand, pickInstrument and the moods in music.js, and the README's rules)
 const { INSTRUMENTS, maxEdge, roleFamily } = vm.runInContext('({ INSTRUMENTS, maxEdge, roleFamily })', page);
+// every tonal instrument has an edge: the organ had none, so it never fitted under any cap
+for (const [id, inst] of Object.entries(INSTRUMENTS)) if (inst.family !== 'kit' && inst.family !== 'texture') assert(Number.isFinite(inst.edge), `${id} has an edge`);
+let stuck = 0;
+let lines = 0;
 for (const mood of Object.keys(MOODS)) {
   for (const style of ['ambient', 'tune']) {
     for (let n = 0; n < 12; n++) {
@@ -119,8 +125,60 @@ for (const mood of Object.keys(MOODS)) {
       }
       const bells = song.layers.find((l) => l.role === 'bells' && l.pattern === 'phasing');
       if (bells) for (const note of comp.notes.filter((n) => n.layer === bells.id)) assert(Math.abs(note.gt - Math.round(note.gt)) < 1e-6, `${where}: drifting bells land on the beat`);
+
+      // the drums: a kit only plays patterns it suits, and its pitched drums are on the key's home
+      // note or fifth
+      if (drums) {
+        assert(INSTRUMENTS[drums.instrument].suits.includes(drums.pattern), `${where}: ${drums.instrument} suits ${drums.pattern}`);
+        for (const note of comp.notes.filter((n) => n.layer === 'drums' && n.tune)) {
+          const pc = ((Math.round(69 + 12 * Math.log2(note.tune / 440)) - song.key) % 12 + 12) % 12;
+          assert(pc === 0 || pc === 7, `${where}: a drum tuned off the key`);
+        }
+      }
+      // the texture sits under the tune, and hums the home note
+      const texture = song.layers.find((l) => l.role === 'texture');
+      if (texture) {
+        if (melody) assert(texture.volume <= melody.volume * 0.55 + 1e-9, `${where}: the texture sits under the melody`);
+        for (const note of comp.notes.filter((n) => n.layer === texture.id)) assert.strictEqual(note.midi % 12, song.key, `${where}: the texture's in the key`);
+      }
+      // the band listens (listen in music.js): keys, arps and counter melodies stay under the tune,
+      // and nothing rubs a semitone against a longer melody note it's heard with
+      const tune = comp.notes.filter((n) => n.layer === 'melody');
+      if (tune.length) {
+        const rubs = (a, b) => ((Math.max(a, b) - Math.min(a, b)) % 12) === 1;
+        for (const layer of song.layers.filter((l) => ['keys', 'pad', 'arp', 'bells', 'counter'].includes(l.role))) {
+          const floor = { keys: 62, arp: 60, counter: 62 }[layer.role] + layer.octave * 12 - 12;
+          for (const note of comp.notes.filter((n) => n.layer === layer.id)) {
+            const lead = tune.find((m) => m.gt <= note.gt + 1e-6 && note.gt < m.gt + m.dur - 1e-6);
+            if (lead && floor) assert(note.midi <= lead.midi || note.midi - 12 < floor, `${where}: the ${layer.role} climbs over the tune at beat ${note.gt}`);
+            if (layer.role !== 'pad' && layer.role !== 'keys') lines++;
+            const heard = tune.filter((m) => m.dur >= 0.5 && m.gt < note.gt + note.dur - 1e-6 && m.gt + m.dur > note.gt + 1e-6);
+            if (!heard.some((m) => rubs(m.midi, note.midi))) continue;
+            // pads and keys keep a rubbing note only when it's the chord's own (root, third or fifth).
+            // a single line rubs only if no chord note nearby was free
+            if (layer.role === 'pad' || layer.role === 'keys') {
+              const section = comp.sections.find((s) => note.gt < s.end - 1e-6);
+              const chord = section.chords.find((ch) => note.gt < ch.t + ch.dur - 1e-6);
+              assert(chord.tones.slice(0, 3).some((tone) => (chord.root + tone) % 12 === note.midi % 12), `${where}: the ${layer.role}'s added note rubs against the tune`);
+            } else stuck++;
+          }
+        }
+      }
     }
   }
+}
+
+assert(stuck / lines < 0.01, `single lines nearly never rub against the tune (${stuck} of ${lines})`);
+
+// a note the band moved can still be removed by hand: the page removes it by the pitch it was written at
+{
+  const { editKey } = vm.runInContext('({ editKey })', page);
+  const song = generateSong('happy', 'tune', 'rm-0');
+  const hit = composeSong(song).notes.find((n) => n.written !== undefined);
+  assert(hit, 'the band moved a note to test with');
+  const section = composeSong(song).sections.find((s) => hit.gt >= s.start && hit.gt < s.end);
+  song.layers.find((l) => l.id === hit.layer).edits[section.part] = { add: [], remove: [editKey(hit.gt - section.start, hit.written)] };
+  assert(!composeSong(cleanSong(song)).notes.some((n) => n.layer === hit.layer && Math.abs(n.gt - hit.gt) < 1e-6 && n.midi === hit.midi), 'a moved note can be removed');
 }
 
 // junk in, a playable song out

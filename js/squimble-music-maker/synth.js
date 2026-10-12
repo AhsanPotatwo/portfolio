@@ -20,9 +20,12 @@
 //   fm       frequency modulation: one sine wobbling another's pitch, the bells and electric pianos
 //            of the 80s. ratio sets how metallic, index how bright, and indexDecay how fast it mellows.
 //            partials: extra sines [ratio, level, seconds to fade]
-//   pluck    a plucked string (ksBuffer). bright and decay (seconds) shape it
+//   pluck    a plucked string (ksBuffer). bright, soft (a finger rather than a pick) and decay
+//            (seconds) shape it
 //   choir    buzzy oscillators through three narrow filters at a vowel's formants (VOWELS)
-//   drums    a kit: six slots (KIT_SLOTS), each one of DRUMS with its own tune, tone, decay and gain
+//   drums    a kit: six slots (KIT_SLOTS), each one of DRUMS with its own tune, tone, decay and gain.
+//            suits: the patterns (music.js PATTERNS) it sounds right playing. a tune is moved to the
+//            song's key by the composer (tuneDrum() in music.js)
 //   texture  a background like wind or rain (TEXTURES), held for whole sections
 // tonal instruments have env [attack, decay, sustain level, release] in seconds and gain, and can
 // have filter { freq, q, env (how far it opens at the start), attack, decay, track (how much it
@@ -55,26 +58,26 @@ const KIT_SLOTS = ['Kick', 'Snare', 'Hat', 'Open hat', 'Perc', 'Low perc'];
 
 const INSTRUMENTS = {
   // pads
-  'warm-pad':    { name: 'Warm pad', family: 'pad', edge: 0.4, edge: 0.2, kind: 'sub', osc: [['sawtooth', -9], ['sawtooth', 9], ['triangle', 0, -1, 0.6]], filter: { freq: 850, q: 0.8, env: 1.8, attack: 1.2, decay: 2 }, env: [1.4, 1.5, 0.8, 2.8], gain: 0.05 },
+  'warm-pad':    { name: 'Warm pad', family: 'pad', edge: 0.2, kind: 'sub', osc: [['sawtooth', -9], ['sawtooth', 9], ['triangle', 0, -1, 0.6]], filter: { freq: 850, q: 0.8, env: 1.8, attack: 1.2, decay: 2 }, env: [1.4, 1.5, 0.8, 2.8], gain: 0.05 },
   'glass-pad':   { name: 'Glass pad', family: 'pad', edge: 0.25, kind: 'sub', osc: [['glass', -5], ['glass', 6, 1, 0.3]], filter: { freq: 4200, q: 0.5 }, env: [1.8, 2, 0.75, 3.5], gain: 0.07 },
   'choir-ah':    { name: 'Choir, ah', family: 'pad', edge: 0.2, kind: 'choir', vowel: 'ah', env: [1.1, 1, 0.85, 2.4], gain: 0.22, vibrato: { rate: 4.8, depth: 9, delay: 0.8 } },
   'choir-oo':    { name: 'Choir, oo', family: 'pad', edge: 0.1, kind: 'choir', vowel: 'oo', env: [1.4, 1, 0.85, 2.8], gain: 0.3, vibrato: { rate: 4.5, depth: 8, delay: 1 } },
   strings:       { name: 'Strings', family: 'pad', edge: 0.35, kind: 'sub', osc: [['sawtooth', -7], ['sawtooth', 6], ['sawtooth', 1, 1, 0.2]], filter: { freq: 1900, q: 0.6 }, env: [0.8, 1, 0.9, 1.4], gain: 0.042, vibrato: { rate: 5.3, depth: 11, delay: 0.5 } },
   'dark-pad':    { name: 'Dark pad', family: 'pad', edge: 0.3, kind: 'sub', osc: [['sawtooth', -14], ['square', 12, -1, 0.45]], filter: { freq: 380, q: 3, env: 2.6, attack: 3, decay: 4 }, env: [2.5, 2, 0.8, 4], gain: 0.06 },
   shimmer:       { name: 'Shimmer', family: 'pad', edge: 0.15, kind: 'sub', osc: [['sine', 0], ['sine', 5, 1, 0.5], ['triangle', -4, 2, 0.18]], env: [2, 2, 0.7, 4.5], gain: 0.07, tremolo: { rate: 3.2, depth: 0.3 } },
-  organ:         { name: 'Organ', family: 'pad', kind: 'sub', osc: [['organ', 0], ['organ', 4, 1, 0.3]], filter: { freq: 4500, q: 0.3 }, env: [0.06, 0.4, 0.9, 0.35], gain: 0.06, tremolo: { rate: 6, depth: 0.15 } },
+  organ:         { name: 'Organ', family: 'pad', edge: 0.35, kind: 'sub', osc: [['organ', 0], ['organ', 4, 1, 0.3]], filter: { freq: 4500, q: 0.3 }, env: [0.06, 0.4, 0.9, 0.35], gain: 0.06, tremolo: { rate: 6, depth: 0.15 } },
   'air-pad':     { name: 'Air pad', family: 'pad', edge: 0.05, kind: 'sub', osc: [['sine', 0], ['triangle', 3, 1, 0.15]], breath: 1.6, env: [2.2, 2, 0.8, 3.5], gain: 0.08 },
   'haunted-pad': { name: 'Haunted pad', family: 'pad', edge: 0.45, kind: 'sub', osc: [['hollow', -24], ['hollow', 21], ['sine', 0, -1, 0.5]], filter: { freq: 1000, q: 5 }, env: [3, 2, 0.8, 4], gain: 0.055, tremolo: { rate: 0.35, depth: 0.55 }, vibrato: { rate: 0.21, depth: 28, delay: 0 } },
 
   // keys and mallets
   'felt-keys':   { name: 'Felt piano', family: 'keys', edge: 0.1, kind: 'fm', ratio: 1, index: 1.1, indexDecay: 0.25, sustainIndex: 0.05, partials: [[2, 0.35, 0.5], [3, 0.12, 0.25]], filter: { freq: 2200, q: 0.4, track: 0.5 }, env: [0.006, 1.8, 0, 0.5], gain: 0.2 },
   'e-piano':     { name: 'Electric piano', family: 'keys', edge: 0.2, kind: 'fm', ratio: 1, index: 1.6, indexDecay: 0.6, sustainIndex: 0.15, partials: [[14, 0.08, 0.04]], env: [0.005, 2.4, 0.15, 0.6], gain: 0.2, tremolo: { rate: 4.5, depth: 0.12 } },
-  harp:          { name: 'Harp', family: 'keys', edge: 0.2, kind: 'pluck', bright: 0.6, decay: 3.5, env: [0.002, 3, 1, 1.2], gain: 0.5 },
+  harp:          { name: 'Harp', family: 'keys', edge: 0.15, kind: 'pluck', bright: 0.3, soft: 0.75, decay: 3, filter: { freq: 2000, q: 0.5, track: 0.5 }, env: [0.006, 3, 1, 2.5], gain: 0.6 },
   'music-box':   { name: 'Music box', family: 'keys', edge: 0.3, kind: 'fm', ratio: 5.04, index: 0.5, indexDecay: 0.2, sustainIndex: 0, partials: [[4, 0.25, 0.3]], env: [0.002, 1.4, 0, 0.6], gain: 0.2 },
   marimba:       { name: 'Marimba', family: 'keys', edge: 0.2, kind: 'fm', ratio: 4, index: 0.9, indexDecay: 0.05, sustainIndex: 0, partials: [[10, 0.06, 0.02]], env: [0.003, 0.45, 0, 0.3], gain: 0.3 },
   kalimba:       { name: 'Kalimba', family: 'keys', edge: 0.25, kind: 'fm', ratio: 5.4, index: 0.5, indexDecay: 0.04, sustainIndex: 0, partials: [[6.3, 0.1, 0.05]], env: [0.002, 0.9, 0, 0.4], gain: 0.27 },
   celesta:       { name: 'Celesta', family: 'keys', edge: 0.3, kind: 'fm', ratio: 3, index: 0.6, indexDecay: 0.15, sustainIndex: 0.02, partials: [[2, 0.3, 0.6]], env: [0.002, 1.6, 0, 0.7], gain: 0.2 },
-  pizzicato:     { name: 'Pizzicato', family: 'keys', edge: 0.2, kind: 'pluck', bright: 0.35, decay: 0.7, filter: { freq: 2600, q: 0.6, track: 0.4 }, env: [0.002, 0.6, 1, 0.15], gain: 0.55 },
+  pizzicato:     { name: 'Pizzicato', family: 'keys', edge: 0.2, kind: 'pluck', bright: 0.35, soft: 0.4, decay: 0.7, filter: { freq: 2600, q: 0.6, track: 0.4 }, env: [0.002, 0.6, 1, 0.15], gain: 0.55 },
   vibes:         { name: 'Vibraphone', family: 'keys', edge: 0.15, kind: 'fm', ratio: 4, index: 0.25, indexDecay: 0.1, sustainIndex: 0, partials: [[10, 0.04, 0.05]], env: [0.003, 3.5, 0, 1.2], gain: 0.24, tremolo: { rate: 5.5, depth: 0.35 } },
 
   // bells
@@ -98,7 +101,7 @@ const INSTRUMENTS = {
   'round-bass':  { name: 'Round bass', family: 'bass', edge: 0.1, kind: 'sub', osc: [['triangle', 0], ['sine', 0, -1, 0.5]], filter: { freq: 600, q: 0.5 }, env: [0.01, 0.4, 0.75, 0.2], gain: 0.4 },
   'synth-bass':  { name: 'Synth bass', family: 'bass', edge: 0.5, kind: 'sub', osc: [['sawtooth', -4], ['square', 4, -1, 0.5]], filter: { freq: 280, q: 4, env: 4, attack: 0.005, decay: 0.15 }, env: [0.005, 0.3, 0.7, 0.12], gain: 0.15 },
   'pluck-bass':  { name: 'Plucked bass', family: 'bass', edge: 0.2, kind: 'pluck', bright: 0.4, decay: 1.6, filter: { freq: 900, q: 0.7 }, env: [0.002, 1.5, 1, 0.15], gain: 0.8 },
-  upright:       { name: 'Upright bass', family: 'bass', edge: 0.1, kind: 'pluck', bright: 0.2, decay: 1.2, filter: { freq: 500, q: 1 }, env: [0.004, 1, 1, 0.12], gain: 0.95 },
+  upright:       { name: 'Upright bass', family: 'bass', edge: 0.1, kind: 'pluck', bright: 0.2, soft: 0.6, decay: 1.2, filter: { freq: 500, q: 1 }, env: [0.004, 1, 1, 0.12], gain: 0.95 },
   'growl-bass':  { name: 'Growl bass', family: 'bass', edge: 1, kind: 'sub', osc: [['sawtooth', -10], ['sawtooth', 10], ['square', 0, -1, 0.6]], filter: { freq: 420, q: 6, env: 3, attack: 0.01, decay: 0.25 }, env: [0.005, 0.3, 0.8, 0.12], gain: 0.11 },
 
   // drones
@@ -109,25 +112,25 @@ const INSTRUMENTS = {
   'organ-drone': { name: 'Organ drone', family: 'drone', edge: 0.3, kind: 'sub', osc: [['organ', 0], ['organ', 3, -1, 0.5]], filter: { freq: 1600, q: 0.3 }, env: [2, 2, 0.9, 3], gain: 0.06 },
 
   // drum kits, slots in KIT_SLOTS order
-  'soft-kit': { name: 'Soft kit', family: 'kit', kind: 'drums', slots: [
+  'soft-kit': { name: 'Soft kit', family: 'kit', kind: 'drums', suits: ['pulse', 'sparse', 'brush', 'halftime', 'groove'], slots: [
     { voice: 'kick', tune: 50, decay: 0.35, gain: 0.7 }, { voice: 'brush', tone: 2200, decay: 0.18, gain: 0.3 }, { voice: 'shaker', tone: 5500, decay: 0.07, gain: 0.18 },
     { voice: 'shaker', tone: 5000, decay: 0.25, gain: 0.2 }, { voice: 'tick', tune: 1100, decay: 0.06, gain: 0.2 }, { voice: 'tom', tune: 90, decay: 0.4, gain: 0.45 }] },
-  'lofi-kit': { name: 'Lo-fi kit', family: 'kit', kind: 'drums', slots: [
-    { voice: 'kick', tune: 52, decay: 0.3, gain: 0.85 }, { voice: 'snare', tone: 1500, decay: 0.22, gain: 0.42 }, { voice: 'hat', tone: 6500, decay: 0.045, gain: 0.18 },
+  'lofi-kit': { name: 'Lo-fi kit', family: 'kit', kind: 'drums', suits: ['groove', 'halftime', 'sparse', 'pulse'], slots: [
+    { voice: 'kick', tune: 52, decay: 0.3, gain: 0.85 }, { voice: 'snare', tune: 180, tone: 1500, decay: 0.22, gain: 0.42 }, { voice: 'hat', tone: 6500, decay: 0.045, gain: 0.18 },
     { voice: 'hat', tone: 6500, decay: 0.3, gain: 0.16 }, { voice: 'rim', tune: 1700, decay: 0.03, gain: 0.25 }, { voice: 'tom', tune: 100, decay: 0.35, gain: 0.5 }] },
-  'tight-kit': { name: 'Tight kit', family: 'kit', kind: 'drums', slots: [
-    { voice: 'kick', tune: 55, decay: 0.28, gain: 0.9 }, { voice: 'snare', tone: 1900, decay: 0.16, gain: 0.5 }, { voice: 'hat', tone: 8000, decay: 0.035, gain: 0.2 },
+  'tight-kit': { name: 'Tight kit', family: 'kit', kind: 'drums', suits: ['groove', 'halftime', 'march', 'tribal', 'sparse', 'pulse'], slots: [
+    { voice: 'kick', tune: 55, decay: 0.28, gain: 0.9 }, { voice: 'snare', tune: 180, tone: 1900, decay: 0.16, gain: 0.5 }, { voice: 'hat', tone: 8000, decay: 0.035, gain: 0.2 },
     { voice: 'hat', tone: 8000, decay: 0.25, gain: 0.17 }, { voice: 'clap', tone: 1200, decay: 0.15, gain: 0.4 }, { voice: 'tom', tune: 110, decay: 0.3, gain: 0.5 }] },
-  taiko: { name: 'Taiko', family: 'kit', kind: 'drums', slots: [
+  taiko: { name: 'Taiko', family: 'kit', kind: 'drums', suits: ['tribal', 'march', 'pulse', 'halftime', 'sparse'], slots: [
     { voice: 'taiko', tune: 58, decay: 0.9, gain: 0.95 }, { voice: 'rim', tune: 1200, decay: 0.05, gain: 0.35 }, { voice: 'shaker', tone: 4500, decay: 0.08, gain: 0.2 },
     { voice: 'hat', tone: 5000, decay: 0.2, gain: 0.15 }, { voice: 'tick', tune: 900, decay: 0.07, gain: 0.3 }, { voice: 'taiko', tune: 85, decay: 0.6, gain: 0.75 }] },
-  heartbeat: { name: 'Heartbeat', family: 'kit', kind: 'drums', slots: [
+  heartbeat: { name: 'Heartbeat', family: 'kit', kind: 'drums', suits: ['pulse', 'sparse'], slots: [
     { voice: 'heart', tune: 52, decay: 0.2, gain: 0.85 }, { voice: 'brush', tone: 1800, decay: 0.2, gain: 0.25 }, { voice: 'shaker', tone: 6000, decay: 0.05, gain: 0.12 },
     { voice: 'shaker', tone: 5000, decay: 0.2, gain: 0.14 }, { voice: 'tick', tune: 1500, decay: 0.05, gain: 0.16 }, { voice: 'tom', tune: 70, decay: 0.5, gain: 0.5 }] },
-  brushes: { name: 'Brushes', family: 'kit', kind: 'drums', slots: [
+  brushes: { name: 'Brushes', family: 'kit', kind: 'drums', suits: ['brush', 'sparse', 'pulse'], slots: [
     { voice: 'kick', tune: 48, decay: 0.3, gain: 0.55 }, { voice: 'brush', tone: 2600, decay: 0.22, gain: 0.38 }, { voice: 'brush', tone: 4000, decay: 0.08, gain: 0.18 },
     { voice: 'brush', tone: 3000, decay: 0.4, gain: 0.22 }, { voice: 'rim', tune: 1500, decay: 0.03, gain: 0.18 }, { voice: 'tom', tune: 95, decay: 0.4, gain: 0.4 }] },
-  clockwork: { name: 'Clockwork', family: 'kit', kind: 'drums', slots: [
+  clockwork: { name: 'Clockwork', family: 'kit', kind: 'drums', suits: ['pulse', 'sparse', 'march', 'groove', 'halftime'], slots: [
     { voice: 'kick', tune: 60, decay: 0.12, gain: 0.45 }, { voice: 'tick', tune: 900, decay: 0.05, gain: 0.3 }, { voice: 'tick', tune: 2400, decay: 0.03, gain: 0.2 },
     { voice: 'tick', tune: 1800, decay: 0.12, gain: 0.2 }, { voice: 'rim', tune: 2000, decay: 0.025, gain: 0.25 }, { voice: 'tick', tune: 500, decay: 0.08, gain: 0.3 }] },
 
@@ -140,7 +143,7 @@ const INSTRUMENTS = {
   vinyl:    { name: 'Vinyl crackle', family: 'texture', kind: 'texture', texture: 'vinyl', gain: 0.6 },
   fire:     { name: 'Campfire', family: 'texture', kind: 'texture', texture: 'fire', gain: 0.8 },
   rumble:   { name: 'Rumble', family: 'texture', kind: 'texture', texture: 'rumble', gain: 1 },
-  crickets: { name: 'Crickets', family: 'texture', kind: 'texture', texture: 'crickets', gain: 0.3 },
+  crickets: { name: 'Crickets', family: 'texture', kind: 'texture', texture: 'crickets', gain: 0.2 },
   hum:      { name: 'Hum', family: 'texture', kind: 'texture', texture: 'hum', gain: 0.6 },
 };
 // how the instrument lists are grouped on the page
@@ -199,10 +202,13 @@ function crackleBuffer(rate) {
 
 // a plucked string by the karplus-strong method (1983): a burst of noise goes round a loop one wave
 // of the note long, softened a little each time round, which is very nearly what a real string
-// does. web audio can't loop that tightly, so this is worked out sample by sample, once per note, and kept
-function ksBuffer(rate, midi, bright, decay) {
+// does. web audio can't loop that tightly, so this is worked out sample by sample, once per note, and kept.
+// soft mixes the noise with the smooth triangle a string takes when a finger pulls it aside: that has
+// hardly any high overtones, so the note starts round instead of with a hard metallic zing. the harp
+// was all noise at first, and it hit too hard and rang like wire
+function ksBuffer(rate, midi, bright, decay, soft) {
   const cache = cacheFor(rate).strings;
-  const key = `${midi}|${bright.toFixed(2)}|${decay.toFixed(1)}`;
+  const key = `${midi}|${bright.toFixed(2)}|${decay.toFixed(1)}|${soft}`;
   if (cache.has(key)) return cache.get(key);
   const f = mtof(midi);
   // the averaging below adds half a sample to the loop, hence the - 0.5
@@ -213,7 +219,10 @@ function ksBuffer(rate, midi, bright, decay) {
   let last = 0;
   for (let i = 0; i < period; i++) {
     last += (Math.random() * 2 - 1 - last) * bright;
-    ring[i] = last;
+    // pulled aside a third of the way along, and centred on zero
+    const x = i / period;
+    const pulled = (x < 0.3 ? x / 0.3 : (1 - x) / 0.7) - 0.5;
+    ring[i] = last * (1 - soft) + pulled * soft;
   }
   // what's kept each time round, so it's 60 dB quieter after decay seconds
   const keep = 0.001 ** (1 / (f * decay));
@@ -374,7 +383,10 @@ const ENGINES = {
 
   pluck(ctx, voice, inst, tone, f, midi) {
     const source = ctx.createBufferSource();
-    source.buffer = ksBuffer(ctx.sampleRate, midi, Math.min(0.95, inst.bright * tone.bright), inst.decay * Math.min(2, tone.release));
+    // high strings ring for less time than low ones, as on a real harp. every note ringing just as long
+    // left the top notes hanging on, thin and glassy
+    const decay = inst.decay * Math.min(2, tone.release) * Math.min(1, (330 / f) ** 0.5);
+    source.buffer = ksBuffer(ctx.sampleRate, midi, Math.min(0.95, inst.bright * tone.bright), decay, inst.soft || 0);
     source.detune.value = scatter(tone);
     source.connect(voice.input);
     source.start(voice.when);
@@ -461,16 +473,21 @@ function metal(ctx, out, when, peak, tone, decay) {
   noiseHit(ctx, out, when, peak * 0.3, 'highpass', tone, 0.7, 0.001, decay * 0.7);
 }
 
-// each gets the slot's settings (p): tune (hz), tone (a filter's hz), decay (seconds), gain
+// each gets the slot's settings (p): tune (hz), tone (a filter's hz), decay (seconds), gain, and step
+// (one step of the groove, in seconds)
 const DRUMS = {
   kick(ctx, out, when, vel, p) {
     toneHit(ctx, out, when, vel * p.gain, p.tune * 3.5, p.tune, 0.06, p.decay);
     // the beater's click, so it's heard on small speakers that can't play the low thump
     noiseHit(ctx, out, when, vel * p.gain * 0.2, 'lowpass', 3500, 0.7, 0.001, 0.012);
   },
+  // lub-dub. the dub lands a whole number of groove steps later, so it's on the grid like everything
+  // else: it used to be a fixed 0.24 seconds, which fell between the steps at most tempos
   heart(ctx, out, when, vel, p) {
+    let gap = p.step || 0.24;
+    while (gap < 0.15) gap *= 2;
     DRUMS.kick(ctx, out, when, vel, p);
-    DRUMS.kick(ctx, out, when + 0.24, vel * 0.6, p);
+    DRUMS.kick(ctx, out, when + gap, vel * 0.6, p);
   },
   taiko(ctx, out, when, vel, p) {
     toneHit(ctx, out, when, vel * p.gain, p.tune * 1.8, p.tune, 0.12, p.decay);
@@ -481,7 +498,7 @@ const DRUMS = {
   snare(ctx, out, when, vel, p) {
     noiseHit(ctx, out, when, vel * p.gain, 'bandpass', p.tone, 0.4, 0.001, p.decay);
     noiseHit(ctx, out, when, vel * p.gain * 0.45, 'highpass', 5000, 0.7, 0.001, p.decay * 0.5);
-    toneHit(ctx, out, when, vel * p.gain * 0.6, 230, 180, 0.04, 0.1, 'triangle');
+    toneHit(ctx, out, when, vel * p.gain * 0.6, p.tune * 1.28, p.tune, 0.04, 0.1, 'triangle');
   },
   hat: (ctx, out, when, vel, p) => metal(ctx, out, when, vel * p.gain, p.tone, p.decay),
   shaker: (ctx, out, when, vel, p) => noiseHit(ctx, out, when, vel * p.gain, 'bandpass', p.tone, 1.2, 0.012, p.decay),
@@ -503,7 +520,8 @@ const DRUMS = {
 // ---------- textures ----------
 
 // each makes its sound from when to end into out, which fades it in and out. bright is the layer's
-// brightness. the numbers after the filters bring each up to about the same loudness
+// brightness, and the pitched ones (hum, crickets) take the song's home note from midi. the numbers
+// after the filters bring each up to about the same loudness
 const TEXTURES = {
   wind(ctx, out, when, end, bright) {
     const band = ctx.createBiquadFilter();
@@ -512,8 +530,9 @@ const TEXTURES = {
     band.Q.value = 1.2;
     lfo(ctx, 0.07, 280 * bright, band.frequency, when, end);
     const gust = ctx.createGain();
-    gust.gain.value = 2;
-    lfo(ctx, 0.11, 1.4, gust.gain, when, end);
+    // gusts swing it about 6 db. they used to swing 15, and the loud ones buried the tune
+    gust.gain.value = 1.6;
+    lfo(ctx, 0.11, 0.6, gust.gain, when, end);
     noiseSource(ctx, when, end).connect(band).connect(gust).connect(out);
   },
   rain(ctx, out, when, end, bright) {
@@ -546,8 +565,8 @@ const TEXTURES = {
     low.frequency.value = 700 * bright;
     // waves coming in and going out, about 11 seconds each
     const swell = ctx.createGain();
-    swell.gain.value = 1.2;
-    lfo(ctx, 0.09, 1.1, swell.gain, when, end);
+    swell.gain.value = 1;
+    lfo(ctx, 0.09, 0.55, swell.gain, when, end);
     noiseSource(ctx, when, end).connect(low).connect(swell).connect(out);
   },
   vinyl(ctx, out, when, end, bright) {
@@ -578,15 +597,18 @@ const TEXTURES = {
     level.gain.value = 5;
     noiseSource(ctx, when, end).connect(low).connect(level).connect(out);
   },
-  // two crickets: a high tone chopped up fast (the chirp), switched on and off slowly
-  crickets(ctx, out, when, end, bright) {
-    for (const [pitch, chirp, rest] of [[4300, 32, 0.9], [4750, 27, 0.63]]) {
+  // two crickets: a high tone chopped up fast (the chirp), switched on and off slowly. they sing the
+  // song's home note and the note above it, high up: at fixed pitches they were a whistle out of key.
+  // the chirp is a triangle, not a square, so each one fades rather than clicking on and off
+  crickets(ctx, out, when, end, bright, midi = 60) {
+    const home = 101 + ((((midi - 101) % 12) + 12) % 12);
+    for (const [note, chirp, rest] of [[home, 32, 0.9], [home + 2, 27, 0.63]]) {
       const osc = ctx.createOscillator();
-      osc.frequency.value = pitch * Math.min(1.3, bright ** 0.2);
-      // a square wave swings -1 to 1, so these sit at half with half either way: off to fully on
+      osc.frequency.value = mtof(note);
+      // these swing -1 to 1, so they sit at half with half either way: off to fully on
       const chop = ctx.createGain();
       chop.gain.value = 0.5;
-      lfo(ctx, chirp, 0.5, chop.gain, when, end, 'square');
+      lfo(ctx, chirp, 0.5, chop.gain, when, end, 'triangle');
       const pulse = ctx.createGain();
       pulse.gain.value = 0.15;
       lfo(ctx, rest, 0.15, pulse.gain, when, end, 'square');
@@ -595,14 +617,16 @@ const TEXTURES = {
       osc.stop(end);
     }
   },
-  // mains hum and its beating overtones, like a fridge in an empty room
-  hum(ctx, out, when, end, bright) {
+  // mains hum and its beating overtones, like a fridge in an empty room. it hums the song's home note:
+  // it was always an a, which droned a semitone or a tritone off in most keys
+  hum(ctx, out, when, end, bright, midi = 60) {
     const low = ctx.createBiquadFilter();
     low.frequency.value = 500 * bright;
     low.connect(out);
-    for (const [freq, level] of [[55, 0.5], [55.35, 0.4], [110.2, 0.25], [165.1, 0.12]]) {
+    const home = mtof(28 + ((((midi - 28) % 12) + 12) % 12));
+    for (const [ratio, level] of [[1, 0.5], [1.0064, 0.4], [2.004, 0.25], [3.002, 0.12]]) {
       const osc = ctx.createOscillator();
-      osc.frequency.value = freq;
+      osc.frequency.value = home * ratio;
       const gain = ctx.createGain();
       gain.gain.value = level;
       osc.connect(gain).connect(low);
@@ -612,7 +636,7 @@ const TEXTURES = {
   },
 };
 
-function playTexture(ctx, out, inst, tone, when, dur, vel) {
+function playTexture(ctx, out, inst, tone, when, dur, vel, midi) {
   const fade = Math.min(3, dur / 3);
   const end = when + dur;
   const level = inst.gain * vel;
@@ -622,22 +646,24 @@ function playTexture(ctx, out, inst, tone, when, dur, vel) {
   gain.gain.setValueAtTime(level, end - fade);
   gain.gain.linearRampToValueAtTime(0, end);
   gain.connect(out);
-  TEXTURES[inst.texture](ctx, gain, when, end + 0.05, Math.min(3, tone.bright));
+  TEXTURES[inst.texture](ctx, gain, when, end + 0.05, Math.min(3, tone.bright), midi);
 }
 
 // one note of a layer. drums use the layer's release for how long they ring, and brightness for
-// their filters
+// their filters. a drum note's tune is its slot's, moved into the song's key by the composer
 function playNote(ctx, channel, layer, note, when, secondsPerBeat) {
   const inst = INSTRUMENTS[layer.instrument];
   if (!inst || !channel) return;
   const dur = note.dur * secondsPerBeat;
   if (inst.kind === 'drums') {
     const slot = inst.slots[note.midi];
-    if (slot) DRUMS[slot.voice](ctx, channel.input, when, note.vel, { ...slot, decay: slot.decay * layer.tone.release, tone: (slot.tone || 0) * layer.tone.bright });
+    // drums sit a little under everything else: at full level every kick pushed the compressor down,
+    // and the whole band pumped with it
+    if (slot) DRUMS[slot.voice](ctx, channel.input, when, note.vel * 0.7, { ...slot, tune: note.tune || slot.tune, step: dur, decay: slot.decay * layer.tone.release, tone: (slot.tone || 0) * layer.tone.bright });
     return;
   }
   if (inst.kind === 'texture') {
-    playTexture(ctx, channel.input, inst, layer.tone, when, dur, note.vel);
+    playTexture(ctx, channel.input, inst, layer.tone, when, dur, note.vel, note.midi);
     return;
   }
   const f = mtof(note.midi);
