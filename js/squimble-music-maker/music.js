@@ -42,6 +42,16 @@
 //   - swing and humanising: notes nudged off the grid and played at uneven strengths, which is most
 //     of what stops it sounding like a computer (feel)
 //
+// ---------- a band that fits ----------
+//
+// each part can sound fine alone and wrong together, so a lot of this file is rules for what goes
+// with what: one groove for the drums, bass and stabs (GROOVES), harshness caps per mood and lower
+// for backing (maxEdge, edge in synth.js), no two layers on one instrument (pickInstrument), no
+// vibrato on struck things (dressLayer), no arp and counter melody together (pickLayers, fitBand),
+// layers that stay in once they're in (pickArrangement), melodies without holes (makeBar, tune), and
+// moods that say how much drums they want (MOODS drums). README.md lists them all with what sounded
+// wrong before each one. read it before changing any of them.
+//
 // ---------- times ----------
 //
 // every time here is in beats from the start of the song (what the tempo counts), so changing the
@@ -276,7 +286,7 @@ const near = (pc, center) => center - 6 + mod12(pc - (center - 6));
 const ROLES = {
   melody:  { name: 'Melody',  colour: '#d0533a', center: 69 },
   counter: { name: 'Counter', colour: '#c4852f', center: 62 },
-  arp:     { name: 'Arp',     colour: '#2c96a3', center: 67 },
+  arp:     { name: 'Arp',     colour: '#2c96a3', center: 60 },
   bells:   { name: 'Bells',   colour: '#c3628f', center: 79 },
   keys:    { name: 'Keys',    colour: '#3c8a64', center: 62 },
   pad:     { name: 'Pad',     colour: '#7e6cc4', center: 57 },
@@ -300,16 +310,16 @@ const PATTERNS = {
   melody:  { phrases: 'Phrases', calls: 'Calls and gaps', long: 'Long notes' },
   counter: { answer: 'Answers', harmony: 'Harmony', free: 'Its own tune' },
   arp:     { up: 'Up', down: 'Down', updown: 'Up and down', converge: 'Inwards', random: 'Random' },
-  bells:   { phasing: 'Drifting loops', sparkle: 'Sparkle' },
+  bells:   { phasing: 'Drifting loops', sparkle: 'Chimes on the chords' },
   keys:    { broken: 'Broken chords', block: 'Block chords', strum: 'Strummed', waltz: 'Oom-pah' },
   pad:     { sustain: 'Held', swell: 'Swells', pulse: 'Pulsing', stabs: 'Stabs' },
   drone:   { tonic: 'Home note', fifths: 'Open fifths', follow: 'Follows chords', cluster: 'Cluster' },
   bass:    { held: 'Held', pulse: 'Pulse', rootfifth: 'Root and fifth', octave: 'Octaves', walking: 'Walking', synco: 'Syncopated' },
-  drums:   { groove: 'Groove', halftime: 'Half time', pulse: 'Pulse', tribal: 'Tribal', march: 'March', sparse: 'Sparse' },
+  drums:   { groove: 'Groove', halftime: 'Half time', brush: 'Brushes', pulse: 'Pulse', tribal: 'Tribal', march: 'March', sparse: 'Sparse' },
   texture: { steady: 'Steady' },
 };
 // the patterns that use a layer's speed (rate)
-const USES_RATE = { arp: true, 'bass.pulse': true, 'bass.octave': true, 'pad.pulse': true, 'keys.broken': true, 'bells.sparkle': true };
+const USES_RATE = { arp: true, 'bass.pulse': true, 'bass.octave': true, 'pad.pulse': true, 'keys.broken': true };
 const usesRate = (layer) => !!(USES_RATE[layer.role] || USES_RATE[`${layer.role}.${layer.pattern}`]);
 
 // ---------- moods ----------
@@ -321,9 +331,14 @@ const usesRate = (layer) => !!(USES_RATE[layer.role] || USES_RATE[`${layer.role}
 //   energy, space, bright, dark   0 to 1, how busy, roomy, bright and unsettling it is. they steer
 //               density, reverb, filters, detuning and which layers turn up
 //   palette     instruments for each role (with a small chance of anything else, to keep it fresh)
-//   textures, kits   background sounds and drum kits it uses
+//   textures, kits   background sounds and drum kits it uses. no kits means no drums at all
+//   drums       [chance of drums in an ambient song, chance in a tune]. gentle moods keep them rare
+//               or out: a beat under a dreamy or heavenly song just sounds like a mistake
+//   edge        the harshest instrument it allows (edge in synth.js). left out, it comes from energy
+//               and dark (see maxEdge), so calm moods never get a buzzy lead
 //   patterns    role patterns it prefers, over STYLE_PATTERNS
-//   swing       chance of swing, fx  extra wobble or drive
+//   swing       chance of swing (none unless it's here: a swung battle theme sounds like a joke)
+//   fx          extra wobble or drive
 const MOODS = {
   calm: {
     name: 'Calm', colour: '#9cc5a1', style: 'ambient',
@@ -335,7 +350,7 @@ const MOODS = {
       counter: ['felt-keys', 'harp', 'soft-lead'], keys: ['felt-keys', 'harp', 'e-piano'], arp: ['harp', 'kalimba', 'felt-keys'],
       bells: ['glass-bell', 'chime', 'vibes'], bass: ['sub-bass', 'round-bass', 'upright'], drone: ['organ-drone', 'deep-drone', 'cello-drone'],
     },
-    textures: ['wind', 'ocean', 'crickets', 'rain'], kits: ['soft-kit', 'brushes'],
+    textures: ['wind', 'ocean', 'crickets', 'rain'], kits: ['soft-kit'], drums: [0.1, 0.35], patterns: { drums: ['pulse', 'sparse', 'brush'] },
   },
   dreamy: {
     name: 'Dreamy', colour: '#c3b1ea', style: 'ambient',
@@ -347,7 +362,7 @@ const MOODS = {
       counter: ['harp', 'celesta'], keys: ['harp', 'e-piano', 'celesta'], arp: ['harp', 'celesta', 'music-box'],
       bells: ['glass-bell', 'music-box', 'celesta', 'chime'], bass: ['sub-bass', 'round-bass'], drone: ['organ-drone', 'deep-drone'],
     },
-    textures: ['wind', 'ocean', 'hum'], kits: ['soft-kit'], fx: { wobble: 0.3 },
+    textures: ['wind', 'ocean', 'hum'], kits: [], drums: [0, 0], fx: { wobble: 0.3 },
   },
   heavenly: {
     name: 'Heavenly', colour: '#bcdcf2', style: 'ambient',
@@ -359,7 +374,7 @@ const MOODS = {
       counter: ['harp', 'celesta', 'choir-oo'], keys: ['harp', 'celesta', 'organ'], arp: ['harp', 'celesta'],
       bells: ['bell', 'glass-bell', 'celesta', 'chime'], bass: ['sub-bass', 'round-bass'], drone: ['organ-drone', 'cello-drone'],
     },
-    textures: ['wind'], kits: ['soft-kit'], patterns: { drone: ['fifths', 'tonic'] },
+    textures: ['wind'], kits: [], drums: [0, 0], patterns: { drone: ['fifths', 'tonic'] },
   },
   happy: {
     name: 'Happy', colour: '#ffcf4d', style: 'tune',
@@ -372,7 +387,7 @@ const MOODS = {
       counter: ['marimba', 'kalimba', 'pizzicato'], keys: ['e-piano', 'felt-keys', 'marimba'], arp: ['kalimba', 'marimba', 'pluck-lead', 'harp'],
       bells: ['chime', 'celesta', 'vibes'], bass: ['pluck-bass', 'round-bass', 'upright'], drone: ['organ-drone'],
     },
-    textures: ['crickets'], kits: ['tight-kit', 'soft-kit', 'lofi-kit'],
+    textures: ['crickets'], kits: ['tight-kit', 'soft-kit'], drums: [0.1, 0.85], swing: 0.2, patterns: { drums: ['groove', 'groove', 'halftime'] },
   },
   playful: {
     name: 'Playful', colour: '#f5a3c7', style: 'tune',
@@ -385,8 +400,8 @@ const MOODS = {
       counter: ['pizzicato', 'kalimba', 'celesta'], keys: ['marimba', 'felt-keys', 'music-box'], arp: ['kalimba', 'pizzicato', 'celesta'],
       bells: ['celesta', 'music-box', 'chime'], bass: ['pluck-bass', 'upright', 'round-bass'], drone: ['organ-drone'],
     },
-    textures: ['crickets'], kits: ['clockwork', 'tight-kit', 'soft-kit'],
-    patterns: { bass: ['octave', 'rootfifth', 'walking'], keys: ['waltz', 'block', 'broken'], melody: ['phrases', 'calls'] },
+    textures: ['crickets'], kits: ['clockwork', 'tight-kit', 'soft-kit'], drums: [0.1, 0.85], swing: 0.35,
+    patterns: { drums: ['groove', 'march'], bass: ['octave', 'rootfifth', 'walking'], keys: ['waltz', 'block', 'broken'], melody: ['phrases', 'calls'] },
   },
   upbeat: {
     name: 'Upbeat', colour: '#ff8f45', style: 'tune',
@@ -399,7 +414,7 @@ const MOODS = {
       counter: ['pluck-lead', 'e-piano', 'marimba'], keys: ['e-piano', 'felt-keys'], arp: ['pluck-lead', 'kalimba', 'e-piano', 'saw-lead'],
       bells: ['vibes', 'chime'], bass: ['synth-bass', 'pluck-bass', 'growl-bass'], drone: ['deep-drone'],
     },
-    textures: [], kits: ['tight-kit', 'lofi-kit'],
+    textures: [], kits: ['tight-kit', 'lofi-kit'], drums: [0.15, 0.95], edge: 1,
     patterns: { bass: ['octave', 'synco', 'pulse', 'rootfifth'], drums: ['groove', 'groove', 'halftime'] },
   },
   cozy: {
@@ -412,8 +427,8 @@ const MOODS = {
       counter: ['felt-keys', 'vibes', 'harp'], keys: ['e-piano', 'felt-keys'], arp: ['e-piano', 'harp', 'vibes'],
       bells: ['vibes', 'chime'], bass: ['upright', 'round-bass', 'sub-bass'], drone: ['organ-drone'],
     },
-    textures: ['vinyl', 'fire', 'rain'], kits: ['brushes', 'lofi-kit'],
-    patterns: { bass: ['walking', 'rootfifth', 'held'], drums: ['groove', 'halftime'], keys: ['strum', 'block', 'broken'] }, fx: { wobble: 0.5 },
+    textures: ['vinyl', 'fire', 'rain'], kits: ['brushes'], drums: [0.05, 0.55],
+    patterns: { bass: ['walking', 'rootfifth', 'held'], drums: ['brush'], keys: ['strum', 'block', 'broken'] }, fx: { wobble: 0.5 },
   },
   wistful: {
     name: 'Wistful', colour: '#e3b3a0', style: 'ambient',
@@ -425,7 +440,7 @@ const MOODS = {
       counter: ['harp', 'felt-keys', 'celesta'], keys: ['felt-keys', 'e-piano', 'harp'], arp: ['harp', 'music-box', 'celesta'],
       bells: ['music-box', 'celesta', 'glass-bell'], bass: ['round-bass', 'sub-bass', 'upright'], drone: ['cello-drone', 'organ-drone'],
     },
-    textures: ['vinyl', 'rain', 'wind'], kits: ['brushes', 'soft-kit'], fx: { wobble: 0.45 },
+    textures: ['vinyl', 'rain', 'wind'], kits: ['brushes'], drums: [0.05, 0.45], patterns: { drums: ['brush', 'sparse'] }, fx: { wobble: 0.45 },
   },
   sad: {
     name: 'Sad', colour: '#6b95d8', style: 'ambient',
@@ -437,7 +452,7 @@ const MOODS = {
       counter: ['felt-keys', 'harp', 'violin'], keys: ['felt-keys', 'harp', 'e-piano'], arp: ['harp', 'felt-keys'],
       bells: ['glass-bell', 'music-box'], bass: ['sub-bass', 'round-bass', 'upright'], drone: ['cello-drone', 'deep-drone'],
     },
-    textures: ['rain', 'wind'], kits: ['soft-kit', 'brushes'],
+    textures: ['rain', 'wind'], kits: ['soft-kit', 'brushes'], drums: [0.05, 0.4], patterns: { drums: ['sparse', 'pulse', 'brush'] },
   },
   mysterious: {
     name: 'Mysterious', colour: '#8b6fd0', style: 'ambient',
@@ -450,7 +465,7 @@ const MOODS = {
       counter: ['kalimba', 'harp', 'pizzicato'], keys: ['harp', 'kalimba', 'celesta'], arp: ['kalimba', 'harp', 'marimba'],
       bells: ['glass-bell', 'bell', 'chime'], bass: ['sub-bass', 'pluck-bass', 'upright'], drone: ['deep-drone', 'void', 'cello-drone'],
     },
-    textures: ['wind', 'crickets', 'hum'], kits: ['clockwork', 'soft-kit', 'heartbeat'],
+    textures: ['wind', 'crickets', 'hum'], kits: ['clockwork', 'heartbeat'], drums: [0.15, 0.6], patterns: { drums: ['sparse', 'pulse', 'tribal'] },
   },
   deep: {
     name: 'Deep', colour: '#2f9db0', style: 'ambient',
@@ -462,7 +477,7 @@ const MOODS = {
       counter: ['vibes', 'harp'], keys: ['vibes', 'e-piano', 'harp'], arp: ['vibes', 'glass-bell', 'harp'],
       bells: ['glass-bell', 'vibes', 'chime'], bass: ['sub-bass', 'round-bass'], drone: ['deep-drone', 'void', 'organ-drone'],
     },
-    textures: ['ocean', 'hum', 'rumble'], kits: ['soft-kit', 'heartbeat'], fx: { wobble: 0.25 },
+    textures: ['ocean', 'hum', 'rumble'], kits: ['heartbeat', 'soft-kit'], drums: [0.08, 0.35], patterns: { drums: ['pulse'] }, fx: { wobble: 0.25 },
   },
   tense: {
     name: 'Tense', colour: '#c4573a', style: 'tune',
@@ -475,7 +490,7 @@ const MOODS = {
       counter: ['pizzicato', 'pluck-lead', 'strings'], keys: ['felt-keys', 'pizzicato', 'harp'], arp: ['pluck-lead', 'pizzicato', 'saw-lead', 'marimba'],
       bells: ['bell', 'glass-bell'], bass: ['synth-bass', 'sub-bass', 'growl-bass'], drone: ['deep-drone', 'cello-drone', 'bowed-metal'],
     },
-    textures: ['rumble', 'hum', 'wind'], kits: ['heartbeat', 'clockwork', 'taiko'],
+    textures: ['rumble', 'hum', 'wind'], kits: ['heartbeat', 'clockwork', 'taiko'], drums: [0.3, 0.9], edge: 0.9,
     patterns: { bass: ['pulse', 'synco', 'octave'], drums: ['pulse', 'tribal', 'halftime', 'sparse'], pad: ['sustain', 'pulse'] },
   },
   angry: {
@@ -489,7 +504,7 @@ const MOODS = {
       counter: ['horn', 'strings', 'pluck-lead'], keys: ['pizzicato', 'felt-keys'], arp: ['saw-lead', 'pluck-lead', 'pizzicato'],
       bells: ['bell'], bass: ['growl-bass', 'synth-bass', 'pluck-bass'], drone: ['deep-drone', 'cello-drone'],
     },
-    textures: ['rumble', 'fire'], kits: ['taiko', 'tight-kit', 'lofi-kit'],
+    textures: ['rumble', 'fire'], kits: ['taiko', 'tight-kit', 'lofi-kit'], drums: [0.3, 1], edge: 1,
     patterns: { bass: ['octave', 'pulse', 'synco'], drums: ['tribal', 'march', 'groove'], pad: ['sustain', 'stabs', 'pulse'] }, fx: { drive: 0.45 },
   },
   eerie: {
@@ -503,8 +518,8 @@ const MOODS = {
       counter: ['music-box', 'celesta', 'bowed-metal'], keys: ['music-box', 'celesta', 'felt-keys'], arp: ['music-box', 'celesta', 'glass-bell'],
       bells: ['bell', 'glass-bell', 'music-box'], bass: ['sub-bass', 'deep-drone'], drone: ['void', 'bowed-metal', 'deep-drone', 'cello-drone'],
     },
-    textures: ['rumble', 'wind', 'hum'], kits: ['heartbeat', 'clockwork'],
-    patterns: { drone: ['cluster', 'tonic', 'cluster'], drums: ['pulse', 'sparse'], melody: ['calls', 'long'] },
+    textures: ['rumble', 'wind', 'hum'], kits: ['heartbeat', 'clockwork'], drums: [0.15, 0.4],
+    patterns: { drone: ['cluster', 'tonic', 'cluster'], drums: ['pulse', 'sparse'], melody: ['long', 'phrases'] },
   },
   heroic: {
     name: 'Heroic', colour: '#d4a13a', style: 'tune',
@@ -517,7 +532,7 @@ const MOODS = {
       counter: ['horn', 'strings', 'violin'], keys: ['harp', 'pizzicato', 'felt-keys'], arp: ['harp', 'pizzicato', 'pluck-lead'],
       bells: ['bell', 'chime'], bass: ['pluck-bass', 'synth-bass', 'round-bass'], drone: ['cello-drone', 'organ-drone'],
     },
-    textures: ['wind'], kits: ['taiko', 'tight-kit'],
+    textures: ['wind'], kits: ['taiko', 'tight-kit'], drums: [0.2, 0.95], edge: 0.9,
     patterns: { drums: ['march', 'tribal', 'groove'], bass: ['octave', 'rootfifth', 'pulse'] },
   },
 };
@@ -525,15 +540,15 @@ const MOODS = {
 // the patterns each style leans towards, when the mood doesn't say
 const STYLE_PATTERNS = {
   ambient: {
-    melody: ['phrases', 'long', 'phrases', 'calls'], counter: ['answer', 'harmony'], arp: ['up', 'updown', 'random', 'converge'],
-    bells: ['phasing', 'phasing', 'sparkle'], keys: ['strum', 'broken'], pad: ['sustain', 'sustain', 'swell'],
+    melody: ['phrases', 'long', 'phrases'], counter: ['harmony', 'answer'], arp: ['up', 'updown', 'random', 'converge'],
+    bells: ['phasing', 'sparkle', 'sparkle'], keys: ['strum', 'broken'], pad: ['sustain', 'sustain', 'swell'],
     drone: ['tonic', 'fifths', 'follow'], bass: ['held', 'held', 'rootfifth'], drums: ['pulse', 'sparse'], texture: ['steady'],
   },
   tune: {
-    melody: ['phrases', 'phrases', 'calls'], counter: ['answer', 'harmony', 'free'], arp: ['up', 'down', 'updown', 'converge', 'random'],
+    melody: ['phrases', 'phrases', 'calls'], counter: ['answer', 'harmony'], arp: ['up', 'down', 'updown', 'converge', 'random'],
     bells: ['sparkle', 'phasing'], keys: ['broken', 'block', 'strum', 'waltz'], pad: ['sustain', 'swell', 'pulse', 'stabs'],
     drone: ['tonic', 'fifths'], bass: ['rootfifth', 'pulse', 'octave', 'walking', 'synco', 'held'],
-    drums: ['groove', 'groove', 'halftime', 'tribal', 'march'], texture: ['steady'],
+    drums: ['groove', 'groove', 'halftime'], texture: ['steady'],
   },
 };
 
@@ -603,7 +618,12 @@ function generateSong(moodId, style, seed) {
 const REROLLS = {
   chords: (song, mood, rng) => pickChords(song, rng),
   melodies: (song, mood, rng) => { for (const layer of song.layers) layer.seed = newToken(rng); },
-  band: (song, mood, rng) => { for (const layer of song.layers) dressLayer(song, layer, rng, false); },
+  band: (song, mood, rng) => {
+    // cleared first, so the new instruments don't dodge the old ones
+    for (const layer of song.layers) layer.instrument = '';
+    for (const layer of song.layers) dressLayer(song, layer, rng, false);
+    fitBand(song);
+  },
   arrangement: (song, mood, rng) => pickArrangement(song, rng),
   space: (song, mood, rng) => pickSpace(song, rng),
   tonality: (song, mood, rng) => pickTonality(song, rng),
@@ -627,10 +647,10 @@ function pickTonality(song, rng) {
   song.scale = rng.weighted(mood.scales);
   const [low, high] = song.style === 'tune' ? mood.tuneTempo : mood.tempo;
   song.tempo = Math.round(rng.range(low, high));
-  song.meter = rng.weighted(mood.meters || (song.style === 'tune' ? { '4/4': 6, '3/4': 1.5, '6/8': 1.5, '5/4': 0.2 } : { '4/4': 5, '3/4': 2, '6/8': 1 }));
+  song.meter = rng.weighted(mood.meters || (song.style === 'tune' ? { '4/4': 6, '3/4': 1.5, '6/8': 1.5 } : { '4/4': 5, '3/4': 2, '6/8': 1 }));
   // a 6/8 beat is three eighths long, so the same feel counts slower
   if (song.meter === '6/8') song.tempo = Math.round(song.tempo * 0.65);
-  song.swing = rng.chance(mood.swing ?? (song.style === 'tune' ? 0.25 : 0.1)) ? rng.range(0.15, 0.5) : 0;
+  song.swing = rng.chance(mood.swing || 0) ? rng.range(0.15, 0.5) : 0;
   song.humanise = rng.range(0.25, 0.6);
   song.colour = rng.range(...mood.richness);
   song.chordBars = song.style === 'ambient' ? rng.pick([1, 2, 2, 4]) : rng.pick(mood.energy > 0.7 ? [0.5, 1, 1, 2] : [1, 1, 2]);
@@ -698,40 +718,78 @@ function pickLayers(song, rng) {
     let chance = chances[role];
     if (role === 'texture' && !mood.textures.length) chance = 0;
     if (role === 'drone') chance += mood.dark * 0.3;
-    if (role === 'drums' && song.style === 'tune') chance *= 0.4 + mood.energy * 0.7;
+    if (role === 'drums') chance = mood.kits.length ? mood.drums[song.style === 'tune' ? 1 : 0] : 0;
     return rng.chance(chance);
   });
   // something has to play the chords
   if (!roles.some((role) => role === 'pad' || role === 'keys')) roles.push(rng.pick(['pad', 'keys']));
+  // an arp and a counter melody both weave round the melody, and together they turned into clutter,
+  // so a song gets one or the other
+  if (roles.includes('arp') && roles.includes('counter')) roles.splice(roles.indexOf(rng.pick(['arp', 'counter'])), 1);
   // seven at most, losing the least needed first
   for (const role of ['counter', 'arp', 'drone', 'bells', 'keys']) if (roles.length > 7) roles.splice(roles.indexOf(role), roles.includes(role) ? 1 : 0);
-  song.layers = ROLE_ORDER.filter((role) => roles.includes(role)).map((role) => {
+  // one at a time, so each layer can see the ones before it (no two playing the same instrument)
+  song.layers = [];
+  for (const role of ROLE_ORDER.filter((one) => roles.includes(one))) {
     const layer = { ...clone(LAYER_DEFAULTS), id: role, role };
+    song.layers.push(layer);
     dressLayer(song, layer, rng, true);
-    return layer;
-  });
+  }
+  fitBand(song);
+}
+
+// layers that play behind the melody. they get a lower harshness cap, and are darker and quieter,
+// so the tune is always the thing you hear
+const BACKING = { counter: true, arp: true, keys: true, pad: true, drone: true, bass: true };
+// the harshest instrument a mood allows (edge in synth.js), less for backing layers
+const maxEdge = (mood, role) => (mood.edge ?? 0.3 + mood.energy * 0.6 + mood.dark * 0.2) * (BACKING[role] ? 0.75 : 1);
+
+// an instrument for a layer: from the mood's palette, now and then (12%) something from outside it so
+// songs in a mood don't all sound alike, but only from families that suit the role (WILDCARDS), never
+// harsher than the mood allows, and never one another layer is already playing. two layers on the
+// same instrument blur into each other, and a harsh lead over gentle backing was the commonest clash
+function pickInstrument(song, layer, rng) {
+  const mood = MOODS[song.mood];
+  const { role } = layer;
+  const family = roleFamily(role);
+  const anything = Object.keys(INSTRUMENTS).filter((id) => instrumentFits(id, role));
+  if (family !== 'tonal') {
+    const pool = family === 'kit' ? mood.kits : mood.textures;
+    return rng.pick(pool.length ? pool : anything);
+  }
+  const cap = maxEdge(mood, role);
+  const taken = new Set(song.layers.filter((other) => other !== layer && roleFamily(other.role) === 'tonal').map((other) => other.instrument));
+  const fits = (id) => INSTRUMENTS[id].edge <= cap && !taken.has(id);
+  const palette = mood.palette[role].filter(fits);
+  const wild = anything.filter((id) => WILDCARDS[role].includes(INSTRUMENTS[id].family) && fits(id));
+  if (palette.length && !(wild.length && rng.chance(0.12))) return rng.pick(palette);
+  if (wild.length) return rng.pick(wild);
+  // nothing fits: the gentlest in the mood's palette
+  return [...mood.palette[role]].sort((a, b) => INSTRUMENTS[a].edge - INSTRUMENTS[b].edge)[0];
 }
 
 // a layer's instrument, pattern, tone and mix. fresh: a new layer, so it gets a seed and pattern too
 function dressLayer(song, layer, rng, fresh) {
   const mood = MOODS[song.mood];
   const { role } = layer;
-  const family = roleFamily(role);
-  const pool = family === 'kit' ? mood.kits : family === 'texture' ? mood.textures : mood.palette[role];
-  const anything = Object.keys(INSTRUMENTS).filter((id) => instrumentFits(id, role) && (!WILDCARDS[role] || WILDCARDS[role].includes(INSTRUMENTS[id].family)));
-  // now and then something from outside the mood's palette, so songs in a mood don't all sound alike
-  layer.instrument = pool && pool.length && !rng.chance(0.12) ? rng.pick(pool) : rng.pick(anything);
+  layer.instrument = pickInstrument(song, layer, rng);
+  const instrument = INSTRUMENTS[layer.instrument];
+  const edge = instrument.edge || 0;
+  // struck and plucked things (keys, bells, basses) get no vibrato and hardly any detune: a wobbling
+  // piano under a steady pad sounds out of tune rather than warm
+  const struck = instrument.family === 'keys' || instrument.family === 'bell' || instrument.family === 'bass';
   if (fresh) {
     layer.seed = newToken(rng);
     layer.pattern = rng.pick(mood.patterns?.[role] || STYLE_PATTERNS[song.style][role]);
     layer.rate = mood.energy > 0.75 ? rng.pick(['medium', 'fast', 'fast']) : mood.energy < 0.35 ? rng.pick(['slow', 'medium']) : rng.pick(['medium', 'medium', 'fast']);
-    layer.span = rng.pick([1, 2, 2, 3]);
+    layer.span = rng.pick([1, 2, 2]);
     layer.octave = role === 'bells' ? rng.weighted([[0, 5], [1, 1], [-1, 1]]) : role === 'melody' ? rng.weighted([[0, 6], [-1, 1]]) : 0;
   }
   const busy = song.style === 'tune' ? 0.35 + mood.energy * 0.5 : 0.3 + mood.energy * 0.5;
   layer.density = clamp01(busy + rng.range(-0.15, 0.2));
   const volumes = { melody: 0.68, counter: 0.5, arp: 0.42, bells: 0.45, keys: 0.52, pad: 0.55, drone: 0.48, bass: 0.68, drums: 0.66, texture: 0.5 };
-  layer.volume = clamp01(volumes[role] + rng.range(-0.06, 0.06));
+  // harsher backing sits lower in the mix
+  layer.volume = clamp01((volumes[role] + rng.range(-0.06, 0.06)) * (BACKING[role] ? 1 - edge * 0.25 : 1));
   const centred = role === 'bass' || role === 'drums' || role === 'drone';
   layer.pan = centred ? 0 : Math.round(rng.range(-0.45, 0.45) * 100) / 100;
   // drums and bass stay fairly dry: a big room smears the beat, and the echo (often a dotted beat)
@@ -742,13 +800,36 @@ function dressLayer(song, layer, rng, fresh) {
   layer.echo = clamp01((echoes[role] || 0) * mood.space * rng.range(0.4, 1.3));
   // in a tune, chords have to arrive on the beat with the drums, so pads swell in and let go quicker
   const chordy = song.style === 'tune' && (role === 'pad' || role === 'keys' || role === 'drone');
+  // brightness: near the mood's, a touch darker for backing, and never pushing a harsh instrument
+  // brighter than it was made (edge 1 stays at 1x at most, a soft one can go to 1.6x). it used to swing
+  // anywhere from 0.4x to 2.2x on anything, and doubled saw leads and bells were painful
+  const bright = 2 ** (rng.range(-0.35, 0.35) + (mood.bright - 0.5) * 0.8) * (BACKING[role] ? 0.85 : 1);
   layer.tone = {
     attack: rng.range(0.6, 1.6) * (mood.energy > 0.7 ? 0.7 : 1) * (chordy ? 0.4 : 1),
     release: rng.range(0.7, 1.6) * (0.7 + mood.space * 0.5) * (chordy ? 0.55 : 1),
-    bright: 2 ** (rng.range(-0.8, 0.8) + (mood.bright - 0.5) * 1.4),
-    detune: mood.dark * rng.range(0, 24) + rng.range(0, 5),
-    vibrato: rng.chance(0.35) ? rng.range(2, 14) : 0,
+    bright: Math.min(bright, 1 + (1 - edge) * 0.6),
+    detune: struck ? mood.dark * rng.range(0, 10) + rng.range(0, 2) : mood.dark * rng.range(0, 20) + rng.range(0, 4),
+    vibrato: !struck && rng.chance(0.35) ? rng.range(2, 10) : 0,
   };
+}
+
+// rules for parts that belong together, run after the band's picked (or picked again, or mutated).
+// each fixes something that sounded wrong:
+//   - keys breaking chords into running notes under an arp: two layers doing the same job tangle,
+//     so with an arp the keys hold their chords instead
+//   - a pad pulsing under an arp: the same tangle
+//   - a counter melody "in harmony" with no melody to harmonise: it answers instead
+//   - backing louder than the melody: the tune got lost, so backing sits at least 0.1 under it
+function fitBand(song) {
+  const find = (role) => song.layers.find((layer) => layer.role === role);
+  const arp = find('arp');
+  const melody = find('melody');
+  for (const layer of song.layers) {
+    if (arp && layer.role === 'keys' && layer.pattern === 'broken') layer.pattern = song.style === 'tune' ? 'block' : 'strum';
+    if (arp && layer.role === 'pad' && layer.pattern === 'pulse') layer.pattern = 'sustain';
+    if (!melody && layer.role === 'counter' && layer.pattern === 'harmony') layer.pattern = 'answer';
+    if (melody && BACKING[layer.role] && layer.role !== 'bass') layer.volume = Math.min(layer.volume, Math.max(0.2, melody.volume - 0.1));
+  }
 }
 
 // how many bars a part's progression takes to go round once
@@ -761,6 +842,7 @@ function pickArrangement(song, rng) {
   const form = rng.pick(FORMS[song.style]);
   const entry = {};
   for (const layer of song.layers) entry[layer.id] = rng.range(...ROLE_ENTRY[layer.role]);
+  let before = [];
   song.sections = form.map(([name, part, fourFourBars, energy]) => {
     // the forms are in 4/4 bars, so shorter bars (6/8 is two beats) get more of them
     const target = Math.max(2, Math.round((fourFourBars * 4) / METERS[song.meter].beats));
@@ -768,9 +850,14 @@ function pickArrangement(song, rng) {
     // progression much longer than that (an intro over 16 bars of chords) gets cut short instead
     const turn = partBars(song, part);
     const bars = Math.max(1, Math.min(32, Math.round(turn > target * 1.5 ? target : Math.max(1, Math.round(target / turn)) * turn)));
-    const level = energy + rng.range(-0.06, 0.06);
-    let play = song.layers.filter((layer) => entry[layer.id] <= level).map((layer) => layer.id);
+    // a layer plays once the section's energy reaches its entry point. one that's already playing
+    // stays through small dips (an A a little quieter than the last) and only drops out for a real
+    // change of gear, like a break or the outro. I used to add a random wobble to each section's
+    // energy instead, and layers blinked in and out at random: the melody would stop for a section
+    // and come back for no reason you could hear
+    let play = song.layers.filter((layer) => entry[layer.id] <= energy || (before.includes(layer.id) && entry[layer.id] <= energy + 0.2)).map((layer) => layer.id);
     if (!play.length) play = [song.layers.find((layer) => layer.role === 'pad' || layer.role === 'keys' || layer.role === 'drone')?.id || song.layers[0]?.id].filter(Boolean);
+    before = play;
     return { name, part, bars, play };
   });
 }
@@ -800,7 +887,8 @@ function mutateSong(song, rng) {
   song.humanise = nudge(song.humanise, 0.1);
   for (const layer of song.layers) {
     if (rng.chance(0.3)) layer.seed = newToken(rng);
-    if (rng.chance(0.2)) layer.pattern = rng.pick(Object.keys(PATTERNS[layer.role]));
+    // only patterns that suit the mood and style, so a mutated cozy song doesn't grow a tribal beat
+    if (rng.chance(0.2)) layer.pattern = rng.pick(MOODS[song.mood].patterns?.[layer.role] || STYLE_PATTERNS[song.style][layer.role]);
     layer.density = nudge(layer.density, 0.15);
     layer.volume = nudge(layer.volume, 0.06);
     layer.reverb = nudge(layer.reverb, 0.1);
@@ -808,6 +896,7 @@ function mutateSong(song, rng) {
     layer.tone.attack = Math.min(4, Math.max(0.1, layer.tone.attack * rng.range(0.8, 1.25)));
   }
   for (const key of ['reverb', 'size', 'tone', 'echo', 'warmth']) song.fx[key] = nudge(song.fx[key], 0.08);
+  fitBand(song);
 }
 
 // ---------- cleaning ----------
@@ -1050,6 +1139,12 @@ const GROOVES = {
       { k: 'x.......-.x.....', s: '........x.......', h: 'x.x.x.x.x.x.x.x.', c: 'x.......x.......' },
       { k: 'x..x......x.....', s: '........x.......', h: 'x...x...x...x...', p: '......-.......-.', c: 'x..x......x.....' },
     ],
+    // brushes: a jazz ride (ding, ding-a ding) with the brush swishing on 2 and 4, for cozy and
+    // wistful songs. it sounds best swung
+    brush: [
+      { k: 'x.......-.......', s: '....x.......x...', h: 'x...x.x.x...x.x.', c: 'x.....x.........' },
+      { k: 'x...........-...', s: '....x.......x...', h: 'x...x.x.x...x.x.', p: '..........-.....', c: 'x.......x.......' },
+    ],
     pulse: [
       { k: 'x.......x.......', p: '....-.......-...', c: 'x.......x.......' },
       { k: 'x.........x.....', p: '....-...-...-...', c: 'x.........x.....' },
@@ -1073,6 +1168,7 @@ const GROOVES = {
       { k: 'x.......x...', s: '....x.......', h: 'x.x.x.x.x.x.', c: 'x.......x...' },
     ],
     halftime: [{ k: 'x...........', s: '........x...', h: 'x...x...x...', c: 'x...........' }],
+    brush: [{ k: 'x...........', s: '....x...x...', h: 'x...x.x.x...', c: 'x...........' }],
     pulse: [{ k: 'x...........', p: '....-...-...', c: 'x...........' }],
     tribal: [{ k: 'x...........', l: 'x..x..x.x...', p: '..-...-...-.', c: 'x..x..x.....' }],
     march: [{ k: 'x...........', s: 'x.xxx.x.x.x.', h: 'x...x...x...', c: 'x...x...x...' }],
@@ -1084,6 +1180,7 @@ const GROOVES = {
       { k: 'x.-...', s: '...x..', h: 'x--x--', c: 'x..x.x' },
     ],
     halftime: [{ k: 'x.....', s: '...-..', h: 'x-.x-.', c: 'x.....' }],
+    brush: [{ k: 'x.....', s: '...x..', h: 'x.xx.x', c: 'x..x..' }],
     pulse: [{ k: 'x.....', p: '...-..', c: 'x.....' }],
     tribal: [{ k: 'x.....', l: 'x.xx.x', p: '.-..-.', c: 'x.xx.x' }],
     march: [{ k: 'x..x..', s: 'x-xx-x', h: 'x..x..', c: 'x..x..' }],
@@ -1093,6 +1190,7 @@ const GROOVES = {
   '5/4': {
     groove: [{ k: 'x...........x.......', s: '........x.......x...', h: 'x.x.x.x.x.x.x.x.x.x.', c: 'x.......x...x.......' }],
     halftime: [{ k: 'x...........x.......', s: '........x...........', h: 'x...x...x...x...x...', c: 'x...........x.......' }],
+    brush: [{ k: 'x...................', s: '....x.......x.......', h: 'x...x.x.x...x.x.x...', c: 'x...........x.......' }],
     pulse: [{ k: 'x...........x.......', p: '........-.......-...', c: 'x...........x.......' }],
     tribal: [{ k: 'x...........x.......', l: 'x..x..x.....x..x....', p: '..-...-...-...-...-.', c: 'x..x..x.....x.......' }],
     march: [{ k: 'x...........x.......', s: 'x.xxx.x.x.x.x.xxx.x.', h: 'x...x...x...x...x...', c: 'x...x...x...x...x...' }],
@@ -1101,6 +1199,8 @@ const GROOVES = {
 };
 // the drum each groove line plays (KIT_SLOTS order in synth.js)
 const GROOVE_SLOTS = { k: 0, s: 1, h: 2, o: 3, p: 4, l: 5 };
+// the grooves that get busier in B parts, and the ones whose fills and section crashes are loud
+const LIFTS = { groove: true, halftime: true, march: true };
 
 // a part's groove, as numbers: 1 a hit, 0.5 a soft one, 0 nothing. songs without drums still get one
 // (the style's usual), so their bass and stabs keep to a steady rhythm
@@ -1113,8 +1213,9 @@ function grooveFor(song, part) {
   const lines = {};
   for (const name of [...Object.keys(GROOVE_SLOTS), 'c']) lines[name] = [...(written[name] || '.'.repeat(steps))].map((char) => (char === 'x' ? 1 : char === '-' ? 0.5 : 0));
   if (!written.c) lines.c = lines.k.slice();
-  if (part === 'B' && written.h) {
-    // lifted: soft hats in between, and an open hat on the last off beat pushing into the next bar
+  if (part === 'B' && LIFTS[kind]) {
+    // lifted: soft hats in between, and an open hat on the last off beat pushing into the next bar.
+    // only for the pop grooves: it put busy 16th hats into quiet sparse beats and jazz brushes
     if (perBeat === 4) lines.h = lines.h.map((v, i) => v || (i % 2 ? 0.5 : 0));
     const push = steps - Math.ceil(perBeat / 2);
     lines.o[push] = 1;
@@ -1185,9 +1286,11 @@ const CELLS = {
   },
 };
 
-// a bar's rhythm: cells end to end until it's full. busier layers pick faster cells. rest: the chance
-// each note is a gap instead
-function makeBar(rng, c, density, rest) {
+// a bar's rhythm: cells end to end until it's full. busier layers pick faster cells, quieter ones
+// slower (longer notes). there are no rests inside a bar: I used to turn random notes into gaps, and
+// because the motif repeats, the same holes came back every bar and the tune sounded like it kept
+// cutting out. a sparse melody is long notes instead, and it breathes at the ends of phrases (tune())
+function makeBar(rng, c, density) {
   const cells = CELLS[c.sub];
   const out = [];
   let t = 0;
@@ -1196,7 +1299,7 @@ function makeBar(rng, c, density, rest) {
     for (const length of rng.pick(cells[speed])) {
       if (t >= c.bpb - 1e-6) break;
       const dur = Math.min(length, c.bpb - t);
-      out.push({ t, dur, rest: t > 0 && rng.chance(rest) });
+      out.push({ t, dur });
       t += dur;
     }
   }
@@ -1234,12 +1337,12 @@ const stepShape = (rng) => rng.weighted([[1, 3], [-1, 3.2], [2, 1.4], [-2, 1.5],
 // upside down, e the ending (half the motif, then a long note to rest on)
 const PHRASE_PLANS = [['m', 'm', 'v', 'e'], ['m', 'v', 'm', 'e'], ['m', 'i', 'm', 'e'], ['m', 'v', 'i', 'e'], ['m', 'm', 'm', 'e']];
 
-function tune(c, { density, rest, low, high, plan4 }) {
+function tune(c, { density, low, high, plan4 }) {
   const { rng } = c;
   const phraseBars = c.bars >= 4 && (plan4 || rng.chance(0.6)) ? 4 : Math.min(2, c.bars);
-  const motif = makeBar(rng, c, density, rest);
+  const motif = makeBar(rng, c, density);
   const shape = motif.map(() => stepShape(rng));
-  const variant = makeBar(rng, c, density, rest);
+  const variant = makeBar(rng, c, density);
   const variantShape = variant.map(() => stepShape(rng));
   const plan = phraseBars === 4 ? rng.pick(PHRASE_PLANS) : phraseBars === 2 ? ['m', 'e'] : ['e'];
   // a later time round a part can change how its last phrase goes (c.vary is per time round)
@@ -1254,8 +1357,10 @@ function tune(c, { density, rest, low, high, plan4 }) {
     let rhythm = kind === 'v' ? variant : motif;
     let steps = kind === 'v' ? variantShape : kind === 'i' ? shape.map((s) => -s) : shape;
     if (kind === 'e') {
-      // the first half of the motif, then one long note
-      rhythm = motif.filter((n) => n.t < c.bpb / 2);
+      // the first half of the motif, then one long note. only motif notes that finish by half way:
+      // a motif of one whole bar note used to be kept whole, and the long note then spilled into the
+      // next bar as a stray blip on top of its first note
+      rhythm = motif.filter((n) => n.t + n.dur <= c.bpb / 2 + 1e-6);
       const from = rhythm.length ? rhythm[rhythm.length - 1].t + rhythm[rhythm.length - 1].dur : 0;
       rhythm = [...rhythm, { t: from, dur: c.bpb - from, end: true }];
       steps = [...shape];
@@ -1264,7 +1369,6 @@ function tune(c, { density, rest, low, high, plan4 }) {
     if (place === 0 && bar > 0) degree = chordDegree(c, Math.round(degree / 2) + rng.int(-1, 2), chordAt(c, barStart));
     rhythm.forEach((cell, i) => {
       const t = barStart + cell.t;
-      if (cell.rest) return;
       degree += steps[i % steps.length] || 0;
       if (degree > high) degree -= 2 * Math.abs(steps[i % steps.length] || 1);
       if (degree < low) degree += 2 * Math.abs(steps[i % steps.length] || 1);
@@ -1281,7 +1385,8 @@ function tune(c, { density, rest, low, high, plan4 }) {
       } else if (isStrong(c, t) || cell.dur >= 1) degree = chordDegree(c, degree, chord);
       const gap = cell.end ? Math.min(0.5, cell.dur * 0.25) : 0;
       notes.push({
-        t, dur: Math.max(c.step, (cell.dur - gap) * 0.95),
+        // nearly legato, so the line sings rather than ticks
+        t, dur: Math.max(c.step, (cell.dur - gap) * 0.97),
         midi: fitToChord(degreeMidi(c, degree), chord, c.scalePcs),
         vel: (isStrong(c, t) ? 0.85 : 0.68) + rng.range(-0.05, 0.05),
       });
@@ -1290,37 +1395,66 @@ function tune(c, { density, rest, low, high, plan4 }) {
   return notes;
 }
 
+// a counter melody in harmony: the melody a third (two scale steps) or a sixth below, on its longer
+// notes. thirds and sixths are the intervals that blend; anything else fights the tune
+function harmonise(c, density) {
+  const below = c.rng.chance(0.65) ? 2 : 5;
+  return c.melody.filter((note) => note.dur >= c.step * 2 && c.rng.chance(0.4 + density * 0.6)).map((note) => {
+    let midi = note.midi;
+    for (let step = 0; step < below; step++) {
+      midi--;
+      while (!c.scalePcs.has(mod12(midi))) midi--;
+    }
+    while (midi > c.center + 9) midi -= 12;
+    return { t: note.t, dur: note.dur, midi: fitToChord(midi, chordAt(c, note.t), c.scalePcs), vel: note.vel * 0.8 };
+  });
+}
+
+// the bells' chimes: [beats after the chord changes, which chord note counting down from the top]
+const BELL_FIGURES = [
+  [[0, 0], [0.5, 1], [1, 2]],
+  [[0, 0], [1, 1]],
+  [[0, 2], [0.5, 1], [1, 0]],
+  [[0, 0], [1.5, 1], [2, 0]],
+  [[0, 1], [0.5, 0], [1, 1], [1.5, 2]],
+];
+
 const COMPOSERS = {
   melody(c) {
     const { pattern, density } = c.layer;
-    if (pattern === 'long') return tune(c, { density: density * 0.3, rest: 0.35, low: -3, high: 7, plan4: true });
-    const notes = tune(c, { density, rest: (1 - density) * 0.3, low: -4, high: 7 });
-    // calls: every other bar left empty, for something else to answer
-    if (pattern === 'calls') return notes.filter((note) => Math.floor((note.t - c.start) / c.bpb) % 2 === 0);
-    return notes;
+    if (pattern === 'long') return tune(c, { density: density * 0.3, low: -3, high: 7, plan4: true });
+    const notes = tune(c, { density, low: -4, high: 7 });
+    if (pattern !== 'calls') return notes;
+    // calls: a bar of tune, its last note held on through half the next bar, then quiet for the other
+    // half, leaving room for an answer (a counter melody on "answers" fills it). I first just emptied
+    // every other bar, and the tune seemed to stop mid thought
+    const barOf = (note) => Math.floor((note.t - c.start) / c.bpb + 1e-9);
+    const kept = notes.filter((note) => barOf(note) % 2 === 0);
+    for (let i = 0; i < kept.length; i++) {
+      const next = kept[i + 1];
+      if (next && barOf(next) === barOf(kept[i])) continue;
+      const until = Math.min(c.end, c.start + (barOf(kept[i]) + 1.5) * c.bpb);
+      kept[i].dur = Math.max(kept[i].dur, until - kept[i].t);
+    }
+    return kept;
   },
 
   counter(c) {
     const { pattern, density } = c.layer;
-    if (pattern === 'harmony' && c.melody) {
-      // the melody a third (two scale steps) or a sixth below, on its longer notes
-      const below = c.rng.chance(0.65) ? 2 : 5;
-      return c.melody.filter((note) => note.dur >= c.step * 2 && c.rng.chance(0.4 + density * 0.6)).map((note) => {
-        const chord = chordAt(c, note.t);
-        let midi = note.midi;
-        // walk down the scale "below" steps
-        for (let step = 0; step < below; step++) {
-          midi--;
-          while (!c.scalePcs.has(mod12(midi))) midi--;
-        }
-        while (midi > c.center + 9) midi -= 12;
-        return { t: note.t, dur: note.dur, midi: fitToChord(midi, chord, c.scalePcs), vel: note.vel * 0.8 };
-      });
-    }
-    const notes = tune(c, { density: density * 0.8, rest: 0.2 + (1 - density) * 0.3, low: -4, high: 6 });
+    if (pattern === 'harmony' && c.melody) return harmonise(c, density);
+    const notes = tune(c, { density: density * 0.8, low: -4, high: 6 });
     if (pattern === 'free' || !c.melody) return notes;
-    // answers: only where the melody is resting or holding a note, like two people talking
-    return notes.filter((note) => !c.melody.some((m) => note.t >= m.t - 1e-6 && note.t < m.t + Math.min(m.dur, 1)));
+    // answers: whole bars, where the melody rests or holds one note, like two people talking. it
+    // used to drop single notes wherever the melody played, which left stray two note fragments. with
+    // a busy melody there's nowhere to answer, so it harmonises instead
+    const starts = {};
+    for (const note of c.melody) {
+      const bar = Math.floor((note.t - c.start) / c.bpb + 1e-9);
+      starts[bar] = (starts[bar] || 0) + 1;
+    }
+    const open = (bar) => (starts[bar] || 0) <= 1;
+    const answers = notes.filter((note) => open(Math.floor((note.t - c.start) / c.bpb + 1e-9)));
+    return answers.length ? answers : harmonise(c, density);
   },
 
   arp(c) {
@@ -1356,33 +1490,48 @@ const COMPOSERS = {
   bells(c) {
     const { pattern, density } = c.layer;
     if (pattern === 'phasing') {
-      // a few notes, each on its own loop length. the loops are worked out from the song's start,
-      // not the section's, so they carry on drifting across sections
+      // a few notes from the home chord and its neighbours, each on its own loop length (eno's tape
+      // loops). they count from the song's start, not the section's, so they carry on drifting
+      // across sections. lengths are two to four bars, give or take a beat or two, and everything's
+      // on a whole beat: I first used any half beat length from 5 to 15 beats, and the bells landed
+      // off the beat at times that sounded random rather than drifting
       const rng = makeRng(c.song.seed, c.layer.seed, 'loops');
-      const count = 2 + Math.round(density * 3);
-      const pool = [0, 2, 4, 1, 5, 7, 9, 4, 6];
+      const count = 2 + Math.round(density * 2);
+      const pool = [0, 4, 2, 7, 5, 9];
       const notes = [];
       for (let i = 0; i < count; i++) {
-        const degree = pool[(i * 3 + rng.int(0, 8)) % pool.length];
-        const period = Math.round(rng.range(5, 15) * 2) / 2;
-        const phase = Math.round(rng.range(0, period) * 2) / 2;
-        const dur = rng.range(1.5, 4);
+        const degree = pool[(i * 2 + rng.int(0, 5)) % pool.length];
+        const period = rng.pick([2, 3, 4]) * c.bpb + rng.pick([0, 0, 1, 2]);
+        const phase = rng.int(0, c.bpb * 2 - 1);
+        const dur = rng.range(2, 4);
         const first = phase + Math.ceil((c.start - phase) / period) * period;
         for (let t = first; t < c.end - 1e-6; t += period) {
-          notes.push({ t, dur, midi: fitToChord(degreeMidi(c, degree), chordAt(c, t), c.scalePcs), vel: rng.range(0.45, 0.75) });
+          notes.push({ t, dur, midi: fitToChord(degreeMidi(c, degree), chordAt(c, t), c.scalePcs), vel: rng.range(0.45, 0.7) });
         }
       }
       return notes;
     }
-    // sparkle: now and then a chord note up high
+    // chimes (saved as "sparkle"): a short figure of the chord's own notes, rung as the chord changes
+    // (and every two bars through long chords). the figure stays the same all part long, so it's a
+    // little hook you can listen out for. busy rings it every time, quieter every other time. this
+    // used to be random high notes on any step, which sounded pretty but arrived at random
+    const shape = makeRng(c.song.seed, c.layer.seed, 'chimes', c.section.part);
+    const figure = shape.pick(BELL_FIGURES);
+    const every = density > 0.55 ? 1 : 2;
     const notes = [];
-    const step = rateStep(c.layer.rate, c.sub);
-    for (let t = c.start; t < c.end - 1e-6; t += step) {
-      if (!c.rng.chance(density * 0.16)) continue;
-      const chord = chordAt(c, t);
-      let degree = c.rng.int(0, 9);
-      if (c.rng.chance(0.7)) degree = chordDegree(c, degree, chord);
-      notes.push({ t, dur: c.rng.range(1, 2.5), midi: fitToChord(degreeMidi(c, degree), chord, c.scalePcs), vel: c.rng.range(0.35, 0.7) });
+    let previous = null;
+    let ring = 0;
+    for (const chord of c.chords) {
+      const voiced = voiceChord(chord.root, chord.tones.filter((tone) => tone < 12), c.center, previous);
+      previous = voiced;
+      const end = chord.t + chord.dur;
+      for (let at = chord.t; at < end - 1e-6; at += c.bpb * 2, ring++) {
+        if (ring % every) continue;
+        for (const [after, index] of figure) {
+          if (at + after >= end - 1e-6) continue;
+          notes.push({ t: at + after, dur: Math.min(2.5, end - at - after), midi: voiced[Math.max(0, voiced.length - 1 - index)], vel: after === 0 ? 0.62 : 0.5 });
+        }
+      }
     }
     return notes;
   },
@@ -1526,9 +1675,11 @@ const COMPOSERS = {
     const hit = (t, slot, vel) => notes.push({ t, dur: grid, midi: slot, vel });
     // a fill when the next section is a different part: the last beat on the snare (toms for the
     // quieter patterns), getting louder, then an open hat on the next bar's first beat like a crash
-    const fill = c.next && c.next.part !== c.section.part && c.vary.chance(0.75);
-    const fillDrum = pattern === 'groove' || pattern === 'march' || pattern === 'halftime' ? 1 : 5;
-    if (c.prev && c.prev.part !== c.section.part && c.prev.play.includes(c.layer.id) && pattern !== 'sparse' && pattern !== 'pulse') hit(c.start, 3, 0.8);
+    // the quiet patterns (pulse, sparse) never fill: a drum roll in the middle of a calm song made
+    // it jump. brushes fill on the brush, tribal on the toms
+    const fill = (LIFTS[pattern] || pattern === 'brush' || pattern === 'tribal') && c.next && c.next.part !== c.section.part && c.vary.chance(0.75);
+    const fillDrum = pattern === 'tribal' ? 5 : 1;
+    if (LIFTS[pattern] && c.prev && c.prev.part !== c.section.part && c.prev.play.includes(c.layer.id)) hit(c.start, 3, 0.8);
     for (let n = 0; n < c.bars; n++) {
       const bar = c.start + n * c.bpb;
       const fillFrom = fill && n === c.bars - 1 ? steps - perBeat : steps;

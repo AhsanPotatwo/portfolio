@@ -11,7 +11,10 @@
 // ---------- instruments ----------
 //
 // INSTRUMENTS is data, one entry per instrument, so a new one is usually a new line. family is what
-// it's listed under (and which roles can use it, roleFamily() in music.js), kind is the engine:
+// it's listed under (and which roles can use it, roleFamily() in music.js). edge is how harsh or
+// cutting it is, 0 (a sine sub bass) to 1 (a saw lead): moods cap it, and backing layers get a lower
+// cap than the melody, so a buzzy instrument never ends up under a gentle one (fitBand() in music.js).
+// a new instrument needs an edge too, judged by ear. kind is the engine:
 //   sub      subtractive: oscillators (osc: [wave, detune in cents, octave, level]) through a
 //            filter. a wave is one of the browser's four or one of WAVES (built from harmonics)
 //   fm       frequency modulation: one sine wobbling another's pitch, the bells and electric pianos
@@ -52,58 +55,58 @@ const KIT_SLOTS = ['Kick', 'Snare', 'Hat', 'Open hat', 'Perc', 'Low perc'];
 
 const INSTRUMENTS = {
   // pads
-  'warm-pad':    { name: 'Warm pad', family: 'pad', kind: 'sub', osc: [['sawtooth', -9], ['sawtooth', 9], ['triangle', 0, -1, 0.6]], filter: { freq: 850, q: 0.8, env: 1.8, attack: 1.2, decay: 2 }, env: [1.4, 1.5, 0.8, 2.8], gain: 0.05 },
-  'glass-pad':   { name: 'Glass pad', family: 'pad', kind: 'sub', osc: [['glass', -5], ['glass', 6, 1, 0.3]], filter: { freq: 4200, q: 0.5 }, env: [1.8, 2, 0.75, 3.5], gain: 0.07 },
-  'choir-ah':    { name: 'Choir, ah', family: 'pad', kind: 'choir', vowel: 'ah', env: [1.1, 1, 0.85, 2.4], gain: 0.22, vibrato: { rate: 4.8, depth: 9, delay: 0.8 } },
-  'choir-oo':    { name: 'Choir, oo', family: 'pad', kind: 'choir', vowel: 'oo', env: [1.4, 1, 0.85, 2.8], gain: 0.3, vibrato: { rate: 4.5, depth: 8, delay: 1 } },
-  strings:       { name: 'Strings', family: 'pad', kind: 'sub', osc: [['sawtooth', -7], ['sawtooth', 6], ['sawtooth', 1, 1, 0.2]], filter: { freq: 1900, q: 0.6 }, env: [0.8, 1, 0.9, 1.4], gain: 0.042, vibrato: { rate: 5.3, depth: 11, delay: 0.5 } },
-  'dark-pad':    { name: 'Dark pad', family: 'pad', kind: 'sub', osc: [['sawtooth', -14], ['square', 12, -1, 0.45]], filter: { freq: 380, q: 3, env: 2.6, attack: 3, decay: 4 }, env: [2.5, 2, 0.8, 4], gain: 0.06 },
-  shimmer:       { name: 'Shimmer', family: 'pad', kind: 'sub', osc: [['sine', 0], ['sine', 5, 1, 0.5], ['triangle', -4, 2, 0.18]], env: [2, 2, 0.7, 4.5], gain: 0.07, tremolo: { rate: 3.2, depth: 0.3 } },
+  'warm-pad':    { name: 'Warm pad', family: 'pad', edge: 0.4, edge: 0.2, kind: 'sub', osc: [['sawtooth', -9], ['sawtooth', 9], ['triangle', 0, -1, 0.6]], filter: { freq: 850, q: 0.8, env: 1.8, attack: 1.2, decay: 2 }, env: [1.4, 1.5, 0.8, 2.8], gain: 0.05 },
+  'glass-pad':   { name: 'Glass pad', family: 'pad', edge: 0.25, kind: 'sub', osc: [['glass', -5], ['glass', 6, 1, 0.3]], filter: { freq: 4200, q: 0.5 }, env: [1.8, 2, 0.75, 3.5], gain: 0.07 },
+  'choir-ah':    { name: 'Choir, ah', family: 'pad', edge: 0.2, kind: 'choir', vowel: 'ah', env: [1.1, 1, 0.85, 2.4], gain: 0.22, vibrato: { rate: 4.8, depth: 9, delay: 0.8 } },
+  'choir-oo':    { name: 'Choir, oo', family: 'pad', edge: 0.1, kind: 'choir', vowel: 'oo', env: [1.4, 1, 0.85, 2.8], gain: 0.3, vibrato: { rate: 4.5, depth: 8, delay: 1 } },
+  strings:       { name: 'Strings', family: 'pad', edge: 0.35, kind: 'sub', osc: [['sawtooth', -7], ['sawtooth', 6], ['sawtooth', 1, 1, 0.2]], filter: { freq: 1900, q: 0.6 }, env: [0.8, 1, 0.9, 1.4], gain: 0.042, vibrato: { rate: 5.3, depth: 11, delay: 0.5 } },
+  'dark-pad':    { name: 'Dark pad', family: 'pad', edge: 0.3, kind: 'sub', osc: [['sawtooth', -14], ['square', 12, -1, 0.45]], filter: { freq: 380, q: 3, env: 2.6, attack: 3, decay: 4 }, env: [2.5, 2, 0.8, 4], gain: 0.06 },
+  shimmer:       { name: 'Shimmer', family: 'pad', edge: 0.15, kind: 'sub', osc: [['sine', 0], ['sine', 5, 1, 0.5], ['triangle', -4, 2, 0.18]], env: [2, 2, 0.7, 4.5], gain: 0.07, tremolo: { rate: 3.2, depth: 0.3 } },
   organ:         { name: 'Organ', family: 'pad', kind: 'sub', osc: [['organ', 0], ['organ', 4, 1, 0.3]], filter: { freq: 4500, q: 0.3 }, env: [0.06, 0.4, 0.9, 0.35], gain: 0.06, tremolo: { rate: 6, depth: 0.15 } },
-  'air-pad':     { name: 'Air pad', family: 'pad', kind: 'sub', osc: [['sine', 0], ['triangle', 3, 1, 0.15]], breath: 1.6, env: [2.2, 2, 0.8, 3.5], gain: 0.08 },
-  'haunted-pad': { name: 'Haunted pad', family: 'pad', kind: 'sub', osc: [['hollow', -24], ['hollow', 21], ['sine', 0, -1, 0.5]], filter: { freq: 1000, q: 5 }, env: [3, 2, 0.8, 4], gain: 0.055, tremolo: { rate: 0.35, depth: 0.55 }, vibrato: { rate: 0.21, depth: 28, delay: 0 } },
+  'air-pad':     { name: 'Air pad', family: 'pad', edge: 0.05, kind: 'sub', osc: [['sine', 0], ['triangle', 3, 1, 0.15]], breath: 1.6, env: [2.2, 2, 0.8, 3.5], gain: 0.08 },
+  'haunted-pad': { name: 'Haunted pad', family: 'pad', edge: 0.45, kind: 'sub', osc: [['hollow', -24], ['hollow', 21], ['sine', 0, -1, 0.5]], filter: { freq: 1000, q: 5 }, env: [3, 2, 0.8, 4], gain: 0.055, tremolo: { rate: 0.35, depth: 0.55 }, vibrato: { rate: 0.21, depth: 28, delay: 0 } },
 
   // keys and mallets
-  'felt-keys':   { name: 'Felt piano', family: 'keys', kind: 'fm', ratio: 1, index: 1.1, indexDecay: 0.25, sustainIndex: 0.05, partials: [[2, 0.35, 0.5], [3, 0.12, 0.25]], filter: { freq: 2200, q: 0.4, track: 0.5 }, env: [0.006, 1.8, 0, 0.5], gain: 0.2 },
-  'e-piano':     { name: 'Electric piano', family: 'keys', kind: 'fm', ratio: 1, index: 1.6, indexDecay: 0.6, sustainIndex: 0.15, partials: [[14, 0.08, 0.04]], env: [0.005, 2.4, 0.15, 0.6], gain: 0.2, tremolo: { rate: 4.5, depth: 0.12 } },
-  harp:          { name: 'Harp', family: 'keys', kind: 'pluck', bright: 0.6, decay: 3.5, env: [0.002, 3, 1, 1.2], gain: 0.5 },
-  'music-box':   { name: 'Music box', family: 'keys', kind: 'fm', ratio: 5.04, index: 0.5, indexDecay: 0.2, sustainIndex: 0, partials: [[4, 0.25, 0.3]], env: [0.002, 1.4, 0, 0.6], gain: 0.2 },
-  marimba:       { name: 'Marimba', family: 'keys', kind: 'fm', ratio: 4, index: 0.9, indexDecay: 0.05, sustainIndex: 0, partials: [[10, 0.06, 0.02]], env: [0.003, 0.45, 0, 0.3], gain: 0.3 },
-  kalimba:       { name: 'Kalimba', family: 'keys', kind: 'fm', ratio: 5.4, index: 0.7, indexDecay: 0.04, sustainIndex: 0, partials: [[6.3, 0.1, 0.05]], env: [0.002, 0.9, 0, 0.4], gain: 0.27 },
-  celesta:       { name: 'Celesta', family: 'keys', kind: 'fm', ratio: 3, index: 0.6, indexDecay: 0.15, sustainIndex: 0.02, partials: [[2, 0.3, 0.6]], env: [0.002, 1.6, 0, 0.7], gain: 0.2 },
-  pizzicato:     { name: 'Pizzicato', family: 'keys', kind: 'pluck', bright: 0.35, decay: 0.7, filter: { freq: 2600, q: 0.6, track: 0.4 }, env: [0.002, 0.6, 1, 0.15], gain: 0.55 },
-  vibes:         { name: 'Vibraphone', family: 'keys', kind: 'fm', ratio: 4, index: 0.25, indexDecay: 0.1, sustainIndex: 0, partials: [[10, 0.04, 0.05]], env: [0.003, 3.5, 0, 1.2], gain: 0.24, tremolo: { rate: 5.5, depth: 0.35 } },
+  'felt-keys':   { name: 'Felt piano', family: 'keys', edge: 0.1, kind: 'fm', ratio: 1, index: 1.1, indexDecay: 0.25, sustainIndex: 0.05, partials: [[2, 0.35, 0.5], [3, 0.12, 0.25]], filter: { freq: 2200, q: 0.4, track: 0.5 }, env: [0.006, 1.8, 0, 0.5], gain: 0.2 },
+  'e-piano':     { name: 'Electric piano', family: 'keys', edge: 0.2, kind: 'fm', ratio: 1, index: 1.6, indexDecay: 0.6, sustainIndex: 0.15, partials: [[14, 0.08, 0.04]], env: [0.005, 2.4, 0.15, 0.6], gain: 0.2, tremolo: { rate: 4.5, depth: 0.12 } },
+  harp:          { name: 'Harp', family: 'keys', edge: 0.2, kind: 'pluck', bright: 0.6, decay: 3.5, env: [0.002, 3, 1, 1.2], gain: 0.5 },
+  'music-box':   { name: 'Music box', family: 'keys', edge: 0.3, kind: 'fm', ratio: 5.04, index: 0.5, indexDecay: 0.2, sustainIndex: 0, partials: [[4, 0.25, 0.3]], env: [0.002, 1.4, 0, 0.6], gain: 0.2 },
+  marimba:       { name: 'Marimba', family: 'keys', edge: 0.2, kind: 'fm', ratio: 4, index: 0.9, indexDecay: 0.05, sustainIndex: 0, partials: [[10, 0.06, 0.02]], env: [0.003, 0.45, 0, 0.3], gain: 0.3 },
+  kalimba:       { name: 'Kalimba', family: 'keys', edge: 0.25, kind: 'fm', ratio: 5.4, index: 0.5, indexDecay: 0.04, sustainIndex: 0, partials: [[6.3, 0.1, 0.05]], env: [0.002, 0.9, 0, 0.4], gain: 0.27 },
+  celesta:       { name: 'Celesta', family: 'keys', edge: 0.3, kind: 'fm', ratio: 3, index: 0.6, indexDecay: 0.15, sustainIndex: 0.02, partials: [[2, 0.3, 0.6]], env: [0.002, 1.6, 0, 0.7], gain: 0.2 },
+  pizzicato:     { name: 'Pizzicato', family: 'keys', edge: 0.2, kind: 'pluck', bright: 0.35, decay: 0.7, filter: { freq: 2600, q: 0.6, track: 0.4 }, env: [0.002, 0.6, 1, 0.15], gain: 0.55 },
+  vibes:         { name: 'Vibraphone', family: 'keys', edge: 0.15, kind: 'fm', ratio: 4, index: 0.25, indexDecay: 0.1, sustainIndex: 0, partials: [[10, 0.04, 0.05]], env: [0.003, 3.5, 0, 1.2], gain: 0.24, tremolo: { rate: 5.5, depth: 0.35 } },
 
   // bells
-  bell:          { name: 'Church bell', family: 'bell', kind: 'fm', ratio: 3.5, index: 2.4, indexDecay: 1.2, sustainIndex: 0.2, partials: [[0.5, 0.25, 3], [2.76, 0.1, 1.4]], env: [0.002, 5, 0, 2.5], gain: 0.13 },
-  'glass-bell':  { name: 'Glass bell', family: 'bell', kind: 'fm', ratio: 1.4, index: 1, indexDecay: 1.4, sustainIndex: 0.25, env: [0.004, 4, 0, 2], gain: 0.16 },
-  chime:         { name: 'Wind chime', family: 'bell', kind: 'fm', ratio: 7.1, index: 0.8, indexDecay: 0.6, sustainIndex: 0.1, partials: [[2.4, 0.2, 1]], env: [0.002, 3, 0, 1.5], gain: 0.14 },
+  bell:          { name: 'Church bell', family: 'bell', edge: 0.7, kind: 'fm', ratio: 3.5, index: 1.7, indexDecay: 1.2, sustainIndex: 0.15, partials: [[0.5, 0.25, 3], [2.76, 0.1, 1.4]], env: [0.002, 5, 0, 2.5], gain: 0.13 },
+  'glass-bell':  { name: 'Glass bell', family: 'bell', edge: 0.3, kind: 'fm', ratio: 2, index: 0.8, indexDecay: 1.4, sustainIndex: 0.2, env: [0.004, 4, 0, 2], gain: 0.16 },
+  chime:         { name: 'Wind chime', family: 'bell', edge: 0.45, kind: 'fm', ratio: 7, index: 0.6, indexDecay: 0.6, sustainIndex: 0.1, partials: [[3, 0.2, 1]], env: [0.002, 3, 0, 1.5], gain: 0.14 },
 
   // leads
-  flute:         { name: 'Flute', family: 'lead', kind: 'sub', osc: [['sine', 0], ['triangle', 2, 1, 0.12]], breath: 0.35, env: [0.09, 0.3, 0.85, 0.25], gain: 0.2, vibrato: { rate: 5, depth: 12, delay: 0.35 } },
-  ocarina:       { name: 'Ocarina', family: 'lead', kind: 'sub', osc: [['soft', 0]], breath: 0.15, filter: { freq: 2500, q: 0.4 }, env: [0.05, 0.3, 0.8, 0.2], gain: 0.22, vibrato: { rate: 5.5, depth: 8, delay: 0.3 } },
-  'soft-lead':   { name: 'Soft lead', family: 'lead', kind: 'sub', osc: [['triangle', -3], ['triangle', 4]], filter: { freq: 1800, q: 0.6, track: 0.5 }, env: [0.04, 0.4, 0.75, 0.4], gain: 0.16, vibrato: { rate: 5, depth: 6, delay: 0.4 } },
-  'saw-lead':    { name: 'Saw lead', family: 'lead', kind: 'sub', osc: [['sawtooth', -6], ['sawtooth', 6]], filter: { freq: 1600, q: 2, env: 2.2, attack: 0.02, decay: 0.3, track: 0.5 }, env: [0.01, 0.3, 0.7, 0.25], gain: 0.085, vibrato: { rate: 5.5, depth: 9, delay: 0.3 } },
-  'square-lead': { name: 'Square lead', family: 'lead', kind: 'sub', osc: [['square', -4], ['square', 5, -1, 0.3]], filter: { freq: 2000, q: 0.7, track: 0.4 }, env: [0.01, 0.25, 0.65, 0.18], gain: 0.07, vibrato: { rate: 6, depth: 7, delay: 0.25 } },
-  violin:        { name: 'Violin', family: 'lead', kind: 'sub', osc: [['sawtooth', 0], ['sawtooth', 5, 0, 0.5]], filter: { freq: 2400, q: 1.2, track: 0.3 }, env: [0.18, 0.4, 0.85, 0.35], gain: 0.085, vibrato: { rate: 5.6, depth: 16, delay: 0.25 } },
-  horn:          { name: 'Horn', family: 'lead', kind: 'sub', osc: [['sawtooth', -4], ['sawtooth', 4]], filter: { freq: 700, q: 0.8, env: 2.5, attack: 0.12, decay: 0.5, track: 0.6 }, env: [0.08, 0.4, 0.8, 0.3], gain: 0.09, vibrato: { rate: 4.8, depth: 6, delay: 0.5 } },
-  whistle:       { name: 'Whistle', family: 'lead', kind: 'sub', osc: [['sine', 0]], breath: 0.25, env: [0.06, 0.2, 0.9, 0.15], gain: 0.2, vibrato: { rate: 6, depth: 18, delay: 0.2 } },
-  'pluck-lead':  { name: 'Plucked synth', family: 'lead', kind: 'sub', osc: [['sawtooth', -5], ['square', 5, 0, 0.5]], filter: { freq: 500, q: 3, env: 7, attack: 0.003, decay: 0.12, track: 0.6 }, env: [0.003, 0.35, 0.2, 0.25], gain: 0.09 },
+  flute:         { name: 'Flute', family: 'lead', edge: 0.15, kind: 'sub', osc: [['sine', 0], ['triangle', 2, 1, 0.12]], breath: 0.35, env: [0.09, 0.3, 0.85, 0.25], gain: 0.2, vibrato: { rate: 5, depth: 12, delay: 0.35 } },
+  ocarina:       { name: 'Ocarina', family: 'lead', edge: 0.15, kind: 'sub', osc: [['soft', 0]], breath: 0.15, filter: { freq: 2500, q: 0.4 }, env: [0.05, 0.3, 0.8, 0.2], gain: 0.22, vibrato: { rate: 5.5, depth: 8, delay: 0.3 } },
+  'soft-lead':   { name: 'Soft lead', family: 'lead', edge: 0.2, kind: 'sub', osc: [['triangle', -3], ['triangle', 4]], filter: { freq: 1800, q: 0.6, track: 0.5 }, env: [0.04, 0.4, 0.75, 0.4], gain: 0.16, vibrato: { rate: 5, depth: 6, delay: 0.4 } },
+  'saw-lead':    { name: 'Saw lead', family: 'lead', edge: 1, kind: 'sub', osc: [['sawtooth', -6], ['sawtooth', 6]], filter: { freq: 1600, q: 2, env: 2.2, attack: 0.02, decay: 0.3, track: 0.5 }, env: [0.01, 0.3, 0.7, 0.25], gain: 0.085, vibrato: { rate: 5.5, depth: 9, delay: 0.3 } },
+  'square-lead': { name: 'Square lead', family: 'lead', edge: 0.85, kind: 'sub', osc: [['square', -4], ['square', 5, -1, 0.3]], filter: { freq: 2000, q: 0.7, track: 0.4 }, env: [0.01, 0.25, 0.65, 0.18], gain: 0.07, vibrato: { rate: 6, depth: 7, delay: 0.25 } },
+  violin:        { name: 'Violin', family: 'lead', edge: 0.5, kind: 'sub', osc: [['sawtooth', 0], ['sawtooth', 5, 0, 0.5]], filter: { freq: 2400, q: 1.2, track: 0.3 }, env: [0.18, 0.4, 0.85, 0.35], gain: 0.085, vibrato: { rate: 5.6, depth: 16, delay: 0.25 } },
+  horn:          { name: 'Horn', family: 'lead', edge: 0.45, kind: 'sub', osc: [['sawtooth', -4], ['sawtooth', 4]], filter: { freq: 700, q: 0.8, env: 2.5, attack: 0.12, decay: 0.5, track: 0.6 }, env: [0.08, 0.4, 0.8, 0.3], gain: 0.09, vibrato: { rate: 4.8, depth: 6, delay: 0.5 } },
+  whistle:       { name: 'Whistle', family: 'lead', edge: 0.3, kind: 'sub', osc: [['sine', 0]], breath: 0.25, env: [0.06, 0.2, 0.9, 0.15], gain: 0.2, vibrato: { rate: 6, depth: 18, delay: 0.2 } },
+  'pluck-lead':  { name: 'Plucked synth', family: 'lead', edge: 0.6, kind: 'sub', osc: [['sawtooth', -5], ['square', 5, 0, 0.5]], filter: { freq: 500, q: 3, env: 7, attack: 0.003, decay: 0.12, track: 0.6 }, env: [0.003, 0.35, 0.2, 0.25], gain: 0.09 },
 
   // basses
-  'sub-bass':    { name: 'Sub bass', family: 'bass', kind: 'sub', osc: [['sine', 0], ['triangle', 0, 0, 0.25]], env: [0.02, 0.3, 0.9, 0.3], gain: 0.42 },
-  'round-bass':  { name: 'Round bass', family: 'bass', kind: 'sub', osc: [['triangle', 0], ['sine', 0, -1, 0.5]], filter: { freq: 600, q: 0.5 }, env: [0.01, 0.4, 0.75, 0.2], gain: 0.4 },
-  'synth-bass':  { name: 'Synth bass', family: 'bass', kind: 'sub', osc: [['sawtooth', -4], ['square', 4, -1, 0.5]], filter: { freq: 280, q: 4, env: 4, attack: 0.005, decay: 0.15 }, env: [0.005, 0.3, 0.7, 0.12], gain: 0.15 },
-  'pluck-bass':  { name: 'Plucked bass', family: 'bass', kind: 'pluck', bright: 0.4, decay: 1.6, filter: { freq: 900, q: 0.7 }, env: [0.002, 1.5, 1, 0.15], gain: 0.8 },
-  upright:       { name: 'Upright bass', family: 'bass', kind: 'pluck', bright: 0.2, decay: 1.2, filter: { freq: 500, q: 1 }, env: [0.004, 1, 1, 0.12], gain: 0.95 },
-  'growl-bass':  { name: 'Growl bass', family: 'bass', kind: 'sub', osc: [['sawtooth', -10], ['sawtooth', 10], ['square', 0, -1, 0.6]], filter: { freq: 420, q: 6, env: 3, attack: 0.01, decay: 0.25 }, env: [0.005, 0.3, 0.8, 0.12], gain: 0.11 },
+  'sub-bass':    { name: 'Sub bass', family: 'bass', edge: 0, kind: 'sub', osc: [['sine', 0], ['triangle', 0, 0, 0.25]], env: [0.02, 0.3, 0.9, 0.3], gain: 0.42 },
+  'round-bass':  { name: 'Round bass', family: 'bass', edge: 0.1, kind: 'sub', osc: [['triangle', 0], ['sine', 0, -1, 0.5]], filter: { freq: 600, q: 0.5 }, env: [0.01, 0.4, 0.75, 0.2], gain: 0.4 },
+  'synth-bass':  { name: 'Synth bass', family: 'bass', edge: 0.5, kind: 'sub', osc: [['sawtooth', -4], ['square', 4, -1, 0.5]], filter: { freq: 280, q: 4, env: 4, attack: 0.005, decay: 0.15 }, env: [0.005, 0.3, 0.7, 0.12], gain: 0.15 },
+  'pluck-bass':  { name: 'Plucked bass', family: 'bass', edge: 0.2, kind: 'pluck', bright: 0.4, decay: 1.6, filter: { freq: 900, q: 0.7 }, env: [0.002, 1.5, 1, 0.15], gain: 0.8 },
+  upright:       { name: 'Upright bass', family: 'bass', edge: 0.1, kind: 'pluck', bright: 0.2, decay: 1.2, filter: { freq: 500, q: 1 }, env: [0.004, 1, 1, 0.12], gain: 0.95 },
+  'growl-bass':  { name: 'Growl bass', family: 'bass', edge: 1, kind: 'sub', osc: [['sawtooth', -10], ['sawtooth', 10], ['square', 0, -1, 0.6]], filter: { freq: 420, q: 6, env: 3, attack: 0.01, decay: 0.25 }, env: [0.005, 0.3, 0.8, 0.12], gain: 0.11 },
 
   // drones
-  'deep-drone':  { name: 'Deep drone', family: 'drone', kind: 'sub', osc: [['sawtooth', -10], ['sawtooth', 9], ['sine', 0, -1, 0.7]], filter: { freq: 300, q: 2 }, env: [4, 3, 0.85, 5], gain: 0.07, tremolo: { rate: 0.13, depth: 0.25 } },
-  'cello-drone': { name: 'Cello drone', family: 'drone', kind: 'sub', osc: [['sawtooth', -3], ['sawtooth', 4]], filter: { freq: 700, q: 1.5 }, env: [2.5, 2, 0.85, 3], gain: 0.07, vibrato: { rate: 4.5, depth: 7, delay: 1.5 } },
-  void:          { name: 'The void', family: 'drone', kind: 'sub', osc: [['sine', 0], ['sine', 7], ['sine', -5, 1, 0.3]], breath: 0.6, env: [5, 3, 0.85, 6], gain: 0.17, tremolo: { rate: 0.08, depth: 0.4 } },
-  'bowed-metal': { name: 'Bowed metal', family: 'drone', kind: 'fm', ratio: 2.71, index: 1.4, indexDecay: 6, sustainIndex: 0.9, env: [3, 2, 0.85, 4], gain: 0.07, vibrato: { rate: 0.3, depth: 20, delay: 0 } },
-  'organ-drone': { name: 'Organ drone', family: 'drone', kind: 'sub', osc: [['organ', 0], ['organ', 3, -1, 0.5]], filter: { freq: 1600, q: 0.3 }, env: [2, 2, 0.9, 3], gain: 0.06 },
+  'deep-drone':  { name: 'Deep drone', family: 'drone', edge: 0.35, kind: 'sub', osc: [['sawtooth', -10], ['sawtooth', 9], ['sine', 0, -1, 0.7]], filter: { freq: 300, q: 2 }, env: [4, 3, 0.85, 5], gain: 0.07, tremolo: { rate: 0.13, depth: 0.25 } },
+  'cello-drone': { name: 'Cello drone', family: 'drone', edge: 0.3, kind: 'sub', osc: [['sawtooth', -3], ['sawtooth', 4]], filter: { freq: 700, q: 1.5 }, env: [2.5, 2, 0.85, 3], gain: 0.07, vibrato: { rate: 4.5, depth: 7, delay: 1.5 } },
+  void:          { name: 'The void', family: 'drone', edge: 0.1, kind: 'sub', osc: [['sine', 0], ['sine', 7], ['sine', -5, 1, 0.3]], breath: 0.6, env: [5, 3, 0.85, 6], gain: 0.17, tremolo: { rate: 0.08, depth: 0.4 } },
+  'bowed-metal': { name: 'Bowed metal', family: 'drone', edge: 0.6, kind: 'fm', ratio: 2.71, index: 1.4, indexDecay: 6, sustainIndex: 0.9, env: [3, 2, 0.85, 4], gain: 0.07, vibrato: { rate: 0.3, depth: 20, delay: 0 } },
+  'organ-drone': { name: 'Organ drone', family: 'drone', edge: 0.3, kind: 'sub', osc: [['organ', 0], ['organ', 3, -1, 0.5]], filter: { freq: 1600, q: 0.3 }, env: [2, 2, 0.9, 3], gain: 0.06 },
 
   // drum kits, slots in KIT_SLOTS order
   'soft-kit': { name: 'Soft kit', family: 'kit', kind: 'drums', slots: [
@@ -130,12 +133,14 @@ const INSTRUMENTS = {
 
   // textures
   wind:     { name: 'Wind', family: 'texture', kind: 'texture', texture: 'wind', gain: 0.9 },
-  rain:     { name: 'Rain', family: 'texture', kind: 'texture', texture: 'rain', gain: 0.7 },
+  // rain and crickets sit lower than the rest: they're mostly high frequencies, which the ear hears
+  // as louder and harsher than the same level of wind or ocean
+  rain:     { name: 'Rain', family: 'texture', kind: 'texture', texture: 'rain', gain: 0.45 },
   ocean:    { name: 'Ocean', family: 'texture', kind: 'texture', texture: 'ocean', gain: 0.9 },
   vinyl:    { name: 'Vinyl crackle', family: 'texture', kind: 'texture', texture: 'vinyl', gain: 0.6 },
   fire:     { name: 'Campfire', family: 'texture', kind: 'texture', texture: 'fire', gain: 0.8 },
   rumble:   { name: 'Rumble', family: 'texture', kind: 'texture', texture: 'rumble', gain: 1 },
-  crickets: { name: 'Crickets', family: 'texture', kind: 'texture', texture: 'crickets', gain: 0.5 },
+  crickets: { name: 'Crickets', family: 'texture', kind: 'texture', texture: 'crickets', gain: 0.3 },
   hum:      { name: 'Hum', family: 'texture', kind: 'texture', texture: 'hum', gain: 0.6 },
 };
 // how the instrument lists are grouped on the page
@@ -516,7 +521,7 @@ const TEXTURES = {
     high.type = 'highpass';
     high.frequency.value = 1200;
     const low = ctx.createBiquadFilter();
-    low.frequency.value = 7000 * bright;
+    low.frequency.value = Math.min(9000, 5000 * bright);
     const level = ctx.createGain();
     level.gain.value = 0.35;
     noiseSource(ctx, when, end).connect(high).connect(low).connect(level).connect(out);
