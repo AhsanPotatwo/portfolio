@@ -14,7 +14,10 @@
 // it's listed under (and which roles can use it, roleFamily() in music.js). edge is how harsh or
 // cutting it is, 0 (a sine sub bass) to 1 (a saw lead): moods cap it, and backing layers get a lower
 // cap than the melody, so a buzzy instrument never ends up under a gentle one (fitBand() in music.js).
-// a new instrument needs an edge too, judged by ear. kind is the engine:
+// a new instrument needs an edge too, judged by ear. world: 'chip' or 'acoustic' for the sounds that
+// belong to one kind of band, left out for ones that go with anything: chip and acoustic sounds never
+// share a song (pickInstrument() in music.js). a texture that's steady rather than now and then is a
+// bed: a song has one at most. kind is the engine:
 //   sub      subtractive: oscillators (osc: [wave, detune in cents, octave, level]) through a
 //            filter. a wave is one of the browser's four or one of WAVES (built from harmonics)
 //   fm       frequency modulation: one sine wobbling another's pitch, the bells and electric pianos
@@ -31,9 +34,12 @@
 // have filter { freq, q, env (how far it opens at the start), attack, decay, track (how much it
 // follows the note), lfo [rate, depth] (a slow sweep, depth a share of freq) }, vibrato { rate, depth
 // in cents, delay }, tremolo { rate, depth }, breath (noise), fuzz (soft clipping on each note, for a
-// wall of guitars), crush (how many steps of loudness are kept, the gritty 8 bit sound) and reverse
-// (the note swells up over its whole length and stops dead, like tape played backwards).
-// a layer's tone (music.js) scales them, so the same instrument sounds different in every song.
+// wall of guitars), crush (how many steps of loudness are kept, the gritty 8 bit sound), reverse
+// (the note swells up over its whole length and stops dead, like tape played backwards) and scoop
+// (cents a blown or bowed note starts flat by, sliding up onto it the way players do).
+// a layer's tone (music.js) scales them, so the same instrument sounds different in every song. a
+// harder note is brighter as well as louder (hardness()), and pads and drones spread their
+// oscillators across the stereo field, both of which real instruments do and midi doesn't.
 //
 // ---------- the room ----------
 //
@@ -69,8 +75,8 @@ const INSTRUMENTS = {
   // pads
   'warm-pad':    { name: 'Warm pad', family: 'pad', edge: 0.2, kind: 'sub', osc: [['sawtooth', -9], ['sawtooth', 9], ['triangle', 0, -1, 0.6]], filter: { freq: 850, q: 0.8, env: 1.8, attack: 1.2, decay: 2 }, env: [1.4, 1.5, 0.8, 2.8], gain: 0.05 },
   'glass-pad':   { name: 'Glass pad', family: 'pad', edge: 0.25, kind: 'sub', osc: [['glass', -5], ['glass', 6, 1, 0.3]], filter: { freq: 4200, q: 0.5 }, env: [1.8, 2, 0.75, 3.5], gain: 0.07 },
-  'choir-ah':    { name: 'Choir, ah', family: 'pad', edge: 0.2, kind: 'choir', vowel: 'ah', env: [1.1, 1, 0.85, 2.4], gain: 0.22, vibrato: { rate: 4.8, depth: 9, delay: 0.8 } },
-  'choir-oo':    { name: 'Choir, oo', family: 'pad', edge: 0.1, kind: 'choir', vowel: 'oo', env: [1.4, 1, 0.85, 2.8], gain: 0.3, vibrato: { rate: 4.5, depth: 8, delay: 1 } },
+  'choir-ah':    { name: 'Choir, ah', family: 'pad', edge: 0.2, world: 'acoustic', kind: 'choir', vowel: 'ah', env: [1.1, 1, 0.85, 2.4], gain: 0.22, vibrato: { rate: 4.8, depth: 9, delay: 0.8 } },
+  'choir-oo':    { name: 'Choir, oo', family: 'pad', edge: 0.1, world: 'acoustic', kind: 'choir', vowel: 'oo', env: [1.4, 1, 0.85, 2.8], gain: 0.3, vibrato: { rate: 4.5, depth: 8, delay: 1 } },
   strings:       { name: 'Strings', family: 'pad', edge: 0.35, kind: 'sub', osc: [['sawtooth', -7], ['sawtooth', 6], ['sawtooth', 1, 1, 0.2]], filter: { freq: 1900, q: 0.6 }, env: [0.8, 1, 0.9, 1.4], gain: 0.042, vibrato: { rate: 5.3, depth: 11, delay: 0.5 } },
   'dark-pad':    { name: 'Dark pad', family: 'pad', edge: 0.3, kind: 'sub', osc: [['sawtooth', -14], ['square', 12, -1, 0.45]], filter: { freq: 380, q: 3, env: 2.6, attack: 3, decay: 4 }, env: [2.5, 2, 0.8, 4], gain: 0.06 },
   shimmer:       { name: 'Shimmer', family: 'pad', edge: 0.15, kind: 'sub', osc: [['sine', 0], ['sine', 5, 1, 0.5], ['triangle', -4, 2, 0.18]], env: [2, 2, 0.7, 4.5], gain: 0.07, tremolo: { rate: 3.2, depth: 0.3 } },
@@ -87,21 +93,24 @@ const INSTRUMENTS = {
   'reverse-piano': { name: 'Reversed piano', family: 'pad', edge: 0.15, kind: 'sub', reverse: true, osc: [['soft', 0], ['glass', 1, 1, 0.25]], filter: { freq: 900, q: 0.5, env: 3, track: 0.4 }, env: [0, 0, 1, 0.08], gain: 0.17 },
 
   // keys and mallets
-  'felt-keys':   { name: 'Felt piano', family: 'keys', edge: 0.1, kind: 'fm', ratio: 1, index: 1.1, indexDecay: 0.25, sustainIndex: 0.05, partials: [[2, 0.35, 0.5], [3, 0.12, 0.25]], filter: { freq: 2200, q: 0.4, track: 0.5 }, env: [0.006, 1.8, 0, 0.5], gain: 0.2 },
-  'e-piano':     { name: 'Electric piano', family: 'keys', edge: 0.2, kind: 'fm', ratio: 1, index: 1.6, indexDecay: 0.6, sustainIndex: 0.15, partials: [[14, 0.08, 0.04]], env: [0.005, 2.4, 0.15, 0.6], gain: 0.2, tremolo: { rate: 4.5, depth: 0.12 } },
-  harp:          { name: 'Harp', family: 'keys', edge: 0.15, kind: 'pluck', bright: 0.3, soft: 0.75, decay: 3, filter: { freq: 2000, q: 0.5, track: 0.5 }, env: [0.006, 3, 1, 2.5], gain: 0.6 },
-  'music-box':   { name: 'Music box', family: 'keys', edge: 0.3, kind: 'fm', ratio: 5.04, index: 0.5, indexDecay: 0.2, sustainIndex: 0, partials: [[4, 0.25, 0.3]], env: [0.002, 1.4, 0, 0.6], gain: 0.2 },
-  marimba:       { name: 'Marimba', family: 'keys', edge: 0.2, kind: 'fm', ratio: 4, index: 0.9, indexDecay: 0.05, sustainIndex: 0, partials: [[10, 0.06, 0.02]], env: [0.003, 0.45, 0, 0.3], gain: 0.3 },
-  kalimba:       { name: 'Kalimba', family: 'keys', edge: 0.25, kind: 'fm', ratio: 5.4, index: 0.5, indexDecay: 0.04, sustainIndex: 0, partials: [[6.3, 0.1, 0.05]], env: [0.002, 0.9, 0, 0.4], gain: 0.27 },
-  celesta:       { name: 'Celesta', family: 'keys', edge: 0.3, kind: 'fm', ratio: 3, index: 0.6, indexDecay: 0.15, sustainIndex: 0.02, partials: [[2, 0.3, 0.6]], env: [0.002, 1.6, 0, 0.7], gain: 0.2 },
-  pizzicato:     { name: 'Pizzicato', family: 'keys', edge: 0.2, kind: 'pluck', bright: 0.35, soft: 0.4, decay: 0.7, filter: { freq: 2600, q: 0.6, track: 0.4 }, env: [0.002, 0.6, 1, 0.15], gain: 0.55 },
-  vibes:         { name: 'Vibraphone', family: 'keys', edge: 0.15, kind: 'fm', ratio: 4, index: 0.25, indexDecay: 0.1, sustainIndex: 0, partials: [[10, 0.04, 0.05]], env: [0.003, 3.5, 0, 1.2], gain: 0.24, tremolo: { rate: 5.5, depth: 0.35 } },
-  nylon:         { name: 'Nylon guitar', family: 'keys', edge: 0.2, kind: 'pluck', bright: 0.5, soft: 0.45, decay: 2.2, filter: { freq: 3000, q: 0.6, track: 0.3 }, env: [0.003, 2.2, 1, 0.4], gain: 0.8 },
+  'felt-keys':   { name: 'Felt piano', family: 'keys', edge: 0.1, kind: 'fm', ratio: 1, index: 1.1, indexDecay: 0.25, sustainIndex: 0.05, partials: [[2, 0.35, 0.5], [3, 0.12, 0.25]], filter: { freq: 2200, q: 0.4, track: 0.5 }, env: [0.006, 3, 0, 0.9], gain: 0.2 },
+  'e-piano':     { name: 'Electric piano', family: 'keys', edge: 0.2, kind: 'fm', ratio: 1, index: 1.6, indexDecay: 0.6, sustainIndex: 0.15, partials: [[14, 0.08, 0.04]], env: [0.005, 3.2, 0.15, 0.9], gain: 0.2, tremolo: { rate: 4.5, depth: 0.12 } },
+  harp:          { name: 'Harp', family: 'keys', edge: 0.15, world: 'acoustic', kind: 'pluck', bright: 0.3, soft: 0.75, decay: 3, filter: { freq: 2000, q: 0.5, track: 0.5 }, env: [0.006, 3, 1, 2.5], gain: 0.6 },
+  'music-box':   { name: 'Music box', family: 'keys', edge: 0.3, world: 'acoustic', kind: 'fm', ratio: 5.04, index: 0.5, indexDecay: 0.2, sustainIndex: 0, partials: [[4, 0.25, 0.3]], env: [0.002, 1.4, 0, 0.6], gain: 0.2 },
+  marimba:       { name: 'Marimba', family: 'keys', edge: 0.2, world: 'acoustic', kind: 'fm', ratio: 4, index: 0.9, indexDecay: 0.05, sustainIndex: 0, partials: [[10, 0.06, 0.02]], env: [0.003, 0.7, 0, 0.5], gain: 0.3 },
+  kalimba:       { name: 'Kalimba', family: 'keys', edge: 0.25, world: 'acoustic', kind: 'fm', ratio: 5.4, index: 0.5, indexDecay: 0.04, sustainIndex: 0, partials: [[6.3, 0.1, 0.05]], env: [0.002, 1.3, 0, 0.6], gain: 0.27 },
+  celesta:       { name: 'Celesta', family: 'keys', edge: 0.3, world: 'acoustic', kind: 'fm', ratio: 3, index: 0.6, indexDecay: 0.15, sustainIndex: 0.02, partials: [[2, 0.3, 0.6]], env: [0.002, 1.6, 0, 0.7], gain: 0.2 },
+  pizzicato:     { name: 'Pizzicato', family: 'keys', edge: 0.2, world: 'acoustic', kind: 'pluck', bright: 0.35, soft: 0.4, decay: 0.9, filter: { freq: 2600, q: 0.6, track: 0.4 }, env: [0.002, 0.8, 1, 0.3], gain: 0.55 },
+  vibes:         { name: 'Vibraphone', family: 'keys', edge: 0.15, world: 'acoustic', kind: 'fm', ratio: 4, index: 0.25, indexDecay: 0.1, sustainIndex: 0, partials: [[10, 0.04, 0.05]], env: [0.003, 3.5, 0, 1.2], gain: 0.24, tremolo: { rate: 5.5, depth: 0.35 } },
+  nylon:         { name: 'Nylon guitar', family: 'keys', edge: 0.2, world: 'acoustic', kind: 'pluck', bright: 0.5, soft: 0.45, decay: 2.2, filter: { freq: 3000, q: 0.6, track: 0.3 }, env: [0.003, 2.2, 1, 0.8], gain: 0.8 },
+  // a steel string guitar, brighter and longer ringing than the nylon: stardew valley's strummed and
+  // fingerpicked guitar
+  'steel-guitar': { name: 'Steel guitar', family: 'keys', edge: 0.3, world: 'acoustic', kind: 'pluck', bright: 0.7, soft: 0.25, decay: 2.8, filter: { freq: 4200, q: 0.5, track: 0.3 }, env: [0.002, 2.8, 1, 0.8], gain: 0.6 },
 
   // bells
-  bell:          { name: 'Church bell', family: 'bell', edge: 0.7, kind: 'fm', ratio: 3.5, index: 1.7, indexDecay: 1.2, sustainIndex: 0.15, partials: [[0.5, 0.25, 3], [2.76, 0.1, 1.4]], env: [0.002, 5, 0, 2.5], gain: 0.13 },
+  bell:          { name: 'Church bell', family: 'bell', edge: 0.7, world: 'acoustic', kind: 'fm', ratio: 3.5, index: 1.7, indexDecay: 1.2, sustainIndex: 0.15, partials: [[0.5, 0.25, 3], [2.76, 0.1, 1.4]], env: [0.002, 5, 0, 2.5], gain: 0.13 },
   'glass-bell':  { name: 'Glass bell', family: 'bell', edge: 0.3, kind: 'fm', ratio: 2, index: 0.8, indexDecay: 1.4, sustainIndex: 0.2, env: [0.004, 4, 0, 2], gain: 0.16 },
-  chime:         { name: 'Wind chime', family: 'bell', edge: 0.45, kind: 'fm', ratio: 7, index: 0.6, indexDecay: 0.6, sustainIndex: 0.1, partials: [[3, 0.2, 1]], env: [0.002, 3, 0, 1.5], gain: 0.14 },
+  chime:         { name: 'Wind chime', family: 'bell', edge: 0.45, world: 'acoustic', kind: 'fm', ratio: 7, index: 0.6, indexDecay: 0.6, sustainIndex: 0.1, partials: [[3, 0.2, 1]], env: [0.002, 3, 0, 1.5], gain: 0.14 },
   // nearly a pure tone, the soft bell lead of aphex twin's ageispolis
   'sine-bell':   { name: 'Sine bell', family: 'bell', edge: 0.1, kind: 'fm', ratio: 1, index: 0.35, indexDecay: 0.4, sustainIndex: 0, partials: [[2, 0.12, 0.6]], env: [0.003, 2.2, 0, 1.2], gain: 0.2 },
   // a struck pipe, out of tune with itself on purpose: fallout's rusting wasteland. too harsh for
@@ -109,31 +118,37 @@ const INSTRUMENTS = {
   'metal-ping':  { name: 'Metal ping', family: 'bell', edge: 0.55, kind: 'fm', ratio: 2.41, index: 1.1, indexDecay: 0.5, sustainIndex: 0.08, partials: [[5.43, 0.08, 0.3]], env: [0.002, 3, 0, 2], gain: 0.13 },
 
   // leads
-  flute:         { name: 'Flute', family: 'lead', edge: 0.15, kind: 'sub', osc: [['sine', 0], ['triangle', 2, 1, 0.12]], breath: 0.35, env: [0.09, 0.3, 0.85, 0.25], gain: 0.2, vibrato: { rate: 5, depth: 12, delay: 0.35 } },
-  ocarina:       { name: 'Ocarina', family: 'lead', edge: 0.15, kind: 'sub', osc: [['soft', 0]], breath: 0.15, filter: { freq: 2500, q: 0.4 }, env: [0.05, 0.3, 0.8, 0.2], gain: 0.22, vibrato: { rate: 5.5, depth: 8, delay: 0.3 } },
-  'soft-lead':   { name: 'Soft lead', family: 'lead', edge: 0.2, kind: 'sub', osc: [['triangle', -3], ['triangle', 4]], filter: { freq: 1800, q: 0.6, track: 0.5 }, env: [0.04, 0.4, 0.75, 0.4], gain: 0.16, vibrato: { rate: 5, depth: 6, delay: 0.4 } },
-  'saw-lead':    { name: 'Saw lead', family: 'lead', edge: 1, kind: 'sub', osc: [['sawtooth', -6], ['sawtooth', 6]], filter: { freq: 1600, q: 2, env: 2.2, attack: 0.02, decay: 0.3, track: 0.5 }, env: [0.01, 0.3, 0.7, 0.25], gain: 0.085, vibrato: { rate: 5.5, depth: 9, delay: 0.3 } },
-  'square-lead': { name: 'Square lead', family: 'lead', edge: 0.85, kind: 'sub', osc: [['square', -4], ['square', 5, -1, 0.3]], filter: { freq: 2000, q: 0.7, track: 0.4 }, env: [0.01, 0.25, 0.65, 0.18], gain: 0.07, vibrato: { rate: 6, depth: 7, delay: 0.25 } },
-  violin:        { name: 'Violin', family: 'lead', edge: 0.5, kind: 'sub', osc: [['sawtooth', 0], ['sawtooth', 5, 0, 0.5]], filter: { freq: 2400, q: 1.2, track: 0.3 }, env: [0.18, 0.4, 0.85, 0.35], gain: 0.085, vibrato: { rate: 5.6, depth: 16, delay: 0.25 } },
-  horn:          { name: 'Horn', family: 'lead', edge: 0.45, kind: 'sub', osc: [['sawtooth', -4], ['sawtooth', 4]], filter: { freq: 700, q: 0.8, env: 2.5, attack: 0.12, decay: 0.5, track: 0.6 }, env: [0.08, 0.4, 0.8, 0.3], gain: 0.09, vibrato: { rate: 4.8, depth: 6, delay: 0.5 } },
-  whistle:       { name: 'Whistle', family: 'lead', edge: 0.3, kind: 'sub', osc: [['sine', 0]], breath: 0.25, env: [0.06, 0.2, 0.9, 0.15], gain: 0.2, vibrato: { rate: 6, depth: 18, delay: 0.2 } },
+  flute:         { name: 'Flute', family: 'lead', edge: 0.15, world: 'acoustic', kind: 'sub', osc: [['sine', 0], ['triangle', 2, 1, 0.12]], breath: 0.35, env: [0.09, 0.3, 0.85, 0.5], scoop: 15, gain: 0.2, vibrato: { rate: 5, depth: 12, delay: 0.35 } },
+  ocarina:       { name: 'Ocarina', family: 'lead', edge: 0.15, world: 'acoustic', kind: 'sub', osc: [['soft', 0]], breath: 0.15, filter: { freq: 2500, q: 0.4 }, env: [0.05, 0.3, 0.8, 0.45], scoop: 10, gain: 0.22, vibrato: { rate: 5.5, depth: 8, delay: 0.3 } },
+  'soft-lead':   { name: 'Soft lead', family: 'lead', edge: 0.2, kind: 'sub', osc: [['triangle', -3], ['triangle', 4]], filter: { freq: 1800, q: 0.6, track: 0.5 }, env: [0.04, 0.4, 0.75, 0.6], scoop: 8, gain: 0.16, vibrato: { rate: 5, depth: 6, delay: 0.4 } },
+  'saw-lead':    { name: 'Saw lead', family: 'lead', edge: 1, kind: 'sub', osc: [['sawtooth', -6], ['sawtooth', 6]], filter: { freq: 1600, q: 2, env: 2.2, attack: 0.02, decay: 0.3, track: 0.5 }, env: [0.01, 0.3, 0.7, 0.35], gain: 0.085, vibrato: { rate: 5.5, depth: 9, delay: 0.3 } },
+  'square-lead': { name: 'Square lead', family: 'lead', edge: 0.85, world: 'chip', kind: 'sub', osc: [['square', -4], ['square', 5, -1, 0.3]], filter: { freq: 2000, q: 0.7, track: 0.4 }, env: [0.01, 0.25, 0.65, 0.25], gain: 0.07, vibrato: { rate: 6, depth: 7, delay: 0.25 } },
+  violin:        { name: 'Violin', family: 'lead', edge: 0.5, world: 'acoustic', kind: 'sub', osc: [['sawtooth', 0], ['sawtooth', 5, 0, 0.5]], filter: { freq: 2400, q: 1.2, track: 0.3 }, env: [0.18, 0.4, 0.85, 0.6], scoop: 20, gain: 0.085, vibrato: { rate: 5.6, depth: 16, delay: 0.25 } },
+  horn:          { name: 'Horn', family: 'lead', edge: 0.45, world: 'acoustic', kind: 'sub', osc: [['sawtooth', -4], ['sawtooth', 4]], filter: { freq: 700, q: 0.8, env: 2.5, attack: 0.12, decay: 0.5, track: 0.6 }, env: [0.08, 0.4, 0.8, 0.5], scoop: 15, gain: 0.09, vibrato: { rate: 4.8, depth: 6, delay: 0.5 } },
+  whistle:       { name: 'Whistle', family: 'lead', edge: 0.3, world: 'acoustic', kind: 'sub', osc: [['sine', 0]], breath: 0.25, env: [0.06, 0.2, 0.9, 0.35], scoop: 25, gain: 0.2, vibrato: { rate: 6, depth: 18, delay: 0.2 } },
   'pluck-lead':  { name: 'Plucked synth', family: 'lead', edge: 0.6, kind: 'sub', osc: [['sawtooth', -5], ['square', 5, 0, 0.5]], filter: { freq: 500, q: 3, env: 7, attack: 0.003, decay: 0.12, track: 0.6 }, env: [0.003, 0.35, 0.2, 0.25], gain: 0.09 },
   // one nes pulse channel with its delayed vibrato: undertale, deltarune, early terraria
-  'pulse-lead':  { name: 'Pulse lead', family: 'lead', edge: 0.6, kind: 'sub', osc: [['pulse25', 0]], filter: { freq: 5000, q: 0.3, track: 0.3 }, env: [0.004, 0.25, 0.75, 0.1], gain: 0.17, vibrato: { rate: 6, depth: 10, delay: 0.35 } },
+  'pulse-lead':  { name: 'Pulse lead', family: 'lead', edge: 0.6, world: 'chip', kind: 'sub', osc: [['pulse25', 0]], filter: { freq: 5000, q: 0.3, track: 0.3 }, env: [0.004, 0.25, 0.75, 0.18], gain: 0.17, vibrato: { rate: 6, depth: 10, delay: 0.35 } },
   // a square crushed down to a few steps of loudness, the broken atari chip of crystal castles
-  'bit-lead':    { name: 'Bit lead', family: 'lead', edge: 0.9, kind: 'sub', osc: [['sawtooth', 0], ['triangle', 6, 1, 0.5]], crush: 4, filter: { freq: 4000, q: 0.5, track: 0.3 }, env: [0.003, 0.2, 0.7, 0.12], gain: 0.155, vibrato: { rate: 7, depth: 14, delay: 0.15 } },
-  'pan-flute':   { name: 'Pan flute', family: 'lead', edge: 0.15, kind: 'sub', osc: [['hollow', 0], ['sine', 0, 1, 0.08]], breath: 0.7, filter: { freq: 2600, q: 0.4 }, env: [0.03, 0.25, 0.8, 0.2], gain: 0.15, vibrato: { rate: 5.2, depth: 9, delay: 0.4 } },
+  'bit-lead':    { name: 'Bit lead', family: 'lead', edge: 0.9, world: 'chip', kind: 'sub', osc: [['sawtooth', 0], ['triangle', 6, 1, 0.5]], crush: 4, filter: { freq: 4000, q: 0.5, track: 0.3 }, env: [0.003, 0.2, 0.7, 0.12], gain: 0.155, vibrato: { rate: 7, depth: 14, delay: 0.15 } },
+  'pan-flute':   { name: 'Pan flute', family: 'lead', edge: 0.15, world: 'acoustic', kind: 'sub', osc: [['hollow', 0], ['sine', 0, 1, 0.08]], breath: 0.7, filter: { freq: 2600, q: 0.4 }, env: [0.03, 0.25, 0.8, 0.45], scoop: 18, gain: 0.15, vibrato: { rate: 5.2, depth: 9, delay: 0.4 } },
+  // a reed's odd harmonics (the hollow wave), a little breath and a slow, late vibrato: warm and woody,
+  // the clarinet of stardew valley's autumn and of old village themes
+  clarinet:      { name: 'Clarinet', family: 'lead', edge: 0.2, world: 'acoustic', kind: 'sub', osc: [['hollow', 0], ['sine', 0, 1, 0.06]], breath: 0.12, filter: { freq: 2400, q: 0.5, track: 0.4 }, env: [0.05, 0.4, 0.85, 0.45], scoop: 12, gain: 0.14, vibrato: { rate: 4.8, depth: 5, delay: 0.6 } },
+  // two reeds tuned a few cents apart, beating against each other (the musette sound), over a lower
+  // reed: a village dance tune
+  accordion:     { name: 'Accordion', family: 'lead', edge: 0.4, world: 'acoustic', kind: 'sub', osc: [['pulse25', -8], ['pulse25', 8], ['sawtooth', 0, -1, 0.3]], filter: { freq: 2600, q: 0.6, track: 0.3 }, env: [0.03, 0.3, 0.9, 0.3], gain: 0.1, tremolo: { rate: 5, depth: 0.08 } },
   // 80s brass from a synth, the filter opening as each note swells (dying light, deltarune)
-  'synth-brass': { name: 'Synth brass', family: 'lead', edge: 0.6, kind: 'sub', osc: [['sawtooth', -7], ['sawtooth', 7], ['pulse25', 0, -1, 0.4]], filter: { freq: 900, q: 1, env: 3, attack: 0.12, decay: 0.6, track: 0.5 }, env: [0.05, 0.4, 0.85, 0.3], gain: 0.07, vibrato: { rate: 5, depth: 5, delay: 0.5 } },
+  'synth-brass': { name: 'Synth brass', family: 'lead', edge: 0.6, kind: 'sub', osc: [['sawtooth', -7], ['sawtooth', 7], ['pulse25', 0, -1, 0.4]], filter: { freq: 900, q: 1, env: 3, attack: 0.12, decay: 0.6, track: 0.5 }, env: [0.05, 0.4, 0.85, 0.45], scoop: 15, gain: 0.07, vibrato: { rate: 5, depth: 5, delay: 0.5 } },
 
   // basses
   'sub-bass':    { name: 'Sub bass', family: 'bass', edge: 0, kind: 'sub', osc: [['sine', 0], ['triangle', 0, 0, 0.25]], env: [0.02, 0.3, 0.9, 0.3], gain: 0.42 },
   'round-bass':  { name: 'Round bass', family: 'bass', edge: 0.1, kind: 'sub', osc: [['triangle', 0], ['sine', 0, -1, 0.5]], filter: { freq: 600, q: 0.5 }, env: [0.01, 0.4, 0.75, 0.2], gain: 0.4 },
   'synth-bass':  { name: 'Synth bass', family: 'bass', edge: 0.5, kind: 'sub', osc: [['sawtooth', -4], ['square', 4, -1, 0.5]], filter: { freq: 280, q: 4, env: 4, attack: 0.005, decay: 0.15 }, env: [0.005, 0.3, 0.7, 0.12], gain: 0.15 },
   'pluck-bass':  { name: 'Plucked bass', family: 'bass', edge: 0.2, kind: 'pluck', bright: 0.4, decay: 1.6, filter: { freq: 900, q: 0.7 }, env: [0.002, 1.5, 1, 0.15], gain: 0.8 },
-  upright:       { name: 'Upright bass', family: 'bass', edge: 0.1, kind: 'pluck', bright: 0.2, soft: 0.6, decay: 1.2, filter: { freq: 500, q: 1 }, env: [0.004, 1, 1, 0.12], gain: 0.95 },
+  upright:       { name: 'Upright bass', family: 'bass', edge: 0.1, world: 'acoustic', kind: 'pluck', bright: 0.2, soft: 0.6, decay: 1.2, filter: { freq: 500, q: 1 }, env: [0.004, 1, 1, 0.12], gain: 0.95 },
   'growl-bass':  { name: 'Growl bass', family: 'bass', edge: 1, kind: 'sub', osc: [['sawtooth', -10], ['sawtooth', 10], ['square', 0, -1, 0.6]], filter: { freq: 420, q: 6, env: 3, attack: 0.01, decay: 0.25 }, env: [0.005, 0.3, 0.8, 0.12], gain: 0.11 },
-  'chip-bass':   { name: 'Triangle bass', family: 'bass', edge: 0.15, kind: 'sub', osc: [['chiptri', 0]], env: [0.003, 0.2, 0.9, 0.06], gain: 0.42 },
+  'chip-bass':   { name: 'Triangle bass', family: 'bass', edge: 0.15, world: 'chip', kind: 'sub', osc: [['chiptri', 0]], env: [0.003, 0.2, 0.9, 0.06], gain: 0.42 },
   // two saws a little apart, beating slowly against each other under a moving filter
   reese:         { name: 'Reese bass', family: 'bass', edge: 0.6, kind: 'sub', osc: [['sawtooth', -14], ['sawtooth', 14], ['sine', 0, -1, 0.6]], filter: { freq: 380, q: 1.5, lfo: [0.2, 0.35] }, env: [0.01, 0.3, 0.9, 0.15], gain: 0.12 },
   // the high, chorused post-punk bass that carries the tune as much as the root
@@ -141,7 +156,7 @@ const INSTRUMENTS = {
 
   // drones
   'deep-drone':  { name: 'Deep drone', family: 'drone', edge: 0.35, kind: 'sub', osc: [['sawtooth', -10], ['sawtooth', 9], ['sine', 0, -1, 0.7]], filter: { freq: 300, q: 2 }, env: [4, 3, 0.85, 5], gain: 0.07, tremolo: { rate: 0.13, depth: 0.25 } },
-  'cello-drone': { name: 'Cello drone', family: 'drone', edge: 0.3, kind: 'sub', osc: [['sawtooth', -3], ['sawtooth', 4]], filter: { freq: 700, q: 1.5 }, env: [2.5, 2, 0.85, 3], gain: 0.07, vibrato: { rate: 4.5, depth: 7, delay: 1.5 } },
+  'cello-drone': { name: 'Cello drone', family: 'drone', edge: 0.3, world: 'acoustic', kind: 'sub', osc: [['sawtooth', -3], ['sawtooth', 4]], filter: { freq: 700, q: 1.5 }, env: [2.5, 2, 0.85, 3], gain: 0.07, vibrato: { rate: 4.5, depth: 7, delay: 1.5 } },
   void:          { name: 'The void', family: 'drone', edge: 0.1, kind: 'sub', osc: [['sine', 0], ['sine', 7], ['sine', -5, 1, 0.3]], breath: 0.6, env: [5, 3, 0.85, 6], gain: 0.17, tremolo: { rate: 0.08, depth: 0.4 } },
   'bowed-metal': { name: 'Bowed metal', family: 'drone', edge: 0.6, kind: 'fm', ratio: 2.71, index: 1.4, indexDecay: 6, sustainIndex: 0.9, env: [3, 2, 0.85, 4], gain: 0.07, vibrato: { rate: 0.3, depth: 20, delay: 0 } },
   'organ-drone': { name: 'Organ drone', family: 'drone', edge: 0.3, kind: 'sub', osc: [['organ', 0], ['organ', 3, -1, 0.5]], filter: { freq: 1600, q: 0.3 }, env: [2, 2, 0.9, 3], gain: 0.06 },
@@ -149,7 +164,7 @@ const INSTRUMENTS = {
   'tape-loop':   { name: 'Tape loop', family: 'drone', edge: 0.1, kind: 'sub', osc: [['soft', 0], ['sine', 3, 1, 0.3]], filter: { freq: 1200, q: 0.4 }, env: [3, 2, 0.85, 4], gain: 0.1, vibrato: { rate: 0.17, depth: 14, delay: 0 }, tremolo: { rate: 0.09, depth: 0.3 } },
 
   // drum kits, slots in KIT_SLOTS order
-  'soft-kit': { name: 'Soft kit', family: 'kit', kind: 'drums', suits: ['pulse', 'sparse', 'brush', 'halftime', 'groove'], slots: [
+  'soft-kit': { name: 'Soft kit', family: 'kit', world: 'acoustic', kind: 'drums', suits: ['pulse', 'sparse', 'brush', 'halftime', 'groove'], slots: [
     { voice: 'kick', tune: 50, decay: 0.35, gain: 0.7 }, { voice: 'brush', tone: 2200, decay: 0.18, gain: 0.3 }, { voice: 'shaker', tone: 5500, decay: 0.07, gain: 0.18 },
     { voice: 'shaker', tone: 5000, decay: 0.25, gain: 0.2 }, { voice: 'tick', tune: 1100, decay: 0.06, gain: 0.2 }, { voice: 'tom', tune: 90, decay: 0.4, gain: 0.45 }] },
   'lofi-kit': { name: 'Lo-fi kit', family: 'kit', kind: 'drums', suits: ['groove', 'halftime', 'sparse', 'pulse'], slots: [
@@ -158,20 +173,20 @@ const INSTRUMENTS = {
   'tight-kit': { name: 'Tight kit', family: 'kit', kind: 'drums', suits: ['groove', 'halftime', 'march', 'tribal', 'sparse', 'pulse'], slots: [
     { voice: 'kick', tune: 55, decay: 0.28, gain: 0.9 }, { voice: 'snare', tune: 180, tone: 1900, decay: 0.16, gain: 0.5 }, { voice: 'hat', tone: 8000, decay: 0.035, gain: 0.2 },
     { voice: 'hat', tone: 8000, decay: 0.25, gain: 0.17 }, { voice: 'clap', tone: 1200, decay: 0.15, gain: 0.4 }, { voice: 'tom', tune: 110, decay: 0.3, gain: 0.5 }] },
-  taiko: { name: 'Taiko', family: 'kit', kind: 'drums', suits: ['tribal', 'march', 'pulse', 'halftime', 'sparse'], slots: [
+  taiko: { name: 'Taiko', family: 'kit', world: 'acoustic', kind: 'drums', suits: ['tribal', 'march', 'pulse', 'halftime', 'sparse'], slots: [
     { voice: 'taiko', tune: 58, decay: 0.9, gain: 0.95 }, { voice: 'rim', tune: 1200, decay: 0.05, gain: 0.35 }, { voice: 'shaker', tone: 4500, decay: 0.08, gain: 0.2 },
     { voice: 'hat', tone: 5000, decay: 0.2, gain: 0.15 }, { voice: 'tick', tune: 900, decay: 0.07, gain: 0.3 }, { voice: 'taiko', tune: 85, decay: 0.6, gain: 0.75 }] },
   heartbeat: { name: 'Heartbeat', family: 'kit', kind: 'drums', suits: ['pulse', 'sparse'], slots: [
     { voice: 'heart', tune: 52, decay: 0.2, gain: 0.85 }, { voice: 'brush', tone: 1800, decay: 0.2, gain: 0.25 }, { voice: 'shaker', tone: 6000, decay: 0.05, gain: 0.12 },
     { voice: 'shaker', tone: 5000, decay: 0.2, gain: 0.14 }, { voice: 'tick', tune: 1500, decay: 0.05, gain: 0.16 }, { voice: 'tom', tune: 70, decay: 0.5, gain: 0.5 }] },
-  brushes: { name: 'Brushes', family: 'kit', kind: 'drums', suits: ['brush', 'sparse', 'pulse'], slots: [
+  brushes: { name: 'Brushes', family: 'kit', world: 'acoustic', kind: 'drums', suits: ['brush', 'sparse', 'pulse'], slots: [
     { voice: 'kick', tune: 48, decay: 0.3, gain: 0.55 }, { voice: 'brush', tone: 2600, decay: 0.22, gain: 0.38 }, { voice: 'brush', tone: 4000, decay: 0.08, gain: 0.18 },
     { voice: 'brush', tone: 3000, decay: 0.4, gain: 0.22 }, { voice: 'rim', tune: 1500, decay: 0.03, gain: 0.18 }, { voice: 'tom', tune: 95, decay: 0.4, gain: 0.4 }] },
   clockwork: { name: 'Clockwork', family: 'kit', kind: 'drums', suits: ['pulse', 'sparse', 'march', 'groove', 'halftime'], slots: [
     { voice: 'kick', tune: 60, decay: 0.12, gain: 0.45 }, { voice: 'tick', tune: 900, decay: 0.05, gain: 0.3 }, { voice: 'tick', tune: 2400, decay: 0.03, gain: 0.2 },
     { voice: 'tick', tune: 1800, decay: 0.12, gain: 0.2 }, { voice: 'rim', tune: 2000, decay: 0.025, gain: 0.25 }, { voice: 'tick', tune: 500, decay: 0.08, gain: 0.3 }] },
   // the nes's drums: square wave thumps and bursts of noise
-  'chip-kit': { name: 'Chip kit', family: 'kit', kind: 'drums', suits: ['groove', 'march', 'halftime', 'four', 'break', 'pulse', 'sparse'], slots: [
+  'chip-kit': { name: 'Chip kit', family: 'kit', world: 'chip', kind: 'drums', suits: ['groove', 'march', 'halftime', 'four', 'break', 'pulse', 'sparse'], slots: [
     { voice: 'blip', tune: 55, decay: 0.16, gain: 0.58 }, { voice: 'noise', tone: 7000, decay: 0.13, gain: 0.58 }, { voice: 'noise', tone: 14000, decay: 0.03, gain: 0.29 },
     { voice: 'noise', tone: 12000, decay: 0.2, gain: 0.23 }, { voice: 'blip', tune: 880, decay: 0.04, gain: 0.22 }, { voice: 'blip', tune: 110, decay: 0.18, gain: 0.45 }] },
   // a club kit, 909 style: a long kick, claps, tight hats (crystal castles, dying light's chases)
@@ -190,17 +205,24 @@ const INSTRUMENTS = {
   wind:     { name: 'Wind', family: 'texture', kind: 'texture', texture: 'wind', gain: 0.25 },
   // rain and crickets sit lower than the rest: they're mostly high frequencies, which the ear hears
   // as louder and harsher than the same level of wind or ocean
-  rain:     { name: 'Rain', family: 'texture', kind: 'texture', texture: 'rain', gain: 0.12 },
-  ocean:    { name: 'Ocean', family: 'texture', kind: 'texture', texture: 'ocean', gain: 0.2 },
-  vinyl:    { name: 'Vinyl crackle', family: 'texture', kind: 'texture', texture: 'vinyl', gain: 0.6 },
-  fire:     { name: 'Campfire', family: 'texture', kind: 'texture', texture: 'fire', gain: 0.3 },
+  rain:     { name: 'Rain', family: 'texture', kind: 'texture', texture: 'rain', bed: true, gain: 0.12 },
+  ocean:    { name: 'Ocean', family: 'texture', kind: 'texture', texture: 'ocean', bed: true, gain: 0.2 },
+  vinyl:    { name: 'Vinyl crackle', family: 'texture', kind: 'texture', texture: 'vinyl', bed: true, gain: 0.6 },
+  fire:     { name: 'Campfire', family: 'texture', kind: 'texture', texture: 'fire', bed: true, gain: 0.3 },
   rumble:   { name: 'Rumble', family: 'texture', kind: 'texture', texture: 'rumble', gain: 0.4 },
-  crickets: { name: 'Crickets', family: 'texture', kind: 'texture', texture: 'crickets', gain: 0.2 },
-  hum:      { name: 'Hum', family: 'texture', kind: 'texture', texture: 'hum', gain: 0.15 },
+  crickets: { name: 'Crickets', family: 'texture', kind: 'texture', texture: 'crickets', bed: true, gain: 0.2 },
+  hum:      { name: 'Hum', family: 'texture', kind: 'texture', texture: 'hum', bed: true, gain: 0.15 },
   drips:    { name: 'Cave drips', family: 'texture', kind: 'texture', texture: 'drips', gain: 0.3 },
   geiger:   { name: 'Geiger counter', family: 'texture', kind: 'texture', texture: 'geiger', gain: 0.7 },
   birds:    { name: 'Birdsong', family: 'texture', kind: 'texture', texture: 'birds', gain: 0.15 },
   creaks:   { name: 'Creaking metal', family: 'texture', kind: 'texture', texture: 'creaks', gain: 1.2 },
+  // more of a place for ambient songs: a brook babbling (steady, but only bubbles, no hiss), leaves
+  // rustling now and then, frogs, a far off owl, and wind chimes somewhere out of sight
+  stream:   { name: 'Brook', family: 'texture', kind: 'texture', texture: 'stream', bed: true, gain: 0.035 },
+  leaves:   { name: 'Rustling leaves', family: 'texture', kind: 'texture', texture: 'leaves', gain: 0.6 },
+  frogs:    { name: 'Frogs', family: 'texture', kind: 'texture', texture: 'frogs', gain: 0.8 },
+  owl:      { name: 'Owl', family: 'texture', kind: 'texture', texture: 'owl', gain: 0.08 },
+  chimes:   { name: 'Distant chimes', family: 'texture', kind: 'texture', texture: 'chimes', gain: 0.09 },
 };
 // how the instrument lists are grouped on the page
 const FAMILIES = { pad: 'Pads', keys: 'Keys and mallets', bell: 'Bells', lead: 'Leads', bass: 'Basses', drone: 'Drones', kit: 'Drum kits', texture: 'Textures' };
@@ -358,7 +380,7 @@ function voiceChain(ctx, out, inst, tone, f, when, dur, vel, pump) {
     const { freq, q = 0.7, env = 1, attack: opens = 0.01, decay: closes = 0.3, track = 0, lfo: sweep } = inst.filter;
     const filter = ctx.createBiquadFilter();
     filter.Q.value = q;
-    const base = Math.min(16000, freq * tone.bright * (f / 262) ** track);
+    const base = Math.min(16000, freq * tone.bright * (f / 262) ** track * hardness(vel));
     filter.frequency.setValueAtTime(base, when);
     if (sweep) lfo(ctx, sweep[0], base * sweep[1], filter.frequency, when, end);
     // backwards, it opens up as the note swells instead of closing as it fades
@@ -370,8 +392,13 @@ function voiceChain(ctx, out, inst, tone, f, when, dur, vel, pump) {
     filter.connect(input);
     input = filter;
   }
-  return { input, when, end };
+  return { input, when, end, vel, dur };
 }
+
+// how much brighter a note is for being played harder, about 1 at a middling 0.75. every real
+// instrument does this (a piano struck hard rings brighter, not just louder), and every note sounding
+// the same colour whatever its strength was a lot of what made the band sound like midi
+const hardness = (vel) => 0.6 + 0.55 * vel;
 
 function vibrato(ctx, inst, tone, when, end) {
   const depth = (inst.vibrato?.depth || 0) + tone.vibrato;
@@ -422,16 +449,31 @@ const ENGINES = {
       into.gain.value = 1 / inst.osc.reduce((sum, [, , , level = 1]) => sum + level, 0);
       into.connect(shaper);
     }
+    // pads and drones spread their oscillators across the stereo field, like a string section or a
+    // chorus pedal: one mono point in the middle sounded like a keyboard, not a room full of players
+    const wide = (inst.family === 'pad' || inst.family === 'drone') && inst.osc.length > 1;
     inst.osc.forEach(([wave, detune = 0, octave = 0, level = 1], i) => {
       const osc = ctx.createOscillator();
       setWave(ctx, osc, wave);
       osc.frequency.value = f * 2 ** octave;
       // the layer's detune spreads the oscillators apart, for a wider, more chorused sound
-      osc.detune.value = detune + off + (i ? (i % 2 ? 1 : -1) * tone.detune : 0);
+      const cents = detune + off + (i ? (i % 2 ? 1 : -1) * tone.detune : 0);
+      // scoop: a blown or bowed note starts a little flat and slides up onto the note, as players do.
+      // not quick notes, where it would only sound out of tune
+      const scoop = voice.dur > 0.2 ? inst.scoop || 0 : 0;
+      osc.detune.setValueAtTime(cents - scoop, voice.when);
+      if (scoop) osc.detune.linearRampToValueAtTime(cents, voice.when + 0.07);
       if (wobble) wobble.connect(osc.detune);
       const gain = ctx.createGain();
       gain.gain.value = level;
-      osc.connect(gain).connect(into);
+      let out = gain;
+      if (wide && i) {
+        out = ctx.createStereoPanner();
+        out.pan.value = i % 2 ? -0.6 : 0.6;
+        gain.connect(out);
+      }
+      osc.connect(gain);
+      out.connect(into);
       osc.start(voice.when);
       osc.stop(voice.end);
     });
@@ -455,7 +497,7 @@ const ENGINES = {
     // the browser can't go above half its sample rate, and nobody could hear it anyway
     modulator.frequency.value = Math.min(20000, f * inst.ratio);
     const depth = ctx.createGain();
-    const index = inst.index * f * Math.min(4, tone.bright);
+    const index = inst.index * f * Math.min(4, tone.bright) * hardness(voice.vel);
     depth.gain.setValueAtTime(index, when);
     depth.gain.setTargetAtTime(index * (inst.sustainIndex ?? 0.1), when, inst.indexDecay ?? 0.3);
     modulator.connect(depth).connect(carrier.frequency);
@@ -484,7 +526,9 @@ const ENGINES = {
     // high strings ring for less time than low ones, as on a real harp. every note ringing just as long
     // left the top notes hanging on, thin and glassy
     const decay = inst.decay * Math.min(2, tone.release) * Math.min(1, (330 / f) ** 0.5);
-    source.buffer = ksBuffer(ctx.sampleRate, midi, Math.min(0.95, inst.bright * tone.bright), decay, inst.soft || 0);
+    // brightness rounded to tenths, so the strings kept per note stay few (ksBuffer's cache)
+    const bright = Math.round(Math.min(0.95, inst.bright * tone.bright * hardness(voice.vel)) * 10) / 10;
+    source.buffer = ksBuffer(ctx.sampleRate, midi, Math.max(0.1, bright), decay, inst.soft || 0);
     source.detune.value = scatter(tone);
     source.connect(voice.input);
     source.start(voice.when);
@@ -655,6 +699,37 @@ function swells(ctx, out, when, end, filter, rise, fall, gap, boost = 1) {
   noiseSource(ctx, when, end).connect(filter).connect(level).connect(out);
 }
 const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
+// somewhere left or right, for one event: a bird calls from the left, the next drip falls to the
+// right, the way a real place sounds. every event from one spot sounded like a speaker in the room
+function spot(ctx, out) {
+  const pan = ctx.createStereoPanner();
+  pan.pan.value = Math.random() * 1.6 - 0.8;
+  pan.connect(out);
+  return pan;
+}
+
+// tiny bubbles for the brook: each a short sine whose pitch jumps up as it bursts, scattered over a
+// few seconds that loop. worked out once per sample rate, like the crackle, so a brook minutes long
+// isn't thousands of oscillators
+function bubbleBuffer(rate) {
+  const cache = cacheFor(rate);
+  if (!cache.bubbles) {
+    cache.bubbles = new AudioBuffer({ length: rate * 5, sampleRate: rate });
+    const data = cache.bubbles.getChannelData(0);
+    for (let n = 0; n < 160; n++) {
+      const at = Math.floor(Math.random() * (data.length - rate * 0.1));
+      const f = 450 + Math.random() ** 2 * 1400;
+      const length = Math.floor(rate * (0.015 + Math.random() * 0.035));
+      const size = 0.2 + Math.random() * 0.8;
+      let phase = 0;
+      for (let i = 0; i < length; i++) {
+        phase += (2 * Math.PI * f * (1 + (0.6 * i) / length)) / rate;
+        data[at + i] += Math.sin(phase) * size * Math.sin((Math.PI * i) / length) ** 2;
+      }
+    }
+  }
+  return cache.bubbles;
+}
 // the key's home note in the octave starting at bottom, for the pitched textures
 const homeAbove = (bottom, midi) => bottom + ((((midi - bottom) % 12) + 12) % 12);
 
@@ -769,7 +844,7 @@ const TEXTURES = {
   // with a second drop after
   drips(ctx, out, when, end, bright, midi = 60) {
     const home = homeAbove(84, midi);
-    const drop = (at, f, level) => {
+    const drop = (at, f, level, where = spot(ctx, out)) => {
       const osc = ctx.createOscillator();
       osc.frequency.setValueAtTime(f * 0.6, at);
       osc.frequency.exponentialRampToValueAtTime(f, at + 0.035);
@@ -777,14 +852,15 @@ const TEXTURES = {
       gain.gain.setValueAtTime(0, at);
       gain.gain.linearRampToValueAtTime(level, at + 0.004);
       gain.gain.setTargetAtTime(0, at + 0.004, 0.045);
-      osc.connect(gain).connect(out);
+      osc.connect(gain).connect(where);
       osc.start(at);
       osc.stop(at + 0.4);
     };
     for (const at of moments(when, end, 1.5, 7)) {
       const f = mtof(home + pickOne([0, 7, 12, 7, 0, -5]));
-      drop(at, f, 0.6 + Math.random() * 0.4);
-      if (Math.random() < 0.25) drop(at + 0.12 + Math.random() * 0.25, f * pickOne([1, 1.5, 0.75]), 0.4);
+      const where = spot(ctx, out);
+      drop(at, f, 0.6 + Math.random() * 0.4, where);
+      if (Math.random() < 0.25) drop(at + 0.12 + Math.random() * 0.25, f * pickOne([1, 1.5, 0.75]), 0.4, where);
     }
   },
   // a geiger counter somewhere near: a few clicks bunched together, then nothing for a while (fallout)
@@ -792,7 +868,7 @@ const TEXTURES = {
     const high = ctx.createBiquadFilter();
     high.type = 'highpass';
     high.frequency.value = 2500;
-    high.connect(out);
+    high.connect(spot(ctx, out));
     const click = (at, level) => {
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(level, at);
@@ -809,6 +885,7 @@ const TEXTURES = {
     for (const at of moments(when, end, 5, 14)) {
       const call = pickOne(['up', 'down', 'trill']);
       const count = call === 'trill' ? 5 + Math.floor(Math.random() * 5) : 2 + Math.floor(Math.random() * 4);
+      const where = spot(ctx, out);
       let t = at;
       for (let k = 0; k < count; k++) {
         const f = mtof(home + pickOne([0, 5, 7, 12]));
@@ -820,7 +897,7 @@ const TEXTURES = {
         gain.gain.setValueAtTime(0, t);
         gain.gain.linearRampToValueAtTime(0.5 + Math.random() * 0.5, t + 0.01);
         gain.gain.linearRampToValueAtTime(0, t + length);
-        osc.connect(gain).connect(out);
+        osc.connect(gain).connect(where);
         osc.start(t);
         osc.stop(t + length + 0.02);
         t += length + (call === 'trill' ? 0.02 : 0.05 + Math.random() * 0.12);
@@ -851,9 +928,150 @@ const TEXTURES = {
       const level = ctx.createGain();
       level.gain.value = 0;
       swell(level.gain, at, length * 0.4, length * 0.6, 1);
-      osc.connect(band).connect(catches).connect(level).connect(out);
+      osc.connect(band).connect(catches).connect(level).connect(spot(ctx, out));
       osc.start(at);
       osc.stop(stop);
+    }
+  },
+  // a brook: bubbles babbling past (bubbleBuffer) on two loops at different speeds, so they never line
+  // up the same way, over the faintest low wash of water. it swells and settles slowly, the way a
+  // stream's sound comes and goes on the breeze. it's a steady sound, but only bubbles, never a hiss
+  stream(ctx, out, when, end, bright) {
+    const level = ctx.createGain();
+    level.gain.value = 0.7;
+    lfo(ctx, 0.05 + Math.random() * 0.03, 0.3, level.gain, when, end);
+    level.connect(out);
+    for (const [speed, side] of [[1, -0.35], [1.27, 0.35]]) {
+      const source = ctx.createBufferSource();
+      source.buffer = bubbleBuffer(ctx.sampleRate);
+      source.loop = true;
+      source.playbackRate.value = speed * Math.min(1.3, bright ** 0.5);
+      const pan = ctx.createStereoPanner();
+      pan.pan.value = side;
+      source.connect(pan).connect(level);
+      source.start(when, Math.random() * 4);
+      source.stop(end);
+    }
+    const wash = ctx.createBiquadFilter();
+    wash.frequency.value = 500 * bright;
+    const quiet = ctx.createGain();
+    quiet.gain.value = 0.08;
+    noiseSource(ctx, when, end).connect(wash).connect(quiet).connect(level);
+  },
+  // a breeze through leaves now and then: a rustle rising and falling over a second or two, the
+  // crackle sped up into a dry patter over a hush of air, with long quiet between
+  leaves(ctx, out, when, end, bright) {
+    for (const at of moments(when, end, 6, 16)) {
+      const rise = 0.4 + Math.random() * 0.8;
+      const fall = 0.8 + Math.random() * 1.5;
+      const stop = at + rise + fall + 0.05;
+      const level = ctx.createGain();
+      level.gain.value = 0;
+      swell(level.gain, at, rise, fall, 0.6 + Math.random() * 0.4);
+      level.connect(spot(ctx, out));
+      const patter = ctx.createBufferSource();
+      patter.buffer = crackleBuffer(ctx.sampleRate);
+      patter.loop = true;
+      patter.playbackRate.value = 2.5 + Math.random();
+      const band = ctx.createBiquadFilter();
+      band.type = 'bandpass';
+      band.frequency.value = 3200 * Math.min(1.3, bright);
+      band.Q.value = 0.6;
+      patter.connect(band).connect(level);
+      patter.start(at, Math.random() * 3);
+      patter.stop(stop);
+      const air = ctx.createBiquadFilter();
+      air.type = 'highpass';
+      air.frequency.value = 2500;
+      const hush = ctx.createGain();
+      hush.gain.value = 0.12;
+      noiseSource(ctx, at, stop).connect(air).connect(hush).connect(level);
+    }
+  },
+  // frogs by a pond: now and then one croaks a few times, a low buzz rattled fast (the ribbit) through
+  // a nasal resonance, on the home note or fifth, and sometimes another answers from somewhere else
+  frogs(ctx, out, when, end, bright, midi = 60) {
+    const croaks = (at, where) => {
+      const f = mtof(homeAbove(43, midi) + pickOne([0, 7, 12]));
+      const count = 2 + Math.floor(Math.random() * 3);
+      for (let k = 0; k < count; k++) {
+        const t = at + k * (0.35 + Math.random() * 0.25);
+        const length = 0.12 + Math.random() * 0.12;
+        const osc = ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(f, t);
+        osc.frequency.linearRampToValueAtTime(f * 0.92, t + length);
+        const band = ctx.createBiquadFilter();
+        band.type = 'bandpass';
+        band.frequency.value = 700 * Math.min(1.3, bright);
+        band.Q.value = 4;
+        const rattle = ctx.createGain();
+        rattle.gain.value = 0.5;
+        lfo(ctx, 28 + Math.random() * 10, 0.5, rattle.gain, t, t + length + 0.05, 'square');
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(1, t + 0.02);
+        gain.gain.linearRampToValueAtTime(0, t + length);
+        osc.connect(band).connect(rattle).connect(gain).connect(where);
+        osc.start(t);
+        osc.stop(t + length + 0.05);
+      }
+    };
+    for (const at of moments(when, end, 5, 16)) {
+      croaks(at, spot(ctx, out));
+      if (Math.random() < 0.35) croaks(at + 1.5 + Math.random() * 1.5, spot(ctx, out));
+    }
+  },
+  // an owl far off: hoo, then often hoo-hoo, a soft whistle sliding down onto the home note or fifth,
+  // with a long quiet between
+  owl(ctx, out, when, end, bright, midi = 60) {
+    const hoot = (t, f, length, where) => {
+      const osc = ctx.createOscillator();
+      osc.frequency.setValueAtTime(f * 1.04, t);
+      osc.frequency.exponentialRampToValueAtTime(f, t + length * 0.4);
+      osc.frequency.exponentialRampToValueAtTime(f * 0.97, t + length);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(1, t + length * 0.3);
+      gain.gain.linearRampToValueAtTime(0, t + length);
+      osc.connect(gain).connect(where);
+      osc.start(t);
+      osc.stop(t + length + 0.05);
+    };
+    for (const at of moments(when, end, 14, 32)) {
+      const where = spot(ctx, out);
+      const f = mtof(homeAbove(60, midi) + pickOne([0, 0, 7]));
+      hoot(at, f, 0.5, where);
+      if (Math.random() < 0.7) {
+        hoot(at + 0.9, f, 0.22, where);
+        hoot(at + 1.2, f, 0.45, where);
+      }
+    }
+  },
+  // wind chimes somewhere out of sight: now and then the breeze knocks a few together, thin bells on
+  // the home note, fourth or fifth, high up and fading slowly. their overtone is harmonic (3), as the
+  // gentle bells' are, so they never clash with the chords
+  chimes(ctx, out, when, end, bright, midi = 60) {
+    const home = homeAbove(84, midi);
+    for (const at of moments(when, end, 6, 18)) {
+      const where = spot(ctx, out);
+      const count = 1 + Math.floor(Math.random() * 4);
+      for (let k = 0, t = at; k < count; k++, t += 0.15 + Math.random() * 0.5) {
+        const f = mtof(home + pickOne([0, 5, 7, 12]));
+        const length = 1.5 + Math.random() * 1.5;
+        const strength = 0.5 + Math.random() * 0.5;
+        for (const [ratio, level] of [[1, 1], [3, 0.2]]) {
+          const osc = ctx.createOscillator();
+          osc.frequency.value = f * ratio;
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(level * strength, t + 0.003);
+          gain.gain.setTargetAtTime(0, t + 0.003, length / (ratio > 1 ? 8 : 4));
+          osc.connect(gain).connect(where);
+          osc.start(t);
+          osc.stop(t + length + 0.1);
+        }
+      }
     }
   },
 };
@@ -910,6 +1128,19 @@ function impulse(ctx, size, tone) {
       const fade = Math.exp((-6.9 * (i - gap)) / (length - gap));
       low += (Math.random() * 2 - 1 - low) * (0.06 + tone * 0.85 * (1 - (i / length) * 0.8));
       data[i] = low * fade;
+    }
+    // early reflections: the first few bounces off the nearest walls, heard as separate taps before
+    // the wash. different on each side, so the room is wide. a wash of noise on its own is the sound
+    // of a cheap reverb, a room with no walls
+    // together they carry about a fifth of the energy of the wash's first 80 ms, and each is smeared
+    // over a few samples, so it's a soft knock rather than a click
+    let early = 0;
+    for (let i = gap; i < Math.min(length, gap + rate * 0.08); i++) early += data[i] * data[i];
+    const level = Math.sqrt((early * 0.35) / 7 / 4);
+    for (let k = 0; k < 7; k++) {
+      const at = gap + Math.floor(rate * (0.004 + Math.random() * (0.01 + size * 0.05)));
+      const sign = Math.random() < 0.5 ? -1 : 1;
+      for (let j = 0; j < 12 && at + j < length; j++) data[at + j] += sign * level * (1 - k * 0.08) * Math.exp(-j / 3);
     }
   }
   return buffer;

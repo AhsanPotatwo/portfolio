@@ -4,7 +4,10 @@
 // that fits (README.md) hold: harshness caps, no doubled instruments, no holes in melodies, no
 // blinking layers, bells on the beat, the right drums for each mood, kits on patterns they suit,
 // drums and textures in key, textures under the tune, the band listening (the tune on top, nothing
-// rubbing against it), melodies whose motif comes back, and moods that only name real instruments.
+// rubbing against it), melodies whose motif comes back, themes longer than their motif, solos that
+// never repeat and come home, an uncrowded band (two middle parts, no blur of running notes, one
+// world of sounds, surprises from nearby moods, textures that go together), and moods that only name
+// real instruments.
 // run it with
 // node js/squimble-music-maker/tests/music-check.js (no output means it all passed).
 //
@@ -88,7 +91,7 @@ for (const seed of ['mossy-lantern', 'quiet-tide', 'rusty-tower', 'x']) {
 }
 
 // a band that fits (fitBand, pickInstrument and the moods in music.js, and the README's rules)
-const { INSTRUMENTS, maxEdge, roleFamily } = vm.runInContext('({ INSTRUMENTS, maxEdge, roleFamily })', page);
+const { INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS } = vm.runInContext('({ INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS })', page);
 // every tonal instrument has an edge: the organ had none, so it never fitted under any cap
 for (const [id, inst] of Object.entries(INSTRUMENTS)) if (inst.family !== 'kit' && inst.family !== 'texture') assert(Number.isFinite(inst.edge), `${id} has an edge`);
 // every instrument a mood names is real, and every drum pattern has a groove in every time signature
@@ -100,6 +103,12 @@ for (const pattern of Object.keys(PATTERNS.drums)) for (const meter of Object.ke
 let stuck = 0;
 let lines = 0;
 let motifs = 0;
+let eights = 0;
+let rhythms = 0;
+let soloBars = 0;
+let soloNew = 0;
+let soloEnds = 0;
+let soloHome = 0;
 for (const mood of Object.keys(MOODS)) {
   for (const style of ['ambient', 'tune']) {
     for (let n = 0; n < 12; n++) {
@@ -112,6 +121,24 @@ for (const mood of Object.keys(MOODS)) {
       }
       assert.strictEqual(new Set(tonal.map((l) => l.instrument)).size, tonal.length, `${where}: no two layers on the same instrument`);
       assert(!(song.layers.some((l) => l.role === 'arp') && song.layers.some((l) => l.role === 'counter')), `${where}: an arp or a counter melody, not both`);
+      // not crowded: two parts at most moving round the middle, ambient songs six layers at most, and
+      // running notes no faster than six a second
+      assert(song.layers.filter((l) => MIDDLE.includes(l.role)).length <= 2, `${where}: two middle parts at most`);
+      if (style === 'ambient') assert(song.layers.length <= 6, `${where}: ambient songs have room`);
+      for (const layer of song.layers.filter(usesRate)) assert(layer.rate === 'slow' || song.tempo / 60 / rateStep(layer.rate, METERS[song.meter].sub) <= MAX_RATE, `${where}: the ${layer.role} runs too fast`);
+      // one band: chip and acoustic sounds never together, and surprises only from moods near this one
+      const worlds = new Set(song.layers.map((l) => INSTRUMENTS[l.instrument].world));
+      assert(!(worlds.has('chip') && worlds.has('acoustic')), `${where}: chip and acoustic sounds in one band`);
+      const kin = kindred(MOODS[mood]);
+      for (const layer of tonal) assert(kin.has(layer.instrument), `${where}: ${layer.instrument} is from a much darker or lighter mood`);
+      // no section is only scenery, and a tune opens on two of its band (one in ambient), never a lone
+      // pad: an intro that was all texture made a happy song start out ambient
+      const players = song.layers.filter((l) => OPENERS.includes(l.role)).map((l) => l.id);
+      for (const section of song.sections) assert(section.play.some((id) => song.layers.find((l) => l.id === id).role !== 'texture'), `${where}: ${section.name} is only the texture`);
+      assert(song.sections[0].play.filter((id) => players.includes(id)).length >= Math.min(players.length, style === 'tune' ? 2 : 1), `${where}: the intro is too thin`);
+      // two textures are two different ones, and not two steady beds
+      const textures = song.layers.filter((l) => l.role === 'texture').map((l) => INSTRUMENTS[l.instrument]);
+      if (textures.length > 1) assert(textures[0] !== textures[1] && !(textures[0].bed && textures[1].bed), `${where}: two textures that don't go together`);
       const drums = song.layers.find((l) => l.role === 'drums');
       if (mood === 'cozy' && drums) assert(drums.instrument === 'brushes' && drums.pattern === 'brush', `${where}: cozy drums are brushes`);
       if (mood === 'dreamy' || mood === 'heavenly') assert(!drums, `${where}: no drums`);
@@ -120,8 +147,9 @@ for (const mood of Object.keys(MOODS)) {
       const melody = song.layers.find((l) => l.role === 'melody');
       if (melody) {
         // no blinking: the melody doesn't sit out one section between two it plays in, apart from a C break
+        // or another layer's solo
         const on = song.sections.map((s) => s.play.includes('melody'));
-        for (let i = 1; i < on.length - 1; i++) assert(!(on[i - 1] && !on[i] && on[i + 1]) || song.sections[i].part === 'C', `${where}: the melody doesn't drop out of section ${i} and back`);
+        for (let i = 1; i < on.length - 1; i++) assert(!(on[i - 1] && !on[i] && on[i + 1]) || song.sections[i].part === 'C' || song.sections[i].lead, `${where}: the melody doesn't drop out of section ${i} and back`);
         // no holes mid phrase: phrases are near legato, calls rest for at most half a bar, and
         // fragments leave two bars of space at most
         const allowed = { calls: comp.bpb / 2 + 0.05, fragments: comp.bpb * 2 + 0.05 }[melody.pattern] || 1;
@@ -135,10 +163,31 @@ for (const mood of Object.keys(MOODS)) {
           for (let i = 1; i < notes.length; i++) assert(notes[i].gt - (notes[i - 1].gt + notes[i - 1].dur) <= allowed, `${where}: a gap of ${(notes[i].gt - notes[i - 1].gt - notes[i - 1].dur).toFixed(2)} beats in the ${melody.pattern} melody`);
           // the tune comes back: the second phrase starts with the same rhythm as the first (a
           // random walk of steps, new every bar, gave you nothing to remember)
-          if (section.bars >= 8) {
+          // (not in a solo, which is new all the way through)
+          if (section.bars >= 8 && !section.lead) {
             const starts = (bar) => notes.filter((n) => n.gt >= section.start + bar * comp.bpb - 1e-6 && n.gt < section.start + (bar + 1) * comp.bpb - 1e-6).map((n) => (n.gt - section.start - bar * comp.bpb).toFixed(3)).join();
             assert.strictEqual(starts(4), starts(0), `${where}: the motif comes back in the section's second phrase`);
             motifs++;
+          }
+          const barOf = (bar, pitches) => notes.filter((n) => n.gt >= section.start + bar * comp.bpb - 1e-6 && n.gt < section.start + (bar + 1) * comp.bpb - 1e-6).map((n) => (n.gt - section.start - bar * comp.bpb).toFixed(2) + (pitches ? `:${n.midi}` : '')).join();
+          // the theme is longer than its motif: eight bars of it have a few bar rhythms, not one on repeat
+          if (!section.lead && notes.length) {
+            for (let at = 0; at + 8 <= section.bars; at += 8) {
+              eights++;
+              rhythms += new Set(Array.from({ length: 8 }, (_, bar) => barOf(at + bar, false)).filter(Boolean)).size;
+            }
+          }
+          // a solo never repeats itself, and its last note comes home: a chord note, nearly always the
+          // root (a borrowed chord's root, or the IV's in a pentatonic tune, can be outside the scale)
+          if (section.lead === 'melody' && notes.length) {
+            const bars = Array.from({ length: section.bars }, (_, bar) => barOf(bar, true)).filter(Boolean);
+            soloBars += bars.length;
+            soloNew += new Set(bars).size;
+            const last = notes[notes.length - 1];
+            const chord = section.chords.find((ch) => last.gt < ch.t + ch.dur - 1e-6);
+            assert(chord.pcs.has(((last.midi % 12) + 12) % 12), `${where}: the solo ends on a chord note`);
+            soloEnds++;
+            if (((last.midi % 12) + 12) % 12 === chord.root) soloHome++;
           }
         }
       }
@@ -189,6 +238,10 @@ for (const mood of Object.keys(MOODS)) {
 
 assert(stuck / lines < 0.01, `single lines nearly never rub against the tune (${stuck} of ${lines})`);
 assert(motifs > 50, `enough long sections to check motifs come back (${motifs})`);
+// before themes had a second idea and a middle, eight bars averaged 1.7 bar rhythms (it's 2.6 now)
+assert(rhythms / eights > 2.3, `themes have more than one bar rhythm (${(rhythms / eights).toFixed(2)} per eight bars)`);
+assert(soloHome / soloEnds > 0.8, `solos come home to the root (${soloHome} of ${soloEnds})`);
+assert(soloBars > 200 && soloNew / soloBars > 0.9, `solos are new all the way through (${soloNew} of ${soloBars} bars)`);
 
 // a note the band moved can still be removed by hand: the page removes it by the pitch it was written at
 {

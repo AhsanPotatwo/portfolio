@@ -18,19 +18,24 @@ const db = (x) => (x > 0 ? (20 * Math.log10(x)).toFixed(1) : '-inf').padStart(6)
 
 async function measure(id, seconds, play) {
   const rate = 22050;
-  const ctx = new OfflineAudioContext(1, rate * seconds, rate);
+  // in stereo, through a centred panner like a layer's channel (makeChannel in synth.js), so sounds
+  // the synth spreads or places left and right measure as they're heard. a mono render counted them
+  // about 3 db too quiet
+  const ctx = new OfflineAudioContext(2, rate * seconds, rate);
   // weighted roughly the way ears hear (a weighting): a low hum counts for much less than a hiss
   const input = ctx.createGain();
   const low = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 200, Q: 0.5 });
   const high = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 10000, Q: 0.5 });
-  input.connect(low).connect(high).connect(ctx.destination);
+  input.connect(new StereoPannerNode(ctx)).connect(low).connect(high).connect(ctx.destination);
   play(ctx, { input }, { instrument: id, tone });
-  const data = (await ctx.startRendering()).getChannelData(0);
+  const rendered = await ctx.startRendering();
+  const [left, right] = [rendered.getChannelData(0), rendered.getChannelData(1)];
+  const data = left;
   let sum = 0;
   let loudest = 0;
   for (let at = 0; at < data.length; at += rate) {
     let second = 0;
-    for (let i = at; i < Math.min(data.length, at + rate); i++) second += data[i] * data[i];
+    for (let i = at; i < Math.min(data.length, at + rate); i++) second += left[i] * left[i] + right[i] * right[i];
     sum += second;
     loudest = Math.max(loudest, Math.sqrt(second / rate));
   }

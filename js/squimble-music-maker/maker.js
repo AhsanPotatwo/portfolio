@@ -967,6 +967,17 @@
       part.dataset.tip = "Which part's chords this section plays";
       for (const letter of PARTS) part.append(new Option(`Part ${letter}`, letter, false, letter === one.part));
       part.addEventListener('change', edit(() => { one.part = part.value; }));
+      // who takes a solo here, if anyone (section.lead, solo() in music.js)
+      const lead = make('select', 'mm-select mm-select-small');
+      lead.setAttribute('aria-label', `Section ${index + 1}'s solo`);
+      lead.dataset.tip = 'A solo: this layer plays a long new line here, one that never repeats, instead of its usual part';
+      lead.append(new Option('No solo', '', false, !one.lead));
+      for (const layer of song.layers.filter((one) => SOLOISTS[one.role])) lead.append(new Option(`${ROLES[layer.role].name} solo`, layer.id, false, one.lead === layer.id));
+      lead.addEventListener('change', edit(() => {
+        if (!lead.value) return delete one.lead;
+        one.lead = lead.value;
+        if (!one.play.includes(lead.value)) one.play.push(lead.value);
+      }));
       const bars = make('div', 'mm-bars');
       bars.dataset.tip = 'How many bars long it is';
       bars.append(
@@ -997,7 +1008,7 @@
         tool('→', 'Move it later', move(1), index === song.sections.length - 1),
         tool('×', 'Remove it', edit(() => song.sections.splice(index, 1)), song.sections.length === 1),
       );
-      cell.append(name, part, bars, tools);
+      cell.append(name, part, lead, bars, tools);
       headRow.append(cell);
     });
     const thead = make('thead');
@@ -1036,7 +1047,7 @@
       song.sections.push({ ...last, name: last.name, play: [...last.play] });
     }), 'mm-key-small');
     const foot = make('div', 'mm-arrange-foot');
-    foot.append(addSection, make('p', 'mm-hint', 'Each section plays one part\'s chords (set them in the Song tab). Sections of the same part play the same tune, a little changed on later times round. For a game loop, try leaving the quiet intro and outro out.'));
+    foot.append(addSection, make('p', 'mm-hint', 'Each section plays one part\'s chords (set them in the Song tab). Sections of the same part play the same tune, a little changed on later times round, unless one of them has a solo. For a game loop, try leaving the quiet intro and outro out.'));
     return [wrap, foot];
   }
 

@@ -25,7 +25,7 @@ This README and the code comments are the only notes. When you change something:
 The moods and sounds are aimed at particular game and ambient music:
 
 - **Ambient:** Aphex Twin's Selected Ambient Works (analog pad, sine bell, tape loop, drum machine), the Fallout 1 and 2 scores (Desolate: bowed metal, metal pings, Geiger counter, creaking metal), Dying Light (analog pad, Reese bass, synth brass, the slower side of Neon) and Minecraft (felt piano and nylon guitar playing Fragments, cave drips).
-- **Melodic and upbeat:** Undertale and Deltarune (Spirited: pulse lead, triangle bass, chip kit, riffs, the "royal road" IV V iii vi), Terraria (pan flute, nylon guitar, birdsong) and Minecraft.
+- **Melodic and upbeat:** Undertale and Deltarune (Spirited: pulse lead, triangle bass, chip kit, riffs, the "royal road" IV V iii vi), Terraria (pan flute, nylon guitar, birdsong), Minecraft, and Stardew Valley (Happy and Playful: flute, clarinet or accordion over a fingerpicked or strummed steel guitar, soft strings, a root and fifth bass, a light kit, and sixteen bar themes).
 - **Mellow and serious:** Have a Nice Life (Bleak: fuzz wall, chanted choir, chorus bass, a drum machine in a huge room).
 - **Dark electronic:** Crystal Castles (Neon: bit lead, pumping pads, four to the floor, club kit).
 
@@ -36,7 +36,7 @@ The moods and sounds are aimed at particular game and ambient music:
 1. **pickTonality:** key, scale, tempo, time signature, swing, how rich the chords are, how long each chord lasts.
 2. **pickChords:** a progression for parts A, B and C, as roman numerals.
 3. **pickLayers:** which roles play (melody, pad, bass...). Each one is dressed with an instrument, a pattern, a tone and a mix (`dressLayer`), then `fitBand` applies the rules below.
-4. **pickArrangement:** the sections, and who plays in each.
+4. **pickArrangement:** the sections, and who plays in each. Often a solo section too (`addSolo`).
 5. **pickSpace:** reverb, echo, warmth, wobble and drive.
 
 `composeSong(song)` turns those settings into notes, one composer per role (`COMPOSERS`). The drums, a syncopated bass and the chord stabs all read the same groove (`GROOVES`, `grooveFor`). Once every part is written, the band listens to each other (`listen`, see below) before the notes get their swing and humanising (`feel`). The remix buttons re-run one pick with a fresh seed (`rerollSong`).
@@ -62,7 +62,14 @@ Every one of these is here because the song sounded wrong without it. The code c
 - **Gentle bells use harmonic overtone ratios** (glass bell 2, wind chime 7). The old ones (1.4 and 7.1) clashed with every chord.
 - **Backing sits at least 0.1 under the melody's volume.**
 - **Drums sit under the band.** Their volume follows the mood's energy, they play at 70% inside the synth, their brightness is capped by energy, and a big room doesn't make them ring longer.
-- **Textures are scenery, and mostly sparse.** Wind, ocean, rumble, drips, birds, the Geiger counter and creaks happen now and then with quiet between (`moments()` and `swells()` in synth.js), the way the vinyl crackle does. Every texture's `gain` puts it near the vinyl's loudness (`tests/levels.html`). A texture also sits at no more than 55% of the melody's volume (0.42 with no melody).
+- **Textures are scenery, and mostly sparse.** Wind, ocean, rumble, drips, birds, the Geiger counter and creaks happen now and then with quiet between (`moments()` and `swells()` in synth.js), the way the vinyl crackle does. Every texture's `gain` puts it near the vinyl's loudness (`tests/levels.html`). A texture also sits at no more than 55% of the melody's volume (0.42 with no melody), and 85% of that when there are two.
+- **Textures are a place.** Each bird call, drip, croak, hoot or creak comes from its own spot left or right (`spot`). An ambient song can have a second texture (half the time, in moods with something that happens now and then), but never the same one twice or two steady beds (`bed`) together.
+- **One band, not two.** Chip sounds and acoustic ones (`world` in synth.js) never share a song. Whichever is picked first, usually the melody, sets it. Sounds with no `world` go with anything.
+- **Surprises come from nearby moods.** The odd instrument from outside the mood's palette must be in the palette of a mood about as dark (`kindred`), so a playful song can't draw the haunted pad.
+- **Notes ring on like real ones.** Leads, keys and plucks have releases long enough to ring into the room, and chords in tunes let go at 0.8 of their release, not 0.55.
+- **Harder is brighter.** A note's strength opens its filter (or its FM brightness, or its pluck) as well as making it louder (`hardness`).
+- **Blown and bowed notes scoop.** Flute, clarinet, violin, horn and the like start a few cents flat and slide onto the note (`scoop`), on notes longer than a fifth of a second.
+- **Pads are wide.** Pads and drones spread their oscillators left and right, and the reverb has early reflections before its wash.
 - **Plucked strings start soft and ring on.** `soft` mixes a finger's smooth pull into the string's starting noise, high strings ring for less time than low ones, and tunes don't cut a pluck's release short.
 
 **Listening** (`listen` and `COMPOSERS.drums` in music.js)
@@ -74,8 +81,15 @@ Every one of these is here because the song sounded wrong without it. The code c
 - **A kit only plays patterns it suits** (`suits` in synth.js). `fitBand` changes the pattern, from the mood's list where it can.
 
 **Parts**
-- **An arp or a counter melody, never both.** With an arp, keys hold their chords and pads don't pulse, because two layers doing the same job tangle.
-- **A melody grows from one motif** (`tune()`, "melodies" in music.js). The motif is a rhythm and a shape from `CONTOURS` (leap and fill, arch, turn, repeat...), made from the layer's seed so every part hears it. Phrases follow `PHRASE_PLANS`: repeat it, sequence it up or down, answer it with new notes on its rhythm, or turn it upside down. Phrases pair up as question and answer: both start the same, and the first ends open (the chord's third or fifth) while the second comes home (the root). Part B sings it higher or has its own; part C slows it down or has its own. Short motifs are played twice in a bar as a hook, and phrases can start with a pickup.
+- **An arp or a counter melody, never both.** With an arp, keys strum (a chord a bar) and pads hold, because two layers doing the same job tangle. With broken or oom-pah keys, pads hold too.
+- **Two moving middle parts at most.** Of bells, a counter melody, an arp and keys, a song keeps two, losing them in that order (`MIDDLE`). Ambient songs have six layers at most, tunes seven.
+- **No running notes faster than six a second** (`MAX_RATE`). Arps, pulses and broken chords slow down a step until they fit.
+- **No walking bass unless the mood asks for it** (Cozy, Playful, Spirited).
+- **A melody grows from one motif** (`tune()`, "melodies" in music.js). The motif is a rhythm and a shape from `CONTOURS` (leap and fill, arch, turn, repeat...), made from the layer's seed so every part hears it. Part B sings it higher or has its own; part C slows it down or has its own. Short motifs are played twice in a bar as a hook, and phrases can start with a pickup.
+- **A theme is longer than its motif.** It has a second idea with its own rhythm (slower if the motif's busy, busier if it's slow). Four bar phrases pair up as question and answer (`QUESTION_PLANS`, `ANSWER_PLANS`): both start with the motif, and the first ends open (the chord's third or fifth) while the second comes home (the root). A sixteen bar section is a whole a a b a tune, its third phrase starting somewhere new (`MIDDLE_PLANS`). Two bar phrases take turns: motif, new notes, motif, second idea.
+- **Later times round, the tune is a little changed.** Its last phrase can go another way, and some bars get a passing note, never a phrase's first bar, so the motif always comes back as you know it.
+- **A melody breathes like a player.** A little louder towards the middle of a phrase and on higher notes, softer as it comes to rest (`SWELL`, `sing()`).
+- **Solos never repeat.** A solo section (`section.lead`, `solo()`) is built four bars at a time from new ideas: an idea, the idea again a step away or with new notes, a new idea (often a run), then a long note to breathe on. It climbs and gets busier to a peak two thirds in, then comes down to land on the chord's root, and half the time quotes the theme once. It's added just before the theme's last return, and the counter melody takes it 40% of the time while the melody rests. Bells and the counter melody sit a melody's solo out. In a solo, the band listens to the soloist as the tune.
 - **Strong beats snap the way the shape was heading.** A step up goes to the next chord note up, not back to the last one.
 - **A motif has at least two lengths of note** (or one long note in a slow tune). The tresillo (3 + 3 + 2) is one of the rhythm cells.
 - **Melodies have no rests inside a bar.** They breathe at the ends of phrases. "Calls" holds its last note through half the next bar before its gap. "Fragments" leaves every other two bar phrase empty, its last note ringing into the space, but never past the section's end.
@@ -86,6 +100,7 @@ Every one of these is here because the song sounded wrong without it. The code c
 
 **Moods**
 - **Each mood says how likely drums are** (`drums: [ambient, tune]`) and which kits and patterns suit it. Dreamy and Heavenly have none. Cozy and Wistful use brushes on a jazz ride. Calm and Sad only get rare soft pulses. Neon is four to the floor on the club kit, with pumping pads. Bleak's drum machine plays half time. Desolate only gets sparse pulses.
+- **Each mood says what opens its songs** (`opens`): the guitar then the bass in Happy (Stardew Valley), the beat and bass in Upbeat and Angry, a march under strings in Heroic, chip arps and bass in Spirited, a pad or drone in the ambient moods. A tune opens on two of them and an ambient song on one, and they play the whole song through, so the intro already sounds like the song. With none of the mood's openers in the band, any of pad, keys, arp, drone, bass or drums will do (`OPENERS`). No section is ever only the texture.
 - **Mutate and remixes only pick patterns from the mood's list,** so a cozy song can't mutate into a tribal beat.
 - **Progressions are picked to suit the scale.** Ones with notes outside it are less likely.
 
@@ -128,11 +143,17 @@ Kept so nobody (me included) undoes a fix by accident.
 | Slow tunes flattening into one note | Long notes snapped to the nearest chord note, often the one just played | Snapping follows the shape's direction |
 | Hooks of one repeated note | The arch and repeat shapes went flat on two note motifs, and two equal notes passed the "two lengths" rule | Shapes that work at any length, and a stricter rule |
 | A fragment's last note ringing over the next section | It rang on into the next bar even at a section's end | It rings only inside its section |
+| Melodies looping one short idea all song | Every phrase was one four bar plan built from a one bar motif, so a whole song had one to six bar rhythms (1.7 per eight bars) | A second idea, question and answer phrases, an a a b a middle, passing notes on later takes (2.6 per eight bars), and solos |
+| Happy and playful songs a pile of noises | Up to four parts moving round the middle at once (an arp, oom-pah keys, chimes and a walking bass), sixteenths at 130 bpm, chip drums under a harp and music box, and a haunted pad drawn as a playful song's surprise | Two middle parts at most, six notes a second at most, chip and acoustic never together, surprises only from nearby moods, no walking bass unless asked for |
+| Instruments sounding like midi | Notes stopped dead, every note the same colour whatever its strength, pads one mono point, and a reverb with no walls | Longer releases, `hardness`, `scoop`, wide pads, early reflections |
+| Ambient songs with little sense of place | One texture at most, every event from the same spot | New textures (brook, leaves, frogs, owl, chimes), each event placed left or right, and a second texture in ambient songs |
+| Songs starting ambient, then a different song when the melody came in | Layers came in by energy alone, so an intro was often a lone pad (half of all tunes) or nothing but the texture (up to 15% of happy, playful and neon songs) | Each mood's `opens`: two parts in its style from the first bar in a tune, one in an ambient song |
+| Panned textures measuring 3 dB quiet | `levels.html` rendered mono, without a channel's panner | It renders stereo through a centred panner, as a layer's channel does |
 
 ## Adding things
 
-- **An instrument:** a line in `INSTRUMENTS` (synth.js) with a family, an `edge` judged by ear, and an engine. Set its `gain` with `tests/levels.html` so it's about as loud as the others in its family. It can then appear in mood palettes. A drum kit needs `suits` instead: the patterns it sounds right playing.
-- **A texture:** a line in `INSTRUMENTS` and a function in `TEXTURES`. Make it something that happens now and then (`moments()`, `swells()`) rather than a steady wash, and bring its gain near the vinyl's with `tests/levels.html`.
+- **An instrument:** a line in `INSTRUMENTS` (synth.js) with a family, an `edge` judged by ear, a `world` if it's chip or acoustic, and an engine. Set its `gain` with `tests/levels.html` so it's about as loud as the others in its family. It can then appear in mood palettes. A drum kit needs `suits` instead: the patterns it sounds right playing.
+- **A texture:** a line in `INSTRUMENTS` and a function in `TEXTURES`. Make it something that happens now and then (`moments()`, `swells()`, each event at its own `spot()`) rather than a steady wash, and bring its gain near the vinyl's with `tests/levels.html`. A steady one is a `bed`.
 - **A mood:** an entry in `MOODS` (music.js). The comment above `MOODS` lists every field. Set `drums`, and keep its palettes within its edge cap.
 - **A groove:** a line in `GROOVES`. Every line must be a bar long, and a new drum pattern needs a groove in every time signature; the check tests both.
 
@@ -143,5 +164,8 @@ Kept so nobody (me included) undoes a fix by accident.
 - The drum, texture and harp changes above were worked out from the levels and the maths, not heard yet. If drums are now too quiet in energetic moods, raise the 0.24 in `volumes.drums` (dressLayer) before touching the 70% in synth.js.
 - Listening only looks at the melody. Two backing parts can still rub against each other, and a texture doesn't duck when the band gets busy within a section.
 - Instrument volumes and `edge` ratings were set by working out the levels, not by listening to every pairing. If a pairing sounds wrong, adjust that instrument's `edge` or `gain` rather than adding a special case.
+- The clarinet, accordion, steel guitar, the five new textures, solos, longer themes, scoop, `hardness`, wide pads and the reverb's early reflections were set from measured levels and printed notes, not heard yet. Judge them by ear. If something's off, adjust its `gain`, `scoop` or `edge`, or `hardness` in synth.js, before adding a special case.
+- A solo isn't editable note by note: hand edits are per part, and belong to the part's usual tune.
+- Chords whose root is outside a pentatonic scale can't be sung home to, so about one solo in seven ends on another chord note.
 - Notes you add by hand aren't held to these rules. That's on purpose: it's your song.
 - Saved songs from before a change to the composer open fine, but may not play quite the same, because the random picks changed.
