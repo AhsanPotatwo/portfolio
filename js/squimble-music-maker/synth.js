@@ -251,7 +251,8 @@ function lfo(ctx, rate, depth, param, when, end, type = 'sine') {
 // returns where the engine plugs its sound in, and when everything can stop
 function voiceChain(ctx, out, inst, tone, f, when, dur, vel) {
   const [attackTime, decay, sustain, releaseTime] = inst.env;
-  const attack = Math.max(0.002, attackTime * tone.attack);
+  // never more than half the note, or a short chord would only reach full volume after the beat's gone
+  const attack = Math.max(0.002, Math.min(attackTime * tone.attack, dur * 0.5));
   const release = Math.max(0.03, releaseTime * tone.release);
   const peak = inst.gain * vel;
   const amp = ctx.createGain();
@@ -428,9 +429,40 @@ function toneHit(ctx, out, when, peak, from, to, sweep, decay, wave = 'sine') {
   osc.stop(when + decay * 1.6 + 0.05);
 }
 
+// a cymbal the way the roland 808 made one: six square waves at clashing pitches, filtered down to
+// just their metallic shimmer, with a little noise for air. plain filtered noise (what I had first)
+// sounds like hiss rather than metal. tone is where the filters sit, so brighter kits ring higher
+const METAL = [205.3, 304.4, 369.6, 522.7, 540, 800];
+function metal(ctx, out, when, peak, tone, decay) {
+  const end = when + decay * 1.6 + 0.05;
+  const band = ctx.createBiquadFilter();
+  band.type = 'bandpass';
+  band.frequency.value = Math.min(15000, tone * 1.3);
+  band.Q.value = 0.8;
+  const high = ctx.createBiquadFilter();
+  high.type = 'highpass';
+  high.frequency.value = Math.min(14000, tone);
+  band.connect(high).connect(hitEnvelope(ctx, when, peak, 0.001, decay)).connect(out);
+  for (const freq of METAL) {
+    const osc = ctx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.value = freq * (tone / 7000);
+    const gain = ctx.createGain();
+    gain.gain.value = 0.35;
+    osc.connect(gain).connect(band);
+    osc.start(when);
+    osc.stop(end);
+  }
+  noiseHit(ctx, out, when, peak * 0.3, 'highpass', tone, 0.7, 0.001, decay * 0.7);
+}
+
 // each gets the slot's settings (p): tune (hz), tone (a filter's hz), decay (seconds), gain
 const DRUMS = {
-  kick: (ctx, out, when, vel, p) => toneHit(ctx, out, when, vel * p.gain, p.tune * 3.2, p.tune, 0.07, p.decay),
+  kick(ctx, out, when, vel, p) {
+    toneHit(ctx, out, when, vel * p.gain, p.tune * 3.5, p.tune, 0.06, p.decay);
+    // the beater's click, so it's heard on small speakers that can't play the low thump
+    noiseHit(ctx, out, when, vel * p.gain * 0.2, 'lowpass', 3500, 0.7, 0.001, 0.012);
+  },
   heart(ctx, out, when, vel, p) {
     DRUMS.kick(ctx, out, when, vel, p);
     DRUMS.kick(ctx, out, when + 0.24, vel * 0.6, p);
@@ -440,11 +472,13 @@ const DRUMS = {
     noiseHit(ctx, out, when, vel * p.gain * 0.5, 'lowpass', 300, 0.7, 0.002, 0.15);
   },
   tom: (ctx, out, when, vel, p) => toneHit(ctx, out, when, vel * p.gain, p.tune * 1.5, p.tune, 0.12, p.decay),
+  // the wires (a wide band of noise), their sizzle, and the drum's body
   snare(ctx, out, when, vel, p) {
-    noiseHit(ctx, out, when, vel * p.gain, 'bandpass', p.tone, 0.7, 0.001, p.decay);
-    toneHit(ctx, out, when, vel * p.gain * 0.5, 190, 150, 0.05, 0.08, 'triangle');
+    noiseHit(ctx, out, when, vel * p.gain, 'bandpass', p.tone, 0.4, 0.001, p.decay);
+    noiseHit(ctx, out, when, vel * p.gain * 0.45, 'highpass', 5000, 0.7, 0.001, p.decay * 0.5);
+    toneHit(ctx, out, when, vel * p.gain * 0.6, 230, 180, 0.04, 0.1, 'triangle');
   },
-  hat: (ctx, out, when, vel, p) => noiseHit(ctx, out, when, vel * p.gain, 'highpass', p.tone, 0.8, 0.001, p.decay),
+  hat: (ctx, out, when, vel, p) => metal(ctx, out, when, vel * p.gain, p.tone, p.decay),
   shaker: (ctx, out, when, vel, p) => noiseHit(ctx, out, when, vel * p.gain, 'bandpass', p.tone, 1.2, 0.012, p.decay),
   brush: (ctx, out, when, vel, p) => noiseHit(ctx, out, when, vel * p.gain, 'bandpass', p.tone, 0.6, 0.025, p.decay),
   rim(ctx, out, when, vel, p) {

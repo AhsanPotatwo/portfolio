@@ -1,5 +1,5 @@
 /* squimble music maker. a flat, painted tape deck: warm black body, keys with a hard edge under them
-   (a cousin of the sound studio's), cream score paper, and labels in wide capitals like old hi-fi.
+   (a cousin of the sound studio's), cream score paper, and lettering like a hand painted label.
    the song's mood colour (--mm-mood, set by maker.js) is the signal: the label stripe, the play key,
    lit keys and slider fills all change with the mood. no gradients or soft shadows */
 .mm-page{
@@ -20,8 +20,8 @@
   --mm-warn:    #ff9a85;
   --mm-mood:    #9cc5a1;
   --mm-mood-ink:#1c1a17;
-  --mm-ui: "Archivo", var(--font-sans);
-  --mm-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --mm-ui: "Recursive", var(--font-sans);
+  --mm-mono: "Recursive", ui-monospace, Consolas, monospace;
 
   /* overrides for styles.css */
   --bg: var(--mm-ink);
@@ -39,7 +39,10 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 @media (max-width:820px){
   .mm-page .nav{ background:var(--mm-dark); }
 }
-.mm-page main{ font-family:var(--mm-ui); }
+/* recursive: one family for everything. its casual axis (CASL) leans letters towards brush lettering,
+   like a hand painted label, and its MONO axis gives the readouts even, tabular numbers */
+.mm-page main{ font-family:var(--mm-ui); font-variation-settings:"CASL" 0.35; }
+.mm-label-seed input, .mm-readout, .mm-slider output, .mm-chord-input, .mm-chip b, .mm-bars span{ font-variation-settings:"MONO" 1, "CASL" 0; }
 /* the page hides parts with the hidden attribute, which loses to display:grid and flex otherwise */
 .mm-page [hidden]{ display:none !important; }
 .mm-visually-hidden{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
@@ -48,10 +51,9 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-intro{ padding:clamp(48px,6vw,80px) 0 clamp(28px,3.5vw,40px); }
 .mm-title{
   margin:0;
-  font:900 clamp(36px,5.4vw,72px)/0.95 var(--mm-ui);
-  font-stretch:125%;
-  letter-spacing:-.01em;
-  text-transform:uppercase;
+  font:900 clamp(40px,6vw,80px)/1 var(--mm-ui);
+  font-variation-settings:"CASL" 1;
+  letter-spacing:-.02em;
   color:var(--mm-text);
 }
 .mm-lede{
@@ -68,10 +70,7 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   border-radius:3px;
   background:var(--mm-panel);
   color:var(--mm-text);
-  font:600 13px var(--mm-ui);
-  font-stretch:112%;
-  letter-spacing:.04em;
-  text-transform:uppercase;
+  font:600 14px var(--mm-ui);
 }
 
 /* ---------- keys: every button. they sit on a hard edge and press down into it ---------- */
@@ -79,10 +78,8 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   display:inline-flex; align-items:center; justify-content:center; gap:7px;
   min-height:36px;
   padding:0 14px;
-  font:700 12.5px/1.1 var(--mm-ui);
-  font-stretch:112%;
-  letter-spacing:.06em;
-  text-transform:uppercase;
+  font:700 14px/1.1 var(--mm-ui);
+  letter-spacing:.005em;
   color:var(--mm-text);
   background:var(--mm-raised);
   border:0;
@@ -114,13 +111,12 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-key-line:disabled:active{ background:transparent; box-shadow:inset 0 0 0 2px #5e564b; color:var(--mm-text); transform:none; }
 .mm-key-line:hover{ background:rgba(255,255,255,.06); }
 .mm-key-line:disabled:hover{ background:transparent; }
-.mm-key-small{ min-height:30px; padding:0 10px; font-size:11.5px; }
+.mm-key-small{ min-height:30px; padding:0 10px; font-size:13px; }
 .mm-key-square{ min-width:30px; padding:0; }
 
 .mm-heading{
   margin:0;
   font:700 12px var(--mm-ui);
-  font-stretch:125%;
   letter-spacing:.14em;
   text-transform:uppercase;
   color:var(--mm-muted);
@@ -161,9 +157,9 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   color:var(--mm-paper-ink);
 }
 .mm-label input:focus{ outline:none; box-shadow:0 2px 0 var(--mm-paper-ink); }
-.mm-label-name input{ font:800 21px/1.25 var(--mm-ui); font-stretch:112%; }
+.mm-label-name input{ font:900 23px/1.25 var(--mm-ui); font-variation-settings:"CASL" 1; }
 .mm-label-seed{ display:flex; align-items:baseline; gap:8px; }
-.mm-label-seed span{ font:700 10px var(--mm-ui); font-stretch:125%; letter-spacing:.14em; text-transform:uppercase; color:#7b6f5d; }
+.mm-label-seed span{ font:700 10px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:#7b6f5d; }
 .mm-label-seed input{ font:500 13px var(--mm-mono); }
 .mm-bar-actions{ display:flex; gap:8px; margin-left:auto; }
 
@@ -229,10 +225,8 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-tabs{ display:flex; gap:4px; padding:0 20px; }
 .mm-tab{
   padding:11px 18px 10px;
-  font:700 12.5px var(--mm-ui);
-  font-stretch:125%;
-  letter-spacing:.12em;
-  text-transform:uppercase;
+  font:800 15px var(--mm-ui);
+  font-variation-settings:"CASL" 0.8;
   color:var(--mm-muted);
   background:var(--mm-dark);
   border:0;
@@ -266,7 +260,6 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   display:flex; align-items:center; gap:10px;
   margin:0 0 8px;
   font:700 11.5px var(--mm-ui);
-  font-stretch:125%;
   letter-spacing:.14em;
   text-transform:uppercase;
   color:var(--mm-muted);
@@ -287,8 +280,6 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-slider label{ font-size:14px; font-weight:600; color:#ddd5c6; }
 .mm-field + .mm-field, .mm-slider + .mm-field, .mm-field + .mm-slider{ margin-top:4px; }
 .mm-choices{ display:flex; flex-wrap:wrap; gap:8px 5px; padding:3px 0 5px; }
-/* note names keep their case: Eb, not EB */
-.mm-notes .mm-key{ text-transform:none; letter-spacing:.02em; font-size:12.5px; }
 .mm-slider output{
   font:500 12px var(--mm-mono);
   font-variant-numeric:tabular-nums;
@@ -415,9 +406,8 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-detail-title{
   display:flex; align-items:center; gap:10px;
   margin:0;
-  font:900 20px var(--mm-ui);
-  font-stretch:125%;
-  text-transform:uppercase;
+  font:900 22px var(--mm-ui);
+  font-variation-settings:"CASL" 1;
 }
 .mm-detail-title::before{ content:""; width:12px; height:22px; border-radius:2px; background:var(--chip); }
 .mm-detail-note{ font-size:13px; color:var(--mm-muted); }
@@ -445,14 +435,14 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-arrange{ border-collapse:separate; border-spacing:6px; margin:-6px; }
 .mm-arrange th{ font-weight:600; text-align:left; vertical-align:top; }
 .mm-arrange thead th{ min-width:132px; padding:8px; background:var(--mm-dark); border-radius:4px; }
-.mm-arrange thead .mm-arrange-corner{ min-width:0; background:none; font:700 11.5px var(--mm-ui); font-stretch:125%; letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); vertical-align:bottom; }
+.mm-arrange thead .mm-arrange-corner{ min-width:0; background:none; font:700 11.5px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); vertical-align:bottom; }
 .mm-arrange thead th > * + *{ margin-top:6px; }
 .mm-section-name{ width:100%; height:30px; font-weight:700; }
 .mm-arrange .mm-select{ width:100%; }
 .mm-bars{ display:flex; align-items:center; gap:6px; }
 .mm-bars span{ flex:1; text-align:center; font:500 12.5px var(--mm-mono); }
 .mm-section-tools{ display:flex; gap:4px; }
-.mm-section-tools .mm-key{ flex:1; min-width:0; font-size:13px; text-transform:none; }
+.mm-section-tools .mm-key{ flex:1; min-width:0; font-size:13px; }
 .mm-arrange-layer{ white-space:nowrap; padding-right:8px; font-size:14px; }
 .mm-arrange-layer .mm-layer-chip{ display:inline-block; height:14px; margin-right:8px; vertical-align:-2px; }
 .mm-cell{
@@ -472,9 +462,9 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 /* ---------- library and export ---------- */
 .mm-ribbon{
   margin:clamp(56px,7vw,88px) 0 clamp(20px,2.5vw,28px);
-  font:900 clamp(26px,3vw,38px)/1.1 var(--mm-ui);
-  font-stretch:125%;
-  text-transform:uppercase;
+  font:900 clamp(28px,3.2vw,42px)/1.1 var(--mm-ui);
+  font-variation-settings:"CASL" 1;
+  letter-spacing:-.01em;
   color:var(--mm-text);
 }
 .mm-lower{
@@ -487,7 +477,7 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   .mm-lower{ grid-template-columns:minmax(0,1fr); }
 }
 .mm-shelf{ padding:22px; background:var(--mm-body); border-radius:10px; color:var(--mm-text); }
-.mm-shelf-title{ margin:0; font:800 21px var(--mm-ui); font-stretch:112%; }
+.mm-shelf-title{ margin:0; font:900 22px var(--mm-ui); font-variation-settings:"CASL" 1; }
 .mm-shelf-note{ margin:6px 0 14px; font-size:14px; color:var(--mm-muted); }
 
 .mm-library{ list-style:none; margin:0; padding:0; max-height:440px; overflow-y:auto; }
@@ -549,7 +539,7 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   .mm-bar, .mm-moods-wrap, .mm-transport, .mm-remix{ padding-left:14px; padding-right:14px; }
   .mm-score-wrap{ margin:0 14px; }
   .mm-tabs{ padding:0 14px; }
-  .mm-tab{ flex:1; padding:10px 6px; letter-spacing:.06em; }
+  .mm-tab{ flex:1; padding:10px 6px; font-size:14px; }
   .mm-panel{ padding:18px 14px 8px; }
   .mm-tip{ padding:12px 14px; }
   .mm-bar-actions{ margin-left:0; width:100%; }

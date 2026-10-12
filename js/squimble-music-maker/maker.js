@@ -313,9 +313,9 @@
       g.fillStyle = PART_COLOURS[section.part];
       g.fillRect(x0, 0, x1 - x0, HEAD);
       g.fillStyle = INK;
-      g.font = '700 11px Archivo, sans-serif';
+      g.font = '700 11px Recursive, sans-serif';
       clipText(g, section.name, x0 + 5, HEAD / 2 + 1, x1 - x0 - 8);
-      g.font = '500 10.5px "IBM Plex Mono", monospace';
+      g.font = '500 10.5px Recursive, monospace';
       for (const chord of section.chords) {
         const cx = x(chord.t);
         g.fillStyle = RULE;
@@ -343,11 +343,11 @@
       g.fillStyle = colour;
       g.fillRect(6, top + 7, 5, LANE - 13);
       g.fillStyle = INK;
-      g.font = '700 11.5px Archivo, sans-serif';
+      g.font = '700 11.5px Recursive, sans-serif';
       clipText(g, ROLES[layer.role].name + (layer.solo ? ' · solo' : ''), 17, gutter > 100 ? top + 10 : top + LANE / 2, gutter - 24);
       if (gutter > 100) {
         g.fillStyle = INK_SOFT;
-        g.font = '500 10.5px Archivo, sans-serif';
+        g.font = '500 10.5px Recursive, sans-serif';
         clipText(g, INSTRUMENTS[layer.instrument].name, 17, top + 21, gutter - 24);
       }
       const notes = comp.notes.filter((note) => note.layer === layer.id);
@@ -568,7 +568,8 @@
       chips.replaceChildren(...chords.map((chord) => {
         const chip = make('button', 'mm-chip');
         chip.type = 'button';
-        chip.append(make('b', '', chord.name), make('small', '', `${chord.dur / bars} bar${chord.dur / bars === 1 ? '' : 's'}`));
+        const length = chord.dur / bars;
+        chip.append(make('b', '', chord.name), make('small', '', length === 0.5 ? '½ bar' : `${length} bar${length === 1 ? '' : 's'}`));
         chip.addEventListener('click', () => {
           const voice = song.layers.find((layer) => layer.role === 'pad' || layer.role === 'keys') || song.layers.find((layer) => roleFamily(layer.role) === 'tonal');
           if (voice) player.audition(song, voice, voiceChord(chord.root, chord.tones, 60, null), 3);
@@ -805,7 +806,8 @@
     const scroller = make('div', 'mm-editor-scroll');
     const canvas = make('canvas', 'mm-editor-grid');
     scroller.append(canvas);
-    for (const [one, w] of [[labels, 46], [canvas, width]]) {
+    const LABELS = drums ? 66 : 46;
+    for (const [one, w] of [[labels, LABELS], [canvas, width]]) {
       one.width = Math.round(w * dpr);
       one.height = Math.round(height * dpr);
       one.style.width = `${w}px`;
@@ -819,12 +821,12 @@
     const lg = labels.getContext('2d');
     lg.setTransform(dpr, 0, 0, dpr, 0, 0);
     lg.fillStyle = PAPER_DARK;
-    lg.fillRect(0, 0, 46, height);
+    lg.fillRect(0, 0, LABELS, height);
     lg.textBaseline = 'middle';
     rows.forEach((row, i) => {
       const home = !drums && row % 12 === song.key;
       lg.fillStyle = home ? INK : INK_SOFT;
-      lg.font = `${home ? 700 : 500} 10px "IBM Plex Mono", monospace`;
+      lg.font = `${home ? 700 : 500} 10px Recursive, monospace`;
       lg.fillText(drums ? KIT_SLOTS[row] : noteName(row), 5, i * ROW + ROW / 2 + 0.5);
     });
     labels.addEventListener('pointerdown', (event) => {

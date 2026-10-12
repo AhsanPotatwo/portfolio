@@ -53,6 +53,35 @@ for (const mood of Object.keys(MOODS)) {
 }
 assert(onChord / strong > 0.85, `melodies start bars on chord notes (${onChord} of ${strong})`);
 
+// grooves: every line is a bar long for its time signature
+const { GROOVES, METERS } = vm.runInContext('({ GROOVES, METERS })', page);
+for (const [meter, kinds] of Object.entries(GROOVES)) {
+  const steps = METERS[meter].beats * METERS[meter].sub * (METERS[meter].sub === 2 ? 2 : 1);
+  for (const [kind, list] of Object.entries(kinds)) for (const groove of list) for (const [line, text] of Object.entries(groove)) assert.strictEqual(text.length, steps, `${meter} ${kind} ${line} is a bar long`);
+}
+
+// the band plays one groove: drums repeat bar to bar (apart from fills), and a syncopated bass lands
+// on the kick
+for (const seed of ['mossy-lantern', 'quiet-tide', 'rusty-tower', 'x']) {
+  for (const meter of ['4/4', '3/4', '6/8', '5/4']) {
+    const song = generateSong('upbeat', 'tune', seed);
+    song.meter = meter;
+    for (const role of ['drums', 'bass']) if (!song.layers.some((l) => l.role === role)) song.layers.push({ role, id: role, pattern: 'groove' });
+    // a calm bass (busy also plays the comping hits, between the kicks)
+    for (const layer of song.layers) if (layer.role === 'bass') Object.assign(layer, { pattern: 'synco', density: 0.4 });
+    for (const section of song.sections) section.play = song.layers.map((l) => l.id);
+    const comp = composeSong(cleanSong(song));
+    const section = comp.sections.find((s) => s.bars >= 4);
+    const bar = (n, layer) => comp.notes.filter((note) => note.layer === layer && note.gt >= section.start + n * comp.bpb - 1e-6 && note.gt < section.start + (n + 1) * comp.bpb - 1e-6).map((note) => `${(note.gt - section.start - n * comp.bpb).toFixed(3)}:${note.midi}`).sort().join();
+    assert.strictEqual(bar(1, 'drums'), bar(2, 'drums'), `${seed} ${meter}: drums repeat bar to bar`);
+    const kicks = new Set(comp.notes.filter((n) => n.layer === 'drums' && n.midi === 0).map((n) => n.gt.toFixed(3)));
+    const chordStarts = new Set(comp.sections.flatMap((s) => s.chords.map((ch) => ch.t.toFixed(3))));
+    const bassNotes = comp.notes.filter((n) => n.layer === 'bass');
+    const onKick = bassNotes.filter((n) => kicks.has(n.gt.toFixed(3)) || chordStarts.has(n.gt.toFixed(3))).length;
+    assert(onKick / bassNotes.length > 0.95, `${seed} ${meter}: the bass lands with the kick (${onKick} of ${bassNotes.length})`);
+  }
+}
+
 // junk in, a playable song out
 for (const junk of [null, 'hello', 42, {}, { layers: [{ role: 'nope' }, { role: 'bass', instrument: 'wind', volume: 'loud' }], sections: [{ bars: -5, play: 'bass' }], tempo: 1e9 }]) {
   const song = cleanSong(junk);

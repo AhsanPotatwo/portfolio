@@ -35,8 +35,8 @@
 //   - melodies are built from a motif (a short rhythm and shape) that repeats and varies over a
 //     phrase, landing on chord notes on strong beats and coming to rest at the ends of phrases, the
 //     way people write tunes, rather than random notes (composers.melody)
-//   - euclidean rhythms: k hits spread as evenly as they'll go over n steps, which happens to give a
-//     lot of the world's drum patterns (euclid)
+//   - one groove for the whole band: drum patterns written out by hand like old drum machine charts,
+//     with the bass and chord stabs playing the same rhythm, so the parts lock together (GROOVES)
 //   - brian eno's tape loops (music for airports): the bells repeat on loops of different lengths, so
 //     they drift in and out of line and never line up the same way twice (the "phasing" pattern)
 //   - swing and humanising: notes nudged off the grid and played at uneven strengths, which is most
@@ -269,13 +269,6 @@ function voiceChord(rootPc, tones, center, previous) {
 // the midi note with this pitch class nearest a centre
 const near = (pc, center) => center - 6 + mod12(pc - (center - 6));
 
-// k hits spread as evenly as they'll go over n steps, turned so a hit lands on the first step
-function euclid(k, n, rotate = 0) {
-  const hits = [];
-  for (let i = 0; i < n; i++) hits.push(k > 0 && ((i + rotate) * k) % n < k);
-  return hits;
-}
-
 // ---------- the band: roles and patterns ----------
 
 // what each layer does. center: the midi note its part sits around. order is the score's, top to
@@ -285,8 +278,8 @@ const ROLES = {
   counter: { name: 'Counter', colour: '#c4852f', center: 62 },
   arp:     { name: 'Arp',     colour: '#2c96a3', center: 67 },
   bells:   { name: 'Bells',   colour: '#c3628f', center: 79 },
-  keys:    { name: 'Keys',    colour: '#3c8a64', center: 60 },
-  pad:     { name: 'Pad',     colour: '#7e6cc4', center: 60 },
+  keys:    { name: 'Keys',    colour: '#3c8a64', center: 62 },
+  pad:     { name: 'Pad',     colour: '#7e6cc4', center: 57 },
   drone:   { name: 'Drone',   colour: '#5d5470', center: 45 },
   bass:    { name: 'Bass',    colour: '#2c5c8a', center: 40 },
   drums:   { name: 'Drums',   colour: '#3a332c', center: 0 },
@@ -662,7 +655,13 @@ function makeProgression(song, rng, method) {
   const mood = MOODS[song.mood];
   const steps = harmonySteps(song.scale);
   const token = (degree) => { const chord = diatonicChord(steps, degree); return chordToken(chord.root, chord.tones); };
-  if (method === 'bank') return rng.pick(mood.chords);
+  if (method === 'bank') {
+    // the mood's progressions, favouring ones with few notes outside the scale, so the chords and the
+    // tunes over them agree (a sad song in dorian shouldn't get one written for natural minor)
+    const inScale = new Set(steps);
+    const outside = (text) => parseProgression(text).slots.reduce((n, { chord }) => n + chord.tones.filter((tone) => !inScale.has(mod12(chord.root + tone))).length, 0);
+    return rng.weighted(mood.chords.map((text) => [text, 1 / (1 + outside(text)) ** 2]));
+  }
   if (method === 'vamp') {
     // a diminished chord is too restless to sit on for long, so vamps leave them out
     const other = token(rng.pick([1, 3, 4, 5, 6].filter((degree) => degree < steps.length && diatonicChord(steps, degree).tones[2] !== 6)));
@@ -735,13 +734,17 @@ function dressLayer(song, layer, rng, fresh) {
   layer.volume = clamp01(volumes[role] + rng.range(-0.06, 0.06));
   const centred = role === 'bass' || role === 'drums' || role === 'drone';
   layer.pan = centred ? 0 : Math.round(rng.range(-0.45, 0.45) * 100) / 100;
-  const wet = { melody: 0.65, counter: 0.7, arp: 0.7, bells: 1.1, keys: 0.75, pad: 1, drone: 0.9, bass: 0.2, drums: 0.3, texture: 0.6 };
+  // drums and bass stay fairly dry: a big room smears the beat, and the echo (often a dotted beat)
+  // adds hits that aren't on the groove, which made the drums sound out of time
+  const wet = { melody: 0.65, counter: 0.7, arp: 0.7, bells: 1.1, keys: 0.75, pad: 1, drone: 0.9, bass: 0.15, drums: 0.15, texture: 0.6 };
   layer.reverb = clamp01(mood.space * wet[role] * rng.range(0.75, 1.15));
   const echoes = { melody: 0.4, counter: 0.3, arp: 0.5, bells: 0.6, keys: 0.25 };
-  layer.echo = clamp01((echoes[role] || 0.04) * mood.space * rng.range(0.4, 1.3));
+  layer.echo = clamp01((echoes[role] || 0) * mood.space * rng.range(0.4, 1.3));
+  // in a tune, chords have to arrive on the beat with the drums, so pads swell in and let go quicker
+  const chordy = song.style === 'tune' && (role === 'pad' || role === 'keys' || role === 'drone');
   layer.tone = {
-    attack: rng.range(0.6, 1.6) * (mood.energy > 0.7 ? 0.7 : 1),
-    release: rng.range(0.7, 1.6) * (0.7 + mood.space * 0.5),
+    attack: rng.range(0.6, 1.6) * (mood.energy > 0.7 ? 0.7 : 1) * (chordy ? 0.4 : 1),
+    release: rng.range(0.7, 1.6) * (0.7 + mood.space * 0.5) * (chordy ? 0.55 : 1),
     bright: 2 ** (rng.range(-0.8, 0.8) + (mood.bright - 0.5) * 1.4),
     detune: mood.dark * rng.range(0, 24) + rng.range(0, 5),
     vibrato: rng.chance(0.35) ? rng.range(2, 14) : 0,
@@ -928,6 +931,8 @@ function composeSong(song) {
   // melodies first, so counter melodies can answer them
   const layers = [...song.layers].sort((a, b) => (a.role === 'melody' ? 0 : 1) - (b.role === 'melody' ? 0 : 1));
   const melodyBySection = {};
+  const grooves = {};
+  for (const part of PARTS) grooves[part] = grooveFor(song, part);
   const notes = [];
   for (const layer of layers) {
     let out = [];
@@ -935,6 +940,9 @@ function composeSong(song) {
       if (!section.play.includes(layer.id)) continue;
       const c = {
         song, layer, section, meter, scalePcs,
+        groove: grooves[section.part],
+        prev: sections[section.index - 1] || null,
+        next: sections[section.index + 1] || null,
         bpb: meter.beats, sub: meter.sub, step: gridStep(song.meter),
         start: section.start, end: section.end, bars: section.bars,
         chords: section.chords,
@@ -990,21 +998,136 @@ function joinHeld(notes) {
 }
 
 // swing and humanising. gt keeps the note's place on the grid, which edits and the note editor use;
-// t is when it really plays
+// t is when it really plays.
+//
+// humanising nudges the band together, the way players who know each other lock in: every note on
+// the same spot in the song moves by the same amount (the pocket), and each layer only adds a little
+// of its own on top (LOOSE). I first gave every layer its own random nudges, and the kick, bass and
+// chords smeared apart into flams. drums and bass add almost nothing, so the beat stays solid
+const LOOSE = { melody: 1, counter: 1, bells: 1, arp: 0.5, keys: 0.6, pad: 0.4, bass: 0.15, drums: 0.1, drone: 0, texture: 0 };
+const pocket = (song, t) => makeRng(song.seed, 'pocket', Math.round(t * 12)).range(-1, 1) * song.humanise * 0.012;
 function feel(notes, song, layer) {
   const rng = makeRng(song.seed, layer.seed, 'feel');
-  // swing pushes every off beat later: a beat's second half starts at 0.5 + swing / 4 instead of 0.5
-  const middle = 0.5 + song.swing * 0.25;
-  const loose = layer.role === 'drone' || layer.role === 'texture' ? 0 : song.humanise;
+  // swing pushes every off beat later: a beat's second half starts at 0.5 + swing / 4 instead of 0.5.
+  // 6/8 already lilts in threes, and swinging its thirds just knocked them out of line, so it doesn't
+  const swing = METERS[song.meter].sub === 2 ? song.swing : 0;
+  const middle = 0.5 + swing * 0.25;
+  const own = LOOSE[layer.role] * song.humanise;
   for (const note of notes) {
     note.gt = note.t;
+    if (layer.role === 'drone' || layer.role === 'texture') continue;
     const beat = Math.floor(note.t + 1e-9);
     const u = note.t - beat;
     let t = beat + (u < 0.5 ? (u / 0.5) * middle : middle + ((u - 0.5) / 0.5) * (1 - middle));
-    t += rng.range(-1, 1) * loose * 0.022;
+    t += pocket(song, note.gt) + rng.range(-1, 1) * own * 0.012;
     note.t = Math.max(0, t);
-    note.vel = clamp01(note.vel * (1 + rng.range(-1, 1) * loose * 0.18));
+    // strengths still vary for everyone, drums most of all: an even hi hat is what sounds like a machine
+    note.vel = clamp01(note.vel * (1 + rng.range(-1, 1) * Math.max(own, song.humanise * 0.6) * 0.16));
   }
+}
+
+// ---------- the groove ----------
+//
+// the drums, a syncopated bass and the chord stabs all play from one groove, so the kick and bass
+// land together and the stabs fit round them, like a band that's played together for years. before
+// this, each made up its own rhythm (and the drums rolled dice every bar), which is why they never
+// sat together. a groove is a bar written out by hand, like an old drum machine's pattern chart:
+//   k kick, s snare, h hat, o open hat, p perc (rim, shaker or tick), l low perc (toms or taiko),
+//   c comping: where chord stabs and the syncopated bass go
+// x is a hit, - a soft (ghost) one, . nothing, one character a step: 16ths in 4/4, 3/4 and 5/4, 8ths
+// in 6/8. lines a groove leaves out are silent. the drum layer's pattern picks the list, and its seed
+// picks one from it. part A plays it as written, B a lifted version and C a dropped one (grooveFor)
+const GROOVES = {
+  '4/4': {
+    groove: [
+      { k: 'x.......x.......', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', c: 'x.....x.....x...' },
+      { k: 'x.....x.x.......', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', c: 'x.....x...x.....' },
+      { k: 'x..x....x.x.....', s: '....x..-.-..x...', h: 'x-x-x-x-x-x-x-x-', c: '..x...x...x...x.' },
+      { k: 'x...x...x...x...', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', o: '..x...x...x...x.', c: '..x...x...x...x.' },
+      { k: 'x.....x...x.....', s: '....x.......x..-', h: 'x.x.x.x.x.x.x.x.', c: 'x.......x.....x.' },
+    ],
+    halftime: [
+      { k: 'x.......-.x.....', s: '........x.......', h: 'x.x.x.x.x.x.x.x.', c: 'x.......x.......' },
+      { k: 'x..x......x.....', s: '........x.......', h: 'x...x...x...x...', p: '......-.......-.', c: 'x..x......x.....' },
+    ],
+    pulse: [
+      { k: 'x.......x.......', p: '....-.......-...', c: 'x.......x.......' },
+      { k: 'x.........x.....', p: '....-...-...-...', c: 'x.........x.....' },
+    ],
+    tribal: [
+      { k: 'x.......x.......', l: 'x..x..x...x.x...', p: '..-...-...-...-.', c: 'x..x..x.........' },
+      { k: 'x.....x.........', l: '..x.x..x..x.x.x.', p: 'x...x...x...x...', c: 'x.....x...x.....' },
+    ],
+    march: [
+      { k: 'x.......x.......', s: 'x.xxx.x.x.xxx.x.', h: 'x...x...x...x...', c: 'x...x...x...x...' },
+      { k: 'x...x...x...x...', s: 'x..x..x.x.x.x.x.', c: 'x.......x.......' },
+    ],
+    sparse: [
+      { k: 'x...............', h: '-...-...-...-...', p: '..........-.....', c: 'x.......x.......' },
+      { k: 'x.......-.......', h: '....-.......-...', c: 'x...............' },
+    ],
+  },
+  '3/4': {
+    groove: [
+      { k: 'x...........', s: '....x...x...', h: 'x.x.x.x.x.x.', c: '....x...x...' },
+      { k: 'x.......x...', s: '....x.......', h: 'x.x.x.x.x.x.', c: 'x.......x...' },
+    ],
+    halftime: [{ k: 'x...........', s: '........x...', h: 'x...x...x...', c: 'x...........' }],
+    pulse: [{ k: 'x...........', p: '....-...-...', c: 'x...........' }],
+    tribal: [{ k: 'x...........', l: 'x..x..x.x...', p: '..-...-...-.', c: 'x..x..x.....' }],
+    march: [{ k: 'x...........', s: 'x.xxx.x.x.x.', h: 'x...x...x...', c: 'x...x...x...' }],
+    sparse: [{ k: 'x...........', h: '-...-...-...', c: 'x...........' }],
+  },
+  '6/8': {
+    groove: [
+      { k: 'x.....', s: '...x..', h: 'x--x--', c: 'x..x..' },
+      { k: 'x.-...', s: '...x..', h: 'x--x--', c: 'x..x.x' },
+    ],
+    halftime: [{ k: 'x.....', s: '...-..', h: 'x-.x-.', c: 'x.....' }],
+    pulse: [{ k: 'x.....', p: '...-..', c: 'x.....' }],
+    tribal: [{ k: 'x.....', l: 'x.xx.x', p: '.-..-.', c: 'x.xx.x' }],
+    march: [{ k: 'x..x..', s: 'x-xx-x', h: 'x..x..', c: 'x..x..' }],
+    sparse: [{ k: 'x.....', h: '-..-..', c: 'x.....' }],
+  },
+  // 5/4 as three beats then two, like take five
+  '5/4': {
+    groove: [{ k: 'x...........x.......', s: '........x.......x...', h: 'x.x.x.x.x.x.x.x.x.x.', c: 'x.......x...x.......' }],
+    halftime: [{ k: 'x...........x.......', s: '........x...........', h: 'x...x...x...x...x...', c: 'x...........x.......' }],
+    pulse: [{ k: 'x...........x.......', p: '........-.......-...', c: 'x...........x.......' }],
+    tribal: [{ k: 'x...........x.......', l: 'x..x..x.....x..x....', p: '..-...-...-...-...-.', c: 'x..x..x.....x.......' }],
+    march: [{ k: 'x...........x.......', s: 'x.xxx.x.x.x.x.xxx.x.', h: 'x...x...x...x...x...', c: 'x...x...x...x...x...' }],
+    sparse: [{ k: 'x...................', h: '-...-...-...-...-...', c: 'x...................' }],
+  },
+};
+// the drum each groove line plays (KIT_SLOTS order in synth.js)
+const GROOVE_SLOTS = { k: 0, s: 1, h: 2, o: 3, p: 4, l: 5 };
+
+// a part's groove, as numbers: 1 a hit, 0.5 a soft one, 0 nothing. songs without drums still get one
+// (the style's usual), so their bass and stabs keep to a steady rhythm
+function grooveFor(song, part) {
+  const drums = song.layers.find((layer) => layer.role === 'drums');
+  const kind = drums ? drums.pattern : song.style === 'tune' ? 'groove' : 'pulse';
+  const written = makeRng(song.seed, drums ? drums.seed : '', 'groove').pick(GROOVES[song.meter][kind]);
+  const steps = written.k.length;
+  const perBeat = steps / METERS[song.meter].beats;
+  const lines = {};
+  for (const name of [...Object.keys(GROOVE_SLOTS), 'c']) lines[name] = [...(written[name] || '.'.repeat(steps))].map((char) => (char === 'x' ? 1 : char === '-' ? 0.5 : 0));
+  if (!written.c) lines.c = lines.k.slice();
+  if (part === 'B' && written.h) {
+    // lifted: soft hats in between, and an open hat on the last off beat pushing into the next bar
+    if (perBeat === 4) lines.h = lines.h.map((v, i) => v || (i % 2 ? 0.5 : 0));
+    const push = steps - Math.ceil(perBeat / 2);
+    lines.o[push] = 1;
+    lines.h[push] = 0;
+  }
+  if (part === 'C') {
+    // dropped: a rim click where the snare was, hats only on the beat, the kick only on the beat
+    lines.p = lines.p.map((v, i) => Math.max(v, lines.s[i] ? 0.5 : 0));
+    lines.s = lines.s.map(() => 0);
+    lines.h = lines.h.map((v, i) => (i % perBeat === 0 ? v : 0));
+    lines.k = lines.k.map((v, i) => (i % perBeat === 0 ? v : 0));
+  }
+  return { lines, steps, perBeat, grid: METERS[song.meter].beats / steps };
 }
 
 // ---------- the composers, one per role ----------
@@ -1076,6 +1199,30 @@ function makeBar(rng, c, density, rest) {
       out.push({ t, dur, rest: t > 0 && rng.chance(rest) });
       t += dur;
     }
+  }
+  return out;
+}
+
+// where a time falls in the groove's bar, and how many steps until its next hit after step i
+const stepInBar = (c, t) => Math.round(((t - c.start) % c.bpb) / c.groove.grid) % c.groove.steps;
+function gapAfter(hits, i) {
+  let gap = 1;
+  while (gap < hits.length && !hits[(i + gap) % hits.length]) gap++;
+  return gap;
+}
+
+// the groove's comping hits inside a chord: [time, length until the next hit, strength]. counted from
+// the bar, not the chord, so half bar chords still land on the groove. sparse layers keep only the
+// hits on the beat
+function compHits(c, chord, density) {
+  const { lines, perBeat, grid } = c.groove;
+  const hits = lines.c.map((v, i) => v > 0 && (density >= 0.35 || i % perBeat === 0));
+  if (!hits.some(Boolean)) hits[0] = true;
+  const out = [];
+  const end = chord.t + chord.dur;
+  for (let t = chord.t; t < end - 1e-6; t += grid) {
+    const i = stepInBar(c, t);
+    if (hits[i]) out.push([t, Math.min(gapAfter(hits, i) * grid, end - t), i % perBeat === 0 ? 0.66 : 0.56]);
   }
   return out;
 }
@@ -1182,6 +1329,11 @@ const COMPOSERS = {
     const notes = [];
     let previous = null;
     let index = 0;
+    // which steps of the bar rest, and the order random arps go in, are picked once for the part
+    // and kept, so the arp repeats a shape you can follow instead of new holes every bar
+    const shape = makeRng(c.song.seed, c.layer.seed, 'shape', c.section.part);
+    const rests = Array.from({ length: Math.round(c.bpb / step) }, (_, i) => i > 0 && shape.chance((1 - density) * 0.45));
+    const order = Array.from({ length: 16 }, () => shape.int(0, 63));
     for (const chord of c.chords) {
       const voiced = voiceChord(chord.root, chord.tones.filter((tone) => tone < 12), c.center, previous);
       previous = voiced;
@@ -1191,9 +1343,9 @@ const COMPOSERS = {
       if (pattern === 'updown') pool = [...pool, ...pool.slice(1, -1).reverse()];
       if (pattern === 'converge') pool = pool.map((_, i) => (i % 2 ? pool[pool.length - 1 - (i >> 1)] : pool[i >> 1]));
       for (let t = chord.t; t < chord.t + chord.dur - 1e-6; t += step) {
-        const midi = pattern === 'random' ? c.rng.pick(pool) : pool[index % pool.length];
+        const midi = pool[(pattern === 'random' ? order[index % order.length] : index) % pool.length];
         index++;
-        if (c.rng.chance((1 - density) * 0.45)) continue;
+        if (rests[Math.round(((t - c.start) % c.bpb) / step) % rests.length]) continue;
         const onBeat = Math.abs((t - c.start) % 1) < 1e-6;
         notes.push({ t, dur: step * 0.75, midi, vel: onBeat ? 0.78 : 0.6 });
       }
@@ -1263,19 +1415,9 @@ const COMPOSERS = {
           else for (const midi of voiced) notes.push({ t, dur: 0.45, midi, vel: 0.5 });
         }
       } else {
-        // block: the chord on a euclidean rhythm, the same one every bar of the part
-        const grid = rateStep('medium', c.sub);
-        const steps = Math.round(c.bpb / grid);
-        const hits = euclid(Math.max(1, Math.round(1 + density * (steps / 2))), steps, 0);
-        for (let bar = chord.t; bar < end - 1e-6; bar += c.bpb) {
-          hits.forEach((hit, i) => {
-            const t = bar + i * grid;
-            if (!hit || t >= end - 1e-6) return;
-            let next = i + 1;
-            while (next < steps && !hits[next]) next++;
-            for (const midi of voiced) notes.push({ t, dur: (next - i) * grid * 0.8, midi, vel: i === 0 ? 0.68 : 0.55 });
-          });
-        }
+        // block: the chord on the groove's comping rhythm, so it fits round the drums and bass.
+        // sparse layers keep only the hits on the beat
+        for (const [t, dur, vel] of compHits(c, chord, density)) for (const midi of voiced) notes.push({ t, dur: dur * 0.8, midi, vel });
       }
     }
     return notes;
@@ -1296,10 +1438,7 @@ const COMPOSERS = {
         const step = rateStep(c.layer.rate, c.sub);
         for (let t = chord.t; t < end - 1e-6; t += step) hits.push([t, step * 0.55, Math.abs((t - c.start) % 1) < 1e-6 ? 0.62 : 0.48]);
       } else if (pattern === 'stabs') {
-        const grid = rateStep('medium', c.sub);
-        const steps = Math.round(c.bpb / grid);
-        const shape = euclid(Math.max(2, Math.round(2 + density * 3)), steps, 0);
-        for (let bar = chord.t; bar < end - 1e-6; bar += c.bpb) shape.forEach((hit, i) => hit && bar + i * grid < end - 1e-6 && hits.push([bar + i * grid, grid * 0.7, 0.62]));
+        for (const [t, dur, vel] of compHits(c, chord, density)) hits.push([t, Math.min(dur * 0.6, 0.75), vel]);
       } else hits.push([chord.t, chord.dur, 0.6]);
       for (const [t, dur, vel] of hits) for (const midi of voiced) notes.push({ t, dur, midi, vel });
     }
@@ -1359,19 +1498,17 @@ const COMPOSERS = {
           add(t, 0.92, midi, t === chord.t ? 0.82 : 0.66);
         }
       } else {
-        // synco: a euclidean rhythm, mostly on the root
-        const grid = rateStep('fast', c.sub);
-        const steps = Math.round(c.bpb / grid);
-        const hits = euclid(Math.round(3 + density * 4), steps, 0);
-        for (let bar = chord.t; bar < end - 1e-6; bar += c.bpb) {
-          hits.forEach((hit, i) => {
-            const t = bar + i * grid;
-            if (!hit || t >= end - 1e-6) return;
-            let next = i + 1;
-            while (next < steps && !hits[next]) next++;
-            const midi = i === 0 ? root : c.rng.weighted([[root, 4], [root + 12, 1.5], [fifth, 1.5]]);
-            add(t, (next - i) * grid * 0.85, midi, i === 0 ? 0.85 : 0.65);
-          });
+        // synco: on the groove's kick, so the bass and kick land together (and on its comping hits too
+        // when it's busy). which hits go up an octave or to the fifth is picked once for the part
+        const { lines, steps, grid } = c.groove;
+        const hits = lines.k.map((v, i) => i === 0 || v === 1 || (density > 0.6 && lines.c[i] > 0));
+        const leaps = makeRng(c.song.seed, c.layer.seed, 'leaps', c.section.part);
+        const shape = hits.map((_, i) => (i === 0 ? 0 : leaps.weighted([[0, 4], [12, 1.5], [7, 1.5]])));
+        for (let t = chord.t; t < end - 1e-6; t += grid) {
+          const i = stepInBar(c, t);
+          // a new chord always gets its root, even off the kick
+          if (!hits[i] && t > chord.t + 1e-6) continue;
+          add(t, Math.min(gapAfter(hits, i) * grid, end - t) * 0.85, t > chord.t + 1e-6 && shape[i] === 7 ? fifth : root + (t > chord.t + 1e-6 ? shape[i] : 0), i === 0 ? 0.85 : 0.68);
         }
       }
     }
@@ -1380,56 +1517,37 @@ const COMPOSERS = {
 
   // drums: the note is which drum (KIT_SLOTS in synth.js): 0 kick, 1 snare, 2 hat, 3 open hat,
   // 4 perc, 5 low perc
+  // the part's groove (grooveFor), the same every bar, so it repeats like a real drummer's would.
+  // busy adds the soft ghost notes (and fills the hats out to 16ths when it's high)
   drums(c) {
     const { pattern, density } = c.layer;
-    const { rng } = c;
-    const grid = c.sub === 3 ? 1 / 3 : 0.25;
-    const steps = Math.round(c.bpb / grid);
-    const perBeat = Math.round(1 / grid);
+    const { lines, steps, perBeat, grid } = c.groove;
     const notes = [];
-    const hit = (bar, i, slot, vel) => notes.push({ t: bar + i * grid, dur: grid, midi: slot, vel });
-    // the bar's pattern is worked out once for the part, then played every bar
-    const kicks = euclid(rng.pick([2, 3, 3, 4, 5]), steps, 0);
-    const backbeats = [];
-    for (let beat = 1; beat < c.bpb; beat += 2) backbeats.push(beat * perBeat);
-    const tribal = euclid(rng.pick([5, 7]), steps, rng.int(1, 3));
-    const perc = euclid(rng.pick([3, 5]), steps, rng.int(1, 4));
-    const march = euclid(rng.pick([9, 11]), steps, 0);
-    for (let bar = c.start, n = 0; bar < c.end - 1e-6; bar += c.bpb, n++) {
-      const fill = n === c.bars - 1 && c.bars >= 4 && c.vary.chance(0.6);
+    const hit = (t, slot, vel) => notes.push({ t, dur: grid, midi: slot, vel });
+    // a fill when the next section is a different part: the last beat on the snare (toms for the
+    // quieter patterns), getting louder, then an open hat on the next bar's first beat like a crash
+    const fill = c.next && c.next.part !== c.section.part && c.vary.chance(0.75);
+    const fillDrum = pattern === 'groove' || pattern === 'march' || pattern === 'halftime' ? 1 : 5;
+    if (c.prev && c.prev.part !== c.section.part && c.prev.play.includes(c.layer.id) && pattern !== 'sparse' && pattern !== 'pulse') hit(c.start, 3, 0.8);
+    for (let n = 0; n < c.bars; n++) {
+      const bar = c.start + n * c.bpb;
+      const fillFrom = fill && n === c.bars - 1 ? steps - perBeat : steps;
       for (let i = 0; i < steps; i++) {
-        const beatStart = i % perBeat === 0;
-        if (fill && i >= steps - perBeat) {
-          // a fill to lead into the next section: snare or toms getting louder
-          hit(bar, i, pattern === 'tribal' ? 5 : 1, 0.45 + 0.4 * ((i - (steps - perBeat)) / perBeat));
+        const t = bar + i * grid;
+        const onBeat = i % perBeat === 0;
+        if (i >= fillFrom) {
+          if (i === fillFrom && lines.k[i]) hit(t, 0, 0.85);
+          if (perBeat === 4 && i % 2 && density < 0.5) continue;
+          hit(t, fillDrum, 0.4 + 0.5 * ((i - fillFrom + 1) / perBeat));
           continue;
         }
-        if (pattern === 'groove' || pattern === 'halftime') {
-          if (i === 0 || (kicks[i] && rng.chance(0.3 + density * 0.5))) hit(bar, i, 0, i === 0 ? 0.9 : 0.7);
-          const snareOn = pattern === 'halftime' ? i === Math.round(steps / 2) : backbeats.includes(i);
-          if (snareOn) hit(bar, i, 1, 0.82);
-          else if (!beatStart && density > 0.55 && rng.chance((density - 0.55) * 0.25)) hit(bar, i, 1, 0.22);
-          const hatEvery = density > 0.7 || c.sub === 3 ? 1 : 2;
-          if (i % hatEvery === 0) hit(bar, i, i === steps - perBeat / 2 && rng.chance(0.3) ? 3 : 2, beatStart ? 0.6 : 0.4);
-        } else if (pattern === 'pulse') {
-          if (i === 0) hit(bar, i, 0, 0.85);
-          if (beatStart && i > 0 && rng.chance(0.4 + density * 0.4)) hit(bar, i, 4, 0.4);
-          if (c.bpb === 4 && i === steps / 2 && rng.chance(density)) hit(bar, i, 0, 0.55);
-        } else if (pattern === 'tribal') {
-          if (i === 0) hit(bar, i, 0, 0.9);
-          if (tribal[i]) hit(bar, i, 5, beatStart ? 0.85 : 0.6);
-          if (perc[i] && rng.chance(0.5 + density * 0.5)) hit(bar, i, 4, 0.5);
-          if (beatStart && density > 0.6) hit(bar, i, 2, 0.35);
-        } else if (pattern === 'march') {
-          if (beatStart && (i / perBeat) % 2 === 0) hit(bar, i, 0, 0.85);
-          if (march[i]) hit(bar, i, 1, beatStart ? 0.75 : 0.45);
-          if (beatStart) hit(bar, i, 2, 0.4);
-        } else {
-          // sparse
-          if (i === 0 && n % 2 === 0) hit(bar, i, 0, 0.75);
-          if (beatStart && rng.chance(0.5)) hit(bar, i, 2, 0.3);
-          if (perc[i] && rng.chance(density * 0.5)) hit(bar, i, 4, 0.35);
+        for (const [name, slot] of Object.entries(GROOVE_SLOTS)) {
+          const v = lines[name][i];
+          if (!v || (v < 1 && density < 0.35)) continue;
+          const loud = name === 'h' ? 0.6 : name === 'p' ? 0.55 : 0.88;
+          hit(t, slot, (v < 1 ? 0.3 : loud) * (onBeat ? 1 : 0.85));
         }
+        if (density > 0.72 && perBeat === 4 && i % 2 && !lines.h[i] && lines.h.some((v) => v)) hit(t, 2, 0.24);
       }
     }
     return notes;
