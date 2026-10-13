@@ -154,7 +154,7 @@
     const seed = seedField.value.trim().slice(0, 60);
     if (!seed || seed === song.seed) return;
     remember();
-    open(generateSong(song.mood, song.style, seed));
+    open(generateSong(song.mood, song.style, seed, song.blend));
     say(`"${seed}" in ${MOODS[song.mood].name.toLowerCase()}.`);
   };
   seedField.addEventListener('change', useSeed);
@@ -162,7 +162,7 @@
 
   $('#mmNew').addEventListener('click', () => {
     remember();
-    open(generateSong(song.mood, song.style, newSeed(randomRng())));
+    open(generateSong(song.mood, song.style, newSeed(randomRng()), song.blend));
   });
   $('#mmUndo').addEventListener('click', () => step(undo, redo));
   $('#mmRedo').addEventListener('click', () => step(redo, undo));
@@ -173,31 +173,53 @@
     renderLibrary();
   });
 
-  // the moods in their rows (MOOD_GROUPS): gentle, bright, dark, loud and hazy
+  // the moods, one row at a time (MOOD_GROUPS): a key per row shows its moods, so thirty odd moods
+  // fit on a phone. the row opens on the song's mood whenever the song changes mood
   const moodKeys = $('#mmMoods');
+  const groupKeys = $('#mmMoodGroups');
+  let shownMood = '';
+  const showGroup = (group) => {
+    for (const button of groupKeys.children) button.setAttribute('aria-pressed', button.dataset.group === group);
+    for (const button of moodKeys.children) button.hidden = MOODS[button.dataset.mood].group !== group;
+  };
   for (const group of MOOD_GROUPS) {
-    const row = make('div', 'mm-mood-group');
-    row.setAttribute('role', 'group');
-    row.setAttribute('aria-label', `${group} moods`);
-    const keys = make('div', 'mm-mood-keys');
-    row.append(make('h3', '', group), keys);
-    for (const [id, mood] of Object.entries(MOODS).filter(([, one]) => one.group === group)) {
-      const button = key(mood.name, `${mood.name}: the same seed as this song, written in this mood`, () => {
-        remember();
-        open(generateSong(id, mood.style, song.seed));
-      }, 'mm-mood');
-      button.dataset.mood = id;
-      button.style.setProperty('--c', mood.colour);
-      button.style.setProperty('--c-ink', inkOn(mood.colour));
-      keys.append(button);
-    }
-    moodKeys.append(row);
+    const moods = Object.values(MOODS).filter((one) => one.group === group).map((one) => one.name);
+    const button = key(group, `${group}: ${moods.join(', ')}`, () => showGroup(group), 'mm-key-small mm-key-line mm-group');
+    button.dataset.group = group;
+    groupKeys.append(button);
   }
+  // a fight stays a fight, and the blend stays, when the mood changes. otherwise a mood brings its own
+  // style, the one it was made for
+  for (const [id, mood] of Object.entries(MOODS)) {
+    const button = key(mood.name, `${mood.name}: the same seed as this song, written in this mood`, () => {
+      remember();
+      open(generateSong(id, FIGHTS[song.style] ? song.style : mood.style, song.seed, song.blend));
+    }, 'mm-mood');
+    button.dataset.mood = id;
+    button.style.setProperty('--c', mood.colour);
+    button.style.setProperty('--c-ink', inkOn(mood.colour));
+    moodKeys.append(button);
+  }
+  const blendMenu = $('#mmBlend');
+  blendMenu.append(new Option('Nothing', ''));
+  for (const group of MOOD_GROUPS) {
+    const options = make('optgroup');
+    options.label = group;
+    for (const [id, mood] of Object.entries(MOODS).filter(([, one]) => one.group === group)) options.append(new Option(mood.name, id));
+    blendMenu.append(options);
+  }
+  blendMenu.addEventListener('change', () => {
+    // read before remember(), which redraws the menu with the song's old blend
+    const blend = blendMenu.value;
+    remember();
+    open(generateSong(song.mood, song.style, song.seed, blend));
+    say(song.blend ? `${MOODS[song.mood].name} with a little ${MOODS[song.blend].name.toLowerCase()} in it.` : `Just ${MOODS[song.mood].name.toLowerCase()}.`);
+  });
   for (const button of document.querySelectorAll('[data-style]')) {
     button.addEventListener('click', () => {
       if (song.style === button.dataset.style) return;
       remember();
-      open(generateSong(song.mood, button.dataset.style, song.seed));
+      open(generateSong(song.mood, button.dataset.style, song.seed, song.blend));
     });
   }
 
@@ -246,7 +268,10 @@
     if (document.activeElement !== seedField) seedField.value = song.seed;
     $('#mmUndo').disabled = !undo.length;
     $('#mmRedo').disabled = !redo.length;
-    for (const button of moodKeys.querySelectorAll('.mm-mood')) button.setAttribute('aria-pressed', button.dataset.mood === song.mood);
+    for (const button of moodKeys.children) button.setAttribute('aria-pressed', button.dataset.mood === song.mood);
+    if (shownMood !== song.mood) showGroup(MOODS[song.mood].group);
+    shownMood = song.mood;
+    blendMenu.value = song.blend || '';
     for (const button of document.querySelectorAll('[data-style]')) button.setAttribute('aria-pressed', button.dataset.style === song.style);
     const colour = MOODS[song.mood].colour;
     document.body.style.setProperty('--mm-mood', colour);
@@ -1109,7 +1134,7 @@
       chip.style.background = MOODS[saved.mood].colour;
       const openKey = make('button', 'mm-library-name');
       openKey.type = 'button';
-      openKey.append(make('span', '', name), make('small', '', `${MOODS[saved.mood].name} ${saved.style} · ${NOTE_NAMES[saved.key]} ${SCALES[saved.scale].name.toLowerCase()} · ${saved.tempo} bpm`));
+      openKey.append(make('span', '', name), make('small', '', `${MOODS[saved.mood].name}${saved.blend ? ` + ${MOODS[saved.blend].name}` : ''} ${STYLES[saved.style].toLowerCase()} · ${NOTE_NAMES[saved.key]} ${SCALES[saved.scale].name.toLowerCase()} · ${saved.tempo} bpm`));
       openKey.addEventListener('click', () => {
         remember();
         open(saved);

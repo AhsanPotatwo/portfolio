@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Squimble Music Maker — Ahsan</title>
   <meta name="description"
-    content="Squimble Music Maker: music that writes itself from a seed word, using music theory rather than AI. Pick a mood, then change the chords, instruments, melodies and arrangement, and download it as a WAV.">
+    content="Squimble Music Maker: music that writes itself from a seed word, using music theory rather than AI. Pick a mood and a style, from ambient to boss fights, blend in a second mood, then change the chords, instruments, melodies and arrangement, and download it as a WAV.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -79,8 +79,18 @@
           <h2 class="mm-heading">Mood</h2>
           <div class="mm-style" role="group" aria-label="Style">
             <button type="button" class="mm-key mm-key-small" data-style="ambient" aria-pressed="true" data-tip="Ambient: slow, drifting, mostly held sounds and space. For exploring, menus and quiet places">Ambient</button>
-            <button type="button" class="mm-key mm-key-small" data-style="tune" aria-pressed="false" data-tip="Tune: a melody you could hum, with a bass line and usually a beat. For towns, fights and title screens">Tune</button>
+            <button type="button" class="mm-key mm-key-small" data-style="tune" aria-pressed="false" data-tip="Tune: a melody you could hum, with a bass line and usually a beat. For towns, title screens and adventures">Tune</button>
+            <button type="button" class="mm-key mm-key-small" data-style="mini" aria-pressed="false" data-tip="Mini boss: a fight's driving beat and big tune in a short loop with a smaller band. For mini bosses, ambushes and chases">Mini boss</button>
+            <button type="button" class="mm-key mm-key-small" data-style="boss" aria-pressed="false" data-tip="Boss: the mood as a fight. Fast and driving, a tune up front, a break, a climax and often a solo, looping with no outro. For bosses, finales and anything with high stakes">Boss</button>
           </div>
+        </div>
+        <div class="mm-mood-bar">
+          <!-- filled in: a key per row of moods, which shows that row -->
+          <div class="mm-mood-groups" id="mmMoodGroups" role="group" aria-label="Kinds of mood"></div>
+          <label class="mm-blend" data-tip="Blend in: a second mood for flavour, its scale, the instruments playing its tune and its scenery. The first mood keeps the band. Metal with Desert is a desert boss, Breakbeat with Wintry an ice one">
+            <span>Blend in</span>
+            <select id="mmBlend" class="mm-select mm-select-small"></select>
+          </label>
         </div>
         <!-- filled in: a key per mood -->
         <div class="mm-moods" id="mmMoods" role="group" aria-label="Mood"></div>

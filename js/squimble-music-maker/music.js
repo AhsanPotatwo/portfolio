@@ -7,6 +7,7 @@
 // ---------- how a song works ----------
 //
 // a song is plain settings, the json that gets saved and shared (cleanSong() has every key):
+//   mood, blend, style   what it's written as (MOODS, mixMood, STYLES). blend is only there if it has one
 //   seed       a word or two. every random choice comes from it, so the same settings always give
 //              the same notes and a song file stays tiny
 //   key, scale, tempo, meter, swing, humanise, colour (how rich the chords are), chordBars
@@ -18,7 +19,9 @@
 //   sections   the song from start to end: which part's chords, how many bars, which layers play
 //   fx         the room it's played in (reverb, echo, tape wobble...), synth.js
 //
-// generateSong(mood, style, seed) makes a whole song from a mood. composeSong(song) turns any song
+// generateSong(mood, style, seed, blend) makes a whole song from a mood, in one of the STYLES (ambient,
+// tune, mini boss or boss), with a second mood blended in for flavour if you like (songMood() is the
+// two worked into one). composeSong(song) turns any song
 // into notes. remixing is re-running one of generateSong's pick steps with a fresh seed
 // (rerollSong()), and editing is changing the settings by hand.
 //
@@ -675,7 +678,7 @@ const MOODS = {
   // crystal castles, and the synths of dying light: dark and serious, a crushed chip lead over pumping
   // pads, octave bass and a club kick. as ambient it's the slower night drive, arps pulsing under pads
   neon: {
-    group: 'Dark',
+    group: 'Electronic',
     opens: ['pad', 'arp', 'bass', 'drums'],
     name: 'Neon', colour: '#d43fb4', style: 'tune',
     scales: { minor: 3, phrygian: 1, dorian: 1, harmonicMinor: 1 }, tempo: [80, 100], tuneTempo: [124, 140],
@@ -918,9 +921,141 @@ const MOODS = {
     patterns: { guitar: ['ring', 'strum', 'tremolo'], drums: ['wash', 'groove', 'halftime', 'four'], arp: ['updown', 'up', 'twinkle'], bass: ['held', 'rootfifth', 'pulse'], melody: ['long', 'phrases', 'fragments'] },
     forms: GAZE_FORMS, solo: 0.35, bury: 0.5, fx: { wobble: 0.4 },
   },
+
+  // ---------- world, electronic and epic ----------
+  // places and genres, for any song and as a blend (song.blend, mixMood): the desert's scale and oud
+  // over a metal band is calamity's desert scourge. they keep to themselves (surprise: 0), so adding
+  // them left every older mood's surprises, and so its songs, as they were
+
+  // arabian nights, a bazaar, the sands: the phrygian dominant scale (its flat second over a major
+  // chord), an oud and a shawm (a zurna) over a drone and hand drums, and the andalusian cadence
+  desert: {
+    group: 'World', opens: ['drums', 'drone', 'arp', 'keys'],
+    name: 'Desert', colour: '#e0a458', style: 'tune',
+    scales: { phrygianDominant: 3, harmonicMinor: 2, hungarianMinor: 1, phrygian: 1 }, tempo: [56, 74], tuneTempo: [92, 124],
+    meters: { '4/4': 6, '6/8': 2, '5/4': 0.5 },
+    chords: ['I bII', 'I bII I bvii', 'I - bII -', 'iv bII I -', 'I bII bvii I', 'i bVII bVI V', 'i iv V i', 'i bVI V i'],
+    methods: { bank: 5, vamp: 3, markov: 0.5 },
+    richness: [0, 0.25], energy: 0.6, space: 0.6, bright: 0.55, dark: 0.4, surprise: 0,
+    palette: {
+      pad: ['strings', 'choir-ah', 'warm-pad'], melody: ['shawm', 'oud', 'violin', 'pan-flute'], counter: ['oud', 'violin', 'pizzicato'],
+      keys: ['oud', 'harp', 'pizzicato'], arp: ['oud', 'harp', 'pizzicato'], bells: ['chime', 'glass-bell'],
+      bass: ['upright', 'round-bass', 'sub-bass'], drone: ['cello-drone', 'deep-drone'],
+    },
+    textures: ['wind', 'crickets', 'fire'], kits: ['hand-drums', 'taiko'], drums: [0.3, 0.9],
+    patterns: { drums: ['tribal', 'groove', 'tribal'], drone: ['tonic', 'fifths'], bass: ['rootfifth', 'pulse', 'held'], melody: ['phrases', 'phrases', 'long'] },
+  },
+  // islands, jungles and beaches: steel drums and marimbas over a bouncing bass and hand drums, a
+  // little swing, birds and frogs. terraria's jungle, and the tropical half of the desert scourge
+  tropical: {
+    group: 'World', opens: ['keys', 'drums', 'bass', 'arp'],
+    name: 'Tropical', colour: '#3fbf8f', style: 'tune',
+    scales: { major: 2, majorPentatonic: 2, mixolydian: 2, dorian: 1 }, tempo: [64, 82], tuneTempo: [100, 128],
+    meters: { '4/4': 6, '6/8': 1.5 },
+    chords: ['I IV V IV', 'I V vi IV', 'I bVII IV I', 'ii V I -', 'I IV I V', 'vi IV I V', 'I iii IV V'],
+    richness: [0.15, 0.55], energy: 0.65, space: 0.45, bright: 0.75, dark: 0.05, swing: 0.25, surprise: 0,
+    palette: {
+      pad: ['warm-pad', 'strings', 'organ'], melody: ['steel-drum', 'marimba', 'pan-flute', 'whistle', 'kalimba'], counter: ['marimba', 'kalimba', 'nylon'],
+      keys: ['nylon', 'marimba', 'steel-guitar'], arp: ['marimba', 'kalimba', 'steel-drum', 'nylon'], bells: ['vibes', 'chime'],
+      bass: ['pluck-bass', 'upright', 'round-bass'], drone: ['organ-drone'],
+    },
+    textures: ['birds', 'frogs', 'ocean', 'rain', 'stream'], kits: ['hand-drums', 'soft-kit'], drums: [0.2, 0.9],
+    patterns: { drums: ['tribal', 'groove', 'groove'], bass: ['synco', 'rootfifth', 'octave'], keys: ['strum', 'block'], melody: ['phrases', 'riff', 'calls'] },
+  },
+  // woods, villages and taverns: a fiddle, a tin whistle or a bagpipe's chanter over a strummed guitar,
+  // open fifths droning, a bodhran, and jigs in 6/8. dorian and mixolydian, the old modes of folk tunes
+  folk: {
+    group: 'World', opens: ['keys', 'drone', 'drums'],
+    name: 'Folk', colour: '#8fb35a', style: 'tune',
+    scales: { dorian: 3, mixolydian: 2, major: 2, minor: 1, majorPentatonic: 1 }, tempo: [58, 76], tuneTempo: [96, 132],
+    meters: { '6/8': 4, '4/4': 4, '3/4': 2 },
+    chords: ['i bVII i bVII', 'I bVII IV I', 'i bIII bVII i', 'I IV I V', 'i iv bVII i', 'I V IV I', 'i bVII bVI bVII', 'I - bVII -'],
+    methods: { bank: 5, vamp: 2, markov: 1 },
+    richness: [0, 0.3], energy: 0.6, space: 0.5, bright: 0.6, dark: 0.15, surprise: 0,
+    palette: {
+      pad: ['strings', 'organ', 'warm-pad'], melody: ['violin', 'whistle', 'pan-flute', 'shawm', 'accordion', 'flute'], counter: ['violin', 'whistle', 'harp', 'clarinet'],
+      keys: ['nylon', 'harp', 'steel-guitar'], arp: ['harp', 'nylon', 'steel-guitar'], bells: ['chime', 'celesta'],
+      bass: ['upright', 'round-bass'], drone: ['organ-drone', 'cello-drone'],
+    },
+    textures: ['birds', 'leaves', 'stream', 'fire', 'owl'], kits: ['hand-drums'], drums: [0.15, 0.85],
+    patterns: { drums: ['groove', 'march', 'tribal'], drone: ['fifths', 'tonic'], bass: ['rootfifth', 'held'], keys: ['strum', 'waltz', 'broken'], melody: ['phrases', 'riff', 'phrases'] },
+  },
+  // snow, ice and christmas: celesta and glass bells, a shimmering pad, a waltz now and then, the wind
+  // and a fire. as a blend over breakbeat it's calamity's cryogen, chimes over fast drum and bass
+  wintry: {
+    group: 'World', opens: ['pad', 'keys', 'arp'],
+    name: 'Wintry', colour: '#a9d6e5', style: 'ambient',
+    scales: { lydian: 2, major: 2, minor: 1.5, dorian: 1 }, tempo: [56, 74], tuneTempo: [84, 110],
+    meters: { '4/4': 4, '3/4': 2, '6/8': 1 },
+    chords: ['I II', 'i bVI bIII bVII', 'Imaj7 IVmaj7', 'I iii IV iv', 'vi IV I V', 'i iv bVII bIII', 'IV V iii vi'],
+    richness: [0.4, 0.85], energy: 0.35, space: 0.85, bright: 0.8, dark: 0.15, surprise: 0,
+    palette: {
+      pad: ['glass-pad', 'shimmer', 'strings', 'choir-oo', 'air-pad'], melody: ['celesta', 'glass-bell', 'flute', 'music-box', 'violin'], counter: ['harp', 'celesta', 'flute'],
+      keys: ['celesta', 'harp', 'felt-keys'], arp: ['celesta', 'music-box', 'harp', 'glass-bell'], bells: ['glass-bell', 'chime', 'celesta', 'sine-bell'],
+      bass: ['round-bass', 'sub-bass', 'upright'], drone: ['organ-drone', 'cello-drone'],
+    },
+    textures: ['wind', 'chimes', 'fire'], kits: ['soft-kit', 'brushes'], drums: [0.05, 0.5],
+    patterns: { drums: ['pulse', 'sparse', 'groove'], arp: ['up', 'updown', 'twinkle'], melody: ['phrases', 'long'] },
+  },
+  // trailers, last stands and final bosses: strings sawing an ostinato, horns and a choir, taiko and
+  // timpani. over a metal band (a blend) it's symphonic metal, calamity's yharon and polterghast
+  epic: {
+    group: 'Dark', opens: ['drums', 'pad', 'bass', 'arp'],
+    name: 'Epic', colour: '#b5523b', style: 'tune',
+    scales: { minor: 3, harmonicMinor: 1.5, dorian: 1, phrygian: 0.7 }, tempo: [60, 78], tuneTempo: [100, 140],
+    meters: { '4/4': 8, '3/4': 1, '6/8': 1 },
+    chords: ['i bVI bIII bVII', 'i bVI bVII i', 'i - bVI -', 'i bVII bVI V', 'i iv bVI bVII', 'bVI bVII i -', 'i bIII bVII iv', 'i v bVI bVII'],
+    methods: { bank: 6, markov: 1, vamp: 1 },
+    richness: [0, 0.3], energy: 0.85, space: 0.75, bright: 0.55, dark: 0.5, edge: 0.9, surprise: 0,
+    palette: {
+      pad: ['strings', 'choir-ah', 'choir-oo', 'dark-pad'], melody: ['horn', 'violin', 'choir-oo', 'synth-brass'], counter: ['horn', 'strings', 'violin'],
+      keys: ['pizzicato', 'harp', 'felt-keys'], arp: ['pizzicato', 'harp', 'pluck-lead'], bells: ['bell', 'glass-bell'],
+      bass: ['round-bass', 'sub-bass', 'synth-bass'], drone: ['cello-drone', 'deep-drone'],
+    },
+    textures: ['rumble', 'wind'], kits: ['orchestra-kit', 'taiko'], drums: [0.4, 1],
+    patterns: { drums: ['tribal', 'march', 'halftime', 'tribal'], arp: ['up', 'updown', 'converge'], pad: ['sustain', 'pulse', 'stabs'], bass: ['octave', 'pulse', 'held'], melody: ['long', 'phrases', 'phrases'], counter: ['harmony', 'answer'] },
+  },
+  // night drives in the 80s future (outrun, kavinsky, the hotline miami and far cry blood dragon
+  // scores): a saw lead or synth brass over arps, an octave bass in eighths and a drum machine
+  synthwave: {
+    group: 'Electronic', opens: ['arp', 'bass', 'drums', 'pad'],
+    name: 'Synthwave', colour: '#ff6ac1', style: 'tune',
+    scales: { minor: 3, dorian: 1.5, major: 1, mixolydian: 1 }, tempo: [76, 94], tuneTempo: [96, 124],
+    meters: { '4/4': 1 },
+    chords: ['i bVI bIII bVII', 'i bVII bVI bVII', 'vi IV I V', 'i iv bVI bVII', 'i - bVI bVII', 'IVmaj7 V iii vi', 'i bIII bVII iv', 'I V vi IV'],
+    methods: { bank: 5, markov: 1, vamp: 1 },
+    richness: [0.15, 0.5], energy: 0.75, space: 0.7, bright: 0.65, dark: 0.35, edge: 1, surprise: 0,
+    palette: {
+      pad: ['analog-pad', 'warm-pad', 'strings', 'glass-pad'], melody: ['saw-lead', 'synth-brass', 'square-lead', 'soft-lead'], counter: ['synth-brass', 'pluck-lead', 'soft-lead'],
+      keys: ['e-piano', 'pluck-lead'], arp: ['pluck-lead', 'saw-lead', 'sine-bell'], bells: ['sine-bell', 'glass-bell'],
+      bass: ['synth-bass', 'reese', 'sub-bass'], drone: ['deep-drone'],
+    },
+    textures: ['hum'], kits: ['machine', 'club-kit'], drums: [0.3, 1],
+    patterns: { drums: ['groove', 'four', 'halftime', 'groove'], bass: ['octave', 'octave', 'pulse'], arp: ['up', 'updown', 'down'], pad: ['sustain', 'swell'], melody: ['phrases', 'long', 'riff'] },
+    fx: { wobble: 0.15 },
+  },
+  // drum and bass: breakbeats at 170 under a reese bass and airy pads, a soft lead floating over them
+  // (liquid), or the beat in half time. calamity's cryogen and profaned guardians. as ambient it's the
+  // same breaks slowed to a trip hop crawl
+  breakbeat: {
+    group: 'Electronic', opens: ['drums', 'pad', 'bass'],
+    name: 'Breakbeat', colour: '#5ec4ff', style: 'tune',
+    scales: { minor: 2.5, dorian: 2, lydian: 0.7, phrygian: 0.7 }, tempo: [80, 92], tuneTempo: [164, 176],
+    meters: { '4/4': 1 },
+    chords: ['i bVI', 'i - iv -', 'Imaj7 IVmaj7', 'i bVII bVI bVII', 'ii V Imaj7 -', 'i bIII bVII iv', 'vi IV I V'],
+    methods: { bank: 4, vamp: 2, markov: 1 },
+    richness: [0.4, 0.9], energy: 0.85, space: 0.7, bright: 0.55, dark: 0.4, edge: 0.9, surprise: 0,
+    palette: {
+      pad: ['air-pad', 'glass-pad', 'analog-pad', 'strings'], melody: ['soft-lead', 'sine-bell', 'e-piano', 'saw-lead', 'whistle'],
+      counter: ['e-piano', 'pluck-lead', 'sine-bell'], keys: ['e-piano', 'felt-keys'], arp: ['pluck-lead', 'sine-bell', 'e-piano'], bells: ['sine-bell', 'glass-bell'],
+      bass: ['reese', 'sub-bass', 'synth-bass'], drone: ['deep-drone', 'void'],
+    },
+    textures: ['rain', 'hum'], kits: ['machine', 'club-kit'], drums: [0.35, 1],
+    patterns: { drums: ['break', 'break', 'halftime'], bass: ['held', 'synco', 'held'], pad: ['sustain', 'swell'], melody: ['long', 'phrases', 'fragments'] },
+  },
 };
 // the rows of moods on the page, in order
-const MOOD_GROUPS = ['Gentle', 'Bright', 'Dark', 'Loud', 'Hazy'];
+const MOOD_GROUPS = ['Gentle', 'Bright', 'Dark', 'World', 'Electronic', 'Loud', 'Hazy'];
 
 // the patterns each style leans towards, when the mood doesn't say
 const STYLE_PATTERNS = {
@@ -938,12 +1073,86 @@ const STYLE_PATTERNS = {
     drone: ['tonic', 'fifths'], bass: ['rootfifth', 'pulse', 'octave', 'synco', 'held'],
     drums: ['groove', 'groove', 'halftime'], texture: ['steady'], guitar: ['power', 'eighths', 'ring'],
   },
+  // a fight: a beat that drives (rock, double kick, a march, taiko, breaks), a bass that pushes, chords
+  // pulsing as an ostinato under a tune you can hum, and a counter melody that often harmonises it,
+  // twin leads in thirds
+  boss: {
+    melody: ['phrases', 'phrases', 'riff', 'long'], counter: ['harmony', 'harmony', 'answer'], arp: ['up', 'updown', 'down', 'converge'],
+    bells: ['sparkle'], keys: ['block', 'broken', 'strum'], pad: ['pulse', 'stabs', 'sustain', 'pump', 'swell'],
+    drone: ['tonic', 'fifths'], bass: ['octave', 'synco', 'pulse', 'riff', 'rootfifth'],
+    drums: ['rock', 'double', 'march', 'tribal', 'break', 'four', 'punk'], texture: ['steady'], guitar: ['chug', 'power', 'eighths', 'tremolo', 'ring'],
+  },
 };
-// the patterns a role picks from in a song: the mood's for its style, the mood's, or the style's
+STYLE_PATTERNS.mini = STYLE_PATTERNS.boss;
+
+// the styles, as the page names them. a mini boss is a boss fight in a shorter loop with a smaller band
+const STYLES = { ambient: 'Ambient', tune: 'Tune', mini: 'Mini boss', boss: 'Boss' };
+const FIGHTS = { boss: true, mini: true };
+// how hard each fight drives at least, whatever its mood (a calm boss is still a fight)
+const FIGHT_ENERGY = { boss: 0.9, mini: 0.8 };
+// drum kits for a fight in a mood whose own don't play a fight's beats (calm's soft kit, or none)
+const FIGHT_KITS = ['tight-kit', 'orchestra-kit', 'rock-kit'];
+
+// the patterns a role picks from in a song: the mood's for its style, the mood's, or the style's.
+// a fight keeps the mood's own where they drive (metal's double kick) and drops the gentle ones: a
+// calm mood's brushes under a boss would be a joke
 const moodPatterns = (song, role) => {
-  const mood = MOODS[song.mood];
-  return mood.patterns?.[`${song.style}.${role}`] || mood.patterns?.[role] || STYLE_PATTERNS[song.style][role];
+  const mood = songMood(song);
+  const own = mood.patterns?.[`${song.style}.${role}`] || mood.patterns?.[role];
+  if (!FIGHTS[song.style]) return own || STYLE_PATTERNS[song.style][role];
+  const driving = own?.filter((pattern) => STYLE_PATTERNS.boss[role].includes(pattern));
+  return driving?.length ? driving : STYLE_PATTERNS.boss[role];
 };
+
+// the mood a song is really written in (songMood): its mood, made into a fight for the boss styles,
+// with a second mood blended in for flavour (song.blend). terraria and calamity's boss themes are
+// mostly a genre plus a place: the desert scourge is metal with tropical colour, plantera metal
+// singing the jungle's tunes, cryogen drum and bass with chimes and wind. so:
+//   - a fight drives: at least FIGHT_ENERGY, quicker than the mood's tune, no swing, a drier room, and
+//     drums always, on a kit that can play a fight's beats. it opens on the drums and bass
+//   - a blend is the flavour: its scales lead, its chords join the mood's, its instruments sing the
+//     tune (melody, counter, arp, bells, alongside the mood's own) and its scenery is the place. the
+//     mood keeps the band: drums, bass, chords, guitars, tempo and the song's shape. metal blended
+//     with the desert is a metal band playing a desert tune; the desert blended with metal is an oud
+//     with metal leads over hand drums
+// a song with neither gets the mood itself, untouched, so every song made before plays the same
+const TUNE_ROLES = ['melody', 'counter', 'arp', 'bells'];
+const moodEdge = (mood) => mood.edge ?? 0.3 + mood.energy * 0.6 + mood.dark * 0.2;
+function mixMood(base, blend, style) {
+  if (!blend && !FIGHTS[style]) return base;
+  const mood = { ...base, palette: { ...base.palette } };
+  if (FIGHTS[style]) {
+    mood.energy = Math.max(base.energy, FIGHT_ENERGY[style]);
+    mood.space = base.space * 0.75;
+    mood.swing = 0;
+    // quicker, unless it's already quick (drum and bass at 170 needs no push)
+    mood.tuneTempo = base.tuneTempo.map((bpm, i) => (bpm >= 150 ? bpm : Math.round(Math.min(165, bpm * (i ? 1.15 : 1.2)))));
+    mood.meters = { '4/4': 10, '6/8': 1, '5/4': 0.5 };
+    const kits = base.kits.filter((id) => INSTRUMENTS[id].suits.some((pattern) => STYLE_PATTERNS.boss.drums.includes(pattern)));
+    mood.kits = kits.length ? kits : FIGHT_KITS;
+    mood.drums = [1, 1];
+    mood.opens = ['drums', 'bass', ...base.opens];
+    mood.soloOver = base.soloOver || 'B';
+  }
+  if (blend) {
+    mood.scales = { ...base.scales };
+    for (const [scale, weight] of Object.entries(blend.scales)) mood.scales[scale] = (mood.scales[scale] || 0) + weight * 2;
+    mood.chords = [...base.chords, ...blend.chords];
+    for (const role of TUNE_ROLES) mood.palette[role] = [...(blend.palette[role] || []), ...(base.palette[role] || [])];
+    if (blend.textures.length) mood.textures = blend.textures;
+    if (!mood.kits.length) [mood.kits, mood.drums] = [blend.kits, blend.drums];
+    mood.edge = Math.max(moodEdge(mood), moodEdge(blend));
+    mood.dark = (base.dark + blend.dark) / 2;
+    if (blend.surprise === 0) mood.surprise = 0;
+  }
+  return mood;
+}
+const moodCache = new Map();
+function songMood(song) {
+  const key = `${song.mood}|${song.blend || ''}|${song.style}`;
+  if (!moodCache.has(key)) moodCache.set(key, mixMood(MOODS[song.mood], MOODS[song.blend], song.style));
+  return moodCache.get(key);
+}
 
 // the families a layer's surprise instrument (the odd one from outside the mood) comes from, so a
 // drone doesn't end up on a plucked lead. the page still offers any instrument for any layer
@@ -956,7 +1165,13 @@ const WILDCARDS = {
 const LAYER_CHANCE = {
   ambient: { melody: 0.55, counter: 0.2, arp: 0.25, bells: 0.65, keys: 0.3, guitar: 0, pad: 1, drone: 0.55, bass: 0.4, drums: 0.12, texture: 0.85 },
   tune:    { melody: 1, counter: 0.45, arp: 0.5, bells: 0.2, keys: 0.65, guitar: 0, pad: 0.7, drone: 0.15, bass: 1, drums: 0.85, texture: 0.25 },
+  // a fight is the tune, the bass and the beat, with an ostinato (an arp or pulsing pad) under them
+  boss:    { melody: 1, counter: 0.5, arp: 0.55, bells: 0.1, keys: 0.4, guitar: 0, pad: 0.8, drone: 0.1, bass: 1, drums: 1, texture: 0.1 },
+  mini:    { melody: 1, counter: 0.3, arp: 0.45, bells: 0.05, keys: 0.35, guitar: 0, pad: 0.6, drone: 0.05, bass: 1, drums: 1, texture: 0.05 },
 };
+// the most layers a song has, and how many of its parts play from the first bar (pickArrangement)
+const MOST_LAYERS = { ambient: 6, tune: 7, boss: 7, mini: 6 };
+const OPENING = { ambient: 1, tune: 2, boss: 3, mini: 3 };
 // the parts that move around the middle of the band, under the tune. two of them is a band; three or
 // four (an arp, oom-pah keys and chimes over a walking bass) was the "bunch of noises" in happy and
 // playful songs, so a song keeps two at most, losing them in this order
@@ -990,6 +1205,20 @@ const FORMS = {
     [['Intro', 'C', 4, 0.3], ['Theme', 'A', 8, 0.75], ['Theme', 'A', 8, 0.85], ['Break', 'C', 8, 0.5], ['Climb', 'B', 8, 0.95], ['Theme', 'A', 8, 0.85]],
     [['A', 'A', 8, 0.7], ['B', 'B', 8, 0.9], ['A', 'A', 8, 0.8], ['C', 'C', 8, 0.55]],
   ],
+  // fights loop under the battle, so they never wind down: no outro, the end runs back into the start.
+  // a short intro on the beat and bass, the theme, a higher second theme, and a break (calamity's
+  // "moments of calm", or a breakdown in the loud moods) before the climax
+  boss: [
+    [['Intro', 'C', 4, 0.45], ['Theme', 'A', 8, 0.9], ['Theme', 'A', 8, 0.95], ['Rise', 'B', 8, 1], ['Break', 'C', 8, 0.55], ['Climax', 'B', 8, 1], ['Theme', 'A', 8, 0.95]],
+    [['Intro', 'A', 4, 0.45], ['A', 'A', 8, 0.9], ['B', 'B', 8, 1], ['A', 'A', 8, 0.95], ['Break', 'C', 8, 0.55], ['Build', 'C', 4, 0.8], ['B', 'B', 8, 1], ['B', 'B', 8, 1]],
+    [['Intro', 'B', 4, 0.5], ['A', 'A', 16, 0.92], ['B', 'B', 8, 1], ['Break', 'C', 8, 0.55], ['A', 'A', 8, 0.95], ['B', 'B', 16, 1]],
+  ],
+  // a mini boss is over quicker: a loop of two or three parts
+  mini: [
+    [['Intro', 'A', 2, 0.5], ['A', 'A', 8, 0.9], ['B', 'B', 8, 1], ['A', 'A', 8, 0.95]],
+    [['A', 'A', 8, 0.9], ['B', 'B', 8, 1]],
+    [['Intro', 'C', 2, 0.5], ['A', 'A', 8, 0.9], ['C', 'C', 4, 0.7], ['B', 'B', 8, 1]],
+  ],
 };
 
 // ---------- making a song ----------
@@ -1006,9 +1235,10 @@ const LAYER_DEFAULTS = {
 const FX_DEFAULTS = { reverb: 0.4, size: 0.6, tone: 0.5, echo: 0.2, echoTime: 0.75, echoRepeats: 0.35, warmth: 0.2, wobble: 0, drive: 0, volume: 0.8 };
 const ECHO_TIMES = [0.5, 0.75, 1, 1.5, 2];
 
-function generateSong(moodId, style, seed) {
+// blend: a second mood for flavour, or none (mixMood)
+function generateSong(moodId, style, seed, blend = '') {
   const mood = MOODS[moodId] ? moodId : 'calm';
-  const song = { name: seedTitle(seed), seed, mood, style: style === 'tune' ? 'tune' : 'ambient', parts: {}, layers: [], sections: [], fx: {} };
+  const song = { name: seedTitle(seed), seed, mood, ...(MOODS[blend] && blend !== mood ? { blend } : {}), style: STYLES[style] ? style : 'ambient', parts: {}, layers: [], sections: [], fx: {} };
   pickTonality(song, makeRng(seed, mood, 'tonality'));
   pickChords(song, makeRng(seed, mood, 'chords'));
   pickLayers(song, makeRng(seed, mood, song.style, 'layers'));
@@ -1035,7 +1265,7 @@ const REROLLS = {
 };
 function rerollSong(song, what, nonce) {
   const next = clone(song);
-  REROLLS[what](next, MOODS[next.mood], makeRng(song.seed, what, nonce));
+  REROLLS[what](next, songMood(next), makeRng(song.seed, what, nonce));
   return cleanSong(next);
 }
 // new chords for one part only
@@ -1046,12 +1276,12 @@ function rerollPart(song, part, nonce) {
 }
 
 function pickTonality(song, rng) {
-  const mood = MOODS[song.mood];
+  const mood = songMood(song);
   song.key = rng.int(0, 11);
   song.scale = rng.weighted(mood.scales);
-  const [low, high] = song.style === 'tune' ? mood.tuneTempo : mood.tempo;
+  const [low, high] = song.style === 'ambient' ? mood.tempo : mood.tuneTempo;
   song.tempo = Math.round(rng.range(low, high));
-  song.meter = rng.weighted(mood.meters || (song.style === 'tune' ? { '4/4': 6, '3/4': 1.5, '6/8': 1.5 } : { '4/4': 5, '3/4': 2, '6/8': 1 }));
+  song.meter = rng.weighted(mood.meters || (song.style !== 'ambient' ? { '4/4': 6, '3/4': 1.5, '6/8': 1.5 } : { '4/4': 5, '3/4': 2, '6/8': 1 }));
   // a 6/8 beat is three eighths long, so the same feel counts slower
   if (song.meter === '6/8') song.tempo = Math.round(song.tempo * 0.65);
   song.swing = rng.chance(mood.swing || 0) ? rng.range(0.15, 0.5) : 0;
@@ -1060,7 +1290,7 @@ function pickTonality(song, rng) {
   song.chordBars = song.style === 'ambient' ? rng.pick([1, 2, 2, 4]) : rng.pick(mood.energy > 0.7 ? [0.5, 1, 1, 2] : [1, 1, 2]);
 }
 
-const pickMethod = (song, rng) => rng.weighted(MOODS[song.mood].methods || { bank: 5, markov: 3, vamp: 1.2 });
+const pickMethod = (song, rng) => rng.weighted(songMood(song).methods || { bank: 5, markov: 3, vamp: 1.2 });
 
 function pickChords(song, rng) {
   song.parts = {};
@@ -1076,7 +1306,7 @@ function pickChords(song, rng) {
 
 // one progression, made one of four ways (see the music theory notes at the top)
 function makeProgression(song, rng, method) {
-  const mood = MOODS[song.mood];
+  const mood = songMood(song);
   const steps = harmonySteps(song.scale);
   const token = (degree) => { const chord = diatonicChord(steps, degree); return chordToken(chord.root, chord.tones); };
   if (method === 'bank') {
@@ -1116,13 +1346,13 @@ function makeProgression(song, rng, method) {
 }
 
 function pickLayers(song, rng) {
-  const mood = MOODS[song.mood];
+  const mood = songMood(song);
   const chances = { ...LAYER_CHANCE[song.style], ...mood.layers };
   const roles = ROLE_ORDER.filter((role) => {
     let chance = chances[role];
     if (role === 'texture' && !mood.textures.length) chance = 0;
     if (role === 'drone') chance += mood.dark * 0.3;
-    if (role === 'drums') chance = mood.kits.length ? mood.drums[song.style === 'tune' ? 1 : 0] : 0;
+    if (role === 'drums') chance = mood.kits.length ? mood.drums[song.style === 'ambient' ? 0 : 1] : 0;
     // no roll for a guitar in a mood without one, so adding guitars left every other mood's seeds
     // making the songs they made before
     if (role === 'guitar' && !chance) return false;
@@ -1137,8 +1367,10 @@ function pickLayers(song, rng) {
   // loud, quiet, loud: a second, cleaner guitar for the quiet sections (pickArrangement)
   const twoGuitars = roles.includes('guitar') && !!mood.quiet && rng.chance(mood.loudQuiet || 0);
   // seven at most (six in ambient songs, which want room), losing the least needed first
-  const most = (song.style === 'ambient' ? 6 : 7) - (twoGuitars ? 1 : 0);
-  for (const role of ['counter', 'arp', 'drone', 'bells', 'keys', 'bass']) if (roles.length > most) roles.splice(roles.indexOf(role), roles.includes(role) ? 1 : 0);
+  const most = MOST_LAYERS[song.style] - (twoGuitars ? 1 : 0);
+  // a fight keeps its bass and beat, losing the scenery and the pad first
+  const spare = FIGHTS[song.style] ? ['counter', 'arp', 'drone', 'bells', 'keys', 'texture', 'pad'] : ['counter', 'arp', 'drone', 'bells', 'keys', 'bass'];
+  for (const role of spare) if (roles.length > most) roles.splice(roles.indexOf(role), roles.includes(role) ? 1 : 0);
   const ids = ROLE_ORDER.filter((one) => roles.includes(one)).map((role) => [role, role]);
   if (twoGuitars) ids.splice(ids.findIndex(([, id]) => id === 'guitar') + 1, 0, ['guitar', 'guitar-2']);
   if (song.style === 'ambient' && roles.includes('texture') && roles.length < most && mood.textures.length > 1 && mood.textures.some((id) => !INSTRUMENTS[id].bed) && rng.chance(SECOND_TEXTURE)) ids.push(['texture', 'texture-2']);
@@ -1158,7 +1390,7 @@ const dressOrder = (layers) => (layers.some((layer) => layer.role === 'guitar') 
 // so the tune is always the thing you hear
 const BACKING = { counter: true, arp: true, keys: true, guitar: true, pad: true, drone: true, bass: true };
 // the harshest instrument a mood allows (edge in synth.js), less for backing layers
-const maxEdge = (mood, role) => (mood.edge ?? 0.3 + mood.energy * 0.6 + mood.dark * 0.2) * (BACKING[role] ? 0.75 : 1);
+const maxEdge = (mood, role) => moodEdge(mood) * (BACKING[role] ? 0.75 : 1);
 
 // an instrument for a layer: from the mood's palette, now and then (12%) something from outside it so
 // songs in a mood don't all sound alike, but only from families that suit the role (WILDCARDS), never
@@ -1174,9 +1406,11 @@ const maxEdge = (mood, role) => (mood.edge ?? 0.3 + mood.energy * 0.6 + mood.dar
 const APART = { chip: 'acoustic', acoustic: 'chip' };
 // a mood with no surprises (the loud and hazy ones) keeps to itself the other way too: its
 // instruments aren't other moods' surprises
-const kindred = (mood) => new Set(Object.values(MOODS).filter((other) => other === mood || (other.surprise !== 0 && Math.abs(other.dark - mood.dark) <= 0.25)).flatMap((other) => [...Object.values(other.palette).flat(), ...(other.quiet || [])]));
+// (the mood's own palette always counts, which matters for a blended or fight mood: it isn't in MOODS)
+const paletteOf = (mood) => [...Object.values(mood.palette).flat(), ...(mood.quiet || [])];
+const kindred = (mood) => new Set([...paletteOf(mood), ...Object.values(MOODS).filter((other) => other.surprise !== 0 && Math.abs(other.dark - mood.dark) <= 0.25).flatMap(paletteOf)]);
 function pickInstrument(song, layer, rng) {
-  const mood = MOODS[song.mood];
+  const mood = songMood(song);
   const { role } = layer;
   const family = roleFamily(role);
   const anything = Object.keys(INSTRUMENTS).filter((id) => instrumentFits(id, role));
@@ -1214,7 +1448,7 @@ function pickInstrument(song, layer, rng) {
 
 // a layer's instrument, pattern, tone and mix. fresh: a new layer, so it gets a seed and pattern too
 function dressLayer(song, layer, rng, fresh) {
-  const mood = MOODS[song.mood];
+  const mood = songMood(song);
   const { role } = layer;
   layer.instrument = pickInstrument(song, layer, rng);
   const instrument = INSTRUMENTS[layer.instrument];
@@ -1230,7 +1464,7 @@ function dressLayer(song, layer, rng, fresh) {
     layer.span = rng.pick([1, 2, 2]);
     layer.octave = role === 'bells' ? rng.weighted([[0, 5], [1, 1], [-1, 1]]) : role === 'melody' ? rng.weighted([[0, 6], [-1, 1]]) : 0;
   }
-  const busy = song.style === 'tune' ? 0.35 + mood.energy * 0.5 : 0.3 + mood.energy * 0.5;
+  const busy = song.style !== 'ambient' ? 0.35 + mood.energy * 0.5 : 0.3 + mood.energy * 0.5;
   layer.density = clamp01(busy + rng.range(-0.15, 0.2));
   // drums follow the mood's energy: as loud under a calm song as under an angry one, they were the
   // first thing you heard
@@ -1252,7 +1486,7 @@ function dressLayer(song, layer, rng, fresh) {
   // in a tune, chords have to arrive on the beat with the drums, so pads swell in and let go quicker.
   // not plucked strings: they already start at once, and cutting their ring short is what made the
   // harp's notes end harshly
-  const chordy = song.style === 'tune' && (role === 'pad' || role === 'keys' || role === 'drone') && instrument.kind !== 'pluck';
+  const chordy = song.style !== 'ambient' && (role === 'pad' || role === 'keys' || role === 'drone') && instrument.kind !== 'pluck';
   // brightness: near the mood's, a touch darker for backing, and never pushing a harsh instrument
   // brighter than it was made (edge 1 stays at 1x at most, a soft one can go to 1.6x). it used to swing
   // anywhere from 0.4x to 2.2x on anything, and doubled saw leads and bells were painful. drums and
@@ -1299,7 +1533,7 @@ function fitBand(song) {
   const busyKeys = song.layers.some((layer) => layer.role === 'keys' && (layer.pattern === 'broken' || layer.pattern === 'waltz'));
   const textures = song.layers.filter((layer) => layer.role === 'texture').length;
   // how far under the tune backing sits: 0.1, less for a mood that buries its tune (shoegaze)
-  const gap = 0.1 * (1 - (MOODS[song.mood].bury || 0));
+  const gap = 0.1 * (1 - (songMood(song).bury || 0));
   for (const layer of song.layers) {
     if (arp && layer.role === 'keys') layer.pattern = 'strum';
     if ((arp || busyKeys) && layer.role === 'pad' && (layer.pattern === 'pulse' || layer.pattern === 'stabs')) layer.pattern = 'sustain';
@@ -1308,7 +1542,8 @@ function fitBand(song) {
     if (melody && BACKING[layer.role] && layer.role !== 'bass') layer.volume = Math.min(layer.volume, Math.max(0.2, melody.volume - gap));
     const suits = layer.role === 'drums' && INSTRUMENTS[layer.instrument]?.suits;
     if (suits && !suits.includes(layer.pattern)) {
-      const wanted = moodPatterns(song, 'drums');
+      // a fight falls back on any fight's beat the kit can play before the kit's own first
+      const wanted = [...moodPatterns(song, 'drums'), ...(FIGHTS[song.style] ? STYLE_PATTERNS.boss.drums : [])];
       layer.pattern = wanted.find((pattern) => suits.includes(pattern)) || suits[0];
     }
     if (layer.role === 'texture') layer.volume = Math.min(layer.volume, (melody ? melody.volume * 0.55 : 0.42) * (textures > 1 ? 0.85 : 1));
@@ -1327,7 +1562,7 @@ function partBars(song, part) {
 // for the chorus
 const LOUD = 0.85;
 function pickArrangement(song, rng) {
-  const mood = MOODS[song.mood];
+  const mood = songMood(song);
   const form = rng.pick((song.style === 'tune' && mood.forms) || FORMS[song.style]);
   const entry = {};
   for (const layer of song.layers) entry[layer.id] = rng.range(...ROLE_ENTRY[layer.role]);
@@ -1336,9 +1571,9 @@ function pickArrangement(song, rng) {
   // in by energy alone, so an intro was often a lone pad or nothing but the texture: a happy song
   // started out ambient, and the band arriving with the melody sounded like a different song
   const lowest = Math.min(...form.map(([, , , energy]) => energy));
-  const wanted = MOODS[song.mood].opens.map((role) => song.layers.find((layer) => layer.role === role)).filter(Boolean);
+  const wanted = mood.opens.map((role) => song.layers.find((layer) => layer.role === role)).filter(Boolean);
   const anyone = song.layers.filter((layer) => OPENERS.includes(layer.role));
-  for (const layer of [...new Set([...wanted, ...anyone])].slice(0, song.style === 'tune' ? 2 : 1)) entry[layer.id] = Math.min(entry[layer.id], lowest);
+  for (const layer of [...new Set([...wanted, ...anyone])].slice(0, OPENING[song.style])) entry[layer.id] = Math.min(entry[layer.id], lowest);
   let before = [];
   song.sections = form.map(([name, part, fourFourBars, energy]) => {
     // the forms are in 4/4 bars, so shorter bars (6/8 is two beats) get more of them
@@ -1375,14 +1610,15 @@ function pickArrangement(song, rng) {
 // new voice gets the spotlight. the other line (bells, a counter melody) sits it out, so the solo
 // isn't fighting anyone. section.lead is which layer solos; any section can have one, on the page.
 // a rock mood says how often (MOODS solo) and solos over its chorus (soloOver), before the last one
-const SOLO_CHANCE = { tune: 0.6, ambient: 0.35 };
+const SOLO_CHANCE = { tune: 0.6, ambient: 0.35, boss: 0.75, mini: 0.25 };
 function addSolo(song, rng, form) {
-  const mood = MOODS[song.mood];
+  const mood = songMood(song);
   const melody = song.layers.find((layer) => layer.role === 'melody');
   const chance = song.style === 'tune' && mood.solo !== undefined ? mood.solo : SOLO_CHANCE[song.style];
   if (!melody || song.sections.length < 4 || !rng.chance(chance)) return;
-  // the theme's (part A's, or the chorus's) last full time round, as long as it isn't the very start
-  const part = (song.style === 'tune' && mood.soloOver) || 'A';
+  // the theme's (part A's, or the chorus's) last full time round, as long as it isn't the very start.
+  // a fight solos over its second theme, the climax
+  const part = (song.style !== 'ambient' && mood.soloOver) || 'A';
   let at = -1;
   for (let i = 2; i < song.sections.length; i++) if (song.sections[i].part === part && form[i][2] >= 8 && song.sections[i].play.includes(melody.id)) at = i;
   if (at < 0) return;
@@ -1390,11 +1626,11 @@ function addSolo(song, rng, form) {
   const lead = counter && rng.chance(0.4) ? counter : melody;
   const theme = song.sections[at];
   const play = theme.play.filter((id) => id !== melody.id && !['bells', 'counter'].includes(song.layers.find((layer) => layer.id === id).role));
-  song.sections.splice(at, 0, { name: song.style === 'tune' ? 'Solo' : 'Wander', part: theme.part, bars: theme.bars, play: [...play, lead.id], lead: lead.id });
+  song.sections.splice(at, 0, { name: song.style !== 'ambient' ? 'Solo' : 'Wander', part: theme.part, bars: theme.bars, play: [...play, lead.id], lead: lead.id });
 }
 
 function pickSpace(song, rng) {
-  const mood = MOODS[song.mood];
+  const mood = songMood(song);
   const bias = mood.fx || {};
   song.fx = {
     reverb: clamp01(mood.space * rng.range(0.55, 0.95)),
@@ -1444,7 +1680,9 @@ function cleanSong(data) {
     name: text(d.name, seedTitle(seed), 40),
     seed,
     mood: MOODS[d.mood] ? d.mood : 'calm',
-    style: d.style === 'tune' ? 'tune' : 'ambient',
+    // only there when there is one, so a song without a blend saves as it always did
+    ...(MOODS[d.blend] && d.blend !== d.mood ? { blend: d.blend } : {}),
+    style: STYLES[d.style] ? d.style : 'ambient',
     key: Math.round(num(d.key, 0, 11, 0)),
     scale: SCALES[d.scale] ? d.scale : 'major',
     tempo: Math.round(num(d.tempo, 30, 220, 80)),
@@ -1668,7 +1906,8 @@ function listen(song, sections, parts) {
       if (rule === 'drop') return chord.tones.slice(0, 3).some((tone) => mod12(chord.root + tone) === mod12(note.midi));
       for (const step of [1, -1, 2, -2, 3, -3, 4, -4]) {
         const midi = note.midi + step;
-        if (chord.pcs.has(mod12(midi)) && !clashes(midi) && (midi <= ceiling || note.midi > ceiling)) {
+        // under the tune, or for a note that couldn't drop under it (a low tune), no further over it
+        if (chord.pcs.has(mod12(midi)) && !clashes(midi) && (midi <= ceiling || midi < note.midi)) {
           note.written ??= note.midi;
           note.midi = midi;
           break;
@@ -1911,10 +2150,10 @@ function tuneDrum(hz, key) {
 // (the style's usual), so their bass and stabs keep to a steady rhythm
 function grooveFor(song, part) {
   const drums = song.layers.find((layer) => layer.role === 'drums');
-  const kind = drums ? drums.pattern : song.style === 'tune' ? 'groove' : 'pulse';
+  const kind = drums ? drums.pattern : song.style !== 'ambient' ? 'groove' : 'pulse';
   // a breakdown (metal, hardcore): part C goes half time and heavy, the guitar chugging on the kick,
   // instead of dropping quiet
-  const breakdown = part === 'C' && song.style === 'tune' && !!MOODS[song.mood].breakdown;
+  const breakdown = part === 'C' && song.style !== 'ambient' && !!songMood(song).breakdown;
   const written = makeRng(song.seed, drums ? drums.seed : '', 'groove').pick(GROOVES[song.meter][breakdown ? 'breakdown' : kind]);
   const steps = written.k.length;
   const perBeat = steps / METERS[song.meter].beats;
@@ -2100,7 +2339,7 @@ const CONTOUR_WEIGHTS = {
 // it tries a few times for a rhythm with at least two lengths of note (or one long one, in a slow
 // tune): notes all the same length are what make a tune sound like a scale exercise
 function makeMotif(rng, c, density, hook, contour = null, rhythm = null) {
-  const shape = contour || CONTOURS[rng.weighted(CONTOUR_WEIGHTS[c.song.style])](rng);
+  const shape = contour || CONTOURS[rng.weighted(CONTOUR_WEIGHTS[c.song.style === 'ambient' ? 'ambient' : 'tune'])](rng);
   if (!rhythm) {
     const length = hook ? c.bpb / 2 : c.bpb;
     for (let tries = 0; tries < 6; tries++) {
@@ -2144,7 +2383,7 @@ const tuneDensity = (layer) => ({ long: layer.density * 0.3, riff: Math.max(0.75
 // the layer's motif, the same in every part (and quoted in its solos)
 function themeMotif(c, density, riff) {
   const theme = makeRng(c.song.seed, c.layer.seed, 'motif', c.layer.role);
-  const hook = c.bpb % 2 === 0 && theme.chance(riff ? 1 : c.song.style === 'tune' ? 0.45 : 0.25);
+  const hook = c.bpb % 2 === 0 && theme.chance(riff ? 1 : c.song.style !== 'ambient' ? 0.45 : 0.25);
   return { theme, hook, motif: makeMotif(theme, c, density, hook) };
 }
 
@@ -2202,7 +2441,7 @@ function tune(c, { density, low, high, plan4, riff, rests }) {
   let variant = makeMotif(theme, c, density, hook, null, motif.rhythm);
   const seq = theme.pick([1, -1, -1, 2]);
   let base = theme.int(0, 2);
-  const pickup = !rests && density >= 0.4 && theme.chance(song.style === 'tune' ? 0.5 : 0.25);
+  const pickup = !rests && density >= 0.4 && theme.chance(song.style !== 'ambient' ? 0.5 : 0.25);
   // the second idea: a rhythm of its own, slower when the motif's busy and busier when it's slow
   const contrast = density > 0.55 ? density * 0.55 : Math.min(0.95, density + 0.3);
   let second = makeMotif(theme, c, contrast, false);
@@ -2337,6 +2576,11 @@ function solo(c) {
       notes.push(...sing(c, cells, barStart, low, high, SWELL[place] + lift * 0.04, anchor));
     }
   }
+  // a chord with none of its notes in the scale (an eerie chromatic chord under a pentatonic tune) can't
+  // be reached in scale steps, so the last note goes straight to the chord's root
+  const last = notes[notes.length - 1];
+  const chord = last && chordAt(c, last.t);
+  if (chord && !chord.pcs.has(mod12(last.midi))) last.midi = near(chord.root, last.midi);
   return notes;
 }
 
@@ -2435,7 +2679,7 @@ function riff(c, layer, bass) {
   const cells = riffCells(r.pick(pool).cells, c);
   const from = r.int(0, 1);
   const way = r.pick([-1, -1, 1]);
-  const breakdown = c.section.part === 'C' && song.style === 'tune' && !!MOODS[song.mood].breakdown;
+  const breakdown = c.section.part === 'C' && song.style !== 'ambient' && !!songMood(song).breakdown;
   // the riff's grid is the groove's (16ths, or 8ths in 6/8)
   const grid = c.bpb / cells.length;
   const plan = [...cells].map((ch, i) => (breakdown ? (c.groove.lines.k[i] > 0 ? (i === 0 ? 'x' : 'm') : '.') : ch));

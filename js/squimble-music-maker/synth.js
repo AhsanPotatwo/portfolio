@@ -125,6 +125,10 @@ const INSTRUMENTS = {
   // a steel string guitar, brighter and longer ringing than the nylon: stardew valley's strummed and
   // fingerpicked guitar
   'steel-guitar': { name: 'Steel guitar', family: 'keys', edge: 0.3, world: 'acoustic', kind: 'pluck', bright: 0.7, soft: 0.25, decay: 2.8, filter: { freq: 4200, q: 0.5, track: 0.3 }, env: [0.002, 2.8, 1, 0.8], gain: 0.6 },
+  // the desert's lute, fretless and picked with a quill: a short, woody, nasal pluck
+  oud:           { name: 'Oud', family: 'keys', edge: 0.3, world: 'acoustic', own: true, kind: 'pluck', bright: 0.6, soft: 0.2, decay: 1.5, filter: { freq: 2600, q: 0.8, track: 0.4 }, env: [0.002, 1.5, 1, 0.5], gain: 1 },
+  // a steel pan: a round strike whose octave and twelfth ring with it, so it's tuned rather than clangy
+  'steel-drum':  { name: 'Steel drum', family: 'keys', edge: 0.3, world: 'acoustic', own: true, kind: 'fm', ratio: 1, index: 1.2, indexDecay: 0.2, sustainIndex: 0.1, partials: [[2, 0.4, 0.5], [3, 0.15, 0.25]], env: [0.003, 1.6, 0, 0.7], gain: 0.2 },
 
   // electric guitars: a picked string through a rig (amp, ampChain()), from clean to as heavy as it
   // goes. edge rises with the gain. rhythm guitars are double tracked (two takes, left and right)
@@ -191,6 +195,9 @@ const INSTRUMENTS = {
   // two reeds tuned a few cents apart, beating against each other (the musette sound), over a lower
   // reed: a village dance tune
   accordion:     { name: 'Accordion', family: 'lead', edge: 0.4, world: 'acoustic', kind: 'sub', osc: [['pulse25', -8], ['pulse25', 8], ['sawtooth', 0, -1, 0.3]], filter: { freq: 2600, q: 0.6, track: 0.3 }, env: [0.03, 0.3, 0.9, 0.3], gain: 0.1, tremolo: { rate: 5, depth: 0.08 } },
+  // a double reed, nasal and loud enough to carry outdoors: the zurna and mizmar of the desert, and a
+  // bagpipe's chanter. a thin pulse through a resonant filter, sliding up onto each note
+  shawm:         { name: 'Shawm', family: 'lead', edge: 0.6, world: 'acoustic', own: true, kind: 'sub', osc: [['pulse12', 0], ['sawtooth', 3, 0, 0.4]], breath: 0.1, filter: { freq: 1800, q: 1.6, track: 0.5 }, env: [0.04, 0.3, 0.85, 0.35], scoop: 25, gain: 0.16, vibrato: { rate: 5.8, depth: 14, delay: 0.3 } },
   // 80s brass from a synth, the filter opening as each note swells (dying light, deltarune)
   'synth-brass': { name: 'Synth brass', family: 'lead', edge: 0.6, kind: 'sub', osc: [['sawtooth', -7], ['sawtooth', 7], ['pulse25', 0, -1, 0.4]], filter: { freq: 900, q: 1, env: 3, attack: 0.12, decay: 0.6, track: 0.5 }, env: [0.05, 0.4, 0.85, 0.45], scoop: 15, gain: 0.07, vibrato: { rate: 5, depth: 5, delay: 0.5 } },
   // lead guitars, standing in for a singer: a held tone under the string so long notes sing on, some
@@ -290,6 +297,18 @@ const INSTRUMENTS = {
     { voice: 'kick', tune: 50, decay: 0.4, gain: 0.8, click: 0.1 }, { voice: 'snare', tune: 175, tone: 1500, decay: 0.45, gain: 0.5 }, { voice: 'hat', tone: 6500, decay: 0.06, gain: 0.17 },
     { voice: 'hat', tone: 6000, decay: 0.5, gain: 0.15 }, { voice: 'ride', tune: 2200, tone: 5000, decay: 1.6, gain: 0.17 }, { voice: 'tom', tune: 80, decay: 0.6, gain: 0.5 },
     { voice: 'crash', tone: 5000, decay: 2.6, gain: 0.19 }] },
+
+  // hand drums: a darbuka's low doum and sharp tek, a riq's jingles, and a higher drum for the tribal
+  // lines. the desert, the tropics, and a folk band's bodhran
+  'hand-drums': { name: 'Hand drums', family: 'kit', world: 'acoustic', kind: 'drums', suits: ['tribal', 'groove', 'march', 'halftime', 'pulse', 'sparse'], slots: [
+    { voice: 'tom', tune: 75, decay: 0.35, gain: 0.75 }, { voice: 'rim', tune: 900, decay: 0.06, gain: 0.35 }, { voice: 'shaker', tone: 6000, decay: 0.06, gain: 0.16 },
+    { voice: 'shaker', tone: 5500, decay: 0.22, gain: 0.18 }, { voice: 'tick', tune: 1400, decay: 0.05, gain: 0.22 }, { voice: 'tom', tune: 140, decay: 0.25, gain: 0.45 }] },
+  // the orchestra's: a concert bass drum, a field snare, timpani for the low drum, a woodblock, and
+  // clashed cymbals. trailers, epic battles and final bosses
+  'orchestra-kit': { name: 'Orchestral drums', family: 'kit', world: 'acoustic', kind: 'drums', suits: ['tribal', 'march', 'halftime', 'rock', 'groove', 'pulse', 'sparse'], slots: [
+    { voice: 'taiko', tune: 45, decay: 1.1, gain: 0.9 }, { voice: 'snare', tune: 200, tone: 2200, decay: 0.2, gain: 0.5 }, { voice: 'shaker', tone: 7000, decay: 0.05, gain: 0.12 },
+    { voice: 'crash', tone: 5000, decay: 1.2, gain: 0.16 }, { voice: 'tick', tune: 1000, decay: 0.07, gain: 0.25 }, { voice: 'tom', tune: 70, decay: 0.9, gain: 0.6 },
+    { voice: 'crash', tone: 5500, decay: 2.2, gain: 0.2 }] },
 
   // textures. they're scenery: most are now things that happen now and then with quiet in between,
   // like the vinyl's crackle, because a steady wash (the old wind) was loud and rarely added anything.

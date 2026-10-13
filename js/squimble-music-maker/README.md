@@ -17,7 +17,7 @@ This README and the code comments are the only notes. When you change something:
 | `music.js` | The composer: settings to notes. Plain maths with no page or audio, so node can run it and the game can load it as it is. Its header explains songs, the theory and times. |
 | `synth.js` | The band: `INSTRUMENTS`, drums, textures, guitar rigs (`ampChain`), the room (reverb, echo, tape) and the player (`MusicPlayer` live, `renderSong()` to WAV), all on Web Audio. Load it before `music.js`, because the composer picks from `INSTRUMENTS`. |
 | `maker.js` | The page: controls, the score, the note editor, the library and exports. The game won't need it. |
-| `tests/music-check.js` | `node js/squimble-music-maker/tests/music-check.js`. No output means it all passed. It takes about a minute. |
+| `tests/music-check.js` | `node js/squimble-music-maker/tests/music-check.js`. No output means it all passed. It takes two or three minutes. |
 | `tests/levels.html` | How loud every instrument and texture is, weighted the way ears hear. Open it in a browser and wait about a minute. Set a new sound's `gain` (or its rig's `level`) so it sits with its neighbours. Guitars are measured through their rig, playing a power chord. |
 
 ## Where the sounds come from
@@ -30,11 +30,14 @@ The moods and sounds are aimed at particular game and ambient music:
 - **Dark electronic:** Crystal Castles (Neon: bit lead, pumping pads, four to the floor, club kit).
 - **Loud:** Doom (1993), Metallica, Pantera and Slayer (Metal: high gain chugging riffs, double kick, the bass doubling the riff, twin lead harmonies, solos), Black Sabbath, Sleep and Electric Wizard (Sludge: slow fuzz riffs, flat fifths, half time), Nirvana, Hole and Alice in Chains (Grunge: loud, quiet, loud, with a clean or chorused verse guitar and a distortion pedal for the chorus), Weezer, the Smashing Pumpkins and Dinosaur Jr (Alt rock: big muff fuzz eighths, major key tunes), and Title Fight, Citizen and Tigers Jaw (Hardcore: punk beats, driving eighths, twinkling clean guitar, breakdowns).
 - **Hazy:** My Bloody Valentine, Slowdive and LSD and the Search for God (Shoegaze: glide guitar, reverse reverb, a buried voice, a cymbal wash), Whirr, Glare and Nothing (Nugaze: slower, darker, tuned down fuzz), and Cocteau Twins, Beach House and Slowdive's quieter side (Dream pop: chorused clean guitars, a breathy voice, a drum machine).
+- **World:** the Arabian and Andalusian desert (Desert: phrygian dominant, an oud, a shawm, hand drums and a drone), island and jungle music (Tropical: steel drums and marimbas, a swung bounce), Celtic and village folk (Folk: fiddle, tin whistle, a bagpipe's chanter, a bodhran, jigs in 6/8) and winter (Wintry: celesta, glass bells, a waltz, wind and a fire).
+- **Electronic and epic:** synthwave and outrun (Synthwave: saw leads and synth brass over arps and an octave bass), drum and bass (Breakbeat: breaks at 170 under a reese bass, liquid or half time) and trailer and film music (Epic: string ostinatos, horns, a choir, taiko and timpani).
+- **Boss fights:** Terraria (Scott Lloyd Shelly) and the Calamity mod (DM DOKURO and others). Most of their boss themes are a genre plus a place: the Desert Scourge's "Guardian of the Former Seas" is heavy metal with tropical colour, Plantera is mid tempo metal singing the jungle's tunes, Cryogen is fast drum and bass with chimes and wind, Astrum Deus is techno, and the later bosses are symphonic metal. So a fight is a style any mood can take (Boss, Mini boss), and the place is a second mood blended in (`blend`). They loop with no outro, and many have a calmer break before the climax ("moments of calm", Plaguebringer Goliath).
 - **No words:** the loud and hazy moods' songs would have a singer, so the tune is a lead guitar (bends and vibrato) or a wordless voice (`dream-voice`, `rasp-voice`) standing in, and solos come often.
 
 ## How a song is made
 
-`generateSong(mood, style, seed)` (music.js) runs five picks, each with its own seeded random numbers:
+`generateSong(mood, style, seed, blend)` (music.js) works out the mood it's really writing in (`songMood`: the mood, made into a fight for the Boss and Mini boss styles, with the blend mixed in, see below), then runs five picks, each with its own seeded random numbers:
 
 1. **pickTonality:** key, scale, tempo, time signature, swing, how rich the chords are, how long each chord lasts.
 2. **pickChords:** a progression for parts A, B and C, as roman numerals.
@@ -88,7 +91,7 @@ Every one of these is here because the song sounded wrong without it. The code c
 - **Everything with a pitch is in the key.** Kicks, toms, ticks, rims and the snare's body are tuned to the song's home note or fifth (`tuneDrum`). The hum hums the home note, and the crickets sing it and the note above.
 - **A riff's line gives way like any line.** A riff note that rubs against the tune moves to the nearest chord note that doesn't, and a bass doubling the riff moves with it, so the guitar and bass never rub either. Dropping it left a hole in the riff.
 - **The drummer plays to the room.** With fewer than half the others playing (an intro, a break), the drums play softer and leave out ghost notes.
-- **A kit only plays patterns it suits** (`suits` in synth.js). `fitBand` changes the pattern, from the mood's list where it can.
+- **A kit only plays patterns it suits** (`suits` in synth.js). `fitBand` changes the pattern, from the mood's list where it can, then (in a fight) from a fight's beats.
 - **Rock drummers.** The rock grooves (`ROCK`) fill down the toms, crash at the top of every four bars in a chorus or solo, keep their hats to eighths, and (rock and punk) move from the hats to the ride for the chorus (`RIDES`). Rock kits have a seventh drum, a crash; other kits crash on their open hat.
 
 **Parts**
@@ -120,11 +123,20 @@ Every one of these is here because the song sounded wrong without it. The code c
 - **Each mood says what opens its songs** (`opens`): the guitar then the bass in Happy (Stardew Valley), the beat and bass in Upbeat and Angry, a march under strings in Heroic, chip arps and bass in Spirited, a pad or drone in the ambient moods. A tune opens on two of them and an ambient song on one, and they play the whole song through, so the intro already sounds like the song. With none of the mood's openers in the band, any of pad, keys, arp, drone, bass or drums will do (`OPENERS`). No section is ever only the texture.
 - **Mutate and remixes only pick patterns from the mood's list,** so a cozy song can't mutate into a tribal beat.
 - **Progressions are picked to suit the scale.** Ones with notes outside it are less likely.
-- **Moods are in rows** (`group`, `MOOD_GROUPS`): gentle, bright, dark, loud and hazy.
+- **Moods are in rows** (`group`, `MOOD_GROUPS`): gentle, bright, dark, world, electronic, loud and hazy. The page shows one row at a time, opening on the song's, so the moods fit on a phone.
+- **The world, electronic and epic moods keep to themselves** (`surprise: 0`), and their new instruments (oud, shawm, steel drum) are `own`. That kept every older mood's surprises, and so its songs, exactly as they were.
 - **The loud and hazy moods work differently.** They say which roles they have (`layers`: a guitar always, no keys), their song shapes (`forms`: verses and choruses), how often they solo and over which part (`solo`, `soloOver`: rock solos over the chorus before its last time round), whether part C is a half time breakdown (`breakdown`), and patterns for ambient songs only (`'ambient.guitar'`, `'ambient.drums'`: an ambient metal song is drone metal, chords ringing slowly, not a punk beat at 66 bpm).
 - **The loud and hazy moods keep to themselves.** No surprise instruments (`surprise: 0`: a kalimba tune in a grunge song is a mistake, not a surprise), and their instruments aren't other moods' surprises. Instruments that are a mood's own (`own` in synth.js: the voices, lead guitars, rig basses and guitar pads) are never anyone's surprise.
 - **In a band with a guitar, the melody and guitars choose their instruments first** (`dressOrder`), so a counter melody can't take the guitar the mood needs.
 - **New moods don't change old songs.** A mood without a guitar never rolls for one, so every other mood's seeds still make exactly the songs they made before the guitars were added.
+
+**Fights and blends** (`mixMood` and `songMood` in music.js)
+- **A fight drives, whatever the mood.** Boss and Mini boss lift a mood's energy to at least 0.9 or 0.8, play it quicker (unless it's already 150 bpm or more), never swing (a swung battle theme sounds like a joke), use a drier room, and always have drums on a kit that can play a fight's beats (`FIGHT_KITS` when the mood's own can't). A calm boss is still a fight.
+- **A fight keeps the mood's driving patterns and drops its gentle ones.** A role's patterns are the mood's that are also in the fight's list (`STYLE_PATTERNS.boss`), or the fight's list if none are: metal keeps its double kick, calm loses its brushes.
+- **A fight always has its tune, a bass and a beat.** When there are too many layers, it loses the scenery and the pad before the bass.
+- **A fight loops.** No outro: a short intro on the drums and bass (it opens on three parts), the theme, a higher second theme, a break, then the climax, which takes the solo. A mini boss is a loop of two or three parts with a smaller band.
+- **A blend is flavour; the mood is the band.** The blend's scales lead (counted twice), its chords join the mood's (the bank still favours ones that fit the scale), its instruments join the tune's parts (melody, counter melody, arp, bells), and its scenery is the place. The drums, bass, chords, guitars, tempo and song shape stay the mood's. Metal with Desert is a metal band playing a desert tune; Desert with Metal is an oud and metal leads over hand drums.
+- **No blend, no change.** A song without a blend has no `blend` key and gets its mood untouched, so songs saved before blends play the same.
 
 ## What sounded wrong, and the fix
 
@@ -184,11 +196,19 @@ These were caught by the checks and by measuring renders of the new loud and haz
 | Guitars buried under the bass and drums | Guitars were turned down for their edge like other backing, and palm mutes lost their low end to the rig's tight cut | Guitars aren't, and the metal rig cuts less |
 | A shoegaze voice standing out of the wall | The dreamy voice was set as loud as a flute | Quieter, and `bury` |
 
+And these by the checks once fights made thousands of new songs:
+
+| What it would have sounded like | Why | Fix |
+| --- | --- | --- |
+| A solo ending on a note outside the chord | A chromatic chord (eerie's Fm in A in sen) had none of its notes in a pentatonic scale, so stepping along the scale could never reach it | The solo's last note goes straight to the chord's root |
+| An arp ringing over a low tune | With the melody an octave down, the arp couldn't drop under it, and dodging a rub it was allowed to move up, further over the tune | A note stuck above the tune only moves down when it dodges |
+
 ## Adding things
 
 - **An instrument:** a line in `INSTRUMENTS` (synth.js) with a family, an `edge` judged by ear, a `world` if it's chip or acoustic, `own` if it should only appear where a mood names it, and an engine. A guitar-like sound gets an `amp` (the comment above `ampChain` lists its settings), and its loudness is the rig's `level`. Set its `gain` with `tests/levels.html` so it's about as loud as the others in its family. It can then appear in mood palettes. A drum kit needs `suits` instead: the patterns it sounds right playing.
 - **A texture:** a line in `INSTRUMENTS` and a function in `TEXTURES`. Make it something that happens now and then (`moments()`, `swells()`, each event at its own `spot()`) rather than a steady wash, and bring its gain near the vinyl's with `tests/levels.html`. A steady one is a `bed`.
 - **A mood:** an entry in `MOODS` (music.js) with a `group`. The comment above `MOODS` lists every field. Set `drums`, and keep its palettes within its edge cap. A mood with a guitar needs `layers: { guitar: ... }`; the loud ones are a good place to copy from.
+- **A style:** a name in `STYLES`, and its own entry in `LAYER_CHANCE`, `MOST_LAYERS`, `OPENING`, `FORMS` and `SOLO_CHANCE` (`STYLE_PATTERNS` too, or share another's, as Mini boss shares Boss's). A fight goes in `FIGHTS` and `FIGHT_ENERGY`. Check that the old styles' seeds still make the same songs.
 - **A groove:** a line in `GROOVES`. Every line must be a bar long, and a new drum pattern needs a groove in every time signature; the check tests both.
 
 ## Known issues
@@ -206,4 +226,7 @@ These were caught by the checks and by measuring renders of the new loud and haz
 - The loud and hazy moods, the guitar rigs, voices, rock kits, crash and ride, and the feedback texture were set from measured levels (`levels.html`, and renders of each mood measured layer by layer) and printed notes, not heard yet. If a guitar sounds wrong, adjust its rig (`gain`, `mids`, `cab`, `level`) before anything else.
 - The drum editor's rows are named for every kit alike, so a rock kit's ride shows as "Perc" and its floor tom as "Low perc".
 - Tremolo picking on a glide guitar is a lot of notes at once. If live playback stutters on a slow machine, it's the first place to look.
+- The Boss and Mini boss styles, blends, the seven world, electronic and epic moods, the oud, shawm and steel drum, and the hand drum and orchestral kits were set from measured levels and printed songs, not heard yet. The oud's and shawm's `gain` were set from `levels.html`, a little under the gap it showed, since plucks sit louder in songs.
+- Any mood can blend with any other, and not every pairing will suit (Heavenly with Sludge). That's on purpose: it's a tool, and the good pairings are worth the odd strange one.
+- Calamity's boss themes often use odd time (Cryogen in 13/8, the Perforators in 11/8). Only 4/4, 3/4, 6/8 and 5/4 are here: a bar must be a whole number of beats.
 - `levels.html` measures one held note, which undersells plucked sounds that are played again and again: the picked bass measured quiet but sat loud in songs. Check a plucked sound in a song too.
