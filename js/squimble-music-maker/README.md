@@ -15,10 +15,10 @@ This README and the code comments are the only notes. When you change something:
 | File | What it is |
 | --- | --- |
 | `music.js` | The composer: settings to notes. Plain maths with no page or audio, so node can run it and the game can load it as it is. Its header explains songs, the theory and times. |
-| `synth.js` | The band: `INSTRUMENTS`, drums, textures, the room (reverb, echo, tape) and the player (`MusicPlayer` live, `renderSong()` to WAV), all on Web Audio. Load it before `music.js`, because the composer picks from `INSTRUMENTS`. |
+| `synth.js` | The band: `INSTRUMENTS`, drums, textures, guitar rigs (`ampChain`), the room (reverb, echo, tape) and the player (`MusicPlayer` live, `renderSong()` to WAV), all on Web Audio. Load it before `music.js`, because the composer picks from `INSTRUMENTS`. |
 | `maker.js` | The page: controls, the score, the note editor, the library and exports. The game won't need it. |
-| `tests/music-check.js` | `node js/squimble-music-maker/tests/music-check.js`. No output means it all passed. It takes about 25 seconds. |
-| `tests/levels.html` | How loud every instrument and texture is, weighted the way ears hear. Open it in a browser and wait about a minute. Set a new sound's `gain` so it sits with its neighbours. |
+| `tests/music-check.js` | `node js/squimble-music-maker/tests/music-check.js`. No output means it all passed. It takes about a minute. |
+| `tests/levels.html` | How loud every instrument and texture is, weighted the way ears hear. Open it in a browser and wait about a minute. Set a new sound's `gain` (or its rig's `level`) so it sits with its neighbours. Guitars are measured through their rig, playing a power chord. |
 
 ## Where the sounds come from
 
@@ -28,6 +28,9 @@ The moods and sounds are aimed at particular game and ambient music:
 - **Melodic and upbeat:** Undertale and Deltarune (Spirited: pulse lead, triangle bass, chip kit, riffs, the "royal road" IV V iii vi), Terraria (pan flute, nylon guitar, birdsong), Minecraft, and Stardew Valley (Happy and Playful: flute, clarinet or accordion over a fingerpicked or strummed steel guitar, soft strings, a root and fifth bass, a light kit, and sixteen bar themes).
 - **Mellow and serious:** Have a Nice Life (Bleak: fuzz wall, chanted choir, chorus bass, a drum machine in a huge room).
 - **Dark electronic:** Crystal Castles (Neon: bit lead, pumping pads, four to the floor, club kit).
+- **Loud:** Doom (1993), Metallica, Pantera and Slayer (Metal: high gain chugging riffs, double kick, the bass doubling the riff, twin lead harmonies, solos), Black Sabbath, Sleep and Electric Wizard (Sludge: slow fuzz riffs, flat fifths, half time), Nirvana, Hole and Alice in Chains (Grunge: loud, quiet, loud, with a clean or chorused verse guitar and a distortion pedal for the chorus), Weezer, the Smashing Pumpkins and Dinosaur Jr (Alt rock: big muff fuzz eighths, major key tunes), and Title Fight, Citizen and Tigers Jaw (Hardcore: punk beats, driving eighths, twinkling clean guitar, breakdowns).
+- **Hazy:** My Bloody Valentine, Slowdive and LSD and the Search for God (Shoegaze: glide guitar, reverse reverb, a buried voice, a cymbal wash), Whirr, Glare and Nothing (Nugaze: slower, darker, tuned down fuzz), and Cocteau Twins, Beach House and Slowdive's quieter side (Dream pop: chorused clean guitars, a breathy voice, a drum machine).
+- **No words:** the loud and hazy moods' songs would have a singer, so the tune is a lead guitar (bends and vibrato) or a wordless voice (`dream-voice`, `rasp-voice`) standing in, and solos come often.
 
 ## How a song is made
 
@@ -39,7 +42,9 @@ The moods and sounds are aimed at particular game and ambient music:
 4. **pickArrangement:** the sections, and who plays in each. Often a solo section too (`addSolo`).
 5. **pickSpace:** reverb, echo, warmth, wobble and drive.
 
-`composeSong(song)` turns those settings into notes, one composer per role (`COMPOSERS`). The drums, a syncopated bass and the chord stabs all read the same groove (`GROOVES`, `grooveFor`). Once every part is written, the band listens to each other (`listen`, see below) before the notes get their swing and humanising (`feel`). The remix buttons re-run one pick with a fresh seed (`rerollSong`).
+`composeSong(song)` turns those settings into notes, one composer per role (`COMPOSERS`). The guitar's power chords, strums and riffs are in "guitars" (`guitarShape`, `riff`, `RIFFS`). The drums, a syncopated bass and the chord stabs all read the same groove (`GROOVES`, `grooveFor`). Once every part is written, the band listens to each other (`listen`, see below) before the notes get their swing and humanising (`feel`). The remix buttons re-run one pick with a fresh seed (`rerollSong`).
+
+**Guitar rigs.** An instrument with an `amp` (the guitars, and the leads and basses built like them) plays through a rig of pedals, an amp and a speaker cabinet (`ampChain` in synth.js): a cut below before the clipping, a mid push, the clipping itself (soft, hard or valve), the tone after it, a steep speaker roll off, then double tracking, a chorus or reverse reverb. The rig is in the layer's channel, so all its notes go through one amp together, the way a guitar's strings do, and it comes before the volume, so turning a guitar down doesn't clean it up. A palm muted note (`mute`) is a short, dark pluck, which through a high gain rig is the metal chug.
 
 ## Rules for a band that fits
 
@@ -70,6 +75,10 @@ Every one of these is here because the song sounded wrong without it. The code c
 - **Harder is brighter.** A note's strength opens its filter (or its FM brightness, or its pluck) as well as making it louder (`hardness`).
 - **Blown and bowed notes scoop.** Flute, clarinet, violin, horn and the like start a few cents flat and slide onto the note (`scoop`), on notes longer than a fifth of a second.
 - **Pads are wide.** Pads and drones spread their oscillators left and right, and the reverb has early reflections before its wash.
+- **One rig per layer.** A guitar's notes are distorted together, not one by one: a chord clipped as one sound growls, and notes clipped apart and added up sounded like several small guitars.
+- **Power chords for the loud patterns.** A root, a fifth and its octave. A clipped third grinds against everything, so only the ringing, strummed and tremolo picked patterns play the whole chord.
+- **Rhythm guitars are two takes.** Double tracked rigs spread a guitar left and right, so a guitar layer stays near the middle (its pan is small), and it isn't turned down for its edge as other backing is: its speaker has already taken the harshness off.
+- **A buried tune is still the tune.** Shoegaze's `bury` sinks the melody into the guitars (a little quieter, and backing allowed closer under it), but backing never goes over it.
 - **Plucked strings start soft and ring on.** `soft` mixes a finger's smooth pull into the string's starting noise, high strings ring for less time than low ones, and tunes don't cut a pluck's release short.
 
 **Listening** (`listen` and `COMPOSERS.drums` in music.js)
@@ -77,8 +86,10 @@ Every one of these is here because the song sounded wrong without it. The code c
 - **The tune stays on top.** Keys, an arp or a counter melody that would start above the melody note that's playing drop an octave, if that keeps them in their range. Pads (a wash) and bells (meant to ring above) stay put.
 - **Nothing rubs against the tune.** A minor second or ninth against a melody note half a beat or longer is the harshest clash there is. Pads and keys drop the chord's added note (seventh, ninth) when that's what rubs. Arps, bells and counter melodies move to the nearest chord note that doesn't rub and doesn't climb over the tune.
 - **Everything with a pitch is in the key.** Kicks, toms, ticks, rims and the snare's body are tuned to the song's home note or fifth (`tuneDrum`). The hum hums the home note, and the crickets sing it and the note above.
+- **A riff's line gives way like any line.** A riff note that rubs against the tune moves to the nearest chord note that doesn't, and a bass doubling the riff moves with it, so the guitar and bass never rub either. Dropping it left a hole in the riff.
 - **The drummer plays to the room.** With fewer than half the others playing (an intro, a break), the drums play softer and leave out ghost notes.
 - **A kit only plays patterns it suits** (`suits` in synth.js). `fitBand` changes the pattern, from the mood's list where it can.
+- **Rock drummers.** The rock grooves (`ROCK`) fill down the toms, crash at the top of every four bars in a chorus or solo, keep their hats to eighths, and (rock and punk) move from the hats to the ride for the chorus (`RIDES`). Rock kits have a seventh drum, a crash; other kits crash on their open hat.
 
 **Parts**
 - **An arp or a counter melody, never both.** With an arp, keys strum (a chord a bar) and pads hold, because two layers doing the same job tangle. With broken or oom-pah keys, pads hold too.
@@ -97,12 +108,23 @@ Every one of these is here because the song sounded wrong without it. The code c
 - **Counter melodies answer in whole bars** where the melody rests, or else harmonise in thirds or sixths.
 - **Bells are predictable.** Drifting loops are whole beats long (2 to 4 bars, give or take a beat or two). Chimes are one short figure, rung as the chords change.
 - **A layer that's in stays in.** It only drops out for a real change of gear, like a break or the outro.
+- **Guitars move in shapes.** Chords are a guitar's shapes slid up and down the neck in parallel, low (from about D2), not voice led like a pianist's (`guitarShape`).
+- **Loud, quiet, loud.** With two guitars, exactly one plays each section: the cleaner one in the quiet sections and the dirtier one in the loud ones (energy 0.85 or more, `LOUD`). A grunge verse is clean and its chorus stamps on the distortion.
+- **A riff is the song's.** It's written out like a groove (`RIFFS`: chugs, open chords, the line), repeats every bar, follows the chords, and turns round in each fourth bar. Fast sixteenth riffs aren't used above 150 bpm, slow Sabbath ones only below 96. In a breakdown it chugs on the kick.
+- **The bass doubles the riff** an octave under the guitar (`riff` pattern), from the same seed, so it plays exactly the guitar's rhythm.
+- **Eighths chug in the verse and ring in the chorus.** Palm muted in part A, with the chord changes and the groove's comping hits left open as accents.
+- **Tremolo picking isn't running notes.** It's one chord repeated as fast as a hand goes (ten a second at most), so `MAX_RATE` doesn't apply. It plays the shape's lowest four strings, so it doesn't pile up.
 
 **Moods**
 - **Each mood says how likely drums are** (`drums: [ambient, tune]`) and which kits and patterns suit it. Dreamy and Heavenly have none. Cozy and Wistful use brushes on a jazz ride. Calm and Sad only get rare soft pulses. Neon is four to the floor on the club kit, with pumping pads. Bleak's drum machine plays half time. Desolate only gets sparse pulses.
 - **Each mood says what opens its songs** (`opens`): the guitar then the bass in Happy (Stardew Valley), the beat and bass in Upbeat and Angry, a march under strings in Heroic, chip arps and bass in Spirited, a pad or drone in the ambient moods. A tune opens on two of them and an ambient song on one, and they play the whole song through, so the intro already sounds like the song. With none of the mood's openers in the band, any of pad, keys, arp, drone, bass or drums will do (`OPENERS`). No section is ever only the texture.
 - **Mutate and remixes only pick patterns from the mood's list,** so a cozy song can't mutate into a tribal beat.
 - **Progressions are picked to suit the scale.** Ones with notes outside it are less likely.
+- **Moods are in rows** (`group`, `MOOD_GROUPS`): gentle, bright, dark, loud and hazy.
+- **The loud and hazy moods work differently.** They say which roles they have (`layers`: a guitar always, no keys), their song shapes (`forms`: verses and choruses), how often they solo and over which part (`solo`, `soloOver`: rock solos over the chorus before its last time round), whether part C is a half time breakdown (`breakdown`), and patterns for ambient songs only (`'ambient.guitar'`, `'ambient.drums'`: an ambient metal song is drone metal, chords ringing slowly, not a punk beat at 66 bpm).
+- **The loud and hazy moods keep to themselves.** No surprise instruments (`surprise: 0`: a kalimba tune in a grunge song is a mistake, not a surprise), and their instruments aren't other moods' surprises. Instruments that are a mood's own (`own` in synth.js: the voices, lead guitars, rig basses and guitar pads) are never anyone's surprise.
+- **In a band with a guitar, the melody and guitars choose their instruments first** (`dressOrder`), so a counter melody can't take the guitar the mood needs.
+- **New moods don't change old songs.** A mood without a guitar never rolls for one, so every other mood's seeds still make exactly the songs they made before the guitars were added.
 
 ## What sounded wrong, and the fix
 
@@ -150,11 +172,23 @@ Kept so nobody (me included) undoes a fix by accident.
 | Songs starting ambient, then a different song when the melody came in | Layers came in by energy alone, so an intro was often a lone pad (half of all tunes) or nothing but the texture (up to 15% of happy, playful and neon songs) | Each mood's `opens`: two parts in its style from the first bar in a tune, one in an ambient song |
 | Panned textures measuring 3 dB quiet | `levels.html` rendered mono, without a channel's panner | It renders stereo through a centred panner, as a layer's channel does |
 
+These were caught by the checks and by measuring renders of the new loud and hazy moods, before anyone heard them:
+
+| What it would have sounded like | Why | Fix |
+| --- | --- | --- |
+| Metal songs on a sludge or overdrive guitar, never the metal one | 1.2 × 0.75 is 0.8999… in floating point, so the metal guitar's 0.9 edge never fitted under the backing cap | Metal's edge is 1.25 |
+| Every other mood's songs different once guitars were added | The guitar role rolled a random number even at 0% chance, moving every later pick, and the new moods' instruments joined everyone's surprises | No roll for a guitar in a mood without one, and the loud and hazy moods keep to themselves |
+| An overdrive guitar in a dream pop song | Its tune and counter melody took both clean guitars before the guitar chose | The melody and guitars choose first in a band with a guitar |
+| A riff note missing, its fifth left hanging | Listening dropped a riff note that rubbed against the tune, but not the fifth on top of it | Riff notes are single and move like a line's, the bass with them |
+| Rock hats a hiss of sixteenths | Busy drummers filled in sixteenth hats, at punk tempos twelve a second | Not in the rock grooves |
+| Guitars buried under the bass and drums | Guitars were turned down for their edge like other backing, and palm mutes lost their low end to the rig's tight cut | Guitars aren't, and the metal rig cuts less |
+| A shoegaze voice standing out of the wall | The dreamy voice was set as loud as a flute | Quieter, and `bury` |
+
 ## Adding things
 
-- **An instrument:** a line in `INSTRUMENTS` (synth.js) with a family, an `edge` judged by ear, a `world` if it's chip or acoustic, and an engine. Set its `gain` with `tests/levels.html` so it's about as loud as the others in its family. It can then appear in mood palettes. A drum kit needs `suits` instead: the patterns it sounds right playing.
+- **An instrument:** a line in `INSTRUMENTS` (synth.js) with a family, an `edge` judged by ear, a `world` if it's chip or acoustic, `own` if it should only appear where a mood names it, and an engine. A guitar-like sound gets an `amp` (the comment above `ampChain` lists its settings), and its loudness is the rig's `level`. Set its `gain` with `tests/levels.html` so it's about as loud as the others in its family. It can then appear in mood palettes. A drum kit needs `suits` instead: the patterns it sounds right playing.
 - **A texture:** a line in `INSTRUMENTS` and a function in `TEXTURES`. Make it something that happens now and then (`moments()`, `swells()`, each event at its own `spot()`) rather than a steady wash, and bring its gain near the vinyl's with `tests/levels.html`. A steady one is a `bed`.
-- **A mood:** an entry in `MOODS` (music.js). The comment above `MOODS` lists every field. Set `drums`, and keep its palettes within its edge cap.
+- **A mood:** an entry in `MOODS` (music.js) with a `group`. The comment above `MOODS` lists every field. Set `drums`, and keep its palettes within its edge cap. A mood with a guitar needs `layers: { guitar: ... }`; the loud ones are a good place to copy from.
 - **A groove:** a line in `GROOVES`. Every line must be a bar long, and a new drum pattern needs a groove in every time signature; the check tests both.
 
 ## Known issues
@@ -169,3 +203,7 @@ Kept so nobody (me included) undoes a fix by accident.
 - Chords whose root is outside a pentatonic scale can't be sung home to, so about one solo in seven ends on another chord note.
 - Notes you add by hand aren't held to these rules. That's on purpose: it's your song.
 - Saved songs from before a change to the composer open fine, but may not play quite the same, because the random picks changed.
+- The loud and hazy moods, the guitar rigs, voices, rock kits, crash and ride, and the feedback texture were set from measured levels (`levels.html`, and renders of each mood measured layer by layer) and printed notes, not heard yet. If a guitar sounds wrong, adjust its rig (`gain`, `mids`, `cab`, `level`) before anything else.
+- The drum editor's rows are named for every kit alike, so a rock kit's ride shows as "Perc" and its floor tom as "Low perc".
+- Tremolo picking on a glide guitar is a lot of notes at once. If live playback stutters on a slow machine, it's the first place to look.
+- `levels.html` measures one held note, which undersells plucked sounds that are played again and again: the picked bass measured quiet but sat loud in songs. Check a plucked sound in a song too.

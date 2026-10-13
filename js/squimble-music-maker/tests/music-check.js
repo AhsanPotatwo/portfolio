@@ -6,8 +6,10 @@
 // drums and textures in key, textures under the tune, the band listening (the tune on top, nothing
 // rubbing against it), melodies whose motif comes back, themes longer than their motif, solos that
 // never repeat and come home, an uncrowded band (two middle parts, no blur of running notes, one
-// world of sounds, surprises from nearby moods, textures that go together), and moods that only name
-// real instruments.
+// world of sounds, surprises from nearby moods, textures that go together), moods that only name
+// real instruments, and the loud and hazy moods' rules (only their own instruments, one guitar a
+// section in loud, quiet, loud, power chords of a root and fifth, riffs that repeat in key with the
+// bass doubling them, solos over the chorus, and no drum a kit doesn't have).
 // run it with
 // node js/squimble-music-maker/tests/music-check.js (no output means it all passed).
 //
@@ -97,7 +99,7 @@ for (const [id, inst] of Object.entries(INSTRUMENTS)) if (inst.family !== 'kit' 
 // every instrument a mood names is real, and every drum pattern has a groove in every time signature
 const { PATTERNS } = vm.runInContext('({ PATTERNS })', page);
 for (const [id, mood] of Object.entries(MOODS)) {
-  for (const name of [...Object.values(mood.palette).flat(), ...mood.kits, ...mood.textures]) assert(INSTRUMENTS[name], `${id} names ${name}, which isn't an instrument`);
+  for (const name of [...Object.values(mood.palette).flat(), ...mood.kits, ...mood.textures, ...(mood.quiet || [])]) assert(INSTRUMENTS[name], `${id} names ${name}, which isn't an instrument`);
 }
 for (const pattern of Object.keys(PATTERNS.drums)) for (const meter of Object.keys(METERS)) assert(GROOVES[meter][pattern]?.length, `${pattern} has a groove in ${meter}`);
 let stuck = 0;
@@ -242,6 +244,86 @@ assert(motifs > 50, `enough long sections to check motifs come back (${motifs})`
 assert(rhythms / eights > 2.3, `themes have more than one bar rhythm (${(rhythms / eights).toFixed(2)} per eight bars)`);
 assert(soloHome / soloEnds > 0.8, `solos come home to the root (${soloHome} of ${soloEnds})`);
 assert(soloBars > 200 && soloNew / soloBars > 0.9, `solos are new all the way through (${soloNew} of ${soloBars} bars)`);
+
+// the loud and hazy moods (rock, metal, shoegaze: MOODS layers, quiet, soloOver, breakdown)
+{
+  const { RIFFS } = vm.runInContext('({ RIFFS })', page);
+  let riffs = 0;
+  let doubled = 0;
+  let splits = 0;
+  let solos = 0;
+  for (const mood of Object.keys(MOODS).filter((id) => MOODS[id].layers?.guitar)) {
+    for (const style of ['ambient', 'tune']) {
+      for (let n = 0; n < 12; n++) {
+        const song = generateSong(mood, style, `loud-${n}`);
+        const where = `${mood} ${style} loud-${n}`;
+        const m = MOODS[mood];
+        // no surprises: every instrument is one the mood names for that part (a kalimba tune in a
+        // grunge song was the worry), and every kit's a rock kit's or the mood's own
+        for (const layer of song.layers.filter((l) => roleFamily(l.role) === 'tonal')) {
+          const list = (layer.id === 'guitar-2' && m.quiet) || m.palette[layer.role];
+          assert(list.includes(layer.instrument), `${where}: the ${layer.id} plays ${layer.instrument}, which isn't the mood's`);
+        }
+        const comp = composeSong(song);
+        const notesOf = (id, section) => comp.notes.filter((note) => note.layer === id && (!section || (note.gt >= section.start - 1e-6 && note.gt < section.end - 1e-6)));
+        const guitars = song.layers.filter((l) => l.role === 'guitar');
+        // loud, quiet, loud: with two guitars, exactly one of them plays each section, and the dirtier
+        // one has the loudest
+        if (guitars.length === 2) {
+          splits++;
+          for (const section of song.sections) assert.strictEqual(guitars.filter((g) => section.play.includes(g.id)).length, 1, `${where}: one guitar at a time in ${section.name}`);
+          const loud = [...guitars].sort((a, b) => INSTRUMENTS[b.instrument].edge - INSTRUMENTS[a.instrument].edge)[0];
+          const chorus = comp.sections.find((s) => s.part === 'B' && !s.lead);
+          if (chorus && style === 'tune') assert(chorus.play.includes(loud.id), `${where}: the loud guitar plays the chorus`);
+        }
+        for (const guitar of guitars) {
+          for (const section of comp.sections) {
+            const notes = notesOf(guitar.id, section);
+            // power chords are a root, a fifth and its octave, nothing else (a clipped third grinds)
+            if (['power', 'eighths'].includes(guitar.pattern)) {
+              for (const note of notes) {
+                const chord = section.chords.find((ch) => note.gt < ch.t + ch.dur - 1e-6);
+                const fifth = chord.tones.find((tone) => tone >= 6 && tone <= 8) ?? 7;
+                assert([0, fifth].includes(((note.midi - chord.root) % 12 + 12) % 12), `${where}: a power chord with more than a root and fifth`);
+              }
+            }
+            // a riff repeats bar to bar (its line turns round in the fourth bar of each four, so bars 1
+            // and 2 are compared), its line is in the key, and a bass doubling it plays the same rhythm
+            if (guitar.pattern === 'chug' && section.bars >= 4) {
+              const bar = (id, k) => notesOf(id, section).filter((note) => note.gt >= section.start + k * comp.bpb - 1e-6 && note.gt < section.start + (k + 1) * comp.bpb - 1e-6);
+              const rhythm = (id, k) => [...new Set(bar(id, k).map((note) => (note.gt - section.start - k * comp.bpb).toFixed(3)))].join();
+              if (section.chords.every((ch) => ch.dur >= comp.bpb * 3 - 1e-6) || section.chords.length === 1) assert.strictEqual(rhythm(guitar.id, 1), rhythm(guitar.id, 2), `${where}: the riff repeats`);
+              riffs++;
+              const scale = new Set(vm.runInContext('SCALES', page)[song.scale].steps.map((step) => (song.key + step) % 12));
+              // (a power chord's fifth is always a true fifth, on the scale or not, as on a guitar)
+              for (const note of notes) {
+                const chord = section.chords.find((ch) => note.gt < ch.t + ch.dur - 1e-6);
+                const fifthOf = notes.some((other) => Math.abs(other.gt - note.gt) < 1e-6 && other.midi === note.midi - 7);
+                assert(fifthOf || scale.has(note.midi % 12) || chord.pcs.has(note.midi % 12), `${where}: a riff note out of the key`);
+              }
+              const bass = song.layers.find((l) => l.role === 'bass' && l.pattern === 'riff' && section.play.includes(l.id));
+              if (bass && section.play.includes(guitar.id)) {
+                assert.strictEqual(rhythm(bass.id, 1), rhythm(guitar.id, 1), `${where}: the bass doubles the riff`);
+                doubled++;
+              }
+            }
+          }
+        }
+        // a rock solo is over the chorus, never the last section, and the drums crash only on a kit
+        // that has a crash (the open hat stands in otherwise)
+        for (const section of song.sections.filter((s) => s.lead)) {
+          if (style === 'tune' && m.soloOver) assert.strictEqual(section.part, m.soloOver, `${where}: the solo is over the chorus`);
+          solos++;
+        }
+        const drums = song.layers.find((l) => l.role === 'drums');
+        if (drums) for (const note of notesOf(drums.id)) assert(INSTRUMENTS[drums.instrument].slots[note.midi], `${where}: a drum the kit doesn't have`);
+      }
+    }
+  }
+  assert(riffs > 20 && doubled > 5 && splits > 5 && solos > 20, `enough loud songs to check riffs (${riffs}), doubled bass (${doubled}), loud quiet splits (${splits}) and solos (${solos})`);
+  // every riff is a bar of 4/4
+  for (const one of RIFFS) assert.strictEqual(one.cells.length, 16, `the riff ${one.cells} is a bar long`);
+}
 
 // a note the band moved can still be removed by hand: the page removes it by the pitch it was written at
 {

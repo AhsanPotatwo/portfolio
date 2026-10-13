@@ -340,6 +340,8 @@ const ROLES = {
   arp:     { name: 'Arp',     colour: '#2c96a3', center: 60 },
   bells:   { name: 'Bells',   colour: '#c3628f', center: 79 },
   keys:    { name: 'Keys',    colour: '#3c8a64', center: 62 },
+  // low: a guitar's chords sit in its bottom strings, power chords from about d2 up
+  guitar:  { name: 'Guitar',  colour: '#a8503a', center: 44 },
   pad:     { name: 'Pad',     colour: '#7e6cc4', center: 57 },
   drone:   { name: 'Drone',   colour: '#5d5470', center: 45 },
   bass:    { name: 'Bass',    colour: '#2c5c8a', center: 40 },
@@ -360,13 +362,14 @@ const instrumentFits = (id, role) => {
 const PATTERNS = {
   melody:  { phrases: 'Phrases', calls: 'Calls and gaps', long: 'Long notes', riff: 'Riff', fragments: 'Fragments' },
   counter: { answer: 'Answers', harmony: 'Harmony', free: 'Its own tune' },
-  arp:     { up: 'Up', down: 'Down', updown: 'Up and down', converge: 'Inwards', random: 'Random' },
+  arp:     { up: 'Up', down: 'Down', updown: 'Up and down', converge: 'Inwards', random: 'Random', twinkle: 'Twinkling' },
   bells:   { phasing: 'Drifting loops', sparkle: 'Chimes on the chords' },
   keys:    { broken: 'Broken chords', block: 'Block chords', strum: 'Strummed', waltz: 'Oom-pah' },
+  guitar:  { power: 'Power chords', eighths: 'Eighths', chug: 'Chugging riff', ring: 'Ringing chords', tremolo: 'Tremolo picked', strum: 'Strummed' },
   pad:     { sustain: 'Held', swell: 'Swells', pulse: 'Pulsing', stabs: 'Stabs', pump: 'Pumping' },
   drone:   { tonic: 'Home note', fifths: 'Open fifths', follow: 'Follows chords', cluster: 'Cluster' },
-  bass:    { held: 'Held', pulse: 'Pulse', rootfifth: 'Root and fifth', octave: 'Octaves', walking: 'Walking', synco: 'Syncopated' },
-  drums:   { groove: 'Groove', halftime: 'Half time', brush: 'Brushes', pulse: 'Pulse', tribal: 'Tribal', march: 'March', sparse: 'Sparse', four: 'Four to the floor', break: 'Breakbeat' },
+  bass:    { held: 'Held', pulse: 'Pulse', rootfifth: 'Root and fifth', octave: 'Octaves', walking: 'Walking', synco: 'Syncopated', riff: 'Doubles the riff' },
+  drums:   { groove: 'Groove', halftime: 'Half time', brush: 'Brushes', pulse: 'Pulse', tribal: 'Tribal', march: 'March', sparse: 'Sparse', four: 'Four to the floor', break: 'Breakbeat', rock: 'Rock', punk: 'Punk', double: 'Double kick', breakdown: 'Breakdown', wash: 'Wash' },
   texture: { steady: 'Steady' },
 };
 // the patterns that use a layer's speed (rate)
@@ -389,13 +392,53 @@ const SOLOISTS = { melody: true, counter: true, keys: true, arp: true, bells: tr
 //               or out: a beat under a dreamy or heavenly song just sounds like a mistake
 //   edge        the harshest instrument it allows (edge in synth.js). left out, it comes from energy
 //               and dark (see maxEdge), so calm moods never get a buzzy lead
-//   patterns    role patterns it prefers, over STYLE_PATTERNS
+//   patterns    role patterns it prefers, over STYLE_PATTERNS. 'ambient.guitar' is for ambient songs
+//               only, where they'd want something different (a metal song's riff, a drone metal one's
+//               ringing chords)
 //   swing       chance of swing (none unless it's here: a swung battle theme sounds like a joke)
 //   fx          extra wobble or drive
 //   opens       the parts that open its songs, most wanted first (pickArrangement): the guitar in a
 //               stardew style happy song, the beat in an upbeat one, a drone in an eerie one
+//   group       which row of moods it's in on the page (MOOD_GROUPS)
+// and, for the loud and hazy moods (rock, metal, shoegaze), which work differently from the rest:
+//   layers      how likely each role is, over LAYER_CHANCE (a rock band has a guitar, and no keys)
+//   forms       its song shapes for tunes, over FORMS (verses and choruses)
+//   solo        chance of a solo in a tune, over SOLO_CHANCE, and soloOver, the part it solos over
+//               (rock solos over the chorus before its last time round, not the verse)
+//   quiet, loudQuiet   instruments for a second, cleaner guitar, and the chance of having one: the
+//               clean one plays the quiet sections and the loud one stamps in for the loud ones
+//   breakdown   part C is a half time breakdown, not a quiet drop (grooveFor)
+//   bury        0 to 1, how far the tune sinks into the band: shoegaze buries its singer in the guitars
+//   surprise    chance of an instrument from outside the palette (12% unless it says). a kalimba tune
+//               in a grunge song is a mistake, not a surprise, so the loud moods have none
+// song shapes for the loud and hazy moods (MOODS forms), in FORMS' terms: [name, part, about how many
+// bars, energy]. verses and choruses, with the chorus (B) as the loud part
+const LOUD_FORMS = [
+  [['Intro', 'A', 4, 0.45], ['Verse', 'A', 8, 0.7], ['Chorus', 'B', 8, 1], ['Verse', 'A', 8, 0.72], ['Chorus', 'B', 8, 1], ['Bridge', 'C', 8, 0.6], ['Chorus', 'B', 8, 1], ['Outro', 'B', 4, 0.5]],
+  [['Intro', 'A', 4, 0.55], ['Verse', 'A', 8, 0.7], ['Lift', 'C', 4, 0.8], ['Chorus', 'B', 8, 1], ['Verse', 'A', 8, 0.72], ['Lift', 'C', 4, 0.8], ['Chorus', 'B', 8, 1], ['Chorus', 'B', 8, 1], ['Outro', 'A', 4, 0.45]],
+  // the chorus's chords loud first, then down for the verse (smells like teen spirit)
+  [['Intro', 'B', 4, 0.9], ['Verse', 'A', 8, 0.65], ['Chorus', 'B', 8, 1], ['Verse', 'A', 8, 0.7], ['Chorus', 'B', 8, 1], ['Bridge', 'C', 8, 0.55], ['Chorus', 'B', 8, 1]],
+];
+// metal: the riff on its own to open, and a heavy break (part C) before the last chorus
+const METAL_FORMS = [
+  [['Intro', 'A', 4, 0.5], ['Riff', 'A', 8, 0.85], ['Verse', 'A', 8, 0.75], ['Chorus', 'B', 8, 1], ['Riff', 'A', 4, 0.85], ['Verse', 'A', 8, 0.75], ['Chorus', 'B', 8, 1], ['Break', 'C', 8, 0.9], ['Chorus', 'B', 8, 1], ['Outro', 'A', 4, 0.6]],
+  [['Intro', 'C', 4, 0.45], ['Riff', 'A', 8, 0.9], ['Verse', 'A', 8, 0.8], ['Chorus', 'B', 8, 1], ['Verse', 'A', 8, 0.8], ['Chorus', 'B', 8, 1], ['Break', 'C', 8, 0.9], ['Riff', 'A', 8, 0.9]],
+];
+// hardcore: loud nearly all the way, a quiet clean intro, and a breakdown before the last chorus
+const HARDCORE_FORMS = [
+  [['Intro', 'A', 4, 0.4], ['Verse', 'A', 8, 0.9], ['Chorus', 'B', 8, 1], ['Verse', 'A', 8, 0.9], ['Chorus', 'B', 8, 1], ['Breakdown', 'C', 8, 0.95], ['Chorus', 'B', 8, 1], ['Outro', 'A', 4, 0.4]],
+  [['Intro', 'B', 4, 0.95], ['Verse', 'A', 8, 0.85], ['Chorus', 'B', 8, 1], ['Verse', 'A', 8, 0.85], ['Chorus', 'B', 8, 1], ['Breakdown', 'C', 8, 0.95], ['Chorus', 'B', 8, 1]],
+];
+// shoegaze: a slow start, the wall, a hazy middle, and often a long loud outro of noise
+const GAZE_FORMS = [
+  [['Intro', 'A', 8, 0.5], ['Verse', 'A', 8, 0.75], ['Chorus', 'B', 8, 1], ['Verse', 'A', 8, 0.75], ['Chorus', 'B', 8, 1], ['Haze', 'C', 8, 0.65], ['Chorus', 'B', 8, 1], ['Outro', 'B', 8, 0.85]],
+  [['Intro', 'C', 4, 0.5], ['A', 'A', 8, 0.8], ['B', 'B', 8, 1], ['A', 'A', 8, 0.8], ['B', 'B', 8, 1], ['Haze', 'C', 8, 0.6], ['B', 'B', 16, 1]],
+  [['Swell', 'B', 8, 0.6], ['Verse', 'A', 8, 0.75], ['Chorus', 'B', 8, 1], ['Verse', 'A', 8, 0.75], ['Chorus', 'B', 8, 1], ['Wash', 'B', 8, 0.9]],
+];
+
 const MOODS = {
   calm: {
+    group: 'Gentle',
     opens: ['pad', 'keys', 'drone', 'arp'],
     name: 'Calm', colour: '#9cc5a1', style: 'ambient',
     scales: { major: 3, lydian: 1.5, majorPentatonic: 2, mixolydian: 1 }, tempo: [58, 76], tuneTempo: [78, 96],
@@ -410,6 +453,7 @@ const MOODS = {
     patterns: { drums: ['pulse', 'sparse', 'brush'], melody: ['phrases', 'fragments', 'phrases', 'long'] },
   },
   dreamy: {
+    group: 'Gentle',
     opens: ['pad', 'arp', 'keys', 'drone'],
     name: 'Dreamy', colour: '#c3b1ea', style: 'ambient',
     scales: { lydian: 3, major: 1.5, majorPentatonic: 1.5, wholeTone: 0.4 }, tempo: [54, 72], tuneTempo: [76, 94],
@@ -423,6 +467,7 @@ const MOODS = {
     textures: ['ocean', 'hum', 'drips', 'birds', 'chimes', 'stream'], kits: [], drums: [0, 0], fx: { wobble: 0.3 },
   },
   heavenly: {
+    group: 'Gentle',
     opens: ['pad', 'drone', 'keys'],
     name: 'Heavenly', colour: '#bcdcf2', style: 'ambient',
     scales: { major: 3, lydian: 2, mixolydian: 1 }, tempo: [52, 70], tuneTempo: [70, 90],
@@ -438,6 +483,7 @@ const MOODS = {
   // stardew valley's spring and summer: a flute, clarinet or accordion tune over a fingerpicked or
   // strummed guitar, soft strings, a bass bouncing between root and fifth, and a light kit
   happy: {
+    group: 'Bright',
     opens: ['keys', 'arp', 'bass', 'pad'],
     name: 'Happy', colour: '#ffcf4d', style: 'tune',
     scales: { major: 4, majorPentatonic: 2, mixolydian: 1 }, tempo: [70, 90], tuneTempo: [100, 124],
@@ -453,6 +499,7 @@ const MOODS = {
     patterns: { drums: ['groove', 'groove', 'halftime'], bass: ['rootfifth', 'rootfifth', 'octave', 'held', 'synco'], keys: ['strum', 'broken', 'block'], arp: ['updown', 'up', 'converge'] },
   },
   playful: {
+    group: 'Bright',
     opens: ['keys', 'bass', 'arp', 'drums'],
     name: 'Playful', colour: '#f5a3c7', style: 'tune',
     scales: { major: 3, majorPentatonic: 2, lydian: 1, mixolydian: 1 }, tempo: [76, 96], tuneTempo: [108, 132],
@@ -470,6 +517,7 @@ const MOODS = {
   // undertale, deltarune, terraria: chip leads and a bouncing bass under a tune you can't get out of
   // your head, with the odd jazzy or borrowed chord (deltarune leans on the "royal road", IV V iii vi)
   spirited: {
+    group: 'Bright',
     opens: ['arp', 'bass', 'keys', 'drums'],
     name: 'Spirited', colour: '#4fb0e8', style: 'tune',
     scales: { major: 3, mixolydian: 1, dorian: 1.5, minor: 1.2, majorPentatonic: 1 }, tempo: [76, 96], tuneTempo: [112, 148],
@@ -485,6 +533,7 @@ const MOODS = {
     patterns: { drums: ['groove', 'march', 'break', 'groove'], bass: ['octave', 'walking', 'synco', 'rootfifth'], melody: ['phrases', 'riff', 'phrases', 'calls'] },
   },
   upbeat: {
+    group: 'Bright',
     opens: ['drums', 'bass', 'keys', 'arp'],
     name: 'Upbeat', colour: '#ff8f45', style: 'tune',
     scales: { major: 2, mixolydian: 2, dorian: 2, majorPentatonic: 1, minorPentatonic: 1 }, tempo: [84, 100], tuneTempo: [118, 142],
@@ -500,6 +549,7 @@ const MOODS = {
     patterns: { bass: ['octave', 'synco', 'pulse', 'rootfifth'], drums: ['groove', 'groove', 'halftime', 'four', 'break'] },
   },
   cozy: {
+    group: 'Bright',
     opens: ['keys', 'bass', 'pad'],
     name: 'Cozy', colour: '#c9875f', style: 'tune',
     scales: { major: 2, mixolydian: 1, dorian: 2, majorPentatonic: 1 }, tempo: [62, 78], tuneTempo: [72, 92],
@@ -514,6 +564,7 @@ const MOODS = {
     patterns: { bass: ['walking', 'rootfifth', 'held'], drums: ['brush'], keys: ['strum', 'block', 'broken'] }, fx: { wobble: 0.5 },
   },
   wistful: {
+    group: 'Gentle',
     opens: ['keys', 'pad', 'arp'],
     name: 'Wistful', colour: '#e3b3a0', style: 'ambient',
     scales: { mixolydian: 1.5, dorian: 2, major: 1.5, majorPentatonic: 1 }, tempo: [56, 72], tuneTempo: [74, 94],
@@ -528,6 +579,7 @@ const MOODS = {
     patterns: { drums: ['brush', 'sparse'], melody: ['fragments', 'phrases', 'long'] }, fx: { wobble: 0.45 },
   },
   sad: {
+    group: 'Dark',
     opens: ['pad', 'keys', 'drone'],
     name: 'Sad', colour: '#6b95d8', style: 'ambient',
     scales: { minor: 3, dorian: 1.5, harmonicMinor: 0.7, minorPentatonic: 1 }, tempo: [52, 70], tuneTempo: [66, 88],
@@ -543,6 +595,7 @@ const MOODS = {
   // have a nice life: a slow wall of fuzz, a lone chanted line, a cheap drum machine in a huge room,
   // all of it worn and washed out. serious rather than sad
   bleak: {
+    group: 'Dark',
     opens: ['pad', 'drone', 'bass'],
     name: 'Bleak', colour: '#6f7d8c', style: 'ambient',
     scales: { minor: 3, dorian: 1.5, phrygian: 1 }, tempo: [50, 68], tuneTempo: [72, 92],
@@ -559,6 +612,7 @@ const MOODS = {
     fx: { wobble: 0.35, drive: 0.25 },
   },
   mysterious: {
+    group: 'Dark',
     opens: ['drone', 'pad', 'arp'],
     name: 'Mysterious', colour: '#8b6fd0', style: 'ambient',
     scales: { dorian: 2, phrygian: 1.5, harmonicMinor: 1, hirajoshi: 1.2, inSen: 1, minor: 1 }, tempo: [56, 76], tuneTempo: [80, 104],
@@ -573,6 +627,7 @@ const MOODS = {
     textures: ['drips', 'crickets', 'hum', 'wind', 'owl', 'frogs'], kits: ['clockwork', 'heartbeat'], drums: [0.15, 0.6], patterns: { drums: ['sparse', 'pulse'] },
   },
   deep: {
+    group: 'Gentle',
     opens: ['drone', 'pad', 'bass'],
     name: 'Deep', colour: '#2f9db0', style: 'ambient',
     scales: { lydian: 1.5, dorian: 2, majorPentatonic: 1, minor: 1.5 }, tempo: [48, 66], tuneTempo: [70, 90],
@@ -586,6 +641,7 @@ const MOODS = {
     textures: ['ocean', 'drips', 'hum', 'rumble', 'stream'], kits: ['heartbeat', 'soft-kit'], drums: [0.08, 0.35], patterns: { drums: ['pulse'] }, fx: { wobble: 0.25 },
   },
   tense: {
+    group: 'Dark',
     opens: ['pad', 'bass', 'drone', 'drums'],
     name: 'Tense', colour: '#c4573a', style: 'tune',
     scales: { phrygian: 2, harmonicMinor: 2, minor: 1.5, locrian: 0.5, hungarianMinor: 1 }, tempo: [70, 92], tuneTempo: [96, 132],
@@ -601,6 +657,7 @@ const MOODS = {
     patterns: { bass: ['pulse', 'synco', 'octave'], drums: ['pulse', 'tribal', 'halftime', 'sparse'], pad: ['sustain', 'pulse'] },
   },
   angry: {
+    group: 'Dark',
     opens: ['drums', 'bass', 'pad'],
     name: 'Angry', colour: '#e04646', style: 'tune',
     scales: { harmonicMinor: 2, phrygian: 1.5, phrygianDominant: 1.5, minor: 2, hungarianMinor: 0.7 }, tempo: [80, 100], tuneTempo: [132, 168],
@@ -618,6 +675,7 @@ const MOODS = {
   // crystal castles, and the synths of dying light: dark and serious, a crushed chip lead over pumping
   // pads, octave bass and a club kick. as ambient it's the slower night drive, arps pulsing under pads
   neon: {
+    group: 'Dark',
     opens: ['pad', 'arp', 'bass', 'drums'],
     name: 'Neon', colour: '#d43fb4', style: 'tune',
     scales: { minor: 3, phrygian: 1, dorian: 1, harmonicMinor: 1 }, tempo: [80, 100], tuneTempo: [124, 140],
@@ -635,6 +693,7 @@ const MOODS = {
     fx: { drive: 0.35 },
   },
   eerie: {
+    group: 'Dark',
     opens: ['drone', 'pad'],
     name: 'Eerie', colour: '#9fcf4f', style: 'ambient',
     scales: { phrygian: 1.5, locrian: 1.5, hungarianMinor: 1.5, wholeTone: 1, inSen: 1, harmonicMinor: 1 }, tempo: [44, 64], tuneTempo: [70, 96],
@@ -652,6 +711,7 @@ const MOODS = {
   // fallout 1 and 2, and aphex twin's darker ambient: a wasteland after it all ended. low drones and
   // bowed metal, a lone plucked or bell line with long silences, pipes pinging, a geiger counter
   desolate: {
+    group: 'Dark',
     opens: ['drone', 'pad'],
     name: 'Desolate', colour: '#a8925f', style: 'ambient',
     scales: { minor: 2, phrygian: 1.5, dorian: 1.5, hungarianMinor: 0.5 }, tempo: [48, 66], tuneTempo: [70, 92],
@@ -668,6 +728,7 @@ const MOODS = {
     fx: { wobble: 0.2 },
   },
   heroic: {
+    group: 'Bright',
     opens: ['drums', 'pad', 'bass'],
     name: 'Heroic', colour: '#d4a13a', style: 'tune',
     scales: { mixolydian: 2, major: 2, minor: 1.5, dorian: 1 }, tempo: [66, 84], tuneTempo: [92, 124],
@@ -682,7 +743,184 @@ const MOODS = {
     textures: ['wind'], kits: ['taiko', 'tight-kit'], drums: [0.2, 0.95], edge: 0.9,
     patterns: { drums: ['march', 'tribal', 'groove'], bass: ['octave', 'rootfifth', 'pulse'] },
   },
+
+  // ---------- loud: rock and metal ----------
+  // the guitar is the band here (the guitar role, and synth.js's rigs). there are no words, so the
+  // tune is a lead guitar or a wordless voice standing in for the singer, and solos come often
+
+  // doom (1993): bobby prince's metal, after metallica, pantera and slayer. a palm muted low string
+  // chugging under a riff that walks down the scale (riff()), double kick and a crash every phrase,
+  // the bass doubling the riff, twin guitars in harmony, and a solo screaming over the last chorus.
+  // as ambient it's drone metal: chords left ringing through fuzz, slowly
+  metal: {
+    group: 'Loud', opens: ['guitar', 'drums', 'bass'],
+    name: 'Metal', colour: '#9c2f2f', style: 'tune',
+    scales: { phrygian: 2, minor: 2, harmonicMinor: 1, minorPentatonic: 1, locrian: 0.3 }, tempo: [56, 76], tuneTempo: [118, 172],
+    meters: { '4/4': 8, '6/8': 1 },
+    chords: ['i - - bII', 'i - bVI bVII', 'i bII i bVII', 'i - bIII bII', 'i bVI bIII bVII', 'i - iv bVI', 'i - bVI V', 'i bVII bVI bVII'],
+    methods: { bank: 6, vamp: 2, markov: 0.5 },
+    richness: [0, 0.15], energy: 1, space: 0.35, bright: 0.6, dark: 0.7, edge: 1.25, surprise: 0,
+    palette: {
+      guitar: ['metal-guitar'], melody: ['metal-lead', 'lead-guitar'], counter: ['lead-guitar', 'metal-lead'],
+      pad: ['dark-pad', 'choir-ah', 'strings'], keys: ['felt-keys'], arp: ['pluck-lead'], bells: ['bell'],
+      bass: ['pick-bass', 'growl-bass'], drone: ['deep-drone', 'bowed-metal'],
+    },
+    textures: ['feedback', 'rumble'], kits: ['metal-kit'], drums: [0.5, 1],
+    layers: { guitar: 1, keys: 0, arp: 0.05, pad: 0.2, counter: 0.35, bells: 0.05, drone: 0.15, texture: 0.15 },
+    patterns: { guitar: ['chug', 'chug', 'power'], 'ambient.guitar': ['ring', 'tremolo'], drums: ['double', 'rock', 'punk', 'double'], 'ambient.drums': ['halftime', 'sparse'], bass: ['riff', 'riff', 'pulse'], counter: ['harmony'], melody: ['phrases', 'riff', 'calls'] },
+    forms: METAL_FORMS, solo: 0.9, soloOver: 'B', breakdown: true, fx: { drive: 0.15 },
+  },
+  // black sabbath, sleep, electric wizard, and the slower, heavier side of doom: a riff so slow and
+  // fuzzed it's more a weight than a tune, the devil's interval (a flat fifth) in the chords, a
+  // drummer laying back on huge cymbals, and the bass fuzzed along with the guitar
+  sludge: {
+    group: 'Loud', opens: ['guitar', 'drums', 'bass'],
+    name: 'Sludge', colour: '#7a6232', style: 'tune',
+    scales: { minor: 2, phrygian: 1.5, minorPentatonic: 2, dorian: 0.5 }, tempo: [44, 60], tuneTempo: [56, 84],
+    meters: { '4/4': 6, '6/8': 2, '3/4': 1 },
+    chords: ['i - - bVII', 'i - bV -', 'i bVII bVI bVII', 'i - bVI -', 'i - iv -', 'i bIII bVII i', 'i - bII -'],
+    methods: { bank: 6, vamp: 2 },
+    richness: [0, 0.15], energy: 0.85, space: 0.6, bright: 0.35, dark: 0.75, edge: 1, surprise: 0,
+    palette: {
+      guitar: ['sludge-guitar', 'fuzz-guitar'], melody: ['fuzz-lead', 'rasp-voice', 'lead-guitar'], counter: ['fuzz-lead', 'lead-guitar'],
+      pad: ['fuzz-wall', 'dark-pad', 'organ'], keys: ['organ'], arp: ['fuzz-lead'], bells: ['bell'],
+      bass: ['fuzz-bass', 'pick-bass'], drone: ['deep-drone', 'bowed-metal'],
+    },
+    textures: ['feedback', 'rumble', 'vinyl'], kits: ['rock-kit'], drums: [0.4, 1],
+    layers: { guitar: 1, keys: 0.05, arp: 0, pad: 0.3, counter: 0.15, bells: 0.05, drone: 0.3, texture: 0.3 },
+    patterns: { guitar: ['chug', 'ring', 'chug'], 'ambient.guitar': ['ring'], drums: ['halftime', 'rock', 'breakdown'], 'ambient.drums': ['halftime', 'sparse'], bass: ['riff', 'held', 'riff'], melody: ['long', 'phrases'] },
+    forms: LOUD_FORMS, solo: 0.7, soloOver: 'B', fx: { wobble: 0.15, drive: 0.25 },
+  },
+  // nirvana, hole, alice in chains: a quiet verse on a clean or chorused guitar, then a distortion
+  // pedal stamped on for the chorus (loud, quiet, loud), power chords sliding round a minor or bluesy
+  // key, a rasping voice, a drummer hitting as hard as they can, and a solo that's half noise
+  grunge: {
+    group: 'Loud', opens: ['guitar', 'bass', 'drums'],
+    name: 'Grunge', colour: '#7e8b4a', style: 'tune',
+    scales: { minor: 2, dorian: 1.5, minorPentatonic: 1.5, mixolydian: 1, phrygian: 0.5 }, tempo: [62, 80], tuneTempo: [96, 132],
+    meters: { '4/4': 8, '3/4': 1, '6/8': 1 },
+    chords: ['i iv bIII bVI', 'i bVII bVI bVII', 'i bIII bVII iv', 'i - bVI bVII', 'i v bVI iv', 'i bII bIII bII', 'I bIII IV bVI', 'i iv bVII bIII'],
+    richness: [0, 0.3], energy: 0.9, space: 0.4, bright: 0.5, dark: 0.45, edge: 1, surprise: 0,
+    palette: {
+      guitar: ['dist-guitar', 'drive-guitar', 'fuzz-guitar'], melody: ['rasp-voice', 'lead-guitar', 'fuzz-lead'], counter: ['lead-guitar', 'chorus-guitar'],
+      pad: ['fuzz-wall', 'strings', 'organ'], keys: ['chorus-guitar', 'clean-guitar'], arp: ['chorus-guitar', 'clean-guitar'], bells: ['glass-bell'],
+      bass: ['pick-bass', 'fuzz-bass'], drone: ['deep-drone'],
+    },
+    quiet: ['chorus-guitar', 'clean-guitar', 'crunch-guitar'], loudQuiet: 0.85,
+    textures: ['feedback', 'hum'], kits: ['rock-kit'], drums: [0.4, 1],
+    layers: { guitar: 1, keys: 0, arp: 0.2, pad: 0.15, counter: 0.25, bells: 0.03, drone: 0.05, texture: 0.25 },
+    patterns: { guitar: ['power', 'power', 'eighths', 'ring'], 'ambient.guitar': ['ring', 'tremolo'], drums: ['rock', 'rock', 'halftime'], 'ambient.drums': ['halftime', 'sparse'], bass: ['synco', 'pulse', 'rootfifth'], melody: ['phrases', 'calls', 'phrases'] },
+    forms: LOUD_FORMS, solo: 0.7, soloOver: 'B', fx: { drive: 0.15 },
+  },
+  // weezer, the smashing pumpkins, dinosaur jr: a big muff fuzz on power chords chugging in eighths,
+  // a sweet major key tune over the top, a fuzz solo, and now and then a quiet verse before the wall
+  // comes back
+  altrock: {
+    group: 'Loud', opens: ['guitar', 'drums', 'bass'],
+    name: 'Alt rock', colour: '#2f6fbf', style: 'tune',
+    scales: { major: 3, mixolydian: 2, majorPentatonic: 1, dorian: 1 }, tempo: [70, 90], tuneTempo: [112, 148],
+    meters: { '4/4': 8, '3/4': 1 },
+    chords: ['I V vi IV', 'I IV V IV', 'I bVII IV I', 'I iii IV V', 'vi IV I V', 'I V IV IV', 'I IV bVII IV', 'IV I V vi'],
+    richness: [0.05, 0.35], energy: 0.9, space: 0.4, bright: 0.65, dark: 0.15, edge: 1, surprise: 0,
+    palette: {
+      guitar: ['fuzz-guitar', 'drive-guitar', 'crunch-guitar'], melody: ['fuzz-lead', 'lead-guitar', 'rasp-voice'], counter: ['lead-guitar', 'chorus-guitar', 'fuzz-lead'],
+      pad: ['strings', 'organ', 'warm-pad'], keys: ['clean-guitar', 'e-piano'], arp: ['clean-guitar', 'chorus-guitar'], bells: ['glass-bell', 'chime'],
+      bass: ['pick-bass', 'fuzz-bass'], drone: ['organ-drone'],
+    },
+    quiet: ['clean-guitar', 'chorus-guitar', 'crunch-guitar'], loudQuiet: 0.35,
+    textures: ['feedback'], kits: ['rock-kit'], drums: [0.4, 1],
+    layers: { guitar: 1, keys: 0, arp: 0.15, pad: 0.2, counter: 0.3, bells: 0.08, drone: 0.03, texture: 0.15 },
+    patterns: { guitar: ['eighths', 'power', 'eighths', 'ring'], 'ambient.guitar': ['ring', 'strum'], drums: ['rock', 'rock', 'punk', 'halftime'], 'ambient.drums': ['halftime', 'sparse'], bass: ['pulse', 'synco', 'rootfifth', 'octave'], melody: ['phrases', 'phrases', 'calls', 'riff'] },
+    forms: LOUD_FORMS, solo: 0.75, soloOver: 'B',
+  },
+  // title fight, citizen, tigers jaw: melodic hardcore and emo. fast punk beats under driving eighths
+  // on a distorted guitar, a clean guitar twinkling through the quiet parts, a rasped tune that wants
+  // to be shouted back, and a half time breakdown before the last chorus
+  hardcore: {
+    group: 'Loud', opens: ['drums', 'guitar', 'arp'],
+    name: 'Hardcore', colour: '#5fb36b', style: 'tune',
+    scales: { major: 2, minor: 2, dorian: 1, mixolydian: 1, majorPentatonic: 0.5 }, tempo: [72, 92], tuneTempo: [138, 196],
+    meters: { '4/4': 9, '6/8': 1 },
+    chords: ['I V vi IV', 'vi IV I V', 'IV I V vi', 'i bVI bIII bVII', 'I iii vi IV', 'IVmaj7 I V vi', 'ii IV I V', 'i bVII bVI bVII'],
+    richness: [0.2, 0.55], energy: 1, space: 0.4, bright: 0.65, dark: 0.3, edge: 1, surprise: 0,
+    palette: {
+      guitar: ['dist-guitar', 'drive-guitar', 'crunch-guitar'], melody: ['rasp-voice', 'lead-guitar'], counter: ['chorus-guitar', 'clean-guitar', 'lead-guitar'],
+      pad: ['strings'], keys: ['clean-guitar'], arp: ['clean-guitar', 'chorus-guitar'], bells: ['glass-bell'],
+      bass: ['pick-bass', 'fuzz-bass'], drone: ['deep-drone'],
+    },
+    quiet: ['clean-guitar', 'chorus-guitar'], loudQuiet: 0.5,
+    textures: ['feedback'], kits: ['rock-kit'], drums: [0.4, 1],
+    layers: { guitar: 1, keys: 0, arp: 0.55, pad: 0.05, counter: 0.25, bells: 0.02, drone: 0.02, texture: 0.15 },
+    patterns: { guitar: ['eighths', 'eighths', 'power'], 'ambient.guitar': ['ring', 'strum'], drums: ['punk', 'rock', 'punk'], 'ambient.drums': ['halftime', 'sparse'], arp: ['twinkle', 'twinkle', 'updown'], bass: ['pulse', 'pulse', 'synco'], melody: ['phrases', 'calls', 'phrases'] },
+    forms: HARDCORE_FORMS, solo: 0.35, soloOver: 'B', breakdown: true,
+  },
+
+  // ---------- hazy: shoegaze and dream pop ----------
+  // guitars as a wall of sound, a tune buried in it (bury), and a huge room
+
+  // my bloody valentine, slowdive, lsd and the search for god: fuzz with the tremolo arm never still,
+  // so whole chords warp (kevin shields' glide guitar), reverse reverb sucking each chord in, a voice
+  // buried in the wall like another guitar, steady drums under a wash of cymbals, and sweet chords
+  // (major sevenths, added ninths, a borrowed iv) blurred by the room
+  shoegaze: {
+    group: 'Hazy', opens: ['guitar', 'pad', 'drums'],
+    name: 'Shoegaze', colour: '#e0709a', style: 'tune',
+    scales: { major: 2, mixolydian: 2, lydian: 1, dorian: 1, minor: 0.7 }, tempo: [64, 82], tuneTempo: [88, 126],
+    meters: { '4/4': 7, '6/8': 1.5, '3/4': 1 },
+    chords: ['I IV', 'Imaj7 IVmaj7', 'I bVII IV I', 'I iii IV iv', 'I - IV -', 'IV I V vi', 'I vi IV iv', 'Iadd9 IVadd9', 'I bIII IV I'],
+    richness: [0.5, 0.95], energy: 0.75, space: 1, bright: 0.5, dark: 0.2, edge: 0.95, surprise: 0,
+    palette: {
+      guitar: ['glide-guitar', 'fuzz-guitar'], pad: ['reverse-guitar', 'fuzz-wall', 'swell-guitar', 'glass-pad'], melody: ['dream-voice', 'fuzz-lead'],
+      counter: ['chorus-guitar', 'fuzz-lead'], keys: ['chorus-guitar'], arp: ['chorus-guitar', 'clean-guitar'], bells: ['glass-bell', 'sine-bell'],
+      bass: ['pick-bass', 'round-bass', 'chorus-bass'], drone: ['tape-loop', 'organ-drone'],
+    },
+    textures: ['feedback', 'hum', 'vinyl'], kits: ['gaze-kit'], drums: [0.25, 0.95],
+    layers: { guitar: 1, pad: 0.8, keys: 0, arp: 0.15, counter: 0.3, bells: 0.15, drone: 0.25, texture: 0.3 },
+    patterns: { guitar: ['ring', 'tremolo', 'ring', 'strum'], 'ambient.guitar': ['ring', 'tremolo'], drums: ['wash', 'wash', 'rock'], 'ambient.drums': ['wash', 'sparse', 'pulse'], bass: ['pulse', 'held', 'rootfifth'], pad: ['sustain', 'swell'], melody: ['long', 'phrases', 'long'] },
+    forms: GAZE_FORMS, solo: 0.5, bury: 0.8, fx: { wobble: 0.35, drive: 0.1 },
+  },
+  // whirr, glare, nothing: shoegaze with grunge's weight. slower, darker and tuned down, fuzz thick
+  // enough to be a fog, a minor key, the voice even further back, and heavier drums under the haze
+  nugaze: {
+    group: 'Hazy', opens: ['guitar', 'drums', 'bass'],
+    name: 'Nugaze', colour: '#5a5277', style: 'tune',
+    scales: { minor: 2.5, dorian: 1.5, phrygian: 0.5, mixolydian: 0.5 }, tempo: [56, 72], tuneTempo: [70, 104],
+    meters: { '4/4': 7, '6/8': 2 },
+    chords: ['i bVI bIII bVII', 'i - bVI -', 'i bVII bVI bVII', 'i bIII bVII iv', 'bVI bVII i -', 'i v bVI iv', 'i - iv -', 'i bVI iv bVII'],
+    richness: [0.3, 0.75], energy: 0.8, space: 1, bright: 0.35, dark: 0.45, edge: 1, surprise: 0,
+    palette: {
+      guitar: ['sludge-guitar', 'fuzz-guitar', 'glide-guitar'], pad: ['fuzz-wall', 'reverse-guitar', 'dark-pad', 'swell-guitar'], melody: ['dream-voice', 'fuzz-lead'],
+      counter: ['chorus-guitar', 'fuzz-lead'], keys: ['chorus-guitar'], arp: ['chorus-guitar', 'clean-guitar'], bells: ['sine-bell'],
+      bass: ['fuzz-bass', 'pick-bass', 'chorus-bass'], drone: ['deep-drone', 'tape-loop'],
+    },
+    textures: ['feedback', 'hum', 'rain'], kits: ['gaze-kit', 'rock-kit'], drums: [0.3, 1],
+    layers: { guitar: 1, pad: 0.7, keys: 0, arp: 0.15, counter: 0.25, bells: 0.1, drone: 0.25, texture: 0.35 },
+    patterns: { guitar: ['ring', 'tremolo', 'power', 'ring'], 'ambient.guitar': ['ring', 'tremolo'], drums: ['halftime', 'wash', 'rock'], 'ambient.drums': ['wash', 'sparse', 'halftime'], bass: ['held', 'pulse', 'synco'], melody: ['long', 'phrases'] },
+    forms: GAZE_FORMS, solo: 0.45, bury: 0.9, fx: { wobble: 0.25, drive: 0.2 },
+  },
+  // slowdive's quieter side, cocteau twins, beach house: chorused clean guitars ringing and picked out
+  // in a big echo, a breathy voice floating over them, slow organ and synth pads, and a drum machine
+  // ticking away gently
+  dreampop: {
+    group: 'Hazy', opens: ['arp', 'guitar', 'pad', 'drums'],
+    name: 'Dream pop', colour: '#8fd3cf', style: 'tune',
+    scales: { major: 2, lydian: 1.5, mixolydian: 1, dorian: 1, minor: 0.5 }, tempo: [58, 76], tuneTempo: [72, 104],
+    meters: { '4/4': 6, '6/8': 2, '3/4': 1.5 },
+    chords: ['Imaj7 IVmaj7', 'I vi IV V', 'I iii vi IV', 'IVmaj7 V iii vi', 'I II IV I', 'vi IV I V', 'I V vi iii', 'Imaj7 iii IVmaj7 iv'],
+    richness: [0.45, 0.9], energy: 0.5, space: 0.95, bright: 0.55, dark: 0.15, edge: 0.8, surprise: 0,
+    palette: {
+      guitar: ['chorus-guitar', 'clean-guitar'], pad: ['swell-guitar', 'analog-pad', 'organ', 'glass-pad', 'choir-oo'], melody: ['dream-voice', 'chorus-guitar', 'sine-bell'],
+      counter: ['chorus-guitar', 'clean-guitar', 'glass-bell'], keys: ['e-piano', 'chorus-guitar'], arp: ['chorus-guitar', 'clean-guitar', 'harp'], bells: ['glass-bell', 'sine-bell', 'celesta'],
+      bass: ['round-bass', 'chorus-bass', 'pick-bass'], drone: ['organ-drone', 'tape-loop'],
+    },
+    textures: ['vinyl', 'hum', 'ocean', 'rain'], kits: ['machine', 'gaze-kit'], drums: [0.25, 0.85],
+    layers: { guitar: 0.7, pad: 0.8, keys: 0.25, arp: 0.6, counter: 0.25, bells: 0.25, drone: 0.2, texture: 0.4 },
+    patterns: { guitar: ['ring', 'strum', 'tremolo'], drums: ['wash', 'groove', 'halftime', 'four'], arp: ['updown', 'up', 'twinkle'], bass: ['held', 'rootfifth', 'pulse'], melody: ['long', 'phrases', 'fragments'] },
+    forms: GAZE_FORMS, solo: 0.35, bury: 0.5, fx: { wobble: 0.4 },
+  },
 };
+// the rows of moods on the page, in order
+const MOOD_GROUPS = ['Gentle', 'Bright', 'Dark', 'Loud', 'Hazy'];
 
 // the patterns each style leans towards, when the mood doesn't say
 const STYLE_PATTERNS = {
@@ -690,6 +928,7 @@ const STYLE_PATTERNS = {
     melody: ['phrases', 'long', 'phrases', 'fragments'], counter: ['harmony', 'answer'], arp: ['up', 'updown', 'random', 'converge'],
     bells: ['phasing', 'sparkle', 'sparkle'], keys: ['strum', 'broken'], pad: ['sustain', 'sustain', 'swell'],
     drone: ['tonic', 'fifths', 'follow'], bass: ['held', 'held', 'rootfifth'], drums: ['pulse', 'sparse'], texture: ['steady'],
+    guitar: ['ring', 'tremolo'],
   },
   tune: {
     melody: ['phrases', 'phrases', 'calls', 'riff'], counter: ['answer', 'harmony'], arp: ['up', 'down', 'updown', 'converge', 'random'],
@@ -697,21 +936,26 @@ const STYLE_PATTERNS = {
     // no walking bass unless the mood asks for it: a jazz walk under a happy pop tune was one of the
     // things that made a band sound like it was playing two songs
     drone: ['tonic', 'fifths'], bass: ['rootfifth', 'pulse', 'octave', 'synco', 'held'],
-    drums: ['groove', 'groove', 'halftime'], texture: ['steady'],
+    drums: ['groove', 'groove', 'halftime'], texture: ['steady'], guitar: ['power', 'eighths', 'ring'],
   },
+};
+// the patterns a role picks from in a song: the mood's for its style, the mood's, or the style's
+const moodPatterns = (song, role) => {
+  const mood = MOODS[song.mood];
+  return mood.patterns?.[`${song.style}.${role}`] || mood.patterns?.[role] || STYLE_PATTERNS[song.style][role];
 };
 
 // the families a layer's surprise instrument (the odd one from outside the mood) comes from, so a
 // drone doesn't end up on a plucked lead. the page still offers any instrument for any layer
 const WILDCARDS = {
   melody: ['lead', 'keys', 'bell'], counter: ['lead', 'keys'], arp: ['keys', 'lead', 'bell'], bells: ['bell', 'keys'],
-  keys: ['keys'], pad: ['pad', 'drone'], drone: ['drone', 'pad'], bass: ['bass'],
+  keys: ['keys'], pad: ['pad', 'drone'], drone: ['drone', 'pad'], bass: ['bass'], guitar: ['guitar'],
 };
 
-// how likely each role is to be in a song
+// how likely each role is to be in a song. only moods that ask for a guitar get one (MOODS layers)
 const LAYER_CHANCE = {
-  ambient: { melody: 0.55, counter: 0.2, arp: 0.25, bells: 0.65, keys: 0.3, pad: 1, drone: 0.55, bass: 0.4, drums: 0.12, texture: 0.85 },
-  tune:    { melody: 1, counter: 0.45, arp: 0.5, bells: 0.2, keys: 0.65, pad: 0.7, drone: 0.15, bass: 1, drums: 0.85, texture: 0.25 },
+  ambient: { melody: 0.55, counter: 0.2, arp: 0.25, bells: 0.65, keys: 0.3, guitar: 0, pad: 1, drone: 0.55, bass: 0.4, drums: 0.12, texture: 0.85 },
+  tune:    { melody: 1, counter: 0.45, arp: 0.5, bells: 0.2, keys: 0.65, guitar: 0, pad: 0.7, drone: 0.15, bass: 1, drums: 0.85, texture: 0.25 },
 };
 // the parts that move around the middle of the band, under the tune. two of them is a band; three or
 // four (an arp, oom-pah keys and chimes over a walking bass) was the "bunch of noises" in happy and
@@ -724,13 +968,13 @@ const SECOND_TEXTURE = 0.5;
 // when each role joins in: a layer plays in a section once the section's energy reaches a number
 // picked from its range, so quiet sections get the pads and background, and busy ones everything
 const ROLE_ENTRY = {
-  texture: [0, 0.25], drone: [0, 0.3], pad: [0, 0.35], bells: [0.2, 0.6], keys: [0.25, 0.6], bass: [0.3, 0.6],
+  texture: [0, 0.25], drone: [0, 0.3], pad: [0, 0.35], bells: [0.2, 0.6], keys: [0.25, 0.6], guitar: [0.2, 0.5], bass: [0.3, 0.6],
   arp: [0.45, 0.85], melody: [0.5, 0.65], counter: [0.6, 0.95], drums: [0.4, 0.75],
 };
 
 // the parts that can open a song when none of the mood's openers are in it: anything but the
 // melody's lines and the scenery
-const OPENERS = ['pad', 'keys', 'arp', 'drone', 'bass', 'drums'];
+const OPENERS = ['pad', 'keys', 'guitar', 'arp', 'drone', 'bass', 'drums'];
 
 // the shapes songs take: [name, part, about how many bars, energy]
 const FORMS = {
@@ -781,7 +1025,7 @@ const REROLLS = {
   band: (song, mood, rng) => {
     // cleared first, so the new instruments don't dodge the old ones
     for (const layer of song.layers) layer.instrument = '';
-    for (const layer of song.layers) dressLayer(song, layer, rng, false);
+    for (const layer of dressOrder(song.layers)) dressLayer(song, layer, rng, false);
     fitBand(song);
   },
   arrangement: (song, mood, rng) => pickArrangement(song, rng),
@@ -873,38 +1117,46 @@ function makeProgression(song, rng, method) {
 
 function pickLayers(song, rng) {
   const mood = MOODS[song.mood];
-  const chances = LAYER_CHANCE[song.style];
+  const chances = { ...LAYER_CHANCE[song.style], ...mood.layers };
   const roles = ROLE_ORDER.filter((role) => {
     let chance = chances[role];
     if (role === 'texture' && !mood.textures.length) chance = 0;
     if (role === 'drone') chance += mood.dark * 0.3;
     if (role === 'drums') chance = mood.kits.length ? mood.drums[song.style === 'tune' ? 1 : 0] : 0;
+    // no roll for a guitar in a mood without one, so adding guitars left every other mood's seeds
+    // making the songs they made before
+    if (role === 'guitar' && !chance) return false;
     return rng.chance(chance);
   });
   // something has to play the chords
-  if (!roles.some((role) => role === 'pad' || role === 'keys')) roles.push(rng.pick(['pad', 'keys']));
+  if (!roles.some((role) => role === 'pad' || role === 'keys' || role === 'guitar')) roles.push(rng.pick(['pad', 'keys']));
   // an arp and a counter melody both weave round the melody, and together they turned into clutter,
   // so a song gets one or the other
   if (roles.includes('arp') && roles.includes('counter')) roles.splice(roles.indexOf(rng.pick(['arp', 'counter'])), 1);
   for (const role of MIDDLE) if (roles.filter((one) => MIDDLE.includes(one)).length > 2 && roles.includes(role)) roles.splice(roles.indexOf(role), 1);
+  // loud, quiet, loud: a second, cleaner guitar for the quiet sections (pickArrangement)
+  const twoGuitars = roles.includes('guitar') && !!mood.quiet && rng.chance(mood.loudQuiet || 0);
   // seven at most (six in ambient songs, which want room), losing the least needed first
-  const most = song.style === 'ambient' ? 6 : 7;
+  const most = (song.style === 'ambient' ? 6 : 7) - (twoGuitars ? 1 : 0);
   for (const role of ['counter', 'arp', 'drone', 'bells', 'keys', 'bass']) if (roles.length > most) roles.splice(roles.indexOf(role), roles.includes(role) ? 1 : 0);
   const ids = ROLE_ORDER.filter((one) => roles.includes(one)).map((role) => [role, role]);
+  if (twoGuitars) ids.splice(ids.findIndex(([, id]) => id === 'guitar') + 1, 0, ['guitar', 'guitar-2']);
   if (song.style === 'ambient' && roles.includes('texture') && roles.length < most && mood.textures.length > 1 && mood.textures.some((id) => !INSTRUMENTS[id].bed) && rng.chance(SECOND_TEXTURE)) ids.push(['texture', 'texture-2']);
-  // one at a time, so each layer can see the ones before it (no two playing the same instrument)
-  song.layers = [];
-  for (const [role, id] of ids) {
-    const layer = { ...clone(LAYER_DEFAULTS), id, role };
-    song.layers.push(layer);
-    dressLayer(song, layer, rng, true);
-  }
+  // one at a time, so each layer can see the ones dressed before it (no two playing the same instrument)
+  song.layers = ids.map(([role, id]) => ({ ...clone(LAYER_DEFAULTS), id, role }));
+  for (const layer of dressOrder(song.layers)) dressLayer(song, layer, rng, true);
   fitBand(song);
 }
 
+// the order a band is dressed in: the score's, except that in a band with a guitar the melody and the
+// guitars choose first. a dream pop song's two clean guitars went to its tune and counter melody,
+// which left the guitar to draw an overdrive from a nearby mood
+const dressRank = (layer) => (layer.role === 'melody' ? 0 : layer.role === 'guitar' ? 1 : 2);
+const dressOrder = (layers) => (layers.some((layer) => layer.role === 'guitar') ? [...layers].sort((a, b) => dressRank(a) - dressRank(b)) : layers);
+
 // layers that play behind the melody. they get a lower harshness cap, and are darker and quieter,
 // so the tune is always the thing you hear
-const BACKING = { counter: true, arp: true, keys: true, pad: true, drone: true, bass: true };
+const BACKING = { counter: true, arp: true, keys: true, guitar: true, pad: true, drone: true, bass: true };
 // the harshest instrument a mood allows (edge in synth.js), less for backing layers
 const maxEdge = (mood, role) => (mood.edge ?? 0.3 + mood.energy * 0.6 + mood.dark * 0.2) * (BACKING[role] ? 0.75 : 1);
 
@@ -920,7 +1172,9 @@ const maxEdge = (mood, role) => (mood.edge ?? 0.3 + mood.energy * 0.6 + mood.dar
 // surprise instrument only comes from moods about as dark as this one (kindred), so a playful song
 // can't draw the haunted pad
 const APART = { chip: 'acoustic', acoustic: 'chip' };
-const kindred = (mood) => new Set(Object.values(MOODS).filter((other) => Math.abs(other.dark - mood.dark) <= 0.25).flatMap((other) => Object.values(other.palette).flat()));
+// a mood with no surprises (the loud and hazy ones) keeps to itself the other way too: its
+// instruments aren't other moods' surprises
+const kindred = (mood) => new Set(Object.values(MOODS).filter((other) => other === mood || (other.surprise !== 0 && Math.abs(other.dark - mood.dark) <= 0.25)).flatMap((other) => [...Object.values(other.palette).flat(), ...(other.quiet || [])]));
 function pickInstrument(song, layer, rng) {
   const mood = MOODS[song.mood];
   const { role } = layer;
@@ -942,14 +1196,20 @@ function pickInstrument(song, layer, rng) {
   // a reversed sound swells over its whole note, and a drone's note is a whole section: minutes of
   // swelling, then a sudden stop
   const fits = (id) => INSTRUMENTS[id].edge <= cap && !taken.has(id) && !(role === 'drone' && INSTRUMENTS[id].reverse) && belongs(id);
-  const palette = mood.palette[role].filter(fits);
+  // the second guitar of a loud, quiet, loud song is one of the mood's cleaner ones (quiet)
+  const list = (layer.id === 'guitar-2' && mood.quiet) || mood.palette[role] || [];
+  const palette = list.filter(fits);
   const kin = kindred(mood);
-  const wild = anything.filter((id) => WILDCARDS[role].includes(INSTRUMENTS[id].family) && fits(id) && kin.has(id));
-  if (palette.length && !(wild.length && rng.chance(0.12))) return rng.pick(palette);
+  // an instrument that's its mood's own (own in synth.js) is never a surprise anywhere else
+  const wild = anything.filter((id) => WILDCARDS[role].includes(INSTRUMENTS[id].family) && fits(id) && kin.has(id) && !INSTRUMENTS[id].own);
+  if (palette.length && !(wild.length && rng.chance(mood.surprise ?? 0.12))) return rng.pick(palette);
   if (wild.length) return rng.pick(wild);
-  // nothing fits: the gentlest in the mood's palette that belongs with the band, or failing that the gentlest
-  const gentlest = (list) => [...list].sort((a, b) => INSTRUMENTS[a].edge - INSTRUMENTS[b].edge)[0];
-  return gentlest(mood.palette[role].filter((id) => belongs(id) && !taken.has(id))) || gentlest(mood.palette[role]);
+  // nothing fits: the gentlest in the mood's list that belongs with the band, or failing that the
+  // gentlest, or for a role the mood never has (a guitar added by hand to a calm song) the gentlest
+  // of the role's own kind of instrument
+  const gentlest = (ids) => [...ids].sort((a, b) => INSTRUMENTS[a].edge - INSTRUMENTS[b].edge)[0];
+  return gentlest(list.filter((id) => belongs(id) && !taken.has(id))) || gentlest(list)
+    || gentlest(anything.filter((id) => WILDCARDS[role].includes(INSTRUMENTS[id].family) && !taken.has(id))) || gentlest(anything);
 }
 
 // a layer's instrument, pattern, tone and mix. fresh: a new layer, so it gets a seed and pattern too
@@ -962,10 +1222,10 @@ function dressLayer(song, layer, rng, fresh) {
   // struck and plucked things (keys, bells, basses) get no vibrato and hardly any detune: a wobbling
   // piano under a steady pad sounds out of tune rather than warm, and a strummed harp chord in a dark
   // mood had its strings beating against each other
-  const struck = instrument.family === 'keys' || instrument.family === 'bell' || instrument.family === 'bass';
+  const struck = instrument.family === 'keys' || instrument.family === 'guitar' || instrument.family === 'bell' || instrument.family === 'bass';
   if (fresh) {
     layer.seed = newToken(rng);
-    layer.pattern = rng.pick(mood.patterns?.[role] || STYLE_PATTERNS[song.style][role]);
+    layer.pattern = rng.pick(moodPatterns(song, role));
     layer.rate = mood.energy > 0.75 ? rng.pick(['medium', 'fast', 'fast']) : mood.energy < 0.35 ? rng.pick(['slow', 'medium']) : rng.pick(['medium', 'medium', 'fast']);
     layer.span = rng.pick([1, 2, 2]);
     layer.octave = role === 'bells' ? rng.weighted([[0, 5], [1, 1], [-1, 1]]) : role === 'melody' ? rng.weighted([[0, 6], [-1, 1]]) : 0;
@@ -974,16 +1234,20 @@ function dressLayer(song, layer, rng, fresh) {
   layer.density = clamp01(busy + rng.range(-0.15, 0.2));
   // drums follow the mood's energy: as loud under a calm song as under an angry one, they were the
   // first thing you heard
-  const volumes = { melody: 0.68, counter: 0.5, arp: 0.42, bells: 0.45, keys: 0.52, pad: 0.55, drone: 0.48, bass: 0.68, drums: 0.42 + mood.energy * 0.24, texture: 0.5 };
-  // harsher backing sits lower in the mix
-  layer.volume = clamp01((volumes[role] + rng.range(-0.06, 0.06)) * (BACKING[role] ? 1 - edge * 0.25 : 1));
+  // a buried tune (shoegaze's singer) sits lower, in among the guitars
+  const volumes = { melody: 0.68 * (1 - (mood.bury || 0) * 0.2), counter: 0.5, arp: 0.42, bells: 0.45, keys: 0.52, guitar: 0.62, pad: 0.55, drone: 0.48, bass: 0.68, drums: 0.42 + mood.energy * 0.24, texture: 0.5 };
+  // harsher backing sits lower in the mix. not a guitar: its speaker cabinet has already taken the
+  // harshness off, and rock guitars sit up with the tune
+  layer.volume = clamp01((volumes[role] + rng.range(-0.06, 0.06)) * (BACKING[role] && role !== 'guitar' ? 1 - edge * 0.25 : 1));
+  // a guitar's rig already spreads it left and right (double tracked, or a chorus), so it stays near
+  // the middle
   const centred = role === 'bass' || role === 'drums' || role === 'drone';
-  layer.pan = centred ? 0 : Math.round(rng.range(-0.45, 0.45) * 100) / 100;
+  layer.pan = centred ? 0 : Math.round(rng.range(-0.45, 0.45) * (role === 'guitar' ? 0.4 : 1) * 100) / 100;
   // drums and bass stay fairly dry: a big room smears the beat, and the echo (often a dotted beat)
   // adds hits that aren't on the groove, which made the drums sound out of time
-  const wet = { melody: 0.65, counter: 0.7, arp: 0.7, bells: 1.1, keys: 0.75, pad: 1, drone: 0.9, bass: 0.15, drums: 0.15, texture: 0.6 };
+  const wet = { melody: 0.65, counter: 0.7, arp: 0.7, bells: 1.1, keys: 0.75, guitar: 0.45, pad: 1, drone: 0.9, bass: 0.15, drums: 0.15, texture: 0.6 };
   layer.reverb = clamp01(mood.space * wet[role] * rng.range(0.75, 1.15));
-  const echoes = { melody: 0.4, counter: 0.3, arp: 0.5, bells: 0.6, keys: 0.25 };
+  const echoes = { melody: 0.4, counter: 0.3, arp: 0.5, bells: 0.6, keys: 0.25, guitar: 0.15 };
   layer.echo = clamp01((echoes[role] || 0) * mood.space * rng.range(0.4, 1.3));
   // in a tune, chords have to arrive on the beat with the drums, so pads swell in and let go quicker.
   // not plucked strings: they already start at once, and cutting their ring short is what made the
@@ -1034,15 +1298,17 @@ function fitBand(song) {
   const melody = find('melody');
   const busyKeys = song.layers.some((layer) => layer.role === 'keys' && (layer.pattern === 'broken' || layer.pattern === 'waltz'));
   const textures = song.layers.filter((layer) => layer.role === 'texture').length;
+  // how far under the tune backing sits: 0.1, less for a mood that buries its tune (shoegaze)
+  const gap = 0.1 * (1 - (MOODS[song.mood].bury || 0));
   for (const layer of song.layers) {
     if (arp && layer.role === 'keys') layer.pattern = 'strum';
     if ((arp || busyKeys) && layer.role === 'pad' && (layer.pattern === 'pulse' || layer.pattern === 'stabs')) layer.pattern = 'sustain';
     while (usesRate(layer) && layer.rate !== 'slow' && song.tempo / 60 / rateStep(layer.rate, METERS[song.meter].sub) > MAX_RATE) layer.rate = layer.rate === 'fast' ? 'medium' : 'slow';
     if (!melody && layer.role === 'counter' && layer.pattern === 'harmony') layer.pattern = 'answer';
-    if (melody && BACKING[layer.role] && layer.role !== 'bass') layer.volume = Math.min(layer.volume, Math.max(0.2, melody.volume - 0.1));
+    if (melody && BACKING[layer.role] && layer.role !== 'bass') layer.volume = Math.min(layer.volume, Math.max(0.2, melody.volume - gap));
     const suits = layer.role === 'drums' && INSTRUMENTS[layer.instrument]?.suits;
     if (suits && !suits.includes(layer.pattern)) {
-      const wanted = MOODS[song.mood].patterns?.drums || STYLE_PATTERNS[song.style].drums;
+      const wanted = moodPatterns(song, 'drums');
       layer.pattern = wanted.find((pattern) => suits.includes(pattern)) || suits[0];
     }
     if (layer.role === 'texture') layer.volume = Math.min(layer.volume, (melody ? melody.volume * 0.55 : 0.42) * (textures > 1 ? 0.85 : 1));
@@ -1055,8 +1321,14 @@ function partBars(song, part) {
   return turns * song.chordBars;
 }
 
+// loud, quiet, loud (the pixies, nirvana, and the grunge bands after them): with two guitars, the
+// cleaner one plays the quiet sections and the dirtier one stamps in for the loud ones (energy LOUD
+// or more, or the song's loudest if none reach it), the way a guitarist stamps on a distortion pedal
+// for the chorus
+const LOUD = 0.85;
 function pickArrangement(song, rng) {
-  const form = rng.pick(FORMS[song.style]);
+  const mood = MOODS[song.mood];
+  const form = rng.pick((song.style === 'tune' && mood.forms) || FORMS[song.style]);
   const entry = {};
   for (const layer of song.layers) entry[layer.id] = rng.range(...ROLE_ENTRY[layer.role]);
   // the song opens on its mood's opening parts (MOODS opens), two in a tune and one in an ambient
@@ -1085,21 +1357,34 @@ function pickArrangement(song, rng) {
     before = play;
     return { name, part, bars, play };
   });
-  addSolo(song, rng);
+  const guitars = song.layers.filter((layer) => layer.role === 'guitar');
+  if (guitars.length === 2) {
+    const [quiet, loud] = [...guitars].sort((a, b) => INSTRUMENTS[a.instrument].edge - INSTRUMENTS[b.instrument].edge);
+    const top = Math.max(...form.map(([, , , energy]) => energy));
+    song.sections.forEach((section, i) => {
+      section.play = section.play.filter((id) => id !== quiet.id && id !== loud.id);
+      section.play.push(form[i][3] >= Math.min(LOUD, top) ? loud.id : quiet.id);
+    });
+  }
+  addSolo(song, rng, form);
 }
 
 // a solo: the tune stretches out into a long line that doesn't repeat (solo() below), over the
 // theme's chords, just before the theme comes back for the last time, the way a song's middle
 // eight or a guitar break does. sometimes the counter melody takes it and the melody rests, so a
 // new voice gets the spotlight. the other line (bells, a counter melody) sits it out, so the solo
-// isn't fighting anyone. section.lead is which layer solos; any section can have one, on the page
+// isn't fighting anyone. section.lead is which layer solos; any section can have one, on the page.
+// a rock mood says how often (MOODS solo) and solos over its chorus (soloOver), before the last one
 const SOLO_CHANCE = { tune: 0.6, ambient: 0.35 };
-function addSolo(song, rng) {
+function addSolo(song, rng, form) {
+  const mood = MOODS[song.mood];
   const melody = song.layers.find((layer) => layer.role === 'melody');
-  if (!melody || song.sections.length < 4 || !rng.chance(SOLO_CHANCE[song.style])) return;
-  // the theme's (part A's) last time round, as long as it isn't the very start
+  const chance = song.style === 'tune' && mood.solo !== undefined ? mood.solo : SOLO_CHANCE[song.style];
+  if (!melody || song.sections.length < 4 || !rng.chance(chance)) return;
+  // the theme's (part A's, or the chorus's) last full time round, as long as it isn't the very start
+  const part = (song.style === 'tune' && mood.soloOver) || 'A';
   let at = -1;
-  for (let i = 2; i < song.sections.length; i++) if (song.sections[i].part === 'A' && song.sections[i].play.includes(melody.id)) at = i;
+  for (let i = 2; i < song.sections.length; i++) if (song.sections[i].part === part && form[i][2] >= 8 && song.sections[i].play.includes(melody.id)) at = i;
   if (at < 0) return;
   const counter = song.layers.find((layer) => layer.role === 'counter');
   const lead = counter && rng.chance(0.4) ? counter : melody;
@@ -1134,7 +1419,7 @@ function mutateSong(song, rng) {
   for (const layer of song.layers) {
     if (rng.chance(0.3)) layer.seed = newToken(rng);
     // only patterns that suit the mood and style, so a mutated cozy song doesn't grow a tribal beat
-    if (rng.chance(0.2)) layer.pattern = rng.pick(MOODS[song.mood].patterns?.[layer.role] || STYLE_PATTERNS[song.style][layer.role]);
+    if (rng.chance(0.2)) layer.pattern = rng.pick(moodPatterns(song, layer.role));
     layer.density = nudge(layer.density, 0.15);
     layer.volume = nudge(layer.volume, 0.06);
     layer.reverb = nudge(layer.reverb, 0.1);
@@ -1328,11 +1613,13 @@ function composeSong(song) {
 //     (a seventh, a ninth) when that's what rubs, and still have the chord without it. single lines
 //     (an arp, bells, a counter melody) move to the nearest chord note that doesn't rub instead
 const ON_TOP = { keys: true, arp: true, counter: true };
-const GIVE_WAY = { keys: 'drop', pad: 'drop', arp: 'move', bells: 'move', counter: 'move' };
+const GIVE_WAY = { keys: 'drop', guitar: 'drop', pad: 'drop', arp: 'move', bells: 'move', counter: 'move' };
 // the upper of two notes a minor second (or a minor ninth, or more octaves) above the lower
 const rubs = (a, b) => mod12(Math.max(a, b) - Math.min(a, b)) === 1;
 
 //   - in a solo section, the soloist is the tune (section.lead), and it doesn't give way to itself
+//   - a riff's line moves too (riff()), on the guitar and on a bass doubling it alike, so the two
+//     never rub against each other either. dropping a riff note that rubbed left a hole in the riff
 function listen(song, sections, parts) {
   const melody = song.layers.find((layer) => layer.role === 'melody');
   const inside = (section) => (note) => note.t >= section.start - 1e-6 && note.t < section.end - 1e-6;
@@ -1355,11 +1642,12 @@ function listen(song, sections, parts) {
     return section.chords.find((chord) => t < chord.t + chord.dur - 1e-6) || section.chords[section.chords.length - 1];
   };
   for (const layer of song.layers) {
-    const rule = GIVE_WAY[layer.role];
-    if (!rule) continue;
+    if (!GIVE_WAY[layer.role] && !parts[layer.id].some((note) => note.line)) continue;
     const floor = ROLES[layer.role].center + layer.octave * 12 - 12;
     parts[layer.id] = parts[layer.id].filter((note) => {
-      if (note.added || soloing(layer, note)) return true;
+      // a riff's line (note.line, on the guitar and a bass doubling it) moves like any other line
+      const rule = note.line ? 'move' : GIVE_WAY[layer.role];
+      if (!rule || note.added || soloing(layer, note)) return true;
       const at = lastBefore(note.t);
       const lead = tune[at];
       const ceiling = ON_TOP[layer.role] && lead && note.t < lead.t + lead.dur - 1e-6 ? lead.midi : Infinity;
@@ -1428,7 +1716,7 @@ function joinHeld(notes) {
 // the same spot in the song moves by the same amount (the pocket), and each layer only adds a little
 // of its own on top (LOOSE). I first gave every layer its own random nudges, and the kick, bass and
 // chords smeared apart into flams. drums and bass add almost nothing, so the beat stays solid
-const LOOSE = { melody: 1, counter: 1, bells: 1, arp: 0.5, keys: 0.6, pad: 0.4, bass: 0.15, drums: 0.1, drone: 0, texture: 0 };
+const LOOSE = { melody: 1, counter: 1, bells: 1, arp: 0.5, keys: 0.6, guitar: 0.3, pad: 0.4, bass: 0.15, drums: 0.1, drone: 0, texture: 0 };
 const pocket = (song, t) => makeRng(song.seed, 'pocket', Math.round(t * 12)).range(-1, 1) * song.humanise * 0.012;
 function feel(notes, song, layer) {
   const rng = makeRng(song.seed, layer.seed, 'feel');
@@ -1456,8 +1744,9 @@ function feel(notes, song, layer) {
 // land together and the stabs fit round them, like a band that's played together for years. before
 // this, each made up its own rhythm (and the drums rolled dice every bar), which is why they never
 // sat together. a groove is a bar written out by hand, like an old drum machine's pattern chart:
-//   k kick, s snare, h hat, o open hat, p perc (rim, shaker or tick), l low perc (toms or taiko),
-//   c comping: where chord stabs and the syncopated bass go
+//   k kick, s snare, h hat, o open hat, p perc (rim, shaker or tick, or a rock kit's ride), l low perc
+//   (toms or taiko), y crash (the open hat on a kit without one), c comping: where chord stabs, the
+//   syncopated bass and power chords go
 // x is a hit, - a soft (ghost) one, . nothing, one character a step: 16ths in 4/4, 3/4 and 5/4, 8ths
 // in 6/8. lines a groove leaves out are silent. the drum layer's pattern picks the list, and its seed
 // picks one from it. part A plays it as written, B a lifted version and C a dropped one (grooveFor)
@@ -1509,6 +1798,40 @@ const GROOVES = {
       { k: 'x.x.......x.....', s: '....x..-.x..x..-', h: 'x.x.x.x.x.x.x.x.', c: 'x.x.......x.....' },
       { k: 'x.........xx....', s: '....x.......x...', h: 'x-x-x-x-x-x-x-x-', p: '......-.......-.', c: 'x.........x.....' },
     ],
+    // rock: the kick on 1 and 3 with a push, the snare cracking on 2 and 4, eighth hats (the ride in
+    // part B, RIDES). the comping is where power chords land
+    rock: [
+      { k: 'x.......x.x.....', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', c: 'x.....x.....x...' },
+      { k: 'x.....x.x.......', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', c: 'x.....x.x.......' },
+      { k: 'x.......x.......', s: '....x.......x...', h: 'x.x.x.x.x.x.x...', o: '..............x.', c: 'x.......x.....x.' },
+      { k: 'x..x....x.x.....', s: '....x.......x..-', h: 'x.x.x.x.x.x.x.x.', c: 'x..x....x.......' },
+    ],
+    // punk: kick and snare taking turns every eighth (the skank beat of hardcore and thrash), or the
+    // d-beat, the kick on 1, the and of 2, and 3. the guitar strums every eighth
+    punk: [
+      { k: 'x...x...x...x...', s: '..x...x...x...x.', h: 'x.x.x.x.x.x.x.x.', c: 'x.x.x.x.x.x.x.x.' },
+      { k: 'x.....x.x.....x.', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', c: 'x.....x.x.....x.' },
+    ],
+    // double kick: sixteenths on the kick under the backbeat, or the gallop (an eighth and two
+    // sixteenths), metal's engine
+    double: [
+      { k: 'xxxxxxxxxxxxxxxx', s: '....x.......x...', p: 'x...x...x...x...', c: 'x.......x.......' },
+      { k: 'x.xxx.xxx.xxx.xx', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', c: 'x...x...x...x...' },
+      { k: 'x.x.x.x.x.x.x.x.', s: '....x.......x...', p: 'x.x.x.x.x.x.x.x.', c: 'x.......x.......' },
+    ],
+    // a breakdown: half time, the kick lurching in a rhythm the guitar chugs along with, a crash or
+    // the ride on every beat
+    breakdown: [
+      { k: 'x..x..x...x.x...', s: '........x.......', y: 'x...x...x...x...', c: 'x..x..x...x.x...' },
+      { k: 'x.....x.....x...', s: '........x.......', p: 'x...x...x...x...', c: 'x.....x.....x...' },
+    ],
+    // wash: shoegaze's steady beat under a ride left ringing, or the floor tom rolling instead of hats
+    wash: [
+      { k: 'x.......x.......', s: '....x.......x...', p: 'x.x.x.x.x.x.x.x.', c: 'x.......x.......' },
+      { k: 'x.....x.x.......', s: '....x.......x...', p: 'x.x.x.x.x.x.x.x.', c: 'x.....x.........' },
+      { k: 'x.......x.......', s: '....x.......x...', l: 'x.x.x.x.x.x.x.x.', c: 'x.......x.......' },
+      { k: 'x...x...x...x...', s: '....x.......x...', p: 'x.x.x.x.x.x.x.x.', c: 'x.......x.......' },
+    ],
   },
   '3/4': {
     groove: [
@@ -1523,6 +1846,11 @@ const GROOVES = {
     sparse: [{ k: 'x...........', h: '-...-...-...', c: 'x...........' }],
     four: [{ k: 'x...x...x...', s: '........x...', h: '..x...x...x.', c: '..x...x...x.' }],
     break: [{ k: 'x.x.......x.', s: '....x..-.x..', h: 'x.x.x.x.x.x.', c: 'x.x.......x.' }],
+    rock: [{ k: 'x.......x...', s: '....x.......', h: 'x.x.x.x.x.x.', c: 'x.......x...' }],
+    punk: [{ k: 'x...x...x...', s: '..x...x...x.', h: 'x.x.x.x.x.x.', c: 'x.x.x.x.x.x.' }],
+    double: [{ k: 'xxxxxxxxxxxx', s: '....x...x...', p: 'x...x...x...', c: 'x...........' }],
+    breakdown: [{ k: 'x..x..x.....', s: '........x...', y: 'x...x...x...', c: 'x..x..x.....' }],
+    wash: [{ k: 'x.......x...', s: '....x.......', p: 'x.x.x.x.x.x.', c: 'x.......x...' }],
   },
   '6/8': {
     groove: [
@@ -1537,6 +1865,11 @@ const GROOVES = {
     sparse: [{ k: 'x.....', h: '-..-..', c: 'x.....' }],
     four: [{ k: 'x..x..', s: '...x..', h: '.xx.xx', c: '.x..x.' }],
     break: [{ k: 'x.x...', s: '...x.-', h: 'xxxxxx', c: 'x.x...' }],
+    rock: [{ k: 'x.....', s: '...x..', h: 'xxxxxx', c: 'x..x..' }],
+    punk: [{ k: 'x.x.x.', s: '.x.x.x', h: 'xxxxxx', c: 'xxxxxx' }],
+    double: [{ k: 'xxxxxx', s: '...x..', p: 'x..x..', c: 'x..x..' }],
+    breakdown: [{ k: 'x.x...', s: '...x..', y: 'x..x..', c: 'x.x...' }],
+    wash: [{ k: 'x.....', s: '...x..', p: 'xxxxxx', c: 'x..x..' }],
   },
   // 5/4 as three beats then two, like take five
   '5/4': {
@@ -1549,12 +1882,21 @@ const GROOVES = {
     sparse: [{ k: 'x...................', h: '-...-...-...-...-...', c: 'x...................' }],
     four: [{ k: 'x...x...x...x...x...', s: '....x.......x.......', h: '..x...x...x...x...x.', c: '..x...x...x...x...x.' }],
     break: [{ k: 'x.x.......x...x.....', s: '....x..-.x......x...', h: 'x.x.x.x.x.x.x.x.x.x.', c: 'x.x.......x...x.....' }],
+    rock: [{ k: 'x.......x...x.......', s: '....x...........x...', h: 'x.x.x.x.x.x.x.x.x.x.', c: 'x.......x...x.......' }],
+    punk: [{ k: 'x...x...x...x...x...', s: '..x...x...x...x...x.', h: 'x.x.x.x.x.x.x.x.x.x.', c: 'x.x.x.x.x.x.x.x.x.x.' }],
+    double: [{ k: 'xxxxxxxxxxxxxxxxxxxx', s: '........x.......x...', p: 'x...x...x...x...x...', c: 'x...........x.......' }],
+    breakdown: [{ k: 'x..x..x.....x..x....', s: '........x...........', y: 'x...x...x...x...x...', c: 'x..x..x.....x..x....' }],
+    wash: [{ k: 'x.......x...x.......', s: '....x...........x...', p: 'x.x.x.x.x.x.x.x.x.x.', c: 'x...........x.......' }],
   },
 };
 // the drum each groove line plays (KIT_SLOTS order in synth.js)
-const GROOVE_SLOTS = { k: 0, s: 1, h: 2, o: 3, p: 4, l: 5 };
+const GROOVE_SLOTS = { k: 0, s: 1, h: 2, o: 3, p: 4, l: 5, y: 6 };
 // the grooves that get busier in B parts, and the ones whose fills and section crashes are loud
-const LIFTS = { groove: true, halftime: true, march: true, four: true, break: true };
+const LIFTS = { groove: true, halftime: true, march: true, four: true, break: true, rock: true, punk: true, double: true };
+// the rock grooves. their drummer fills down the toms, crashes at the top of every phrase in a loud
+// part, and (rock and punk) moves from the hats to the ride for the chorus
+const ROCK = { rock: true, punk: true, double: true, breakdown: true, wash: true };
+const RIDES = { rock: true, punk: true };
 
 // a pitched drum (a kick, a tom, a tick, a rim, the body of a snare) moved to the nearest home note
 // or fifth of the song's key, in hz. where the kits had them they were out of key with everything
@@ -1570,7 +1912,10 @@ function tuneDrum(hz, key) {
 function grooveFor(song, part) {
   const drums = song.layers.find((layer) => layer.role === 'drums');
   const kind = drums ? drums.pattern : song.style === 'tune' ? 'groove' : 'pulse';
-  const written = makeRng(song.seed, drums ? drums.seed : '', 'groove').pick(GROOVES[song.meter][kind]);
+  // a breakdown (metal, hardcore): part C goes half time and heavy, the guitar chugging on the kick,
+  // instead of dropping quiet
+  const breakdown = part === 'C' && song.style === 'tune' && !!MOODS[song.mood].breakdown;
+  const written = makeRng(song.seed, drums ? drums.seed : '', 'groove').pick(GROOVES[song.meter][breakdown ? 'breakdown' : kind]);
   const steps = written.k.length;
   const perBeat = steps / METERS[song.meter].beats;
   const lines = {};
@@ -1578,13 +1923,17 @@ function grooveFor(song, part) {
   if (!written.c) lines.c = lines.k.slice();
   if (part === 'B' && LIFTS[kind]) {
     // lifted: soft hats in between, and an open hat on the last off beat pushing into the next bar.
-    // only for the pop grooves: it put busy 16th hats into quiet sparse beats and jazz brushes
-    if (perBeat === 4) lines.h = lines.h.map((v, i) => v || (i % 2 ? 0.5 : 0));
+    // only for the pop grooves: it put busy 16th hats into quiet sparse beats and jazz brushes. a rock
+    // drummer moves the hats over to the ride instead (perc, on a rock kit)
+    if (RIDES[kind] && lines.h.some(Boolean)) {
+      lines.p = lines.p.map((v, i) => Math.max(v, lines.h[i]));
+      lines.h = lines.h.map(() => 0);
+    } else if (perBeat === 4) lines.h = lines.h.map((v, i) => v || (i % 2 ? 0.5 : 0));
     const push = steps - Math.ceil(perBeat / 2);
     lines.o[push] = 1;
     lines.h[push] = 0;
   }
-  if (part === 'C') {
+  if (part === 'C' && !breakdown) {
     // dropped: a rim click where the snare was, hats only on the beat, the kick only on the beat
     lines.p = lines.p.map((v, i) => Math.max(v, lines.s[i] ? 0.5 : 0));
     lines.s = lines.s.map(() => 0);
@@ -2015,6 +2364,112 @@ const BELL_FIGURES = [
   [[0, 1], [0.5, 0], [1, 1], [1.5, 2]],
 ];
 
+// ---------- guitars ----------
+//
+// a guitar plays chords in a guitar's shapes: low, and slid up and down the neck as one shape, so its
+// chords move in parallel rather than voice led like a pianist's. a power chord is the root, fifth and
+// octave: with no third in it, distortion makes it growl rather than mush (a clipped third grinds
+// against everything else), so it's what the loud patterns play. ringing, strummed and tremolo picked
+// chords are the whole shape (an e shaped barre chord, with the chord's colour note on top), for
+// cleaner or hazier guitars
+function guitarShape(c, chord, full) {
+  const root = near(chord.root, c.center);
+  // the chord's own fifth (a diminished chord's is flat), or a plain fifth (a sus chord's)
+  const fifth = chord.tones.find((tone) => tone >= 6 && tone <= 8) ?? 7;
+  if (!full) return [root, root + fifth, root + 12];
+  const shape = [root, root + fifth, root + 12, root + 12 + chord.tones[1], root + 12 + fifth];
+  const colour = chord.tones.find((tone) => tone > 8);
+  if (colour) shape.push(root + 12 + colour);
+  return shape;
+}
+
+// a strum: the shape's notes a moment apart, low to high on the way down, and only the top strings,
+// high to low, on the way back up. mute: palm muted
+function strum(notes, shape, t, dur, vel, { up = false, mute = false, spread = 0.01 } = {}) {
+  const strings = up ? shape.slice(-3).reverse() : shape;
+  strings.forEach((midi, i) => notes.push({ t: t + i * spread, dur: Math.max(0.05, dur - i * spread), midi, vel: vel - i * 0.02, ...(mute ? { mute } : {}) }));
+}
+
+// how a strummed guitar's hand goes, an eighth (a third of a beat in 6/8) a character: D down, U up, .
+// a miss. 4/4 is "old faithful", down, down up, up down up
+const STRUMS = { '4/4': 'D.DU.UDU', '3/4': 'D.DUDU', '6/8': 'D.UD.U', '5/4': 'D.DU.UDUDU' };
+
+// riffs, written out like grooves, one character a 16th of 4/4: m a palm muted chug on the low root,
+// x an open power chord, n the next note of the riff's line, . nothing. doom's "at doom's gate" (and
+// metallica's riffs before it) is a muted low string chugging twice under a line walking down the
+// scale every third eighth. fast ones (16ths) aren't used above 150 bpm, where they'd blur, and slow
+// ones (sabbath's: a chord left to ring, then the line) are for slow songs
+const RIFFS = [
+  { cells: 'm.m.n.m.m.n.m.m.' },
+  { cells: 'x.m.m.n.x.m.n.n.' },
+  { cells: 'x.....m.m.m.n.n.' },
+  { cells: 'x.m.n.m.m.m.n.m.' },
+  // the gallop, an eighth and two sixteenths (iron maiden), thrash, and pantera's stop and start
+  { cells: 'x.mmm.mmm.mmn.n.', fast: true },
+  { cells: 'mmmmn.mmmmn.x.x.', fast: true },
+  { cells: 'x..m.mx..m.mn.n.', fast: true },
+  { cells: 'x.......n...n.n.', slow: true },
+  { cells: 'x...........n.n.', slow: true },
+  { cells: 'x.....n.....x...', slow: true },
+  { cells: 'x.......x...n.m.', slow: true },
+];
+// a riff's cells for the song's bar: 6/8 counts in eighths, so it takes every other character, and
+// other bars repeat or cut the 4/4 bar to fit
+function riffCells(cells, c) {
+  let line = c.sub === 3 ? [...cells].filter((_, i) => i % 2 === 0).join('') : cells;
+  const steps = Math.round(c.bpb / c.step);
+  while (line.length < steps) line += line;
+  return line.slice(0, steps);
+}
+
+// the song's riff (the chug pattern), the same every part and following the chords: the line's notes
+// are the song's scale counted up from each chord's root, starting at the octave or under it and
+// walking one note at a time (the other way in the fourth bar of each four, a turnaround), bouncing
+// back at the ends. its notes are marked line, so the band's listening moves them off the tune like
+// any other line's (listen). from layer's seed, so a bass doubling the riff (bass: true, an octave
+// down and never a chord) plays exactly the guitar's. in a breakdown it chugs along with the kick
+function riff(c, layer, bass) {
+  const { song } = c;
+  const r = makeRng(song.seed, layer.seed, 'riff');
+  const pool = RIFFS.filter((one) => (song.tempo < 96 ? one.slow : !one.slow && !(one.fast && song.tempo > 150)));
+  const cells = riffCells(r.pick(pool).cells, c);
+  const from = r.int(0, 1);
+  const way = r.pick([-1, -1, 1]);
+  const breakdown = c.section.part === 'C' && song.style === 'tune' && !!MOODS[song.mood].breakdown;
+  // the riff's grid is the groove's (16ths, or 8ths in 6/8)
+  const grid = c.bpb / cells.length;
+  const plan = [...cells].map((ch, i) => (breakdown ? (c.groove.lines.k[i] > 0 ? (i === 0 ? 'x' : 'm') : '.') : ch));
+  const hits = plan.map((ch) => ch !== '.');
+  const notes = [];
+  const add = (t, dur, midis, vel, flags = {}) => { for (const midi of midis) notes.push({ t, dur, midi, vel, ...flags }); };
+  for (let bar = 0; bar < c.bars; bar++) {
+    const barStart = c.start + bar * c.bpb;
+    const turn = bar % 4 === 3 ? -1 : 1;
+    let n = 0;
+    for (let i = 0; i < plan.length; i++) {
+      if (!hits[i]) continue;
+      const t = barStart + i * grid;
+      const chord = chordAt(c, t);
+      const root = near(chord.root, c.center);
+      const fifth = chord.tones.find((tone) => tone >= 6 && tone <= 8) ?? 7;
+      const length = gapAfter(hits, i) * grid;
+      if (plan[i] === 'm') add(t, Math.min(length, grid * 2) * 0.9, [root], 0.72, bass ? {} : { mute: true });
+      else if (plan[i] === 'x') add(t, length * 0.95, bass ? [root] : [root, root + fifth, root + 12], 0.9);
+      else {
+        const ladder = [];
+        for (let midi = root + 1; midi <= root + 12; midi++) if (c.scalePcs.has(mod12(midi)) || midi === root + 12) ladder.push(midi);
+        // bounce inside the ladder: 0 1 2 ... top ... 2 1 0 1 ...
+        const span = Math.max(1, ladder.length - 1);
+        const at = ladder.length - 1 - from + way * turn * n++;
+        const folded = ((at % (2 * span)) + 2 * span) % (2 * span);
+        const midi = ladder[folded > span ? 2 * span - folded : folded];
+        add(t, length * 0.95, [midi], 0.84, { line: true });
+      }
+    }
+  }
+  return notes;
+}
+
 const COMPOSERS = {
   melody(c) {
     const { pattern } = c.layer;
@@ -2077,12 +2532,15 @@ const COMPOSERS = {
       if (pattern === 'down') pool.reverse();
       if (pattern === 'updown') pool = [...pool, ...pool.slice(1, -1).reverse()];
       if (pattern === 'converge') pool = pool.map((_, i) => (i % 2 ? pool[pool.length - 1 - (i >> 1)] : pool[i >> 1]));
+      // twinkle: one high note left ringing between the others, coming back every other note, the
+      // fingerpicked clean guitar of emo (american football, tigers jaw)
+      if (pattern === 'twinkle' && pool.length > 1) pool = pool.slice(0, -1).flatMap((midi) => [midi, pool[pool.length - 1]]);
       for (let t = chord.t; t < chord.t + chord.dur - 1e-6; t += step) {
         const midi = pool[(pattern === 'random' ? order[index % order.length] : index) % pool.length];
         index++;
         if (rests[Math.round(((t - c.start) % c.bpb) / step) % rests.length]) continue;
         const onBeat = Math.abs((t - c.start) % 1) < 1e-6;
-        notes.push({ t, dur: step * 0.75, midi, vel: onBeat ? 0.78 : 0.6 });
+        notes.push({ t, dur: step * (pattern === 'twinkle' ? 2 : 0.75), midi, vel: onBeat ? 0.78 : 0.6 });
       }
     }
     return notes;
@@ -2173,6 +2631,56 @@ const COMPOSERS = {
     return notes;
   },
 
+  // the guitar (guitarShape, and riff for the chugging pattern)
+  guitar(c) {
+    const { pattern, density } = c.layer;
+    if (pattern === 'chug') return riff(c, c.layer, false);
+    const notes = [];
+    const unit = 1 / c.sub;
+    const full = pattern === 'ring' || pattern === 'tremolo' || pattern === 'strum';
+    const onBeat = (t) => Math.abs((t - c.start) % 1) < 1e-6;
+    // eighths chug palm muted through the verse (part A) and ring open in the chorus, the way pop punk
+    // and weezer play them, with the chord changes and the groove's comping hits left open as accents
+    const muted = c.section.part === 'A' && !c.section.lead;
+    const comps = new Set();
+    for (const chord of c.chords) for (const [t] of compHits(c, chord, 1)) comps.add(t.toFixed(3));
+    for (const chord of c.chords) {
+      const shape = guitarShape(c, chord, full);
+      const end = chord.t + chord.dur;
+      if (pattern === 'eighths') {
+        for (let t = chord.t; t < end - 1e-6; t += unit) {
+          const open = !muted || t === chord.t || comps.has(t.toFixed(3));
+          strum(notes, shape, t, Math.min(unit, end - t) * (open ? 0.95 : 0.6), onBeat(t) ? 0.8 : 0.7, { mute: !open });
+        }
+      } else if (pattern === 'ring') {
+        // struck once a bar and left to ring into the next: a wall rather than a rhythm (shoegaze, and
+        // a grunge chorus)
+        for (let t = chord.t; t < end - 1e-6; t += c.bpb) strum(notes, shape, t, Math.min(c.bpb, end - t), 0.75, { spread: 0.02 });
+      } else if (pattern === 'tremolo') {
+        // picked as fast as a hand goes (sixteenths, slowed to ten a second at most), the chord a
+        // shimmer rather than strokes: shoegaze and post rock. not running notes, so MAX_RATE doesn't
+        // apply. its lowest four strings, so it doesn't pile up
+        let step = 1 / (c.sub * 2);
+        while (c.song.tempo / 60 / step > 10) step *= 2;
+        for (let t = chord.t; t < end - 1e-6; t += step) for (const midi of shape.slice(0, 4)) notes.push({ t, dur: Math.min(step * 1.1, end - t), midi, vel: onBeat(t) ? 0.6 : 0.5 });
+      } else if (pattern === 'strum') {
+        // the strumming hand (STRUMS): down on the beats, up between, a stroke ringing until the next.
+        // a quiet guitar only strums down on the beat
+        const hand = [...(STRUMS[c.song.meter] || 'D.')].map((stroke, i) => (density < 0.35 && i % c.sub ? '.' : stroke));
+        const strokes = hand.map((stroke) => stroke !== '.');
+        for (let t = chord.t; t < end - 1e-6; t += unit) {
+          const i = Math.round(((t - c.start) % c.bpb) / unit) % hand.length;
+          if (!strokes[i]) continue;
+          strum(notes, shape, t, Math.min(gapAfter(strokes, i) * unit, end - t) * 0.95, hand[i] === 'D' ? 0.7 : 0.56, { up: hand[i] === 'U' });
+        }
+      } else {
+        // power chords on the groove's comping hits, each left to ring until the next
+        for (const [t, dur, vel] of compHits(c, chord, density)) strum(notes, shape, t, dur * 0.95, vel + 0.18);
+      }
+    }
+    return notes;
+  },
+
   pad(c) {
     const { pattern, density } = c.layer;
     const notes = [];
@@ -2210,6 +2718,12 @@ const COMPOSERS = {
 
   bass(c) {
     const { pattern, density } = c.layer;
+    // doubling the riff: the chugging guitar's (or a riff of its own, with no guitar riffing), an
+    // octave under the guitar, as metal's bass players do
+    if (pattern === 'riff') {
+      const guitar = c.song.layers.find((layer) => layer.role === 'guitar' && layer.pattern === 'chug');
+      return riff({ ...c, center: ROLES.guitar.center - 12 }, guitar || c.layer, true);
+    }
     const notes = [];
     const add = (t, dur, midi, vel) => notes.push({ t, dur, midi, vel });
     for (const chord of c.chords) {
@@ -2281,7 +2795,10 @@ const COMPOSERS = {
     const { pattern, density } = c.layer;
     const { lines, steps, perBeat, grid } = c.groove;
     const notes = [];
-    const tunes = (INSTRUMENTS[c.layer.instrument]?.slots || []).map((slot) => slot.tune && tuneDrum(slot.tune, c.song.key));
+    const kit = INSTRUMENTS[c.layer.instrument]?.slots || [];
+    const tunes = kit.map((slot) => slot.tune && tuneDrum(slot.tune, c.song.key));
+    // a real crash where the kit has one, its open hat where it doesn't
+    const crash = kit[6] ? 6 : 3;
     const others = c.song.layers.filter((layer) => layer.role !== 'drums' && layer.role !== 'texture');
     const fullness = others.length ? others.filter((layer) => c.section.play.includes(layer.id)).length / others.length : 1;
     const level = 0.7 + 0.3 * fullness;
@@ -2291,11 +2808,16 @@ const COMPOSERS = {
     // quieter patterns), getting louder, then an open hat on the next bar's first beat like a crash
     // the quiet patterns (pulse, sparse) never fill: a drum roll in the middle of a calm song made
     // it jump. brushes fill on the brush, tribal on the toms
-    const fill = (LIFTS[pattern] || pattern === 'brush' || pattern === 'tribal') && c.next && c.next.part !== c.section.part && c.vary.chance(0.75);
-    const fillDrum = pattern === 'tribal' ? 5 : 1;
-    if (LIFTS[pattern] && c.prev && c.prev.part !== c.section.part && c.prev.play.includes(c.layer.id)) hit(c.start, 3, 0.8);
+    const fill = (LIFTS[pattern] || ROCK[pattern] || pattern === 'brush' || pattern === 'tribal') && c.next && c.next.part !== c.section.part && c.vary.chance(0.75);
+    // a rock drummer fills down the toms: the snare for the first half of the beat, the floor tom after
+    const fillDrum = (i) => (pattern === 'tribal' || (ROCK[pattern] && i - (steps - perBeat) >= perBeat / 2) ? 5 : 1);
+    const crashed = (LIFTS[pattern] || ROCK[pattern]) && c.prev && c.prev.part !== c.section.part && c.prev.play.includes(c.layer.id);
+    if (crashed) hit(c.start, crash, 0.8);
+    // in a loud part (a chorus, a solo), a crash at the top of every four bars, marking the phrase
+    const phrases = ROCK[pattern] && kit[6] && (c.section.part === 'B' || c.section.lead);
     for (let n = 0; n < c.bars; n++) {
       const bar = c.start + n * c.bpb;
+      if (phrases && n % 4 === 0 && !(n === 0 && crashed)) hit(bar, 6, 0.72);
       const fillFrom = fill && n === c.bars - 1 ? steps - perBeat : steps;
       for (let i = 0; i < steps; i++) {
         const t = bar + i * grid;
@@ -2303,16 +2825,17 @@ const COMPOSERS = {
         if (i >= fillFrom) {
           if (i === fillFrom && lines.k[i]) hit(t, 0, 0.85);
           if (perBeat === 4 && i % 2 && density < 0.5) continue;
-          hit(t, fillDrum, 0.4 + 0.5 * ((i - fillFrom + 1) / perBeat));
+          hit(t, fillDrum(i), 0.4 + 0.5 * ((i - fillFrom + 1) / perBeat));
           continue;
         }
         for (const [name, slot] of Object.entries(GROOVE_SLOTS)) {
           const v = lines[name][i];
           if (!v || (v < 1 && !ghosts)) continue;
-          const loud = name === 'h' ? 0.6 : name === 'p' ? 0.55 : 0.88;
-          hit(t, slot, (v < 1 ? 0.3 : loud) * (onBeat ? 1 : 0.85));
+          const loud = name === 'h' ? 0.6 : name === 'p' ? 0.55 : name === 'y' ? 0.7 : 0.88;
+          hit(t, slot === 6 ? crash : slot, (v < 1 ? 0.3 : loud) * (onBeat ? 1 : 0.85));
         }
-        if (ghosts && density > 0.72 && perBeat === 4 && i % 2 && !lines.h[i] && lines.h.some((v) => v)) hit(t, 2, 0.24);
+        // (not in rock, whose drummer keeps to eighths: sixteenths at punk tempos were a hiss)
+        if (ghosts && density > 0.72 && perBeat === 4 && i % 2 && !lines.h[i] && lines.h.some((v) => v) && !ROCK[pattern]) hit(t, 2, 0.24);
       }
     }
     return notes;

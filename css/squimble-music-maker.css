@@ -167,7 +167,10 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-moods-wrap{ padding:18px 20px 4px; }
 .mm-row-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .mm-style{ display:flex; gap:6px; }
-.mm-moods{ display:grid; grid-template-columns:repeat(auto-fill,minmax(128px,1fr)); gap:9px 7px; }
+.mm-moods{ display:grid; gap:12px; }
+.mm-mood-group{ display:grid; grid-template-columns:64px 1fr; align-items:start; gap:8px; }
+.mm-mood-group h3{ margin:10px 0 0; font:700 10px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); }
+.mm-mood-keys{ display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:9px 7px; }
 .mm-mood{ justify-content:flex-start; padding:0 10px; }
 .mm-mood::before{ content:""; width:10px; height:10px; border-radius:2px; background:var(--c); flex:none; }
 .mm-mood[aria-pressed="true"]{
@@ -537,6 +540,8 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 
 @media (max-width:600px){
   .mm-bar, .mm-moods-wrap, .mm-transport, .mm-remix{ padding-left:14px; padding-right:14px; }
+  .mm-mood-group{ grid-template-columns:1fr; gap:6px; }
+  .mm-mood-group h3{ margin:0; }
   .mm-score-wrap{ margin:0 14px; }
   .mm-tabs{ padding:0 14px; }
   .mm-tab{ flex:1; padding:10px 6px; font-size:14px; }

@@ -24,8 +24,12 @@
 //            of the 80s. ratio sets how metallic, index how bright, and indexDecay how fast it mellows.
 //            partials: extra sines [ratio, level, seconds to fade]
 //   pluck    a plucked string (ksBuffer). bright, soft (a finger rather than a pick) and decay
-//            (seconds) shape it
-//   choir    buzzy oscillators through three narrow filters at a vowel's formants (VOWELS)
+//            (seconds) shape it. sustain adds a held tone under the string for notes longer than it
+//            rings (an ebow, or an amp feeding back), bend is the cents a lead guitar pushes some long
+//            notes up from, and a note marked mute is palm muted (a metal chug)
+//   choir    buzzy oscillators through three narrow filters at a vowel's formants (VOWELS). singers is
+//            how many (their detunes), breath mixes in air, and rasp clips the buzz so it cracks like a
+//            shouting voice
 //   drums    a kit: six slots (KIT_SLOTS), each one of DRUMS with its own tune, tone, decay and gain.
 //            suits: the patterns (music.js PATTERNS) it sounds right playing. a tune is moved to the
 //            song's key by the composer (tuneDrum() in music.js)
@@ -41,10 +45,17 @@
 // harder note is brighter as well as louder (hardness()), and pads and drones spread their
 // oscillators across the stereo field, both of which real instruments do and midi doesn't.
 //
+// an instrument with an amp (the guitars, and the basses and leads built like them) is played through
+// a rig of pedals, an amp and a speaker cabinet (ampChain()). the rig sits in the layer's channel, so
+// all of the layer's notes go through it together, the way a guitar's strings all go into one amp.
+// own: an instrument only the moods that name it get, never a surprise pick in another mood (a
+// grunge voice turning up as a happy song's tune).
+//
 // ---------- the room ----------
 //
-// each layer has a channel (volume, pan, and sends to the reverb and echo), and they meet in
-// buildGraph()'s chain: drive -> warmth (a low pass filter) -> tape wobble -> compressor -> volume.
+// each layer has a channel (its instrument's rig if it has one, then volume, pan, and sends to the
+// reverb and echo), and they meet in buildGraph()'s chain: drive -> warmth (a low pass filter) ->
+// tape wobble -> compressor -> volume.
 // the reverb plays an impulse made of decaying noise (impulse()), so it needs no recorded room.
 
 const mtof = (midi) => 440 * 2 ** ((midi - 69) / 12);
@@ -69,7 +80,9 @@ const VOWELS = {
   oo: [[350, 1], [650, 0.45], [2700, 0.08]],
 };
 
-const KIT_SLOTS = ['Kick', 'Snare', 'Hat', 'Open hat', 'Perc', 'Low perc'];
+// a kit's drums. rock kits have a ride for perc, a floor tom for low perc, and a crash: kits without
+// one crash on their open hat (the drum composer in music.js)
+const KIT_SLOTS = ['Kick', 'Snare', 'Hat', 'Open hat', 'Perc', 'Low perc', 'Crash'];
 
 const INSTRUMENTS = {
   // pads
@@ -91,6 +104,12 @@ const INSTRUMENTS = {
   'fuzz-wall':   { name: 'Fuzz wall', family: 'pad', edge: 0.4, kind: 'sub', osc: [['sawtooth', -16], ['sawtooth', 15], ['sawtooth', 5, 1, 0.4], ['square', -7, -1, 0.5]], fuzz: 4, filter: { freq: 1300, q: 0.7, lfo: [0.07, 0.25] }, env: [0.9, 2, 0.9, 2.5], gain: 0.057 },
   // swells into each chord and stops dead as the next arrives, an old tape trick of ambient music
   'reverse-piano': { name: 'Reversed piano', family: 'pad', edge: 0.15, kind: 'sub', reverse: true, osc: [['soft', 0], ['glass', 1, 1, 0.25]], filter: { freq: 900, q: 0.5, env: 3, track: 0.4 }, env: [0, 0, 1, 0.08], gain: 0.17 },
+  // guitars as pads: slowdive's volume swells (the knob rolled up after each chord's picked, through a
+  // chorus), and my bloody valentine's reverse reverb, a fuzzed chord sucked in backwards
+  'swell-guitar':  { name: 'Swelling guitar', family: 'pad', edge: 0.2, own: true, kind: 'pluck', bright: 0.55, soft: 0.3, decay: 4, sustain: 0.8, env: [0.9, 2, 0.9, 2.5], gain: 1,
+    amp: { tight: 80, curve: 'tube', gain: 2, cab: 5000, level: 0.3, chorus: [0.5, 0.005] } },
+  'reverse-guitar': { name: 'Reversed guitar', family: 'pad', edge: 0.4, own: true, kind: 'sub', reverse: true, osc: [['sawtooth', -6], ['sawtooth', 6]], filter: { freq: 1600, q: 0.5 }, env: [0, 0, 1, 0.08], gain: 0.5,
+    amp: { tight: 60, curve: 'soft', gain: 30, mids: [900, -6], cab: 3500, level: 0.05, reverse: 0.6 } },
 
   // keys and mallets
   'felt-keys':   { name: 'Felt piano', family: 'keys', edge: 0.1, kind: 'fm', ratio: 1, index: 1.1, indexDecay: 0.25, sustainIndex: 0.05, partials: [[2, 0.35, 0.5], [3, 0.12, 0.25]], filter: { freq: 2200, q: 0.4, track: 0.5 }, env: [0.006, 3, 0, 0.9], gain: 0.2 },
@@ -106,6 +125,40 @@ const INSTRUMENTS = {
   // a steel string guitar, brighter and longer ringing than the nylon: stardew valley's strummed and
   // fingerpicked guitar
   'steel-guitar': { name: 'Steel guitar', family: 'keys', edge: 0.3, world: 'acoustic', kind: 'pluck', bright: 0.7, soft: 0.25, decay: 2.8, filter: { freq: 4200, q: 0.5, track: 0.3 }, env: [0.002, 2.8, 1, 0.8], gain: 0.6 },
+
+  // electric guitars: a picked string through a rig (amp, ampChain()), from clean to as heavy as it
+  // goes. edge rises with the gain. rhythm guitars are double tracked (two takes, left and right)
+  // clean, bright and a little squashed: the twinkling guitar of emo (tigers jaw, american football)
+  'clean-guitar':  { name: 'Clean guitar', family: 'guitar', edge: 0.2, kind: 'pluck', bright: 0.6, soft: 0.2, decay: 3, env: [0.002, 3, 1, 0.3], gain: 1,
+    amp: { tight: 90, curve: 'tube', gain: 1.2, mids: [700, -2], presence: [3200, 3], cab: 7500, level: 0.5, double: true } },
+  // clean through a chorus pedal, shimmering left and right: come as you are, and all of dream pop
+  'chorus-guitar': { name: 'Chorus guitar', family: 'guitar', edge: 0.2, kind: 'pluck', bright: 0.55, soft: 0.3, decay: 3.2, env: [0.002, 3, 1, 0.4], gain: 1,
+    amp: { tight: 90, curve: 'tube', gain: 1.2, presence: [3000, 2], cab: 6500, level: 0.45, chorus: [0.7, 0.0035] } },
+  // a valve amp turned up until it just breaks up: crunchy when picked hard, nearly clean when soft
+  'crunch-guitar': { name: 'Crunch guitar', family: 'guitar', edge: 0.45, kind: 'pluck', bright: 0.6, soft: 0.1, decay: 3, env: [0.002, 3, 1, 0.2], gain: 1,
+    amp: { tight: 100, curve: 'tube', gain: 4, presence: [2500, 3], cab: 5500, level: 0.36, double: true } },
+  // an overdrive pedal (a tube screamer) into a hot amp: the mids pushed before the clipping, so it
+  // sings rather than fizzes
+  'drive-guitar':  { name: 'Overdrive guitar', family: 'guitar', edge: 0.6, kind: 'pluck', bright: 0.65, soft: 0.1, decay: 3.2, env: [0.002, 3, 1, 0.18], gain: 1,
+    amp: { tight: 140, boost: [720, 6], curve: 'soft', gain: 12, presence: [2800, 2], cab: 5000, level: 0.063, double: true } },
+  // a distortion pedal (a boss ds-1, a rat): hard clipped, flatter and rawer. nirvana's chorus
+  'dist-guitar':   { name: 'Distortion guitar', family: 'guitar', edge: 0.75, kind: 'pluck', bright: 0.7, soft: 0.05, decay: 3.2, env: [0.002, 3, 1, 0.15], gain: 1,
+    amp: { tight: 110, curve: 'hard', gain: 30, mids: [700, -3], presence: [3000, 3], cab: 4500, level: 0.06, double: true } },
+  // a big muff fuzz: so much gain every note sustains, the mids scooped out and the top rolled off, so
+  // it's thick and woolly rather than sharp. the smashing pumpkins, weezer, my bloody valentine
+  'fuzz-guitar':   { name: 'Fuzz guitar', family: 'guitar', edge: 0.65, kind: 'pluck', bright: 0.6, soft: 0.1, decay: 3.5, env: [0.002, 3, 1, 0.2], gain: 1,
+    amp: { tight: 50, curve: 'soft', gain: 70, mids: [900, -9], cab: 3800, level: 0.051, double: true } },
+  // a high gain amp, metallica's and doom's: the lows cut before the clipping so a chug stays tight,
+  // then the mids scooped and the low end and bite put back after
+  'metal-guitar':  { name: 'Metal guitar', family: 'guitar', edge: 0.9, kind: 'pluck', bright: 0.75, soft: 0, decay: 3, env: [0.002, 3, 1, 0.1], gain: 1,
+    amp: { tight: 150, boost: [800, 5], curve: 'hard', gain: 90, mids: [550, -10], body: [110, 6], presence: [3500, 5], cab: 5500, level: 0.05, double: true } },
+  // fuzz on a guitar tuned way down, the speaker rolled off early: sleep, electric wizard, whirr
+  'sludge-guitar': { name: 'Sludge guitar', family: 'guitar', edge: 0.7, kind: 'pluck', bright: 0.55, soft: 0.1, decay: 4, env: [0.002, 4, 1, 0.25], gain: 1,
+    amp: { tight: 40, curve: 'soft', gain: 120, mids: [700, -6], body: [120, 6], cab: 3000, level: 0.048, double: true } },
+  // kevin shields' glide guitar: fuzz, the tremolo arm never still so whole chords warp in and out of
+  // tune, a held tone under the string so chords don't die, and reverse reverb swelling up behind
+  'glide-guitar':  { name: 'Glide guitar', family: 'guitar', edge: 0.55, kind: 'pluck', bright: 0.6, soft: 0.2, decay: 4, sustain: 0.5, env: [0.01, 3, 1, 0.5], gain: 1, vibrato: { rate: 0.6, depth: 32, delay: 0 },
+    amp: { tight: 60, curve: 'soft', gain: 40, mids: [1000, -4], cab: 3500, level: 0.038, chorus: [0.45, 0.004], reverse: 0.8 } },
 
   // bells
   bell:          { name: 'Church bell', family: 'bell', edge: 0.7, world: 'acoustic', kind: 'fm', ratio: 3.5, index: 1.7, indexDecay: 1.2, sustainIndex: 0.15, partials: [[0.5, 0.25, 3], [2.76, 0.1, 1.4]], env: [0.002, 5, 0, 2.5], gain: 0.13 },
@@ -140,6 +193,21 @@ const INSTRUMENTS = {
   accordion:     { name: 'Accordion', family: 'lead', edge: 0.4, world: 'acoustic', kind: 'sub', osc: [['pulse25', -8], ['pulse25', 8], ['sawtooth', 0, -1, 0.3]], filter: { freq: 2600, q: 0.6, track: 0.3 }, env: [0.03, 0.3, 0.9, 0.3], gain: 0.1, tremolo: { rate: 5, depth: 0.08 } },
   // 80s brass from a synth, the filter opening as each note swells (dying light, deltarune)
   'synth-brass': { name: 'Synth brass', family: 'lead', edge: 0.6, kind: 'sub', osc: [['sawtooth', -7], ['sawtooth', 7], ['pulse25', 0, -1, 0.4]], filter: { freq: 900, q: 1, env: 3, attack: 0.12, decay: 0.6, track: 0.5 }, env: [0.05, 0.4, 0.85, 0.45], scoop: 15, gain: 0.07, vibrato: { rate: 5, depth: 5, delay: 0.5 } },
+  // lead guitars, standing in for a singer: a held tone under the string so long notes sing on, some
+  // notes bent up onto, and a wide vibrato once the note has settled
+  'lead-guitar': { name: 'Lead guitar', family: 'lead', edge: 0.65, own: true, kind: 'pluck', bright: 0.7, soft: 0.1, decay: 3, sustain: 0.35, bend: 150, env: [0.003, 2, 0.9, 0.25], gain: 1, vibrato: { rate: 5.5, depth: 22, delay: 0.3 },
+    amp: { tight: 150, boost: [800, 6], curve: 'soft', gain: 25, presence: [2800, 2], cab: 4800, level: 0.065 } },
+  // shred: more gain, wider vibrato, whole tone bends (kirk hammett, dimebag, the doom solos)
+  'metal-lead':  { name: 'Metal lead', family: 'lead', edge: 0.85, own: true, kind: 'pluck', bright: 0.75, soft: 0, decay: 3, sustain: 0.4, bend: 200, env: [0.002, 2, 0.9, 0.2], gain: 1, vibrato: { rate: 6, depth: 30, delay: 0.22 },
+    amp: { tight: 200, boost: [900, 5], curve: 'hard', gain: 70, mids: [600, -5], presence: [3200, 4], cab: 5200, level: 0.055 } },
+  // a fuzz lead, thick and sustaining forever: billy corgan, j mascis
+  'fuzz-lead':   { name: 'Fuzz lead', family: 'lead', edge: 0.65, own: true, kind: 'pluck', bright: 0.6, soft: 0.1, decay: 3.5, sustain: 0.45, bend: 120, env: [0.003, 2, 0.9, 0.3], gain: 1, vibrato: { rate: 5, depth: 20, delay: 0.35 },
+    amp: { tight: 70, curve: 'soft', gain: 80, mids: [900, -6], cab: 3600, level: 0.06 } },
+  // voices with no words, for the moods whose songs would have a singer: a breathy one sung close and
+  // buried in the guitars (rachel goswell, bilinda butcher), and one rasping like it's shouting
+  // (kurt cobain, courtney love)
+  'dream-voice': { name: 'Dreamy voice', family: 'lead', edge: 0.1, own: true, kind: 'choir', vowel: 'oo', singers: [-5, 5], breath: 0.5, env: [0.12, 0.5, 0.85, 0.9], scoop: 15, gain: 0.26, vibrato: { rate: 5, depth: 10, delay: 0.4 } },
+  'rasp-voice':  { name: 'Rasping voice', family: 'lead', edge: 0.55, own: true, kind: 'choir', vowel: 'ah', singers: [0, 6], rasp: 4, breath: 0.3, env: [0.03, 0.3, 0.85, 0.3], scoop: 35, gain: 0.3, vibrato: { rate: 5.5, depth: 14, delay: 0.3 } },
 
   // basses
   'sub-bass':    { name: 'Sub bass', family: 'bass', edge: 0, kind: 'sub', osc: [['sine', 0], ['triangle', 0, 0, 0.25]], env: [0.02, 0.3, 0.9, 0.3], gain: 0.42 },
@@ -153,6 +221,13 @@ const INSTRUMENTS = {
   reese:         { name: 'Reese bass', family: 'bass', edge: 0.6, kind: 'sub', osc: [['sawtooth', -14], ['sawtooth', 14], ['sine', 0, -1, 0.6]], filter: { freq: 380, q: 1.5, lfo: [0.2, 0.35] }, env: [0.01, 0.3, 0.9, 0.15], gain: 0.12 },
   // the high, chorused post-punk bass that carries the tune as much as the root
   'chorus-bass': { name: 'Chorus bass', family: 'bass', edge: 0.35, kind: 'sub', osc: [['sawtooth', -8], ['triangle', 8], ['sine', 0, -1, 0.4]], filter: { freq: 1100, q: 0.8, env: 2, attack: 0.005, decay: 0.2, track: 0.4 }, env: [0.004, 0.5, 0.6, 0.15], gain: 0.18 },
+  // a bass played with a pick through a grinding amp, with its clean low end blended back in (dry),
+  // the way a bass rig keeps its weight: rock, punk and grunge
+  'pick-bass':   { name: 'Picked bass', family: 'bass', edge: 0.3, own: true, kind: 'pluck', bright: 0.55, soft: 0.1, decay: 1.8, env: [0.002, 1.6, 1, 0.1], gain: 1,
+    amp: { low: 35, curve: 'tube', gain: 4, presence: [1500, 3], cab: 2800, level: 0.15, dry: 0.45 } },
+  // a fuzz bass, as heavy as the guitars: sludge and nugaze
+  'fuzz-bass':   { name: 'Fuzz bass', family: 'bass', edge: 0.5, own: true, kind: 'pluck', bright: 0.5, soft: 0.1, decay: 2.2, env: [0.002, 2, 1, 0.12], gain: 1,
+    amp: { low: 35, curve: 'soft', gain: 25, mids: [600, -3], cab: 2200, level: 0.07, dry: 0.5 } },
 
   // drones
   'deep-drone':  { name: 'Deep drone', family: 'drone', edge: 0.35, kind: 'sub', osc: [['sawtooth', -10], ['sawtooth', 9], ['sine', 0, -1, 0.7]], filter: { freq: 300, q: 2 }, env: [4, 3, 0.85, 5], gain: 0.07, tremolo: { rate: 0.13, depth: 0.25 } },
@@ -198,6 +273,23 @@ const INSTRUMENTS = {
   machine: { name: 'Drum machine', family: 'kit', kind: 'drums', suits: ['groove', 'halftime', 'break', 'pulse', 'sparse', 'four', 'march'], slots: [
     { voice: 'kick', tune: 52, decay: 0.4, gain: 0.85 }, { voice: 'snare', tune: 190, tone: 1200, decay: 0.4, gain: 0.45 }, { voice: 'hat', tone: 7000, decay: 0.04, gain: 0.15 },
     { voice: 'hat', tone: 7000, decay: 0.3, gain: 0.13 }, { voice: 'rim', tune: 1300, decay: 0.04, gain: 0.22 }, { voice: 'tom', tune: 100, decay: 0.5, gain: 0.45 }] },
+  // rock kits: a ride for perc, a floor tom for low perc, and a real crash. a rock kit hit hard in a
+  // live room, its snare cracking
+  'rock-kit': { name: 'Rock kit', family: 'kit', kind: 'drums', suits: ['rock', 'punk', 'groove', 'halftime', 'breakdown', 'wash', 'march', 'sparse', 'pulse'], slots: [
+    { voice: 'kick', tune: 55, decay: 0.35, gain: 0.85, click: 0.35 }, { voice: 'snare', tune: 190, tone: 1900, decay: 0.3, gain: 0.58 }, { voice: 'hat', tone: 8000, decay: 0.04, gain: 0.2 },
+    { voice: 'hat', tone: 7500, decay: 0.35, gain: 0.17 }, { voice: 'ride', tune: 2600, tone: 6500, decay: 0.9, gain: 0.17 }, { voice: 'tom', tune: 90, decay: 0.45, gain: 0.55 },
+    { voice: 'crash', tone: 6000, decay: 1.8, gain: 0.2 }] },
+  // a metal kit: a short, clicking kick that stays clear under double kick, a tight high snare, and a
+  // trashier crash
+  'metal-kit': { name: 'Metal kit', family: 'kit', kind: 'drums', suits: ['double', 'rock', 'punk', 'breakdown', 'halftime', 'groove', 'march', 'sparse', 'pulse'], slots: [
+    { voice: 'kick', tune: 62, decay: 0.2, gain: 0.8, click: 0.7 }, { voice: 'snare', tune: 210, tone: 2400, decay: 0.22, gain: 0.58 }, { voice: 'hat', tone: 9000, decay: 0.03, gain: 0.19 },
+    { voice: 'hat', tone: 8500, decay: 0.3, gain: 0.16 }, { voice: 'ride', tune: 3000, tone: 7000, decay: 0.7, gain: 0.18 }, { voice: 'tom', tune: 85, decay: 0.4, gain: 0.55 },
+    { voice: 'crash', tone: 4800, decay: 1.4, gain: 0.22 }] },
+  // shoegaze drums: a soft kick, a snare left ringing in a big room, and cymbals washing on and on
+  'gaze-kit': { name: 'Gaze kit', family: 'kit', kind: 'drums', suits: ['wash', 'rock', 'halftime', 'groove', 'four', 'sparse', 'pulse'], slots: [
+    { voice: 'kick', tune: 50, decay: 0.4, gain: 0.8, click: 0.1 }, { voice: 'snare', tune: 175, tone: 1500, decay: 0.45, gain: 0.5 }, { voice: 'hat', tone: 6500, decay: 0.06, gain: 0.17 },
+    { voice: 'hat', tone: 6000, decay: 0.5, gain: 0.15 }, { voice: 'ride', tune: 2200, tone: 5000, decay: 1.6, gain: 0.17 }, { voice: 'tom', tune: 80, decay: 0.6, gain: 0.5 },
+    { voice: 'crash', tone: 5000, decay: 2.6, gain: 0.19 }] },
 
   // textures. they're scenery: most are now things that happen now and then with quiet in between,
   // like the vinyl's crackle, because a steady wash (the old wind) was loud and rarely added anything.
@@ -223,9 +315,11 @@ const INSTRUMENTS = {
   frogs:    { name: 'Frogs', family: 'texture', kind: 'texture', texture: 'frogs', gain: 0.8 },
   owl:      { name: 'Owl', family: 'texture', kind: 'texture', texture: 'owl', gain: 0.08 },
   chimes:   { name: 'Distant chimes', family: 'texture', kind: 'texture', texture: 'chimes', gain: 0.09 },
+  // an amp starting to feed back now and then, for the loud moods
+  feedback: { name: 'Feedback', family: 'texture', kind: 'texture', texture: 'feedback', gain: 0.04 },
 };
 // how the instrument lists are grouped on the page
-const FAMILIES = { pad: 'Pads', keys: 'Keys and mallets', bell: 'Bells', lead: 'Leads', bass: 'Basses', drone: 'Drones', kit: 'Drum kits', texture: 'Textures' };
+const FAMILIES = { pad: 'Pads', keys: 'Keys and mallets', guitar: 'Guitars', bell: 'Bells', lead: 'Leads', bass: 'Basses', drone: 'Drones', kit: 'Drum kits', texture: 'Textures' };
 
 // ---------- shared sounds ----------
 
@@ -521,22 +615,64 @@ const ENGINES = {
     }
   },
 
-  pluck(ctx, voice, inst, tone, f, midi) {
+  pluck(ctx, voice, inst, tone, f, midi, note = {}) {
+    const { when, end } = voice;
     const source = ctx.createBufferSource();
+    // a palm mute (a metal chug): the picking hand resting on the strings by the bridge, so the string
+    // dies in a moment and loses its top. through a high gain amp that's the "chug"
+    const muted = !!note.mute;
     // high strings ring for less time than low ones, as on a real harp. every note ringing just as long
     // left the top notes hanging on, thin and glassy
-    const decay = inst.decay * Math.min(2, tone.release) * Math.min(1, (330 / f) ** 0.5);
+    const decay = muted ? 0.2 : inst.decay * Math.min(2, tone.release) * Math.min(1, (330 / f) ** 0.5);
     // brightness rounded to tenths, so the strings kept per note stay few (ksBuffer's cache)
-    const bright = Math.round(Math.min(0.95, inst.bright * tone.bright * hardness(voice.vel)) * 10) / 10;
+    const bright = Math.round(Math.min(0.95, inst.bright * tone.bright * hardness(voice.vel) * (muted ? 0.6 : 1)) * 10) / 10;
     source.buffer = ksBuffer(ctx.sampleRate, midi, Math.max(0.1, bright), decay, inst.soft || 0);
-    source.detune.value = scatter(tone);
-    source.connect(voice.input);
-    source.start(voice.when);
-    source.stop(voice.end);
+    let into = voice.input;
+    if (muted) {
+      into = ctx.createBiquadFilter();
+      into.frequency.value = 900;
+      into.Q.value = 0.5;
+      into.connect(voice.input);
+    }
+    source.connect(into);
+    const strings = [source];
+    // sustain: a steady tone under the string, swelling in as the pluck dies, for guitars held longer
+    // than a string rings (an ebow, or an amp feeding back into the strings). a shoegaze chord or a
+    // lead's long note had died away before the bar was out
+    if (inst.sustain && !muted) {
+      const held = ctx.createOscillator();
+      held.type = 'sawtooth';
+      held.frequency.value = f;
+      const level = ctx.createGain();
+      level.gain.setValueAtTime(0, when);
+      level.gain.linearRampToValueAtTime(inst.sustain * 0.25, when + Math.min(0.4, voice.dur));
+      held.connect(level).connect(into);
+      strings.push(held);
+    }
+    // a bend: on some long notes a lead guitarist starts a step or so below and pushes the string up onto
+    // the note, then shakes it (vibrato, once it's there)
+    const off = scatter(tone);
+    const bend = inst.bend && voice.dur > 0.3 && Math.random() < 0.35 ? inst.bend : 0;
+    const wobble = vibrato(ctx, inst, tone, when, end);
+    for (const string of strings) {
+      string.detune.setValueAtTime(off - bend, when);
+      if (bend) string.detune.linearRampToValueAtTime(off, when + 0.12);
+      if (wobble) wobble.connect(string.detune);
+      string.start(when);
+      string.stop(end);
+    }
   },
 
   choir(ctx, voice, inst, tone, f) {
     const mix = ctx.createGain();
+    // rasp: the buzz clipped before the vowel shapes it, so the voice cracks like it's shouting
+    let into = mix;
+    if (inst.rasp) {
+      const shaper = ctx.createWaveShaper();
+      shaper.curve = shapeCurve('fuzz', inst.rasp);
+      into = ctx.createGain();
+      into.connect(shaper).connect(mix);
+    }
     for (const [freq, level] of VOWELS[inst.vowel]) {
       const band = ctx.createBiquadFilter();
       band.type = 'bandpass';
@@ -546,9 +682,15 @@ const ENGINES = {
       gain.gain.value = level;
       mix.connect(band).connect(gain).connect(voice.input);
     }
+    // breath: air through the same vowel, for a voice sung close and soft
+    if (inst.breath) {
+      const air = ctx.createGain();
+      air.gain.value = inst.breath;
+      noiseSource(ctx, voice.when, voice.end).connect(air).connect(mix);
+    }
     const wobble = vibrato(ctx, inst, tone, voice.when, voice.end);
-    // three singers, never quite together
-    for (const detune of [-9, 0, 8]) {
+    // three singers (unless it says), never quite together
+    for (const detune of inst.singers || [-9, 0, 8]) {
       const osc = ctx.createOscillator();
       osc.type = 'sawtooth';
       osc.frequency.value = f;
@@ -620,8 +762,9 @@ function metal(ctx, out, when, peak, tone, decay) {
 const DRUMS = {
   kick(ctx, out, when, vel, p) {
     toneHit(ctx, out, when, vel * p.gain, p.tune * 3.5, p.tune, 0.06, p.decay);
-    // the beater's click, so it's heard on small speakers that can't play the low thump
-    noiseHit(ctx, out, when, vel * p.gain * 0.2, 'lowpass', 3500, 0.7, 0.001, 0.012);
+    // the beater's click, so it's heard on small speakers that can't play the low thump. a metal kick
+    // clicks hard (click), or double kick blurs into a rumble
+    noiseHit(ctx, out, when, vel * p.gain * (p.click ?? 0.2), 'lowpass', 3500, 0.7, 0.001, 0.012);
   },
   // lub-dub. the dub lands a whole number of groove steps later, so it's on the grid like everything
   // else: it used to be a fixed 0.24 seconds, which fell between the steps at most tempos
@@ -643,6 +786,18 @@ const DRUMS = {
     toneHit(ctx, out, when, vel * p.gain * 0.6, p.tune * 1.28, p.tune, 0.04, 0.1, 'triangle');
   },
   hat: (ctx, out, when, vel, p) => metal(ctx, out, when, vel * p.gain, p.tone, p.decay),
+  // a crash: the metal ringing on for a second or two over a burst of bright noise, which is most of a
+  // real crash's wash
+  crash(ctx, out, when, vel, p) {
+    metal(ctx, out, when, vel * p.gain * 0.6, p.tone, p.decay);
+    noiseHit(ctx, out, when, vel * p.gain, 'highpass', p.tone * 0.7, 0.5, 0.002, p.decay * 0.8);
+  },
+  // a ride: a quieter shimmer, and the ping of the stick on it, which is in key (tune) with its octave
+  ride(ctx, out, when, vel, p) {
+    metal(ctx, out, when, vel * p.gain * 0.55, p.tone, p.decay);
+    toneHit(ctx, out, when, vel * p.gain * 0.3, p.tune, p.tune, 0.01, 0.3);
+    toneHit(ctx, out, when, vel * p.gain * 0.12, p.tune * 2, p.tune * 2, 0.01, 0.15);
+  },
   shaker: (ctx, out, when, vel, p) => noiseHit(ctx, out, when, vel * p.gain, 'bandpass', p.tone, 1.2, 0.012, p.decay),
   brush: (ctx, out, when, vel, p) => noiseHit(ctx, out, when, vel * p.gain, 'bandpass', p.tone, 0.6, 0.025, p.decay),
   rim(ctx, out, when, vel, p) {
@@ -1074,6 +1229,37 @@ const TEXTURES = {
       }
     }
   },
+  // guitar feedback somewhere in the room: now and then an amp starts to sing on its own, a high note
+  // swelling up out of nothing, wavering as it grows, then let go (nirvana, my bloody valentine). it
+  // sings the home note or fifth, two octaves or so up, through a little fuzz
+  feedback(ctx, out, when, end, bright, midi = 60) {
+    const home = homeAbove(76, midi);
+    const fuzz = ctx.createWaveShaper();
+    fuzz.curve = shapeCurve('fuzz', 3);
+    const tone = ctx.createBiquadFilter();
+    tone.frequency.value = 3500 * Math.min(1.3, bright);
+    fuzz.connect(tone).connect(out);
+    for (const at of moments(when, end, 10, 26)) {
+      const length = 2 + Math.random() * 3;
+      const stop = at + length + 0.05;
+      const osc = ctx.createOscillator();
+      osc.frequency.value = mtof(home + pickOne([0, 7, 12, 0]));
+      const shake = ctx.createOscillator();
+      shake.frequency.value = 5 + Math.random();
+      const waver = ctx.createGain();
+      waver.gain.setValueAtTime(0, at);
+      waver.gain.linearRampToValueAtTime(12, at + length * 0.7);
+      shake.connect(waver).connect(osc.detune);
+      const level = ctx.createGain();
+      level.gain.value = 0;
+      swell(level.gain, at, length * 0.75, length * 0.25, 0.9);
+      osc.connect(level).connect(spot(ctx, fuzz));
+      for (const one of [osc, shake]) {
+        one.start(at);
+        one.stop(stop);
+      }
+    }
+  },
 };
 
 function playTexture(ctx, out, inst, tone, when, dur, vel, midi) {
@@ -1107,7 +1293,148 @@ function playNote(ctx, channel, layer, note, when, secondsPerBeat) {
     return;
   }
   const f = mtof(note.midi);
-  ENGINES[inst.kind](ctx, voiceChain(ctx, channel.input, inst, layer.tone, f, when, dur, note.vel, note.pump), inst, layer.tone, f, note.midi);
+  ENGINES[inst.kind](ctx, voiceChain(ctx, channel.input, inst, layer.tone, f, when, dur, note.vel, note.pump), inst, layer.tone, f, note.midi, note);
+}
+
+// ---------- guitar rigs ----------
+//
+// a rig is pedals, an amp and a speaker cabinet, in a layer's channel so every note on the layer goes
+// through it together. that matters: a guitar's strings all go into one amp, and a chord clipped as
+// one sound growls (its notes making new ones against each other), where notes clipped one by one and
+// added up sound like several small guitars. the growl is also why rock plays power chords, a root and
+// fifth with no third to grind against them. an instrument's amp is:
+//   tight     hz cut below before the clipping (an overdrive's trick: a metal chug stays tight
+//             instead of farting out)
+//   boost     [hz, db] a mid push before the clipping, so it sings rather than fizzes
+//   curve, gain   how it clips (ampCurve) and how hard it's driven
+//   mids, presence, body   [hz, db] after the clipping: metal and fuzz scoop their mids, and put back
+//             bite (presence) and thump (body, a low shelf)
+//   cab       hz the speaker rolls the top off from, steeply as a real cabinet does: the fizz above it
+//             is what makes cheap distortion harsh
+//   low       hz the speaker rolls the lows off below (70 unless it says; a bass rig keeps 35)
+//   level     its loudness, set with tests/levels.html. dry: clean signal blended back (a bass rig)
+//   double    two takes, one a few ms behind the other with its own slow waver, panned left and right,
+//             the way rock rhythm guitars are recorded twice and spread wide
+//   chorus    [rate, depth in seconds] two wavering copies either side: the chorus pedal
+//   reverse   reverse reverb: an echo that swells up and cuts off (my bloody valentine's yamaha)
+
+// how a rig clips, its curve over -1 to 1 with the gain built in:
+//   soft   tanh, rounding off gently: overdrive, and fuzz when driven hard
+//   hard   clean until a sudden knee, then flat: a distortion pedal's diodes
+//   tube   lopsided, one half clipping before the other: a valve amp turned up, whose even harmonics
+//          are why it sounds warm
+function ampCurve(kind, gain) {
+  const key = `amp|${kind}|${gain}`;
+  if (!curves.has(key)) {
+    const curve = new Float32Array(4096);
+    const shape = {
+      soft: (x) => Math.tanh(gain * x),
+      hard: (x) => (gain * x) / (1 + Math.abs(gain * x) ** 6) ** (1 / 6),
+      tube: (x) => Math.tanh(gain * (x + 0.25)) - Math.tanh(gain * 0.25),
+    }[kind] || ((x) => Math.tanh(gain * x));
+    const top = Math.max(Math.abs(shape(1)), Math.abs(shape(-1)));
+    for (let i = 0; i < curve.length; i++) curve[i] = shape((i / (curve.length - 1)) * 2 - 1) / top;
+    curves.set(key, curve);
+  }
+  return curves.get(key);
+}
+
+// reverse reverb's impulse: noise rising for half a second, then cut dead. kept per context
+const reverseImpulses = new WeakMap();
+function reverseImpulse(ctx) {
+  if (!reverseImpulses.has(ctx)) {
+    const length = Math.floor(ctx.sampleRate * 0.5);
+    const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
+    for (let channel = 0; channel < 2; channel++) {
+      const data = buffer.getChannelData(channel);
+      let low = 0;
+      for (let i = 0; i < length; i++) {
+        low += (Math.random() * 2 - 1 - low) * 0.3;
+        data[i] = low * (i / length) ** 2;
+      }
+    }
+    reverseImpulses.set(ctx, buffer);
+  }
+  return reverseImpulses.get(ctx);
+}
+
+// a rig from an instrument's amp: { input, output, stop() }. stop ends its wavering oscillators
+function ampChain(ctx, amp) {
+  const input = ctx.createGain();
+  const output = ctx.createGain();
+  const running = [];
+  let at = input;
+  const filter = (type, freq, q, db = 0) => {
+    const one = ctx.createBiquadFilter();
+    one.type = type;
+    one.frequency.value = freq;
+    one.Q.value = q;
+    one.gain.value = db;
+    at.connect(one);
+    at = one;
+  };
+  // a delay line wavering slowly, panned: the second take of a double track, or one side of a chorus
+  const wavering = (from, time, depth, rate, pan, level) => {
+    const delay = ctx.createDelay(0.1);
+    delay.delayTime.value = time;
+    const osc = ctx.createOscillator();
+    osc.frequency.value = rate;
+    const amount = ctx.createGain();
+    amount.gain.value = depth;
+    osc.connect(amount).connect(delay.delayTime);
+    osc.start(ctx.currentTime);
+    running.push(osc);
+    const gain = ctx.createGain();
+    gain.gain.value = level;
+    from.connect(delay).connect(gain).connect(new StereoPannerNode(ctx, { pan })).connect(output);
+  };
+  if (amp.tight) filter('highpass', amp.tight, 0.7);
+  if (amp.boost) filter('peaking', amp.boost[0], 0.8, amp.boost[1]);
+  if (amp.gain) {
+    // a little under 1 going in, so a chord's notes added up drive it about as hard as the gain says.
+    // oversampled, or the clipping's new harmonics fold back down as a whine
+    filter('lowpass', 12000, 0.5);
+    const drive = ctx.createGain();
+    drive.gain.value = 0.6;
+    const shaper = ctx.createWaveShaper();
+    shaper.curve = ampCurve(amp.curve, amp.gain);
+    shaper.oversample = '4x';
+    at.connect(drive).connect(shaper);
+    at = shaper;
+  }
+  if (amp.mids) filter('peaking', amp.mids[0], 0.9, amp.mids[1]);
+  if (amp.presence) filter('peaking', amp.presence[0], 1, amp.presence[1]);
+  if (amp.body) filter('lowshelf', amp.body[0], 0.7, amp.body[1]);
+  if (amp.cab) {
+    filter('lowpass', amp.cab, 0.8);
+    filter('lowpass', amp.cab * 1.3, 0.6);
+  }
+  filter('highpass', amp.low || 70, 0.6);
+  const mix = ctx.createGain();
+  mix.gain.value = amp.level;
+  at.connect(mix);
+  if (amp.dry) {
+    const dry = ctx.createGain();
+    dry.gain.value = amp.dry / amp.level;
+    input.connect(dry).connect(mix);
+  }
+  if (amp.double) {
+    mix.connect(new StereoPannerNode(ctx, { pan: -0.75 })).connect(output);
+    wavering(mix, 0.013, 0.0006, 0.31, 0.75, 1);
+  } else if (amp.chorus) {
+    const [rate, depth] = amp.chorus;
+    mix.connect(output);
+    wavering(mix, 0.008, depth, rate, -0.8, 0.6);
+    wavering(mix, 0.011, depth, rate * 1.13, 0.8, 0.6);
+  } else mix.connect(output);
+  if (amp.reverse) {
+    const verb = ctx.createConvolver();
+    verb.buffer = reverseImpulse(ctx);
+    const gain = ctx.createGain();
+    gain.gain.value = amp.reverse;
+    mix.connect(verb).connect(gain).connect(output);
+  }
+  return { input, output, stop: () => running.forEach((osc) => osc.stop()) };
 }
 
 // ---------- the room ----------
@@ -1231,23 +1558,48 @@ function applySpace(g, fx, tempo) {
   g.ready = true;
 }
 
-// a layer's channel: volume, pan, and how much goes to the reverb and the echo
+// a layer's channel: notes go into input, then through its instrument's rig if it has one (setChannel),
+// then volume, pan, and how much goes to the reverb and the echo. the rig comes before the volume, so
+// turning a guitar down doesn't drive its amp any less
 function makeChannel(g) {
   const { ctx } = g;
-  const channel = { input: ctx.createGain(), pan: ctx.createStereoPanner(), reverb: ctx.createGain(), echo: ctx.createGain() };
-  channel.input.connect(channel.pan);
+  const channel = { ctx, input: ctx.createGain(), volume: ctx.createGain(), pan: ctx.createStereoPanner(), reverb: ctx.createGain(), echo: ctx.createGain() };
+  channel.volume.connect(channel.pan);
   channel.pan.connect(g.bus);
   channel.pan.connect(channel.reverb).connect(g.reverbIn);
   channel.pan.connect(channel.echo).connect(g.echoIn);
   return channel;
 }
+// plugs the layer's instrument's rig in (or none), when the instrument's changed
+function wireRig(channel, instrument) {
+  if (channel.rigFor === instrument) return;
+  channel.rigFor = instrument;
+  channel.input.disconnect();
+  channel.rig?.output.disconnect();
+  channel.rig?.stop();
+  const amp = INSTRUMENTS[instrument]?.amp;
+  channel.rig = amp ? ampChain(channel.ctx, amp) : null;
+  if (channel.rig) {
+    channel.input.connect(channel.rig.input);
+    channel.rig.output.connect(channel.volume);
+  } else channel.input.connect(channel.volume);
+}
 const audible = (song, layer) => (song.layers.some((other) => other.solo) ? layer.solo : !layer.mute);
 function setChannel(channel, song, layer, now, glide) {
+  wireRig(channel, layer.instrument);
   const set = (param, value) => (glide ? param.setTargetAtTime(value, now, 0.02) : param.setValueAtTime(value, now));
-  set(channel.input.gain, audible(song, layer) ? layer.volume ** 2 * 1.6 : 0);
+  set(channel.volume.gain, audible(song, layer) ? layer.volume ** 2 * 1.6 : 0);
   set(channel.pan.pan, layer.pan);
   set(channel.reverb.gain, layer.reverb);
   set(channel.echo.gain, layer.echo);
+}
+// a channel finished with: silent, and its rig's oscillators stopped
+function closeChannel(channel, now) {
+  channel.volume.gain.setTargetAtTime(0, now, 0.02);
+  setTimeout(() => {
+    channel.input.disconnect();
+    channel.rig?.stop();
+  }, 300);
 }
 
 // ---------- playing ----------
@@ -1378,17 +1730,18 @@ class MusicPlayer {
     const channel = makeChannel(this.graph);
     setChannel(channel, song, { ...layer, mute: false, solo: true }, this.ctx.currentTime, false);
     for (const midi of midis) playNote(this.ctx, channel, layer, { midi, dur: beats, vel: 0.75 }, this.ctx.currentTime + 0.02, 60 / song.tempo);
+    setTimeout(() => closeChannel(channel, this.ctx.currentTime), (beats * 60 / song.tempo + 4) * 1000);
   }
 
-  // cut: fade everything out now. otherwise notes already sent play out
+  // cut: fade everything out now. otherwise notes already sent play out, and the channels close once
+  // they've rung away
   stop(cut = true) {
     clearInterval(this.timer);
-    if (this.playing && cut) {
-      const now = this.ctx.currentTime;
-      for (const channel of Object.values(this.channels)) {
-        channel.input.gain.setTargetAtTime(0, now, 0.02);
-        setTimeout(() => channel.input.disconnect(), 300);
-      }
+    if (this.playing) {
+      const channels = Object.values(this.channels);
+      const close = () => channels.forEach((channel) => closeChannel(channel, this.ctx.currentTime));
+      if (cut) close();
+      else setTimeout(close, 8000);
     }
     this.playing = false;
   }

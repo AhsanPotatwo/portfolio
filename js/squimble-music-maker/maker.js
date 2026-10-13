@@ -173,16 +173,25 @@
     renderLibrary();
   });
 
+  // the moods in their rows (MOOD_GROUPS): gentle, bright, dark, loud and hazy
   const moodKeys = $('#mmMoods');
-  for (const [id, mood] of Object.entries(MOODS)) {
-    const button = key(mood.name, `${mood.name}: the same seed as this song, written in this mood`, () => {
-      remember();
-      open(generateSong(id, mood.style, song.seed));
-    }, 'mm-mood');
-    button.dataset.mood = id;
-    button.style.setProperty('--c', mood.colour);
-    button.style.setProperty('--c-ink', inkOn(mood.colour));
-    moodKeys.append(button);
+  for (const group of MOOD_GROUPS) {
+    const row = make('div', 'mm-mood-group');
+    row.setAttribute('role', 'group');
+    row.setAttribute('aria-label', `${group} moods`);
+    const keys = make('div', 'mm-mood-keys');
+    row.append(make('h3', '', group), keys);
+    for (const [id, mood] of Object.entries(MOODS).filter(([, one]) => one.group === group)) {
+      const button = key(mood.name, `${mood.name}: the same seed as this song, written in this mood`, () => {
+        remember();
+        open(generateSong(id, mood.style, song.seed));
+      }, 'mm-mood');
+      button.dataset.mood = id;
+      button.style.setProperty('--c', mood.colour);
+      button.style.setProperty('--c-ink', inkOn(mood.colour));
+      keys.append(button);
+    }
+    moodKeys.append(row);
   }
   for (const button of document.querySelectorAll('[data-style]')) {
     button.addEventListener('click', () => {
@@ -237,7 +246,7 @@
     if (document.activeElement !== seedField) seedField.value = song.seed;
     $('#mmUndo').disabled = !undo.length;
     $('#mmRedo').disabled = !redo.length;
-    for (const button of moodKeys.children) button.setAttribute('aria-pressed', button.dataset.mood === song.mood);
+    for (const button of moodKeys.querySelectorAll('.mm-mood')) button.setAttribute('aria-pressed', button.dataset.mood === song.mood);
     for (const button of document.querySelectorAll('[data-style]')) button.setAttribute('aria-pressed', button.dataset.style === song.style);
     const colour = MOODS[song.mood].colour;
     document.body.style.setProperty('--mm-mood', colour);
@@ -280,7 +289,10 @@
   // where each layer's notes sit in its lane: its lowest and highest notes
   function laneY(layer, range, midi, top) {
     const room = LANE - 11;
-    if (layer.role === 'drums') return top + 5 + ((5 - midi) / 5) * room;
+    if (layer.role === 'drums') {
+      const last = (INSTRUMENTS[layer.instrument]?.slots?.length || 6) - 1;
+      return top + 5 + ((last - midi) / last) * room;
+    }
     const [low, high] = range;
     return top + 5 + (high === low ? 0.5 : (high - midi) / (high - low)) * room;
   }
@@ -786,7 +798,8 @@
     const notes = comp.notes.filter((note) => note.layer === layer.id && note.gt >= sec.start - 1e-6 && note.gt < sec.end - 1e-6);
     const scalePcs = new Set(SCALES[song.scale].steps.map((n) => (song.key + n) % 12));
     let rows;
-    if (drums) rows = [5, 4, 3, 2, 1, 0];
+    // a rock kit has a seventh drum, its crash
+    if (drums) rows = (INSTRUMENTS[layer.instrument]?.slots || KIT_SLOTS.slice(0, 6)).map((_, i) => i).reverse();
     else {
       const center = ROLES[layer.role].center + layer.octave * 12;
       let low = center - 10;
