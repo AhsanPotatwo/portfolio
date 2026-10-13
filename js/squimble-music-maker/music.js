@@ -101,14 +101,63 @@ const clamp01 = (n) => Math.min(1, Math.max(0, n));
 const mod12 = (n) => ((n % 12) + 12) % 12;
 const clone = (thing) => JSON.parse(JSON.stringify(thing));
 
-// seeds are two words, which also make the song's first name
+// seeds are two words, which also make the song's first name. squimble quest is a child's dream,
+// so the words come from every world it could wander into. one row per world, so a new world is a new row
 const SEED_WORDS = [
-  ['mossy', 'amber', 'quiet', 'hollow', 'silver', 'drowsy', 'copper', 'misty', 'wandering', 'paper',
+  [
+    'mossy', 'amber', 'quiet', 'hollow', 'silver', 'drowsy', 'copper', 'misty', 'wandering', 'paper',
     'velvet', 'frozen', 'sunken', 'golden', 'little', 'crooked', 'distant', 'gentle', 'rusty', 'hidden',
-    'lonely', 'starlit', 'smoky', 'tiny', 'ancient', 'sleepy', 'restless', 'pale', 'stormy', 'woolly'],
-  ['lantern', 'meadow', 'harbour', 'burrow', 'comet', 'orchard', 'tide', 'ember', 'willow', 'cavern',
+    'lonely', 'starlit', 'smoky', 'tiny', 'ancient', 'sleepy', 'restless', 'pale', 'stormy', 'woolly',
+    'dreamy', 'snoozy', 'yawning', 'sleepwalking', 'fuzzy', 'twinkly', 'whispering', 'upside', 'giggling', // dreams
+    'neon', 'chrome', 'laser', 'turbo', 'quantum', 'atomic', 'glitchy', 'robotic', 'hologram', 'bleeping', // the future
+    'dusty', 'rootin', 'outlaw', 'tumbleweed', 'rattlesnake', 'bandit', 'rodeo', 'galloping', 'sheriff', // wild west
+    'shambling', 'undead', 'mouldy', 'groaning', 'creaky', 'haunted', 'spooky', 'ghostly', 'skeletal', // zombies and ghosts
+    'ferny', 'leafy', 'twiggy', 'brambly', 'toadstool', 'acorny', 'barky', 'dewy', // the forest
+    'scrappy', 'scorched', 'wrecked', 'salvaged', 'glowing', 'junkyard', 'radioactive', 'busted', // the wasteland
+    'snowy', 'frosty', 'blizzard', 'shivering', 'chilly', 'glacial', 'icicle', 'mittened', // snowland
+    'molten', 'sizzling', 'fiery', 'smouldering', 'blazing', 'volcanic', 'cinder', 'erupting', 'burpy', // lava and volcanoes
+    'sandy', 'sunbaked', 'parched', 'mirage', 'scorpion', 'pharaoh', 'shimmering', 'dune', // the desert
+    'salty', 'barnacle', 'scurvy', 'swashbuckling', 'cursed', 'jolly', 'briny', 'peglegged', 'plundered', // pirates
+    'bubbly', 'coral', 'soggy', 'drippy', 'abyssal', 'snorkelling', 'glowfish', // under the sea
+    'cosmic', 'lunar', 'starry', 'orbiting', 'galactic', 'alien', 'nebula', 'zerogravity', // outer space
+    'sugary', 'gumdrop', 'fizzy', 'sticky', 'lollipop', 'candied', 'frosted', 'jammy', 'sprinkled', // candy land
+    'prehistoric', 'stompy', 'jurassic', 'fossil', 'roaring', 'primordial', // dinosaurs
+    'clockwork', 'brass', 'ticking', 'steamy', 'cogwork', 'whirring', // clockwork and steam
+    'cloudy', 'floating', 'windy', 'feathery', 'rainbow', 'drifting', // the sky
+    'tin', 'windup', 'patchwork', 'rubber', 'button', 'stitched', 'squeaky', // the toybox
+    'royal', 'enchanted', 'knightly', 'noble', 'jousting', 'wizardly', 'moonlit', // castles and magic
+    'wonky', 'stripy', 'juggling', 'tumbling', 'bonkers', 'loopy', // the circus
+    'sneaky', 'shadowy', 'silent', 'bamboo', 'paperlantern', // ninjas
+    'squishy', 'gloopy', 'zany', 'kooky', 'wibbly', 'wobbly', 'peculiar', 'grumpy', 'cheeky', 'dizzy', // just silly
+    'jiggly', 'hiccuping', 'sneezing', 'ticklish', 'bumbling', 'rumbling', 'tumbledown', 'higgledy', 'noodly', 'wiggly',
+  ],
+  [
+    'lantern', 'meadow', 'harbour', 'burrow', 'comet', 'orchard', 'tide', 'ember', 'willow', 'cavern',
     'chapel', 'garden', 'lighthouse', 'puddle', 'marsh', 'kettle', 'attic', 'glade', 'ridge', 'moth',
-    'pond', 'shrine', 'tower', 'river', 'acorn', 'thicket', 'well', 'moon', 'hearth', 'squimble'],
+    'pond', 'shrine', 'tower', 'river', 'acorn', 'thicket', 'well', 'moon', 'hearth', 'squimble',
+    'pillow', 'nightlight', 'blanketfort', 'slumber', 'lullaby', 'sandman', 'daydream', 'bedtime', 'pyjamas', // dreams
+    'robot', 'spaceport', 'hoverboard', 'cyborg', 'android', 'mainframe', 'rocket', 'megacity', 'monorail', 'teleporter', // the future
+    'saloon', 'cowpoke', 'canyon', 'stagecoach', 'ranch', 'mesa', 'gulch', 'corral', 'lasso', 'prospector', 'goldmine', // wild west
+    'zombie', 'graveyard', 'crypt', 'ghoul', 'skeleton', 'bunker', 'tombstone', 'mummy', 'brains', 'werewolf', // zombies and ghosts
+    'fern', 'bramble', 'badger', 'hedgehog', 'woodland', 'treehouse', 'mushroom', 'pinecone', 'owl', // the forest
+    'scrapheap', 'wasteland', 'rustbucket', 'wreck', 'outpost', 'scavenger', 'jalopy', // the wasteland
+    'igloo', 'glacier', 'snowman', 'yeti', 'penguin', 'tundra', 'avalanche', 'sleigh', 'mitten', 'snowglobe', // snowland
+    'volcano', 'caldera', 'magma', 'crater', 'geyser', 'forge', 'salamander', 'furnace', 'lavalamp', // lava and volcanoes
+    'oasis', 'pyramid', 'sphinx', 'cactus', 'camel', 'sandstorm', 'caravan', 'sarcophagus', // the desert
+    'galleon', 'parrot', 'kraken', 'treasure', 'plank', 'cutlass', 'cove', 'shipwreck', 'doubloon', 'crowsnest', 'buccaneer', // pirates
+    'reef', 'jellyfish', 'submarine', 'octopus', 'seahorse', 'abyss', 'atlantis', 'mermaid', 'lagoon', // under the sea
+    'asteroid', 'galaxy', 'planet', 'ufo', 'moonbase', 'stardust', 'blackhole', 'spacesuit', // outer space
+    'cupcake', 'gingerbread', 'jellybean', 'marshmallow', 'toffee', 'pudding', 'sundae', 'custard', 'gobstopper', // candy land
+    'dinosaur', 'raptor', 'swamp', 'pterodactyl', 'triceratops', 'tarpit', 'egg', // dinosaurs
+    'clocktower', 'cog', 'gizmo', 'zeppelin', 'airship', 'contraption', 'automaton', // clockwork and steam
+    'cloud', 'kite', 'balloon', 'beanstalk', 'windmill', 'skyship', // the sky
+    'toybox', 'teddy', 'marionette', 'puppet', 'nutcracker', 'yoyo', 'marble', 'dollhouse', // the toybox
+    'castle', 'dragon', 'knight', 'wizard', 'goblin', 'troll', 'dungeon', 'drawbridge', 'unicorn', 'potion', 'cauldron', 'griffin', // castles and magic
+    'circus', 'carousel', 'clown', 'juggler', 'trapeze', 'funfair', 'rollercoaster', // the circus
+    'dojo', 'ninja', 'samurai', 'pagoda', 'shuriken', // ninjas
+    'noodle', 'waffle', 'sock', 'spoon', 'pickle', 'whatsit', 'doohickey', 'kerfuffle', 'hullabaloo', 'shenanigans', // just silly
+    'jamboree', 'thingamajig', 'gubbins', 'wobble', 'bonanza', 'rumpus',
+  ],
 ];
 const newSeed = (rng) => `${rng.pick(SEED_WORDS[0])}-${rng.pick(SEED_WORDS[1])}`;
 const seedTitle = (seed) => String(seed).replace(/[-_]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()).trim() || 'Untitled';
