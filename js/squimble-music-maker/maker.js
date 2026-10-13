@@ -33,6 +33,8 @@
   const fileName = (name) => name.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9_-]/g, '') || 'song';
   const noteName = (midi) => `${NOTE_NAMES[midi % 12]}${Math.floor(midi / 12) - 1}`;
   const randomRng = () => makeRng(Math.random(), Date.now());
+  // the pitches a note bends through (note.bend, its pins), for drawing it
+  const bendPitches = (note) => (note.bend || []).map(([, semitones]) => note.midi + semitones);
 
   const player = new MusicPlayer();
   let song;
@@ -48,6 +50,9 @@
   let scoreDirty = true;
   let editorScroll = 0;
   let editor = null;
+  // the note editor's tool (note, slide or shake) and how fast a drawn slide goes (quick, half, whole)
+  let tool = 'note';
+  let slideSpeed = 'quick';
 
   // ---------- changes ----------
 
@@ -154,7 +159,7 @@
     const seed = seedField.value.trim().slice(0, 60);
     if (!seed || seed === song.seed) return;
     remember();
-    open(generateSong(song.mood, song.style, seed, song.blend));
+    open(generateSong(song.mood, song.style, seed, song.mods));
     say(`"${seed}" in ${MOODS[song.mood].name.toLowerCase()}.`);
   };
   seedField.addEventListener('change', useSeed);
@@ -162,7 +167,7 @@
 
   $('#mmNew').addEventListener('click', () => {
     remember();
-    open(generateSong(song.mood, song.style, newSeed(randomRng()), song.blend));
+    open(generateSong(song.mood, song.style, newSeed(randomRng()), song.mods));
   });
   $('#mmUndo').addEventListener('click', () => step(undo, redo));
   $('#mmRedo').addEventListener('click', () => step(redo, undo));
@@ -188,38 +193,42 @@
     button.dataset.group = group;
     groupKeys.append(button);
   }
-  // a fight stays a fight, and the blend stays, when the mood changes. otherwise a mood brings its own
-  // style, the one it was made for
+  // a fight stays a fight, and the modifiers stay, when the mood changes. otherwise a mood brings its
+  // own style, the one it was made for
   for (const [id, mood] of Object.entries(MOODS)) {
     const button = key(mood.name, `${mood.name}: the same seed as this song, written in this mood`, () => {
       remember();
-      open(generateSong(id, FIGHTS[song.style] ? song.style : mood.style, song.seed, song.blend));
+      open(generateSong(id, FIGHTS[song.style] ? song.style : mood.style, song.seed, song.mods));
     }, 'mm-mood');
     button.dataset.mood = id;
     button.style.setProperty('--c', mood.colour);
     button.style.setProperty('--c-ink', inkOn(mood.colour));
     moodKeys.append(button);
   }
-  const blendMenu = $('#mmBlend');
-  blendMenu.append(new Option('Nothing', ''));
-  for (const group of MOOD_GROUPS) {
-    const options = make('optgroup');
-    options.label = group;
-    for (const [id, mood] of Object.entries(MOODS).filter(([, one]) => one.group === group)) options.append(new Option(mood.name, id));
-    blendMenu.append(options);
+  // the modifiers (MODIFIERS in music.js): words that change how the mood plays, a key each, lit while
+  // it's on. turning one on turns its opposite off (calm and angry, fast and slow), and the song is
+  // written again from the same seed with them, so adding fast gives the same song, faster, as near as
+  // it can. they replaced the old blend menu, which mixed a second mood's band in
+  const modKeys = $('#mmMods');
+  const modName = (id) => MODIFIERS[id].name.toLowerCase();
+  for (const [id, mod] of Object.entries(MODIFIERS)) {
+    const button = key(mod.name, mod.tip, () => {
+      const on = song.mods || [];
+      const next = on.includes(id) ? on.filter((one) => one !== id) : [...on.filter((one) => one !== mod.against), id];
+      if (next.length > MOST_MODS) return say(`That's ${MOST_MODS} modifiers, the most a song can have. Turn one off first.`);
+      remember();
+      open(generateSong(song.mood, song.style, song.seed, next));
+      const words = (song.mods || []).map(modName);
+      say(words.length ? `${MOODS[song.mood].name}, ${words.join(', ')}.` : `Just ${MOODS[song.mood].name.toLowerCase()}.`);
+    }, 'mm-key-small mm-key-line mm-mod');
+    button.dataset.mod = id;
+    modKeys.append(button);
   }
-  blendMenu.addEventListener('change', () => {
-    // read before remember(), which redraws the menu with the song's old blend
-    const blend = blendMenu.value;
-    remember();
-    open(generateSong(song.mood, song.style, song.seed, blend));
-    say(song.blend ? `${MOODS[song.mood].name} with a little ${MOODS[song.blend].name.toLowerCase()} in it.` : `Just ${MOODS[song.mood].name.toLowerCase()}.`);
-  });
   for (const button of document.querySelectorAll('[data-style]')) {
     button.addEventListener('click', () => {
       if (song.style === button.dataset.style) return;
       remember();
-      open(generateSong(song.mood, button.dataset.style, song.seed, song.blend));
+      open(generateSong(song.mood, button.dataset.style, song.seed, song.mods));
     });
   }
 
@@ -271,7 +280,7 @@
     for (const button of moodKeys.children) button.setAttribute('aria-pressed', button.dataset.mood === song.mood);
     if (shownMood !== song.mood) showGroup(MOODS[song.mood].group);
     shownMood = song.mood;
-    blendMenu.value = song.blend || '';
+    for (const button of modKeys.children) button.setAttribute('aria-pressed', !!song.mods?.includes(button.dataset.mod));
     for (const button of document.querySelectorAll('[data-style]')) button.setAttribute('aria-pressed', button.dataset.style === song.style);
     const colour = MOODS[song.mood].colour;
     document.body.style.setProperty('--mm-mood', colour);
@@ -391,8 +400,10 @@
       let low = Infinity;
       let high = -Infinity;
       for (const note of notes) {
-        low = Math.min(low, note.midi);
-        high = Math.max(high, note.midi);
+        for (const midi of [note.midi, ...bendPitches(note)]) {
+          low = Math.min(low, midi);
+          high = Math.max(high, midi);
+        }
       }
       ranges[layer.id] = [low, high];
       g.fillStyle = colour;
@@ -402,7 +413,18 @@
       } else {
         for (const note of notes) {
           const nx = x(note.t);
-          g.fillRect(nx, laneY(layer, ranges[layer.id], note.midi, top), Math.max(1.5, x(note.t + note.dur) - nx - 0.5), 3);
+          const nw = Math.max(1.5, x(note.t + note.dur) - nx - 0.5);
+          // a slide or bend is a line following its pitch from the note's start (only where it's wide
+          // enough to see), the rest of the note at the pitch it ends on
+          if (note.bend && nw > 6) {
+            g.strokeStyle = colour;
+            g.lineWidth = 2;
+            g.beginPath();
+            g.moveTo(nx, laneY(layer, ranges[layer.id], note.midi + note.bend[0][1], top) + 1.5);
+            for (const [at, semitones] of note.bend) g.lineTo(x(note.t + Math.min(at, note.dur)), laneY(layer, ranges[layer.id], note.midi + semitones, top) + 1.5);
+            g.lineTo(nx + nw, laneY(layer, ranges[layer.id], note.midi + note.bend[note.bend.length - 1][1], top) + 1.5);
+            g.stroke();
+          } else g.fillRect(nx, laneY(layer, ranges[layer.id], note.midi, top), nw, 3);
         }
       }
       g.globalAlpha = 1;
@@ -812,14 +834,36 @@
     if (changes) {
       head.append(key('Undo my changes', `Put part ${editPart} back to the notes it was written with`, edit(() => { delete layer.edits[editPart]; }), 'mm-key-small mm-key-line'));
     }
-    box.append(head, make('p', 'mm-hint', 'Click to add a note and drag to make it longer. Click a note to remove it. Shaded rows are in the chord playing there. Click a note name to hear it.'));
+    const drums = layer.role === 'drums';
+    // the tools: plain notes, slides and vibrato (a drum can't slide, so the drums only get notes).
+    // a slide's speed is how much of the note it takes to get there
+    const tools = make('div', 'mm-editor-tools');
+    if (!drums) {
+      tools.append(choices([
+        ['note', 'Notes', 'Notes: click to add a note and drag to make it longer, click a note to remove it'],
+        ['slide', 'Slides', 'Slides: drag from where a note starts to where it ends up, up or down, and it slides from one pitch to the other (D# up to E, say)'],
+        ['shake', 'Vibrato', 'Vibrato: click a note to give it a wide vibrato (or take it off), like a guitarist shaking a held string. Drag to draw a new note with it'],
+      ], () => tool, (value) => { tool = value; renderPanel(); }, 'Tool'));
+      if (tool === 'slide') {
+        tools.append(choices([
+          ['quick', 'Quick', 'Quick: it slides in a sixteenth, then holds the new pitch, like a flick up to the note'],
+          ['half', 'Half way', 'Half way: it slides over the first half of the note, then holds'],
+          ['whole', 'The whole note', 'The whole note: it slides the whole time, arriving as the note ends'],
+        ], () => slideSpeed, (value) => { slideSpeed = value; renderPanel(); }, 'Slide speed'));
+      }
+    }
+    const HINTS = {
+      note: 'Click to add a note and drag to make it longer. Click a note to remove it. Shaded rows are in the chord playing there. Click a note name to hear it.',
+      slide: 'Drag from a note\'s start to where it should end up: across for how long, up or down for the pitch it slides to. Click a note to remove it.',
+      shake: 'Click a note to give it vibrato, or click it again to take it off. Drag on an empty spot to draw a new note with vibrato.',
+    };
+    box.append(head, tools, make('p', 'mm-hint', HINTS[drums ? 'note' : tool]));
 
     const sec = comp.sections.find((one) => one.part === editPart && one.play.includes(layer.id));
     const grid = comp.step;
     const steps = Math.round(sec.beats / grid);
     const STEP = 15;
     const ROW = 13;
-    const drums = layer.role === 'drums';
     const notes = comp.notes.filter((note) => note.layer === layer.id && note.gt >= sec.start - 1e-6 && note.gt < sec.end - 1e-6);
     const scalePcs = new Set(SCALES[song.scale].steps.map((n) => (song.key + n) % 12));
     let rows;
@@ -829,12 +873,14 @@
       const center = ROLES[layer.role].center + layer.octave * 12;
       let low = center - 10;
       let high = center + 12;
-      for (const note of notes) {
-        low = Math.min(low, note.midi - 2);
-        high = Math.max(high, note.midi + 2);
+      // (and every pitch a note bends through, so a slide's end has a row to be drawn on)
+      const pitches = notes.flatMap((note) => [note.midi, ...bendPitches(note)]);
+      for (const midi of pitches) {
+        low = Math.min(low, midi - 2);
+        high = Math.max(high, midi + 2);
       }
       rows = [];
-      const present = new Set(notes.map((note) => note.midi));
+      const present = new Set(pitches);
       for (let midi = Math.min(127, high); midi >= Math.max(0, low); midi--) if (scalePcs.has(midi % 12) || present.has(midi)) rows.push(midi);
     }
     const width = steps * STEP;
@@ -873,6 +919,15 @@
     });
 
     const rowOf = (midi) => rows.indexOf(midi);
+    // where a pitch sits down the grid, between two rows if it isn't one of them (a slide passes
+    // through notes that aren't in the scale)
+    const yOf = (pitch) => {
+      for (let i = 0; i < rows.length - 1; i++) {
+        if (pitch <= rows[i] && pitch >= rows[i + 1]) return (i + (rows[i] - pitch) / (rows[i] - rows[i + 1])) * ROW + ROW / 2;
+      }
+      return pitch > rows[0] ? ROW / 2 : (rows.length - 0.5) * ROW;
+    };
+    const xOf = (t) => ((t - sec.start) / grid) * STEP;
     let drag = null;
     const colour = ROLES[layer.role].colour;
     const draw = () => {
@@ -889,8 +944,8 @@
         });
         g.fillStyle = 'rgba(126, 108, 196, 0.13)';
         for (const chord of sec.chords) {
-          const x0 = ((chord.t - sec.start) / grid) * STEP;
-          const x1 = ((chord.t + chord.dur - sec.start) / grid) * STEP;
+          const x0 = xOf(chord.t);
+          const x1 = xOf(chord.t + chord.dur);
           rows.forEach((row, i) => { if (chord.pcs.has(row % 12)) g.fillRect(x0, i * ROW, x1 - x0, ROW); });
         }
       }
@@ -905,27 +960,64 @@
         g.fillStyle = 'rgba(44, 39, 33, 0.06)';
         g.fillRect(0, i * ROW, width, 1);
       }
-      const block = (t, dur, row, added) => {
-        const i = rowOf(row);
+      // a note: its block on its starting pitch, outlined if you added it, then the line its pitch
+      // follows if it slides or bends, and a wiggle along its top if it has vibrato
+      const block = (note) => {
+        const i = rowOf(note.midi);
         if (i < 0) return;
-        const x = ((t - sec.start) / grid) * STEP;
+        const dur = drums ? grid : note.dur;
+        const x = xOf(note.gt);
         const w = Math.max(4, (dur / grid) * STEP - 1);
         g.fillStyle = colour;
         g.fillRect(x + 1, i * ROW + 2, w - 1, ROW - 3);
-        if (added) {
+        if (note.added) {
           g.strokeStyle = INK;
           g.lineWidth = 1.5;
           g.strokeRect(x + 1.75, i * ROW + 2.75, w - 2.5, ROW - 4.5);
         }
+        if (note.bend) {
+          g.strokeStyle = INK;
+          g.lineWidth = 1.5;
+          g.beginPath();
+          g.moveTo(x + 1, yOf(note.midi + note.bend[0][1]));
+          for (const [at, semitones] of note.bend) g.lineTo(xOf(note.gt + Math.min(at, dur)), yOf(note.midi + semitones));
+          g.lineTo(x + w, yOf(note.midi + note.bend[note.bend.length - 1][1]));
+          g.stroke();
+        }
+        if (note.shake) {
+          g.strokeStyle = INK;
+          g.lineWidth = 1;
+          g.beginPath();
+          for (let dx = 2, up = true; dx < w - 1; dx += 3, up = !up) g[dx === 2 ? 'moveTo' : 'lineTo'](x + dx, i * ROW + (up ? 1 : 4));
+          g.stroke();
+        }
       };
-      for (const note of notes) block(note.gt, drums ? grid : note.dur, note.midi, note.added);
-      if (drag) block(sec.start + Math.min(drag.from, drag.to) * grid, (Math.abs(drag.to - drag.from) + 1) * grid, drag.row, true);
+      for (const note of notes) block(note);
+      if (drag) block(dragNote(drag));
       const at = player.playing ? player.position() : null;
       if (at !== null && at >= sec.start && at < sec.end) {
         g.fillStyle = INK;
-        g.fillRect(((at - sec.start) / grid) * STEP - 1, 0, 2, height);
+        g.fillRect(xOf(at) - 1, 0, 2, height);
       }
     };
+
+    // what's being drawn, as a note: its start and length from the drag, a slide to where the pointer
+    // is if it's the slide tool (taking as long as the slide speed says), vibrato if it's the vibrato tool
+    const SHAKE = 22;
+    const dragNote = (one) => {
+      const length = drums ? grid : (one.to - one.from + 1) * grid;
+      const note = { gt: sec.start + one.from * grid, dur: length, midi: one.row, added: true, entry: [+(one.from * grid).toFixed(3), one.row, length] };
+      if (!drums && tool === 'slide' && one.toRow !== one.row) {
+        const glide = +{ quick: Math.min(grid, length), half: length / 2, whole: length }[slideSpeed].toFixed(3);
+        note.bend = [[0, 0], [glide, one.toRow - one.row]];
+        note.entry.push(one.toRow, glide);
+      } else if (!drums && tool === 'shake') {
+        note.shake = SHAKE;
+        note.entry.push(one.row, 0, SHAKE);
+      }
+      return note;
+    };
+
     draw();
     editor.draw = draw;
 
@@ -942,30 +1034,48 @@
       remember();
       const changes = (layer.edits[editPart] ||= { add: [], remove: [] });
       if (hit) {
-        const relative = hit.gt - sec.start;
-        if (hit.added) changes.add = changes.add.filter(([at, midi]) => !(Math.abs(at - relative) < 1e-3 && midi === hit.midi));
+        const relative = +(hit.gt - sec.start).toFixed(3);
+        const mine = hit.added && changes.add.find(([at, midi]) => Math.abs(at - relative) < 1e-3 && midi === hit.midi);
+        if (tool === 'shake' && !drums) {
+          // vibrato on or off. a note you added just gets it (or loses it); a written one becomes one of
+          // yours: it's taken out (by the pitch it was written at, the same as removing it) and the same
+          // note's added back with vibrato
+          if (mine) {
+            const [at, midi, dur, to = midi, glide = 0] = mine;
+            changes.add[changes.add.indexOf(mine)] = hit.shake ? (to !== midi ? [at, midi, dur, to, glide] : [at, midi, dur]) : [at, midi, dur, to, glide, SHAKE];
+          } else if (!hit.added) {
+            changes.remove.push(editKey(relative, hit.written ?? hit.midi));
+            changes.add.push([relative, hit.midi, +hit.dur.toFixed(3), hit.midi, 0, SHAKE]);
+          }
+          changed(false);
+          return;
+        }
+        if (mine) changes.add = changes.add.filter((one) => one !== mine);
         // a note the band moved (listen in music.js) is still known by the pitch it was written at
         else changes.remove.push(editKey(relative, hit.written ?? hit.midi));
         changed(false);
         return;
       }
-      drag = { from: stepAt, to: stepAt, row };
+      drag = { from: stepAt, to: stepAt, row, toRow: row };
       canvas.setPointerCapture(event.pointerId);
       draw();
     });
     canvas.addEventListener('pointermove', (event) => {
       if (!drag) return;
-      drag.to = Math.max(drag.from, place(event).stepAt);
+      const at = place(event);
+      drag.to = Math.max(drag.from, at.stepAt);
+      drag.toRow = at.row;
       draw();
     });
     canvas.addEventListener('pointerup', () => {
       if (!drag) return;
       const changes = (layer.edits[editPart] ||= { add: [], remove: [] });
-      const relative = +(drag.from * grid).toFixed(3);
-      changes.add.push([relative, drag.row, drums ? grid : (drag.to - drag.from + 1) * grid]);
+      const note = dragNote(drag);
+      changes.add.push(note.entry);
       // a note added where a written one had been removed shouldn't stay removed
-      changes.remove = changes.remove.filter((one) => one !== editKey(relative, drag.row));
-      player.audition(song, layer, [drag.row], drums ? 1 : (drag.to - drag.from + 1) * grid);
+      changes.remove = changes.remove.filter((one) => one !== editKey(note.entry[0], drag.row));
+      // hear it as it'll play, slide and all
+      player.audition(song, layer, [drag.row], drums ? 1 : note.dur, { bend: note.bend, shake: note.shake });
       drag = null;
       changed(false);
     });
@@ -1025,6 +1135,25 @@
       );
       bars.firstChild.setAttribute('aria-label', 'One bar shorter');
       bars.lastChild.setAttribute('aria-label', 'One bar longer');
+      // how hard it's played (section.energy, feel() in music.js): the band plays a quiet section softer
+      // and swells up into a louder one
+      const loudness = make('div', 'mm-slider mm-section-loud');
+      const loud = make('input');
+      loudness.append(loud);
+      const fill = () => loud.style.setProperty('--fill', `${loud.value * 100}%`);
+      Object.assign(loud, { type: 'range', min: 0, max: 1, step: 0.05, value: one.energy ?? 0.75 });
+      loud.setAttribute('aria-label', `How hard ${one.name} is played`);
+      loud.dataset.tip = 'Loudness: how hard the band plays here. Softer for an intro or a break, harder for a chorus. It swells up into a louder section';
+      let moving = false;
+      loud.addEventListener('input', () => {
+        if (!moving) remember();
+        moving = true;
+        one.energy = +loud.value;
+        fill();
+        soon();
+      });
+      loud.addEventListener('change', () => { moving = false; });
+      fill();
       const tools = make('div', 'mm-section-tools');
       const move = (by) => edit(() => {
         const [taken] = song.sections.splice(index, 1);
@@ -1046,7 +1175,7 @@
         tool('→', 'Move it later', move(1), index === song.sections.length - 1),
         tool('×', 'Remove it', edit(() => song.sections.splice(index, 1)), song.sections.length === 1),
       );
-      cell.append(name, part, lead, bars, tools);
+      cell.append(name, part, lead, bars, loudness, tools);
       headRow.append(cell);
     });
     const thead = make('thead');
@@ -1134,7 +1263,7 @@
       chip.style.background = MOODS[saved.mood].colour;
       const openKey = make('button', 'mm-library-name');
       openKey.type = 'button';
-      openKey.append(make('span', '', name), make('small', '', `${MOODS[saved.mood].name}${saved.blend ? ` + ${MOODS[saved.blend].name}` : ''} ${STYLES[saved.style].toLowerCase()} · ${NOTE_NAMES[saved.key]} ${SCALES[saved.scale].name.toLowerCase()} · ${saved.tempo} bpm`));
+      openKey.append(make('span', '', name), make('small', '', `${MOODS[saved.mood].name}${saved.mods ? ` (${saved.mods.map(modName).join(', ')})` : ''} ${STYLES[saved.style].toLowerCase()} · ${NOTE_NAMES[saved.key]} ${SCALES[saved.scale].name.toLowerCase()} · ${saved.tempo} bpm`));
       openKey.addEventListener('click', () => {
         remember();
         open(saved);

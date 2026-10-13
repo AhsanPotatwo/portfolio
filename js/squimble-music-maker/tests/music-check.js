@@ -10,8 +10,12 @@
 // real instruments, and the loud and hazy moods' rules (only their own instruments, one guitar a
 // section in loud, quiet, loud, power chords of a root and fifth, riffs that repeat in key with the
 // bass doubling them, solos over the chorus, and no drum a kit doesn't have).
-// fights always have a tune, a bass and a beat, drive, aren't swung and loop, and a blend only lends
-// the tune its instruments and leaves no trace on a song without one.
+// fights always have a tune, a bass and a beat, drive, aren't swung and loop. modifiers keep the
+// mood's own band, clean up (no opposites, no unknowns, any order), and leave no trace on a song
+// without them. counter melodies in counterpoint stay under the tune and in the intervals that blend,
+// players ornament their notes, slides drawn by hand save and play, and sections keep their energy.
+// (double stops, notes marked stop, are a second note under the tune on purpose, so the one note at a
+// time checks leave them out)
 // run it with
 // node js/squimble-music-maker/tests/music-check.js (no output means it all passed).
 //
@@ -52,7 +56,7 @@ for (const mood of Object.keys(MOODS)) {
         assert(note.dur > 0 && note.midi >= 0 && note.midi <= 127 && note.vel > 0 && note.vel <= 1, `${where}: a sensible note`);
       }
       // the theory: melody notes on strong beats should mostly be chord notes
-      for (const note of comp.notes.filter((n) => n.layer === 'melody')) {
+      for (const note of comp.notes.filter((n) => n.layer === 'melody' && !n.stop)) {
         const section = comp.sections.find((s) => note.gt >= s.start && note.gt < s.end);
         const inBar = (note.gt - section.start) % comp.bpb;
         if (Math.abs(inBar) > 1e-6) continue;
@@ -161,10 +165,10 @@ for (const mood of Object.keys(MOODS)) {
         // fragments leave two bars of space at most
         const allowed = { calls: comp.bpb / 2 + 0.05, fragments: comp.bpb * 2 + 0.05 }[melody.pattern] || 1;
         // one note at a time: a note left ringing ran over the next section's first
-        const all = comp.notes.filter((note) => note.layer === 'melody').sort((a, b) => a.gt - b.gt);
+        const all = comp.notes.filter((note) => note.layer === 'melody' && !note.stop).sort((a, b) => a.gt - b.gt);
         for (let i = 1; i < all.length; i++) assert(all[i - 1].gt + all[i - 1].dur <= all[i].gt + 1e-6, `${where}: melody notes overlap at beat ${all[i].gt}`);
         for (const section of comp.sections) {
-          const notes = comp.notes.filter((note) => note.layer === 'melody' && note.gt >= section.start && note.gt < section.end).sort((a, b) => a.gt - b.gt);
+          const notes = comp.notes.filter((note) => note.layer === 'melody' && !note.stop && note.gt >= section.start && note.gt < section.end).sort((a, b) => a.gt - b.gt);
           // and one note at a time: two starting together was a stray blip clashing with the tune
           for (let i = 1; i < notes.length; i++) assert(notes[i].gt - notes[i - 1].gt > 1e-6, `${where}: two melody notes start together at beat ${notes[i].gt}`);
           for (let i = 1; i < notes.length; i++) assert(notes[i].gt - (notes[i - 1].gt + notes[i - 1].dur) <= allowed, `${where}: a gap of ${(notes[i].gt - notes[i - 1].gt - notes[i - 1].dur).toFixed(2)} beats in the ${melody.pattern} melody`);
@@ -218,7 +222,7 @@ for (const mood of Object.keys(MOODS)) {
       }
       // the band listens (listen in music.js): keys, arps and counter melodies stay under the tune,
       // and nothing rubs a semitone against a longer melody note it's heard with
-      const tune = comp.notes.filter((n) => n.layer === 'melody');
+      const tune = comp.notes.filter((n) => n.layer === 'melody' && !n.stop);
       if (tune.length) {
         const rubs = (a, b) => ((Math.max(a, b) - Math.min(a, b)) % 12) === 1;
         for (const layer of song.layers.filter((l) => ['keys', 'pad', 'arp', 'bells', 'counter'].includes(l.role))) {
@@ -330,49 +334,165 @@ assert(soloBars > 200 && soloNew / soloBars > 0.9, `solos are new all the way th
   for (const one of RIFFS) assert.strictEqual(one.cells.length, 16, `the riff ${one.cells} is a bar long`);
 }
 
-// fights (the boss and mini boss styles) and blends (song.blend, mixMood in music.js)
+/// fights (the boss and mini boss styles) and modifiers (song.mods, MODIFIERS and mixMood in music.js)
 {
-  const { STYLE_PATTERNS, FORMS } = vm.runInContext('({ STYLE_PATTERNS, FORMS })', page);
+  const { STYLE_PATTERNS, FORMS, MODIFIERS, ALSO_DRIVING, cleanMods } = vm.runInContext('({ STYLE_PATTERNS, FORMS, MODIFIERS, ALSO_DRIVING, cleanMods })', page);
   const ids = Object.keys(MOODS);
+  const mods = Object.keys(MODIFIERS);
   for (const [i, mood] of ids.entries()) {
     for (const style of ['mini', 'boss']) {
       for (let n = 0; n < 4; n++) {
-        // every mood as a fight, plain and blended with another
-        const blend = n % 2 ? ids[(i * 7 + n) % ids.length] : '';
-        const song = generateSong(mood, style, `fight-${n}`, blend);
-        const where = `${mood}${blend ? `+${blend}` : ''} ${style} fight-${n}`;
-        // a fight always has its tune, a bass and a beat, isn't swung, and is no slower than the mood's tune
+        // every mood as a fight, plain and with a modifier
+        const mod = n % 2 ? [mods[(i * 7 + n) % mods.length]] : [];
+        const song = generateSong(mood, style, `fight-${n}`, mod);
+        const where = `${mood}${mod.length ? `+${mod}` : ''} ${style} fight-${n}`;
+        // a fight always has its tune, a bass and a beat, isn't swung, and (unless it's been slowed) is
+        // no slower than the mood's tune
         for (const role of ['melody', 'bass', 'drums']) assert(song.layers.some((l) => l.role === role), `${where}: a fight has a ${role}`);
         assert.strictEqual(song.swing, 0, `${where}: a fight isn't swung`);
         const bpm = song.meter === '6/8' ? song.tempo / 0.65 : song.tempo;
-        assert(bpm >= MOODS[mood].tuneTempo[0] - 1, `${where}: a fight is no slower than the mood's tune (${song.tempo})`);
-        // it drives: its drums play one of a fight's beats where its kit can, and it loops without an outro
+        if (!mod.length) assert(bpm >= MOODS[mood].tuneTempo[0] - 1, `${where}: a fight is no slower than the mood's tune (${song.tempo})`);
+        // it drives: its drums play one of a fight's beats where its kit can (or one of the newer driving
+        // beats that's the mood's own), and it loops without an outro
         const drums = song.layers.find((l) => l.role === 'drums');
-        if (INSTRUMENTS[drums.instrument].suits.some((p) => STYLE_PATTERNS.boss.drums.includes(p))) assert(STYLE_PATTERNS.boss.drums.includes(drums.pattern), `${where}: the drums drive (${drums.pattern})`);
+        const own = songMood(song).patterns?.drums || [];
+        if (INSTRUMENTS[drums.instrument].suits.some((p) => STYLE_PATTERNS.boss.drums.includes(p))) assert(STYLE_PATTERNS.boss.drums.includes(drums.pattern) || (ALSO_DRIVING.includes(drums.pattern) && own.includes(drums.pattern)), `${where}: the drums drive (${drums.pattern})`);
         assert(!song.sections.some((s) => s.name === 'Outro'), `${where}: a fight loops, it doesn't wind down`);
-        // a blend only lends the tune's instruments: the band (pads, bass, guitars, drums) is the mood's own
-        if (blend) {
-          assert.strictEqual(song.blend, blend === mood ? undefined : blend, `${where}: the blend is kept`);
-          for (const layer of song.layers.filter((l) => ['pad', 'bass', 'guitar', 'drone'].includes(l.role))) {
-            const list = (layer.id === 'guitar-2' && MOODS[mood].quiet) || MOODS[mood].palette[layer.role] || [];
-            assert(list.includes(layer.instrument) || kindred(MOODS[mood]).has(layer.instrument) || !list.length, `${where}: the ${layer.id} is the mood's, not the blend's`);
-          }
-        }
         same(cleanSong(JSON.parse(JSON.stringify(song))), song, `${where}: saves and loads back the same`);
         composeSong(song);
       }
     }
   }
-  // a song without a blend has no blend key at all (so it saves exactly as before), and a blend of a
-  // mood with itself is no blend
-  assert(!('blend' in generateSong('calm', 'tune', 'b')), 'no blend key without a blend');
-  assert(!('blend' in generateSong('calm', 'tune', 'b', 'calm')), 'a mood blended with itself is no blend');
-  assert(!('blend' in cleanSong({ mood: 'metal', blend: 'nonsense' })), 'a blend that isn\'t a mood is dropped');
-  // the blend's scale leads: the desert's phrygian dominant over a metal band most of the time
-  let desert = 0;
-  for (let n = 0; n < 40; n++) if (['phrygianDominant', 'harmonicMinor', 'hungarianMinor'].includes(generateSong('metal', 'boss', `scourge-${n}`, 'desert').scale)) desert++;
-  assert(desert > 24, `a desert blend sounds of the desert (${desert} of 40)`);
   for (const style of ['mini', 'boss']) for (const form of FORMS[style]) assert(form.every(([, , bars]) => bars >= 2), `${style} forms are whole sections`);
+
+  // every modifier on every mood, in every style: a good song, the band still fitting together
+  for (const mood of ids) {
+    for (const [k, mod] of mods.entries()) {
+      const style = ['ambient', 'tune', 'tune', 'boss'][k % 4];
+      const song = generateSong(mood, style, `mod-${k}`, [mod]);
+      const where = `${mood}+${mod} ${style}`;
+      assert(song.layers.length >= 1 && song.layers.length <= 7, `${where}: 1 to 7 layers`);
+      same(song.mods, [mod], `${where}: the modifier is kept`);
+      same(song, generateSong(mood, style, `mod-${k}`, [mod]), `${where}: the same seed makes the same song`);
+      const sm = songMood(song);
+      const tonal = song.layers.filter((l) => roleFamily(l.role) === 'tonal');
+      assert.strictEqual(new Set(tonal.map((l) => l.instrument)).size, tonal.length, `${where}: no two layers on the same instrument`);
+      const worlds = new Set(song.layers.map((l) => INSTRUMENTS[l.instrument].world));
+      assert(!(worlds.has('chip') && worlds.has('acoustic')), `${where}: chip and acoustic sounds in one band`);
+      // the words that only change how the band plays (not lo-fi, retro, acoustic, epic, jazzy or
+      // spooky, which swap sounds in on purpose) keep to the mood's own instruments, or ones from moods
+      // like it: angry folk is still a folk band
+      if (['calm', 'angry', 'fast', 'slow', 'dark', 'bright', 'sparse', 'lush', 'groovy', 'dreamy'].includes(mod)) {
+        for (const layer of tonal.filter((l) => l.role !== 'pad')) {
+          const list = (layer.id === 'guitar-2' && MOODS[mood].quiet) || MOODS[mood].palette[layer.role] || [];
+          assert(list.includes(layer.instrument) || kindred(MOODS[mood]).has(layer.instrument) || kindred(sm).has(layer.instrument) || !list.length, `${where}: the ${layer.id} (${layer.instrument}) isn't the mood's`);
+        }
+      }
+      const comp = composeSong(song);
+      assert(comp.notes.length > 0, `${where}: makes notes`);
+      for (const note of comp.notes) assert(Number.isFinite(note.t) && note.dur > 0 && note.vel > 0 && note.vel <= 1, `${where}: a sensible note`);
+    }
+  }
+  // modifiers are cleaned up: unknown ones dropped, each once, never with their opposite (the earlier
+  // in MODIFIERS wins), at most four, and the order they're given in doesn't matter
+  same(cleanMods(['fast', 'nonsense', 'fast', 'calm']), ['calm', 'fast'], 'modifiers cleaned');
+  // (given both, the one earlier in MODIFIERS wins, so the order they came in still doesn't matter. the
+  // page turns the opposite off when you pick one, so it never sends both)
+  same(cleanMods(['angry', 'calm']), ['calm'], 'opposites: calm and angry can\'t both be on');
+  same(cleanMods(['calm', 'angry']), ['calm'], 'opposites in either order');
+  assert(cleanMods(mods).length <= 4, 'at most four modifiers');
+  same(generateSong('folk', 'tune', 'o', ['fast', 'jazzy']), generateSong('folk', 'tune', 'o', ['jazzy', 'fast']), 'modifier order doesn\'t matter');
+  // a song without modifiers has no mods key at all, so it saves exactly as before, and an old song's
+  // blend is let go of cleanly
+  assert(!('mods' in generateSong('calm', 'tune', 'b')), 'no mods key without modifiers');
+  assert(!('blend' in cleanSong({ mood: 'metal', blend: 'desert' })), 'old blends are dropped');
+  // angry and dark really are darker: a happy song made angry is nearly always in a minor-ish mode,
+  // and its chords moved with it (no major I chord under a dorian or minor tune)
+  let darker = 0;
+  for (let n = 0; n < 40; n++) {
+    const song = generateSong('happy', 'tune', `grr-${n}`, ['angry']);
+    if (['dorian', 'minor', 'phrygian', 'minorPentatonic', 'blues'].includes(song.scale)) darker++;
+  }
+  assert(darker > 30, `angry makes a happy song darker (${darker} of 40)`);
+  // fast is faster and slow is slower, for the same seed
+  const plain = generateSong('cozy', 'tune', 'tempo');
+  assert(generateSong('cozy', 'tune', 'tempo', ['fast']).tempo > plain.tempo && generateSong('cozy', 'tune', 'tempo', ['slow']).tempo < plain.tempo, 'fast and slow change the tempo');
+}
+
+// counterpoint: a second melody (the counter melody's "counterpoint" pattern) stays under the tune and
+// on its strong beats blends with it (a third, sixth, fifth or octave)
+{
+  let strong = 0;
+  let blends = 0;
+  let checked = 0;
+  for (const mood of ['happy', 'jazz', 'showdown', 'wintry', 'cozy', 'lounge', 'heroic']) {
+    for (let n = 0; n < 8; n++) {
+      const song = generateSong(mood, 'tune', `cp-${n}`);
+      const counter = song.layers.find((l) => l.role === 'counter');
+      const melody = song.layers.find((l) => l.role === 'melody');
+      if (!counter || !melody) continue;
+      counter.pattern = 'counterpoint';
+      const comp = composeSong(cleanSong(song));
+      const tune = comp.notes.filter((n) => n.layer === melody.id && !n.stop);
+      for (const note of comp.notes.filter((n) => n.layer === counter.id && !n.stop)) {
+        const section = comp.sections.find((s) => note.gt < s.end - 1e-6);
+        if (section.lead) continue;
+        const over = tune.find((m) => m.gt <= note.gt + 1e-6 && note.gt < m.gt + m.dur - 1e-6);
+        if (!over) continue;
+        checked++;
+        assert(note.midi <= over.midi, `${mood} cp-${n}: the second melody climbs over the tune at beat ${note.gt}`);
+        if (Math.abs(note.gt - Math.round(note.gt)) > 1e-6 || Math.round(note.gt - section.start) % comp.bpb) continue;
+        strong++;
+        if ([0, 3, 4, 7, 8, 9].includes((over.midi - note.midi) % 12)) blends++;
+      }
+    }
+  }
+  assert(checked > 300 && blends / strong > 0.8, `a second melody blends with the tune on strong beats (${blends} of ${strong})`);
+}
+
+// ornaments: the players that ornament do (bends on their notes), the ones that don't (a piano)
+// don't, every bend starts at the note and stays within an octave, and a plucked drone is plucked round
+// and round rather than held
+{
+  let bent = 0;
+  for (const mood of ['raga', 'blues', 'country', 'jazz', 'folk', 'desert', 'metal']) {
+    for (let n = 0; n < 4; n++) {
+      const song = generateSong(mood, 'tune', `orn-${n}`);
+      const comp = composeSong(song);
+      for (const note of comp.notes.filter((one) => one.bend)) {
+        const layer = song.layers.find((l) => l.id === note.layer);
+        assert(INSTRUMENTS[layer.instrument].ornaments || note.added, `${mood} orn-${n}: the ${layer.instrument} was given an ornament it doesn't play`);
+        assert(note.bend.every(([at, semitones]) => at >= 0 && Math.abs(semitones) <= 12), `${mood} orn-${n}: a bend out of range`);
+        bent++;
+      }
+      for (const layer of song.layers.filter((l) => l.role === 'drone' && INSTRUMENTS[l.instrument].kind === 'pluck')) assert.strictEqual(layer.pattern, 'cycle', `${mood} orn-${n}: the tanpura is plucked round and round`);
+    }
+  }
+  assert(bent > 100, `players ornament their notes (${bent} bends)`);
+  // every instrument's ornaments are ones the composer knows, and every struck one has its modes
+  const KNOWN = ['slide', 'bend', 'bendBy', 'grace', 'trill', 'fall', 'shake', 'stop', 'glide'];
+  for (const [id, inst] of Object.entries(INSTRUMENTS)) {
+    for (const key of Object.keys(inst.ornaments || {})) assert(KNOWN.includes(key), `${id} has an ornament called ${key}`);
+    if (inst.kind === 'modal') assert(inst.modes?.length, `${id} is struck but has no modes`);
+  }
+}
+
+// a slide and a shake drawn in the note editor (edits.add [beat, midi, length, to, glide, shake]) save,
+// load and play as a bent note, and plain notes stay three numbers long
+{
+  const song = generateSong('calm', 'tune', 'slide-0');
+  const layer = song.layers.find((l) => l.role === 'melody');
+  layer.edits.A = { add: [[0, 63, 2, 64, 0.25, 20], [2, 60, 1]], remove: [] };
+  const clean = cleanSong(JSON.parse(JSON.stringify(song)));
+  same(clean.layers.find((l) => l.id === layer.id).edits.A.add, [[0, 63, 2, 64, 0.25, 20], [2, 60, 1]], 'slides save and load');
+  const comp = composeSong(clean);
+  const slid = comp.notes.find((n) => n.layer === layer.id && n.added && n.midi === 63);
+  same(slid.bend, [[0, 0], [0.25, 1]], 'a drawn slide plays as a bend');
+  assert.strictEqual(slid.shake, 20, 'a drawn shake plays');
+  // sections keep their energy (how hard they're played), and songs from before it have none
+  const energetic = generateSong('happy', 'tune', 'energy');
+  assert(energetic.sections.every((s) => typeof s.energy === 'number'), 'sections have an energy');
+  assert(!('energy' in cleanSong({ sections: [{ name: 'A', part: 'A', bars: 4, play: [] }] }).sections[0]), 'old sections stay as they were');
 }
 
 // a note the band moved can still be removed by hand: the page removes it by the pitch it was written at

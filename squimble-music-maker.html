@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Squimble Music Maker — Ahsan</title>
   <meta name="description"
-    content="Squimble Music Maker: music that writes itself from a seed word, using music theory rather than AI. Pick a mood and a style, from ambient to boss fights, blend in a second mood, then change the chords, instruments, melodies and arrangement, and download it as a WAV.">
+    content="Squimble Music Maker: music that writes itself from a seed word, using music theory rather than AI. Pick a mood and a style, from ambient to boss fights, twist it with modifiers like calm, fast or jazzy, then change the chords, instruments, melodies (slides and all) and arrangement, and download it as a WAV.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -87,13 +87,14 @@
         <div class="mm-mood-bar">
           <!-- filled in: a key per row of moods, which shows that row -->
           <div class="mm-mood-groups" id="mmMoodGroups" role="group" aria-label="Kinds of mood"></div>
-          <label class="mm-blend" data-tip="Blend in: a second mood for flavour, its scale, the instruments playing its tune and its scenery. The first mood keeps the band. Metal with Desert is a desert boss, Breakbeat with Wintry an ice one">
-            <span>Blend in</span>
-            <select id="mmBlend" class="mm-select mm-select-small"></select>
-          </label>
         </div>
         <!-- filled in: a key per mood -->
         <div class="mm-moods" id="mmMoods" role="group" aria-label="Mood"></div>
+        <!-- filled in: a key per modifier (MODIFIERS in music.js), each lit while it's on -->
+        <div class="mm-mods-row">
+          <span class="mm-mods-label" data-tip="Modifiers: words that change how the mood plays. Calm folk, angry folk, fast jazzy folk. The mood keeps its own band, the modifiers change how it plays. Up to four at once">Modifiers</span>
+          <div class="mm-mods" id="mmMods" role="group" aria-label="Modifiers"></div>
+        </div>
       </div>
 
       <div class="mm-transport">

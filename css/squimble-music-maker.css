@@ -167,12 +167,10 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-moods-wrap{ padding:18px 20px 4px; }
 .mm-row-head{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 12px; margin-bottom:12px; }
 .mm-style{ display:flex; flex-wrap:wrap; gap:6px; }
-/* the rows of moods as keys, one row's moods shown at a time, and the blend menu beside them */
+/* the rows of moods as keys, one row's moods shown at a time */
 .mm-mood-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin-bottom:12px; }
 .mm-mood-groups{ display:flex; flex-wrap:wrap; gap:6px 5px; }
 .mm-group[aria-pressed="true"]{ background:var(--mm-paper); color:var(--mm-paper-ink); box-shadow:none; }
-.mm-blend{ display:flex; align-items:center; gap:8px; margin-left:auto; }
-.mm-blend span{ font:700 10px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); white-space:nowrap; }
 .mm-moods{ display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:9px 7px; }
 .mm-mood{ justify-content:flex-start; padding:0 10px; }
 .mm-mood::before{ content:""; width:10px; height:10px; border-radius:2px; background:var(--c); flex:none; }
@@ -182,6 +180,11 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   box-shadow:0 3px 0 color-mix(in srgb, var(--c) 50%, #000);
 }
 .mm-mood[aria-pressed="true"]::before{ background:var(--c-ink); }
+/* the modifiers under the moods: small outlined keys that light up in the mood's colour while on */
+.mm-mods-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:14px 0 12px; }
+.mm-mods-label{ font:700 10px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); white-space:nowrap; }
+.mm-mods{ display:flex; flex-wrap:wrap; gap:6px 5px; }
+.mm-mod[aria-pressed="true"]{ box-shadow:none; }
 
 /* transport */
 .mm-transport{
@@ -423,6 +426,8 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-editor{ margin-top:4px; }
 .mm-editor-head{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; }
 .mm-editor-head .mm-section-title{ flex:1 1 140px; margin:0; }
+/* the note editor's tools (notes, slides, vibrato) and the slide speed, under its head */
+.mm-editor-tools{ display:flex; flex-wrap:wrap; align-items:center; gap:0 14px; margin-top:4px; }
 .mm-editor .mm-hint{ margin:4px 0 10px; }
 .mm-editor-body{
   display:flex;
@@ -447,6 +452,8 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-arrange .mm-select{ width:100%; }
 .mm-bars{ display:flex; align-items:center; gap:6px; }
 .mm-bars span{ flex:1; text-align:center; font:500 12.5px var(--mm-mono); }
+/* a section's loudness: a slider on its own, without the label and readout a settings slider has */
+.mm-slider.mm-section-loud{ display:block; }
 .mm-section-tools{ display:flex; gap:4px; }
 .mm-section-tools .mm-key{ flex:1; min-width:0; font-size:13px; }
 .mm-arrange-layer{ white-space:nowrap; padding-right:8px; font-size:14px; }
@@ -546,8 +553,6 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   .mm-moods{ grid-template-columns:repeat(auto-fill,minmax(98px,1fr)); }
   .mm-style{ width:100%; }
   .mm-style .mm-key{ flex:1; padding:0 6px; }
-  .mm-blend{ margin-left:0; width:100%; }
-  .mm-blend select{ flex:1; max-width:none; }
   .mm-score-wrap{ margin:0 14px; }
   .mm-tabs{ padding:0 14px; }
   .mm-tab{ flex:1; padding:10px 6px; font-size:14px; }
