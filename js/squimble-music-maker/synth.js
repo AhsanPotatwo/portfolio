@@ -74,7 +74,9 @@
 // grunge voice turning up as a happy song's tune). a kit or texture that's own is never borrowed by a
 // mood that has none of its own (the death whistle in a disco song).
 // home: the note a singer (or a didgeridoo) was recorded near. their part sits round it, one note at a
-// time, instead of round their role's usual note (the drone composer in music.js).
+// time, instead of round their role's usual note (the drone composer in music.js). sung: a voice
+// recording that glides from note to note through a phrase instead of starting again each note
+// (singLine).
 //
 // ---------- the room ----------
 //
@@ -474,10 +476,10 @@ const INSTRUMENTS = {
   // holds one note near their own (home, see the drone composer in music.js), not a chord. the recordings
   // are a tuvan sygyt (whistling) and a mongolian khoomei; the synthesised version is a voice through a
   // narrow vowel that whistles one overtone
-  'throat-singing': { name: 'Throat singing', family: 'drone', edge: 0.3, world: 'acoustic', own: true, kind: 'choir', vowel: 'khoomei', singers: [0], breath: 0.1, home: 56, env: [0.8, 1, 0.9, 2], drift: 3, gain: 0.19, samples: 'sygyt', sampled: { name: 'Sygyt (Alfonso Pérez)', gain: 0.16, reach: 12 }, more: { khoomei: { name: 'Khoomei (nemaavla)', gain: 0.25, reach: 12 } } },
+  'throat-singing': { name: 'Throat singing', family: 'drone', edge: 0.3, world: 'acoustic', own: true, kind: 'choir', vowel: 'khoomei', singers: [0], breath: 0.1, home: 56, sung: true, env: [0.8, 1, 0.9, 2], drift: 3, gain: 0.19, samples: 'sygyt', sampled: { name: 'Sygyt (Alfonso Pérez)', gain: 0.22, reach: 12 }, more: { khoomei: { name: 'Khoomei (nemaavla)', gain: 0.35, reach: 12 } } },
   // kargyraa, the low style: the false vocal folds flap at half the voice's speed, so it growls an
   // octave under the note it's singing, with the overtones above it
-  kargyraa:      { name: 'Throat singing, low', family: 'drone', edge: 0.35, world: 'acoustic', own: true, kind: 'choir', vowel: 'ah', singers: [0], breath: 0.15, home: 39, env: [0.8, 1, 0.9, 2], drift: 3, gain: 0.68, samples: 'kargyraa', sampled: { name: 'Kargyraa (Alfonso Pérez)', gain: 0.41, reach: 12 } },
+  kargyraa:      { name: 'Throat singing, low', family: 'drone', edge: 0.35, world: 'acoustic', own: true, kind: 'choir', vowel: 'ah', singers: [0], breath: 0.15, home: 39, sung: true, env: [0.8, 1, 0.9, 2], drift: 3, gain: 0.68, samples: 'kargyraa', sampled: { name: 'Kargyraa (Alfonso Pérez)', gain: 0.41, reach: 12 } },
   // a didgeridoo: lips buzzing into a hollowed out branch, one deep note whose sound is shaped by the
   // mouth (the filter opening and closing) and breathed round and round without a break
   didgeridoo:    { name: 'Didgeridoo', family: 'drone', edge: 0.3, world: 'acoustic', own: true, kind: 'sub', osc: [['sawtooth', 0], ['square', 0, 0, 0.3]], breath: 0.1, filter: { freq: 450, q: 5, lfo: [0.6, 0.5] }, home: 37, env: [0.3, 0.5, 0.9, 0.8], drift: 2, gain: 0.061, samples: 'didgeridoo', sampled: { gain: 1.1, reach: 12 } },
@@ -2333,11 +2335,75 @@ function playNote(ctx, channel, layer, note, when, secondsPerBeat) {
     return;
   }
   const f = mtof(note.midi);
-  // the recording, if it's loaded (recorded())
-  const played = recorded(inst, note.midi, layer.recording) || inst;
+  // the recording, if it's loaded (recorded()). a sung one is the singer's voice however far it's
+  // moved, so it never swaps to the synthesised version part way through a phrase
+  const played = recorded(inst, inst.sung ? undefined : note.midi, layer.recording) || inst;
+  if (inst.sung && played.kind === 'sample' && !note.stop) {
+    singLine(ctx, channel, played, layer.tone, note, when, dur, secondsPerBeat);
+    return;
+  }
   const voice = voiceChain(ctx, channel.input, played, layer.tone, f, when, dur, note.vel, note, (restrikes.get(note) ?? Infinity) * secondsPerBeat);
   voice.pitch = pitchMods(ctx, played, layer.tone, note, when, voice.end, secondsPerBeat);
   ENGINES[played.kind](ctx, voice, played, layer.tone, f, note.midi, note);
+}
+
+// a sung line (sung on an instrument: the throat singers). a recording of a voice started again on
+// every note is a fresh breath and a fresh attack every note, which sounds like a sampler, not a
+// singer. so a layer's channel keeps one voice going through a phrase: its first note starts the
+// recording, and each note joined on after it (starting within a moment of the last one's end) bends
+// that same recording to the new pitch, gliding there the way a voice does, and carries its loudness
+// across. a note sung again on the same pitch dips a little and comes back, as a singer re-voices it.
+// the notes come one at a time (the live player sends them a moment ahead), so each note plans the
+// voice's ending, and the next one, if it joins on, takes that ending back
+const GLIDE = 0.09;
+const JOINED = 0.12;
+function singLine(ctx, channel, inst, tone, note, when, dur, spb) {
+  const set = sampleSet(inst.samples);
+  const last = channel.voice;
+  const joined = last && last.inst === inst && when >= last.start && Math.abs(when - last.off) < JOINED;
+  const peak = inst.gain * note.vel;
+  let voice = last;
+  let cents;
+  if (!joined) {
+    const take = pickTake(set.notes, note.midi, note.vel);
+    const source = ctx.createBufferSource();
+    source.buffer = take.buffer;
+    if (take.loop) {
+      source.loop = true;
+      [source.loopStart, source.loopEnd] = take.loop;
+    }
+    const amp = ctx.createGain();
+    cents = (note.midi - take.midi) * 100 + (take.tune || 0);
+    source.detune.setValueAtTime(cents, when);
+    amp.gain.setValueAtTime(0, when);
+    amp.gain.linearRampToValueAtTime(peak, when + Math.max(0.01, Math.min(inst.env[0] * tone.attack, dur * 0.5)));
+    source.connect(amp).connect(channel.input);
+    source.start(when);
+    voice = channel.voice = { inst, take, source, amp, start: when };
+  } else {
+    const { source, amp, take } = voice;
+    cents = (note.midi - take.midi) * 100 + (take.tune || 0);
+    // the glide: quick, and never more than a share of either note, so a run of short notes still
+    // lands on each of them
+    const glide = Math.min(GLIDE, (when - voice.at) * 0.4, dur * 0.4);
+    // the last note's planned ending is taken back (from no earlier than now, or a ramp under way
+    // would jump)
+    const from = Math.max(ctx.currentTime, voice.at + 0.01, Math.min(voice.off, when - glide));
+    amp.gain.cancelScheduledValues(from);
+    amp.gain.setValueAtTime(voice.peak, from);
+    if (note.midi === voice.midi) amp.gain.linearRampToValueAtTime(voice.peak * 0.55, Math.max(from, when - 0.01));
+    amp.gain.linearRampToValueAtTime(peak, when + Math.max(0.03, glide));
+    source.detune.setValueAtTime(voice.cents, Math.max(from, when - glide / 2));
+    source.detune.linearRampToValueAtTime(cents, when + glide / 2);
+  }
+  // this note's ending, which the next note takes back if it joins on
+  const off = when + dur;
+  const release = Math.max(0.05, inst.env[3] * tone.release);
+  voice.amp.gain.setTargetAtTime(0, off, release / 4);
+  voice.source.stop(off + release * 1.5 + 0.05);
+  // its own bends and shakes, on top of the glide
+  bendWith(pitchMods(ctx, inst, tone, note, when, off, spb), voice.source.detune);
+  Object.assign(voice, { at: when, off, midi: note.midi, cents, peak });
 }
 
 // ---------- guitar rigs ----------

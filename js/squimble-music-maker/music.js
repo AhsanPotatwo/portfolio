@@ -1391,10 +1391,11 @@ const MOODS = {
     textures: ['fire', 'birds', 'leaves', 'owl'], kits: ['hand-drums', 'stomp-kit'], drums: [0.15, 0.9],
     patterns: { drums: ['march', 'groove', 'tribal'], drone: ['fifths', 'tonic'], keys: ['strum', 'waltz', 'broken'], bass: ['rootfifth', 'held'], melody: ['phrases', 'riff', 'phrases'] },
   },
-  // the mongolian steppe: throat singing holding the home note (nearly always there), a horse head
-  // fiddle (the erhu, its chinese cousin, stands in) or a flute with the tune, a plucked zither (the
-  // koto stands in for the yatga), and a shaman's drum galloping. pentatonic, wide open, hardly any
-  // chords
+  // the mongolian steppe: throat singing, often singing the tune itself (a sung line, gliding from note
+  // to note: singLine() in synth.js) with the low kargyraa or cellos droning under it, or holding the home
+  // note under a horse head fiddle (the erhu, its chinese cousin, stands in) or a flute. a plucked
+  // zither (the koto stands in for the yatga), and a shaman's drum galloping. pentatonic, wide open,
+  // hardly any chords
   steppe: {
     group: 'World', opens: ['drone', 'drums', 'keys'],
     name: 'Steppe', colour: '#6f9fb8', style: 'tune',
@@ -1404,7 +1405,7 @@ const MOODS = {
     methods: { bank: 3, vamp: 3 },
     richness: [0, 0.15], energy: 0.6, space: 0.75, bright: 0.55, dark: 0.3, surprise: 0, ornate: 1.2,
     palette: {
-      melody: ['erhu', 'flute', 'shakuhachi', 'violin'], counter: ['erhu', 'koto', 'flute'],
+      melody: ['throat-singing', 'throat-singing', 'throat-singing', 'erhu', 'flute', 'shakuhachi'], counter: ['erhu', 'throat-singing', 'koto', 'flute'],
       keys: ['koto', 'harp', 'nylon'], arp: ['koto', 'harp', 'nylon'], bells: ['chime'],
       pad: ['strings', 'choir-oo', 'air-pad'], bass: ['upright', 'round-bass', 'sub-bass'], drone: ['throat-singing', 'throat-singing', 'kargyraa', 'cello-drone'],
     },
@@ -2344,6 +2345,9 @@ function dressLayer(song, layer, rng, fresh) {
     layer.span = rng.pick([1, 2, 2]);
     layer.octave = role === 'bells' ? rng.weighted([[0, 5], [1, 1], [-1, 1]]) : role === 'melody' ? rng.weighted([[0, 6], [-1, 1]]) : 0;
   }
+  // a singer (an instrument with a home) sings where they sing: an octave down, a throat singer was a
+  // recording stretched a whole octave
+  if (instrument.home) layer.octave = 0;
   const busy = song.style !== 'ambient' ? 0.35 + mood.energy * 0.5 : 0.3 + mood.energy * 0.5;
   // (a modifier can make every part busier or sparser: mood.busy)
   layer.density = clamp01(busy + (mood.busy || 0) + rng.range(-0.15, 0.2));
@@ -2765,6 +2769,17 @@ function composeSong(song) {
       // a solo is its own line, so the part's hand edits (made on its usual tune) don't apply to it
       const leading = section.lead === layer.id;
       let made = (leading ? solo(c) : COMPOSERS[layer.role](c)).filter((note) => note.t >= section.start - 1e-6 && note.t < section.end - 1e-6);
+      // a singer (home) sings every note within about three quarters of an octave of their own: a tune's
+      // range is only a guide (a part B sung higher, a note snapping up to a chord), and a throat
+      // singer's recording moved further sounds like someone else. a note that wanders off is sung an
+      // octave nearer. (notes added by hand are left where they were put)
+      const home = INSTRUMENTS[layer.instrument]?.home;
+      if (home) {
+        for (const note of made) {
+          while (note.midi > home + 9) note.midi -= 12;
+          while (note.midi < home - 9) note.midi += 12;
+        }
+      }
       if (!leading) made = applyEdits(made, layer.edits[section.part], section);
       if (layer.role === 'melody' && !melodyBySection[section.index]) melodyBySection[section.index] = made;
       out.push(...made);
@@ -3664,7 +3679,12 @@ const SWELL = [0, 0.03, 0.05, -0.03];
 
 // a melody (or a counter melody's own tune). riff: a hook over and over. rests: every other two bar
 // phrase is left empty and the last note rings into it, for the sparse piano of c418 and aphex twin
-function tune(c, { density, low, high, plan4, riff, rests }) {
+// a singer's tune keeps near their own note (home): a few scale steps down and about an octave up at
+// most. throat sung tunes are narrow anyway, and a voice moved far from where it was recorded stops
+// sounding like that singer
+const singerSpan = (c, low, high) => (INSTRUMENTS[c.layer.instrument]?.home ? [Math.max(low, -3), Math.min(high, 4)] : [low, high]);
+function tune(c, { density, low: wide, high: tall, plan4, riff, rests }) {
+  const [low, high] = singerSpan(c, wide, tall);
   const { song, layer, rng } = c;
   const { theme, hook, motif: themed } = themeMotif(c, density, riff);
   let motif = themed;
@@ -3769,9 +3789,8 @@ function solo(c) {
   const { song, layer } = c;
   const own = tuneDensity(layer);
   const density = song.style === 'ambient' ? Math.min(own, layer.density * 0.55) : Math.max(0.45, own);
-  // a little higher than the tune goes: the peak is meant to stand out
-  const low = -4;
-  const high = 9;
+  // a little higher than the tune goes: the peak is meant to stand out (not for a singer, singerSpan)
+  const [low, high] = singerSpan(c, -4, 9);
   const phrases = Math.ceil(c.bars / 4);
   const picks = makeRng(song.seed, layer.seed, 'solo', c.section.index);
   const quote = phrases > 1 && picks.chance(0.5) ? picks.int(0, phrases - 2) : -1;

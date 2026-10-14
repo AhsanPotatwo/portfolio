@@ -643,20 +643,27 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
 // ever in the moods that name them
 {
   const { INSTRUMENTS } = vm.runInContext('({ INSTRUMENTS })', page);
+  // (a singer's tune too: the steppe's throat singers sing melodies, every note within nine semitones of
+  // their own, and a sung line is one voice, so one note at a time)
   let singers = 0;
+  let tunes = 0;
   for (let n = 0; n < 40; n++) {
     const song = generateSong('steppe', n % 2 ? 'ambient' : 'tune', `sing-${n}`);
-    const drone = song.layers.find((layer) => INSTRUMENTS[layer.instrument]?.home);
-    if (!drone) continue;
-    singers++;
-    const notes = composeSong(song).notes.filter((note) => note.layer === drone.id);
-    const home = INSTRUMENTS[drone.instrument].home;
-    for (const note of notes) {
-      assert(Math.abs(note.midi - home) <= 6, `steppe sing-${n}: the ${drone.instrument} sings near its own note (${note.midi})`);
-      assert(!notes.some((other) => other !== note && other.t < note.t + note.dur - 1e-6 && note.t < other.t + other.dur - 1e-6), `steppe sing-${n}: one note at a time`);
+    const comp = composeSong(song);
+    for (const layer of song.layers.filter((one) => INSTRUMENTS[one.instrument]?.home)) {
+      singers++;
+      if (layer.role === 'melody') tunes++;
+      const notes = comp.notes.filter((note) => note.layer === layer.id);
+      const home = INSTRUMENTS[layer.instrument].home;
+      for (const note of notes) {
+        assert(Math.abs(note.midi - home) <= (layer.role === 'drone' ? 6 : 9), `steppe sing-${n}: the ${layer.instrument} sings near its own note (${note.midi})`);
+        // (humanising can overlap two joined notes by a few milliseconds, which the voice glides over)
+        assert(!notes.some((other) => other !== note && other.t < note.t + note.dur - 0.05 && note.t < other.t + other.dur - 0.05), `steppe sing-${n}: one note at a time`);
+      }
     }
   }
-  assert(singers > 20, `steppe songs nearly always have a throat singer (${singers} of 40)`);
+  assert(singers > 20, `steppe songs nearly always have a throat singer (${singers} in 40)`);
+  assert(tunes > 6, `throat singers often sing the tune (${tunes} of 40)`);
   for (let n = 0; n < 6; n++) {
     const song = generateSong('gamelan', 'tune', `gong-${n}`);
     const drums = song.layers.find((layer) => layer.role === 'drums');
