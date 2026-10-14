@@ -788,8 +788,9 @@ function lfo(ctx, rate, depth, param, when, end, type = 'sine') {
 // ---------- tonal instruments ----------
 
 // the part every tonal note shares: the volume envelope, then tremolo and the filter in front of it.
-// returns where the engine plugs its sound in, and when everything can stop
-function voiceChain(ctx, out, inst, tone, f, when, dur, vel, note = {}) {
+// returns where the engine plugs its sound in, and when everything can stop. again: seconds until the
+// same note's struck again on the layer (restrikes)
+function voiceChain(ctx, out, inst, tone, f, when, dur, vel, note = {}, again = Infinity) {
   const { pump, slur, swell } = note;
   const [attackTime, decay, sustain, releaseTime] = inst.env;
   // never more than half the note, or a short chord would only reach full volume after the beat's gone.
@@ -816,8 +817,20 @@ function voiceChain(ctx, out, inst, tone, f, when, dur, vel, note = {}) {
   if (sustain < 1 && !pump) amp.gain.setTargetAtTime(peak * sustain, when + attack, Math.max(0.001, decay / 3));
   // a note shorter than its attack is held until the attack's done, so it can't click off mid ramp
   const off = when + Math.max(dur, attack);
-  amp.gain.setTargetAtTime(0, off, release / 4);
-  const end = off + release * 1.4 + 0.05;
+  let end = off + release * 1.4 + 0.05;
+  // struck again before it's rung away: a string or key played again stops its last ring, so it fades
+  // out there while the new note fades in (over about the same attack, so a pad's held note doesn't
+  // dip between chords). a pad's fast chord pattern (pulse) used to leave every strike ringing out its
+  // whole release, dozens of copies of each note at once, until the browser couldn't keep up and the
+  // song crackled, slowed and stopped. struck again before it's let go, the release never comes
+  const cut = when + Math.max(attack, again);
+  const fade = Math.max(0.01, attack / 3);
+  const restruck = cut + fade * 6 < end;
+  if (!restruck || off < cut) amp.gain.setTargetAtTime(0, off, release / 4);
+  if (restruck) {
+    amp.gain.setTargetAtTime(0, cut, fade);
+    end = cut + fade * 6;
+  }
   // swell: a held note that grows (a bowed or blown crescendo, 1) or dies away (a diminuendo, -1) over
   // its length, the way a player shapes a long note instead of holding it flat like a keyboard
   if (swell) {
@@ -2002,6 +2015,19 @@ function playTexture(ctx, out, inst, tone, when, dur, vel, midi) {
 
 // one note of a layer. drums use the layer's release for how long they ring, and brightness for
 // their filters. a drum note's tune is its slot's, moved into the song's key by the composer
+// beats until each of a song's notes is struck again on its layer, for cutting its ring off there
+// (voiceChain). worked out when the notes are handed over (MusicPlayer.load, renderSong), not stored on
+// the notes, so the composer's output stays as it was
+const restrikes = new WeakMap();
+function findRestrikes(notes) {
+  const last = new Map();
+  for (const note of notes) {
+    const key = `${note.layer} ${note.midi}`;
+    if (last.has(key)) restrikes.set(last.get(key), note.t - last.get(key).t);
+    last.set(key, note);
+  }
+}
+
 function playNote(ctx, channel, layer, note, when, secondsPerBeat) {
   const inst = INSTRUMENTS[layer.instrument];
   if (!inst || !channel) return;
@@ -2024,7 +2050,7 @@ function playNote(ctx, channel, layer, note, when, secondsPerBeat) {
   const f = mtof(note.midi);
   // the recording, if it's loaded (recorded())
   const played = recorded(inst, note.midi, layer.recording) || inst;
-  const voice = voiceChain(ctx, channel.input, played, layer.tone, f, when, dur, note.vel, note);
+  const voice = voiceChain(ctx, channel.input, played, layer.tone, f, when, dur, note.vel, note, (restrikes.get(note) ?? Infinity) * secondsPerBeat);
   voice.pitch = pitchMods(ctx, played, layer.tone, note, when, voice.end, secondsPerBeat);
   ENGINES[played.kind](ctx, voice, played, layer.tone, f, note.midi, note);
 }
@@ -2460,6 +2486,7 @@ class MusicPlayer {
     }
     this.song = song;
     this.comp = comp;
+    findRestrikes(comp.notes);
     this.secondsPerBeat = secondsPerBeat;
     if (this.ctx) applySpace(this.graph, song.fx, song.tempo);
     this.fetchRecordings();
@@ -2594,6 +2621,7 @@ async function renderSong(song, comp, loop) {
     setChannel(channels[layer.id], song, layer, 0, false);
     layers[layer.id] = layer;
   }
+  findRestrikes(comp.notes);
   for (const note of comp.notes) playNote(ctx, channels[note.layer], layers[note.layer], note, note.t * secondsPerBeat, secondsPerBeat);
   const buffer = await ctx.startRendering();
   const data = [buffer.getChannelData(0), buffer.getChannelData(1)];

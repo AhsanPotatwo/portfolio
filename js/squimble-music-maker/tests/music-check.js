@@ -622,3 +622,16 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
   }
   assert(slurred > 200, `blown and bowed lines slur (${slurred})`);
 }
+
+// a note struck again on its layer knows when (findRestrikes in synth.js), so its ring is cut off there.
+// without it a pad's fast chord pattern piled up dozens of copies of each note and the browser gave up
+{
+  const { findRestrikes, restrikes } = vm.runInContext('({ findRestrikes, restrikes })', page);
+  const comp = composeSong(generateSong('metal', 'tune', 'glitchy-cactus'));
+  findRestrikes(comp.notes);
+  const pad = comp.notes.filter((note) => note.layer === 'pad');
+  pad.forEach((note, i) => {
+    const next = pad.slice(i + 1).find((other) => other.midi === note.midi);
+    assert.strictEqual(restrikes.get(note), next && next.t - note.t, 'a restruck note knows when it comes again');
+  });
+}

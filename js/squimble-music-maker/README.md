@@ -271,6 +271,7 @@ And these in the second round of recordings and playing (you'd heard the first r
 | A full band sounding crowded and boomy | Every part's low notes piled up under the bass, and parts were panned at random, sometimes all to one side | A high pass on every part but the bass and drums, and the parts that fill in placed either side of the tune |
 | The outro stopping mid thought | A section ended on whatever chord its progression did, usually the IV or V that leads back round | The last chord of a song that ends is the home chord |
 | A grunge counter melody played on a flute | With recordings preferred, the tune took the lead guitar more often and the counter melody's two guitars were both gone | Two more of grunge's own guitars for it, and a scan that no surprise-free mood ever borrows without a modifier |
+| Some songs (metal glitchy-cactus, heavenly boss scurvy-marble) crackling, slowing down and stopping at the same spot every time | A pad's fast chord pattern struck the same notes every third of a beat, and each strike rang out its whole release, so dozens of copies of each note piled up until the browser couldn't keep up | A note struck again on the same layer fades out as the new one comes in (`findRestrikes`, `voiceChain`) |
 | The tuba and the growl bass never playing | The tuba was in no mood, and the growl bass's edge (1) was over every mood's backing cap | The tuba in playful's and folk's bands, and the growl bass's edge 0.7 |
 
 ## Adding things
