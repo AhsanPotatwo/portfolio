@@ -1,0 +1,106 @@
+{
+ "source": "Versilian Community Sample Library (Versilian Studios)",
+ "link": "https://github.com/sgossner/VCSL",
+ "licence": "CC0 1.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "c2.mp3",
+   "midi": 36,
+   "tune": 5
+  },
+  {
+   "file": "gb2.mp3",
+   "midi": 42,
+   "tune": -13
+  },
+  {
+   "file": "a2.mp3",
+   "midi": 45,
+   "tune": -1
+  },
+  {
+   "file": "c3.mp3",
+   "midi": 48,
+   "tune": -1
+  },
+  {
+   "file": "eb3.mp3",
+   "midi": 51,
+   "tune": -3
+  },
+  {
+   "file": "gb3.mp3",
+   "midi": 54,
+   "tune": -5
+  },
+  {
+   "file": "a3.mp3",
+   "midi": 57,
+   "tune": -4
+  },
+  {
+   "file": "c4.mp3",
+   "midi": 60,
+   "tune": -5
+  },
+  {
+   "file": "eb4.mp3",
+   "midi": 63,
+   "tune": -1
+  },
+  {
+   "file": "gb4.mp3",
+   "midi": 66
+  },
+  {
+   "file": "a4.mp3",
+   "midi": 69,
+   "tune": 3
+  },
+  {
+   "file": "c5.mp3",
+   "midi": 72,
+   "tune": 3
+  },
+  {
+   "file": "eb5.mp3",
+   "midi": 75,
+   "tune": 3
+  },
+  {
+   "file": "gb5.mp3",
+   "midi": 78
+  },
+  {
+   "file": "a5.mp3",
+   "midi": 81,
+   "tune": 1
+  },
+  {
+   "file": "c6.mp3",
+   "midi": 84,
+   "tune": 3
+  },
+  {
+   "file": "eb6.mp3",
+   "midi": 87,
+   "tune": 7
+  },
+  {
+   "file": "gb6.mp3",
+   "midi": 90,
+   "tune": 3
+  },
+  {
+   "file": "a6.mp3",
+   "midi": 93,
+   "tune": 1
+  },
+  {
+   "file": "c7.mp3",
+   "midi": 96,
+   "tune": -1
+  }
+ ]
+}

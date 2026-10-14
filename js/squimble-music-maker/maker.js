@@ -266,6 +266,14 @@
     player.loop = !player.loop;
     loopKey.setAttribute('aria-pressed', player.loop);
   });
+  // recordings or synthesisers (RECORDINGS in synth.js). notes already sent finish as they were
+  const recordedKey = $('#mmRecorded');
+  recordedKey.addEventListener('click', () => {
+    RECORDINGS.on = !RECORDINGS.on;
+    recordedKey.setAttribute('aria-pressed', RECORDINGS.on);
+    player.load(song, comp);
+    player.mix();
+  });
   function renderTransport() {
     playKey.classList.toggle('is-playing', player.playing);
     playKey.querySelector('span').textContent = player.playing ? 'Stop' : 'Play';
@@ -656,6 +664,9 @@
 
   // ---------- the band tab ----------
 
+  // an instrument's name, saying if it's played from recordings (a kit counts if any drum is)
+  const instrumentName = (instrument) => `${instrument.name}${sampleFolders(instrument).length ? ' (recorded)' : ''}`;
+
   function instrumentSelect(layer) {
     const select = make('select', 'mm-select');
     select.setAttribute('aria-label', 'Instrument');
@@ -667,7 +678,7 @@
         groups[instrument.family].label = FAMILIES[instrument.family];
         select.append(groups[instrument.family]);
       }
-      groups[instrument.family].append(new Option(instrument.name, id, false, id === layer.instrument));
+      groups[instrument.family].append(new Option(instrumentName(instrument), id, false, id === layer.instrument));
     }
     select.addEventListener('change', () => {
       remember();
@@ -689,7 +700,7 @@
       const chip = make('i', 'mm-layer-chip');
       chip.style.background = ROLES[layer.role].colour;
       const words = make('span', 'mm-layer-words');
-      words.append(make('b', '', ROLES[layer.role].name), make('small', '', INSTRUMENTS[layer.instrument].name));
+      words.append(make('b', '', ROLES[layer.role].name), make('small', '', instrumentName(INSTRUMENTS[layer.instrument])));
       open.append(chip, words);
       open.addEventListener('click', () => {
         selected = layer.id;

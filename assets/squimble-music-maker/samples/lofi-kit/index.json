@@ -1,0 +1,132 @@
+{
+ "source": "Virtuosity Drums (Versilian Studios and Karoryfer Samples)",
+ "link": "https://github.com/sfzinstruments/virtuosity_drums",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "kick-1.mp3",
+   "hit": "kick",
+   "vel": 0.45
+  },
+  {
+   "file": "kick-2.mp3",
+   "hit": "kick",
+   "vel": 0.45
+  },
+  {
+   "file": "kick-3.mp3",
+   "hit": "kick",
+   "vel": 0.9
+  },
+  {
+   "file": "kick-4.mp3",
+   "hit": "kick",
+   "vel": 0.9
+  },
+  {
+   "file": "snare-1.mp3",
+   "hit": "snare",
+   "vel": 0.4
+  },
+  {
+   "file": "snare-2.mp3",
+   "hit": "snare",
+   "vel": 0.4
+  },
+  {
+   "file": "snare-3.mp3",
+   "hit": "snare",
+   "vel": 0.9
+  },
+  {
+   "file": "snare-4.mp3",
+   "hit": "snare",
+   "vel": 0.9
+  },
+  {
+   "file": "rim-1.mp3",
+   "hit": "rim",
+   "vel": 0.6
+  },
+  {
+   "file": "rim-2.mp3",
+   "hit": "rim",
+   "vel": 0.9
+  },
+  {
+   "file": "hat-1.mp3",
+   "hit": "hat",
+   "vel": 0.4
+  },
+  {
+   "file": "hat-2.mp3",
+   "hit": "hat",
+   "vel": 0.4
+  },
+  {
+   "file": "hat-3.mp3",
+   "hit": "hat",
+   "vel": 0.9
+  },
+  {
+   "file": "hat-4.mp3",
+   "hit": "hat",
+   "vel": 0.9
+  },
+  {
+   "file": "open-hat-1.mp3",
+   "hit": "open-hat",
+   "vel": 0.8
+  },
+  {
+   "file": "open-hat-2.mp3",
+   "hit": "open-hat",
+   "vel": 0.8
+  },
+  {
+   "file": "ride-1.mp3",
+   "hit": "ride",
+   "vel": 0.5
+  },
+  {
+   "file": "ride-2.mp3",
+   "hit": "ride",
+   "vel": 0.5
+  },
+  {
+   "file": "ride-3.mp3",
+   "hit": "ride",
+   "vel": 0.9
+  },
+  {
+   "file": "ride-4.mp3",
+   "hit": "ride",
+   "vel": 0.9
+  },
+  {
+   "file": "crash-1.mp3",
+   "hit": "crash",
+   "vel": 0.9
+  },
+  {
+   "file": "high-tom-1.mp3",
+   "hit": "high-tom",
+   "vel": 0.6
+  },
+  {
+   "file": "high-tom-2.mp3",
+   "hit": "high-tom",
+   "vel": 0.9
+  },
+  {
+   "file": "low-tom-1.mp3",
+   "hit": "low-tom",
+   "vel": 0.6
+  },
+  {
+   "file": "low-tom-2.mp3",
+   "hit": "low-tom",
+   "vel": 0.9
+  }
+ ]
+}

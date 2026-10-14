@@ -1,0 +1,83 @@
+{
+ "source": "VSCO 2 Community Edition (Versilian Studios)",
+ "link": "https://github.com/sgossner/VSCO-2-CE",
+ "licence": "CC0 1.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "c2.mp3",
+   "midi": 36
+  },
+  {
+   "file": "e2.mp3",
+   "midi": 40,
+   "tune": 2
+  },
+  {
+   "file": "g2.mp3",
+   "midi": 43,
+   "tune": 3
+  },
+  {
+   "file": "b2.mp3",
+   "midi": 47,
+   "tune": -3
+  },
+  {
+   "file": "c3.mp3",
+   "midi": 48,
+   "tune": -1
+  },
+  {
+   "file": "e3.mp3",
+   "midi": 52
+  },
+  {
+   "file": "g3.mp3",
+   "midi": 55
+  },
+  {
+   "file": "b3.mp3",
+   "midi": 59,
+   "tune": 1
+  },
+  {
+   "file": "d4.mp3",
+   "midi": 62,
+   "tune": 1
+  },
+  {
+   "file": "gb4.mp3",
+   "midi": 66
+  },
+  {
+   "file": "a4.mp3",
+   "midi": 69
+  },
+  {
+   "file": "c5.mp3",
+   "midi": 72,
+   "tune": -2
+  },
+  {
+   "file": "e5.mp3",
+   "midi": 76,
+   "tune": 1
+  },
+  {
+   "file": "g5.mp3",
+   "midi": 79,
+   "tune": 1
+  },
+  {
+   "file": "b5.mp3",
+   "midi": 83,
+   "tune": -1
+  },
+  {
+   "file": "d6.mp3",
+   "midi": 86,
+   "tune": -4
+  }
+ ]
+}

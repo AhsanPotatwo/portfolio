@@ -1,0 +1,36 @@
+{
+ "source": "VSCO 2 Community Edition (Versilian Studios)",
+ "link": "https://github.com/sgossner/VSCO-2-CE",
+ "licence": "CC0 1.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "bb3.mp3",
+   "midi": 58,
+   "tune": 2
+  },
+  {
+   "file": "eb4.mp3",
+   "midi": 63,
+   "tune": -1
+  },
+  {
+   "file": "ab4.mp3",
+   "midi": 68
+  },
+  {
+   "file": "d5.mp3",
+   "midi": 74,
+   "tune": -2
+  },
+  {
+   "file": "f5.mp3",
+   "midi": 77
+  },
+  {
+   "file": "a5.mp3",
+   "midi": 81,
+   "tune": -6
+  }
+ ]
+}

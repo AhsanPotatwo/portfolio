@@ -1,0 +1,83 @@
+{
+ "source": "FluidR3 GM soundfont (Frank Wen), via midi-js-soundfonts",
+ "link": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/",
+ "licence": "CC BY 3.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "f2.mp3",
+   "midi": 41,
+   "tune": 28
+  },
+  {
+   "file": "ab2.mp3",
+   "midi": 44,
+   "tune": 22
+  },
+  {
+   "file": "b2.mp3",
+   "midi": 47,
+   "tune": 14
+  },
+  {
+   "file": "d3.mp3",
+   "midi": 50,
+   "tune": 32
+  },
+  {
+   "file": "f3.mp3",
+   "midi": 53,
+   "tune": 14
+  },
+  {
+   "file": "ab3.mp3",
+   "midi": 56,
+   "tune": 32
+  },
+  {
+   "file": "b3.mp3",
+   "midi": 59,
+   "tune": 20
+  },
+  {
+   "file": "d4.mp3",
+   "midi": 62,
+   "tune": 29
+  },
+  {
+   "file": "f4.mp3",
+   "midi": 65,
+   "tune": 9
+  },
+  {
+   "file": "ab4.mp3",
+   "midi": 68,
+   "tune": -14
+  },
+  {
+   "file": "b4.mp3",
+   "midi": 71,
+   "tune": 2
+  },
+  {
+   "file": "d5.mp3",
+   "midi": 74,
+   "tune": 26
+  },
+  {
+   "file": "f5.mp3",
+   "midi": 77,
+   "tune": 8
+  },
+  {
+   "file": "ab5.mp3",
+   "midi": 80,
+   "tune": 7
+  },
+  {
+   "file": "b5.mp3",
+   "midi": 83,
+   "tune": 11
+  }
+ ]
+}

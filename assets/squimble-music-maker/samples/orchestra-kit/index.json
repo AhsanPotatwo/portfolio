@@ -1,0 +1,102 @@
+{
+ "source": "Versilian Community Sample Library (Versilian Studios); VSCO 2 Community Edition (Versilian Studios)",
+ "link": "https://github.com/sgossner/VCSL https://github.com/sgossner/VSCO-2-CE",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "bass-drum-1.mp3",
+   "hit": "bass-drum",
+   "vel": 0.5
+  },
+  {
+   "file": "bass-drum-2.mp3",
+   "hit": "bass-drum",
+   "vel": 0.9
+  },
+  {
+   "file": "timpani-1.mp3",
+   "hit": "timpani",
+   "vel": 0.5
+  },
+  {
+   "file": "timpani-2.mp3",
+   "hit": "timpani",
+   "vel": 0.9
+  },
+  {
+   "file": "snare-1.mp3",
+   "hit": "snare",
+   "vel": 0.45
+  },
+  {
+   "file": "snare-2.mp3",
+   "hit": "snare",
+   "vel": 0.45
+  },
+  {
+   "file": "snare-3.mp3",
+   "hit": "snare",
+   "vel": 0.9
+  },
+  {
+   "file": "snare-4.mp3",
+   "hit": "snare",
+   "vel": 0.9
+  },
+  {
+   "file": "cymbal-1.mp3",
+   "hit": "cymbal",
+   "vel": 0.5
+  },
+  {
+   "file": "cymbal-2.mp3",
+   "hit": "cymbal",
+   "vel": 0.9
+  },
+  {
+   "file": "gong-1.mp3",
+   "hit": "gong",
+   "vel": 0.6
+  },
+  {
+   "file": "gong-2.mp3",
+   "hit": "gong",
+   "vel": 0.95
+  },
+  {
+   "file": "woodblock-1.mp3",
+   "hit": "woodblock",
+   "vel": 0.5
+  },
+  {
+   "file": "woodblock-2.mp3",
+   "hit": "woodblock",
+   "vel": 0.9
+  },
+  {
+   "file": "frame-drum-1.mp3",
+   "hit": "frame-drum",
+   "vel": 0.6
+  },
+  {
+   "file": "taiko-1.mp3",
+   "hit": "taiko",
+   "vel": 0.6
+  },
+  {
+   "file": "taiko-2.mp3",
+   "hit": "taiko",
+   "vel": 0.95
+  },
+  {
+   "file": "taiko-rim-1.mp3",
+   "hit": "taiko-rim",
+   "vel": 0.8
+  },
+  {
+   "file": "taiko-rim-2.mp3",
+   "hit": "taiko-rim",
+   "vel": 0.8
+  }
+ ]
+}

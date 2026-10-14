@@ -1,0 +1,207 @@
+{
+ "source": "Virtuosity Drums (Versilian Studios and Karoryfer Samples)",
+ "link": "https://github.com/sfzinstruments/virtuosity_drums",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "conga-1.mp3",
+   "hit": "conga",
+   "vel": 0.5
+  },
+  {
+   "file": "conga-2.mp3",
+   "hit": "conga",
+   "vel": 0.5
+  },
+  {
+   "file": "conga-3.mp3",
+   "hit": "conga",
+   "vel": 0.9
+  },
+  {
+   "file": "conga-4.mp3",
+   "hit": "conga",
+   "vel": 0.9
+  },
+  {
+   "file": "tumba-1.mp3",
+   "hit": "tumba",
+   "vel": 0.5
+  },
+  {
+   "file": "tumba-2.mp3",
+   "hit": "tumba",
+   "vel": 0.5
+  },
+  {
+   "file": "tumba-3.mp3",
+   "hit": "tumba",
+   "vel": 0.9
+  },
+  {
+   "file": "tumba-4.mp3",
+   "hit": "tumba",
+   "vel": 0.9
+  },
+  {
+   "file": "bongo-high-1.mp3",
+   "hit": "bongo-high",
+   "vel": 0.4
+  },
+  {
+   "file": "bongo-high-2.mp3",
+   "hit": "bongo-high",
+   "vel": 0.4
+  },
+  {
+   "file": "bongo-high-3.mp3",
+   "hit": "bongo-high",
+   "vel": 0.9
+  },
+  {
+   "file": "bongo-high-4.mp3",
+   "hit": "bongo-high",
+   "vel": 0.9
+  },
+  {
+   "file": "bongo-low-1.mp3",
+   "hit": "bongo-low",
+   "vel": 0.4
+  },
+  {
+   "file": "bongo-low-2.mp3",
+   "hit": "bongo-low",
+   "vel": 0.4
+  },
+  {
+   "file": "bongo-low-3.mp3",
+   "hit": "bongo-low",
+   "vel": 0.9
+  },
+  {
+   "file": "bongo-low-4.mp3",
+   "hit": "bongo-low",
+   "vel": 0.9
+  },
+  {
+   "file": "shaker-1.mp3",
+   "hit": "shaker",
+   "vel": 0.8
+  },
+  {
+   "file": "shaker-2.mp3",
+   "hit": "shaker",
+   "vel": 0.8
+  },
+  {
+   "file": "shaker-3.mp3",
+   "hit": "shaker",
+   "vel": 0.8
+  },
+  {
+   "file": "tambourine-1.mp3",
+   "hit": "tambourine",
+   "vel": 0.8
+  },
+  {
+   "file": "tambourine-2.mp3",
+   "hit": "tambourine",
+   "vel": 0.8
+  },
+  {
+   "file": "tambourine-3.mp3",
+   "hit": "tambourine",
+   "vel": 0.8
+  },
+  {
+   "file": "cowbell-1.mp3",
+   "hit": "cowbell",
+   "vel": 0.4
+  },
+  {
+   "file": "cowbell-2.mp3",
+   "hit": "cowbell",
+   "vel": 0.4
+  },
+  {
+   "file": "cowbell-3.mp3",
+   "hit": "cowbell",
+   "vel": 0.9
+  },
+  {
+   "file": "cowbell-4.mp3",
+   "hit": "cowbell",
+   "vel": 0.9
+  },
+  {
+   "file": "claves-1.mp3",
+   "hit": "claves",
+   "vel": 0.4
+  },
+  {
+   "file": "claves-2.mp3",
+   "hit": "claves",
+   "vel": 0.4
+  },
+  {
+   "file": "claves-3.mp3",
+   "hit": "claves",
+   "vel": 0.9
+  },
+  {
+   "file": "claves-4.mp3",
+   "hit": "claves",
+   "vel": 0.9
+  },
+  {
+   "file": "triangle-1.mp3",
+   "hit": "triangle",
+   "vel": 0.4
+  },
+  {
+   "file": "triangle-2.mp3",
+   "hit": "triangle",
+   "vel": 0.4
+  },
+  {
+   "file": "triangle-3.mp3",
+   "hit": "triangle",
+   "vel": 0.9
+  },
+  {
+   "file": "triangle-4.mp3",
+   "hit": "triangle",
+   "vel": 0.9
+  },
+  {
+   "file": "agogo-1.mp3",
+   "hit": "agogo",
+   "vel": 0.4
+  },
+  {
+   "file": "agogo-2.mp3",
+   "hit": "agogo",
+   "vel": 0.4
+  },
+  {
+   "file": "agogo-3.mp3",
+   "hit": "agogo",
+   "vel": 0.9
+  },
+  {
+   "file": "agogo-4.mp3",
+   "hit": "agogo",
+   "vel": 0.9
+  },
+  {
+   "file": "cabasa-1.mp3",
+   "hit": "cabasa",
+   "vel": 0.8
+  },
+  {
+   "file": "cabasa-2.mp3",
+   "hit": "cabasa",
+   "vel": 0.8
+  }
+ ]
+}

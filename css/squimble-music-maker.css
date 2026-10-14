@@ -546,7 +546,9 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-open:focus-within{ outline:2px solid var(--mm-mood); outline-offset:3px; }
 .mm-export-status{ min-height:1.5em; margin:4px 0 0 !important; color:var(--mm-mood) !important; overflow-wrap:anywhere; }
 
-.mm-page .page-back{ padding-inline:0; margin-top:clamp(64px,8vw,112px); }
+.mm-credits{ max-width:72ch; margin:clamp(40px,5vw,64px) 0 0; font-size:13px; line-height:1.6; color:var(--mm-muted); }
+.mm-credits a{ color:inherit; }
+.mm-page .page-back{ padding-inline:0; margin-top:clamp(40px,5vw,64px); }
 
 @media (max-width:600px){
   .mm-bar, .mm-moods-wrap, .mm-transport, .mm-remix{ padding-left:14px; padding-right:14px; }

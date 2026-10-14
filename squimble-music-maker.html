@@ -43,12 +43,13 @@
 
     <div class="mm-intro">
       <h1 class="mm-title">Squimble Music Maker</h1>
-      <p class="mm-lede">Music that writes itself from a seed word. Pick a mood and it chooses a key, writes chord progressions and melodies, and puts together a band to play them. It uses the music theory composers have relied on for centuries, not AI, and the instruments are synthesisers built from the browser's own oscillators. Then pull it apart: change the chords, swap the instruments, redraw a melody note by note. I'm building it to score <a href="squimble-quest.html">Squimble Quest</a>.</p>
+      <p class="mm-lede">Music that writes itself from a seed word. Pick a mood and it chooses a key, writes chord progressions and melodies, and puts together a band to play them. It uses the music theory composers have relied on for centuries, not AI. The band is a mix of synthesisers built from the browser's own oscillators and recordings of real instruments, marked recorded in the band. Then pull it apart: change the chords, swap the instruments, redraw a melody note by note. I'm building it to score <a href="squimble-quest.html">Squimble Quest</a>.</p>
       <ul class="mm-tags" aria-label="Built with">
         <li>JavaScript</li>
         <li>Web Audio</li>
         <li>Music theory</li>
-        <li>No AI, no samples</li>
+        <li>Synthesised and recorded</li>
+        <li>No AI</li>
       </ul>
     </div>
 
@@ -100,6 +101,7 @@
       <div class="mm-transport">
         <button type="button" class="mm-key mm-key-play" id="mmPlay" data-tip="Play from the marker, or stop (Space, when nothing's being typed in)"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg><span>Play</span></button>
         <button type="button" class="mm-key" id="mmLoop" aria-pressed="true" data-tip="Loop: go back to the start when it ends, like a game's music"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M9.5 4.5A4 4 0 1 0 10 7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.6 1.6v3.6H7z"/></svg>Loop</button>
+        <button type="button" class="mm-key" id="mmRecorded" aria-pressed="true" data-tip="Recordings: instruments marked recorded play recordings of real ones. Turn it off to hear every instrument synthesised"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="6" r="1.6"/></svg>Recordings</button>
         <p class="mm-readout" id="mmReadout" aria-live="off"></p>
       </div>
 
@@ -172,6 +174,8 @@
         <p class="mm-export-status" id="mmStatus" role="status"></p>
       </section>
     </div>
+
+    <p class="mm-credits">The recorded instruments come from free sample libraries: VSCO 2 Community Edition, the Versilian Community Sample Library and Virtuosity Drums (Versilian Studios and Karoryfer Samples), Karoryfer Samples' guitars, basses and erhu, and J. Learman's jSteelDrum, all public domain; MTG Solo Saxophones by the Music Technology Group, Universitat Pompeu Fabra (<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>); and the FluidR3 GM soundfont by Frank Wen (<a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>). Thank you to everyone who shares their recordings.</p>
 
     <div class="page-back">
       <a href="index.html#projects"><span aria-hidden="true">&larr;</span> Back to all projects</a>

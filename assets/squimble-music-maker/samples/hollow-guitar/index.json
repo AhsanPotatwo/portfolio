@@ -1,0 +1,177 @@
+{
+ "source": "Emilyguitar (Karoryfer Samples)",
+ "link": "https://github.com/sfzinstruments/karoryfer.emilyguitar",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "db2-9.mp3",
+   "midi": 37,
+   "vel": 0.9
+  },
+  {
+   "file": "db2-4.mp3",
+   "midi": 37,
+   "vel": 0.35
+  },
+  {
+   "file": "e2-9.mp3",
+   "midi": 40,
+   "vel": 0.9
+  },
+  {
+   "file": "e2-4.mp3",
+   "midi": 40,
+   "vel": 0.35
+  },
+  {
+   "file": "a2-9.mp3",
+   "midi": 45,
+   "vel": 0.9
+  },
+  {
+   "file": "a2-4.mp3",
+   "midi": 45,
+   "vel": 0.35
+  },
+  {
+   "file": "c3-9.mp3",
+   "midi": 48,
+   "vel": 0.9
+  },
+  {
+   "file": "c3-4.mp3",
+   "midi": 48,
+   "vel": 0.35
+  },
+  {
+   "file": "eb3-9.mp3",
+   "midi": 51,
+   "vel": 0.9
+  },
+  {
+   "file": "eb3-4.mp3",
+   "midi": 51,
+   "vel": 0.35
+  },
+  {
+   "file": "gb3-9.mp3",
+   "midi": 54,
+   "vel": 0.9
+  },
+  {
+   "file": "gb3-4.mp3",
+   "midi": 54,
+   "vel": 0.35
+  },
+  {
+   "file": "a3-9.mp3",
+   "midi": 57,
+   "vel": 0.9
+  },
+  {
+   "file": "a3-4.mp3",
+   "midi": 57,
+   "vel": 0.35
+  },
+  {
+   "file": "c4-9.mp3",
+   "midi": 60,
+   "vel": 0.9
+  },
+  {
+   "file": "c4-4.mp3",
+   "midi": 60,
+   "vel": 0.35
+  },
+  {
+   "file": "eb4-9.mp3",
+   "midi": 63,
+   "vel": 0.9
+  },
+  {
+   "file": "eb4-4.mp3",
+   "midi": 63,
+   "vel": 0.35
+  },
+  {
+   "file": "gb4-9.mp3",
+   "midi": 66,
+   "vel": 0.9
+  },
+  {
+   "file": "gb4-4.mp3",
+   "midi": 66,
+   "vel": 0.35
+  },
+  {
+   "file": "a4-9.mp3",
+   "midi": 69,
+   "vel": 0.9
+  },
+  {
+   "file": "a4-4.mp3",
+   "midi": 69,
+   "vel": 0.35
+  },
+  {
+   "file": "c5-9.mp3",
+   "midi": 72,
+   "vel": 0.9
+  },
+  {
+   "file": "c5-4.mp3",
+   "midi": 72,
+   "vel": 0.35
+  },
+  {
+   "file": "eb5-9.mp3",
+   "midi": 75,
+   "vel": 0.9
+  },
+  {
+   "file": "eb5-4.mp3",
+   "midi": 75,
+   "vel": 0.35
+  },
+  {
+   "file": "gb5-9.mp3",
+   "midi": 78,
+   "vel": 0.9
+  },
+  {
+   "file": "gb5-4.mp3",
+   "midi": 78,
+   "vel": 0.35
+  },
+  {
+   "file": "a5-9.mp3",
+   "midi": 81,
+   "vel": 0.9
+  },
+  {
+   "file": "a5-4.mp3",
+   "midi": 81,
+   "vel": 0.35
+  },
+  {
+   "file": "c6-9.mp3",
+   "midi": 84,
+   "vel": 0.9
+  },
+  {
+   "file": "c6-4.mp3",
+   "midi": 84,
+   "vel": 0.35
+  },
+  {
+   "file": "d6-9.mp3",
+   "midi": 86,
+   "vel": 0.9
+  },
+  {
+   "file": "d6-4.mp3",
+   "midi": 86,
+   "vel": 0.35
+  }
+ ]
+}

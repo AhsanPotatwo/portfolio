@@ -1,0 +1,197 @@
+{
+ "source": "Versilian Community Sample Library (Versilian Studios)",
+ "link": "https://github.com/sgossner/VCSL",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "e1-9.mp3",
+   "midi": 28,
+   "vel": 0.9
+  },
+  {
+   "file": "g1-9.mp3",
+   "midi": 31,
+   "vel": 0.9
+  },
+  {
+   "file": "b1-9.mp3",
+   "midi": 35,
+   "vel": 0.9
+  },
+  {
+   "file": "b1-5.mp3",
+   "midi": 35,
+   "vel": 0.45
+  },
+  {
+   "file": "d2-9.mp3",
+   "midi": 38,
+   "vel": 0.9
+  },
+  {
+   "file": "d2-5.mp3",
+   "midi": 38,
+   "vel": 0.45
+  },
+  {
+   "file": "f2-9.mp3",
+   "midi": 41,
+   "vel": 0.9
+  },
+  {
+   "file": "f2-5.mp3",
+   "midi": 41,
+   "vel": 0.45
+  },
+  {
+   "file": "a2-9.mp3",
+   "midi": 45,
+   "vel": 0.9
+  },
+  {
+   "file": "a2-5.mp3",
+   "midi": 45,
+   "vel": 0.45
+  },
+  {
+   "file": "e3-9.mp3",
+   "midi": 52,
+   "vel": 0.9
+  },
+  {
+   "file": "e3-5.mp3",
+   "midi": 52,
+   "vel": 0.45
+  },
+  {
+   "file": "g3-9.mp3",
+   "midi": 55,
+   "vel": 0.9
+  },
+  {
+   "file": "g3-5.mp3",
+   "midi": 55,
+   "vel": 0.45
+  },
+  {
+   "file": "b3-9.mp3",
+   "midi": 59,
+   "vel": 0.9
+  },
+  {
+   "file": "b3-5.mp3",
+   "midi": 59,
+   "vel": 0.45
+  },
+  {
+   "file": "d4-9.mp3",
+   "midi": 62,
+   "vel": 0.9
+  },
+  {
+   "file": "d4-5.mp3",
+   "midi": 62,
+   "vel": 0.45
+  },
+  {
+   "file": "f4-9.mp3",
+   "midi": 65,
+   "vel": 0.9
+  },
+  {
+   "file": "f4-5.mp3",
+   "midi": 65,
+   "vel": 0.45
+  },
+  {
+   "file": "a4-9.mp3",
+   "midi": 69,
+   "vel": 0.9
+  },
+  {
+   "file": "a4-5.mp3",
+   "midi": 69,
+   "vel": 0.45
+  },
+  {
+   "file": "c5-9.mp3",
+   "midi": 72,
+   "vel": 0.9
+  },
+  {
+   "file": "c5-5.mp3",
+   "midi": 72,
+   "vel": 0.45
+  },
+  {
+   "file": "e5-9.mp3",
+   "midi": 76,
+   "vel": 0.9
+  },
+  {
+   "file": "e5-5.mp3",
+   "midi": 76,
+   "vel": 0.45
+  },
+  {
+   "file": "g5-9.mp3",
+   "midi": 79,
+   "vel": 0.9
+  },
+  {
+   "file": "g5-5.mp3",
+   "midi": 79,
+   "vel": 0.45
+  },
+  {
+   "file": "b5-9.mp3",
+   "midi": 83,
+   "vel": 0.9
+  },
+  {
+   "file": "b5-5.mp3",
+   "midi": 83,
+   "vel": 0.45
+  },
+  {
+   "file": "d6-9.mp3",
+   "midi": 86,
+   "vel": 0.9
+  },
+  {
+   "file": "d6-5.mp3",
+   "midi": 86,
+   "vel": 0.45
+  },
+  {
+   "file": "f6-9.mp3",
+   "midi": 89,
+   "vel": 0.9
+  },
+  {
+   "file": "f6-5.mp3",
+   "midi": 89,
+   "vel": 0.45
+  },
+  {
+   "file": "a6-9.mp3",
+   "midi": 93,
+   "vel": 0.9
+  },
+  {
+   "file": "a6-5.mp3",
+   "midi": 93,
+   "vel": 0.45
+  },
+  {
+   "file": "d7-9.mp3",
+   "midi": 98,
+   "vel": 0.9
+  },
+  {
+   "file": "f7-9.mp3",
+   "midi": 101,
+   "vel": 0.9
+  }
+ ]
+}

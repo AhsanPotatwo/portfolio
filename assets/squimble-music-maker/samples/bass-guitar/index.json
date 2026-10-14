@@ -1,0 +1,157 @@
+{
+ "source": "Black and Blue Basses (Karoryfer Samples)",
+ "link": "https://github.com/sfzinstruments/karoryfer.black-and-blue-basses",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "b0-9.mp3",
+   "midi": 23,
+   "vel": 0.9
+  },
+  {
+   "file": "b0-4.mp3",
+   "midi": 23,
+   "vel": 0.35
+  },
+  {
+   "file": "d1-9.mp3",
+   "midi": 26,
+   "vel": 0.9
+  },
+  {
+   "file": "d1-4.mp3",
+   "midi": 26,
+   "vel": 0.35
+  },
+  {
+   "file": "f1-9.mp3",
+   "midi": 29,
+   "vel": 0.9
+  },
+  {
+   "file": "f1-4.mp3",
+   "midi": 29,
+   "vel": 0.35
+  },
+  {
+   "file": "ab1-9.mp3",
+   "midi": 32,
+   "vel": 0.9
+  },
+  {
+   "file": "ab1-4.mp3",
+   "midi": 32,
+   "vel": 0.35
+  },
+  {
+   "file": "b1-9.mp3",
+   "midi": 35,
+   "vel": 0.9
+  },
+  {
+   "file": "b1-4.mp3",
+   "midi": 35,
+   "vel": 0.35
+  },
+  {
+   "file": "d2-9.mp3",
+   "midi": 38,
+   "vel": 0.9
+  },
+  {
+   "file": "d2-4.mp3",
+   "midi": 38,
+   "vel": 0.35
+  },
+  {
+   "file": "f2-9.mp3",
+   "midi": 41,
+   "vel": 0.9
+  },
+  {
+   "file": "f2-4.mp3",
+   "midi": 41,
+   "vel": 0.35
+  },
+  {
+   "file": "ab2-9.mp3",
+   "midi": 44,
+   "vel": 0.9
+  },
+  {
+   "file": "ab2-4.mp3",
+   "midi": 44,
+   "vel": 0.35
+  },
+  {
+   "file": "b2-9.mp3",
+   "midi": 47,
+   "vel": 0.9
+  },
+  {
+   "file": "b2-4.mp3",
+   "midi": 47,
+   "vel": 0.35
+  },
+  {
+   "file": "d3-9.mp3",
+   "midi": 50,
+   "vel": 0.9
+  },
+  {
+   "file": "d3-4.mp3",
+   "midi": 50,
+   "vel": 0.35
+  },
+  {
+   "file": "f3-9.mp3",
+   "midi": 53,
+   "vel": 0.9
+  },
+  {
+   "file": "f3-4.mp3",
+   "midi": 53,
+   "vel": 0.35
+  },
+  {
+   "file": "ab3-9.mp3",
+   "midi": 56,
+   "vel": 0.9
+  },
+  {
+   "file": "ab3-4.mp3",
+   "midi": 56,
+   "vel": 0.35
+  },
+  {
+   "file": "b3-9.mp3",
+   "midi": 59,
+   "vel": 0.9
+  },
+  {
+   "file": "b3-4.mp3",
+   "midi": 59,
+   "vel": 0.35
+  },
+  {
+   "file": "d4-9.mp3",
+   "midi": 62,
+   "vel": 0.9
+  },
+  {
+   "file": "d4-4.mp3",
+   "midi": 62,
+   "vel": 0.35
+  },
+  {
+   "file": "e4-9.mp3",
+   "midi": 64,
+   "vel": 0.9
+  },
+  {
+   "file": "e4-4.mp3",
+   "midi": 64,
+   "vel": 0.35
+  }
+ ]
+}

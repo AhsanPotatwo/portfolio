@@ -1,0 +1,38 @@
+{
+ "source": "Aliexpress Erhu (Karoryfer Samples)",
+ "link": "https://github.com/sfzinstruments/aliexpress-erhu",
+ "licence": "CC0 1.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "d4.mp3",
+   "midi": 62,
+   "tune": 24
+  },
+  {
+   "file": "f4.mp3",
+   "midi": 65,
+   "tune": -13
+  },
+  {
+   "file": "b4.mp3",
+   "midi": 71,
+   "tune": -3
+  },
+  {
+   "file": "d5.mp3",
+   "midi": 74,
+   "tune": -13
+  },
+  {
+   "file": "f5.mp3",
+   "midi": 77,
+   "tune": -11
+  },
+  {
+   "file": "a5.mp3",
+   "midi": 81,
+   "tune": -19
+  }
+ ]
+}

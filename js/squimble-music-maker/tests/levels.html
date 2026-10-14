@@ -26,7 +26,7 @@ async function measure(id, seconds, play) {
   // and through the instrument's own chain, if it has one (a guitar's amp, a violin's body, an organ's
   // leslie: instrumentChain in synth.js)
   const input = ctx.createGain();
-  const rig = instrumentChain(ctx, INSTRUMENTS[id]);
+  const rig = instrumentChain(ctx, recorded(INSTRUMENTS[id]) || INSTRUMENTS[id]);
   if (rig) input.connect(rig.input);
   const low = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 200, Q: 0.5 });
   const high = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 10000, Q: 0.5 });
@@ -46,16 +46,36 @@ async function measure(id, seconds, play) {
   return [Math.sqrt(sum / data.length), loudest];
 }
 
+// how each kind of sound is measured: textures for a long while, drums as a beat, rhythm guitars as a
+// power chord (the way they're played), everything else one held note
+async function level(id, inst) {
+  if (inst.kind === 'texture') return measure(id, 40, (ctx, channel, layer) => playNote(ctx, channel, layer, { midi: 60, dur: 80, vel: 1 }, 0, 0.5));
+  if (inst.kind === 'drums') return measure(id, 4, (ctx, channel, layer) => { for (let i = 0; i < 8; i++) playNote(ctx, channel, layer, { midi: [0, 2, 1, 2][i % 4], dur: 0.25, vel: 1 }, i * 0.5, 0.5); });
+  if (inst.family === 'guitar') return measure(id, 4, (ctx, channel, layer) => { for (const midi of [44, 51, 56]) playNote(ctx, channel, layer, { midi, dur: 4, vel: 1 }, 0, 0.5); });
+  return measure(id, 4, (ctx, channel, layer) => playNote(ctx, channel, layer, { midi: CENTERS[inst.family], dur: 4, vel: 1 }, 0, 0.5));
+}
+
 (async () => {
   const lines = [];
+  // synthesised first (nothing's loaded yet)
   for (const [id, inst] of Object.entries(INSTRUMENTS)) {
-    let level;
-    if (inst.kind === 'texture') level = await measure(id, 40, (ctx, channel, layer) => playNote(ctx, channel, layer, { midi: 60, dur: 80, vel: 1 }, 0, 0.5));
-    else if (inst.kind === 'drums') level = await measure(id, 4, (ctx, channel, layer) => { for (let i = 0; i < 8; i++) playNote(ctx, channel, layer, { midi: [0, 2, 1, 2][i % 4], dur: 0.25, vel: 1 }, i * 0.5, 0.5); });
-    // rhythm guitars as they're played, a power chord
-    else if (inst.family === 'guitar') level = await measure(id, 4, (ctx, channel, layer) => { for (const midi of [44, 51, 56]) playNote(ctx, channel, layer, { midi, dur: 4, vel: 1 }, 0, 0.5); });
-    else level = await measure(id, 4, (ctx, channel, layer) => playNote(ctx, channel, layer, { midi: CENTERS[inst.family], dur: 4, vel: 1 }, 0, 0.5));
-    lines.push(`${inst.family.padEnd(8)} ${id.padEnd(14)} average ${db(level[0])}  loudest second ${db(level[1])}`);
+    const [average, loudest] = await level(id, inst);
+    lines.push(`${inst.family.padEnd(8)} ${id.padEnd(14)} average ${db(average)}  loudest second ${db(loudest)}`);
+  }
+  // then the recordings (RECORDINGS in synth.js), so a recording's sampled.gain, or a recorded drum's
+  // level, can be set to match. they need the files, so open this through a web server, or in
+  // headless chrome (headless.js lets it read files)
+  RECORDINGS.root = '../../../assets/squimble-music-maker/samples/';
+  for (const [id, inst] of Object.entries(INSTRUMENTS)) {
+    const folders = sampleFolders(inst);
+    if (!folders.length) continue;
+    await Promise.all(folders.map(loadSamples));
+    if (!folders.every(sampleSet)) {
+      lines.push(`recorded ${id.padEnd(14)} didn't load`);
+      continue;
+    }
+    const [average, loudest] = await level(id, inst);
+    lines.push(`recorded ${id.padEnd(14)} average ${db(average)}  loudest second ${db(loudest)}`);
   }
   document.getElementById('out').textContent = lines.join('\n');
 })();

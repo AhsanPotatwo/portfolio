@@ -1,0 +1,187 @@
+{
+ "source": "VSCO 2 Community Edition (Versilian Studios)",
+ "link": "https://github.com/sgossner/VSCO-2-CE",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "f1-3.mp3",
+   "midi": 29,
+   "vel": 0.3
+  },
+  {
+   "file": "f1-9.mp3",
+   "midi": 29,
+   "vel": 0.9
+  },
+  {
+   "file": "a1-3.mp3",
+   "midi": 33,
+   "vel": 0.3
+  },
+  {
+   "file": "a1-9.mp3",
+   "midi": 33,
+   "vel": 0.9
+  },
+  {
+   "file": "db2-3.mp3",
+   "midi": 37,
+   "vel": 0.3
+  },
+  {
+   "file": "db2-9.mp3",
+   "midi": 37,
+   "vel": 0.9
+  },
+  {
+   "file": "f2-3.mp3",
+   "midi": 41,
+   "vel": 0.3
+  },
+  {
+   "file": "f2-9.mp3",
+   "midi": 41,
+   "vel": 0.9
+  },
+  {
+   "file": "a2-3.mp3",
+   "midi": 45,
+   "vel": 0.3
+  },
+  {
+   "file": "a2-9.mp3",
+   "midi": 45,
+   "vel": 0.9
+  },
+  {
+   "file": "db3-3.mp3",
+   "midi": 49,
+   "vel": 0.3
+  },
+  {
+   "file": "db3-9.mp3",
+   "midi": 49,
+   "vel": 0.9
+  },
+  {
+   "file": "f3-3.mp3",
+   "midi": 53,
+   "vel": 0.3
+  },
+  {
+   "file": "f3-9.mp3",
+   "midi": 53,
+   "vel": 0.9
+  },
+  {
+   "file": "a3-3.mp3",
+   "midi": 57,
+   "vel": 0.3
+  },
+  {
+   "file": "a3-9.mp3",
+   "midi": 57,
+   "vel": 0.9
+  },
+  {
+   "file": "db4-3.mp3",
+   "midi": 61,
+   "vel": 0.3
+  },
+  {
+   "file": "db4-9.mp3",
+   "midi": 61,
+   "vel": 0.9
+  },
+  {
+   "file": "f4-3.mp3",
+   "midi": 65,
+   "vel": 0.3
+  },
+  {
+   "file": "f4-9.mp3",
+   "midi": 65,
+   "vel": 0.9
+  },
+  {
+   "file": "a4-3.mp3",
+   "midi": 69,
+   "vel": 0.3
+  },
+  {
+   "file": "a4-9.mp3",
+   "midi": 69,
+   "vel": 0.9
+  },
+  {
+   "file": "db5-3.mp3",
+   "midi": 73,
+   "vel": 0.3
+  },
+  {
+   "file": "db5-9.mp3",
+   "midi": 73,
+   "vel": 0.9
+  },
+  {
+   "file": "f5-3.mp3",
+   "midi": 77,
+   "vel": 0.3
+  },
+  {
+   "file": "f5-9.mp3",
+   "midi": 77,
+   "vel": 0.9
+  },
+  {
+   "file": "a5-3.mp3",
+   "midi": 81,
+   "vel": 0.3
+  },
+  {
+   "file": "a5-9.mp3",
+   "midi": 81,
+   "vel": 0.9
+  },
+  {
+   "file": "db6-3.mp3",
+   "midi": 85,
+   "vel": 0.3
+  },
+  {
+   "file": "db6-9.mp3",
+   "midi": 85,
+   "vel": 0.9
+  },
+  {
+   "file": "f6-3.mp3",
+   "midi": 89,
+   "vel": 0.3
+  },
+  {
+   "file": "f6-9.mp3",
+   "midi": 89,
+   "vel": 0.9
+  },
+  {
+   "file": "a6-3.mp3",
+   "midi": 93,
+   "vel": 0.3
+  },
+  {
+   "file": "a6-9.mp3",
+   "midi": 93,
+   "vel": 0.9
+  },
+  {
+   "file": "db7-3.mp3",
+   "midi": 97,
+   "vel": 0.3
+  },
+  {
+   "file": "db7-9.mp3",
+   "midi": 97,
+   "vel": 0.9
+  }
+ ]
+}

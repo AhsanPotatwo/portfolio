@@ -14,6 +14,7 @@
 // mood's own band, clean up (no opposites, no unknowns, any order), and leave no trace on a song
 // without them. counter melodies in counterpoint stay under the tune and in the intervals that blend,
 // players ornament their notes, slides drawn by hand save and play, and sections keep their energy.
+// the recorded instruments' files are all there, and every folder of them gets played.
 // (double stops, notes marked stop, are a second note under the tune on purpose, so the one note at a
 // time checks leave them out)
 // run it with
@@ -514,3 +515,38 @@ for (const junk of [null, 'hello', 42, {}, { layers: [{ role: 'nope' }, { role: 
 }
 const cleaned = cleanSong({ layers: [{ role: 'bass', instrument: 'wind' }] });
 assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be played by a texture");
+
+// recordings (RECORDINGS in synth.js): every folder an instrument or a kit's slot names is there, with
+// an index.json whose files are all there too and which says its licence. a kit's hit is one the
+// folder has
+{
+  const root = `${__dirname}/../../../assets/squimble-music-maker/samples`;
+  const indexes = {};
+  const index = (folder) => {
+    if (!indexes[folder]) {
+      const file = `${root}/${folder}/index.json`;
+      assert(fs.existsSync(file), `${folder} has an index.json`);
+      indexes[folder] = JSON.parse(fs.readFileSync(file, 'utf8'));
+      assert(indexes[folder].licence && indexes[folder].source, `${folder} says where it's from and its licence`);
+      for (const note of indexes[folder].notes) {
+        assert(fs.existsSync(`${root}/${folder}/${note.file}`), `${folder}/${note.file} is there`);
+        assert(note.hit || (Number.isInteger(note.midi) && note.midi >= 0 && note.midi <= 127), `${folder}/${note.file} is a note or a hit`);
+      }
+    }
+    return indexes[folder];
+  };
+  for (const [id, inst] of Object.entries(INSTRUMENTS)) {
+    if (inst.samples) {
+      assert(index(inst.samples).notes.some((note) => note.midi !== undefined), `${id}'s recordings have notes`);
+      assert(inst.sampled?.gain > 0, `${id} has a gain for its recordings`);
+    }
+    for (const slot of inst.slots || []) {
+      if (!slot.hit) continue;
+      const [folder, name] = slot.hit.split('/');
+      assert(index(folder).notes.some((note) => note.hit === name), `${id}'s ${slot.hit} is in ${folder}`);
+    }
+  }
+  // nothing's left in the folder that no instrument plays
+  const used = new Set(Object.values(INSTRUMENTS).flatMap((inst) => [inst.samples, ...(inst.slots || []).map((slot) => slot.hit?.split('/')[0])]));
+  for (const folder of fs.readdirSync(root)) assert(used.has(folder), `the ${folder} recordings are played by something`);
+}

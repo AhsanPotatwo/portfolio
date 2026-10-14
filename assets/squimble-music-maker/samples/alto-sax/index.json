@@ -1,0 +1,67 @@
+{
+ "source": "MTG Solo Saxophones (Music Technology Group, Universitat Pompeu Fabra)",
+ "link": "https://github.com/sfzinstruments/MTG.SoloSax",
+ "licence": "CC BY 4.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "db3.mp3",
+   "midi": 49,
+   "tune": -21
+  },
+  {
+   "file": "e3.mp3",
+   "midi": 52
+  },
+  {
+   "file": "g3.mp3",
+   "midi": 55,
+   "tune": -2
+  },
+  {
+   "file": "bb3.mp3",
+   "midi": 58,
+   "tune": -5
+  },
+  {
+   "file": "db4.mp3",
+   "midi": 61,
+   "tune": -11
+  },
+  {
+   "file": "e4.mp3",
+   "midi": 64,
+   "tune": -8
+  },
+  {
+   "file": "g4.mp3",
+   "midi": 67,
+   "tune": -22
+  },
+  {
+   "file": "bb4.mp3",
+   "midi": 70,
+   "tune": -17
+  },
+  {
+   "file": "db5.mp3",
+   "midi": 73,
+   "tune": -23
+  },
+  {
+   "file": "e5.mp3",
+   "midi": 76,
+   "tune": -40
+  },
+  {
+   "file": "g5.mp3",
+   "midi": 79,
+   "tune": -34
+  },
+  {
+   "file": "a5.mp3",
+   "midi": 81,
+   "tune": -22
+  }
+ ]
+}

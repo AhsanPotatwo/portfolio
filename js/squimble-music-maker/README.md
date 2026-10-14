@@ -1,6 +1,6 @@
 # Squimble Music Maker
 
-Procedural music for Squimble Quest, on its own page (`squimble-music-maker.html`) until it moves into the game. Music comes from a seed and the rules of music theory. There's no AI and there are no samples.
+Procedural music for Squimble Quest, on its own page (`squimble-music-maker.html`) until it moves into the game. Music comes from a seed and the rules of music theory, not AI. The band is a mix: synthesisers built on Web Audio, and recordings of real instruments from free sample libraries for the ones synthesis struggles with (bowed strings, brass, saxes, pianos, choirs, drum kits). Every recorded instrument still has its synthesised version, and the page's Recordings key swaps between them.
 
 ## Keep the notes true
 
@@ -20,6 +20,7 @@ This README and the code comments are the only notes. When you change something:
 | `tests/music-check.js` | `node js/squimble-music-maker/tests/music-check.js`. No output means it all passed. It takes about five minutes, so run it in the background. |
 | `tests/levels.html` | How loud every instrument and texture is, weighted the way ears hear. Open it in a browser and wait about a minute. Set a new sound's `gain` (or its rig's `level`) so it sits with its neighbours. Guitars are measured through their rig playing a power chord, and everything through its body (`instrumentChain`). Plucked sounds start from random noise, so they measure a few dB differently each run: run it twice before you move one. |
 | `tests/headless.js` | Runs a page in headless Chrome and prints a JavaScript expression's value once it's ready: `levels.html` without opening a browser, or the maker page checked for errors. Its header has examples and gotchas. |
+| `tools/build-samples.js` | Builds the recordings in `assets/squimble-music-maker/samples/` from the free libraries (VSCO 2 CE, VCSL, Virtuosity Drums, Karoryfer's guitars and basses, MTG's saxes, FluidR3). It picks a note every few semitones, checks each one's pitch, trims and levels them, and writes small mono mp3s and an `index.json` per folder. Its header explains how to run it. Needs git and ffmpeg. |
 
 ## Where the sounds come from
 
@@ -54,12 +55,14 @@ The moods and sounds are aimed at particular game and ambient music:
 
 **Modifiers.** A mood is a kind of music and a modifier is a word in front of it: calm, angry, fast, slow, dark, bright, sparse, lush, jazzy, lo-fi, epic, spooky, retro, acoustic, groovy, dreamy (`MODIFIERS` in music.js, up to four at once). Each changes how the mood's own band plays: its tempo, energy, how dark its scale is (`shade`, with the mood's chord progressions moved into the new scale by `reharmonise`), how busy and how many parts, the drummer's beat. A few bring sounds in because the word means them (lo-fi's vinyl and dusty kit, retro's chips, acoustic's unplugged swaps, epic's choir and big drums). They replaced blends, which mixed a second mood's band in (see the table below). The random numbers don't depend on the modifiers, so adding "fast" gives you the same song, faster, as near as it can.
 
-**How the instruments are made.** There are still no samples. Instead each instrument copies the things that make the real one sound real, which turned out to be a short list:
+**How the instruments are made.** Each synthesised instrument copies the things that make the real one sound real, which turned out to be a short list:
 - **Struck things ring at their real overtones** (`modal`, `modalBuffer`): a piano's nearly whole multiples a little sharp (stretch) on two strings beating slowly (unison), a marimba's two octaves and a bit over three, a bell's minor third. Each dies at its own rate, the top first, and a harder strike brings the top out. They're worked out sample by sample once per note and kept, like the plucked strings.
 - **Bodies.** A violin's wooden box, a guitar's air, a trumpet's bell and a sax's tube boost the same frequencies whatever note's played (`body`, built once per layer in `instrumentChain`). A synth's tone moves with the note. This was most of why the old violin and horn sounded like synths.
 - **Nothing held is steady.** Breath, bows and voices drift a few cents (`drift`), and in a section every player drifts on their own (`ensemble`). Flutes start with a puff of air (`chiff`), plucked strings start a little sharp and settle (`twang`).
 - **Waves shaped like the real thing.** Sax (`reed`), brass, bowed, drawbar organ and free reed waves are built from the harmonic levels of the real instruments (`WAVES`).
 - **Plucked strings are tuned and shaped.** A string's loop can only be a whole number of samples long, which put high notes up to 13 cents out; each string is tuned back now (`buffer.cents`). `ring` sets how fast its top end dies (a steel string less than nylon), and `buzz` is a sitar's buzzing bridge.
+
+**Recordings.** 63 instruments and 13 kits can also play from recordings (`samples` on an instrument, `hit` on a kit's slot; the "recordings" section of synth.js). A folder holds a note every three or four semitones, sometimes soft and loud, and the nearest one is played, retuned. A held instrument (strings, brass, winds, organs, choirs) loops the steady middle of its note, found and crossfaded when it loads (`loopNote`), so it lasts as long as the note does. Everything after the note is the same as for a synthesised one, so recordings slide, bend and shake, go through the room, and the guitars go through their rigs: every electric guitar is the same clean recording through a different amp, the way a real guitarist plays one guitar through different pedals. A recording keeps the instrument's envelope and swaps the rest: an almost open filter that still darkens soft notes, and no added vibrato, drift or body, because the real player's and the real body are in the recording. Recordings load only when a song uses them (2 to 5 MB for most songs), and until they're in, or if they can't load (a page opened straight from a file can't fetch them), the synthesised version plays. A WAV render waits for them.
 
 **Guitar rigs.** An instrument with an `amp` (the guitars, and the leads and basses built like them) plays through a rig of pedals, an amp and a speaker cabinet (`ampChain` in synth.js): a cut below before the clipping, a mid push, a compressor that holds the string up as it dies (`sustain`), the clipping itself (soft, hard or valve), the tone after it, a steep speaker roll off, then double tracking, a chorus or reverse reverb. The rig is in the layer's channel, so all its notes go through one amp together, the way a guitar's strings do, and it comes before the volume, so turning a guitar down doesn't clean it up. A palm muted note (`mute`) is a short, dark pluck, which through a high gain rig is the metal chug.
 
@@ -252,6 +255,7 @@ And these in the big rework (sounds, slides, modifiers, the new moods), from you
 
 ## Adding things
 
+- **Recordings for an instrument:** a folder in `FOLDERS` (or `KITS`) in `tools/build-samples.js`, run it for that folder (`--probe` first, to check which octave the library's names mean), then `samples: 'folder'` on the instrument and a `sampled.gain` measured against its synthesised self. Only use libraries whose licence lets them go in a game, and add a credit to the page if it asks for one.
 - **An instrument:** a line in `INSTRUMENTS` (synth.js) with a family, an `edge` judged by ear, a `world` if it's chip or acoustic, `own` if it should only appear where a mood names it, and an engine. A guitar-like sound gets an `amp` (the comment above `ampChain` lists its settings), and its loudness is the rig's `level`. A real instrument usually wants a `body` (look up where its resonances are), a little `drift` if it's blown, bowed or sung, and `ornaments` for what its players do. Something struck is `modal`: look up its overtones and how fast each dies. Set its `gain` with `tests/levels.html` so it's about as loud as the others in its family. It can then appear in mood palettes. A drum kit needs `suits` instead: the patterns it sounds right playing.
 - **A modifier:** an entry in `MODIFIERS` (music.js) with a `name`, a `tip`, an `against` if it has an opposite, and `apply(mood, style)`, which changes a copy of the mood. Change how the band plays before reaching for new sounds. The check runs every modifier on every mood.
 - **A texture:** a line in `INSTRUMENTS` and a function in `TEXTURES`. Make it something that happens now and then (`moments()`, `swells()`, each event at its own `spot()`) rather than a steady wash, and bring its gain near the vinyl's with `tests/levels.html`. A steady one is a `bed`.
@@ -260,6 +264,11 @@ And these in the big rework (sounds, slides, modifiers, the new moods), from you
 - **A groove:** a line in `GROOVES`. Every line must be a bar long, and a new drum pattern needs a groove in every time signature; the check tests both.
 
 ## Known issues
+
+- The recordings haven't been heard yet. Each one's `sampled.gain` (and each recorded drum's `level`) was set by measuring it against the synthesised version, a phrase across its range and a held note (the guitars before their amp, so the amp is driven the same). If one sits wrong, adjust that first. A held note's loop is found automatically (`loopNote`): if one wobbles or thumps as it goes round, that's where to look.
+- The ocarina, whistle, bansuri, melodica, shawm, oud, pedal steel, tanpura, the voices and the bells stay synthesised: the free libraries had nothing that fitted, or not over the notes the composer plays. VCSL's kalimba was swapped for FluidR3's because it's tuned its own way, about a quarter tone sharp of a piano.
+- The synth, chip, electronic and tabla kits (and the brushes' brush, a few clicks and ticks) stay synthesised, which they are in real music too.
+- A note more than a fifth past an instrument's recordings plays its synthesised version, so it doesn't sound stretched. If an instrument suddenly changes colour at the top or bottom of a tune, that's why.
 
 - The new moods (Desolate, Neon, Bleak, Spirited), instruments, kits and textures, and the motif melodies, were set from measured levels and printed melodies, not heard yet. Judge them by ear, and adjust a sound's `gain` or `edge` if it sits wrong.
 - Mood patterns apply to both styles, so an ambient Neon song can get four to the floor, just slower.
