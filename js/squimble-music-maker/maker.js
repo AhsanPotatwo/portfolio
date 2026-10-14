@@ -50,9 +50,14 @@
   let scoreDirty = true;
   let editorScroll = 0;
   let editor = null;
-  // the note editor's tool (note, slide or shake) and how fast a drawn slide goes (quick, half, whole)
+  // the note editor's tool (note, slide, shake or swell), how fast a drawn slide goes (quick, half,
+  // whole) and its shape (CURVES in synth.js: 0 straight, 1 smooth, 2 quick then settling), how wide a
+  // vibrato is in cents, and which way a drawn swell goes (1 growing, -1 dying away)
   let tool = 'note';
   let slideSpeed = 'quick';
+  let slideShape = 1;
+  let shakeWidth = 22;
+  let swellWay = 1;
 
   // ---------- changes ----------
 
@@ -683,8 +688,27 @@
     select.addEventListener('change', () => {
       remember();
       layer.instrument = select.value;
+      delete layer.recording;
       changed();
       player.audition(song, layer, layer.role === 'drums' ? [0, 2, 1] : layer.role === 'texture' ? [60] : [ROLES[layer.role].center + layer.octave * 12], layer.role === 'texture' ? 4 : 1.5);
+    });
+    return select;
+  }
+
+  // which of an instrument's recordings a layer plays (recordingsOf in synth.js), for the instruments
+  // that have more than one: a wurlitzer or a pianet, karoryfer's black guitar or their shiny one
+  function recordingSelect(layer) {
+    const select = make('select', 'mm-select');
+    select.setAttribute('aria-label', 'Recording');
+    for (const [folder, settings] of recordingsOf(INSTRUMENTS[layer.instrument])) {
+      select.append(new Option(settings.name || folder, folder, false, folder === recordingFolder(INSTRUMENTS[layer.instrument], layer.recording)));
+    }
+    select.addEventListener('change', () => {
+      remember();
+      if (select.selectedIndex === 0) delete layer.recording;
+      else layer.recording = select.value;
+      changed();
+      player.audition(song, layer, [ROLES[layer.role].center + layer.octave * 12], 1.5);
     });
     return select;
   }
@@ -782,6 +806,9 @@
     head.append(actions);
 
     const sound = section('Sound', field('Instrument', instrumentSelect(layer), 'Instrument: what plays this layer. Any instrument can play any part'));
+    if (recordingsOf(INSTRUMENTS[layer.instrument]).length > 1) {
+      sound.append(field('Recording', recordingSelect(layer), 'Recording: this instrument was recorded more than once, by different people on different instruments. Try each, they all have their own character'));
+    }
     const patterns = Object.entries(PATTERNS[layer.role]);
     if (patterns.length > 1) {
       sound.append(field('Plays', choices(patterns.map(([id, name]) => [id, name, `${name}: how the ${role.name.toLowerCase()} plays`]), () => layer.pattern, (value) => edit(() => { layer.pattern = value; })(), 'Pattern'), 'How this layer plays'));
@@ -853,7 +880,8 @@
       tools.append(choices([
         ['note', 'Notes', 'Notes: click to add a note and drag to make it longer, click a note to remove it'],
         ['slide', 'Slides', 'Slides: drag from where a note starts to where it ends up, up or down, and it slides from one pitch to the other (D# up to E, say)'],
-        ['shake', 'Vibrato', 'Vibrato: click a note to give it a wide vibrato (or take it off), like a guitarist shaking a held string. Drag to draw a new note with it'],
+        ['shake', 'Vibrato', 'Vibrato: click a note to give it vibrato (or take it off), like a singer on a held note or a guitarist shaking a string. Drag to draw a new note with it'],
+        ['swell', 'Swells', 'Swells: click a note to make it grow, click again to make it die away, and again for neither. The way a violinist or a horn player shapes a long note'],
       ], () => tool, (value) => { tool = value; renderPanel(); }, 'Tool'));
       if (tool === 'slide') {
         tools.append(choices([
@@ -861,12 +889,31 @@
           ['half', 'Half way', 'Half way: it slides over the first half of the note, then holds'],
           ['whole', 'The whole note', 'The whole note: it slides the whole time, arriving as the note ends'],
         ], () => slideSpeed, (value) => { slideSpeed = value; renderPanel(); }, 'Slide speed'));
+        tools.append(choices([
+          [0, 'Straight', 'Straight: the same speed all the way, like a synth\'s glide'],
+          [1, 'Smooth', 'Smooth: it eases out of the first note and into the second, like a singer or a trombone'],
+          [2, 'Settle', 'Settle: most of the way at once, then easing onto the pitch, like a finger sliding up a fretless neck'],
+        ], () => slideShape, (value) => { slideShape = value; renderPanel(); }, 'Slide shape'));
+      }
+      if (tool === 'shake') {
+        tools.append(choices([
+          [12, 'Gentle', 'Gentle: a narrow vibrato, like a violinist\'s'],
+          [22, 'Wide', 'Wide: a guitarist shaking a held string'],
+          [35, 'Very wide', 'Very wide: a big, wobbling vibrato, like an old singer or a whammy bar'],
+        ], () => shakeWidth, (value) => { shakeWidth = value; renderPanel(); }, 'Vibrato width'));
+      }
+      if (tool === 'swell') {
+        tools.append(choices([
+          [1, 'Grows', 'Grows: new notes you draw start quiet and grow'],
+          [-1, 'Dies away', 'Dies away: new notes you draw start full and fade'],
+        ], () => swellWay, (value) => { swellWay = value; renderPanel(); }, 'Swell'));
       }
     }
     const HINTS = {
       note: 'Click to add a note and drag to make it longer. Click a note to remove it. Shaded rows are in the chord playing there. Click a note name to hear it.',
       slide: 'Drag from a note\'s start to where it should end up: across for how long, up or down for the pitch it slides to. Click a note to remove it.',
       shake: 'Click a note to give it vibrato, or click it again to take it off. Drag on an empty spot to draw a new note with vibrato.',
+      swell: 'Click a note to make it grow, again to make it die away, and again to make it plain. Drag on an empty spot to draw a new note that swells. It shows as a wedge, like a hairpin in a score.',
     };
     box.append(head, tools, make('p', 'mm-hint', HINTS[drums ? 'note' : tool]));
 
@@ -1002,6 +1049,17 @@
           for (let dx = 2, up = true; dx < w - 1; dx += 3, up = !up) g[dx === 2 ? 'moveTo' : 'lineTo'](x + dx, i * ROW + (up ? 1 : 4));
           g.stroke();
         }
+        // a swell is a hairpin, the way scores write one: opening out as it grows, closing as it dies
+        if (note.swell) {
+          const [narrow, wide] = note.swell > 0 ? [x + 3, x + w - 2] : [x + w - 2, x + 3];
+          g.strokeStyle = INK;
+          g.lineWidth = 1;
+          g.beginPath();
+          g.moveTo(wide, i * ROW + 3.5);
+          g.lineTo(narrow, i * ROW + ROW / 2);
+          g.lineTo(wide, i * ROW + ROW - 3.5);
+          g.stroke();
+        }
       };
       for (const note of notes) block(note);
       if (drag) block(dragNote(drag));
@@ -1014,18 +1072,22 @@
 
     // what's being drawn, as a note: its start and length from the drag, a slide to where the pointer
     // is if it's the slide tool (taking as long as the slide speed says), vibrato if it's the vibrato tool
-    const SHAKE = 22;
     const dragNote = (one) => {
       const length = drums ? grid : (one.to - one.from + 1) * grid;
-      const note = { gt: sec.start + one.from * grid, dur: length, midi: one.row, added: true, entry: [+(one.from * grid).toFixed(3), one.row, length] };
+      const note = { gt: sec.start + one.from * grid, dur: length, midi: one.row, added: true };
+      const drawn = { t: +(one.from * grid).toFixed(3), midi: one.row, dur: length };
       if (!drums && tool === 'slide' && one.toRow !== one.row) {
         const glide = +{ quick: Math.min(grid, length), half: length / 2, whole: length }[slideSpeed].toFixed(3);
-        note.bend = [[0, 0], [glide, one.toRow - one.row]];
-        note.entry.push(one.toRow, glide);
+        note.bend = [[0, 0], [glide, one.toRow - one.row, slideShape]];
+        Object.assign(drawn, { to: one.toRow, glide, curve: slideShape });
       } else if (!drums && tool === 'shake') {
-        note.shake = SHAKE;
-        note.entry.push(one.row, 0, SHAKE);
+        note.shake = shakeWidth;
+        drawn.shake = shakeWidth;
+      } else if (!drums && tool === 'swell') {
+        note.swell = swellWay;
+        drawn.swell = swellWay;
       }
+      note.entry = packEdit(drawn);
       return note;
     };
 
@@ -1047,16 +1109,23 @@
       if (hit) {
         const relative = +(hit.gt - sec.start).toFixed(3);
         const mine = hit.added && changes.add.find(([at, midi]) => Math.abs(at - relative) < 1e-3 && midi === hit.midi);
-        if (tool === 'shake' && !drums) {
-          // vibrato on or off. a note you added just gets it (or loses it); a written one becomes one of
-          // yours: it's taken out (by the pitch it was written at, the same as removing it) and the same
-          // note's added back with vibrato
+        if ((tool === 'shake' || tool === 'swell') && !drums) {
+          // vibrato on or off, or the swell going round (growing, dying away, neither). a note you
+          // added just changes; a written one becomes one of yours: it's taken out (by the pitch it was
+          // written at, the same as removing it) and the same note's added back, changed
+          const change = (one) => {
+            if (tool === 'shake') one.shake = one.shake ? 0 : shakeWidth;
+            else one.swell = one.swell > 0 ? -1 : one.swell < 0 ? 0 : 1;
+          };
           if (mine) {
-            const [at, midi, dur, to = midi, glide = 0] = mine;
-            changes.add[changes.add.indexOf(mine)] = hit.shake ? (to !== midi ? [at, midi, dur, to, glide] : [at, midi, dur]) : [at, midi, dur, to, glide, SHAKE];
+            const one = unpackEdit(mine);
+            change(one);
+            changes.add[changes.add.indexOf(mine)] = packEdit(one);
           } else if (!hit.added) {
             changes.remove.push(editKey(relative, hit.written ?? hit.midi));
-            changes.add.push([relative, hit.midi, +hit.dur.toFixed(3), hit.midi, 0, SHAKE]);
+            const one = { t: relative, midi: hit.midi, dur: +hit.dur.toFixed(3), shake: hit.shake || 0, swell: hit.swell || 0 };
+            change(one);
+            changes.add.push(packEdit(one));
           }
           changed(false);
           return;
@@ -1086,7 +1155,7 @@
       // a note added where a written one had been removed shouldn't stay removed
       changes.remove = changes.remove.filter((one) => one !== editKey(note.entry[0], drag.row));
       // hear it as it'll play, slide and all
-      player.audition(song, layer, [drag.row], drums ? 1 : note.dur, { bend: note.bend, shake: note.shake });
+      player.audition(song, layer, [drag.row], drums ? 1 : note.dur, { bend: note.bend, shake: note.shake, swell: note.swell });
       drag = null;
       changed(false);
     });

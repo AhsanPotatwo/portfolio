@@ -1,0 +1,162 @@
+{
+ "source": "Greg Sullivan's E-Pianos (Wurlitzer EP200, Yamaha CP80, Hohner Pianet T)",
+ "link": "https://github.com/sfzinstruments/GregSullivan.E-Pianos",
+ "licence": "CC BY 3.0",
+ "notes": [
+  {
+   "file": "f1-9.mp3",
+   "midi": 29,
+   "vel": 0.9
+  },
+  {
+   "file": "f1-4.mp3",
+   "midi": 29,
+   "vel": 0.4
+  },
+  {
+   "file": "a1-9.mp3",
+   "midi": 33,
+   "vel": 0.9
+  },
+  {
+   "file": "a1-4.mp3",
+   "midi": 33,
+   "vel": 0.4
+  },
+  {
+   "file": "db2-9.mp3",
+   "midi": 37,
+   "vel": 0.9
+  },
+  {
+   "file": "db2-4.mp3",
+   "midi": 37,
+   "vel": 0.4
+  },
+  {
+   "file": "f2-9.mp3",
+   "midi": 41,
+   "vel": 0.9
+  },
+  {
+   "file": "f2-4.mp3",
+   "midi": 41,
+   "vel": 0.4
+  },
+  {
+   "file": "a2-9.mp3",
+   "midi": 45,
+   "vel": 0.9
+  },
+  {
+   "file": "a2-4.mp3",
+   "midi": 45,
+   "vel": 0.4
+  },
+  {
+   "file": "db3-9.mp3",
+   "midi": 49,
+   "vel": 0.9
+  },
+  {
+   "file": "db3-4.mp3",
+   "midi": 49,
+   "vel": 0.4
+  },
+  {
+   "file": "e3-4.mp3",
+   "midi": 52,
+   "vel": 0.4
+  },
+  {
+   "file": "a3-9.mp3",
+   "midi": 57,
+   "vel": 0.9
+  },
+  {
+   "file": "a3-4.mp3",
+   "midi": 57,
+   "vel": 0.4
+  },
+  {
+   "file": "db4-9.mp3",
+   "midi": 61,
+   "vel": 0.9
+  },
+  {
+   "file": "db4-4.mp3",
+   "midi": 61,
+   "vel": 0.4
+  },
+  {
+   "file": "f4-9.mp3",
+   "midi": 65,
+   "vel": 0.9
+  },
+  {
+   "file": "f4-4.mp3",
+   "midi": 65,
+   "vel": 0.4
+  },
+  {
+   "file": "a4-9.mp3",
+   "midi": 69,
+   "vel": 0.9
+  },
+  {
+   "file": "a4-4.mp3",
+   "midi": 69,
+   "vel": 0.4
+  },
+  {
+   "file": "db5-9.mp3",
+   "midi": 73,
+   "vel": 0.9
+  },
+  {
+   "file": "db5-4.mp3",
+   "midi": 73,
+   "vel": 0.4
+  },
+  {
+   "file": "f5-9.mp3",
+   "midi": 77,
+   "vel": 0.9
+  },
+  {
+   "file": "f5-4.mp3",
+   "midi": 77,
+   "vel": 0.4
+  },
+  {
+   "file": "a5-9.mp3",
+   "midi": 81,
+   "vel": 0.9
+  },
+  {
+   "file": "a5-4.mp3",
+   "midi": 81,
+   "vel": 0.4
+  },
+  {
+   "file": "db6-9.mp3",
+   "midi": 85,
+   "vel": 0.9
+  },
+  {
+   "file": "db6-4.mp3",
+   "midi": 85,
+   "vel": 0.4
+  },
+  {
+   "file": "e6-9.mp3",
+   "midi": 88,
+   "vel": 0.9
+  },
+  {
+   "file": "e6-4.mp3",
+   "midi": 88,
+   "vel": 0.4
+  }
+ ]
+}

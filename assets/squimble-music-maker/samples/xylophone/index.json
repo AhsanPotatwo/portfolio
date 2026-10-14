@@ -1,0 +1,87 @@
+{
+ "source": "Versilian Community Sample Library (Versilian Studios)",
+ "link": "https://github.com/sgossner/VCSL",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "g4-9.mp3",
+   "midi": 67,
+   "vel": 0.9
+  },
+  {
+   "file": "g4-4.mp3",
+   "midi": 67,
+   "vel": 0.4
+  },
+  {
+   "file": "c5-9.mp3",
+   "midi": 72,
+   "vel": 0.9
+  },
+  {
+   "file": "c5-4.mp3",
+   "midi": 72,
+   "vel": 0.4
+  },
+  {
+   "file": "g5-9.mp3",
+   "midi": 79,
+   "vel": 0.9
+  },
+  {
+   "file": "g5-4.mp3",
+   "midi": 79,
+   "vel": 0.4
+  },
+  {
+   "file": "c6-9.mp3",
+   "midi": 84,
+   "vel": 0.9
+  },
+  {
+   "file": "c6-4.mp3",
+   "midi": 84,
+   "vel": 0.4
+  },
+  {
+   "file": "g6-9.mp3",
+   "midi": 91,
+   "vel": 0.9
+  },
+  {
+   "file": "g6-4.mp3",
+   "midi": 91,
+   "vel": 0.4
+  },
+  {
+   "file": "c7-9.mp3",
+   "midi": 96,
+   "vel": 0.9
+  },
+  {
+   "file": "c7-4.mp3",
+   "midi": 96,
+   "vel": 0.4
+  },
+  {
+   "file": "g7-9.mp3",
+   "midi": 103,
+   "vel": 0.9
+  },
+  {
+   "file": "g7-4.mp3",
+   "midi": 103,
+   "vel": 0.4
+  },
+  {
+   "file": "c8-9.mp3",
+   "midi": 108,
+   "vel": 0.9
+  },
+  {
+   "file": "c8-4.mp3",
+   "midi": 108,
+   "vel": 0.4
+  }
+ ]
+}

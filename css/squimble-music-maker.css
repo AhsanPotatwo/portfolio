@@ -546,6 +546,38 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-open:focus-within{ outline:2px solid var(--mm-mood); outline-offset:3px; }
 .mm-export-status{ min-height:1.5em; margin:4px 0 0 !important; color:var(--mm-mood) !important; overflow-wrap:anywhere; }
 
+/* the guide at the bottom: a tour, tips, and how it's built */
+.mm-guide-lede{ max-width:72ch; margin:0 0 20px; font-size:16px; line-height:1.65; color:var(--mm-muted); }
+.mm-guide-lede a, .mm-guide a{ color:var(--mm-mood); text-underline-offset:3px; }
+.mm-guide code{ font:500 .92em var(--mm-mono); font-variation-settings:"MONO" 1, "CASL" 0; color:var(--mm-text); }
+.mm-guide-grid{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; align-items:start; }
+@media (max-width:900px){
+  .mm-guide-grid{ grid-template-columns:minmax(0,1fr); }
+}
+.mm-steps, .mm-tips{ margin:14px 0 0; padding:0 0 0 1.3em; display:grid; gap:12px; font-size:15px; line-height:1.6; color:#ddd5c6; }
+.mm-steps li::marker{ font-weight:900; color:var(--mm-mood); }
+.mm-tips li::marker{ color:var(--mm-mood); }
+.mm-steps b, .mm-tips b{ color:var(--mm-text); }
+.mm-hood{ display:grid; gap:10px; max-width:860px; }
+.mm-hood details{ padding:0; }
+.mm-hood summary{
+  display:flex; align-items:center; gap:12px; padding:16px 22px; cursor:pointer; list-style:none;
+  font:900 18px var(--mm-ui); font-variation-settings:"CASL" 1; border-radius:10px;
+}
+.mm-hood summary::-webkit-details-marker{ display:none; }
+.mm-hood summary::before{
+  content:"+"; display:grid; place-items:center; width:24px; height:24px; flex:none; border-radius:6px;
+  background:var(--mm-raised); color:var(--mm-mood); font:700 16px var(--mm-mono);
+}
+.mm-hood details[open] summary::before{ content:"\2212"; }
+.mm-hood summary:hover{ background:rgba(255,255,255,.03); }
+.mm-hood summary:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:-2px; }
+.mm-hood details p{ max-width:72ch; margin:0; padding:0 22px 16px 58px; font-size:15px; line-height:1.65; color:#ddd5c6; }
+@media (max-width:600px){
+  .mm-hood summary{ padding:14px 16px; font-size:16px; }
+  .mm-hood details p{ padding:0 16px 14px; }
+}
+
 .mm-credits{ max-width:72ch; margin:clamp(40px,5vw,64px) 0 0; font-size:13px; line-height:1.6; color:var(--mm-muted); }
 .mm-credits a{ color:inherit; }
 .mm-page .page-back{ padding-inline:0; margin-top:clamp(40px,5vw,64px); }

@@ -1,0 +1,17 @@
+{
+ "source": "Roland TR-808 (Michael Fischer) and TR-707 (Francois Dion) recordings, via fluid-music's open-drums",
+ "link": "https://github.com/fluid-music/open-drums",
+ "licence": "Free, no restrictions (TR-808); public domain (TR-707)",
+ "notes": [
+  {
+   "file": "g1-5.mp3",
+   "midi": 31,
+   "vel": 0.45
+  },
+  {
+   "file": "g1-9.mp3",
+   "midi": 31,
+   "vel": 0.9
+  }
+ ]
+}

@@ -1,0 +1,72 @@
+{
+ "source": "Roland TR-808 (Michael Fischer) and TR-707 (Francois Dion) recordings, via fluid-music's open-drums",
+ "link": "https://github.com/fluid-music/open-drums",
+ "licence": "Free, no restrictions (TR-808); public domain (TR-707)",
+ "notes": [
+  {
+   "file": "kick-1.mp3",
+   "hit": "kick",
+   "vel": 0.9
+  },
+  {
+   "file": "short-kick-1.mp3",
+   "hit": "short-kick",
+   "vel": 0.9
+  },
+  {
+   "file": "snare-1.mp3",
+   "hit": "snare",
+   "vel": 0.9
+  },
+  {
+   "file": "clap-1.mp3",
+   "hit": "clap",
+   "vel": 0.9
+  },
+  {
+   "file": "hat-1.mp3",
+   "hit": "hat",
+   "vel": 0.9
+  },
+  {
+   "file": "open-hat-1.mp3",
+   "hit": "open-hat",
+   "vel": 0.9
+  },
+  {
+   "file": "rim-1.mp3",
+   "hit": "rim",
+   "vel": 0.9
+  },
+  {
+   "file": "low-tom-1.mp3",
+   "hit": "low-tom",
+   "vel": 0.9
+  },
+  {
+   "file": "cowbell-1.mp3",
+   "hit": "cowbell",
+   "vel": 0.9
+  },
+  {
+   "file": "crash-1.mp3",
+   "hit": "crash",
+   "vel": 0.9
+  },
+  {
+   "file": "claves-1.mp3",
+   "hit": "claves",
+   "vel": 0.9
+  },
+  {
+   "file": "maracas-1.mp3",
+   "hit": "maracas",
+   "vel": 0.9
+  },
+  {
+   "file": "conga-1.mp3",
+   "hit": "conga",
+   "vel": 0.9
+  }
+ ]
+}

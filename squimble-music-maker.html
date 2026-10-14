@@ -43,7 +43,7 @@
 
     <div class="mm-intro">
       <h1 class="mm-title">Squimble Music Maker</h1>
-      <p class="mm-lede">Music that writes itself from a seed word. Pick a mood and it chooses a key, writes chord progressions and melodies, and puts together a band to play them. It uses the music theory composers have relied on for centuries, not AI. The band is a mix of synthesisers built from the browser's own oscillators and recordings of real instruments, marked recorded in the band. Then pull it apart: change the chords, swap the instruments, redraw a melody note by note. I'm building it to score <a href="squimble-quest.html">Squimble Quest</a>.</p>
+      <p class="mm-lede">Music that writes itself from a seed word. Pick a mood and it chooses a key, writes chord progressions and melodies, and puts together a band to play them. It uses the music theory composers have relied on for centuries, not AI. The band is a mix of synthesisers built from the browser's own oscillators and recordings of real instruments, marked recorded in the band. Then pull it apart: change the chords, swap the instruments, redraw a melody note by note. I'm building it to score <a href="squimble-quest.html">Squimble Quest</a>. First time here? There's <a href="#guide">a quick tour</a> at the bottom, and <a href="#hood">how it works</a> if you're curious.</p>
       <ul class="mm-tags" aria-label="Built with">
         <li>JavaScript</li>
         <li>Web Audio</li>
@@ -175,7 +175,104 @@
       </section>
     </div>
 
-    <p class="mm-credits">The recorded instruments come from free sample libraries: VSCO 2 Community Edition, the Versilian Community Sample Library and Virtuosity Drums (Versilian Studios and Karoryfer Samples), Karoryfer Samples' guitars, basses and erhu, and J. Learman's jSteelDrum, all public domain; MTG Solo Saxophones by the Music Technology Group, Universitat Pompeu Fabra (<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>); and the FluidR3 GM soundfont by Frank Wen (<a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>). Thank you to everyone who shares their recordings.</p>
+    <h2 class="mm-ribbon" id="guide">How to use it</h2>
+
+    <div class="mm-guide">
+      <p class="mm-guide-lede">I made this, so I know where everything is. You didn't, so here's a quick tour, then some things I've picked up about making songs sound good with it. If you're more interested in how it's built, skip to <a href="#hood">under the hood</a>.</p>
+
+      <div class="mm-guide-grid">
+        <section class="mm-shelf" aria-labelledby="mmTourTitle">
+          <h3 class="mm-shelf-title" id="mmTourTitle">A quick tour</h3>
+          <ol class="mm-steps">
+            <li><b>Pick a mood and press Play.</b> That's honestly it for a first go. The mood picks the key, the tempo, the chords, the band and how they play. The rows above the moods (Gentle, Bright, Loud...) just show different groups of them.</li>
+            <li><b>Pick a style.</b> Ambient is slow and drifty, for exploring. Tune has a melody you could hum. Mini boss and Boss turn whatever mood you're on into a fight that loops.</li>
+            <li><b>Press New song</b> for another song in the same mood, or type any words into Seed and press Enter. The same words always make the same song, so if you find one you like, the seed is all you need to get it back.</li>
+            <li><b>Add modifiers.</b> They're words in front of the mood: calm folk, angry folk, fast jazzy folk. The band stays the same and plays differently. You can have up to four.</li>
+            <li><b>Remix one thing at a time.</b> The Remix keys pick just the chords, or just the melodies, or just the band again, and leave everything else alone.</li>
+            <li><b>Open the Band tab</b> to change a part's instrument, what it plays and how busy it is. Anything marked recorded plays real recordings, and some have a Recording menu with a few to choose from (a Wurlitzer or a Pianet, two different electric guitars, a grand or an electric grand).</li>
+            <li><b>Draw your own notes</b> in the note editor under each part. Click to add, drag to make longer, click a note to take it out. The other tools add slides, vibrato and swells.</li>
+            <li><b>Arrange tab</b> is the song from start to end: which parts play in each section, how long each is, and how loud. <b>Room</b> is the space it's played in: reverb, echo, tape wobble.</li>
+            <li><b>Keep it.</b> Save puts it in your library in this browser, and you can download a WAV, a small song file, or copy a link with the whole song in it.</li>
+          </ol>
+        </section>
+
+        <section class="mm-shelf" aria-labelledby="mmTipsTitle">
+          <h3 class="mm-shelf-title" id="mmTipsTitle">Making it sound good</h3>
+          <ul class="mm-tips">
+            <li><b>Take things away before you add.</b> Most songs I didn't like had one part too many. Use M to mute a part and listen. If you don't miss it, leave it out. S solos a part so you hear just that one.</li>
+            <li><b>One thing moving in the middle.</b> An arp and a counter melody both weave around the tune, and together they're a tangle. The composer already avoids that, but it's easy to add back by hand.</li>
+            <li><b>Busy before more.</b> If a part sounds thin, turn its Busy slider up before you reach for another layer.</li>
+            <li><b>Slides on long notes, not every note.</b> A slide into the long note at the end of a phrase sounds like a player. A slide on every note sounds seasick. Smooth is the most natural shape, Settle is good for basses and Straight sounds like a synth.</li>
+            <li><b>Vibrato on held notes.</b> Real players start a note straight and let the vibrato come in, so short notes barely wobble. Gentle suits violins and flutes, Wide suits guitars and singers.</li>
+            <li><b>Swells for slow songs.</b> In a slow string or horn line, make the long notes grow, and the very last note of a phrase die away. It's the thing that made my violins stop sounding like a keyboard.</li>
+            <li><b>Try the recordings.</b> If an instrument sounds a bit plastic, check if it has a recorded version (or another recording in the Recording menu). The Recordings key at the top flips the whole band between recorded and synthesised so you can compare.</li>
+            <li><b>Quiet intros.</b> In Arrange, drop the Loudness of the intro a bit. Every section played at the same strength is one of the things that makes music sound like a computer did it.</li>
+            <li><b>Keep drums and bass fairly dry.</b> Reverb on the kick makes the beat smear. The room is for pads, bells and the tune.</li>
+            <li><b>For a game,</b> use Loop WAV. It folds the reverb tail back onto the start, so the song repeats with no gap or click.</li>
+            <li><b>Undo is Ctrl + Z.</b> Nothing you do can break a song, so poke at everything.</li>
+          </ul>
+        </section>
+      </div>
+    </div>
+
+    <h2 class="mm-ribbon" id="hood">Under the hood</h2>
+
+    <div class="mm-guide">
+      <p class="mm-guide-lede">This bit is for developers, and anyone hiring one. It's all plain JavaScript and the browser's Web Audio API, no libraries and no AI. It's split into three files: <code>music.js</code> writes the music and has no idea a browser exists (so the game can run it), <code>synth.js</code> plays it, and <code>maker.js</code> is this page. Click a heading to read more.</p>
+
+      <div class="mm-hood">
+        <details class="mm-shelf">
+          <summary><b>A song is a seed, not a file</b></summary>
+          <p>Every random choice comes from a seeded random number generator (mulberry32, with the seed words hashed by FNV-1a). The same seed and settings give exactly the same notes every time, so a whole song saves as a few kilobytes of settings and even fits in a link. That's also how the game will store its music.</p>
+          <p>The thing I'm most pleased with is that each decision gets its own random stream: the key and tempo, the chords, the band, the arrangement and the room are all seeded separately. So "remix the chords" really does change only the chords, and adding a modifier like fast gives you the same song, faster, instead of a completely different one. I learned that the hard way. When I added guitars, one extra random number at the start of the band step shifted every choice after it, and every old seed in every mood turned into a different song.</p>
+        </details>
+
+        <details class="mm-shelf">
+          <summary><b>Writing the music</b></summary>
+          <p>It goes through five steps: tonality (key, scale, tempo, time signature, swing), chords, the band, the arrangement and the room. Chord progressions come from progressions that suit each mood, a Markov chain of which chords usually follow which, two chord vamps, or roots wandering chromatically for horror. The chords are written as roman numerals (I V vi IV) so they work in any key and you can type your own.</p>
+          <p>Melodies are where I spent the longest. My first version was a random walk and you couldn't remember a single note of it. Now every melody grows from one motif, a short rhythm and shape (a leap and a fall back, an arch, a repeated note), the way game composers like Koji Kondo and Toby Fox write themes. Phrases come in question and answer pairs, the question ends on a note that wants to go somewhere and the answer comes home, and long sections are a whole AABA tune. Strong beats land on chord notes. Solos are built four bars at a time from new ideas and climb to a peak two thirds of the way through.</p>
+          <p>The counter melody is real counterpoint. Every candidate note gets a cost (thirds and sixths under the tune are cheap, seconds and parallel fifths are expensive, steps are cheaper than leaps, moving against the tune is cheaper than with it) and the cheapest wins. Drums, bass and chord stabs all read one hand-written groove per part, like an old drum machine chart, so the kick and the bass actually land together.</p>
+        </details>
+
+        <details class="mm-shelf">
+          <summary><b>Making the band fit together</b></summary>
+          <p>Each part can sound fine on its own and wrong with the others, which was most of my bug reports. So once every part is written, the band "listens": keys and arps that would go above the tune drop an octave, and any note a semitone away from a melody note it's heard against moves to the nearest chord note that doesn't clash. Every instrument has an edge rating (how harsh it is), moods cap it and backing parts get a lower cap, so nothing buzzy plays under something gentle. Chip sounds and acoustic instruments never share a song.</p>
+          <p>The mix gets the same treatment. Every part apart from the bass and drums has its low end cut, the first thing a mixing engineer would do, because a pad's low notes aren't heard as warmth, they're heard as mud under the bass. Parts that fill in are panned opposite each other instead of anywhere at random, so the keys and the arp don't end up on top of each other. Songs end on their home chord, apart from boss fights, which loop forever.</p>
+          <p>Every rule has a comment saying what sounded wrong without it, and most have a check in the test script, so I don't quietly undo an old fix while making a new one.</p>
+        </details>
+
+        <details class="mm-shelf">
+          <summary><b>Playing it like a person would</b></summary>
+          <p>MIDI sounds like MIDI because every note starts dead on its pitch and stays there at the same strength. After the notes are written, each player adds what a real one would: slides between joined notes, guitarists bending up onto a note or letting a bent string down onto it, a fiddler's grace notes, a sax falling off or flicking up (a doit) at the end of a phrase, wide shakes on long guitar notes, and long notes that swell and fade. Each instrument says which of these its players use and how often. The dice for each come from the note's place in the phrase, so a motif that comes back gets played the same way, like a player who has their own way with a tune.</p>
+          <p>Blown, bowed and sung lines are slurred: only the first note of a phrase gets a fresh attack, and the rest come straight out of the note before, the way a flute player doesn't start a new breath for every note. Slides are drawn as curves, not straight lines, because a real finger moves fast in the middle and slows onto the pitch. Vibrato comes in after the note starts and speeds up a little as it settles. On top of that there's swing, a shared "pocket" so the whole band is late or early together rather than smeared apart, and dynamics, so quiet sections are played softer and the bar before a chorus swells into it.</p>
+        </details>
+
+        <details class="mm-shelf">
+          <summary><b>Making the sounds</b></summary>
+          <p>The synthesised instruments are built from Web Audio nodes, wired up fresh for every note. Pads and leads are oscillators through filters, with waveforms I built from the harmonics of real instruments (a sax's, a bowed string's, a Hammond's drawbars). Plucked strings use the Karplus-Strong algorithm from 1983, a burst of noise going round a loop one wavelength long. Pianos, mallets and bells are modal synthesis: each overtone a real one rings at, decaying at its own rate. Both of those are worked out sample by sample once per note and cached, because Web Audio can't do them live.</p>
+          <p>Then there are the bits that make an instrument sound like an object: the resonances of a violin's body or a guitar's air, a Leslie speaker spinning for the organ, and full guitar rigs (a cut before the clipping, a compressor for sustain, the clipping curve, tone, a speaker cabinet's roll-off, double tracking). Even the reverb is generated, decaying noise with early reflections, so there are no room recordings either.</p>
+        </details>
+
+        <details class="mm-shelf">
+          <summary><b>The recordings</b></summary>
+          <p>Some instruments are really hard to synthesise (bowed strings, brass, choirs, drum kits), so 78 of the instruments can also play from recordings out of free sample libraries, and 22 of those have more than one recording to choose from. Only libraries whose licence allows use in a game made it in. I skipped one great Rhodes set because it was non-commercial only, and a TR-909 set because it can't be passed on for profit.</p>
+          <p>A Node script downloads just the files it needs (not the gigabytes of each library), trims them, keeps a note every few semitones, and saves small mono MP3s, about 29 MB for everything. It also measures each note's pitch with the YIN algorithm, because libraries don't agree on which octave is which. That check caught that most of one library is named an octave low, and the tubular bells only made sense once I looked at their overtones by hand. Held notes loop their steady middle, found and crossfaded when they load, so a recorded flute can hold a note as long as it needs to. Every recording's volume was matched to its synthesised version by rendering both offline and measuring them. A recording is still just a buffer going through the same chain as everything else, so it slides, bends, swells, goes through the guitar rigs and the room, and the synthesised version plays until it's loaded.</p>
+        </details>
+
+        <details class="mm-shelf">
+          <summary><b>Playing in time</b></summary>
+          <p>JavaScript timers aren't accurate enough for music, so the player runs a lookahead scheduler. Every 25 milliseconds it hands the browser every note due in the next 0.3 seconds, and the browser plays them on its own audio clock, which is sample accurate. That's also why you can change anything while it plays: notes already handed over finish as they were, and everything after uses the new version. WAV downloads render the same notes through an OfflineAudioContext, faster than real time.</p>
+        </details>
+
+        <details class="mm-shelf">
+          <summary><b>Testing music</b></summary>
+          <p>You can't unit test "sounds good", but you can test the rules that make it sound good. The check script generates thousands of songs across every mood, style and modifier and asserts things like: melodies land on chord notes on strong beats, no part rubs a semitone against the tune, drums repeat bar to bar, nothing plays faster than six notes a second, the same seed gives the same song, and every recording a song asks for exists. A second script drives headless Chrome over the DevTools protocol to render instruments offline and measure their loudness, which is how I set levels without sitting in front of speakers for days.</p>
+          <p>The biggest thing I learned is to write down why. Every rule in the composer started as something that sounded wrong, and the README keeps a table of what it sounded like, why, and the fix.</p>
+        </details>
+      </div>
+    </div>
+
+    <p class="mm-credits">The recorded instruments come from free sample libraries: VSCO 2 Community Edition, the Versilian Community Sample Library and Virtuosity Drums (Versilian Studios and Karoryfer Samples), Karoryfer Samples' guitars, basses, Shiny Guitar, Meatbass and erhu, and J. Learman's jSteelDrum, all public domain; Michael Fischer's Roland TR-808 and Francois Dion's TR-707 recordings, free with no restrictions; MTG Solo Saxophones by the Music Technology Group, Universitat Pompeu Fabra (<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>); Greg Sullivan's E-Pianos (Wurlitzer EP200, Yamaha CP80 and Hohner Pianet T, <a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>); and the FluidR3 GM soundfont by Frank Wen (<a href="https://creativecommons.org/licenses/by/3.0/">CC BY 3.0</a>). Thank you to everyone who shares their recordings.</p>
 
     <div class="page-back">
       <a href="index.html#projects"><span aria-hidden="true">&larr;</span> Back to all projects</a>

@@ -14,7 +14,9 @@
 // mood's own band, clean up (no opposites, no unknowns, any order), and leave no trace on a song
 // without them. counter melodies in counterpoint stay under the tune and in the intervals that blend,
 // players ornament their notes, slides drawn by hand save and play, and sections keep their energy.
-// the recorded instruments' files are all there, and every folder of them gets played.
+// the recorded instruments' files are all there, and every folder of them gets played. recordings are
+// preferred, a layer's choice of recording saves, blown and bowed lines slur, songs end at home, and
+// the parts that fill in stand on opposite sides.
 // (double stops, notes marked stop, are a second note under the tune on purpose, so the one note at a
 // time checks leave them out)
 // run it with
@@ -471,7 +473,7 @@ assert(soloBars > 200 && soloNew / soloBars > 0.9, `solos are new all the way th
   }
   assert(bent > 100, `players ornament their notes (${bent} bends)`);
   // every instrument's ornaments are ones the composer knows, and every struck one has its modes
-  const KNOWN = ['slide', 'bend', 'bendBy', 'grace', 'trill', 'fall', 'shake', 'stop', 'glide'];
+  const KNOWN = ['slide', 'bend', 'bendBy', 'release', 'grace', 'trill', 'fall', 'doit', 'shake', 'swell', 'stop', 'glide'];
   for (const [id, inst] of Object.entries(INSTRUMENTS)) {
     for (const key of Object.keys(inst.ornaments || {})) assert(KNOWN.includes(key), `${id} has an ornament called ${key}`);
     if (inst.kind === 'modal') assert(inst.modes?.length, `${id} is struck but has no modes`);
@@ -483,13 +485,16 @@ assert(soloBars > 200 && soloNew / soloBars > 0.9, `solos are new all the way th
 {
   const song = generateSong('calm', 'tune', 'slide-0');
   const layer = song.layers.find((l) => l.role === 'melody');
-  layer.edits.A = { add: [[0, 63, 2, 64, 0.25, 20], [2, 60, 1]], remove: [] };
+  // (and a slide's shape and a swell: [..., curve, swell])
+  layer.edits.A = { add: [[0, 63, 2, 64, 0.25, 20], [2, 60, 1], [3, 62, 2, 65, 1, 0, 1], [5, 60, 2, 60, 0, 0, 0, -1], [7, 60, 1, 60, 0, 0, 0, 0]], remove: [] };
   const clean = cleanSong(JSON.parse(JSON.stringify(song)));
-  same(clean.layers.find((l) => l.id === layer.id).edits.A.add, [[0, 63, 2, 64, 0.25, 20], [2, 60, 1]], 'slides save and load');
+  same(clean.layers.find((l) => l.id === layer.id).edits.A.add, [[0, 63, 2, 64, 0.25, 20], [2, 60, 1], [3, 62, 2, 65, 1, 0, 1], [5, 60, 2, 60, 0, 0, 0, -1], [7, 60, 1]], 'slides save and load');
   const comp = composeSong(clean);
   const slid = comp.notes.find((n) => n.layer === layer.id && n.added && n.midi === 63);
   same(slid.bend, [[0, 0], [0.25, 1]], 'a drawn slide plays as a bend');
   assert.strictEqual(slid.shake, 20, 'a drawn shake plays');
+  same(comp.notes.find((n) => n.layer === layer.id && n.added && n.midi === 62).bend, [[0, 0], [1, 3, 1]], 'a drawn slide keeps its shape');
+  assert.strictEqual(comp.notes.find((n) => n.layer === layer.id && n.added && n.midi === 60 && n.dur === 2).swell, -1, 'a drawn swell plays');
   // sections keep their energy (how hard they're played), and songs from before it have none
   const energetic = generateSong('happy', 'tune', 'energy');
   assert(energetic.sections.every((s) => typeof s.energy === 'number'), 'sections have an energy');
@@ -540,6 +545,11 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
       assert(index(inst.samples).notes.some((note) => note.midi !== undefined), `${id}'s recordings have notes`);
       assert(inst.sampled?.gain > 0, `${id} has a gain for its recordings`);
     }
+    // its other recordings: each there, with a gain, and a name for the page (as is the usual one)
+    for (const [folder, settings] of Object.entries(inst.more || {})) {
+      assert(index(folder).notes.some((note) => note.midi !== undefined), `${id}'s ${folder} recordings have notes`);
+      assert(settings.gain > 0 && settings.name && inst.sampled.name, `${id}'s ${folder} recording has a gain and a name`);
+    }
     for (const slot of inst.slots || []) {
       if (!slot.hit) continue;
       const [folder, name] = slot.hit.split('/');
@@ -547,6 +557,68 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
     }
   }
   // nothing's left in the folder that no instrument plays
-  const used = new Set(Object.values(INSTRUMENTS).flatMap((inst) => [inst.samples, ...(inst.slots || []).map((slot) => slot.hit?.split('/')[0])]));
+  const used = new Set(Object.values(INSTRUMENTS).flatMap((inst) => [inst.samples, ...Object.keys(inst.more || {}), ...(inst.slots || []).map((slot) => slot.hit?.split('/')[0])]));
   for (const folder of fs.readdirSync(root)) assert(used.has(folder), `the ${folder} recordings are played by something`);
+}
+
+// a layer's choice of recording (layer.recording, one of its instrument's others) saves and loads, one
+// it doesn't have is dropped, and the usual one isn't saved at all, so old songs save as they did
+{
+  const song = generateSong('soul', 'tune', 'rec-0');
+  const keys = song.layers.find((l) => l.role === 'keys') || song.layers[0];
+  keys.instrument = 'wurlitzer';
+  keys.recording = 'pianet';
+  assert.strictEqual(cleanSong(JSON.parse(JSON.stringify(song))).layers.find((l) => l.id === keys.id).recording, 'pianet', 'a chosen recording saves');
+  keys.recording = 'not-a-folder';
+  assert(!('recording' in cleanSong(JSON.parse(JSON.stringify(song))).layers.find((l) => l.id === keys.id)), 'an unknown recording is dropped');
+  assert(generateSong('jazz', 'tune', 'rec-1').layers.every((l) => !('recording' in l)), 'a new song plays the usual recordings');
+}
+
+// recordings are preferred: over many songs, in moods whose palettes have both, most pitched parts are
+// recorded. and the parts that fill in stand on opposite sides of the tune
+{
+  const { INSTRUMENTS: all } = vm.runInContext('({ INSTRUMENTS })', page);
+  let parts = 0;
+  let recorded = 0;
+  for (const mood of ['happy', 'calm', 'sad', 'heroic', 'wistful', 'folk']) {
+    for (let n = 0; n < 12; n++) {
+      const song = generateSong(mood, 'tune', `prefer-${n}`);
+      for (const layer of song.layers.filter((l) => roleFamily(l.role) === 'tonal')) {
+        parts++;
+        if (all[layer.instrument].samples) recorded++;
+      }
+      const sides = ['keys', 'counter', 'arp'].map((role) => song.layers.find((l) => l.role === role)).filter(Boolean);
+      if (sides.length === 2) assert(Math.sign(sides[0].pan) !== Math.sign(sides[1].pan), `${mood} prefer-${n}: two parts that fill in stand on opposite sides`);
+      const melody = song.layers.find((l) => l.role === 'melody');
+      if (melody) assert(Math.abs(melody.pan) <= 0.12, `${mood} prefer-${n}: the tune is near the middle`);
+    }
+  }
+  assert(recorded / parts > 0.65, `recordings are preferred (${recorded} of ${parts})`);
+}
+
+// slurs: only on instruments that hold a note (blown, bowed, sung, a held synth lead), only between
+// joined notes, never on a repeated pitch, and never on a piano. a song that ends comes home, and a
+// fight, which loops, doesn't have to
+{
+  const { legato } = vm.runInContext('({ legato })', page);
+  let slurred = 0;
+  for (const mood of ['folk', 'heroic', 'jazz', 'calm', 'happy', 'epic']) {
+    for (let n = 0; n < 4; n++) {
+      const song = generateSong(mood, 'tune', `slur-${n}`);
+      const comp = composeSong(song);
+      for (const layer of song.layers) {
+        const line = comp.notes.filter((note) => note.layer === layer.id && !note.stop).sort((a, b) => a.gt - b.gt);
+        line.forEach((note, i) => {
+          if (!note.slur) return;
+          slurred++;
+          assert(legato(INSTRUMENTS[layer.instrument]), `${mood} slur-${n}: the ${layer.instrument} can't slur`);
+          assert(i > 0 && line[i - 1].midi !== note.midi, `${mood} slur-${n}: a repeated note is tongued, not slurred`);
+        });
+      }
+      const last = comp.sections[comp.sections.length - 1];
+      const chord = last.chords[last.chords.length - 1];
+      assert.strictEqual(chord.root, (song.key + vm.runInContext(`diatonicChord(harmonySteps('${song.scale}'), 0).root`, page)) % 12, `${mood} slur-${n}: the song ends on its home chord`);
+    }
+  }
+  assert(slurred > 200, `blown and bowed lines slur (${slurred})`);
 }

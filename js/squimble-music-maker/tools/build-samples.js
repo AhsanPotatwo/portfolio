@@ -38,6 +38,15 @@ const SOURCES = {
   steeldrum: { git: 'https://github.com/sfzinstruments/jlearman.SteelDrum', name: 'jSteelDrum (J. Learman)', licence: 'Public domain (the Unlicense)' },
   sax: { git: 'https://github.com/sfzinstruments/MTG.SoloSax', name: 'MTG Solo Saxophones (Music Technology Group, Universitat Pompeu Fabra)', licence: 'CC BY 4.0' },
   fluid: { url: 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/', name: 'FluidR3 GM soundfont (Frank Wen), via midi-js-soundfonts', licence: 'CC BY 3.0' },
+  // the second round: electric pianos, a second electric and acoustic guitar, a double bass, and two
+  // real drum machines. (the 909 set on the same site says it can't be passed on for profit, and the
+  // jrhodes set is non commercial, so neither is here: squimble quest might be sold one day)
+  epianos: { git: 'https://github.com/sfzinstruments/GregSullivan.E-Pianos', name: "Greg Sullivan's E-Pianos (Wurlitzer EP200, Yamaha CP80, Hohner Pianet T)", licence: 'CC BY 3.0' },
+  shiny: { git: 'https://github.com/sfzinstruments/karoryfer.shinyguitar', name: 'Shiny Guitar (Karoryfer Samples)', licence: 'CC0 1.0' },
+  meat: { git: 'https://github.com/sfzinstruments/karoryfer.meatbass', name: 'Meatbass (Karoryfer Samples)', licence: 'CC0 1.0' },
+  // michael fischer's tr-808 recordings say they're free with no restrictions, and francois dion's
+  // tr-707 ones that they're public domain
+  machines: { git: 'https://github.com/fluid-music/open-drums', name: "Roland TR-808 (Michael Fischer) and TR-707 (Francois Dion) recordings, via fluid-music's open-drums", licence: 'Free, no restrictions (TR-808); public domain (TR-707)' },
 };
 
 // ---------- what goes in each folder ----------
@@ -119,6 +128,44 @@ const FOLDERS = {
   sitar: { gm: 'sitar', low: 48, high: 88 },
   'slap-bass': { gm: 'slap_bass_1', low: 28, high: 67 },
   'brass-section': { gm: 'brass_section', low: 41, high: 84, loop: true },
+
+  // ----- the second round: the gaps the first round left, and second recordings to choose from -----
+  // the instruments that were still synthesised
+  ocarina: { gm: 'ocarina', low: 60, high: 96, loop: true },
+  'clay-ocarina': { from: 'vcsl', shift: 1, dir: 'Aerophones/Edge-blown Aerophones/Ocarina, Typical/Sustains/Sus/', match: /_Sus_([A-G]#?\d)\.wav$/, every: 2, loop: true, seconds: 4 },
+  // a baroque soprano recorder: the nearest thing to a tin whistle in a free library
+  recorder: { from: 'vcsl', shift: 1, dir: 'Aerophones/Edge-blown Aerophones/Baroque Soprano Recorder/Sustain/', match: /_Sus_([A-G]#?\d)_rr1_Main\.wav$/, every: 2, loop: true, seconds: 4 },
+  whistle: { gm: 'whistle', low: 60, high: 96, loop: true },
+  // a shehnai is a shawm, the double reed of the bazaar and the wedding band
+  shehnai: { gm: 'shanai', low: 55, high: 91, loop: true },
+  // a reed organ is a harmonium's western cousin, the same pumped free reeds
+  'reed-organ': { gm: 'reed_organ', low: 41, high: 84, loop: true },
+  // a bandoneon: a single bank of free reeds under keys, the closest free recording to a melodica
+  bandoneon: { gm: 'tango_accordion', low: 48, high: 88, loop: true },
+  // a strumstick, a three string fretted dulcimer, plucked with the fingers: woody and nasal, the nearest
+  // free recording to an oud
+  strumstick: { from: 'vcsl', shift: 1, dir: 'Chordophones/Composite Chordophones/Strumstick/', match: /_Main_([A-G]#?\d)_(vl2|vl3)_rr1\.wav$/, layers: { vl2: 0.5, vl3: 0.9 }, seconds: 3 },
+  // tubular bells, the orchestra's church bells
+  'tubular-bells': { from: 'vcsl', shift: 1, dir: 'Idiophones/Struck Idiophones/Tubular Bells 2/', match: /^TB_hit_([A-G]#?\d)_(v2|v4)_\d\.wav$/, layers: { v2: 0.45, v4: 0.9 }, seconds: 6 },
+  // hand chimes: tuned bars with a soft clapper, pure and sweet, for the gentle bells
+  'hand-chimes': { from: 'vcsl', shift: 1, dir: 'Idiophones/Struck Idiophones/Hand Chimes/', match: /^sus_([A-G]#?\d)_r01_main\.wav$/, every: 2, seconds: 5 },
+  // new instruments
+  xylophone: { from: 'vcsl', shift: 1, dir: 'Idiophones/Struck Idiophones/Xylophone/Medium Mallets/', match: /^Xylo_Medium_([A-G]#?\d)_(pp|ff)_01_far\.wav$/, layers: { pp: 0.4, ff: 0.9 }, every: 1, seconds: 2 },
+  harpsichord: { from: 'vcsl', shift: 1, dir: 'Chordophones/Zithers/Harpsichord, Flemish/Sustains/Low/', match: /_Low_Far_([A-G]#?\d)_rr1\.wav$/, seconds: 4 },
+  wurlitzer: { from: 'epianos', dir: 'Wurlitzer EP200/Samples/', match: /^([a-g]b?\d)(mp|f)\.flac$/, layers: { mp: 0.45, f: 0.9 }, seconds: 4 },
+  // the 808's kick with its decay turned right up, tuned to a g: the long, booming bass under trap and
+  // half the club records since. only one note, so it's stretched further than other recordings
+  '808-bass': { from: 'machines', files: [['tr-808/TR808WAV/BDTuned/BD0010-g1.wav', 31, 0.45], ['tr-808/TR808WAV/BDTuned/BD2510-g1.wav', 31, 0.9]], seconds: 4 },
+  // second recordings, to choose between on the page
+  'cp80': { from: 'epianos', dir: 'CP80/Samples/', match: /^\d+-([A-G]#?\d)-(PP|F)\.flac$/, layers: { PP: 0.35, F: 0.9 }, low: 28, high: 100, seconds: 5 },
+  pianet: { from: 'epianos', dir: 'Pianet T/Samples/', match: /^\d+_([A-G]#?\d)_(P|FF)\.flac$/, layers: { P: 0.4, FF: 0.9 }, seconds: 3 },
+  'dx-piano': { gm: 'electric_piano_2', low: 33, high: 100 },
+  'fm-piano': { from: 'vcsl', low: 28, dir: 'Electrophones/TX81Z/FM Piano/', match: /^FMPiano_([A-G]#?\d)_(vl1|vl3)\.wav$/, layers: { vl1: 0.35, vl3: 0.9 }, seconds: 4 },
+  'shiny-guitar': { from: 'shiny', dir: 'Samples/electric/', match: /^([a-g]b?\d)_(vl2|vl4)_rr1_\d\.wav$/, layers: { vl2: 0.4, vl4: 0.9 }, seconds: 5 },
+  'shiny-acoustic': { from: 'shiny', dir: 'Samples/acoustic/', match: /^([a-g]b?\d)_(vl2|vl4)_rr1_\d\.wav$/, layers: { vl2: 0.4, vl4: 0.9 }, seconds: 5 },
+  'meat-bass': { from: 'meat', dir: 'Samples/pizz/', match: /^([a-g]b?\d)_(vl\d)_rr1\.wav$/, layers: { vl2: 0.45, vl4: 0.9 }, seconds: 3 },
+  'folk-harp': { from: 'vcsl', shift: 1, dir: 'Chordophones/Composite Chordophones/Folk Harp/', match: /^EWHarp_Normal_([A-G]#?\d)_(v2|v3)_RR1\.wav$/, layers: { v2: 0.45, v3: 0.9 }, seconds: 4 },
+  balafon: { from: 'vcsl', shift: 1, dir: 'Idiophones/Struck Idiophones/Balafon/Traditional Mallet/', match: /_([A-G]#?\d)_vl(1|3)_rr1_Mid\.wav$/, layers: { 1: 0.4, 3: 0.9 }, seconds: 3 },
 };
 
 // a kit's hits: [file, loudness]. vrr() spells out a set of takes: {v} and {r} in the name are the
@@ -181,6 +228,33 @@ const KITS = {
       },
     },
   },
+  // the same kit from its close microphones (the kick and snare mics, the overheads for the cymbals):
+  // dry and punchy, for the tight kit
+  'tight-kit': {
+    from: 'drums',
+    hits: {
+      kick: kit('kickmic').hits.kick,
+      snare: kit('snaremic').hits.snare,
+      rim: kit('snaremic').hits.rim,
+      hat: kit('oh').hits.hat,
+      'open-hat': kit('oh').hits['open-hat'],
+      'low-tom': kit('mid').hits['low-tom'],
+      crash: kit('oh').hits.crash,
+    },
+  },
+  // a real roland tr-808, each sound with its knobs half way: the club kit
+  tr808: {
+    from: 'machines',
+    hits: Object.fromEntries(Object.entries({ kick: 'BD/BD5075', 'short-kick': 'BD/BD2525', snare: 'SD/SD5050', clap: 'CP/CP', hat: 'CH/CH', 'open-hat': 'OH/OH50', rim: 'RS/RS', 'low-tom': 'LT/LT50', cowbell: 'CB/CB', crash: 'CY/CY5050', claves: 'CL/CL', maracas: 'MA/MA', conga: 'MC/MC50' })
+      .map(([hit, file]) => [hit, [[`tr-808/TR808WAV/${file}.WAV`, 0.9]]])),
+  },
+  // a tr-707, the cheaper drum machine of the mid 80s, sampled where the 808 was analogue: post-punk's
+  // drum machine (the cure, new order), and the "drum machine" kit
+  tr707: {
+    from: 'machines',
+    hits: Object.fromEntries(Object.entries({ kick: ['BassDrum1'], snare: ['Snare1', 'Snare2'], hat: ['HhC'], 'open-hat': ['HhO'], rim: ['RimShot'], 'low-tom': ['LowTom'], crash: ['Crash'], ride: ['Ride'], clap: ['HandClap'], cowbell: ['CowBell'], tambourine: ['Tamb'] })
+      .map(([hit, files]) => [hit, files.map((file) => [`tr-707/TR707WAV/${file}.wav`, 0.9])])),
+  },
 };
 
 // ---------- notes ----------
@@ -204,6 +278,8 @@ function pickNotes(spec, trees) {
     for (let midi = spec.low; midi <= spec.high; midi += spec.every || 3) out.push({ source: 'fluid', file: `${spec.gm}-mp3/${gmName(midi)}.mp3`, midi });
     return out;
   }
+  // files: picked by hand, [path, midi, loudness]
+  if (spec.files) return spec.files.map(([file, midi, vel]) => ({ source: spec.from, file, midi, vel, layer: vel }));
   return (spec.parts || [spec]).flatMap((part) => {
     const shift = 12 * (part.shift ?? spec.shift ?? 0);
     const found = [];

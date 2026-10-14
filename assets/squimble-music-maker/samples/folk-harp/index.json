@@ -1,0 +1,157 @@
+{
+ "source": "Versilian Community Sample Library (Versilian Studios)",
+ "link": "https://github.com/sgossner/VCSL",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "c2-5.mp3",
+   "midi": 36,
+   "vel": 0.45
+  },
+  {
+   "file": "c2-9.mp3",
+   "midi": 36,
+   "vel": 0.9
+  },
+  {
+   "file": "e2-5.mp3",
+   "midi": 40,
+   "vel": 0.45
+  },
+  {
+   "file": "e2-9.mp3",
+   "midi": 40,
+   "vel": 0.9
+  },
+  {
+   "file": "ab2-5.mp3",
+   "midi": 44,
+   "vel": 0.45
+  },
+  {
+   "file": "ab2-9.mp3",
+   "midi": 44,
+   "vel": 0.9
+  },
+  {
+   "file": "c3-5.mp3",
+   "midi": 48,
+   "vel": 0.45
+  },
+  {
+   "file": "c3-9.mp3",
+   "midi": 48,
+   "vel": 0.9
+  },
+  {
+   "file": "e3-5.mp3",
+   "midi": 52,
+   "vel": 0.45
+  },
+  {
+   "file": "e3-9.mp3",
+   "midi": 52,
+   "vel": 0.9
+  },
+  {
+   "file": "ab3-5.mp3",
+   "midi": 56,
+   "vel": 0.45
+  },
+  {
+   "file": "ab3-9.mp3",
+   "midi": 56,
+   "vel": 0.9
+  },
+  {
+   "file": "c4-5.mp3",
+   "midi": 60,
+   "vel": 0.45
+  },
+  {
+   "file": "c4-9.mp3",
+   "midi": 60,
+   "vel": 0.9
+  },
+  {
+   "file": "e4-5.mp3",
+   "midi": 64,
+   "vel": 0.45
+  },
+  {
+   "file": "e4-9.mp3",
+   "midi": 64,
+   "vel": 0.9
+  },
+  {
+   "file": "ab4-5.mp3",
+   "midi": 68,
+   "vel": 0.45
+  },
+  {
+   "file": "ab4-9.mp3",
+   "midi": 68,
+   "vel": 0.9
+  },
+  {
+   "file": "c5-5.mp3",
+   "midi": 72,
+   "vel": 0.45
+  },
+  {
+   "file": "c5-9.mp3",
+   "midi": 72,
+   "vel": 0.9
+  },
+  {
+   "file": "e5-5.mp3",
+   "midi": 76,
+   "vel": 0.45
+  },
+  {
+   "file": "e5-9.mp3",
+   "midi": 76,
+   "vel": 0.9
+  },
+  {
+   "file": "ab5-5.mp3",
+   "midi": 80,
+   "vel": 0.45
+  },
+  {
+   "file": "ab5-9.mp3",
+   "midi": 80,
+   "vel": 0.9
+  },
+  {
+   "file": "c6-5.mp3",
+   "midi": 84,
+   "vel": 0.45
+  },
+  {
+   "file": "c6-9.mp3",
+   "midi": 84,
+   "vel": 0.9
+  },
+  {
+   "file": "e6-5.mp3",
+   "midi": 88,
+   "vel": 0.45
+  },
+  {
+   "file": "e6-9.mp3",
+   "midi": 88,
+   "vel": 0.9
+  },
+  {
+   "file": "ab6-5.mp3",
+   "midi": 92,
+   "vel": 0.45
+  },
+  {
+   "file": "ab6-9.mp3",
+   "midi": 92,
+   "vel": 0.9
+  }
+ ]
+}

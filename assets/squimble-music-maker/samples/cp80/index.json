@@ -1,0 +1,142 @@
+{
+ "source": "Greg Sullivan's E-Pianos (Wurlitzer EP200, Yamaha CP80, Hohner Pianet T)",
+ "link": "https://github.com/sfzinstruments/GregSullivan.E-Pianos",
+ "licence": "CC BY 3.0",
+ "notes": [
+  {
+   "file": "bb1-4.mp3",
+   "midi": 34,
+   "vel": 0.35
+  },
+  {
+   "file": "gb2-9.mp3",
+   "midi": 42,
+   "vel": 0.9
+  },
+  {
+   "file": "gb2-4.mp3",
+   "midi": 42,
+   "vel": 0.35
+  },
+  {
+   "file": "bb2-9.mp3",
+   "midi": 46,
+   "vel": 0.9
+  },
+  {
+   "file": "d3-9.mp3",
+   "midi": 50,
+   "vel": 0.9
+  },
+  {
+   "file": "d3-4.mp3",
+   "midi": 50,
+   "vel": 0.35
+  },
+  {
+   "file": "f3-9.mp3",
+   "midi": 53,
+   "vel": 0.9
+  },
+  {
+   "file": "a3-9.mp3",
+   "midi": 57,
+   "vel": 0.9
+  },
+  {
+   "file": "a3-4.mp3",
+   "midi": 57,
+   "vel": 0.35
+  },
+  {
+   "file": "c4-9.mp3",
+   "midi": 60,
+   "vel": 0.9
+  },
+  {
+   "file": "eb4-9.mp3",
+   "midi": 63,
+   "vel": 0.9
+  },
+  {
+   "file": "eb4-4.mp3",
+   "midi": 63,
+   "vel": 0.35
+  },
+  {
+   "file": "ab4-9.mp3",
+   "midi": 68,
+   "vel": 0.9
+  },
+  {
+   "file": "ab4-4.mp3",
+   "midi": 68,
+   "vel": 0.35
+  },
+  {
+   "file": "c5-9.mp3",
+   "midi": 72,
+   "vel": 0.9
+  },
+  {
+   "file": "c5-4.mp3",
+   "midi": 72,
+   "vel": 0.35
+  },
+  {
+   "file": "e5-9.mp3",
+   "midi": 76,
+   "vel": 0.9
+  },
+  {
+   "file": "ab5-9.mp3",
+   "midi": 80,
+   "vel": 0.9
+  },
+  {
+   "file": "ab5-4.mp3",
+   "midi": 80,
+   "vel": 0.35
+  },
+  {
+   "file": "db6-9.mp3",
+   "midi": 85,
+   "vel": 0.9
+  },
+  {
+   "file": "db6-4.mp3",
+   "midi": 85,
+   "vel": 0.35
+  },
+  {
+   "file": "e6-9.mp3",
+   "midi": 88,
+   "vel": 0.9
+  },
+  {
+   "file": "g6-9.mp3",
+   "midi": 91,
+   "vel": 0.9
+  },
+  {
+   "file": "g6-4.mp3",
+   "midi": 91,
+   "vel": 0.35
+  },
+  {
+   "file": "b6-9.mp3",
+   "midi": 95,
+   "vel": 0.9
+  },
+  {
+   "file": "db7-9.mp3",
+   "midi": 97,
+   "vel": 0.9
+  },
+  {
+   "file": "db7-4.mp3",
+   "midi": 97,
+   "vel": 0.35
+  }
+ ]
+}
