@@ -1,0 +1,107 @@
+{
+ "source": "FluidR3 GM soundfont (Frank Wen), via midi-js-soundfonts",
+ "link": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/",
+ "licence": "CC BY 3.0",
+ "notes": [
+  {
+   "file": "e1.mp3",
+   "midi": 28
+  },
+  {
+   "file": "g1.mp3",
+   "midi": 31
+  },
+  {
+   "file": "bb1.mp3",
+   "midi": 34
+  },
+  {
+   "file": "db2.mp3",
+   "midi": 37
+  },
+  {
+   "file": "e2.mp3",
+   "midi": 40
+  },
+  {
+   "file": "g2.mp3",
+   "midi": 43
+  },
+  {
+   "file": "bb2.mp3",
+   "midi": 46
+  },
+  {
+   "file": "db3.mp3",
+   "midi": 49
+  },
+  {
+   "file": "e3.mp3",
+   "midi": 52
+  },
+  {
+   "file": "g3.mp3",
+   "midi": 55
+  },
+  {
+   "file": "bb3.mp3",
+   "midi": 58
+  },
+  {
+   "file": "db4.mp3",
+   "midi": 61
+  },
+  {
+   "file": "e4.mp3",
+   "midi": 64
+  },
+  {
+   "file": "g4.mp3",
+   "midi": 67
+  },
+  {
+   "file": "bb4.mp3",
+   "midi": 70
+  },
+  {
+   "file": "db5.mp3",
+   "midi": 73
+  },
+  {
+   "file": "e5.mp3",
+   "midi": 76
+  },
+  {
+   "file": "g5.mp3",
+   "midi": 79
+  },
+  {
+   "file": "bb5.mp3",
+   "midi": 82
+  },
+  {
+   "file": "db6.mp3",
+   "midi": 85
+  },
+  {
+   "file": "e6.mp3",
+   "midi": 88
+  },
+  {
+   "file": "g6.mp3",
+   "midi": 91
+  },
+  {
+   "file": "bb6.mp3",
+   "midi": 94
+  },
+  {
+   "file": "db7.mp3",
+   "midi": 97
+  },
+  {
+   "file": "e7.mp3",
+   "midi": 100
+  }
+ ]
+}

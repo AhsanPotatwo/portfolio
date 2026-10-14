@@ -1,0 +1,57 @@
+{
+ "source": "Javanese Gamelan, a pelog bonang and bonang panerus, by Iain McCurdy (freesound.org/people/iainmccurdy)",
+ "link": "https://cdn.freesound.org/previews/",
+ "licence": "CC BY 4.0",
+ "notes": [
+  {
+   "file": "d5.mp3",
+   "midi": 74,
+   "tune": -34
+  },
+  {
+   "file": "e5.mp3",
+   "midi": 76,
+   "tune": 21
+  },
+  {
+   "file": "f5.mp3",
+   "midi": 77,
+   "tune": -9
+  },
+  {
+   "file": "ab5.mp3",
+   "midi": 80,
+   "tune": 14
+  },
+  {
+   "file": "a5.mp3",
+   "midi": 81,
+   "tune": -15
+  },
+  {
+   "file": "bb5.mp3",
+   "midi": 82,
+   "tune": -39
+  },
+  {
+   "file": "c6.mp3",
+   "midi": 84,
+   "tune": -21
+  },
+  {
+   "file": "eb6.mp3",
+   "midi": 87,
+   "tune": 43
+  },
+  {
+   "file": "e6.mp3",
+   "midi": 88,
+   "tune": 23
+  },
+  {
+   "file": "f6.mp3",
+   "midi": 89,
+   "tune": -22
+  }
+ ]
+}

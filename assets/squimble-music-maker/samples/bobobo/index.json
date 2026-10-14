@@ -1,0 +1,107 @@
+{
+ "source": "Gogodze Phu Vol I (Karoryfer Samples)",
+ "link": "https://github.com/sfzinstruments/karoryfer.gogodze-phu-vol-i",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "bass-1.mp3",
+   "hit": "bass",
+   "vel": 0.45
+  },
+  {
+   "file": "bass-2.mp3",
+   "hit": "bass",
+   "vel": 0.45
+  },
+  {
+   "file": "bass-3.mp3",
+   "hit": "bass",
+   "vel": 0.9
+  },
+  {
+   "file": "bass-4.mp3",
+   "hit": "bass",
+   "vel": 0.9
+  },
+  {
+   "file": "tenor-1.mp3",
+   "hit": "tenor",
+   "vel": 0.45
+  },
+  {
+   "file": "tenor-2.mp3",
+   "hit": "tenor",
+   "vel": 0.45
+  },
+  {
+   "file": "tenor-3.mp3",
+   "hit": "tenor",
+   "vel": 0.9
+  },
+  {
+   "file": "tenor-4.mp3",
+   "hit": "tenor",
+   "vel": 0.9
+  },
+  {
+   "file": "tenor-slap-1.mp3",
+   "hit": "tenor-slap",
+   "vel": 0.45
+  },
+  {
+   "file": "tenor-slap-2.mp3",
+   "hit": "tenor-slap",
+   "vel": 0.45
+  },
+  {
+   "file": "tenor-slap-3.mp3",
+   "hit": "tenor-slap",
+   "vel": 0.9
+  },
+  {
+   "file": "tenor-slap-4.mp3",
+   "hit": "tenor-slap",
+   "vel": 0.9
+  },
+  {
+   "file": "treble-1.mp3",
+   "hit": "treble",
+   "vel": 0.45
+  },
+  {
+   "file": "treble-2.mp3",
+   "hit": "treble",
+   "vel": 0.45
+  },
+  {
+   "file": "treble-3.mp3",
+   "hit": "treble",
+   "vel": 0.9
+  },
+  {
+   "file": "treble-4.mp3",
+   "hit": "treble",
+   "vel": 0.9
+  },
+  {
+   "file": "treble-slap-1.mp3",
+   "hit": "treble-slap",
+   "vel": 0.45
+  },
+  {
+   "file": "treble-slap-2.mp3",
+   "hit": "treble-slap",
+   "vel": 0.45
+  },
+  {
+   "file": "treble-slap-3.mp3",
+   "hit": "treble-slap",
+   "vel": 0.9
+  },
+  {
+   "file": "treble-slap-4.mp3",
+   "hit": "treble-slap",
+   "vel": 0.9
+  }
+ ]
+}

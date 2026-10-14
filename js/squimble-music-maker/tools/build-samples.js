@@ -47,6 +47,26 @@ const SOURCES = {
   // michael fischer's tr-808 recordings say they're free with no restrictions, and francois dion's
   // tr-707 ones that they're public domain
   machines: { git: 'https://github.com/fluid-music/open-drums', name: "Roland TR-808 (Michael Fischer) and TR-707 (Francois Dion) recordings, via fluid-music's open-drums", licence: 'Free, no restrictions (TR-808); public domain (TR-707)' },
+  // the third round: the world, the ancient world, pop and some places. more of karoryfer's (a
+  // bagpipe, ghana's bobobo drums and a cajon, a 70s kit through an old microphone, a medieval lyre,
+  // and body percussion), all cc0
+  squidpipes: { git: 'https://github.com/sfzinstruments/karoryfer.squidpipes', name: 'Squidpipes (Karoryfer Samples)', licence: 'CC0 1.0' },
+  gogodze1: { git: 'https://github.com/sfzinstruments/karoryfer.gogodze-phu-vol-i', name: 'Gogodze Phu Vol I (Karoryfer Samples)', licence: 'CC0 1.0' },
+  gogodze2: { git: 'https://github.com/sfzinstruments/karoryfer.gogodze-phu-vol-ii', name: 'Gogodze Phu Vol II (Karoryfer Samples)', licence: 'CC0 1.0' },
+  cithara: { git: 'https://github.com/sfzinstruments/cithara-barbarica', name: 'Cithara Barbarica (sfzinstruments)', licence: 'CC0 1.0' },
+  body: { git: 'https://github.com/sfzinstruments/body_percussion', name: 'Body Percussion (sfzinstruments)', licence: 'CC0 1.0' },
+  // single recordings from freesound, each from its preview (an mp3 anyone can download). the ones
+  // that are cc by need a credit, which is at the bottom of squimble-music-maker.html
+  bram: { url: 'https://cdn.freesound.org/previews/', name: 'Alfonso Pérez singing Tuvan kargyraa and sygyt, recorded at the MTG by Bram (freesound.org/people/Bram)', licence: 'CC BY 4.0' },
+  nemaavla: { url: 'https://cdn.freesound.org/previews/', name: 'Overtone singing, khoomei, by nemaavla (freesound.org/people/nemaavla)', licence: 'CC0 1.0' },
+  gamelan: { url: 'https://cdn.freesound.org/previews/', name: 'Javanese Gamelan, a pelog bonang and bonang panerus, by Iain McCurdy (freesound.org/people/iainmccurdy)', licence: 'CC BY 4.0' },
+  deathwhistle: { url: 'https://cdn.freesound.org/previews/', name: 'Aztec Death Whistle by Guy_Personface (freesound.org/people/Guy_Personface)', licence: 'CC0 1.0' },
+  whale: { url: 'https://cdn.freesound.org/previews/', name: 'LowWhalesong by RebekahDay (freesound.org/people/RebekahDay)', licence: 'CC0 1.0' },
+  scratch: { url: 'https://cdn.freesound.org/previews/', name: 'Dj_Puzzle_Scratch_05 by SaschaRettberg (freesound.org/people/SaschaRettberg)', licence: 'CC0 1.0' },
+  rainstick: { url: 'https://cdn.freesound.org/previews/', name: 'Rainstick 39 sec by AncientOracle (freesound.org/people/AncientOracle)', licence: 'CC0 1.0' },
+  conch: { url: 'https://cdn.freesound.org/previews/', name: 'Snailhorn by Ohrwurm (freesound.org/people/Ohrwurm)', licence: 'CC0 1.0' },
+  bowls: { url: 'https://cdn.freesound.org/previews/', name: 'Singing bowls, a and c tuned, by brodjaman (freesound.org/people/brodjaman)', licence: 'CC0 1.0' },
+  sistrum: { url: 'https://cdn.freesound.org/previews/', name: 'sistrum by memexikon (freesound.org/people/memexikon)', licence: 'CC0 1.0' },
 };
 
 // ---------- what goes in each folder ----------
@@ -166,6 +186,47 @@ const FOLDERS = {
   'meat-bass': { from: 'meat', dir: 'Samples/pizz/', match: /^([a-g]b?\d)_(vl\d)_rr1\.wav$/, layers: { vl2: 0.45, vl4: 0.9 }, seconds: 3 },
   'folk-harp': { from: 'vcsl', shift: 1, dir: 'Chordophones/Composite Chordophones/Folk Harp/', match: /^EWHarp_Normal_([A-G]#?\d)_(v2|v3)_RR1\.wav$/, layers: { v2: 0.45, v3: 0.9 }, seconds: 4 },
   balafon: { from: 'vcsl', shift: 1, dir: 'Idiophones/Struck Idiophones/Balafon/Traditional Mallet/', match: /_([A-G]#?\d)_vl(1|3)_rr1_Mid\.wav$/, layers: { 1: 0.4, 3: 0.9 }, seconds: 3 },
+
+  // ----- the third round: the world, the ancient world, pop and some places -----
+  // throat singing. one singer holds a low note while the shape of his mouth picks out its overtones as
+  // a whistled tune above it, so a take works as a drone: retuned to the song's home note, every
+  // overtone moves with it and stays in tune. files are [preview, the note it's nearest, loudness, the
+  // second the take starts (past any breath), cents it's out by (measured)]. khoomei and sygyt are the
+  // higher, whistling styles, kargyraa the low growl an octave under the voice
+  khoomei: { from: 'nemaavla', files: [['240/240916_2007100-hq.mp3', 54, undefined, 0.2, 4]], loop: true, seconds: 11, trust: true },
+  sygyt: { from: 'bram', files: [['19/19534_2-hq.mp3', 55, undefined, 14.2, -39], ['19/19530_2-hq.mp3', 58, undefined, 1, 25]], loop: true, seconds: 11.5, trust: true },
+  kargyraa: { from: 'bram', files: [['19/19527_2-hq.mp3', 39, undefined, 1, 37]], loop: true, seconds: 14, trust: true },
+  // a didgeridoo's held drone, three takes of its one note (about c sharp 2), played in turn
+  didgeridoo: { from: 'vcsl', files: [[2, 1], [3, 12], [8, -44]].map(([n, tune]) => [`Aerophones/Lip Aerophones/Didgeridoo/Didgeridoo1_Sus${n}_Main.wav`, 37, undefined, 0, tune]), loop: true, seconds: 8, trust: true },
+  // bagpipes whose bag is a giant squid's mantle (really): the chanter, loud and reedy
+  bagpipe: { from: 'squidpipes', shift: -1, dir: 'Samples/long_clean/', match: /^([a-g]b?\d)_long_clean\.wav$/, loop: true, seconds: 4 },
+  'gm-bagpipe': { gm: 'bagpipe', low: 55, high: 84, loop: true },
+  // a mbira dzavadzimu from zimbabwe: metal keys on a board, plucked with the thumbs, buzzing a little
+  mbira: { from: 'vcsl', shift: 1, dir: 'Idiophones/Plucked Idiophones/Mbira dzaVadzimu Nyamaropa, Zimbabwe, Low B/', match: /_Main_([A-G]#?\d)_\d+_50_100_rr\d\.wav$/, seconds: 3 },
+  // a medieval lyre with metal strings, plucked with the fingers
+  lyre: { from: 'cithara', dir: 'Samples/finger/', match: /^cithara_([a-g]b?\d)_finger_rr1\.wav$/, every: 2, seconds: 4 },
+  // wine glasses rubbed round their rims: four notes, pure and eerie
+  'wine-glass': { from: 'vcsl', shift: 1, dir: 'Idiophones/Friction Idiophones/Wine Glasses/Sustains/Slow/', match: /^glass\d_([A-G]#?\d)_Slow_\d_[Mm]ain\.wav$/, every: 1, loop: true, seconds: 6, measure: true },
+  // a bowed psaltery: a triangle of strings bowed one at a time, thin and ghostly
+  'bowed-psaltery': { from: 'vcsl', shift: 1, dir: 'Chordophones/Zithers/Psaltery, Bowed and Plucked/LongBow/', match: /^BowedPsaltery_([A-G]#?\d)_Main_LongBow_rr\d\.wav$/, every: 2, loop: true, seconds: 5 },
+  // a renaissance chamber organ, its 8' pipes: smaller and breathier than a church organ
+  'renaissance-organ': { from: 'vcsl', shift: 1, dir: "Aerophones/Edge-blown Aerophones/Renaissance Organ/8'/", match: /_Room_([A-G]#?\d)_rr1\.wav$/, loop: true, seconds: 4 },
+  // a javanese gamelan's bonang (kettle gongs in a row) and the bonang panerus an octave above, in
+  // pelog. its notes fall between a piano's, so each is labelled by its measured pitch and played in tune
+  // (measure). the panerus's top four fooled the pitch check, so they're left out
+  bonang: { from: 'gamelan', files: [196, 197, 198, 199, 200, 201, 202, 203, 204, 205].map((n, i) => [`676/676${n}_3655844-hq.mp3`, 74 + i * 1.6]), seconds: 4, measure: true },
+  // the general midi set's, where nothing else had them: an oboe (and the ancient world's aulos, its
+  // ancestor), a bassoon, a blown bottle, the orchestra hit (hip hop's stab), disco's string machine, a
+  // honky tonk piano for the saloon, and a fiddle
+  oboe: { gm: 'oboe', low: 58, high: 91, loop: true },
+  bassoon: { gm: 'bassoon', low: 34, high: 72, loop: true },
+  'blown-bottle': { gm: 'blown_bottle', low: 60, high: 96, loop: true },
+  'orchestra-hit': { gm: 'orchestra_hit', low: 48, high: 84 },
+  'synth-strings': { gm: 'synth_strings_1', low: 36, high: 96, loop: true },
+  'honky-tonk': { gm: 'honkytonk_piano', low: 28, high: 100 },
+  fiddle: { gm: 'fiddle', low: 55, high: 96, loop: true },
+  // a singing bowl rubbed round its rim, tuned, for the underwater and temple scenery
+  'singing-bowl': { from: 'bowls', files: [['204/204915_710671-hq.mp3', 46], ['204/204917_710671-hq.mp3', 75]], seconds: 12, measure: true },
 };
 
 // a kit's hits: [file, loudness]. vrr() spells out a set of takes: {v} and {r} in the name are the
@@ -255,6 +316,72 @@ const KITS = {
     hits: Object.fromEntries(Object.entries({ kick: ['BassDrum1'], snare: ['Snare1', 'Snare2'], hat: ['HhC'], 'open-hat': ['HhO'], rim: ['RimShot'], 'low-tom': ['LowTom'], crash: ['Crash'], ride: ['Ride'], clap: ['HandClap'], cowbell: ['CowBell'], tambourine: ['Tamb'] })
       .map(([hit, files]) => [hit, files.map((file) => [`tr-707/TR707WAV/${file}.wav`, 0.9])])),
   },
+
+  // ----- the third round -----
+  // bobobo drums from ghana: a bass drum and two each of tenor and treble drums, open (l) and slapped
+  // (s), and a cajon (a box drum: its bass in the middle, its snare wires cracking at the edge)
+  bobobo: {
+    from: 'gogodze1',
+    hits: {
+      bass: vrr('Samples/bobobo/bobobo_bass_vl{v}_rr{r}.wav', { 2: 0.45, 4: 0.9 }),
+      tenor: vrr('Samples/bobobo/bobobo_tenor_l_vl{v}_rr{r}.wav', { 2: 0.45, 4: 0.9 }),
+      'tenor-slap': vrr('Samples/bobobo/bobobo_tenor_s_vl{v}_rr{r}.wav', { 2: 0.45, 4: 0.9 }),
+      treble: vrr('Samples/bobobo/bobobo_treble_l_vl{v}_rr{r}.wav', { 2: 0.45, 4: 0.9 }),
+      'treble-slap': vrr('Samples/bobobo/bobobo_treble_s_vl{v}_rr{r}.wav', { 2: 0.45, 4: 0.9 }),
+    },
+  },
+  cajon: {
+    from: 'gogodze1',
+    hits: {
+      bass: vrr('Samples/cajon/dyn/cajon_sl1_vl{v}_rr{r}_dyn.wav', { 2: 0.45, 4: 0.9 }),
+      mid: vrr('Samples/cajon/dyn/cajon_sl3_vl{v}_rr{r}_dyn.wav', { 2: 0.45, 4: 0.9 }),
+      slap: vrr('Samples/cajon/dyn/cajon_sl5_vl{v}_rr{r}_dyn.wav', { 2: 0.45, 4: 0.9 }),
+      side: vrr('Samples/cajon/dyn/cajon_sr1_vl{v}_rr{r}_dyn.wav', { 2: 0.45, 4: 0.9 }),
+    },
+  },
+  // a 1970s kit through an old microphone (karoryfer aimed it at kim jung mi's "now"): the dusty drums
+  // boom bap was sampled from
+  'retro-kit': {
+    from: 'gogodze2',
+    hits: Object.fromEntries(Object.entries({ kick: 'ks', snare: 'sc', rim: 'ss', hat: 'hc', 'open-hat': 'ho', 'low-tom': 'tl' })
+      .map(([hit, name]) => [hit, vrr(`Samples/retro_mic/${name}_vl{v}_rr{r}.wav`, { 2: 0.45, 4: 0.9 })])),
+  },
+  // body percussion: stomps, claps, snaps, a chest thumped
+  body: {
+    from: 'body',
+    hits: Object.fromEntries(Object.entries({ stomp: 'stomp_l', clap: 'handclap', snap: 'snap_r', chest: 'chestthump_l', belly: 'bellycenter_l', thigh: 'heel_r' })
+      .map(([hit, name]) => [hit, [1, 2, 3].map((r) => [`Samples/body/${name}${name.startsWith('snap') ? '' : '_vl2'}_rr${r}.wav`, 0.8])])),
+  },
+  // the rest of the world's percussion: a darbuka's five strokes, a frame drum, a log drum (slit drum),
+  // finger cymbals, clapping, a gourd scraper, nepalese hand bells, a sleigh bell, a brake drum and an
+  // anvil (the junkyard's), a big bass drum, and an egyptian sistrum
+  'world-percussion': {
+    from: 'vcsl',
+    hits: {
+      ...Object.fromEntries([1, 2, 3, 4, 5].map((n) => [`darbuka-${n}`, [1, 2].map((v) => [`Membranophones/Struck Membranophones/Darbuka/Darbuka_${n}_hit_vl${v}_rr1.wav`, v === 1 ? 0.45 : 0.9])])),
+      'frame-drum': [2, 3].map((v) => [`Membranophones/Struck Membranophones/Frame Drum/HDrumL_Hit_v${v}_rr1_Sum.wav`, v === 2 ? 0.45 : 0.9]),
+      'frame-high': [2, 3].map((v) => [`Membranophones/Struck Membranophones/Frame Drum/HDrumS_Hit_v${v}_rr1_Sum.wav`, v === 2 ? 0.45 : 0.9]),
+      'slit-high': [1, 3].map((v) => [`Idiophones/Struck Idiophones/Slit Drum/LogDrumHi_MedM_v${v}_rr1_Sum.wav`, v === 1 ? 0.45 : 0.9]),
+      'slit-low': [1, 3].map((v) => [`Idiophones/Struck Idiophones/Slit Drum/LogDrumLo_MedM_v${v}_rr1_Sum.wav`, v === 1 ? 0.45 : 0.9]),
+      'finger-cymbals': [['Idiophones/Struck Idiophones/Finger Cymbals/Fing_Cymb.wav', 0.8]],
+      clap: [1, 2, 3].map((r) => [`Idiophones/Struck Idiophones/Claps/Clap_rr${r}.wav`, 0.8]),
+      guiro: [1, 2].map((r) => [`Idiophones/Struck Idiophones/Guiro/Guiro_Hit_rr${r}_Mid.wav`, 0.8]),
+      'hand-bells': [1, 2, 3].map((n) => [`Idiophones/Struck Idiophones/Hand Bells, Nepalese/HB_${n}.wav`, 0.8]),
+      'sleigh-bells': [1, 2].map((r) => [`Idiophones/Struck Idiophones/Sleigh Bells/Sleighbells_Hit_rr${r}_Mid.wav`, 0.8]),
+      'brake-drum': [1, 3].map((v) => [`Idiophones/Struck Idiophones/Brake Drum/BrakeDrum1_Hammer_v${v}_rr1_Mid.wav`, v === 1 ? 0.45 : 0.9]),
+      anvil: [1, 3].map((v) => [`Idiophones/Struck Idiophones/Anvil/Anvil_Hit1_v${v}_rr1_Mid.wav`, v === 1 ? 0.45 : 0.9]),
+      'big-shaker': [1, 2].map((r) => [`Idiophones/Struck Idiophones/Shaker, Large/LShaker_Hit_rr${r}_Mid.wav`, 0.8]),
+      'bass-drum': [2, 5].map((v) => [`Membranophones/Struck Membranophones/Bass Drum 1/BDrumNew_hit_v${v}_rr1_Sum.wav`, v === 2 ? 0.45 : 0.9]),
+    },
+    more: { from: 'sistrum', hits: { sistrum: [['0/699_551-hq.mp3', 0.8]] } },
+  },
+  // scenery recorded rather than synthesised: one long recording cut where it goes quiet into events
+  // (split: the most to keep and the longest one can be, in seconds), played now and then
+  'death-whistle': { from: 'deathwhistle', hits: { event: [['832/832472_2825355-hq.mp3', 0.8, { split: { most: 8, longest: 5 } }]] } },
+  whale: { from: 'whale', hits: { event: [['171/171945_3206712-hq.mp3', 0.8, { split: { most: 3, longest: 7 } }]] } },
+  scratches: { from: 'scratch', hits: { event: [['661/661407_14498354-hq.mp3', 0.8, { split: { most: 6, longest: 2.5, gap: 0.08 } }]] } },
+  rainstick: { from: 'rainstick', hits: { event: [['476/476851_8152631-hq.mp3', 0.8, { split: { most: 4, longest: 7 } }]] } },
+  conch: { from: 'conch', hits: { event: [['64/64830_866470-hq.mp3', 0.8, { split: { most: 5, longest: 8 } }]] } },
 };
 
 // ---------- notes ----------
@@ -278,8 +405,8 @@ function pickNotes(spec, trees) {
     for (let midi = spec.low; midi <= spec.high; midi += spec.every || 3) out.push({ source: 'fluid', file: `${spec.gm}-mp3/${gmName(midi)}.mp3`, midi });
     return out;
   }
-  // files: picked by hand, [path, midi, loudness]
-  if (spec.files) return spec.files.map(([file, midi, vel]) => ({ source: spec.from, file, midi, vel, layer: vel }));
+  // files: picked by hand, [path, midi, loudness, the second to start from, cents out of tune]
+  if (spec.files) return spec.files.map(([file, midi, vel, start = 0, tune = 0]) => ({ source: spec.from, file, midi, vel, layer: vel, start, tune }));
   return (spec.parts || [spec]).flatMap((part) => {
     const shift = 12 * (part.shift ?? spec.shift ?? 0);
     const found = [];
@@ -418,7 +545,7 @@ async function local(work, source, name) {
   const file = path.join(work, 'files', source, name);
   if (fs.existsSync(file)) return file;
   const encoded = name.split('/').map(encodeURIComponent).join('/');
-  const url = source === 'fluid' ? SOURCES.fluid.url + encoded : `${SOURCES[source].git.replace('github.com', 'raw.githubusercontent.com')}/${COMMITS[source]}/${encoded}`;
+  const url = SOURCES[source].url ? SOURCES[source].url + encoded : `${SOURCES[source].git.replace('github.com', 'raw.githubusercontent.com')}/${COMMITS[source]}/${encoded}`;
   // github pages sometimes says it's busy (503): wait and try again
   let response;
   for (let tries = 0; tries < 5; tries++) {
@@ -483,12 +610,18 @@ async function buildTonal(work, folder, spec) {
   const sounds = [];
   const counts = {};
   for (const [i, note] of notes.entries()) {
-    const data = tidy(decode(files[i]), spec.seconds || 4);
+    const data = tidy(decode(files[i]).subarray(Math.round((note.start || 0) * RATE)), spec.seconds || 4);
     const hz = pitchOf(data);
     const heard = hz ? midiOf(hz) : null;
-    let tune = 0;
+    let tune = note.tune || 0;
+    // measure: tuned its own way (a gamelan, wine glasses), so it's named by the note it's nearest and
+    // tuned the rest of the way
+    if (spec.measure && heard !== null) {
+      note.midi = Math.round(heard);
+      tune = Math.round((note.midi - heard) * 100);
+    } else note.midi = Math.round(note.midi);
     if (tunes) tune = tunes[path.basename(note.file).replace(/\.\w+$/, '')] || 0;
-    else if (heard !== null && spec.loop && Math.abs(heard - note.midi) < 0.35) tune = Math.round((note.midi - heard) * 100);
+    else if (!note.tune && !spec.measure && heard !== null && spec.loop && Math.abs(heard - note.midi) < 0.35) tune = Math.round((note.midi - heard) * 100);
     if (heard === null) console.log(`  ${folder} ${fileName(note.midi)}: couldn't hear its pitch`);
     else if (Math.abs(heard - note.midi) > 0.5) {
       // a held note's pitch is clear, so one that measures off is a mislabelled file, and it's left
@@ -511,14 +644,45 @@ async function buildTonal(work, folder, spec) {
   writeIndex(folder, spec, sounds.map((one) => one.entry));
 }
 
+// a long recording cut into its events (a call, a scream, a scratch) where it goes quiet: runs of 50 ms
+// steps louder than a tenth of its loud level, joined over gaps shorter than gap seconds. the most
+// events kept are spread across the recording, each at most longest seconds (faded off)
+function events(data, { most, longest, gap = 0.25 }) {
+  const hop = Math.round(RATE * 0.05);
+  const levels = [];
+  for (let at = 0; at + hop <= data.length; at += hop) {
+    let sum = 0;
+    for (let i = at; i < at + hop; i++) sum += data[i] * data[i];
+    levels.push(Math.sqrt(sum / hop));
+  }
+  const loud = [...levels].sort((a, b) => a - b)[Math.floor(levels.length * 0.95)];
+  const runs = [];
+  let start = -1;
+  let quiet = 0;
+  levels.forEach((level, i) => {
+    if (level > loud * 0.1) {
+      if (start < 0) start = i;
+      quiet = 0;
+    } else if (start >= 0 && ++quiet * 0.05 > gap) {
+      runs.push([start, i - quiet + 1]);
+      start = -1;
+    }
+  });
+  if (start >= 0) runs.push([start, levels.length]);
+  const long = runs.filter(([a, z]) => (z - a) * 0.05 >= 0.3);
+  const kept = long.length <= most ? long : Array.from({ length: most }, (_, k) => long[Math.floor((k * long.length) / most)]);
+  return kept.map(([a, z]) => tidy(data.slice(Math.max(0, a * hop - Math.round(RATE * 0.02)), Math.min(data.length, (z + 2) * hop)), longest));
+}
+
 async function buildKit(work, folder, spec) {
   const sounds = [];
   for (const part of [spec, spec.more].filter(Boolean)) {
     for (const [hit, takes] of Object.entries(part.hits)) {
       const files = await downloadAll(work, takes.map(([file]) => [part.from, file]));
-      takes.forEach(([, vel], i) => {
-        const data = tidy(decode(files[i]), 6);
-        sounds.push({ data, entry: { file: `${hit}-${i + 1}.mp3`, hit, vel } });
+      let n = 0;
+      takes.forEach(([, vel, how = {}], i) => {
+        const whole = decode(files[i]);
+        for (const data of how.split ? events(whole, how.split) : [tidy(whole, 6)]) sounds.push({ data, entry: { file: `${hit}-${++n}.mp3`, hit, vel } });
       });
     }
   }

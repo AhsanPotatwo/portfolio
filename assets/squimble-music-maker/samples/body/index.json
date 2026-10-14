@@ -1,0 +1,97 @@
+{
+ "source": "Body Percussion (sfzinstruments)",
+ "link": "https://github.com/sfzinstruments/body_percussion",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "stomp-1.mp3",
+   "hit": "stomp",
+   "vel": 0.8
+  },
+  {
+   "file": "stomp-2.mp3",
+   "hit": "stomp",
+   "vel": 0.8
+  },
+  {
+   "file": "stomp-3.mp3",
+   "hit": "stomp",
+   "vel": 0.8
+  },
+  {
+   "file": "clap-1.mp3",
+   "hit": "clap",
+   "vel": 0.8
+  },
+  {
+   "file": "clap-2.mp3",
+   "hit": "clap",
+   "vel": 0.8
+  },
+  {
+   "file": "clap-3.mp3",
+   "hit": "clap",
+   "vel": 0.8
+  },
+  {
+   "file": "snap-1.mp3",
+   "hit": "snap",
+   "vel": 0.8
+  },
+  {
+   "file": "snap-2.mp3",
+   "hit": "snap",
+   "vel": 0.8
+  },
+  {
+   "file": "snap-3.mp3",
+   "hit": "snap",
+   "vel": 0.8
+  },
+  {
+   "file": "chest-1.mp3",
+   "hit": "chest",
+   "vel": 0.8
+  },
+  {
+   "file": "chest-2.mp3",
+   "hit": "chest",
+   "vel": 0.8
+  },
+  {
+   "file": "chest-3.mp3",
+   "hit": "chest",
+   "vel": 0.8
+  },
+  {
+   "file": "belly-1.mp3",
+   "hit": "belly",
+   "vel": 0.8
+  },
+  {
+   "file": "belly-2.mp3",
+   "hit": "belly",
+   "vel": 0.8
+  },
+  {
+   "file": "belly-3.mp3",
+   "hit": "belly",
+   "vel": 0.8
+  },
+  {
+   "file": "thigh-1.mp3",
+   "hit": "thigh",
+   "vel": 0.8
+  },
+  {
+   "file": "thigh-2.mp3",
+   "hit": "thigh",
+   "vel": 0.8
+  },
+  {
+   "file": "thigh-3.mp3",
+   "hit": "thigh",
+   "vel": 0.8
+  }
+ ]
+}

@@ -203,6 +203,10 @@ const SCALES = {
   // a flat second and a flat sixth around a major third and seventh: raga bhairav, the dawn raga, and
   // the most exotic sounding of the scales here
   doubleHarmonic:   { name: 'Double harmonic',   steps: [0, 1, 4, 5, 7, 8, 11] },
+  // a gamelan's two tunings, as near as a piano's notes get: pelog (five of its seven, with the flat
+  // second and sixth) and slendro (five nearly even steps, here a pentatonic's)
+  pelog:            { name: 'Pelog',             steps: [0, 1, 3, 7, 8], harmony: 'phrygian' },
+  slendro:          { name: 'Slendro',           steps: [0, 2, 5, 7, 9], harmony: 'major' },
 };
 const harmonySteps = (scale) => SCALES[SCALES[scale].harmony || scale].steps;
 
@@ -388,7 +392,8 @@ const PATTERNS = {
   drone:   { tonic: 'Home note', fifths: 'Open fifths', follow: 'Follows chords', cluster: 'Cluster', cycle: 'Plucked round and round' },
   bass:    { held: 'Held', pulse: 'Pulse', rootfifth: 'Root and fifth', octave: 'Octaves', walking: 'Walking', synco: 'Syncopated', riff: 'Doubles the riff', boogie: 'Boogie' },
   drums:   { groove: 'Groove', halftime: 'Half time', brush: 'Brushes', pulse: 'Pulse', tribal: 'Tribal', march: 'March', sparse: 'Sparse', four: 'Four to the floor', break: 'Breakbeat', rock: 'Rock', punk: 'Punk', double: 'Double kick', breakdown: 'Breakdown', wash: 'Wash',
-    swing: 'Swing', bossa: 'Bossa nova', tala: 'Tala', funk: 'Funk', onedrop: 'One drop', train: 'Train beat', shuffle: 'Shuffle' },
+    swing: 'Swing', bossa: 'Bossa nova', tala: 'Tala', funk: 'Funk', onedrop: 'One drop', train: 'Train beat', shuffle: 'Shuffle',
+    boombap: 'Boom bap', trap: 'Trap', maqsum: 'Maqsum', gallop: 'Gallop' },
   texture: { steady: 'Steady' },
 };
 // the patterns that use a layer's speed (rate)
@@ -1287,9 +1292,326 @@ const MOODS = {
     layers: { counter: 0.8, arp: 0.3 },
     patterns: { drums: ['rock', 'break', 'groove', 'rock'], bass: ['octave', 'octave', 'synco'], arp: ['up', 'updown', 'converge'], counter: ['counterpoint', 'harmony', 'counterpoint'], melody: ['phrases', 'riff', 'phrases'], pad: ['pulse', 'stabs', 'sustain'] },
   },
+
+  // ---------- the third round: the ancient world, more of the world, pop and places ----------
+  // like the world moods before them they keep to themselves (surprise: 0), and their most local
+  // instruments, kits and scenery are own, so every older mood's songs stayed exactly as they were
+
+  // the aztecs and the maya: clay flutes and ocarinas over slit drums (the teponaztli), the big hand
+  // drum (huehuetl), rattles and a bone scraper. a death whistle screams far off and a conch calls.
+  // pentatonic tunes over a drone, hardly any chords
+  aztec: {
+    group: 'Ancient', opens: ['drums', 'drone', 'arp'],
+    name: 'Aztec', colour: '#c0603a', style: 'tune',
+    scales: { minorPentatonic: 3, majorPentatonic: 1, phrygian: 1, dorian: 1 }, tempo: [60, 76], tuneTempo: [92, 120],
+    meters: { '4/4': 6, '3/4': 1, '6/8': 1.5 },
+    chords: ['i bVII', 'i - bVII -', 'i iv', 'i bVI bVII i', 'i - - bVII', 'i v'],
+    methods: { bank: 4, vamp: 3 },
+    richness: [0, 0.15], energy: 0.6, space: 0.6, bright: 0.5, dark: 0.45, surprise: 0, ornate: 1.1,
+    palette: {
+      melody: ['ocarina', 'pan-flute', 'blown-bottle', 'flute'], counter: ['pan-flute', 'ocarina', 'blown-bottle', 'marimba'],
+      keys: ['marimba', 'xylophone', 'kalimba'], arp: ['marimba', 'xylophone', 'kalimba'], bells: ['chime', 'glass-bell'],
+      pad: ['choir-ah', 'air-pad', 'dark-pad'], bass: ['sub-bass', 'round-bass'], drone: ['deep-drone', 'void', 'cello-drone'],
+    },
+    textures: ['death-whistle', 'conch', 'rainstick', 'birds', 'wind'], kits: ['aztec-kit'], drums: [0.4, 0.95],
+    patterns: { drums: ['tribal', 'tribal', 'march'], drone: ['tonic', 'fifths'], melody: ['phrases', 'calls', 'phrases'], bass: ['held', 'pulse', 'rootfifth'], arp: ['up', 'updown', 'converge'] },
+  },
+  // drums round a fire: ghana's bobobo drums, stamping and clapping, a mbira or kalimba ringing a riff
+  // over and over, a chant, and a didgeridoo's drone. one or two chords, riffs that go round, and
+  // often in twelve (6/8)
+  tribal: {
+    group: 'Ancient', opens: ['drums', 'keys', 'drone'],
+    name: 'Tribal', colour: '#a0522d', style: 'tune',
+    scales: { minorPentatonic: 3, majorPentatonic: 2, dorian: 1, mixolydian: 1 }, tempo: [66, 84], tuneTempo: [96, 128],
+    meters: { '4/4': 5, '6/8': 3, '3/4': 0.5 },
+    chords: ['I', 'i', 'I IV', 'i bVII', 'I - IV -', 'i - iv -', 'I bVII IV I'],
+    methods: { bank: 3, vamp: 3 },
+    richness: [0, 0.2], energy: 0.75, space: 0.45, bright: 0.6, dark: 0.3, surprise: 0,
+    palette: {
+      melody: ['mbira', 'kalimba', 'marimba', 'ocarina'], counter: ['kalimba', 'marimba', 'mbira'],
+      keys: ['mbira', 'marimba', 'kalimba'], arp: ['kalimba', 'mbira', 'marimba', 'xylophone'], bells: ['chime'],
+      pad: ['choir-ah', 'choir-oo', 'air-pad'], bass: ['sub-bass', 'round-bass', 'upright'], drone: ['didgeridoo', 'didgeridoo', 'deep-drone'],
+    },
+    textures: ['rainstick', 'birds', 'frogs', 'fire', 'crickets'], kits: ['african-drums', 'stomp-kit'], drums: [0.6, 1],
+    patterns: { drums: ['tribal', 'tribal', 'gallop', 'groove'], drone: ['tonic'], bass: ['pulse', 'synco', 'rootfifth'], melody: ['riff', 'phrases', 'calls'], arp: ['up', 'updown', 'random'] },
+  },
+  // ancient egypt: the double harmonic scale (hijaz, two flat seconds' worth of strangeness), a mizmar
+  // (the shawm) or an oboe over a lyre and an oud, strings swelling like a film's, and the darbuka
+  // playing maqsum with finger cymbals and a riq
+  egyptian: {
+    group: 'Ancient', opens: ['drums', 'drone', 'arp', 'keys'],
+    name: 'Egyptian', colour: '#d4a53c', style: 'tune',
+    scales: { doubleHarmonic: 3, phrygianDominant: 3, harmonicMinor: 1 }, tempo: [60, 78], tuneTempo: [96, 126],
+    meters: { '4/4': 6, '6/8': 1, '5/4': 0.5 },
+    chords: ['I bII', 'I bII I -', 'i iv V i', 'I - bII -', 'I bII bvii I', 'i bVI V -', 'iv V i -'],
+    methods: { bank: 5, vamp: 3 },
+    richness: [0, 0.2], energy: 0.6, space: 0.6, bright: 0.6, dark: 0.45, surprise: 0, ornate: 1.4,
+    palette: {
+      melody: ['shawm', 'oboe', 'violin', 'flute', 'lyre'], counter: ['oud', 'violin', 'lyre', 'flute'],
+      keys: ['oud', 'lyre', 'harp', 'santoor'], arp: ['lyre', 'harp', 'oud', 'santoor'], bells: ['chime', 'glass-bell'],
+      pad: ['strings', 'choir-ah', 'warm-pad'], bass: ['upright', 'round-bass', 'sub-bass'], drone: ['cello-drone', 'deep-drone'],
+    },
+    textures: ['wind', 'fire', 'crickets'], kits: ['darbuka-kit'], drums: [0.35, 0.95],
+    patterns: { drums: ['maqsum', 'maqsum', 'tribal'], drone: ['tonic', 'fifths'], melody: ['phrases', 'phrases', 'long'], bass: ['rootfifth', 'pulse', 'held'] },
+  },
+  // greece and rome: a lyre and a harp, an aulos (the oboe) or pan pipes, horns for rome's legions, a
+  // choir in a temple, a frame drum and finger cymbals, and the old modes (dorian, phrygian, mixolydian)
+  antiquity: {
+    group: 'Ancient', opens: ['keys', 'pad', 'drums'],
+    name: 'Antiquity', colour: '#b9a77a', style: 'tune',
+    scales: { dorian: 3, phrygian: 1.5, mixolydian: 1.5, minor: 1, lydian: 0.5 }, tempo: [56, 72], tuneTempo: [88, 116],
+    meters: { '4/4': 5, '3/4': 2, '6/8': 1, '5/4': 0.7 },
+    chords: ['i bVII i -', 'i iv i bVII', 'I bVII I -', 'i bIII bVII i', 'I IV I V', 'i v i bVII'],
+    methods: { bank: 5, vamp: 2, markov: 1 },
+    richness: [0, 0.25], energy: 0.5, space: 0.7, bright: 0.6, dark: 0.3, surprise: 0, ornate: 1.1,
+    palette: {
+      melody: ['oboe', 'pan-flute', 'lyre', 'horn', 'flute'], counter: ['lyre', 'harp', 'pan-flute', 'oboe'],
+      keys: ['lyre', 'harp', 'pizzicato'], arp: ['lyre', 'harp', 'pizzicato'], bells: ['glass-bell', 'chime', 'bell'],
+      pad: ['choir-ah', 'choir-oo', 'strings', 'brass-section'], bass: ['upright', 'round-bass', 'bassoon'], drone: ['cello-drone', 'organ-drone'],
+    },
+    textures: ['wind', 'fire', 'stream', 'birds'], kits: ['darbuka-kit', 'orchestra-kit'], drums: [0.25, 0.9],
+    patterns: { drums: ['march', 'tribal', 'halftime'], melody: ['phrases', 'long', 'phrases'], keys: ['strum', 'broken', 'waltz'], bass: ['rootfifth', 'held'] },
+  },
+  // castles and taverns: a bagpipe, a recorder or a shawm, a fiddle, a harpsichord or a lyre for the
+  // lute, a chamber organ, a bassoon underneath, open fifths droning, and a tabor beating a dance in
+  // six or three
+  medieval: {
+    group: 'Ancient', opens: ['drone', 'keys', 'drums'],
+    name: 'Medieval', colour: '#7d8c4a', style: 'tune',
+    scales: { dorian: 3, mixolydian: 2, minor: 1.5, major: 1 }, tempo: [58, 74], tuneTempo: [96, 132],
+    meters: { '6/8': 3, '3/4': 3, '4/4': 4 },
+    chords: ['i bVII i -', 'I bVII IV I', 'i bVII bVI bVII', 'i iv v i', 'I IV I V', 'i bIII bVII i'],
+    methods: { bank: 5, vamp: 2, markov: 1 },
+    richness: [0, 0.15], energy: 0.6, space: 0.55, bright: 0.6, dark: 0.25, surprise: 0, ornate: 1.2,
+    palette: {
+      melody: ['bagpipe', 'whistle', 'shawm', 'violin', 'flute'], counter: ['whistle', 'violin', 'bowed-psaltery', 'oboe'],
+      keys: ['harpsichord', 'lyre', 'harp', 'oud'], arp: ['harpsichord', 'lyre', 'harp', 'oud'], bells: ['chime', 'bell'],
+      pad: ['organ', 'choir-ah', 'strings'], bass: ['bassoon', 'upright', 'round-bass'], drone: ['organ-drone', 'cello-drone'],
+    },
+    textures: ['fire', 'birds', 'leaves', 'owl'], kits: ['hand-drums', 'stomp-kit'], drums: [0.15, 0.9],
+    patterns: { drums: ['march', 'groove', 'tribal'], drone: ['fifths', 'tonic'], keys: ['strum', 'waltz', 'broken'], bass: ['rootfifth', 'held'], melody: ['phrases', 'riff', 'phrases'] },
+  },
+  // the mongolian steppe: throat singing holding the home note (nearly always there), a horse head
+  // fiddle (the erhu, its chinese cousin, stands in) or a flute with the tune, a plucked zither (the
+  // koto stands in for the yatga), and a shaman's drum galloping. pentatonic, wide open, hardly any
+  // chords
+  steppe: {
+    group: 'World', opens: ['drone', 'drums', 'keys'],
+    name: 'Steppe', colour: '#6f9fb8', style: 'tune',
+    scales: { majorPentatonic: 3, minorPentatonic: 2, dorian: 1, mixolydian: 1 }, tempo: [56, 72], tuneTempo: [92, 124],
+    meters: { '4/4': 4, '6/8': 3, '3/4': 1 },
+    chords: ['I', 'I - IV -', 'i', 'I V', 'i bVII', 'I - V -', 'vi - I -'],
+    methods: { bank: 3, vamp: 3 },
+    richness: [0, 0.15], energy: 0.6, space: 0.75, bright: 0.55, dark: 0.3, surprise: 0, ornate: 1.2,
+    palette: {
+      melody: ['erhu', 'flute', 'shakuhachi', 'violin'], counter: ['erhu', 'koto', 'flute'],
+      keys: ['koto', 'harp', 'nylon'], arp: ['koto', 'harp', 'nylon'], bells: ['chime'],
+      pad: ['strings', 'choir-oo', 'air-pad'], bass: ['upright', 'round-bass', 'sub-bass'], drone: ['throat-singing', 'throat-singing', 'kargyraa', 'cello-drone'],
+    },
+    textures: ['wind', 'fire', 'crickets', 'birds'], kits: ['shaman-drum'], drums: [0.3, 0.95],
+    layers: { drone: 0.9 },
+    patterns: { drums: ['gallop', 'gallop', 'tribal'], drone: ['tonic'], melody: ['phrases', 'long', 'phrases'], bass: ['held', 'rootfifth', 'pulse'], arp: ['up', 'updown'] },
+  },
+  // java and bali: the bonang's kettle gongs playing interlocking patterns, metallophones, a suling
+  // (the flute), the kendang drumming, and the big gong coming round every cycle. pelog and slendro
+  gamelan: {
+    group: 'World', opens: ['arp', 'drums', 'keys'],
+    name: 'Gamelan', colour: '#c9a227', style: 'tune',
+    scales: { pelog: 3, slendro: 3, majorPentatonic: 1 }, tempo: [56, 72], tuneTempo: [84, 120],
+    meters: { '4/4': 1 },
+    chords: ['i', 'i - bII -', 'I', 'I - IV -', 'i bVI', 'vi - I -'],
+    methods: { bank: 3, vamp: 3 },
+    richness: [0, 0.1], energy: 0.6, space: 0.6, bright: 0.65, dark: 0.3, surprise: 0, ornate: 0.6,
+    palette: {
+      melody: ['bonang', 'flute', 'vibes', 'xylophone'], counter: ['bonang', 'vibes', 'marimba'],
+      keys: ['vibes', 'marimba', 'bonang'], arp: ['bonang', 'glock', 'xylophone', 'marimba'], bells: ['glock', 'chime', 'bonang'],
+      pad: ['choir-oo', 'air-pad', 'glass-pad'], bass: ['sub-bass', 'round-bass'], drone: ['deep-drone', 'organ-drone'],
+    },
+    textures: ['birds', 'frogs', 'rain', 'stream'], kits: ['gamelan-kit'], drums: [0.4, 0.95],
+    layers: { arp: 0.8, bells: 0.5 },
+    patterns: { drums: ['tribal', 'march', 'tribal'], arp: ['up', 'updown', 'converge', 'random'], melody: ['riff', 'phrases', 'phrases'], bells: ['phasing', 'sparkle'], bass: ['held', 'pulse'] },
+  },
+  // andalusia: flamenco's nylon guitar strumming (rasgueado) the andalusian cadence (four chords
+  // stepping down to a major chord on the scale's fifth), palmas clapping, a cajon, and a violin or a
+  // trumpet crying over it in the phrygian dominant
+  flamenco: {
+    group: 'World', opens: ['keys', 'drums'],
+    name: 'Flamenco', colour: '#b3263a', style: 'tune',
+    scales: { phrygianDominant: 3, phrygian: 2, harmonicMinor: 1 }, tempo: [60, 76], tuneTempo: [100, 132],
+    meters: { '3/4': 3, '6/8': 2, '4/4': 3 },
+    chords: ['iv bIII bII I', 'I bII I -', 'I bII bIII bII', 'iv - bII I', 'I - bII -', 'iv bIII bII bII'],
+    methods: { bank: 6, vamp: 1 },
+    richness: [0, 0.3], energy: 0.75, space: 0.45, bright: 0.6, dark: 0.4, surprise: 0, ornate: 1.3,
+    palette: {
+      melody: ['nylon', 'violin', 'trumpet', 'flute'], counter: ['violin', 'oboe', 'nylon'],
+      keys: ['nylon', 'steel-guitar', 'harp'], arp: ['nylon', 'harp', 'steel-guitar'], bells: ['chime'],
+      pad: ['strings', 'choir-ah'], bass: ['upright', 'round-bass'], drone: ['cello-drone'],
+    },
+    textures: ['fire', 'crickets'], kits: ['cajon-kit', 'stomp-kit'], drums: [0.3, 0.95],
+    layers: { keys: 0.95 },
+    patterns: { drums: ['groove', 'halftime', 'tribal'], keys: ['strum', 'strum', 'broken'], bass: ['rootfifth', 'held'], melody: ['phrases', 'phrases', 'calls'] },
+  },
+
+  // pop: four chords (I V vi IV and its friends), a bright piano or a plucked synth with the hook, a
+  // string machine and pads, a strummed guitar now and then, and a tight kit on a backbeat or four on
+  // the floor
+  pop: {
+    group: 'Pop', opens: ['keys', 'drums', 'bass'],
+    name: 'Pop', colour: '#ff7eb6', style: 'tune',
+    scales: { major: 4, mixolydian: 1, minor: 1.5, dorian: 0.5 }, tempo: [70, 90], tuneTempo: [100, 124],
+    meters: { '4/4': 1 },
+    chords: ['I V vi IV', 'vi IV I V', 'I vi IV V', 'IV I V vi', 'I V IV IV', 'vi V IV V', 'I iii IV V', 'IV V vi -'],
+    methods: { bank: 6, markov: 1 },
+    richness: [0.15, 0.5], energy: 0.75, space: 0.5, bright: 0.75, dark: 0.1, edge: 0.9, surprise: 0,
+    palette: {
+      guitar: ['clean-guitar', 'chorus-guitar'], melody: ['pluck-lead', 'soft-lead', 'piano', 'e-piano', 'synth-brass', 'whistle'], counter: ['soft-lead', 'piano', 'synth-strings', 'pluck-lead'],
+      keys: ['piano', 'e-piano', 'wurlitzer', 'steel-guitar'], arp: ['pluck-lead', 'piano', 'e-piano', 'marimba'], bells: ['glock', 'sine-bell', 'celesta'],
+      pad: ['synth-strings', 'warm-pad', 'strings', 'analog-pad'], bass: ['pluck-bass', 'synth-bass', 'slap-bass'], drone: ['organ-drone'],
+    },
+    textures: [], kits: ['tight-kit', 'club-kit', 'cajon-kit'], drums: [0.4, 1],
+    layers: { guitar: 0.4, texture: 0, drone: 0 },
+    patterns: { guitar: ['strum', 'ring', 'eighths'], drums: ['groove', 'four', 'groove', 'halftime'], bass: ['octave', 'synco', 'rootfifth', 'pulse'], keys: ['block', 'strum', 'broken'], melody: ['phrases', 'riff', 'phrases', 'calls'], pad: ['sustain', 'pulse', 'swell'] },
+  },
+  // disco: four on the floor with the hats opening on every off beat, a bass jumping octaves, strings
+  // and a string machine sweeping, horns stabbing, a clavinet and a guitar scratching sixteenths (chic,
+  // donna summer, the bee gees)
+  disco: {
+    group: 'Pop', opens: ['drums', 'bass', 'guitar'],
+    name: 'Disco', colour: '#e040fb', style: 'tune',
+    scales: { minor: 2, dorian: 2, major: 1.5, mixolydian: 1 }, tempo: [84, 100], tuneTempo: [112, 126],
+    meters: { '4/4': 1 },
+    chords: ['i7 iv7', 'i iv bVII bIII', 'ii7 V7 Imaj7 vi7', 'Imaj7 IVmaj7', 'i7 - IV7 -', 'vi7 ii7 V7 Imaj7', 'i bVI bVII i', 'iv7 V7 i7 -'],
+    methods: { bank: 6, vamp: 1 },
+    richness: [0.5, 0.85], energy: 0.9, space: 0.45, bright: 0.75, dark: 0.2, edge: 1, surprise: 0,
+    palette: {
+      guitar: ['clean-guitar', 'chorus-guitar'], melody: ['violin', 'alto-sax', 'trumpet', 'synth-brass', 'soul-voice'], counter: ['synth-strings', 'strings', 'trumpet', 'trombone'],
+      keys: ['clavinet', 'e-piano', 'piano', 'wurlitzer'], arp: ['clavinet', 'pluck-lead', 'synth-strings'], bells: ['glock', 'vibes'],
+      pad: ['synth-strings', 'strings', 'brass-section', 'orchestra-hit'], bass: ['slap-bass', 'synth-bass', 'pluck-bass'], drone: ['organ-drone'],
+    },
+    textures: [], kits: ['funk-kit', 'tight-kit'], drums: [0.5, 1],
+    layers: { guitar: 0.7, pad: 0.9, texture: 0, drone: 0 },
+    patterns: { guitar: ['funk', 'funk'], drums: ['four', 'four', 'funk'], bass: ['octave', 'octave', 'synco'], pad: ['stabs', 'sustain', 'pulse'], keys: ['block', 'skank'], melody: ['phrases', 'riff', 'calls'], counter: ['counterpoint', 'harmony', 'answer'] },
+  },
+  // hip hop with no rapper, the beat tape (j dilla, nujabes, pete rock): a dusty kit swinging a boom
+  // bap beat, a rhodes or a piano looping jazzy chords, an upright or an 808, strings and an orchestra
+  // hit for stabs, vinyl crackle and a dj's scratches
+  hiphop: {
+    group: 'Pop', opens: ['drums', 'keys', 'bass'],
+    name: 'Hip hop', colour: '#8d6e63', style: 'tune',
+    scales: { minor: 2, dorian: 2.5, minorPentatonic: 1, major: 0.5 }, tempo: [72, 84], tuneTempo: [84, 96],
+    meters: { '4/4': 1 },
+    chords: ['i7 iv7', 'ii7 V7 Imaj7 -', 'i7 - bVImaj7 -', 'Imaj7 vi7', 'i7 bVII7 bVImaj7 V7', 'iv7 i7', 'i7 iv7 bVIImaj7 bIIImaj7'],
+    methods: { bank: 5, vamp: 3 },
+    richness: [0.6, 1], energy: 0.6, space: 0.4, bright: 0.45, dark: 0.3, edge: 0.8, swing: 0.8, swingAmount: [0.15, 0.35], surprise: 0, ornate: 0.8,
+    palette: {
+      melody: ['e-piano', 'piano', 'vibes', 'flute', 'mute-trumpet', 'alto-sax'], counter: ['strings', 'vibes', 'e-piano', 'harp'],
+      keys: ['e-piano', 'piano', 'wurlitzer'], arp: ['harp', 'vibes', 'e-piano'], bells: ['vibes', 'glock'],
+      pad: ['strings', 'orchestra-hit', 'choir-oo', 'warm-pad'], bass: ['upright', '808-bass', 'round-bass', 'fretless'], drone: ['organ-drone'],
+    },
+    textures: ['vinyl', 'scratches', 'rain'], kits: ['boombap-kit'], drums: [0.5, 1],
+    layers: { keys: 0.9, texture: 0.5, drone: 0 },
+    fx: { wobble: 0.1 },
+    patterns: { drums: ['boombap', 'boombap', 'halftime'], bass: ['synco', 'held', 'synco'], keys: ['block', 'comp', 'strum'], pad: ['stabs', 'sustain', 'swell'], melody: ['riff', 'phrases', 'calls', 'fragments'], counter: ['answer', 'counterpoint'] },
+  },
+  // trap: half time at 140, the 808 booming and sliding between notes, hats rolling, a clap on three,
+  // and a dark, simple hook on bells, a flute or a plucked synth over a choir
+  trap: {
+    group: 'Pop', opens: ['drums', 'bass', 'arp'],
+    name: 'Trap', colour: '#5e35b1', style: 'tune',
+    scales: { minor: 3, harmonicMinor: 2, phrygian: 1 }, tempo: [64, 74], tuneTempo: [130, 150],
+    meters: { '4/4': 1 },
+    chords: ['i bVI', 'i - bVI -', 'i iv', 'i bVI bIII bVII', 'i - iv -', 'i bII'],
+    methods: { bank: 4, vamp: 3 },
+    richness: [0, 0.3], energy: 0.8, space: 0.5, bright: 0.6, dark: 0.6, edge: 0.9, surprise: 0, ornate: 0.8,
+    palette: {
+      melody: ['flute', 'sine-bell', 'pluck-lead', 'glock', 'music-box'], counter: ['sine-bell', 'pluck-lead', 'strings'],
+      keys: ['piano', 'e-piano', 'pluck-lead'], arp: ['pluck-lead', 'sine-bell', 'glock', 'music-box'], bells: ['glock', 'sine-bell', 'music-box'],
+      pad: ['choir-ah', 'choir-oo', 'dark-pad', 'strings'], bass: ['808-bass', '808-bass', 'sub-bass'], drone: ['deep-drone', 'void'],
+    },
+    textures: ['rain', 'hum'], kits: ['trap-kit'], drums: [0.5, 1],
+    layers: { counter: 0.35 },
+    patterns: { drums: ['trap', 'trap', 'halftime'], bass: ['held', 'synco', 'held'], melody: ['riff', 'phrases', 'riff'], pad: ['sustain', 'swell'], arp: ['up', 'updown', 'down'] },
+  },
+
+  // ---------- places ----------
+  // the wasteland after the bombs (fallout: new vegas, mad max): a twangy guitar, a harmonica, a
+  // whistled tune or a lonely trumpet (morricone), a slide guitar, an out of tune saloon piano, the
+  // wind, a geiger counter, creaking metal, and drums made of scrap
+  wasteland: {
+    group: 'Places', opens: ['guitar', 'drone', 'drums'],
+    name: 'Wasteland', colour: '#a08a5c', style: 'tune',
+    scales: { minor: 2, dorian: 1.5, minorPentatonic: 2, blues: 1, phrygian: 0.7 }, tempo: [56, 72], tuneTempo: [84, 112],
+    meters: { '4/4': 5, '6/8': 2, '3/4': 1 },
+    chords: ['i bVII bVI V', 'i iv i V', 'i - bVI -', 'i bIII bVII iv', 'i v i bVII', 'i - iv V'],
+    methods: { bank: 5, vamp: 2, markov: 1 },
+    richness: [0, 0.3], energy: 0.55, space: 0.7, bright: 0.45, dark: 0.55, edge: 0.85, surprise: 0, ornate: 1.2,
+    palette: {
+      guitar: ['clean-guitar', 'crunch-guitar'], melody: ['harmonica', 'whistle', 'trumpet', 'pedal-steel'], counter: ['harmonica', 'pedal-steel', 'violin', 'trumpet'],
+      keys: ['honky-tonk', 'piano', 'nylon'], arp: ['nylon', 'banjo', 'honky-tonk'], bells: ['metal-ping', 'bell'],
+      pad: ['strings', 'choir-ah', 'dark-pad', 'organ'], bass: ['upright', 'round-bass', 'sub-bass'], drone: ['bowed-metal', 'deep-drone', 'cello-drone'],
+    },
+    textures: ['wind', 'geiger', 'creaks', 'fire', 'crickets'], kits: ['junk-kit', 'brushes'], drums: [0.2, 0.9],
+    layers: { guitar: 0.6 },
+    patterns: { guitar: ['ring', 'strum', 'boomchick', 'eighths'], drums: ['halftime', 'train', 'march', 'groove'], bass: ['held', 'rootfifth', 'pulse'], melody: ['phrases', 'long', 'calls'], keys: ['waltz', 'strum', 'block'] },
+  },
+  // deep under the sea: wine glasses and a blown bottle, glassy pads, harp and vibes rippling, a
+  // whale calling far off and bubbles rising. slow, wide and wavering
+  underwater: {
+    group: 'Places', opens: ['pad', 'arp', 'drone'],
+    name: 'Underwater', colour: '#2f8fb0', style: 'ambient',
+    scales: { lydian: 2, major: 1.5, dorian: 1.5, majorPentatonic: 1 }, tempo: [50, 66], tuneTempo: [76, 96],
+    meters: { '4/4': 4, '3/4': 2, '6/8': 1 },
+    chords: ['Imaj7 IVmaj7', 'I II', 'ii7 Imaj7', 'i7 iv7', 'Imaj7 iii7 IVmaj7 -', 'vi7 IVmaj7 Imaj7 V'],
+    richness: [0.5, 0.9], energy: 0.3, space: 0.9, bright: 0.45, dark: 0.2, surprise: 0, ornate: 0.6,
+    palette: {
+      melody: ['wine-glass', 'blown-bottle', 'vibes', 'sine-bell', 'celesta', 'flute'], counter: ['harp', 'vibes', 'soft-lead', 'celesta'],
+      keys: ['harp', 'felt-keys', 'e-piano', 'vibes'], arp: ['harp', 'celesta', 'vibes', 'sine-bell', 'music-box'], bells: ['glass-bell', 'sine-bell', 'celesta'],
+      pad: ['glass-pad', 'choir-oo', 'air-pad', 'shimmer'], bass: ['sub-bass', 'round-bass'], drone: ['void', 'deep-drone', 'tape-loop'],
+    },
+    textures: ['whale', 'bubbles', 'ocean'], kits: ['soft-kit'], drums: [0.05, 0.4],
+    fx: { wobble: 0.3 },
+    patterns: { drums: ['pulse', 'sparse'], arp: ['twinkle', 'updown', 'up'], melody: ['long', 'phrases', 'fragments'], bass: ['held', 'held', 'rootfifth'] },
+  },
+  // pirates and sea shanties: an accordion and a fiddle, a tin whistle, a banjo, a saloon piano below
+  // decks, a tuba or a bassoon, the crew stamping and clapping a jig in six, the sea and the ship's
+  // timbers creaking
+  pirate: {
+    group: 'Places', opens: ['drums', 'keys', 'bass'],
+    name: 'Pirates', colour: '#3b5b8c', style: 'tune',
+    scales: { dorian: 3, minor: 2, mixolydian: 1, major: 1 }, tempo: [60, 76], tuneTempo: [100, 132],
+    meters: { '6/8': 4, '4/4': 3, '3/4': 1 },
+    chords: ['i bVII i bVII', 'i iv V i', 'i bIII bVII i', 'i bVI bVII i', 'i - bVII -', 'i iv bVII bIII', 'I IV V I'],
+    methods: { bank: 5, vamp: 2, markov: 1 },
+    richness: [0, 0.25], energy: 0.7, space: 0.5, bright: 0.6, dark: 0.35, surprise: 0, ornate: 1.2,
+    palette: {
+      melody: ['accordion', 'violin', 'whistle', 'melodica'], counter: ['violin', 'accordion', 'whistle'],
+      keys: ['honky-tonk', 'nylon', 'steel-guitar', 'banjo'], arp: ['banjo', 'nylon', 'steel-guitar', 'harp'], bells: ['bell', 'chime'],
+      pad: ['organ', 'strings', 'choir-ah'], bass: ['tuba', 'upright', 'bassoon'], drone: ['organ-drone', 'cello-drone'],
+    },
+    textures: ['ocean', 'creaks', 'wind', 'fire'], kits: ['stomp-kit', 'hand-drums'], drums: [0.2, 0.95],
+    patterns: { drums: ['march', 'groove', 'train'], keys: ['waltz', 'strum', 'block'], bass: ['rootfifth', 'rootfifth', 'held'], melody: ['phrases', 'riff', 'phrases'] },
+  },
+  // outer space: analog pads and a string machine drifting, sine bells and plucked arps like distant
+  // signals, the void humming underneath, and a drum machine far off. lydian and the whole tone scale
+  space: {
+    group: 'Places', opens: ['pad', 'arp', 'drone'],
+    name: 'Space', colour: '#3d2c8d', style: 'ambient',
+    scales: { lydian: 3, wholeTone: 0.8, major: 1, dorian: 1, minor: 1 }, tempo: [52, 68], tuneTempo: [90, 116],
+    meters: { '4/4': 5, '3/4': 1 },
+    chords: ['I II', 'Imaj7 II', 'i bVI', 'I bVII', 'Imaj7 IVmaj7', 'i - bII -'],
+    richness: [0.4, 0.9], energy: 0.4, space: 0.95, bright: 0.6, dark: 0.35, edge: 0.8, surprise: 0, ornate: 0.6,
+    palette: {
+      melody: ['soft-lead', 'sine-bell', 'wine-glass', 'synth-brass'], counter: ['soft-lead', 'sine-bell', 'pluck-lead'],
+      keys: ['e-piano', 'pluck-lead', 'felt-keys'], arp: ['pluck-lead', 'sine-bell', 'e-piano', 'celesta'], bells: ['sine-bell', 'glass-bell', 'metal-ping'],
+      pad: ['analog-pad', 'glass-pad', 'synth-strings', 'choir-oo', 'shimmer'], bass: ['sub-bass', 'synth-bass', 'reese'], drone: ['void', 'deep-drone', 'tape-loop'],
+    },
+    textures: ['hum'], kits: ['machine', 'club-kit'], drums: [0.15, 0.8],
+    fx: { wobble: 0.1 },
+    patterns: { drums: ['halftime', 'pulse', 'four'], arp: ['up', 'updown', 'random', 'converge'], melody: ['long', 'phrases', 'fragments'], pad: ['swell', 'sustain'] },
+  },
 };
 // the rows of moods on the page, in order
-const MOOD_GROUPS = ['Gentle', 'Bright', 'Easy', 'Roots', 'Dark', 'World', 'Electronic', 'Loud', 'Hazy'];
+const MOOD_GROUPS = ['Gentle', 'Bright', 'Easy', 'Roots', 'Dark', 'World', 'Ancient', 'Electronic', 'Pop', 'Loud', 'Hazy', 'Places'];
 
 // the patterns each style leans towards, when the mood doesn't say
 const STYLE_PATTERNS = {
@@ -1321,7 +1643,7 @@ STYLE_PATTERNS.mini = STYLE_PATTERNS.boss;
 // newer beats that drive too, so a mood whose own beat is one of them keeps it in a fight (a funk boss
 // keeps its funk, a raga boss its tala). they're kept out of the fight's own list above, which every
 // older mood's fights pick from, so those fights stayed as they were
-const ALSO_DRIVING = ['funk', 'tala', 'shuffle', 'onedrop', 'train'];
+const ALSO_DRIVING = ['funk', 'tala', 'shuffle', 'onedrop', 'train', 'trap', 'maqsum', 'gallop'];
 const drives = (role, pattern) => STYLE_PATTERNS.boss[role].includes(pattern) || (role === 'drums' && ALSO_DRIVING.includes(pattern));
 
 // the styles, as the page names them. a mini boss is a boss fight in a shorter loop with a smaller band
@@ -1364,8 +1686,8 @@ const moodPatterns = (song, role) => {
 // calm" and "calm and fast" are the same song. songs can have up to MOST_MODS of them
 const MOST_MODS = 4;
 // the beats that suit each word, used to keep a mood's own where they fit
-const GENTLE_BEATS = ['pulse', 'sparse', 'brush', 'halftime', 'swing', 'bossa', 'wash', 'train'];
-const DRIVING_BEATS = ['rock', 'double', 'march', 'tribal', 'break', 'four', 'punk', 'funk', 'groove', 'tala', 'shuffle'];
+const GENTLE_BEATS = ['pulse', 'sparse', 'brush', 'halftime', 'swing', 'bossa', 'wash', 'train', 'boombap'];
+const DRIVING_BEATS = ['rock', 'double', 'march', 'tribal', 'break', 'four', 'punk', 'funk', 'groove', 'tala', 'shuffle', 'trap', 'maqsum', 'gallop'];
 // a mood's own patterns for a role that are in a list, or the list's fallback if none are
 const keepOr = (mood, role, keep, fallback) => {
   const own = (mood.patterns?.[role] || []).filter((pattern) => keep.includes(pattern));
@@ -1960,8 +2282,11 @@ function pickInstrument(song, layer, rng) {
   const worlds = new Set(others.map((other) => INSTRUMENTS[other.instrument].world));
   const belongs = (id) => !APART[INSTRUMENTS[id].world] || !worlds.has(APART[INSTRUMENTS[id].world]);
   if (family !== 'tonal') {
+    // (a kit or texture that's a place's own, the death whistle or the bobobo drums, is only ever where
+    // a mood names it, never a stand in for a mood with none)
+    const free = anything.filter((id) => !INSTRUMENTS[id].own);
     let pool = family === 'kit' ? mood.kits : mood.textures;
-    if (!pool.length) pool = anything;
+    if (!pool.length) pool = free;
     // a second texture is a different one, and two steady beds (rain and a stream) are one too many
     const textures = others.filter((other) => other.role === 'texture').map((other) => other.instrument);
     let wanted = pool.filter((id) => belongs(id) && !textures.includes(id) && !(INSTRUMENTS[id].bed && textures.some((other) => INSTRUMENTS[other].bed)));
@@ -1970,7 +2295,7 @@ function pickInstrument(song, layer, rng) {
     // kit anyway, and a chip lead over brushes sounded like two songs
     if (!wanted.length && family === 'kit') {
       const beats = moodPatterns(song, 'drums');
-      const fitting = anything.filter(belongs);
+      const fitting = free.filter(belongs);
       wanted = fitting.filter((id) => INSTRUMENTS[id].suits.some((pattern) => beats.includes(pattern)));
       if (!wanted.length) wanted = fitting;
     }
@@ -2430,7 +2755,9 @@ function composeSong(song) {
         chords: section.chords,
         rng: makeRng(song.seed, layer.seed, layer.role, section.part),
         vary: makeRng(song.seed, layer.seed, section.part, 'take', section.take),
-        center: ROLES[layer.role].center + layer.octave * 12,
+        // (an instrument with a home, a throat singer or a didgeridoo, sits around its own note: moved
+        // more than a few semitones from where it was recorded, it sounds like someone else)
+        center: (INSTRUMENTS[layer.instrument]?.home ?? ROLES[layer.role].center) + layer.octave * 12,
         steps: SCALES[song.scale].steps,
         melody: melodyBySection[section.index] || null,
       };
@@ -2911,6 +3238,31 @@ const GROOVES = {
       { k: 'x.......x.......', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', c: 'x...x...x...x...' },
       { k: 'x.....x.x.......', s: '....x..-....x..-', h: 'x.x.x.x.x.x.x.x.', c: 'x.....x.x.....x.' },
     ],
+    // boom bap: hip hop's, a lazy kick skipping round a snare cracking on two and four, eighth hats,
+    // swung by the mood (j dilla, pete rock, nujabes)
+    boombap: [
+      { k: 'x.........x..x..', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', c: 'x.........x.....' },
+      { k: 'x..x......x.....', s: '....x.......x..-', h: 'x.x.x.x.x.x.x.x.', o: '..............x.', c: 'x..x......x.....' },
+      { k: 'x.......x.x.....', s: '....x.......x...', h: 'x.x.x.x.x.x.x.x.', p: '.......-.......-', c: 'x.......x.x.....' },
+    ],
+    // trap: half time, the snare (a clap) on the third beat, the 808's kick skipping round it, and the
+    // hats rolling in quick runs
+    trap: [
+      { k: 'x......x..x.....', s: '........x.......', h: 'x.x.x.xxx.x.x.xx', c: 'x......x..x.....' },
+      { k: 'x.....x...x..x..', s: '........x.......', h: 'xxx.x.x.x.x.xxxx', o: '...........x....', c: 'x.....x...x.....' },
+    ],
+    // maqsum: egypt's beat, doum tek - tek doum - tek - (the low drum and the sharp one), the riq's
+    // jingles running under it. and baladi, its heavier cousin, two doums to start
+    maqsum: [
+      { k: 'x.......x.......', s: '..x...x.....x...', h: 'x-x-x-x-x-x-x-x-', c: 'x.....x.x.......' },
+      { k: 'x.x.....x.......', s: '......x.....x...', h: 'x-x-x-x-x-x-x-x-', o: '..............x.', c: 'x.x.....x.......' },
+    ],
+    // gallop: horses on the steppe, a long beat and two quick ones (da-da-dum) on the low drum, bells
+    // on the beat
+    gallop: [
+      { k: 'x.......x.......', l: 'x.xxx.xxx.xxx.xx', h: 'x...x...x...x...', c: 'x...x...x...x...' },
+      { k: 'x...x...x...x...', l: '..xx..xx..xx..xx', s: '....x.......x...', c: 'x...x...x...x...' },
+    ],
   },
   '3/4': {
     groove: [
@@ -2938,6 +3290,10 @@ const GROOVES = {
     onedrop: [{ k: '....x.......', s: '....x.......', h: 'x.x.x.x.x.x.', c: '..x...x...x.' }],
     train: [{ k: 'x...........', s: '-.-.x.-.x.-.', c: 'x...x...x...' }],
     shuffle: [{ k: 'x.......x...', s: '....x.......', h: 'x.x.x.x.x.x.', c: 'x...x...x...' }],
+    boombap: [{ k: 'x.......x.x.', s: '....x.......', h: 'x.x.x.x.x.x.', c: 'x.......x...' }],
+    trap: [{ k: 'x.....x..x..', s: '......x.....', h: 'x.x.xxx.x.xx', c: 'x.....x.....' }],
+    maqsum: [{ k: 'x...........', s: '....x...x.x.', h: 'x-x-x-x-x-x-', c: 'x...x...x...' }],
+    gallop: [{ k: 'x...........', l: 'x.xxx.xxx.xx', h: 'x...x...x...', c: 'x...x...x...' }],
   },
   '6/8': {
     groove: [
@@ -2964,6 +3320,10 @@ const GROOVES = {
     onedrop: [{ k: '...x..', s: '...x..', h: 'x.xx.x', c: '.x..x.' }],
     train: [{ k: 'x.....', s: '-.x-.x', c: 'x..x..' }],
     shuffle: [{ k: 'x..x..', s: '...x..', h: 'x.xx.x', c: 'x..x..' }],
+    boombap: [{ k: 'x....x', s: '...x..', h: 'x.xx.x', c: 'x....x' }],
+    trap: [{ k: 'x....x', s: '...x..', h: 'xxxxxx', c: 'x....x' }],
+    maqsum: [{ k: 'x..x..', s: '..x..x', h: 'xxxxxx', c: 'x..x..' }],
+    gallop: [{ k: 'x..x..', l: 'x.xx.x', c: 'x..x..' }],
   },
   // 5/4 as three beats then two, like take five
   '5/4': {
@@ -2989,15 +3349,19 @@ const GROOVES = {
     onedrop: [{ k: '........x.......x...', s: '........x...........', h: 'x.x.x.x.x.x.x.x.x.x.', c: '..x...x...x...x...x.' }],
     train: [{ k: 'x.......x.......x...', s: '-.-.x.-.-.-.x.-.x.-.', c: 'x...x...x...x...x...' }],
     shuffle: [{ k: 'x.......x...x.......', s: '....x...........x...', h: 'x.x.x.x.x.x.x.x.x.x.', c: 'x...x...x...x...x...' }],
+    boombap: [{ k: 'x.........x..x......', s: '....x.......x.......', h: 'x.x.x.x.x.x.x.x.x.x.', c: 'x.........x.........' }],
+    trap: [{ k: 'x......x..x.........', s: '........x.......x...', h: 'x.x.x.xxx.x.x.xxx.x.', c: 'x......x..x.........' }],
+    maqsum: [{ k: 'x.......x.......x...', s: '..x...x.....x.....x.', h: 'x-x-x-x-x-x-x-x-x-x-', c: 'x.....x.x.......x...' }],
+    gallop: [{ k: 'x...........x.......', l: 'x.xxx.xxx.xxx.xxx.xx', h: 'x...x...x...x...x...', c: 'x...x...x...x...x...' }],
   },
 };
 // the drum each groove line plays (KIT_SLOTS order in synth.js)
 const GROOVE_SLOTS = { k: 0, s: 1, h: 2, o: 3, p: 4, l: 5, y: 6 };
 // the grooves that get busier in B parts, and the ones whose fills and section crashes are loud
-const LIFTS = { groove: true, halftime: true, march: true, four: true, break: true, rock: true, punk: true, double: true, funk: true };
+const LIFTS = { groove: true, halftime: true, march: true, four: true, break: true, rock: true, punk: true, double: true, funk: true, boombap: true };
 // the quieter grooves that still fill into a new part (a jazz drummer's fill, a tihai on the tabla).
 // the quietest (pulse, sparse) never do: a drum roll in the middle of a calm song made it jump
-const FILLS = { brush: true, tribal: true, swing: true, tala: true, bossa: true, shuffle: true, train: true, onedrop: true };
+const FILLS = { brush: true, tribal: true, swing: true, tala: true, bossa: true, shuffle: true, train: true, onedrop: true, maqsum: true, gallop: true };
 // the rock grooves. their drummer fills down the toms, crashes at the top of every phrase in a loud
 // part, and (rock and punk) moves from the hats to the ride for the chorus
 const ROCK = { rock: true, punk: true, double: true, breakdown: true, wash: true };
@@ -3982,6 +4346,8 @@ const COMPOSERS = {
   drone(c) {
     const { pattern } = c.layer;
     const whole = (intervals, from = c.tonic) => intervals.map((interval) => ({ t: c.start, dur: c.end - c.start, midi: from + interval, vel: 0.7 }));
+    // one singer (or one didgeridoo) holds the home note: they can't hold a fifth as well
+    if (INSTRUMENTS[c.layer.instrument]?.home) return whole([0]);
     if (pattern === 'fifths') return whole([0, 7, 12, 19]);
     if (pattern === 'cluster') return whole(c.rng.pick([[0, 1, 7], [0, 6, 7], [0, 1, 5], [0, 3, 6], [0, 11, 13]]));
     if (pattern === 'follow') return c.chords.flatMap((chord) => [0, 7].map((interval) => ({ t: chord.t, dur: chord.dur, midi: near(chord.root, c.center) + interval, vel: 0.7 })));
@@ -4105,9 +4471,13 @@ const COMPOSERS = {
     if (crashed) hit(c.start, crash, 0.8);
     // in a loud part (a chorus, a solo), a crash at the top of every four bars, marking the phrase
     const phrases = ROCK[pattern] && kit[6] && (c.section.part === 'B' || c.section.lead);
+    // a gamelan's big gong comes round every cycle (gong: bars a cycle, on the kit), struck on the
+    // cycle's first beat, the way the gong ageng marks where everything comes round
+    const gong = INSTRUMENTS[c.layer.instrument]?.gong;
     for (let n = 0; n < c.bars; n++) {
       const bar = c.start + n * c.bpb;
       if (phrases && n % 4 === 0 && !(n === 0 && crashed)) hit(bar, 6, 0.72);
+      if (gong && kit[6] && n % gong === 0) hit(bar, 6, 0.75);
       const fillFrom = fill && n === c.bars - 1 ? steps - perBeat : steps;
       for (let i = 0; i < steps; i++) {
         const t = bar + i * grid;

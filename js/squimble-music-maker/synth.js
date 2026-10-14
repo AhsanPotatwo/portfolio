@@ -71,7 +71,10 @@
 // a rig of pedals, an amp and a speaker cabinet (ampChain()). the rig sits in the layer's channel, so
 // all of the layer's notes go through it together, the way a guitar's strings all go into one amp.
 // own: an instrument only the moods that name it get, never a surprise pick in another mood (a
-// grunge voice turning up as a happy song's tune).
+// grunge voice turning up as a happy song's tune). a kit or texture that's own is never borrowed by a
+// mood that has none of its own (the death whistle in a disco song).
+// home: the note a singer (or a didgeridoo) was recorded near. their part sits round it, one note at a
+// time, instead of round their role's usual note (the drone composer in music.js).
 //
 // ---------- the room ----------
 //
@@ -117,6 +120,9 @@ const VOWELS = {
   oo: [[350, 1], [650, 0.45], [2700, 0.08]],
   // a soft, closed "mm-oh", for the soul voice: rounder than ah, warmer than oo
   oh: [[500, 1], [900, 0.4], [2600, 0.1]],
+  // a throat singer's: the tongue makes one very narrow resonance, high up, that whistles whichever
+  // overtone is nearest it
+  khoomei: [[400, 1], [1600, 1.4], [3200, 0.05]],
 };
 
 // a kit's drums. rock kits have a ride for perc, a floor tom for low perc, and a crash: kits without
@@ -139,7 +145,7 @@ const INSTRUMENTS = {
   strings:       { name: 'Strings', family: 'pad', edge: 0.35, kind: 'sub', osc: [['bowed', -8], ['bowed', 7], ['bowed', 0, 0, 0.8], ['bowed', 3, 1, 0.12]], breath: 0.04, filter: { freq: 2600, q: 0.5, track: 0.3 }, body: [[280, 4, 2], [460, 3, 2.5], [1500, -3, 1.2], [2800, 4, 0.9]], env: [0.8, 1, 0.9, 1.4], ensemble: true, drift: 5, gain: 0.024, vibrato: { rate: 5.3, depth: 9, delay: 0.5 }, samples: 'strings', sampled: { gain: 0.9 } },
   'dark-pad':    { name: 'Dark pad', family: 'pad', edge: 0.3, kind: 'sub', osc: [['sawtooth', -14], ['square', 12, -1, 0.45]], filter: { freq: 380, q: 3, env: 2.6, attack: 3, decay: 4 }, env: [2.5, 2, 0.8, 4], drift: 3, gain: 0.06 },
   shimmer:       { name: 'Shimmer', family: 'pad', edge: 0.15, kind: 'sub', osc: [['sine', 0], ['sine', 5, 1, 0.5], ['triangle', -4, 2, 0.18]], env: [2, 2, 0.7, 4.5], gain: 0.07, tremolo: { rate: 3.2, depth: 0.3 } },
-  organ:         { name: 'Organ', family: 'pad', edge: 0.35, kind: 'sub', osc: [['organ', 0], ['organ', 4, 1, 0.3]], filter: { freq: 4500, q: 0.3 }, env: [0.06, 0.4, 0.9, 0.35], gain: 0.06, tremolo: { rate: 6, depth: 0.15 }, samples: 'pipe-organ', sampled: { gain: 0.33 } },
+  organ:         { name: 'Organ', family: 'pad', edge: 0.35, kind: 'sub', osc: [['organ', 0], ['organ', 4, 1, 0.3]], filter: { freq: 4500, q: 0.3 }, env: [0.06, 0.4, 0.9, 0.35], gain: 0.06, tremolo: { rate: 6, depth: 0.15 }, samples: 'pipe-organ', sampled: { name: 'Pipe organ (VCSL)', gain: 0.33 }, more: { 'renaissance-organ': { name: 'Renaissance chamber organ (VCSL)', gain: 0.3 } } },
   'air-pad':     { name: 'Air pad', family: 'pad', edge: 0.05, kind: 'sub', osc: [['sine', 0], ['triangle', 3, 1, 0.15]], breath: 1.6, env: [2.2, 2, 0.8, 3.5], gain: 0.08 },
   'haunted-pad': { name: 'Haunted pad', family: 'pad', edge: 0.45, kind: 'sub', osc: [['hollow', -24], ['hollow', 21], ['sine', 0, -1, 0.5]], filter: { freq: 1000, q: 5 }, env: [3, 2, 0.8, 4], gain: 0.055, tremolo: { rate: 0.35, depth: 0.55 }, vibrato: { rate: 0.21, depth: 28, delay: 0 } },
   // a filter that breathes open and shut by itself, the slowly turning analog pads of aphex twin's
@@ -163,6 +169,12 @@ const INSTRUMENTS = {
   // a harmonium, india's little pumped reed organ: free reeds (bright and nasal) under a raga, wheezing
   // slightly as the bellows go
   harmonium:     { name: 'Harmonium', family: 'pad', edge: 0.3, world: 'acoustic', own: true, kind: 'sub', osc: [['freereed', -4], ['freereed', 5], ['freereed', 0, -1, 0.5]], breath: 0.05, filter: { freq: 2600, q: 0.5, track: 0.3 }, body: [[900, 3, 1]], env: [0.08, 0.5, 0.9, 0.3], drift: 2, gain: 0.076, tremolo: { rate: 0.6, depth: 0.08 }, samples: 'reed-organ', sampled: { gain: 0.13 } },
+  // a string machine: a whole string section from one keyboard's divided down saws, slightly out of tune
+  // with themselves, swelling in. disco's strings (chic, the bee gees) and 80s pop
+  'synth-strings': { name: 'String machine', family: 'pad', edge: 0.3, kind: 'sub', osc: [['sawtooth', -10], ['sawtooth', 10], ['sawtooth', 0, 1, 0.3]], filter: { freq: 2400, q: 0.5, track: 0.3 }, env: [0.25, 0.6, 0.9, 0.8], ensemble: true, drift: 3, gain: 0.038, samples: 'synth-strings', sampled: { gain: 0.098 } },
+  // the orchestra hit: a whole orchestra's chord, stabbed once, the 80s sampler's party trick and then
+  // hip hop's (afrika bambaataa, public enemy). it plays stabs
+  'orchestra-hit': { name: 'Orchestra hit', family: 'pad', edge: 0.6, own: true, kind: 'sub', osc: [['brass', -8], ['brass', 8], ['sawtooth', 0, -1, 0.5]], filter: { freq: 3000, q: 0.6, env: 2, attack: 0.005, decay: 0.2 }, env: [0.004, 0.35, 0.15, 0.3], gain: 0.23, samples: 'orchestra-hit', sampled: { gain: 0.41 } },
 
   // keys and mallets
   // the struck ones are modal (see modalBuffer): every overtone a real one rings with, at its own
@@ -236,6 +248,19 @@ const INSTRUMENTS = {
   // barking at the top when it's hit hard, with the built in tremolo. soul, ray charles, supertramp,
   // and the indie and dream pop of now
   wurlitzer:     { name: 'Wurlitzer', family: 'keys', edge: 0.3, kind: 'modal', modes: [[1, 1, 2.5], [2, 0.3, 1.2, 0.9], [3, 0.12, 0.5, 1.2], [5, 0.05, 0.2, 1.5]], strike: [0.06, 2500, 0.003], track: 0.4, env: [0.003, 1, 1, 0.4], gain: 0.41, tremolo: { rate: 5.5, depth: 0.15 }, samples: 'wurlitzer', sampled: { name: 'Wurlitzer EP200', gain: 0.31 }, more: { pianet: { name: 'Hohner Pianet T', gain: 0.26 } } },
+  // a mbira from zimbabwe: metal keys on a board over a gourd, plucked with the thumbs. like a kalimba,
+  // with the bottle caps on it buzzing (the high, out of tune modes) and a deeper ring
+  mbira:         { name: 'Mbira', family: 'keys', edge: 0.3, world: 'acoustic', own: true, kind: 'modal', modes: [[1, 1, 1.8], [2, 0.08, 0.6], [5.4, 0.15, 0.15, 1], [11.3, 0.06, 0.05, 1.2]], strike: [0.25, 3500, 0.004], track: 0.5, env: [0.002, 1, 1, 0.7], gain: 0.46, samples: 'mbira', sampled: { name: 'Mbira dzavadzimu (VCSL)', gain: 1.9 } },
+  // a lyre, the ancient world's harp: ten metal strings plucked with the fingers, brighter and longer
+  // ringing than a harp's gut ones
+  lyre:          { name: 'Lyre', family: 'keys', edge: 0.25, world: 'acoustic', own: true, kind: 'pluck', bright: 0.55, soft: 0.5, decay: 3.5, ring: 0.35, filter: { freq: 3200, q: 0.5, track: 0.4 }, body: [[300, 3, 1.5], [900, 2, 1.2]], env: [0.004, 3.5, 1, 2], gain: 0.42, ornaments: { grace: 0.1, slide: 0.04 }, samples: 'lyre', sampled: { name: 'Cithara barbarica', gain: 0.27 } },
+  // an upright piano gone out of tune in a saloon: each note's strings a few cents apart (unison), so it
+  // jangles. the wasteland's bar and the pirates' tavern
+  'honky-tonk':  { name: 'Honky tonk piano', family: 'keys', edge: 0.3, world: 'acoustic', kind: 'modal', modes: [[1, 1, 3.5], [2, 0.55, 2.5, 0.2], [3, 0.35, 1.8, 0.4], [4, 0.22, 1.3, 0.6], [5, 0.12, 1, 0.8], [6, 0.06, 0.8, 1]], strike: [0.3, 3000, 0.01], unison: 9, stretch: 0.0005, track: 0.6, env: [0.002, 1, 1, 0.35], gain: 0.62, samples: 'honky-tonk', sampled: { gain: 0.7 } },
+  // a javanese gamelan's bonang: a row of bronze kettle gongs struck with padded sticks, in pelog (its
+  // notes fall between a piano's, so the recordings are each played in tune, see build-samples.js). a
+  // gong's overtones aren't whole multiples, so it shimmers rather than rings
+  bonang:        { name: 'Bonang', family: 'keys', edge: 0.35, world: 'acoustic', own: true, kind: 'modal', modes: [[1, 1, 2.5], [2.76, 0.2, 0.7, 0.6], [4.1, 0.08, 0.3, 1], [5.6, 0.03, 0.15, 1.2]], strike: [0.15, 3000, 0.003], unison: 2, track: 0.4, env: [0.002, 1, 1, 1], gain: 0.73, samples: 'bonang', sampled: { name: 'Bonang and bonang panerus', gain: 0.75, reach: 12 } },
 
   // electric guitars: a picked string through a rig (amp, ampChain()), from clean to as heavy as it
   // goes. edge rises with the gain. rhythm guitars are double tracked (two takes, left and right).
@@ -306,7 +331,7 @@ const INSTRUMENTS = {
   'square-lead': { name: 'Square lead', family: 'lead', edge: 0.85, world: 'chip', kind: 'sub', osc: [['square', -4], ['square', 5, -1, 0.3]], filter: { freq: 2000, q: 0.7, track: 0.4 }, env: [0.01, 0.25, 0.65, 0.25], gain: 0.07, vibrato: { rate: 6, depth: 7, delay: 0.25 }, ornaments: { slide: 0.1, glide: 0.05 } },
   // a violin: the bowed wave through its body, bow noise, drift, slides between notes and the odd
   // double stop (two strings at once, stop) the way fiddlers play
-  violin:        { name: 'Violin', family: 'lead', edge: 0.5, world: 'acoustic', kind: 'sub', osc: [['bowed', 0], ['bowed', 4, 0, 0.35]], breath: 0.05, filter: { freq: 3400, q: 0.6, track: 0.3 }, body: [[280, 5, 2], [460, 4, 2.5], [1500, -3, 1.2], [2800, 5, 0.9]], env: [0.15, 0.4, 0.85, 0.5], scoop: 20, drift: 5, gain: 0.048, vibrato: { rate: 5.6, depth: 16, delay: 0.25 }, ornaments: { slide: 0.25, grace: 0.15, trill: 0.05, stop: 0.1, glide: 0.12, swell: 0.3 }, samples: 'violin', sampled: { gain: 0.33 } },
+  violin:        { name: 'Violin', family: 'lead', edge: 0.5, world: 'acoustic', kind: 'sub', osc: [['bowed', 0], ['bowed', 4, 0, 0.35]], breath: 0.05, filter: { freq: 3400, q: 0.6, track: 0.3 }, body: [[280, 5, 2], [460, 4, 2.5], [1500, -3, 1.2], [2800, 5, 0.9]], env: [0.15, 0.4, 0.85, 0.5], scoop: 20, drift: 5, gain: 0.048, vibrato: { rate: 5.6, depth: 16, delay: 0.25 }, ornaments: { slide: 0.25, grace: 0.15, trill: 0.05, stop: 0.1, glide: 0.12, swell: 0.3 }, samples: 'violin', sampled: { name: 'Violin (VSCO)', gain: 0.33 }, more: { fiddle: { name: 'Fiddle (FluidR3)', gain: 0.3 } } },
   // a french horn: brass waves, dark, the filter opening as each note blooms
   horn:          { name: 'Horn', family: 'lead', edge: 0.45, world: 'acoustic', kind: 'sub', osc: [['brass', -3], ['brass', 3]], filter: { freq: 650, q: 0.8, env: 2.6, attack: 0.12, decay: 0.5, track: 0.6 }, body: [[450, 4, 1.2]], env: [0.08, 0.4, 0.8, 0.5], scoop: 15, drift: 3, gain: 0.12, vibrato: { rate: 4.8, depth: 6, delay: 0.5 }, ornaments: { slide: 0.08, fall: 0.06, swell: 0.3 }, samples: 'horn', sampled: { gain: 0.2 } },
   whistle:       { name: 'Whistle', family: 'lead', edge: 0.3, world: 'acoustic', kind: 'sub', osc: [['sine', 0]], breath: 0.25, chiff: 0.25, env: [0.06, 0.2, 0.9, 0.35], scoop: 25, drift: 4, gain: 0.2, vibrato: { rate: 6, depth: 18, delay: 0.2 }, ornaments: { grace: 0.25, slide: 0.12, trill: 0.08, swell: 0.1 }, samples: 'recorder', sampled: { name: 'Soprano recorder (VCSL)', gain: 1.3 }, more: { whistle: { name: 'Whistled (FluidR3)', gain: 0.42 } } },
@@ -374,6 +399,20 @@ const INSTRUMENTS = {
   bansuri:       { name: 'Bansuri', family: 'lead', edge: 0.15, world: 'acoustic', own: true, kind: 'sub', osc: [['sine', 0], ['triangle', 2, 1, 0.1]], breath: 0.5, chiff: 0.4, env: [0.08, 0.3, 0.85, 0.45], scoop: 20, drift: 5, gain: 0.18, vibrato: { rate: 5.2, depth: 12, delay: 0.5 }, ornaments: { slide: 0.35, glide: 0.18, grace: 0.25, trill: 0.08, swell: 0.25 }, samples: 'flute', sampled: { gain: 2.3 } },
   // a melodica: a keyboard you blow into, reeds like an accordion's. reggae's lead (augustus pablo)
   melodica:      { name: 'Melodica', family: 'lead', edge: 0.35, world: 'acoustic', kind: 'sub', osc: [['freereed', -3], ['freereed', 3]], breath: 0.15, filter: { freq: 2400, q: 0.6, track: 0.3 }, body: [[1000, 3, 1.2]], env: [0.03, 0.3, 0.9, 0.15], drift: 3, gain: 0.1, ornaments: { grace: 0.1, slide: 0.1, swell: 0.15 }, samples: 'bandoneon', sampled: { gain: 0.34 } },
+  // a bagpipe's chanter: a double reed blown from a bag, so it never stops for breath and can't play
+  // louder or softer. pipers can't tongue either, so they split notes with quick grace notes ("cuts")
+  // instead, which is why it has so many
+  bagpipe:       { name: 'Bagpipe', family: 'lead', edge: 0.65, world: 'acoustic', own: true, kind: 'sub', osc: [['pulse12', 0], ['sawtooth', 2, 0, 0.5]], filter: { freq: 2400, q: 1.2, track: 0.4 }, body: [[1000, 4, 2], [2500, 3, 1.5]], env: [0.03, 0.2, 0.95, 0.15], drift: 2, gain: 0.11, ornaments: { grace: 0.4, trill: 0.05 }, samples: 'bagpipe', sampled: { name: 'Squidpipes (Karoryfer)', gain: 0.27 }, more: { 'gm-bagpipe': { name: 'Bagpipe (FluidR3)', gain: 0.2 } } },
+  // an oboe: a double reed, nasal and plaintive, the pastoral solo of the orchestra. its ancestor, the
+  // aulos, is the ancient world's pipe
+  oboe:          { name: 'Oboe', family: 'lead', edge: 0.4, world: 'acoustic', kind: 'sub', osc: [['reed', 0]], breath: 0.05, filter: { freq: 2000, q: 1.2, track: 0.4 }, body: [[1100, 6, 2], [2700, 4, 1.5]], env: [0.04, 0.3, 0.85, 0.3], scoop: 15, drift: 4, gain: 0.25, vibrato: { rate: 5.2, depth: 10, delay: 0.35 }, ornaments: { grace: 0.15, trill: 0.06, slide: 0.08, swell: 0.25 }, samples: 'oboe', sampled: { gain: 0.41 } },
+  // blowing across a bottle: nearly a pure tone in a lot of breath. underwater, a cave, something old
+  'blown-bottle': { name: 'Blown bottle', family: 'lead', edge: 0.1, world: 'acoustic', kind: 'sub', osc: [['sine', 0], ['sine', 0, 1, 0.05]], breath: 0.9, chiff: 0.3, env: [0.08, 0.3, 0.8, 0.4], drift: 4, gain: 0.2, ornaments: { slide: 0.1, swell: 0.2 }, samples: 'blown-bottle', sampled: { gain: 0.41 } },
+  // wine glasses sung by a wet finger round the rim: pure, glassy and very still. only four were
+  // recorded, high up, so it's a tune instrument
+  'wine-glass':  { name: 'Wine glasses', family: 'lead', edge: 0.1, world: 'acoustic', own: true, kind: 'sub', osc: [['sine', 0], ['sine', 0, 1, 0.15], ['sine', 0, 2, 0.05]], env: [0.6, 0.5, 0.9, 1.5], drift: 2, gain: 0.22, tremolo: { rate: 4, depth: 0.15 }, ornaments: { swell: 0.3 }, samples: 'wine-glass', sampled: { gain: 0.74 } },
+  // a bowed psaltery: a triangle of strings, each bowed on its own, thin and ghostly
+  'bowed-psaltery': { name: 'Bowed psaltery', family: 'lead', edge: 0.3, world: 'acoustic', own: true, kind: 'sub', osc: [['bowed', 0]], breath: 0.04, filter: { freq: 3500, q: 0.5 }, body: [[1200, 3, 1.5]], env: [0.25, 0.4, 0.85, 1.2], drift: 4, gain: 0.063, vibrato: { rate: 5, depth: 6, delay: 0.5 }, ornaments: { swell: 0.3 }, samples: 'bowed-psaltery', sampled: { gain: 0.83 } },
   // a soul singer with no words: a warm "oh", sliding and running between notes (melisma, grace) and
   // shaking long ones
   'soul-voice':  { name: 'Soul voice', family: 'lead', edge: 0.15, own: true, kind: 'choir', vowel: 'oh', singers: [-3, 4], breath: 0.25, env: [0.08, 0.4, 0.85, 0.5], scoop: 25, drift: 6, gain: 0.2, vibrato: { rate: 5.4, depth: 16, delay: 0.35 }, ornaments: { slide: 0.45, glide: 0.12, grace: 0.25, fall: 0.1, shake: 0.2, swell: 0.25 } },
@@ -392,6 +431,9 @@ const INSTRUMENTS = {
   'chip-bass':   { name: 'Triangle bass', family: 'bass', edge: 0.15, world: 'chip', kind: 'sub', osc: [['chiptri', 0]], env: [0.003, 0.2, 0.9, 0.06], gain: 0.42 },
   // two saws a little apart, beating slowly against each other under a moving filter
   reese:         { name: 'Reese bass', family: 'bass', edge: 0.6, kind: 'sub', osc: [['sawtooth', -14], ['sawtooth', 14], ['sine', 0, -1, 0.6]], filter: { freq: 380, q: 1.5, lfo: [0.2, 0.35] }, env: [0.01, 0.3, 0.9, 0.15], gain: 0.12, ornaments: { slide: 0.15, glide: 0.08 } },
+  // a bassoon: the oboe's big brother, a double reed folded in two. woody and a little comic, a medieval
+  // or pastoral band's bass
+  bassoon:       { name: 'Bassoon', family: 'bass', edge: 0.25, world: 'acoustic', kind: 'sub', osc: [['reed', 0]], filter: { freq: 900, q: 1, track: 0.5 }, body: [[500, 4, 2], [1150, 3, 1.5]], env: [0.04, 0.3, 0.85, 0.25], scoop: 10, drift: 3, gain: 0.14, ornaments: { slide: 0.05 }, samples: 'bassoon', sampled: { gain: 0.21 } },
   // the high, chorused post-punk bass that carries the tune as much as the root
   'chorus-bass': { name: 'Chorus bass', family: 'bass', edge: 0.35, kind: 'sub', osc: [['sawtooth', -8], ['triangle', 8], ['sine', 0, -1, 0.4]], filter: { freq: 1100, q: 0.8, env: 2, attack: 0.005, decay: 0.2, track: 0.4 }, env: [0.004, 0.5, 0.6, 0.15], gain: 0.18 },
   // a bass played with a pick through a grinding amp, with its clean low end blended back in (dry),
@@ -426,6 +468,19 @@ const INSTRUMENTS = {
   // a tanpura: four long strings plucked over and over under a raga, never the tune, buzzing like the
   // sitar's (buzz). it's plucked, so it plays the drone's "cycle" pattern (music.js), not a held note
   tanpura:       { name: 'Tanpura', family: 'drone', edge: 0.2, world: 'acoustic', own: true, kind: 'pluck', bright: 0.7, soft: 0.2, decay: 6, ring: 0.35, buzz: 0.1, body: [[200, 3, 1.5], [800, 2, 1.5]], env: [0.003, 6, 1, 2], gain: 0.54, samples: 'sitar', sampled: { gain: 0.28 } },
+  // throat singing from mongolia and tuva: one singer holds a low note while the shape of their mouth
+  // picks out its overtones, so a whistled tune floats above the drone. every overtone is a whole
+  // multiple of the note, so moved to the song's home note it stays in tune whatever the key. a singer
+  // holds one note near their own (home, see the drone composer in music.js), not a chord. the recordings
+  // are a tuvan sygyt (whistling) and a mongolian khoomei; the synthesised version is a voice through a
+  // narrow vowel that whistles one overtone
+  'throat-singing': { name: 'Throat singing', family: 'drone', edge: 0.3, world: 'acoustic', own: true, kind: 'choir', vowel: 'khoomei', singers: [0], breath: 0.1, home: 56, env: [0.8, 1, 0.9, 2], drift: 3, gain: 0.19, samples: 'sygyt', sampled: { name: 'Sygyt (Alfonso Pérez)', gain: 0.16, reach: 12 }, more: { khoomei: { name: 'Khoomei (nemaavla)', gain: 0.25, reach: 12 } } },
+  // kargyraa, the low style: the false vocal folds flap at half the voice's speed, so it growls an
+  // octave under the note it's singing, with the overtones above it
+  kargyraa:      { name: 'Throat singing, low', family: 'drone', edge: 0.35, world: 'acoustic', own: true, kind: 'choir', vowel: 'ah', singers: [0], breath: 0.15, home: 39, env: [0.8, 1, 0.9, 2], drift: 3, gain: 0.68, samples: 'kargyraa', sampled: { name: 'Kargyraa (Alfonso Pérez)', gain: 0.41, reach: 12 } },
+  // a didgeridoo: lips buzzing into a hollowed out branch, one deep note whose sound is shaped by the
+  // mouth (the filter opening and closing) and breathed round and round without a break
+  didgeridoo:    { name: 'Didgeridoo', family: 'drone', edge: 0.3, world: 'acoustic', own: true, kind: 'sub', osc: [['sawtooth', 0], ['square', 0, 0, 0.3]], breath: 0.1, filter: { freq: 450, q: 5, lfo: [0.6, 0.5] }, home: 37, env: [0.3, 0.5, 0.9, 0.8], drift: 2, gain: 0.061, samples: 'didgeridoo', sampled: { gain: 1.1, reach: 12 } },
 
   // drum kits, slots in KIT_SLOTS order
   'soft-kit': { name: 'Soft kit', family: 'kit', world: 'acoustic', kind: 'drums', suits: ['pulse', 'sparse', 'brush', 'halftime', 'groove', 'train'], slots: [
@@ -529,6 +584,61 @@ const INSTRUMENTS = {
     { voice: 'tick', tune: 700, decay: 0.08, gain: 0.3, hit: 'orchestra-kit/woodblock', level: 1 }, { voice: 'rim', tune: 1000, decay: 0.05, gain: 0.3, hit: 'percussion/claves', level: 0.68 }, { voice: 'taiko', tune: 85, decay: 0.6, gain: 0.75, hit: 'orchestra-kit/taiko', level: 0.71, at: 58 },
     { voice: 'gong', tune: 90, decay: 4, gain: 0.3, hit: 'orchestra-kit/gong', level: 0.15 }] },
 
+  // the third round's kits. they're own: only the moods that name them get them, and they're never
+  // borrowed for a band whose mood has none that fit (pickInstrument), so older songs kept their kits
+  // ghana's bobobo drums: the bass drum, a tenor drum for the low perc, the treble drum slapped for the
+  // high one, clapping, and shakers
+  'african-drums': { name: 'Bobobo drums', family: 'kit', world: 'acoustic', own: true, kind: 'drums', suits: ['tribal', 'groove', 'march', 'halftime', 'pulse', 'sparse', 'gallop'], slots: [
+    { voice: 'taiko', tune: 70, decay: 0.5, gain: 0.85, hit: 'bobobo/bass', level: 0.62 }, { voice: 'conga', tune: 300, decay: 0.15, gain: 0.45, hit: 'bobobo/treble-slap', level: 0.64 }, { voice: 'shaker', tone: 6000, decay: 0.06, gain: 0.16, hit: 'percussion/shaker', level: 0.2 },
+    { voice: 'shaker', tone: 5500, decay: 0.2, gain: 0.18, hit: 'world-percussion/big-shaker', level: 0.82 }, { voice: 'clap', tone: 1200, decay: 0.12, gain: 0.35, hit: 'body/clap', level: 0.43 }, { voice: 'conga', tune: 180, decay: 0.3, gain: 0.5, hit: 'bobobo/tenor', level: 0.98 }] },
+  // a cajon, the box drum you sit on: its bass in the middle of the face, the snare wires cracking at its
+  // top edge, a knock on its side, with a shaker and tambourine. coffee shops, flamenco, an acoustic pop band
+  'cajon-kit': { name: 'Cajon', family: 'kit', world: 'acoustic', own: true, kind: 'drums', suits: ['groove', 'halftime', 'pulse', 'sparse', 'bossa', 'train', 'tribal', 'boombap'], slots: [
+    { voice: 'kick', tune: 60, decay: 0.2, gain: 0.7, hit: 'cajon/bass', level: 1.4 }, { voice: 'snare', tune: 200, tone: 1800, decay: 0.15, gain: 0.45, hit: 'cajon/slap', level: 3.5 }, { voice: 'shaker', tone: 6000, decay: 0.06, gain: 0.16, hit: 'percussion/shaker', level: 0.2 },
+    { voice: 'shaker', tone: 5500, decay: 0.22, gain: 0.18, hit: 'percussion/tambourine', level: 0.51 }, { voice: 'rim', tune: 900, decay: 0.05, gain: 0.3, hit: 'cajon/side', level: 0.36 }, { voice: 'tom', tune: 120, decay: 0.2, gain: 0.45, hit: 'cajon/mid', level: 1.6 }] },
+  // stomping and clapping: feet for the kick, hands for the snare, snaps, a slapped thigh and a thumped
+  // chest. a sea shanty's crew, a tribe round the fire, we will rock you
+  'stomp-kit': { name: 'Stomp and clap', family: 'kit', world: 'acoustic', own: true, kind: 'drums', suits: ['groove', 'march', 'halftime', 'pulse', 'sparse', 'tribal', 'train', 'gallop'], slots: [
+    { voice: 'kick', tune: 45, decay: 0.25, gain: 0.8, hit: 'body/stomp', level: 2.3 }, { voice: 'clap', tone: 1200, decay: 0.15, gain: 0.45, hit: 'body/clap', level: 0.59 }, { voice: 'tick', tune: 2000, decay: 0.03, gain: 0.2, hit: 'body/snap', level: 2.2 },
+    { voice: 'clap', tone: 1500, decay: 0.25, gain: 0.3, hit: 'world-percussion/clap', level: 0.24 }, { voice: 'slap', tone: 1000, decay: 0.05, gain: 0.25, hit: 'body/thigh', level: 0.69 }, { voice: 'tom', tune: 100, decay: 0.25, gain: 0.45, hit: 'body/chest', level: 4.6 }] },
+  // boom bap: a 70s kit through an old microphone, the dusty drums hip hop was sampled from. a fat kick,
+  // a cracking snare, a rim click, and the hats
+  'boombap-kit': { name: 'Boom bap kit', family: 'kit', own: true, kind: 'drums', suits: ['boombap', 'groove', 'halftime', 'sparse', 'pulse', 'funk', 'shuffle', 'break'], slots: [
+    { voice: 'kick', tune: 52, decay: 0.35, gain: 0.9, hit: 'retro-kit/kick', level: 0.46 }, { voice: 'snare', tune: 190, tone: 1700, decay: 0.2, gain: 0.5, hit: 'retro-kit/snare', level: 0.89 }, { voice: 'hat', tone: 7000, decay: 0.04, gain: 0.18, hit: 'retro-kit/hat', level: 0.19 },
+    { voice: 'hat', tone: 6500, decay: 0.3, gain: 0.15, hit: 'retro-kit/open-hat', level: 0.094 }, { voice: 'rim', tune: 1500, decay: 0.03, gain: 0.25, hit: 'retro-kit/rim', level: 1.1 }, { voice: 'tom', tune: 95, decay: 0.35, gain: 0.5, hit: 'retro-kit/low-tom', level: 0.48, at: 95 }] },
+  // trap: the 808 again, its kick booming long, a clap for the snare, and hats rolling (the trap beat)
+  'trap-kit': { name: 'Trap kit', family: 'kit', own: true, kind: 'drums', suits: ['trap', 'halftime', 'groove', 'sparse', 'pulse', 'four', 'break'], slots: [
+    { voice: 'kick', tune: 45, decay: 0.8, gain: 1, hit: 'tr808/kick', level: 1.1 }, { voice: 'clap', tone: 1400, decay: 0.2, gain: 0.48, hit: 'tr808/clap', level: 0.27 }, { voice: 'hat', tone: 9500, decay: 0.03, gain: 0.17, hit: 'tr808/hat', level: 0.023 },
+    { voice: 'hat', tone: 9000, decay: 0.35, gain: 0.15, hit: 'tr808/open-hat', level: 0.017 }, { voice: 'rim', tune: 1700, decay: 0.03, gain: 0.2, hit: 'tr808/rim', level: 0.23 }, { voice: 'tom', tune: 80, decay: 0.4, gain: 0.45, hit: 'tr808/low-tom', level: 0.51, at: 80 },
+    { voice: 'crash', tone: 6000, decay: 1.4, gain: 0.16, hit: 'tr808/crash', level: 0.29 }] },
+  // egypt and the middle east: the darbuka's low doum (the kick) and sharp tek (the snare), its soft ka,
+  // the riq's jingles, finger cymbals (zills) and a frame drum
+  'darbuka-kit': { name: 'Darbuka and riq', family: 'kit', world: 'acoustic', own: true, kind: 'drums', suits: ['maqsum', 'tribal', 'groove', 'halftime', 'pulse', 'sparse', 'tala', 'march'], slots: [
+    { voice: 'tom', tune: 90, decay: 0.4, gain: 0.75, hit: 'world-percussion/darbuka-1', level: 0.45 }, { voice: 'rim', tune: 900, decay: 0.06, gain: 0.35, hit: 'world-percussion/darbuka-4', level: 1.5 }, { voice: 'slap', tone: 1500, decay: 0.04, gain: 0.2, hit: 'world-percussion/darbuka-2', level: 0.093 },
+    { voice: 'shaker', tone: 5500, decay: 0.22, gain: 0.18, hit: 'percussion/tambourine', level: 0.51 }, { voice: 'tick', tune: 3000, decay: 0.2, gain: 0.15, hit: 'world-percussion/finger-cymbals', level: 13 }, { voice: 'tom', tune: 75, decay: 0.6, gain: 0.5, hit: 'world-percussion/frame-drum', level: 1.3 }] },
+  // the aztecs' drums: the huehuetl (a tall drum played with the hands, the kick), the teponaztli (a
+  // slit log drum, two tongues of wood a fifth or so apart), rattles and a bone scraper
+  'aztec-kit': { name: 'Aztec drums', family: 'kit', world: 'acoustic', own: true, kind: 'drums', suits: ['tribal', 'march', 'pulse', 'sparse', 'halftime', 'groove'], slots: [
+    { voice: 'taiko', tune: 55, decay: 0.6, gain: 0.85, hit: 'world-percussion/bass-drum', level: 1.6 }, { voice: 'tick', tune: 600, decay: 0.15, gain: 0.35, hit: 'world-percussion/slit-high', level: 1.7 }, { voice: 'shaker', tone: 5000, decay: 0.08, gain: 0.18, hit: 'world-percussion/big-shaker', level: 0.56 },
+    { voice: 'shaker', tone: 3500, decay: 0.15, gain: 0.18, hit: 'world-percussion/guiro', level: 6.2 }, { voice: 'tick', tune: 400, decay: 0.12, gain: 0.3, hit: 'world-percussion/slit-low', level: 1.8 }, { voice: 'tom', tune: 70, decay: 0.5, gain: 0.55, hit: 'world-percussion/frame-drum', level: 1.3 }] },
+  // a shaman's drum from the steppe: a big frame drum, struck in the middle and at the rim, with bells
+  // on it, galloping like the horses
+  'shaman-drum': { name: 'Shaman drum', family: 'kit', world: 'acoustic', own: true, kind: 'drums', suits: ['gallop', 'tribal', 'march', 'pulse', 'sparse', 'halftime'], slots: [
+    { voice: 'taiko', tune: 60, decay: 0.7, gain: 0.85, hit: 'world-percussion/frame-drum', level: 2 }, { voice: 'tom', tune: 120, decay: 0.3, gain: 0.45, hit: 'world-percussion/frame-high', level: 4.9 }, { voice: 'shaker', tone: 7000, decay: 0.1, gain: 0.14, hit: 'world-percussion/sleigh-bells', level: 1.4 },
+    { voice: 'tick', tune: 2500, decay: 0.4, gain: 0.12, hit: 'world-percussion/hand-bells', level: 2.4 }, { voice: 'rim', tune: 1100, decay: 0.05, gain: 0.25, hit: 'percussion/claves', level: 0.62 }, { voice: 'tom', tune: 70, decay: 0.6, gain: 0.55, hit: 'world-percussion/frame-drum', level: 1.3 }] },
+  // the wasteland's junkyard: a bass drum, a brake drum hammered for the backbeat, an anvil, rattles and
+  // a cymbal found in the scrap
+  'junk-kit': { name: 'Junkyard', family: 'kit', own: true, kind: 'drums', suits: ['groove', 'halftime', 'march', 'tribal', 'sparse', 'pulse', 'rock', 'train'], slots: [
+    { voice: 'kick', tune: 50, decay: 0.4, gain: 0.85, hit: 'world-percussion/bass-drum', level: 2.4 }, { voice: 'snare', tune: 220, tone: 2500, decay: 0.25, gain: 0.5, hit: 'world-percussion/brake-drum', level: 1.2 }, { voice: 'shaker', tone: 6000, decay: 0.06, gain: 0.16, hit: 'percussion/shaker', level: 0.19 },
+    { voice: 'shaker', tone: 5500, decay: 0.22, gain: 0.18, hit: 'percussion/tambourine', level: 0.54 }, { voice: 'cowbell', tune: 800, decay: 0.2, gain: 0.15, hit: 'world-percussion/anvil', level: 0.63 }, { voice: 'tom', tune: 90, decay: 0.45, gain: 0.55, hit: 'studio-kit/low-tom', level: 0.6, at: 90 },
+    { voice: 'crash', tone: 5000, decay: 1.6, gain: 0.18, hit: 'orchestra-kit/cymbal', level: 0.39 }] },
+  // a gamelan's drums: the kendang (a two headed hand drum) leading, little cymbals, and the big gong,
+  // which closes every cycle of four bars (gong, the drum composer in music.js), as a gong ageng does
+  'gamelan-kit': { name: 'Kendang and gong', family: 'kit', world: 'acoustic', own: true, kind: 'drums', gong: 4, suits: ['tribal', 'march', 'pulse', 'sparse', 'halftime', 'maqsum'], slots: [
+    { voice: 'tom', tune: 90, decay: 0.4, gain: 0.7, hit: 'world-percussion/darbuka-1', level: 0.42 }, { voice: 'conga', tune: 300, decay: 0.15, gain: 0.4, hit: 'world-percussion/darbuka-5', level: 5.7 }, { voice: 'tick', tune: 4000, decay: 0.05, gain: 0.12, hit: 'world-percussion/finger-cymbals', level: 7 },
+    { voice: 'tick', tune: 2500, decay: 0.4, gain: 0.12, hit: 'world-percussion/hand-bells', level: 2.6 }, { voice: 'rim', tune: 1000, decay: 0.05, gain: 0.25, hit: 'world-percussion/darbuka-2', level: 0.47 }, { voice: 'tom', tune: 120, decay: 0.3, gain: 0.45, hit: 'world-percussion/frame-high', level: 4.9 },
+    { voice: 'gong', tune: 90, decay: 4, gain: 0.3, hit: 'orchestra-kit/gong', level: 0.15 }] },
+
   // textures. they're scenery: most are now things that happen now and then with quiet in between,
   // like the vinyl's crackle, because a steady wash (the old wind) was loud and rarely added anything.
   // each gain brings it to about the vinyl's loudness (measured with tests/levels.html)
@@ -555,6 +665,17 @@ const INSTRUMENTS = {
   chimes:   { name: 'Distant chimes', family: 'texture', kind: 'texture', texture: 'chimes', gain: 0.09 },
   // an amp starting to feed back now and then, for the loud moods
   feedback: { name: 'Feedback', family: 'texture', kind: 'texture', texture: 'feedback', gain: 0.04 },
+  // the third round's scenery, own like its kits (only where a mood names them). most have recordings:
+  // events cut from one long recording (build-samples.js), played now and then (every, in seconds) from
+  // their own spot, the way the synthesised ones are (recordedScenery). a pitched one (the singing bowl)
+  // is moved to the song's home note
+  bubbles:  { name: 'Bubbles', family: 'texture', kind: 'texture', own: true, texture: 'bubbles', gain: 0.18 },
+  whale:    { name: 'Whale song', family: 'texture', kind: 'texture', own: true, texture: 'whale', gain: 0.062, samples: 'whale', sampled: { gain: 0.15 }, every: [14, 30] },
+  'death-whistle': { name: 'Death whistle', family: 'texture', kind: 'texture', own: true, texture: 'deathWhistle', gain: 0.44, samples: 'death-whistle', sampled: { gain: 0.14 }, every: [14, 32] },
+  conch:    { name: 'Conch calls', family: 'texture', kind: 'texture', own: true, texture: 'conch', gain: 0.13, samples: 'conch', sampled: { gain: 0.088 }, every: [16, 34] },
+  rainstick: { name: 'Rainstick', family: 'texture', kind: 'texture', own: true, texture: 'rainstick', gain: 0.25, samples: 'rainstick', sampled: { gain: 0.58 }, every: [10, 24] },
+  scratches: { name: 'Record scratches', family: 'texture', kind: 'texture', own: true, texture: 'scratches', gain: 0.63, samples: 'scratches', sampled: { gain: 0.34 }, every: [8, 20] },
+  'singing-bowl': { name: 'Singing bowl', family: 'texture', kind: 'texture', own: true, texture: 'bowl', gain: 0.05, samples: 'singing-bowl', sampled: { gain: 0.13 }, every: [16, 34] },
 };
 // how the instrument lists are grouped on the page
 const FAMILIES = { pad: 'Pads', keys: 'Keys and mallets', guitar: 'Guitars', bell: 'Bells', lead: 'Leads', bass: 'Basses', drone: 'Drones', kit: 'Drum kits', texture: 'Textures' };
@@ -1277,6 +1398,8 @@ const sampleSet = (folder) => (RECORDINGS.on ? RECORDINGS.sets.get(folder)?.read
 // or plucked note dies away on its own, so it isn't faded as well
 const recordedViews = new WeakMap();
 function recorded(inst, midi, choice) {
+  // (scenery plays its recordings its own way, playTexture)
+  if (inst?.kind === 'texture') return null;
   const folder = recordingFolder(inst, choice);
   const set = folder && sampleSet(folder);
   const settings = recordingsOf(inst).find(([one]) => one === folder)?.[1] || {};
@@ -1998,19 +2121,181 @@ const TEXTURES = {
       }
     }
   },
+
+  // a few bubbles rising past now and then: quick sines sliding up as they burst (bubbleBuffer's, one
+  // at a time), bunched together, from somewhere left or right
+  bubbles(ctx, out, when, end) {
+    for (const at of moments(when, end, 3, 10)) {
+      const where = spot(ctx, out);
+      const count = 3 + Math.floor(Math.random() * 10);
+      for (let k = 0, t = at; k < count; k++, t += 0.03 + Math.random() ** 2 * 0.25) {
+        const f = 300 + Math.random() ** 2 * 1200;
+        const length = 0.02 + Math.random() * 0.05;
+        const osc = ctx.createOscillator();
+        osc.frequency.setValueAtTime(f, t);
+        osc.frequency.exponentialRampToValueAtTime(f * 1.7, t + length);
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.3 + Math.random() * 0.7, t + length * 0.3);
+        gain.gain.linearRampToValueAtTime(0, t + length);
+        osc.connect(gain).connect(where);
+        osc.start(t);
+        osc.stop(t + length + 0.02);
+      }
+    }
+  },
+  // a whale far off: a long, low moan rising and falling between the home note and the notes round it,
+  // wavering, with a long quiet between calls
+  whale(ctx, out, when, end, bright, midi = 60) {
+    const home = homeAbove(43, midi);
+    for (const at of moments(when, end, 14, 30)) {
+      const length = 2 + Math.random() * 3;
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      const path = [0, pickOne([5, 7, 12]), pickOne([0, 7, -5])];
+      path.forEach((step, i) => osc.frequency[i ? 'exponentialRampToValueAtTime' : 'setValueAtTime'](mtof(home + step), at + (length * i) / (path.length - 1)));
+      const shake = ctx.createOscillator();
+      shake.frequency.value = 5 + Math.random() * 3;
+      const depth = ctx.createGain();
+      depth.gain.value = 25;
+      shake.connect(depth).connect(osc.detune);
+      const low = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 900, Q: 2 });
+      const level = ctx.createGain();
+      level.gain.value = 0;
+      swell(level.gain, at, length * 0.35, length * 0.65, 1);
+      osc.connect(low).connect(level).connect(spot(ctx, out));
+      for (const one of [osc, shake]) {
+        one.start(at);
+        one.stop(at + length + 0.05);
+      }
+    }
+  },
+  // an aztec death whistle: air forced through a clay chamber, so it screams. a burst of noise through
+  // two narrow resonances that rise and fall, like a voice, now and then and far off
+  deathWhistle(ctx, out, when, end) {
+    for (const at of moments(when, end, 14, 32)) {
+      const length = 1.5 + Math.random() * 2;
+      const where = spot(ctx, out);
+      const level = ctx.createGain();
+      level.gain.value = 0;
+      swell(level.gain, at, length * 0.25, length * 0.75, 1);
+      level.connect(where);
+      const peak = 1100 + Math.random() * 500;
+      for (const ratio of [1, 2.3]) {
+        const band = new BiquadFilterNode(ctx, { type: 'bandpass', Q: 18 });
+        band.frequency.setValueAtTime(peak * ratio * 0.7, at);
+        band.frequency.linearRampToValueAtTime(peak * ratio, at + length * 0.3);
+        band.frequency.linearRampToValueAtTime(peak * ratio * 0.6, at + length);
+        lfo(ctx, 9 + Math.random() * 6, 40 * ratio, band.frequency, at, at + length + 0.05);
+        noiseSource(ctx, at, at + length + 0.05).connect(band).connect(level);
+      }
+    }
+  },
+  // a conch shell blown as a horn: a call on the home note, scooping up onto it, swelling and dying
+  conch(ctx, out, when, end, bright, midi = 60) {
+    for (const at of moments(when, end, 16, 34)) {
+      const length = 1.5 + Math.random() * 2.5;
+      const f = mtof(homeAbove(50, midi));
+      const osc = ctx.createOscillator();
+      setWave(ctx, osc, 'brass');
+      osc.frequency.setValueAtTime(f * 0.94, at);
+      osc.frequency.exponentialRampToValueAtTime(f, at + 0.25);
+      const low = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1200, Q: 1 });
+      const level = ctx.createGain();
+      level.gain.value = 0;
+      swell(level.gain, at, 0.3, length, 1);
+      osc.connect(low).connect(level).connect(spot(ctx, out));
+      osc.start(at);
+      osc.stop(at + length + 0.4);
+    }
+  },
+  // a rainstick turned over: seeds pattering down through the cactus spines, a few seconds of tiny
+  // clicks that thin out as it empties
+  rainstick(ctx, out, when, end) {
+    for (const at of moments(when, end, 10, 24)) {
+      const length = 2.5 + Math.random() * 2.5;
+      const band = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 3500 + Math.random() * 2000, Q: 1.5 });
+      const patter = ctx.createGain();
+      patter.gain.value = 0.5;
+      lfo(ctx, 35 + Math.random() * 20, 0.5, patter.gain, at, at + length + 0.05, 'square');
+      const level = ctx.createGain();
+      level.gain.value = 0;
+      swell(level.gain, at, 0.4, length - 0.4, 1);
+      noiseSource(ctx, at, at + length + 0.05).connect(band).connect(patter).connect(level).connect(spot(ctx, out));
+    }
+  },
+  // a dj scratching a record: a short sound pushed back and forth under the needle, quick sweeps up and
+  // down, now and then
+  scratches(ctx, out, when, end) {
+    for (const at of moments(when, end, 8, 20)) {
+      const strokes = 2 + Math.floor(Math.random() * 4);
+      const where = spot(ctx, out);
+      for (let k = 0, t = at; k < strokes; k++) {
+        const length = 0.08 + Math.random() * 0.12;
+        const band = new BiquadFilterNode(ctx, { type: 'bandpass', Q: 4 });
+        band.frequency.setValueAtTime(k % 2 ? 2400 : 500, t);
+        band.frequency.exponentialRampToValueAtTime(k % 2 ? 500 : 2400, t + length);
+        const level = ctx.createGain();
+        level.gain.value = 0;
+        swell(level.gain, t, length * 0.3, length * 0.7, 1);
+        noiseSource(ctx, t, t + length + 0.02).connect(band).connect(level).connect(where);
+        t += length + Math.random() * 0.06;
+      }
+    }
+  },
+  // a singing bowl struck now and then, on the home note: the bowl's out of tune overtones (2.71, 5.15)
+  // dying long, beating slowly against a twin a hair apart
+  bowl(ctx, out, when, end, bright, midi = 60) {
+    for (const at of moments(when, end, 16, 34)) {
+      const f = mtof(homeAbove(60, midi));
+      const where = spot(ctx, out);
+      for (const [ratio, level, ring] of [[1, 1, 8], [1.004, 0.6, 8], [2.71, 0.3, 4], [5.15, 0.1, 2]]) {
+        const osc = ctx.createOscillator();
+        osc.frequency.value = f * ratio;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, at);
+        gain.gain.linearRampToValueAtTime(level, at + 0.01);
+        gain.gain.setTargetAtTime(0, at + 0.01, ring / 4);
+        osc.connect(gain).connect(where);
+        osc.start(at);
+        osc.stop(at + ring + 0.1);
+      }
+    }
+  },
 };
+
+// recorded scenery: one of the texture's recordings now and then (inst.every seconds apart), each from
+// its own spot. a recording with a pitch (a singing bowl) is moved to the nearest home note, so it's in
+// the song's key like the synthesised ones
+function recordedScenery(ctx, out, inst, set, when, end, midi = 60) {
+  const [low, high] = inst.every || [10, 25];
+  for (const at of moments(when, end, low, high)) {
+    const take = pickOne(set.notes);
+    const source = ctx.createBufferSource();
+    source.buffer = take.buffer;
+    if (take.midi !== undefined) source.detune.value = (homeAbove(take.midi - 6, midi) - take.midi) * 100 + (take.tune || 0);
+    const level = ctx.createGain();
+    level.gain.value = 0.6 + Math.random() * 0.4;
+    source.connect(level).connect(spot(ctx, out));
+    source.start(at);
+    source.stop(Math.min(end, at + take.buffer.duration));
+  }
+}
 
 function playTexture(ctx, out, inst, tone, when, dur, vel, midi) {
   const fade = Math.min(3, dur / 3);
   const end = when + dur;
-  const level = inst.gain * vel;
+  // its recordings, if it has them and they've loaded
+  const set = inst.samples && sampleSet(inst.samples);
+  const level = (set ? inst.sampled.gain : inst.gain) * vel;
   const gain = ctx.createGain();
   gain.gain.setValueAtTime(0, when);
   gain.gain.linearRampToValueAtTime(level, when + fade);
   gain.gain.setValueAtTime(level, end - fade);
   gain.gain.linearRampToValueAtTime(0, end);
   gain.connect(out);
-  TEXTURES[inst.texture](ctx, gain, when, end + 0.05, Math.min(3, tone.bright), midi);
+  if (set) recordedScenery(ctx, gain, inst, set, when, end + 0.05, midi);
+  else TEXTURES[inst.texture](ctx, gain, when, end + 0.05, Math.min(3, tone.bright), midi);
 }
 
 // one note of a layer. drums use the layer's release for how long they ring, and brightness for

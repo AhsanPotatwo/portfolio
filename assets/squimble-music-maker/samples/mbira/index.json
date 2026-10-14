@@ -1,0 +1,55 @@
+{
+ "source": "Versilian Community Sample Library (Versilian Studios)",
+ "link": "https://github.com/sgossner/VCSL",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "bb2.mp3",
+   "midi": 46
+  },
+  {
+   "file": "eb3.mp3",
+   "midi": 51
+  },
+  {
+   "file": "gb3.mp3",
+   "midi": 54
+  },
+  {
+   "file": "a3.mp3",
+   "midi": 57
+  },
+  {
+   "file": "db4.mp3",
+   "midi": 61
+  },
+  {
+   "file": "e4.mp3",
+   "midi": 64
+  },
+  {
+   "file": "ab4.mp3",
+   "midi": 68
+  },
+  {
+   "file": "b4.mp3",
+   "midi": 71
+  },
+  {
+   "file": "eb5.mp3",
+   "midi": 75
+  },
+  {
+   "file": "gb5.mp3",
+   "midi": 78
+  },
+  {
+   "file": "a5.mp3",
+   "midi": 81
+  },
+  {
+   "file": "db6.mp3",
+   "midi": 85
+  }
+ ]
+}

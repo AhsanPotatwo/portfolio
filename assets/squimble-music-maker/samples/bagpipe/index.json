@@ -1,0 +1,77 @@
+{
+ "source": "Squidpipes (Karoryfer Samples)",
+ "link": "https://github.com/sfzinstruments/karoryfer.squidpipes",
+ "licence": "CC0 1.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "g3.mp3",
+   "midi": 55,
+   "tune": -7
+  },
+  {
+   "file": "bb3.mp3",
+   "midi": 58,
+   "tune": 10
+  },
+  {
+   "file": "db4.mp3",
+   "midi": 61,
+   "tune": 19
+  },
+  {
+   "file": "e4.mp3",
+   "midi": 64,
+   "tune": -10
+  },
+  {
+   "file": "g4.mp3",
+   "midi": 67,
+   "tune": 16
+  },
+  {
+   "file": "bb4.mp3",
+   "midi": 70,
+   "tune": -8
+  },
+  {
+   "file": "db5.mp3",
+   "midi": 73,
+   "tune": 1
+  },
+  {
+   "file": "e5.mp3",
+   "midi": 76,
+   "tune": 3
+  },
+  {
+   "file": "g5.mp3",
+   "midi": 79,
+   "tune": 27
+  },
+  {
+   "file": "bb5.mp3",
+   "midi": 82,
+   "tune": 30
+  },
+  {
+   "file": "db6.mp3",
+   "midi": 85,
+   "tune": 11
+  },
+  {
+   "file": "e6.mp3",
+   "midi": 88,
+   "tune": 1
+  },
+  {
+   "file": "g6.mp3",
+   "midi": 91,
+   "tune": 3
+  },
+  {
+   "file": "c7.mp3",
+   "midi": 96
+  }
+ ]
+}

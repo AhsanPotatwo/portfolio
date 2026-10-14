@@ -1,0 +1,51 @@
+{
+ "source": "FluidR3 GM soundfont (Frank Wen), via midi-js-soundfonts",
+ "link": "https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/",
+ "licence": "CC BY 3.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "g3.mp3",
+   "midi": 55,
+   "tune": 4
+  },
+  {
+   "file": "bb3.mp3",
+   "midi": 58,
+   "tune": 1
+  },
+  {
+   "file": "db4.mp3",
+   "midi": 61
+  },
+  {
+   "file": "e4.mp3",
+   "midi": 64
+  },
+  {
+   "file": "g4.mp3",
+   "midi": 67
+  },
+  {
+   "file": "bb4.mp3",
+   "midi": 70
+  },
+  {
+   "file": "db5.mp3",
+   "midi": 73,
+   "tune": 1
+  },
+  {
+   "file": "e5.mp3",
+   "midi": 76
+  },
+  {
+   "file": "g5.mp3",
+   "midi": 79
+  },
+  {
+   "file": "bb5.mp3",
+   "midi": 82
+  }
+ ]
+}

@@ -16,7 +16,8 @@
 // players ornament their notes, slides drawn by hand save and play, and sections keep their energy.
 // the recorded instruments' files are all there, and every folder of them gets played. recordings are
 // preferred, a layer's choice of recording saves, blown and bowed lines slur, songs end at home, and
-// the parts that fill in stand on opposite sides.
+// the parts that fill in stand on opposite sides. throat singers hold one note near their own, the
+// gamelan's gong comes round every cycle, and a place's own kits and scenery stay in its moods.
 // (double stops, notes marked stop, are a second note under the tune on purpose, so the one note at a
 // time checks leave them out)
 // run it with
@@ -542,7 +543,8 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
   };
   for (const [id, inst] of Object.entries(INSTRUMENTS)) {
     if (inst.samples) {
-      assert(index(inst.samples).notes.some((note) => note.midi !== undefined), `${id}'s recordings have notes`);
+      // (scenery's recordings are events, a call or a scream, rather than notes)
+      assert(index(inst.samples).notes.some((note) => note.midi !== undefined || (inst.family === 'texture' && note.hit)), `${id}'s recordings have notes`);
       assert(inst.sampled?.gain > 0, `${id} has a gain for its recordings`);
     }
     // its other recordings: each there, with a gain, and a name for the page (as is the usual one)
@@ -634,4 +636,45 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
     const next = pad.slice(i + 1).find((other) => other.midi === note.midi);
     assert.strictEqual(restrikes.get(note), next && next.t - note.t, 'a restruck note knows when it comes again');
   });
+}
+
+// the third round: a throat singer (an instrument with a home) holds one note at a time, near where
+// they sang it; the gamelan's gong comes round every cycle; and a place's own kits and scenery are only
+// ever in the moods that name them
+{
+  const { INSTRUMENTS } = vm.runInContext('({ INSTRUMENTS })', page);
+  let singers = 0;
+  for (let n = 0; n < 40; n++) {
+    const song = generateSong('steppe', n % 2 ? 'ambient' : 'tune', `sing-${n}`);
+    const drone = song.layers.find((layer) => INSTRUMENTS[layer.instrument]?.home);
+    if (!drone) continue;
+    singers++;
+    const notes = composeSong(song).notes.filter((note) => note.layer === drone.id);
+    const home = INSTRUMENTS[drone.instrument].home;
+    for (const note of notes) {
+      assert(Math.abs(note.midi - home) <= 6, `steppe sing-${n}: the ${drone.instrument} sings near its own note (${note.midi})`);
+      assert(!notes.some((other) => other !== note && other.t < note.t + note.dur - 1e-6 && note.t < other.t + other.dur - 1e-6), `steppe sing-${n}: one note at a time`);
+    }
+  }
+  assert(singers > 20, `steppe songs nearly always have a throat singer (${singers} of 40)`);
+  for (let n = 0; n < 6; n++) {
+    const song = generateSong('gamelan', 'tune', `gong-${n}`);
+    const drums = song.layers.find((layer) => layer.role === 'drums');
+    if (drums?.instrument !== 'gamelan-kit') continue;
+    const comp = composeSong(song);
+    const bpb = { '4/4': 4, '3/4': 3, '6/8': 2, '5/4': 5 }[song.meter];
+    for (const section of comp.sections.filter((one) => one.play.includes(drums.id))) {
+      for (let bar = 0; bar < section.bars; bar += 4) assert(comp.notes.some((note) => note.layer === drums.id && note.midi === 6 && Math.abs(note.t - (section.start + bar * bpb)) < 0.05), `gamelan gong-${n}: the gong comes round every four bars`);
+    }
+  }
+  for (const [id, mood] of Object.entries(MOODS)) {
+    for (const style of ['tune', 'ambient', 'boss']) {
+      for (let n = 0; n < 4; n++) {
+        const song = generateSong(id, style, `own-${n}`);
+        for (const layer of song.layers.filter((one) => one.role === 'drums' || one.role === 'texture')) {
+          if (INSTRUMENTS[layer.instrument].own) assert([...mood.kits, ...mood.textures].includes(layer.instrument), `${id} ${style} own-${n}: the ${layer.instrument} is only where a mood names it`);
+        }
+      }
+    }
+  }
 }

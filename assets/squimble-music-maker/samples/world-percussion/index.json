@@ -1,0 +1,197 @@
+{
+ "source": "Versilian Community Sample Library (Versilian Studios); sistrum by memexikon (freesound.org/people/memexikon)",
+ "link": "https://github.com/sgossner/VCSL https://cdn.freesound.org/previews/",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "darbuka-1-1.mp3",
+   "hit": "darbuka-1",
+   "vel": 0.45
+  },
+  {
+   "file": "darbuka-1-2.mp3",
+   "hit": "darbuka-1",
+   "vel": 0.9
+  },
+  {
+   "file": "darbuka-2-1.mp3",
+   "hit": "darbuka-2",
+   "vel": 0.45
+  },
+  {
+   "file": "darbuka-2-2.mp3",
+   "hit": "darbuka-2",
+   "vel": 0.9
+  },
+  {
+   "file": "darbuka-3-1.mp3",
+   "hit": "darbuka-3",
+   "vel": 0.45
+  },
+  {
+   "file": "darbuka-3-2.mp3",
+   "hit": "darbuka-3",
+   "vel": 0.9
+  },
+  {
+   "file": "darbuka-4-1.mp3",
+   "hit": "darbuka-4",
+   "vel": 0.45
+  },
+  {
+   "file": "darbuka-4-2.mp3",
+   "hit": "darbuka-4",
+   "vel": 0.9
+  },
+  {
+   "file": "darbuka-5-1.mp3",
+   "hit": "darbuka-5",
+   "vel": 0.45
+  },
+  {
+   "file": "darbuka-5-2.mp3",
+   "hit": "darbuka-5",
+   "vel": 0.9
+  },
+  {
+   "file": "frame-drum-1.mp3",
+   "hit": "frame-drum",
+   "vel": 0.45
+  },
+  {
+   "file": "frame-drum-2.mp3",
+   "hit": "frame-drum",
+   "vel": 0.9
+  },
+  {
+   "file": "frame-high-1.mp3",
+   "hit": "frame-high",
+   "vel": 0.45
+  },
+  {
+   "file": "frame-high-2.mp3",
+   "hit": "frame-high",
+   "vel": 0.9
+  },
+  {
+   "file": "slit-high-1.mp3",
+   "hit": "slit-high",
+   "vel": 0.45
+  },
+  {
+   "file": "slit-high-2.mp3",
+   "hit": "slit-high",
+   "vel": 0.9
+  },
+  {
+   "file": "slit-low-1.mp3",
+   "hit": "slit-low",
+   "vel": 0.45
+  },
+  {
+   "file": "slit-low-2.mp3",
+   "hit": "slit-low",
+   "vel": 0.9
+  },
+  {
+   "file": "finger-cymbals-1.mp3",
+   "hit": "finger-cymbals",
+   "vel": 0.8
+  },
+  {
+   "file": "clap-1.mp3",
+   "hit": "clap",
+   "vel": 0.8
+  },
+  {
+   "file": "clap-2.mp3",
+   "hit": "clap",
+   "vel": 0.8
+  },
+  {
+   "file": "clap-3.mp3",
+   "hit": "clap",
+   "vel": 0.8
+  },
+  {
+   "file": "guiro-1.mp3",
+   "hit": "guiro",
+   "vel": 0.8
+  },
+  {
+   "file": "guiro-2.mp3",
+   "hit": "guiro",
+   "vel": 0.8
+  },
+  {
+   "file": "hand-bells-1.mp3",
+   "hit": "hand-bells",
+   "vel": 0.8
+  },
+  {
+   "file": "hand-bells-2.mp3",
+   "hit": "hand-bells",
+   "vel": 0.8
+  },
+  {
+   "file": "hand-bells-3.mp3",
+   "hit": "hand-bells",
+   "vel": 0.8
+  },
+  {
+   "file": "sleigh-bells-1.mp3",
+   "hit": "sleigh-bells",
+   "vel": 0.8
+  },
+  {
+   "file": "sleigh-bells-2.mp3",
+   "hit": "sleigh-bells",
+   "vel": 0.8
+  },
+  {
+   "file": "brake-drum-1.mp3",
+   "hit": "brake-drum",
+   "vel": 0.45
+  },
+  {
+   "file": "brake-drum-2.mp3",
+   "hit": "brake-drum",
+   "vel": 0.9
+  },
+  {
+   "file": "anvil-1.mp3",
+   "hit": "anvil",
+   "vel": 0.45
+  },
+  {
+   "file": "anvil-2.mp3",
+   "hit": "anvil",
+   "vel": 0.9
+  },
+  {
+   "file": "big-shaker-1.mp3",
+   "hit": "big-shaker",
+   "vel": 0.8
+  },
+  {
+   "file": "big-shaker-2.mp3",
+   "hit": "big-shaker",
+   "vel": 0.8
+  },
+  {
+   "file": "bass-drum-1.mp3",
+   "hit": "bass-drum",
+   "vel": 0.45
+  },
+  {
+   "file": "bass-drum-2.mp3",
+   "hit": "bass-drum",
+   "vel": 0.9
+  },
+  {
+   "file": "sistrum-1.mp3",
+   "hit": "sistrum",
+   "vel": 0.8
+  }
+ ]
+}

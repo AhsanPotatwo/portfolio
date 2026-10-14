@@ -1,0 +1,32 @@
+{
+ "source": "Snailhorn by Ohrwurm (freesound.org/people/Ohrwurm)",
+ "link": "https://cdn.freesound.org/previews/",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "event-1.mp3",
+   "hit": "event",
+   "vel": 0.8
+  },
+  {
+   "file": "event-2.mp3",
+   "hit": "event",
+   "vel": 0.8
+  },
+  {
+   "file": "event-3.mp3",
+   "hit": "event",
+   "vel": 0.8
+  },
+  {
+   "file": "event-4.mp3",
+   "hit": "event",
+   "vel": 0.8
+  },
+  {
+   "file": "event-5.mp3",
+   "hit": "event",
+   "vel": 0.8
+  }
+ ]
+}
