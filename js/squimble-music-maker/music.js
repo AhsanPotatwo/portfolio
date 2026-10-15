@@ -16,14 +16,16 @@
 //              they work in any key and you can type your own
 //   layers     the band. each has a role (pad, bass, melody...), an instrument, a pattern (how the
 //              role plays, e.g. a bass walking or holding its roots), its own seed, its mix, and any
-//              notes changed by hand (edits)
+//              notes changed by hand (edits). a layer marked hand plays only the notes added by hand
+//   own        there on a track made by hand (blankSong()) rather than written from the seed
 //   sections   the song from start to end: which part's chords, how many bars, which layers play
 //   fx         the room it's played in (reverb, echo, tape wobble...), synth.js
 //
 // generateSong(mood, style, seed, mods) makes a whole song from a mood, in one of the STYLES (ambient,
 // tune, mini boss or boss), changed by any modifiers (songMood() is the mood with them worked in).
 // composeSong(song) turns any song into notes. remixing is re-running one of generateSong's pick steps
-// with a fresh seed (rerollSong()), and editing is changing the settings by hand.
+// with a fresh seed (rerollSong()), and editing is changing the settings by hand. blankSong() is the
+// other way in: an empty track whose layers play only what's drawn or played in by hand.
 //
 // ---------- the music theory ----------
 //
@@ -2082,6 +2084,20 @@ function generateSong(moodId, style, seed, mods = []) {
   return cleanSong(song);
 }
 
+// a blank track to make by hand (the page's New track): one short section, and a melody, a bass and
+// drums with no notes in them yet. own marks it as made by hand, so picking a mood doesn't write a
+// new song over it. the mood, style and modifiers still decide how any part you let it write plays
+function blankSong() {
+  const layer = (role, instrument, volume, reverb) => ({ id: role, role, instrument, hand: true, volume, reverb, echo: 0 });
+  return cleanSong({
+    name: 'New track', seed: 'new-track', own: true, mood: 'calm', style: 'tune',
+    key: 0, scale: 'major', tempo: 100, meter: '4/4', swing: 0, humanise: 0.2, colour: 0, chordBars: 1,
+    layers: [layer('melody', 'piano', 0.68, 0.35), layer('bass', 'pluck-bass', 0.66, 0.1), layer('drums', 'tight-kit', 0.55, 0.1)],
+    sections: [{ name: 'Verse', part: 'A', bars: 4, play: ['melody', 'bass', 'drums'], energy: 0.75 }],
+    fx: { reverb: 0.3, echo: 0.1 },
+  });
+}
+
 // remixing: one part of the song picked again. nonce makes it new each time (the page passes a
 // random one); everything else stays as it was
 const REROLLS = {
@@ -2594,6 +2610,8 @@ function cleanSong(data) {
   const song = {
     name: text(d.name, seedTitle(seed), 40),
     seed,
+    // a track made by hand (blankSong), not written from the seed: only there when it is
+    ...(d.own === true ? { own: true } : {}),
     mood: MOODS[d.mood] ? d.mood : 'calm',
     // only there when there are some, so a song without modifiers saves as it always did. a song saved
     // with a blend (before modifiers replaced them) loses it, but keeps everything the blend picked
@@ -2626,6 +2644,9 @@ function cleanSong(data) {
     // synth.js), so a song that plays the usual one saves as it always did
     if (INSTRUMENTS[layer.instrument].more?.[raw.recording]) layer.recording = raw.recording;
     layer.pattern = PATTERNS[raw.role][raw.pattern] ? raw.pattern : Object.keys(PATTERNS[raw.role])[0];
+    // a layer that plays only the notes added by hand (composeSong), so nothing's written for it. kept
+    // out of songs that don't have one, so they save as they always did. a texture has no notes to draw
+    if (raw.hand === true && roleFamily(raw.role) !== 'texture') layer.hand = true;
     layer.seed = text(String(raw.seed ?? ''), '0', 24);
     layer.volume = num(raw.volume, 0, 1, layer.volume);
     layer.pan = num(raw.pan, -1, 1, 0);
@@ -2647,7 +2668,8 @@ function cleanSong(data) {
       if (!edit) continue;
       // a note is [beat, midi, length], and then, for the note editor's tools, as many of these as it
       // needs: the midi it slides to, the beats the slide takes, cents of vibrato, the slide's shape
-      // (CURVES in synth.js) and a swell (1 growing, -1 dying away). see packEdit
+      // (CURVES in synth.js), a swell (1 growing, -1 dying away) and how hard it's played (0 for the
+      // usual 0.75) and a palm mute. see packEdit
       const pitch = (midi) => Math.round(Math.min(127, Math.max(0, midi)));
       const add = (Array.isArray(edit.add) ? edit.add.slice(0, 2000) : [])
         .filter((note) => Array.isArray(note) && note.length >= 3 && note.every((n) => Number.isFinite(n)))
@@ -2658,6 +2680,7 @@ function cleanSong(data) {
             t: Math.max(0, one.t), midi: pitch(one.midi), dur: Math.min(64, Math.max(0.05, one.dur)), to: pitch(one.to),
             glide: slides ? Math.min(64, Math.max(0.01, one.glide)) : 0, shake: Math.min(60, Math.max(0, one.shake)),
             curve: slides ? Math.round(Math.min(3, Math.max(0, one.curve))) : 0, swell: Math.sign(Math.round(one.swell)),
+            vel: Math.round(Math.min(1, Math.max(0, one.vel)) * 100) / 100, mute: one.mute ? 1 : 0,
           });
         });
       const remove = (Array.isArray(edit.remove) ? edit.remove.slice(0, 4000) : []).filter((key) => typeof key === 'string' && /^[\d.]+:\d+$/.test(key));
@@ -2768,7 +2791,8 @@ function composeSong(song) {
       c.tonic = near(song.key, c.center);
       // a solo is its own line, so the part's hand edits (made on its usual tune) don't apply to it
       const leading = section.lead === layer.id;
-      let made = (leading ? solo(c) : COMPOSERS[layer.role](c)).filter((note) => note.t >= section.start - 1e-6 && note.t < section.end - 1e-6);
+      // (a layer played by hand has nothing written for it, just its edits)
+      let made = (leading ? solo(c) : layer.hand ? [] : COMPOSERS[layer.role](c)).filter((note) => note.t >= section.start - 1e-6 && note.t < section.end - 1e-6);
       // a singer (home) sings every note within about three quarters of an octave of their own: a tune's
       // range is only a guide (a part B sung higher, a note snapping up to a chord), and a throat
       // singer's recording moved further sounds like someone else. a note that wanders off is sung an
@@ -3027,11 +3051,13 @@ function slurs(inst, notes) {
 const editKey = (relative, midi) => `${+relative.toFixed(3)}:${midi}`;
 
 // a hand drawn note (layer.edits' add) from its numbers to named parts and back. the numbers are
-// [beat, midi, length, to, glide, shake, curve, swell], with as many left off the end as are their
-// defaults, so a plain note is three numbers and a song from before slides were drawn reads the same
-const EDIT_FIELDS = ['t', 'midi', 'dur', 'to', 'glide', 'shake', 'curve', 'swell'];
-function unpackEdit([t, midi, dur, to = midi, glide = 0, shake = 0, curve = 0, swell = 0]) {
-  return { t, midi, dur, to, glide, shake, curve, swell };
+// [beat, midi, length, to, glide, shake, curve, swell, vel, mute], with as many left off the end as are their
+// defaults, so a plain note is three numbers and a song from before slides were drawn reads the same.
+// vel 0 means the usual strength (0.75), and mute 1 a palm muted note: they're only kept by notes
+// taken over from a written part
+const EDIT_FIELDS = ['t', 'midi', 'dur', 'to', 'glide', 'shake', 'curve', 'swell', 'vel', 'mute'];
+function unpackEdit([t, midi, dur, to = midi, glide = 0, shake = 0, curve = 0, swell = 0, vel = 0, mute = 0]) {
+  return { t, midi, dur, to, glide, shake, curve, swell, vel, mute };
 }
 function packEdit(one) {
   const out = EDIT_FIELDS.map((key) => (key === 'to' ? one.to ?? one.midi : one[key] ?? 0));
@@ -3045,13 +3071,13 @@ function applyEdits(notes, edit, section) {
   const removed = new Set(edit.remove);
   const kept = notes.filter((note) => !removed.has(editKey(note.t - section.start, note.midi)));
   for (const raw of edit.add) {
-    const { t, midi, dur, to, glide, shake, curve, swell } = unpackEdit(raw);
+    const { t, midi, dur, to, glide, shake, curve, swell, vel, mute } = unpackEdit(raw);
     if (t >= section.beats) continue;
     const length = Math.min(dur, section.beats - t);
     // a slide drawn with the note editor's slide tool: from midi to to, over glide beats in its shape,
     // then held
     const slide = to !== midi ? { bend: [[0, 0], [Math.min(glide, length), to - midi, ...(curve ? [curve] : [])]] } : {};
-    kept.push({ t: section.start + t, dur: length, midi, vel: 0.75, added: true, ...slide, ...(shake ? { shake } : {}), ...(swell ? { swell } : {}) });
+    kept.push({ t: section.start + t, dur: length, midi, vel: vel || 0.75, added: true, ...slide, ...(shake ? { shake } : {}), ...(swell ? { swell } : {}), ...(mute ? { mute: true } : {}) });
   }
   return kept;
 }

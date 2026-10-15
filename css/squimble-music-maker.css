@@ -230,6 +230,16 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 }
 .mm-remix-keys{ display:flex; flex-wrap:wrap; gap:9px 6px; }
 
+/* your own track (song.own): no seed to type and nothing to remix, and a line saying what the moods do now */
+.mm-machine.is-own .mm-label-seed,
+.mm-machine.is-own .mm-remix{ display:none; }
+.mm-own-note{ margin:-2px 0 14px; max-width:78ch; font-size:13.5px; line-height:1.55; color:var(--mm-muted); }
+
+/* record: a red dot, and red all over while it's on */
+.mm-key-rec svg{ fill:#d0533a; }
+.mm-key-rec[aria-pressed="true"]{ color:#fbf6ec; background:#c0442c; box-shadow:0 3px 0 #6e2416; }
+.mm-key-rec[aria-pressed="true"] svg{ fill:currentColor; }
+
 /* tabs: folder tabs that join the panel under them */
 .mm-tabs{ display:flex; gap:4px; padding:0 20px; }
 .mm-tab{

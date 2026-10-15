@@ -18,6 +18,7 @@
 // preferred, a layer's choice of recording saves, blown and bowed lines slur, songs end at home, and
 // the parts that fill in stand on opposite sides. throat singers hold one note near their own, the
 // gamelan's gong comes round every cycle, and a place's own kits and scenery stay in its moods.
+// a blank track plays nothing, and its layers played by hand play only their own notes.
 // (double stops, notes marked stop, are a second note under the tune on purpose, so the one note at a
 // time checks leave them out)
 // run it with
@@ -500,6 +501,29 @@ assert(soloBars > 200 && soloNew / soloBars > 0.9, `solos are new all the way th
   const energetic = generateSong('happy', 'tune', 'energy');
   assert(energetic.sections.every((s) => typeof s.energy === 'number'), 'sections have an energy');
   assert(!('energy' in cleanSong({ sections: [{ name: 'A', part: 'A', bars: 4, play: [] }] }).sections[0]), 'old sections stay as they were');
+}
+
+// a track made by hand (blankSong, the page's New track) starts silent, its layers (hand) play only the
+// notes added to them, with their strength and palm mute, and all of it saves and loads. songs that
+// aren't made by hand don't gain the keys
+{
+  const { blankSong } = vm.runInContext('({ blankSong })', page);
+  const song = blankSong();
+  assert(song.own && song.layers.length && song.layers.every((l) => l.hand), 'a blank track is its own, every layer by hand');
+  assert.strictEqual(composeSong(song).notes.length, 0, 'a blank track plays nothing');
+  const melody = song.layers.find((l) => l.role === 'melody');
+  melody.edits.A = { add: [[0, 60, 1], [1, 64, 1, 64, 0, 0, 0, 0, 0.4], [2, 67, 0.5, 67, 0, 0, 0, 0, 0, 1]], remove: [] };
+  const clean = cleanSong(JSON.parse(JSON.stringify(song)));
+  same(clean, song, 'a blank track saves and loads back the same');
+  const notes = composeSong(clean).notes;
+  same(notes.map((n) => n.midi), [60, 64, 67], 'a hand layer plays just its notes');
+  assert(Math.abs(notes[1].vel - 0.4 * notes[0].vel / 0.75) < 0.1, 'a note keeps its strength');
+  assert(notes[2].mute && !notes[0].mute, 'a note keeps its palm mute');
+  const written = generateSong('happy', 'tune', 'not-mine');
+  assert(!('own' in written) && written.layers.every((l) => !('hand' in l)), 'written songs stay as they were');
+  // a written layer turned over to hand plays nothing written
+  written.layers[0].hand = true;
+  assert(!composeSong(cleanSong(written)).notes.some((n) => n.layer === written.layers[0].id), 'a hand layer has nothing written for it');
 }
 
 // a note the band moved can still be removed by hand: the page removes it by the pitch it was written at

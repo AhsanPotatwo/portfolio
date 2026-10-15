@@ -2786,6 +2786,9 @@ function setChannel(channel, song, layer, now, glide) {
 }
 // a channel finished with: silent, and its rig's oscillators stopped
 function closeChannel(channel, now) {
+  // (a held audition is closed when its key's let go, and again by its own timer)
+  if (channel.closed) return;
+  channel.closed = true;
   channel.volume.gain.setTargetAtTime(0, now, 0.02);
   setTimeout(() => {
     channel.input.disconnect();
@@ -2804,6 +2807,8 @@ class MusicPlayer {
     this.ctx = null;
     this.playing = false;
     this.loop = true;
+    // a click on every beat while it plays, for playing along (never in a wav)
+    this.metronome = false;
     this.channels = {};
   }
 
@@ -2914,6 +2919,9 @@ class MusicPlayer {
         const note = notes[this.index++];
         this.send(note, this.timeAt(note.t + this.loopOffset));
       }
+      if (this.metronome) {
+        for (let beat = Math.ceil(this.scheduledTo - this.loopOffset - 1e-9); beat < until - this.loopOffset - 1e-9; beat++) this.click(this.timeAt(beat + this.loopOffset), beat % this.comp.bpb === 0);
+      }
       this.scheduledTo = until;
       if (until < songEnd || !this.loop) break;
       this.loopOffset = songEnd;
@@ -2923,9 +2931,24 @@ class MusicPlayer {
     if (!this.loop && this.beatAt(this.ctx.currentTime) - this.loopOffset >= this.comp.beats) this.stop(false);
   }
 
+  // the metronome's tick: a short high blip, higher on the first beat of a bar. straight out, past the
+  // room and the tape, so it's dry and on time
+  click(when, first) {
+    const { ctx } = this;
+    const blip = new OscillatorNode(ctx, { frequency: first ? 1760 : 1320 });
+    const level = new GainNode(ctx, { gain: 0 });
+    level.gain.setValueAtTime(0, when);
+    level.gain.linearRampToValueAtTime(first ? 0.25 : 0.15, when + 0.002);
+    level.gain.exponentialRampToValueAtTime(0.001, when + 0.05);
+    blip.connect(level).connect(ctx.destination);
+    blip.start(when);
+    blip.stop(when + 0.06);
+  }
+
   // plays some notes on a layer's instrument straight away, for hearing a chord or a note while
   // editing. it has its own channel, so it plays even if the layer's muted. extra goes on every note
-  // (a slide's bend, a shake), so a slide drawn in the note editor is heard as it'll play
+  // (a slide's bend, a shake), so a slide drawn in the note editor is heard as it'll play. it hands
+  // back the channel, so a note held on the keyboard can be let go of early (closeChannel)
   audition(song, layer, midis, beats = 1.5, extra = {}) {
     this.wake();
     // the first try of a new instrument may be its synthesised self, while its recordings load
@@ -2934,6 +2957,7 @@ class MusicPlayer {
     setChannel(channel, song, { ...layer, mute: false, solo: true }, this.ctx.currentTime, false);
     for (const midi of midis) playNote(this.ctx, channel, layer, { midi, dur: beats, vel: 0.75, ...extra }, this.ctx.currentTime + 0.02, 60 / song.tempo);
     setTimeout(() => closeChannel(channel, this.ctx.currentTime), (beats * 60 / song.tempo + 4) * 1000);
+    return channel;
   }
 
   // cut: fade everything out now. otherwise notes already sent play out, and the channels close once
