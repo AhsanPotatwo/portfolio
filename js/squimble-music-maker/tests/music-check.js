@@ -44,7 +44,7 @@ assert.strictEqual(parseChord('hello'), null);
 
 let strong = 0;
 let onChord = 0;
-const STYLES = ['ambient', 'tune', 'mini', 'boss'];
+const STYLES = ['ambient', 'tune', 'mini', 'boss', 'loop'];
 for (const mood of Object.keys(MOODS)) {
   for (const style of STYLES) {
     for (const seed of ['mossy-lantern', 'quiet-tide', 'x']) {
@@ -69,7 +69,7 @@ for (const mood of Object.keys(MOODS)) {
         strong++;
         if (chord.pcs.has(((note.midi % 12) + 12) % 12)) onChord++;
       }
-      for (const what of ['chords', 'melodies', 'band', 'arrangement', 'space', 'tonality', 'mutate']) composeSong(rerollSong(song, what, 'test'));
+      for (const what of ['chords', 'melodies', 'band', 'arrangement', 'space', 'tonality', 'mutate', 'orchestra']) composeSong(rerollSong(song, what, 'test'));
     }
   }
 }
@@ -105,7 +105,7 @@ for (const seed of ['mossy-lantern', 'quiet-tide', 'rusty-tower', 'x']) {
 }
 
 // a band that fits (fitBand, pickInstrument and the moods in music.js, and the README's rules)
-const { INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS } = vm.runInContext('({ INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS })', page);
+const { INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries } = vm.runInContext('({ INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries })', page);
 // every tonal instrument has an edge: the organ had none, so it never fitted under any cap
 for (const [id, inst] of Object.entries(INSTRUMENTS)) if (inst.family !== 'kit' && inst.family !== 'texture') assert(Number.isFinite(inst.edge), `${id} has an edge`);
 // every instrument a mood names is real, and every drum pattern has a groove in every time signature
@@ -136,10 +136,12 @@ for (const mood of Object.keys(MOODS)) {
         if (['keys', 'bell', 'bass'].includes(INSTRUMENTS[layer.instrument].family)) assert.strictEqual(layer.tone.vibrato, 0, `${where}: no vibrato on struck or plucked ${layer.role}`);
       }
       assert.strictEqual(new Set(tonal.map((l) => l.instrument)).size, tonal.length, `${where}: no two layers on the same instrument`);
-      assert(!(song.layers.some((l) => l.role === 'arp') && song.layers.some((l) => l.role === 'counter')), `${where}: an arp or a counter melody, not both`);
+      // (a layer carrying the tune isn't another part weaving round it: it's the tune, see orchestration)
+      const parts = song.layers.filter((l) => !carries(l));
+      assert(!(parts.some((l) => l.role === 'arp') && parts.some((l) => l.role === 'counter')), `${where}: an arp or a counter melody, not both`);
       // not crowded: two parts at most moving round the middle, ambient songs six layers at most, and
       // running notes no faster than six a second
-      assert(song.layers.filter((l) => MIDDLE.includes(l.role)).length <= 2, `${where}: two middle parts at most`);
+      assert(parts.filter((l) => MIDDLE.includes(l.role)).length <= 2, `${where}: two middle parts at most`);
       if (style === 'ambient') assert(song.layers.length <= 6, `${where}: ambient songs have room`);
       for (const layer of song.layers.filter(usesRate)) assert(layer.rate === 'slow' || song.tempo / 60 / rateStep(layer.rate, METERS[song.meter].sub) <= MAX_RATE, `${where}: the ${layer.role} runs too fast`);
       // one band: chip and acoustic sounds never together, and surprises only from moods near this one
@@ -157,7 +159,7 @@ for (const mood of Object.keys(MOODS)) {
       if (textures.length > 1) assert(textures[0] !== textures[1] && !(textures[0].bed && textures[1].bed), `${where}: two textures that don't go together`);
       const drums = song.layers.find((l) => l.role === 'drums');
       if (mood === 'cozy' && drums && !FIGHTS[style]) assert(drums.instrument === 'brushes' && drums.pattern === 'brush', `${where}: cozy drums are brushes`);
-      if ((mood === 'dreamy' || mood === 'heavenly') && !FIGHTS[style]) assert(!drums, `${where}: no drums`);
+      if (mood === 'heavenly' && !FIGHTS[style]) assert(!drums, `${where}: no drums`);
 
       const comp = composeSong(song);
       const melody = song.layers.find((l) => l.role === 'melody');
@@ -165,7 +167,9 @@ for (const mood of Object.keys(MOODS)) {
         // no blinking: the melody doesn't sit out one section between two it plays in, apart from a C break
         // or another layer's solo
         const on = song.sections.map((s) => s.play.includes('melody'));
-        for (let i = 1; i < on.length - 1; i++) assert(!(on[i - 1] && !on[i] && on[i + 1]) || song.sections[i].part === 'C' || song.sections[i].lead, `${where}: the melody doesn't drop out of section ${i} and back`);
+        // (or where it's handed the tune to another player, orchestration)
+        const taker = song.layers.find((l) => l.role === 'counter' && carries(l));
+        for (let i = 1; i < on.length - 1; i++) assert(!(on[i - 1] && !on[i] && on[i + 1]) || song.sections[i].part === 'C' || song.sections[i].lead || song.sections[i].play.includes(taker?.id), `${where}: the melody doesn't drop out of section ${i} and back`);
         // no holes mid phrase: phrases are near legato, calls rest for at most half a bar, and
         // fragments leave two bars of space at most
         const allowed = { calls: comp.bpb / 2 + 0.05, fragments: comp.bpb * 2 + 0.05 }[melody.pattern] || 1;
@@ -430,7 +434,7 @@ assert(soloBars > 200 && soloNew / soloBars > 0.9, `solos are new all the way th
   let strong = 0;
   let blends = 0;
   let checked = 0;
-  for (const mood of ['happy', 'jazz', 'showdown', 'wintry', 'cozy', 'lounge', 'heroic']) {
+  for (const mood of ['happy', 'jazz', 'magic', 'wintry', 'cozy', 'lounge', 'heroic']) {
     for (let n = 0; n < 8; n++) {
       const song = generateSong(mood, 'tune', `cp-${n}`);
       const counter = song.layers.find((l) => l.role === 'counter');
@@ -628,7 +632,7 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
 {
   const { legato } = vm.runInContext('({ legato })', page);
   let slurred = 0;
-  for (const mood of ['folk', 'heroic', 'jazz', 'calm', 'happy', 'epic']) {
+  for (const mood of ['folk', 'heroic', 'jazz', 'calm', 'happy', 'dragon']) {
     for (let n = 0; n < 4; n++) {
       const song = generateSong(mood, 'tune', `slur-${n}`);
       const comp = composeSong(song);
@@ -707,5 +711,75 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
         }
       }
     }
+  }
+}
+
+// orchestration (pickOrchestra, passTune and carries in music.js): a layer taking the tune plays the
+// melody's own line, the two take turns and play it together the last time the theme comes round, so
+// some section always has the tune, and bells doubling it play it an octave up. the bass hook repeats
+// bar to bar, starts each chord on its root, and keeps to the key. a loop never has an intro or an
+// outro, and a retired mood opens as the one that replaced it
+{
+  const { RETIRED, SCALES } = vm.runInContext('({ RETIRED, SCALES })', page);
+  let taken = 0;
+  let doubled = 0;
+  let hooks = 0;
+  let hookNotes = 0;
+  let inKey = 0;
+  const notesIn = (comp, id, section) => comp.notes.filter((note) => note.layer === id && !note.stop && note.gt >= section.start - 1e-6 && note.gt < section.end - 1e-6);
+  const shape = (notes, by = 0) => notes.map((note) => `${note.gt.toFixed(3)}:${note.midi - by}`).sort().join();
+  for (const mood of ['magic', 'gaslamp', 'dragon', 'shop', 'heroic', 'aztec', 'playful']) {
+    for (const style of ['loop', 'tune', 'boss']) {
+      for (let n = 0; n < 10; n++) {
+        const song = generateSong(mood, style, `orch-${n}`);
+        const where = `${mood} ${style} orch-${n}`;
+        const comp = composeSong(song);
+        const melody = song.layers.find((l) => l.role === 'melody');
+        const taker = song.layers.find((l) => l.role === 'counter' && carries(l));
+        const doubler = song.layers.find((l) => l.role === 'bells' && carries(l));
+        if (style === 'loop') assert(!song.sections.some((s) => ['Intro', 'Outro'].includes(s.name)), `${where}: a loop has no intro or outro`);
+        if (taker && melody) {
+          taken++;
+          const sung = comp.sections.filter((s) => !s.lead && (s.play.includes(melody.id) || s.play.includes(taker.id)));
+          assert(sung.some((s) => s.play.includes(taker.id) && !s.play.includes(melody.id)), `${where}: the tune is handed over at least once`);
+          for (const section of sung.filter((s) => s.play.includes(taker.id) && s.play.includes(melody.id))) {
+            // (ornaments are bends, so the written pitches are the same)
+            assert.strictEqual(shape(notesIn(comp, taker.id, section), taker.octave * 12), shape(notesIn(comp, melody.id, section)), `${where}: the ${taker.instrument} plays the melody's line in ${section.name}`);
+          }
+        }
+        if (doubler && melody) {
+          for (const section of comp.sections.filter((s) => s.play.includes(doubler.id) && s.play.includes(melody.id) && !s.lead)) {
+            const tune = new Set(notesIn(comp, melody.id, section).map((note) => `${note.gt.toFixed(3)}:${note.midi + 12}`));
+            for (const note of notesIn(comp, doubler.id, section)) assert(tune.has(`${note.gt.toFixed(3)}:${note.midi}`), `${where}: the ${doubler.instrument} doubles the tune an octave up`);
+            doubled++;
+          }
+        }
+        const bass = song.layers.find((l) => l.role === 'bass' && l.pattern === 'hook');
+        if (bass) {
+          const scale = new Set(SCALES[song.scale].steps.map((step) => (song.key + step) % 12));
+          for (const section of comp.sections.filter((s) => s.play.includes(bass.id) && s.bars >= 4)) {
+            hooks++;
+            const bar = (k) => notesIn(comp, bass.id, section).filter((note) => note.gt >= section.start + k * comp.bpb - 1e-6 && note.gt < section.start + (k + 1) * comp.bpb - 1e-6).map((note) => (note.gt - section.start - k * comp.bpb + 1e-9).toFixed(3)).join();
+            assert.strictEqual(bar(1), bar(2), `${where}: the bass hook repeats bar to bar`);
+            for (const note of notesIn(comp, bass.id, section)) {
+              const chord = section.chords.find((ch) => note.gt < ch.t + ch.dur - 1e-6);
+              if (Math.abs(note.gt - chord.t) < 1e-6) assert.strictEqual(((note.midi % 12) + 12) % 12, chord.root, `${where}: a new chord starts on its root`);
+              hookNotes++;
+              if (scale.has(note.midi % 12) || chord.pcs.has(note.midi % 12)) inKey++;
+            }
+          }
+        }
+        same(cleanSong(JSON.parse(JSON.stringify(song))), song, `${where}: saves and loads back the same`);
+      }
+    }
+  }
+  assert(taken > 40 && doubled > 20, `enough songs hand the tune round (${taken}) and double it (${doubled})`);
+  // (the notes leading into the next chord are a semitone off it on purpose, so not all of them)
+  assert(hooks > 20 && inKey / hookNotes > 0.8, `bass hooks keep to the key (${inKey} of ${hookNotes}, in ${hooks} sections)`);
+  for (const [old, [mood, mods]] of Object.entries(RETIRED)) {
+    assert(!MOODS[old] && MOODS[mood], `${old} is retired, into ${mood}`);
+    const song = cleanSong({ mood: old });
+    assert.strictEqual(song.mood, mood, `a song saved in ${old} opens in ${mood}`);
+    assert(mods.every((id) => song.mods?.includes(id)), `${old} opens as ${mood} with ${mods.join(', ') || 'no modifiers'}`);
   }
 }

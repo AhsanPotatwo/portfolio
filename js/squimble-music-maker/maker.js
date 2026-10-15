@@ -253,9 +253,9 @@
     button.dataset.group = group;
     groupKeys.append(button);
   }
-  // a fight stays a fight, and the modifiers stay, when the mood changes. otherwise a mood brings its
-  // own style, the one it was made for. on a track of your own, a mood only changes how its written
-  // parts play (and the colours): it never writes a new song over yours. the same goes for the style
+  // a fight stays a fight, a loop a loop, and the modifiers stay, when the mood changes. otherwise a
+  // mood brings its own style, the one it was made for. on a track of your own, a mood only changes how
+  // its written parts play (and the colours): it never writes a new song over yours. the same goes for the style
   // and the modifiers
   const retune = (change) => {
     remember();
@@ -266,7 +266,7 @@
     const button = key(mood.name, '', () => {
       if (song.own) return retune(() => { song.mood = id; });
       remember();
-      open(generateSong(id, FIGHTS[song.style] ? song.style : mood.style, song.seed, song.mods));
+      open(generateSong(id, LOOPS[song.style] ? song.style : mood.style, song.seed, song.mods));
     }, 'mm-mood');
     button.dataset.mood = id;
     button.style.setProperty('--c', mood.colour);
@@ -313,6 +313,7 @@
     ['melodies', 'Melodies', 'New tunes and rhythms for every layer, with the same chords and instruments'],
     ['band', 'Instruments', 'A new instrument and sound for every layer, playing the same notes'],
     ['arrangement', 'Arrangement', 'A new shape: which sections, how long they are, and who plays in each'],
+    ['orchestra', 'Orchestra', 'Hand the tune round a new way: another instrument taking it in turns with the melody, or bells doubling it an octave up, the way orchestral game music does'],
     ['tonality', 'Key and tempo', 'A new key, scale, tempo and time signature'],
     ['space', 'Room', 'A new reverb, echo and tape sound'],
     ['mutate', 'Mutate', 'Small nudges to almost everything, for a close cousin of this song'],
@@ -785,6 +786,13 @@
 
   // ---------- the band tab ----------
 
+  // the patterns that need more saying than "a part written for you"
+  const PATTERN_TIPS = {
+    'counter.tune': 'Takes the tune: it plays the melody\'s own line, taking turns with the melody section by section and joining it the last time round, the way an orchestra hands a theme from the flutes to the strings',
+    'bells.double': 'Doubles the tune: the melody an octave up, in the sections where it comes round biggest, like a glockenspiel over a flute',
+    'bass.hook': 'Bass hook: a line of its own that bounces round the chord\'s notes on the drums\' rhythm, walks into each new chord and runs up into every fourth bar',
+  };
+
   // an instrument's name, saying if it's played from recordings (a kit counts if any drum is)
   const instrumentName = (instrument) => `${instrument.name}${sampleFolders(instrument).length ? ' (recorded)' : ''}`;
 
@@ -946,13 +954,23 @@
     if (family !== 'texture') {
       const options = [
         ['hand', 'My notes', 'My notes: it plays only the notes you draw or record, nothing written for you'],
-        ...Object.entries(PATTERNS[layer.role]).map(([id, name]) => [id, name, `${name}: a ${role.name.toLowerCase()} part written for you, following the chords, plus any notes you add`]),
+        ...Object.entries(PATTERNS[layer.role]).map(([id, name]) => [id, name, PATTERN_TIPS[`${layer.role}.${id}`] || `${name}: a ${role.name.toLowerCase()} part written for you, following the chords, plus any notes you add`]),
       ];
       sound.append(field('Plays', choices(options, () => (layer.hand ? 'hand' : layer.pattern), (value) => edit(() => {
+        // a layer that took the tune hands it back: the melody plays again wherever it was playing it
+        const melody = song.layers.find((one) => one.role === 'melody');
+        if (melody && layer.role === 'counter' && carries(layer) && value !== 'tune') {
+          for (const one of song.sections) if (one.play.includes(layer.id) && !one.lead && !one.play.includes(melody.id)) one.play.push(melody.id);
+        }
         if (value === 'hand') layer.hand = true;
         else {
           delete layer.hand;
           layer.pattern = value;
+        }
+        // and one that takes or doubles it gets the tune handed round (passTune in music.js)
+        if (carries(layer)) {
+          for (const one of song.sections) if (melody && one.play.includes(melody.id) && !one.lead && !one.play.includes(layer.id)) one.play.push(layer.id);
+          passTune(song);
         }
       })(), 'Pattern'), 'What this layer plays: your own notes, or a part written for it'));
     }
