@@ -215,17 +215,18 @@ const ENEMY_SHOT_RANGE = 0.85;
 
 // can it hit the player from where it is, with what it's holding (Enemy.currentWeapon(), enemy.js)?
 // a swing reaches attackRange, or further if its weapon does (an axe it's been given in the editor). a
-// shot reaches ENEMY_SHOT_RANGE of its arrows' reach, but only with no wall in the way (clearLine() in
-// tilemap.js), since walls stop arrows. every ai uses this, and stands still to shoot (isShooting()),
-// so an enemy given a bow keeps its distance while it has a clear shot and walks closer when it doesn't
+// shot reaches ENEMY_SHOT_RANGE of its arrows' reach. either only with no wall in the way (clearLine() in
+// tilemap.js), since walls stop arrows and swings (MeleeSwing.clearTo(), weapons.js). every ai uses
+// this, and stands still to shoot (isShooting()), so an enemy given a bow keeps its distance while it
+// has a clear shot and walks closer when it doesn't
 function canAttack(enemy, world, player) {
   const weapon = enemy.currentWeapon();
   if (!weapon) return false;
   const distance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
-  if (weapon.attack !== 'shoot') return distance < Math.max(enemy.type.attackRange, weapon.reach);
+  const range = weapon.attack === 'shoot' ? weapon.reach * ENEMY_SHOT_RANGE : Math.max(enemy.type.attackRange, weapon.reach);
   const from = enemy.y + feetBelowCentre(enemy.settings); // character.js
   const to = player.y + feetBelowCentre(player.settings);
-  return distance < weapon.reach * ENEMY_SHOT_RANGE && world.map.clearLine(enemy.x, from, player.x, to);
+  return distance < range && world.map.clearLine(enemy.x, from, player.x, to);
 }
 
 // is it holding something that shoots? then it stands still while it can attack

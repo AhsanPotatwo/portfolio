@@ -255,6 +255,7 @@ const PREVIEW_FLOOR = {
   rowAt: () => 0,
   moveAlongX: (box, dx) => dx,
   moveAlongY: (box, dy) => dy,
+  clearLine: () => true,
   bounds: () => ({ left: -Infinity, right: Infinity, top: -Infinity, bottom: Infinity }),
 };
 

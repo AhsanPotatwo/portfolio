@@ -87,8 +87,8 @@
 //                         (poweredHit()), the wielder's damageScale and attackSpeed (wieldedHit()),
 //                         cooldown, comboWindow, and lunge for shots
 //   Character.updateCharge()  chargeTime and minPower. Character.walk(): carrySpeed and chargeSlow
-//   MeleeSwing            windup, swingTime, arc and reach, lunge when the sweep starts, recoil on the
-//                         first thing it hits, the swinger's hit stop
+//   MeleeSwing            windup, swingTime, arc and reach (not through walls, clearTo()), lunge when
+//                         the sweep starts, recoil on the first thing it hits, the swinger's hit stop
 //   Jab                   a MeleeSwing whose reach is a straight line that stops at the first hit
 //                         (hitTargets()), and JAB for its point's width and how fast it goes out
 //   Arrow                arrowSpeed, reach (how far it flies, dropping at the end)
@@ -347,8 +347,9 @@ class MeleeSwing {
     return this.time < 0;
   }
 
-  // targets: who it's allowed to hurt (enemies for the player's swing, the player for an enemy's)
-  update(dt, targets) {
+  // targets: who it's allowed to hurt (enemies for the player's swing, the player for an enemy's).
+  // map: whose walls it can't hit through (tilemap.js)
+  update(dt, targets, map) {
     const before = this.time;
     this.time += dt;
     if (this.windingUp) return;
@@ -357,15 +358,15 @@ class MeleeSwing {
       this.owner.pushTowards(this.angle, this.weapon.lunge);
       weaponSound(this.owner, this.weapon.attackSound, this.weapon, heaviness(this.weapon));
     }
-    this.hitTargets(targets);
+    this.hitTargets(targets, map);
   }
 
-  // hits everything in the arc it hasn't hit yet. a Jab does its own
-  hitTargets(targets) {
+  // hits everything in the arc it hasn't hit yet, but not through walls. a Jab does its own
+  hitTargets(targets, map) {
     for (const target of targets) {
       if (!target.hittable() || this.hit.has(target)) continue;
       // knocked away from whoever hit it
-      if (this.reaches(target)) this.strike(target, Math.atan2(target.y - this.owner.y, target.x - this.owner.x));
+      if (this.reaches(target) && this.clearTo(target, map)) this.strike(target, Math.atan2(target.y - this.owner.y, target.x - this.owner.x));
     }
   }
 
@@ -396,6 +397,13 @@ class MeleeSwing {
     // is it in the arc? checks the closest point and the middle, so a big body that's only partly
     // in the arc still counts
     return this.inArc(nearX, nearY) || this.inArc(body.x + body.w / 2, body.y + body.h / 2);
+  }
+
+  // no wall between the owner's feet and the target's: the same walls that stop arrows (clearLine() in
+  // tilemap.js), so not water. feet, not middles, since a head pokes up over the wall behind it
+  clearTo(target, map) {
+    const feet = (c) => c.y + feetBelowCentre(c.settings); // character.js
+    return map.clearLine(this.owner.x, feet(this.owner), target.x, feet(target));
   }
 
   inArc(x, y) {
@@ -474,20 +482,29 @@ class Jab extends MeleeSwing {
     super(owner, weapon, angle, false);
     // px from the owner's middle out to the point
     this.tip = 0;
+    // px out to the wall it stopped at
+    this.wall = Infinity;
   }
 
   // moves the point out, checking every JAB.checkEvery px and at least once a frame, and stops at the
-  // first thing it touches
-  hitTargets(targets) {
+  // first thing it touches, or at a wall (where it stays), and never hits anyone behind one (clearTo())
+  hitTargets(targets, map) {
     if (this.hit.size > 0) return;
-    const out = this.weapon.reach * Math.min(1, this.time / (this.weapon.swingTime * JAB.extend));
+    const out = Math.min(this.wall, this.weapon.reach * Math.min(1, this.time / (this.weapon.swingTime * JAB.extend)));
     const r = JAB.width / 2;
+    const down = feetBelowCentre(this.owner.settings); // character.js
     do {
-      this.tip = Math.min(out, this.tip + JAB.checkEvery);
-      const x = this.owner.x + Math.cos(this.angle) * this.tip;
-      const y = this.owner.y + Math.sin(this.angle) * this.tip;
+      const next = Math.min(out, this.tip + JAB.checkEvery);
+      const x = this.owner.x + Math.cos(this.angle) * next;
+      const y = this.owner.y + Math.sin(this.angle) * next;
+      // the floor under the point, along from the owner's feet like an arrow's
+      if (!map.clearLine(this.owner.x, this.owner.y + down, x, y + down)) {
+        this.wall = this.tip;
+        return;
+      }
+      this.tip = next;
       const touching = (b) => x > b.x - r && x < b.x + b.w + r && y > b.y - r && y < b.y + b.h + r;
-      const struck = targets.filter((target) => target.hittable() && touching(target.bodyBox()));
+      const struck = targets.filter((target) => target.hittable() && touching(target.bodyBox()) && this.clearTo(target, map));
       if (struck.length > 0) {
         // knocked the way it was jabbed
         for (const target of struck) this.strike(target, this.angle);

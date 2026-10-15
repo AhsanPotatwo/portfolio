@@ -55,13 +55,14 @@ const Dialogue = {
     }));
   },
 
-  // the closest npc within TALK_RANGE, or null
-  npcInRange(player, npcs) {
+  // the closest npc within TALK_RANGE, or null. not through a wall on map (clearLine() in tilemap.js)
+  npcInRange(player, npcs, map) {
     let closest = null;
     let closestDistance = TALK_RANGE;
+    const feet = (c) => c.y + feetBelowCentre(c.settings); // character.js
     for (const npc of npcs) {
       const distance = Math.hypot(npc.x - player.x, (npc.y + npc.h / 2) - (player.y + player.h / 2));
-      if (distance <= closestDistance) {
+      if (distance <= closestDistance && map.clearLine(player.x, feet(player), npc.x, feet(npc))) {
         closest = npc;
         closestDistance = distance;
       }
@@ -133,8 +134,8 @@ const Dialogue = {
 
   // every frame while it's open, after everyone has moved. the world doesn't pause, so the conversation
   // ends if either of you gets out of range (walking off, getting pushed, respawning, the npc's ai)
-  update(player, dt) {
-    if (this.npcInRange(player, [this.npc]) !== this.npc) return this.close();
+  update(player, map, dt) {
+    if (this.npcInRange(player, [this.npc], map) !== this.npc) return this.close();
     this.shown = Math.min(this.currentLine().length, this.shown + this.typeSpeed() * dt);
     if (Input.wasPressed('interact')) this.advance();
   },

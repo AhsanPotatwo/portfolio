@@ -188,7 +188,7 @@ class Character {
     }
 
     if (this.swing) {
-      this.swing.update(dt, this.targets(world));
+      this.swing.update(dt, this.targets(world), world.map);
       if (this.swing.finished) this.swing = null;
     }
 

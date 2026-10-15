@@ -14,7 +14,7 @@ vm.runInContext(['config.js', 'utils.js', 'weapons.js', 'character.js'].map((f) 
 const { Character, ROLL, STAND_STILL } = game;
 
 // a flat endless floor with nothing in the way, like PREVIEW_FLOOR (weaponeditor.js)
-const floor = { get: () => ({ speed: 1 }), colAt: () => 0, rowAt: () => 0, moveAlongX: (b, dx) => dx, moveAlongY: (b, dy) => dy, bounds: () => ({ top: -Infinity, bottom: Infinity }) };
+const floor = { get: () => ({ speed: 1 }), colAt: () => 0, rowAt: () => 0, moveAlongX: (b, dx) => dx, moveAlongY: (b, dy) => dy, clearLine: () => true, bounds: () => ({ top: -Infinity, bottom: Infinity }) };
 const sword = game.makeWeapon({}, 'sword');
 const bow = game.makeWeapon({ attack: 'shoot' }, 'bow');
 // wearing the quick charm (assets/squimble-quest/items/quick-charm.json) unless wearing is false

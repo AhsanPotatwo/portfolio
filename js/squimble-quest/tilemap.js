@@ -350,21 +350,26 @@ class TileMap {
 
   // how far a box can move dx before it stops right up against a solid tile. characters move along x
   // with this and then y with moveAlongY(), which is what lets them slide along walls (walk() in
-  // character.js). it only checks the column the front edge ends up in, so nothing can move more than
-  // a tile in one frame (MAX_DT in config.js)
+  // character.js). it checks every column the front edge passes into, nearest first, so a hard shove
+  // on a slow frame can't skip over a wall 1 tile thick
   moveAlongX(box, dx) {
     if (dx === 0) return 0;
 
     // the rows it covers
     const firstRow = this.rowAt(box.y);
     const lastRow = this.lastCovered(box.y + box.h);
-    // the column the front edge moves into
-    const col = dx > 0 ? this.lastCovered(box.x + box.w + dx) : this.colAt(box.x + dx);
+    // the column the front edge is in now and the one it moves into
+    const step = Math.sign(dx);
+    const from = dx > 0 ? this.lastCovered(box.x + box.w) : this.colAt(box.x);
+    const to = dx > 0 ? this.lastCovered(box.x + box.w + dx) : this.colAt(box.x + dx);
 
-    for (let row = firstRow; row <= lastRow; row++) {
-      if (this.isSolid(col, row)) {
-        // right up against it
-        return dx > 0 ? col * TILE - (box.x + box.w) : (col + 1) * TILE - box.x;
+    // from the next column, or this one if it doesn't leave it
+    for (let col = from === to ? to : from + step; col !== to + step; col += step) {
+      for (let row = firstRow; row <= lastRow; row++) {
+        if (this.isSolid(col, row)) {
+          // right up against it
+          return dx > 0 ? col * TILE - (box.x + box.w) : (col + 1) * TILE - box.x;
+        }
       }
     }
     return dx;
@@ -376,11 +381,15 @@ class TileMap {
 
     const firstCol = this.colAt(box.x);
     const lastCol = this.lastCovered(box.x + box.w);
-    const row = dy > 0 ? this.lastCovered(box.y + box.h + dy) : this.rowAt(box.y + dy);
+    const step = Math.sign(dy);
+    const from = dy > 0 ? this.lastCovered(box.y + box.h) : this.rowAt(box.y);
+    const to = dy > 0 ? this.lastCovered(box.y + box.h + dy) : this.rowAt(box.y + dy);
 
-    for (let col = firstCol; col <= lastCol; col++) {
-      if (this.isSolid(col, row)) {
-        return dy > 0 ? row * TILE - (box.y + box.h) : (row + 1) * TILE - box.y;
+    for (let row = from === to ? to : from + step; row !== to + step; row += step) {
+      for (let col = firstCol; col <= lastCol; col++) {
+        if (this.isSolid(col, row)) {
+          return dy > 0 ? row * TILE - (box.y + box.h) : (row + 1) * TILE - box.y;
+        }
       }
     }
     return dy;

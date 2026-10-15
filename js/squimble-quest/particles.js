@@ -399,14 +399,22 @@ class ParticleSystem {
       // flames start inside the solid campfire) ignores walls, or it'd bounce about in there forever.
       // ponytail: walls are as tall as the sky, so a bit flying over a wall still bounces off it.
       // giving tiles a height would fix it
+      // a fast one goes in steps of at most a tile, so it can't skip over a thin wall
       const walls = e.hitsWalls && map && !map.isSolid(map.colAt(p.x), map.rowAt(p.y));
       const bounce = -e.bounce / 100;
-      const x = p.x + moveX;
-      if (walls && map.isSolid(map.colAt(x), map.rowAt(p.y))) p.vx *= bounce;
-      else p.x = x;
-      const y = p.y + moveY;
-      if (walls && map.isSolid(map.colAt(p.x), map.rowAt(y))) p.vy *= bounce;
-      else p.y = y;
+      const steps = walls ? Math.ceil(Math.max(Math.abs(moveX), Math.abs(moveY)) / TILE) : 1;
+      for (let s = 0; s < steps; s++) {
+        const x = p.x + moveX / steps;
+        if (walls && map.isSolid(map.colAt(x), map.rowAt(p.y))) {
+          p.vx *= bounce;
+          moveX = 0;
+        } else p.x = x;
+        const y = p.y + moveY / steps;
+        if (walls && map.isSolid(map.colAt(p.x), map.rowAt(y))) {
+          p.vy *= bounce;
+          moveY = 0;
+        } else p.y = y;
+      }
     }
     this.list = this.list.filter((p) => {
       if (p.age < p.life) return true;

@@ -319,13 +319,13 @@ function draw() {
     // or if there isn't one plays an E sound block in reach (soundblocks.js), or if there's none of
     // those either opens or closes the inventory (I always does, and closes a chest too). nothing's in
     // reach while the inventory is open
-    const talkTo = InventoryScreen.active || Dialogue.active ? null : Dialogue.npcInRange(player, npcs);
+    const talkTo = InventoryScreen.active || Dialogue.active ? null : Dialogue.npcInRange(player, npcs, worldMap);
     for (const npc of npcs) npc.canTalk = npc === talkTo;
     Warps.reachable = talkTo || InventoryScreen.active || Dialogue.active ? null : Warps.inReach(player, worldMap);
     StorageObjects.reachable = talkTo || Warps.reachable || InventoryScreen.active || Dialogue.active ? null : StorageObjects.inReach(player, worldMap);
     SoundBlocks.reachable = talkTo || Warps.reachable || StorageObjects.reachable || InventoryScreen.active || Dialogue.active ? null : SoundBlocks.inReach(player, worldMap);
     if (Dialogue.active) {
-      Dialogue.update(player, dt);
+      Dialogue.update(player, worldMap, dt);
       SoundBlocks.checkStep(player, worldMap);
       Warps.checkStep(player, worldMap);
     } else if (talkTo && Input.wasPressed('interact')) {

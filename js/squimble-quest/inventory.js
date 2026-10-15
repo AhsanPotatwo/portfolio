@@ -614,13 +614,11 @@ const Drops = {
     const angle = player.aimAngle + radians(randomBetween(-DROP_SPREAD.angle, DROP_SPREAD.angle));
     const distance = DROP_DISTANCE - randomBetween(0, DROP_SPREAD.distance);
     // moves a small box using the map's collision (tilemap.js), so it stops at walls and you can
-    // still reach it. done in two halves, since the map only checks one tile ahead
+    // still reach it
     const feet = player.feetBox();
     const box = { x: feet.x + feet.w / 2 - 4, y: feet.y + feet.h / 2 - 4, w: 8, h: 8 };
-    for (let i = 0; i < 2; i++) {
-      box.x += map.moveAlongX(box, Math.cos(angle) * distance / 2);
-      box.y += map.moveAlongY(box, Math.sin(angle) * distance / 2);
-    }
+    box.x += map.moveAlongX(box, Math.cos(angle) * distance);
+    box.y += map.moveAlongY(box, Math.sin(angle) * distance);
     return { x: box.x + 4, y: box.y + 4 };
   },
 

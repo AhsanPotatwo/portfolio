@@ -18,7 +18,7 @@ vm.runInContext(['config.js', 'utils.js', 'weapons.js', 'character.js'].map((f) 
   + '\nthis.Character = Character; this.PLAYER = PLAYER; this.COMBAT = COMBAT; this.DamageNumbers = DamageNumbers; this.makeWeapon = makeWeapon; this.hitWith = hitWith; this.MeleeSwing = MeleeSwing;', game);
 const { Character, PLAYER, COMBAT, DamageNumbers, hitWith, MeleeSwing } = game;
 
-const floor = { get: () => ({ speed: 1 }), colAt: () => 0, rowAt: () => 0, moveAlongX: (b, dx) => dx, moveAlongY: (b, dy) => dy, bounds: () => ({ top: -Infinity, bottom: Infinity }) };
+const floor = { get: () => ({ speed: 1 }), colAt: () => 0, rowAt: () => 0, moveAlongX: (b, dx) => dx, moveAlongY: (b, dy) => dy, clearLine: () => true, bounds: () => ({ top: -Infinity, bottom: Infinity }) };
 const weapon = game.makeWeapon({ damage: 10, knockback: 0 }, 'test');
 const body = (settings, x = 0) => Object.assign(new Character(x, 0, settings), { hitParticles: null });
 const step = (c, seconds) => { for (let t = 0; t < seconds; t += 1 / 60) c.update({ move: { x: 0, y: 0 }, aim: null, attack: false }, 1 / 60, { map: floor, characters: [c], arrows: [] }); };

@@ -14,7 +14,7 @@ vm.runInContext(['config.js', 'utils.js', 'weapons.js', 'character.js'].map((f) 
 const { Character, PLAYER, STAND_STILL } = game;
 
 // a flat endless floor with nothing in the way, like PREVIEW_FLOOR (weaponeditor.js)
-const floor = { get: () => ({ speed: 1 }), colAt: () => 0, rowAt: () => 0, moveAlongX: (b, dx) => dx, moveAlongY: (b, dy) => dy, bounds: () => ({ top: -Infinity, bottom: Infinity }) };
+const floor = { get: () => ({ speed: 1 }), colAt: () => 0, rowAt: () => 0, moveAlongX: (b, dx) => dx, moveAlongY: (b, dy) => dy, clearLine: () => true, bounds: () => ({ top: -Infinity, bottom: Infinity }) };
 const spearFile = JSON.parse(fs.readFileSync(`${__dirname}/../../../assets/squimble-quest/items/spear.json`, 'utf8'));
 const spear = game.makeWeapon(spearFile.weapon, 'spear');
 
