@@ -9,7 +9,9 @@
 // a song is plain settings, the json that gets saved and shared (cleanSong() has every key):
 //   mood, mods, style   what it's written as (MOODS, MODIFIERS, STYLES). mods is only there if it has
 //              any: words like calm, fast or jazzy that change how the mood plays (see "modifiers")
-//   seed       a word or two. every random choice comes from it, so the same settings always give
+//   flavour    which kind of the mood it is (FLAVOURS: underwater's reef party, wintry's christmas),
+//              only there when it isn't the mood as it is (see "flavours")
+//   seed      a word or two. every random choice comes from it, so the same settings always give
 //              the same notes and a song file stays tiny
 //   key, scale, tempo, meter, swing, humanise, colour (how rich the chords are), chordBars
 //   parts      the chords for parts A, B and C, written as roman numerals ("i bVI bIII bVII"), so
@@ -934,6 +936,28 @@ const MOODS = {
     patterns: { guitar: ['ring', 'strum', 'tremolo'], drums: ['wash', 'groove', 'halftime', 'four'], arp: ['updown', 'up', 'twinkle'], bass: ['held', 'rootfifth', 'pulse'], melody: ['long', 'phrases', 'fragments'] },
     forms: GAZE_FORMS, solo: 0.35, bury: 0.5, fx: { wobble: 0.4 },
   },
+  // the cocteau twins (treasure, heaven or las vegas, victorialand): elizabeth fraser's voice soaring
+  // and fluttering in words of its own, up front rather than buried, over robin guthrie's chorused
+  // guitars cascading through long echoes, simon raymonde's bass playing a tune of its own, and a drum
+  // machine. dreamy but melodic: the tune is the point. its flavours are the dancing side and the
+  // mellow, sad side (FLAVOURS)
+  ethereal: {
+    group: 'Loud', opens: ['arp', 'guitar', 'pad', 'bass'],
+    name: 'Ethereal', colour: '#c9a7e8', style: 'tune',
+    scales: { major: 2, lydian: 2, mixolydian: 1, dorian: 1 }, tempo: [60, 78], tuneTempo: [92, 116],
+    meters: { '4/4': 6, '6/8': 2, '3/4': 1 },
+    chords: ['Iadd9 IVmaj7', 'I iii IV iv', 'I V vi IV', 'IVmaj7 I V vi', 'I bVII IV I', 'vi IV I V', 'Imaj7 iii7 IVmaj7 V', 'I II IV I'],
+    richness: [0.45, 0.85], energy: 0.6, space: 1, bright: 0.65, dark: 0.15, edge: 0.7, surprise: 0, ornate: 1.3,
+    palette: {
+      guitar: ['chorus-guitar', 'clean-guitar'], melody: ['dream-voice', 'dream-voice', 'chorus-guitar', 'glass-bell'], counter: ['chorus-guitar', 'clean-guitar', 'glass-bell', 'choir-oo'],
+      keys: ['chorus-guitar', 'e-piano', 'harp'], arp: ['chorus-guitar', 'clean-guitar', 'harp', 'celesta'], bells: ['glass-bell', 'celesta', 'sine-bell', 'glock'],
+      pad: ['swell-guitar', 'reverse-guitar', 'glass-pad', 'choir-oo', 'shimmer'], bass: ['chorus-bass', 'pick-bass', 'round-bass', 'fretless'], drone: ['tape-loop', 'organ-drone'],
+    },
+    textures: ['vinyl', 'ocean'], kits: ['machine', 'gaze-kit'], drums: [0.3, 0.9],
+    layers: { guitar: 0.6, arp: 0.75, pad: 0.8, keys: 0.2, counter: 0.35, bells: 0.3, drone: 0.15, texture: 0.25 },
+    patterns: { guitar: ['ring', 'strum', 'tremolo'], arp: ['updown', 'twinkle', 'up', 'down'], drums: ['groove', 'halftime', 'wash'], bass: ['synco', 'rootfifth', 'octave', 'held'], melody: ['phrases', 'phrases', 'long', 'calls'], counter: ['counterpoint', 'harmony'], pad: ['sustain', 'swell'] },
+    solo: 0.2, bury: 0.15, fx: { wobble: 0.25, echo: 0.3 },
+  },
 
   // ---------- world, electronic and epic ----------
   // places and genres, for any song and as a blend (song.blend, mixMood): the desert's scale and oud
@@ -1587,6 +1611,1039 @@ const RETIRED = {
   sludge: ['metal', ['slow', 'dark']], nugaze: ['shoegaze', ['dark', 'slow']], altrock: ['grunge', ['bright']], disco: ['showtime', []], epic: ['dragon', []],
 };
 
+// ---------- flavours ----------
+//
+// a mood is a big place, and most hold more than one kind of music. underwater is the slow, dreamy
+// deep and also a calypso party on a reef (the little mermaid); pirates is a shanty below decks and
+// also a swashbuckling film score; wintry is snowdin and also christmas. none of those wants a mood of
+// its own (that's how the list got too long to find anything in before, see RETIRED), so each is a
+// flavour of its mood: a kind of the same place, with its own band, tempo, scales and patterns where it
+// needs them, and the mood's for everything it doesn't say.
+//
+// about: what the mood sounds like and what it's for, for the page. kinds: its flavours, as { name,
+// tip, style (the style it's made for, when it isn't the mood's), and any mood settings it changes }.
+// palette, patterns and layers change a role at a time; anything else replaces the mood's. the first
+// kind is the mood as it is, changing nothing, and a song in it has no flavour key, so every song made
+// before flavours makes exactly the same notes. a modifier works on a flavour like on any mood (calm
+// christmas), and the random numbers don't depend on the flavour, so the same seed in another flavour
+// is as near the same song as two kinds of music can be (flavourMood, mixMood)
+const FLAVOURS = {
+  calm: {
+    about: 'Gentle and peaceful: soft pads, a felt piano or a flute, birdsong and a stream. For menus, safe places and quiet wandering.',
+    kinds: {
+      meadow: { name: 'Meadow', tip: 'Meadow: soft pads, a felt piano or flute, harps, birds and a stream' },
+      lullaby: {
+        name: 'Lullaby', tip: 'Lullaby: a music box or celesta rocking in three, a harp underneath, crickets and an owl. No drums',
+        scales: { majorPentatonic: 3, major: 2, lydian: 1 }, tempo: [50, 64], tuneTempo: [64, 82], meters: { '3/4': 3, '6/8': 2, '4/4': 1 },
+        chords: ['I IV I V', 'I vi IV V', 'I - IV -', 'IV I V I', 'I iii IV I'],
+        palette: { melody: ['music-box', 'celesta', 'flute', 'felt-keys'], keys: ['harp', 'felt-keys', 'celesta'], arp: ['harp', 'music-box', 'celesta'], bells: ['music-box', 'celesta', 'glass-bell'], counter: ['harp', 'felt-keys', 'flute'] },
+        textures: ['crickets', 'owl', 'rain'], drums: [0, 0.1], energy: 0.2,
+        patterns: { keys: ['waltz', 'broken'], arp: ['updown', 'up'], melody: ['phrases', 'long'] },
+      },
+      zen: {
+        name: 'Zen garden', tip: 'Zen garden: a shakuhachi or koto in the pentatonic scale, a singing bowl ringing, water running over stones',
+        scales: { majorPentatonic: 3, lydian: 1, major: 0.5 }, ornate: 1,
+        palette: { melody: ['shakuhachi', 'flute', 'koto', 'felt-keys'], keys: ['koto', 'harp', 'felt-keys'], arp: ['koto', 'harp'], counter: ['koto', 'harp', 'shakuhachi'], bells: ['chime', 'glass-bell', 'sine-bell'], drone: ['cello-drone', 'organ-drone', 'tape-loop'] },
+        textures: ['singing-bowl', 'stream', 'chimes', 'birds'], kits: ['temple'], drums: [0.05, 0.2],
+        patterns: { drums: ['sparse', 'pulse'], melody: ['long', 'fragments', 'phrases'], drone: ['tonic', 'fifths'] },
+      },
+    },
+  },
+  heavenly: {
+    about: 'Above the clouds: a choir, an organ, harps and bells in a huge room, and no drums. For shrines, heaven and endings.',
+    kinds: {
+      clouds: { name: 'Clouds', tip: 'Clouds: a choir and an organ, harps and bells, wide and slow' },
+      cathedral: {
+        name: 'Cathedral', tip: 'Cathedral: a hymn on a church organ and a choir, a horn or violin singing over it, the bells tolling',
+        scales: { major: 3, mixolydian: 1 }, chords: ['I IV I V', 'I IV I -', 'I vi IV I', 'IV I', 'I iii IV I', 'I V vi iii IV I IV V', 'I IV V I'],
+        methods: { bank: 6, markov: 1 }, richness: [0, 0.3], edge: 0.75,
+        palette: { melody: ['choir-oo', 'violin', 'horn', 'flute'], pad: ['organ', 'choir-ah', 'strings'], keys: ['organ', 'harp'], counter: ['violin', 'choir-oo', 'horn'], bells: ['bell', 'chime', 'glass-bell'], drone: ['organ-drone'] },
+        textures: ['wind'], patterns: { melody: ['long', 'phrases'], pad: ['sustain', 'swell'], keys: ['block', 'broken'] },
+      },
+      ascent: {
+        name: 'Ascension', tip: 'Ascension: lydian and rising, shimmering pads, arps climbing like light, glass bells and wine glasses',
+        scales: { lydian: 3, major: 1 }, energy: 0.3,
+        palette: { melody: ['glass-bell', 'choir-oo', 'wine-glass', 'soft-lead'], pad: ['shimmer', 'air-pad', 'glass-pad', 'choir-ah'], arp: ['celesta', 'harp', 'glass-bell'] },
+        layers: { arp: 0.6 }, patterns: { arp: ['up', 'up', 'updown'], pad: ['swell', 'sustain'] },
+      },
+    },
+  },
+  happy: {
+    about: 'Sunny and carefree, like Stardew Valley: a flute or clarinet over a strummed guitar, a bouncing bass and a light kit. For farms, villages and good days.',
+    kinds: {
+      spring: { name: 'Spring', tip: "Spring: Stardew Valley's spring and summer: a flute, clarinet or accordion over a guitar, soft strings and a root and fifth bass" },
+      island: {
+        name: 'Island life', tip: "Island life: Animal Crossing: a bouncy electric piano or vibes tune on jazzy sevenths, a slap or fretless bass, a light swung beat",
+        chords: ['Imaj7 vi7 ii7 V7', 'IVmaj7 iii7 ii7 Imaj7', 'I vi ii V', 'Imaj7 IVmaj7', 'IVmaj7 V7 iii7 vi7', 'ii7 V7 Imaj7 -'], richness: [0.5, 0.9], swing: 0.45,
+        palette: { melody: ['vibes', 'e-piano', 'whistle', 'marimba', 'flute'], keys: ['e-piano', 'wurlitzer', 'piano', 'nylon'], bass: ['fretless', 'slap-bass', 'upright', 'pluck-bass'], counter: ['marimba', 'vibes', 'clarinet'] },
+        kits: ['tight-kit', 'soft-kit'], patterns: { drums: ['groove', 'halftime'], bass: ['synco', 'rootfifth', 'hook'], keys: ['block', 'comp', 'strum'] },
+      },
+      festival: {
+        name: 'Festival', tip: 'Festival: the village fair: a brass band, an accordion, a glockenspiel and a marching snare, the tune passed round',
+        energy: 0.75, edge: 0.8, meters: { '4/4': 5, '6/8': 2, '3/4': 1 },
+        palette: { melody: ['trumpet', 'accordion', 'clarinet', 'flute', 'whistle'], counter: ['trombone', 'clarinet', 'horn'], keys: ['piano', 'honky-tonk'], bass: ['tuba', 'upright'], bells: ['glock', 'xylophone'], pad: ['brass-section', 'organ', 'strings'] },
+        kits: ['orchestra-kit', 'tight-kit'], patterns: { drums: ['march', 'groove'], bass: ['rootfifth', 'octave'], keys: ['waltz', 'block'] },
+        orchestra: { pass: 0.5, double: 0.5 },
+      },
+    },
+  },
+  playful: {
+    about: 'Mischievous and bouncy: pizzicato, marimba, clarinet and a music box hopping over an oom-pah bass. For puzzles, silly characters and mischief.',
+    kinds: {
+      romp: { name: 'Romp', tip: 'Romp: pizzicato, marimba and clarinet hopping over oom-pah keys and a walking bass' },
+      tiptoe: {
+        name: 'Tiptoe', tip: 'Tiptoe: sneaking about: pizzicato and a bassoon creeping in a minor key, a xylophone poking its head out, a sly walking bass',
+        scales: { minor: 2, dorian: 2, harmonicMinor: 1 }, chords: ['i iv V i', 'i bVI V -', 'i - iv V', 'i iv i V', 'i bVII bVI V'],
+        energy: 0.55, dark: 0.35, edge: 0.6,
+        palette: { melody: ['pizzicato', 'bassoon', 'clarinet', 'xylophone', 'oboe'], counter: ['bassoon', 'pizzicato', 'clarinet'], keys: ['pizzicato', 'harpsichord', 'xylophone'], bass: ['upright', 'bassoon', 'tuba'] },
+        kits: ['clockwork', 'orchestra-kit'], patterns: { bass: ['walking', 'rootfifth'], drums: ['march', 'sparse'], keys: ['broken', 'block'], melody: ['calls', 'phrases'] },
+      },
+      circus: {
+        name: 'Big top', tip: 'Big top: a circus march: an accordion or trumpet, a tuba oom-pah, a glockenspiel and a snare, round and round',
+        scales: { major: 3, mixolydian: 1, harmonicMinor: 0.5 }, tuneTempo: [120, 150], meters: { '4/4': 3, '3/4': 3, '6/8': 2 },
+        chords: ['I I7 IV iv', 'I vi ii V', 'I II7 V7 I', 'I IV I V', 'I bVI V I'], energy: 0.8, edge: 0.75,
+        palette: { melody: ['accordion', 'trumpet', 'clarinet', 'xylophone'], keys: ['honky-tonk', 'xylophone', 'piano'], pad: ['organ', 'brass-section'], bass: ['tuba', 'bassoon'], bells: ['glock', 'xylophone'] },
+        kits: ['orchestra-kit', 'tight-kit'], patterns: { drums: ['march'], keys: ['waltz'], bass: ['rootfifth', 'octave'] },
+      },
+    },
+  },
+  spirited: {
+    about: "Undertale and Deltarune's catchy tunes: pulse leads, a bouncing bass and a tune you can't get out of your head. For adventures, towns and friendly fights.",
+    kinds: {
+      adventure: { name: 'Adventure', tip: 'Adventure: chip leads, a bouncing bass and a light kit, with the odd jazzy or borrowed chord' },
+      home: {
+        name: 'Home', tip: "Home: Toby Fox's quiet piano themes (Home, Fallen Down): a music box or piano tune, warm and a little sad",
+        tuneTempo: [70, 92], energy: 0.45, drums: [0.05, 0.35], kits: ['soft-kit'], ornate: 0.6,
+        chords: ['I V vi iii IV I IV V', 'IV V iii vi', 'I vi IV V', 'vi IV I V', 'IVmaj7 V7 iii vi'],
+        palette: { melody: ['piano', 'music-box', 'felt-keys', 'celesta'], keys: ['piano', 'felt-keys', 'harp'], counter: ['felt-keys', 'harp', 'celesta'], arp: ['harp', 'music-box', 'celesta'], bass: ['round-bass', 'upright', 'sub-bass'] },
+        patterns: { drums: ['halftime', 'pulse'], bass: ['held', 'rootfifth'], melody: ['phrases', 'long'] },
+      },
+      ruins: {
+        name: 'Ruins', tip: 'Ruins: an underground dungeon: a slower minor tune on a pulse lead or kalimba, a harp picking, water dripping',
+        scales: { dorian: 2, minor: 2, harmonicMinor: 1 }, tuneTempo: [96, 120], energy: 0.55, dark: 0.35,
+        chords: ['i bVI bVII i', 'i iv bVI V', 'i bVII bVI bVII', 'i - bVI -', 'i bIII bVII iv'],
+        palette: { melody: ['pulse-lead', 'square-lead', 'kalimba', 'flute'], arp: ['harp', 'kalimba', 'pulse-lead'] },
+        textures: ['drips'], patterns: { drums: ['groove', 'halftime', 'march'], bass: ['rootfifth', 'held', 'octave'] },
+      },
+    },
+  },
+  upbeat: {
+    about: 'Bright and driving: a saw or square lead over an octave bass and a punchy kit. For racing, action and title screens.',
+    kinds: {
+      speed: { name: 'Full speed', tip: 'Full speed: saw and square leads over an octave bass and a punchy kit' },
+      dance: {
+        name: 'Dance floor', tip: 'Dance floor: house music: four on the floor, a piano stabbing chords, a pumping pad and an octave bass',
+        tuneTempo: [120, 128], kits: ['club-kit', 'tight-kit'],
+        palette: { keys: ['piano', 'e-piano'], melody: ['saw-lead', 'synth-brass', 'pluck-lead', 'soft-lead'] },
+        layers: { keys: 0.85 }, patterns: { drums: ['four', 'four'], keys: ['block'], pad: ['pump', 'sustain'], bass: ['octave', 'synco'] },
+      },
+      citypop: {
+        name: 'City pop', tip: 'City pop: Japan in the 80s: a slap bass, an electric piano on major sevenths, synth brass and a glossy beat',
+        chords: ['IVmaj7 V7 iii7 vi7', 'IVmaj7 III7 vi7 -', 'ii7 V7 Imaj7 vi7', 'Imaj7 vi7 ii7 V7', 'IVmaj7 V iii vi'], richness: [0.6, 0.95],
+        tuneTempo: [104, 124], scales: { major: 3, dorian: 1, mixolydian: 1 },
+        palette: { melody: ['synth-brass', 'soft-lead', 'alto-sax', 'e-piano', 'pluck-lead'], keys: ['e-piano', 'wurlitzer', 'piano'], bass: ['slap-bass', 'synth-bass', 'fretless'], pad: ['strings', 'synth-strings', 'brass-section', 'warm-pad'] },
+        kits: ['tight-kit', 'funk-kit', 'machine'], patterns: { bass: ['synco', 'octave', 'hook'], drums: ['groove', 'four'], keys: ['block', 'comp'] },
+      },
+    },
+  },
+  cozy: {
+    about: 'Warm and snug: an electric piano or felt keys on jazzy chords, a walking bass, brushes and a crackling fire. For inns, homes and rainy evenings.',
+    kinds: {
+      fireside: { name: 'Fireside', tip: 'Fireside: an electric piano on jazzy chords, a walking bass, brushes and the fire' },
+      teashop: {
+        name: 'Tea shop', tip: 'Tea shop: lighter and sunnier: a nylon guitar or vibes, a flute, a gentle bossa nova',
+        bright: 0.55, palette: { melody: ['flute', 'vibes', 'nylon', 'clarinet'], keys: ['nylon', 'piano', 'e-piano'] },
+        textures: ['rain', 'vinyl', 'birds'], patterns: { drums: ['bossa', 'brush'], keys: ['bossa', 'strum'], bass: ['rootfifth', 'walking'] },
+      },
+      rainy: {
+        name: 'Rainy day', tip: 'Rainy day: a piano on its own or with a clarinet, slow, rain on the window and vinyl crackle',
+        energy: 0.3, tuneTempo: [64, 82], drums: [0, 0.2],
+        palette: { melody: ['piano', 'clarinet', 'felt-keys'], keys: ['piano', 'felt-keys'] }, textures: ['rain', 'vinyl'],
+        layers: { texture: 0.7 }, patterns: { melody: ['phrases', 'long'], bass: ['held', 'walking'] },
+      },
+    },
+  },
+  wistful: {
+    about: 'Bittersweet and nostalgic: a music box, piano or nylon guitar over warm strings, worn like an old tape. For memories, goodbyes and rainy windows.',
+    kinds: {
+      memories: { name: 'Memories', tip: 'Memories: a music box, felt piano and strings, worn like an old tape' },
+      autumn: {
+        name: 'Autumn', tip: 'Autumn: a nylon guitar and a violin or clarinet in three, a cello underneath, leaves and rain',
+        scales: { dorian: 2, mixolydian: 1, minor: 1 }, meters: { '3/4': 3, '4/4': 2, '6/8': 1 },
+        palette: { melody: ['nylon', 'violin', 'clarinet', 'piano', 'flute'], keys: ['nylon', 'harp', 'piano'], arp: ['nylon', 'harp'], pad: ['strings', 'warm-pad', 'choir-oo'], drone: ['cello-drone'] },
+        textures: ['leaves', 'rain', 'fire'], patterns: { keys: ['waltz', 'broken'] },
+      },
+      countryside: {
+        name: 'Countryside', tip: "Countryside: Joe Hisaishi's films: a piano tune, strings swelling under it, a flute answering, and the royal road chords",
+        style: 'tune', tuneTempo: [80, 100], chords: ['IVmaj7 V iii vi', 'IV V iii vi', 'I V vi iii IV I IV V', 'vi IV V I', 'IV V I vi'],
+        palette: { melody: ['piano', 'flute', 'violin', 'oboe'], counter: ['flute', 'violin', 'clarinet', 'oboe'], keys: ['piano', 'harp'], pad: ['strings', 'choir-oo'], arp: ['harp', 'piano'], bells: ['glock', 'celesta'] },
+        textures: ['birds', 'leaves', 'stream'], kits: ['brushes', 'soft-kit'], drums: [0.05, 0.3],
+        orchestra: { pass: 0.5, double: 0.3 },
+      },
+    },
+  },
+  sad: {
+    about: 'Sorrowful and slow: strings, a felt piano or a violin in a minor key, rain on the glass. For losses, rain and the end of things.',
+    kinds: {
+      sorrow: { name: 'Sorrow', tip: 'Sorrow: strings, a felt piano or violin in a minor key, and rain' },
+      requiem: {
+        name: 'Requiem', tip: "Requiem: a slow string orchestra and a choir, an elegy like Barber's Adagio, the tune handed from violin to oboe",
+        chords: ['i iv bVI V', 'i bVI iv V', 'i v bVI iv', 'i bVII bVI V', 'iv i V i'], richness: [0.2, 0.5], kits: [],
+        palette: { melody: ['violin', 'choir-oo', 'oboe', 'horn'], pad: ['strings', 'choir-ah', 'choir-oo', 'organ'], counter: ['violin', 'oboe', 'horn'], drone: ['cello-drone', 'organ-drone'] },
+        textures: ['wind'], orchestra: { pass: 0.45, double: 0 }, patterns: { melody: ['long', 'phrases'], pad: ['sustain', 'swell'] },
+      },
+      alone: {
+        name: 'Alone', tip: 'Alone: one piano in an empty room, slow, with long silences',
+        palette: { melody: ['piano', 'felt-keys'], keys: ['felt-keys', 'piano'] }, kits: [],
+        layers: { pad: 0.3, drone: 0.1, bells: 0.1, counter: 0.1, arp: 0.1, keys: 0.9, bass: 0.15, texture: 0.6 },
+        patterns: { melody: ['fragments', 'phrases', 'long'], keys: ['broken', 'strum'] },
+      },
+    },
+  },
+  bleak: {
+    about: "Have a Nice Life's slow wall of fuzz: a chanted line, a cheap drum machine in a huge room, worn and washed out. Serious more than sad.",
+    kinds: {
+      wall: { name: 'Fuzz wall', tip: 'Fuzz wall: a slow wall of fuzz, a chanted line and a drum machine in a huge room' },
+      postrock: {
+        name: 'Post-rock', tip: 'Post-rock: Godspeed and Mogwai: a clean guitar ringing and tremolo picking, building slowly to a crash of drums',
+        energy: 0.55, edge: 0.75,
+        palette: { guitar: ['clean-guitar', 'chorus-guitar', 'fuzz-guitar'], melody: ['chorus-guitar', 'violin', 'felt-keys', 'whistle'] },
+        kits: ['rock-kit', 'machine'], layers: { guitar: 0.85 },
+        patterns: { guitar: ['ring', 'tremolo', 'strum'], drums: ['halftime', 'rock', 'groove'], melody: ['long', 'phrases'] },
+      },
+      hymn: {
+        name: 'Hymn', tip: 'Hymn: a church organ, a chanted choir and a tolling bell, slower still',
+        tempo: [44, 58], tuneTempo: [60, 78], edge: 0.75,
+        palette: { pad: ['organ', 'choir-ah', 'choir-oo'], melody: ['choir-oo', 'violin', 'felt-keys'], bells: ['bell', 'sine-bell'], drone: ['organ-drone', 'deep-drone'] },
+        drums: [0.2, 0.45], patterns: { drums: ['halftime', 'pulse'], melody: ['long', 'phrases'] },
+      },
+    },
+  },
+  mysterious: {
+    about: 'Something hidden: kalimbas and glass bells over drones, in strange old modes, with drips and owls. For caves, ruins and secrets.',
+    kinds: {
+      secrets: { name: 'Secrets', tip: 'Secrets: kalimbas and glass bells over drones, drips and owls' },
+      temple: {
+        name: 'Lost temple', tip: 'Lost temple: ruins in a jungle: pan pipes, ocarina and marimba over hand drums, in hirajoshi',
+        scales: { hirajoshi: 2, dorian: 1, phrygian: 1, minorPentatonic: 1 },
+        palette: { melody: ['pan-flute', 'ocarina', 'marimba', 'kalimba'], arp: ['marimba', 'kalimba'], keys: ['marimba', 'kalimba', 'harp'] },
+        kits: ['hand-drums', 'taiko'], textures: ['drips', 'birds', 'frogs'], patterns: { drums: ['tribal', 'sparse', 'pulse'] },
+      },
+      moonlit: {
+        name: 'Moonlit', tip: 'Moonlit: night in an enchanted wood: a flute, harp and celesta, owls and crickets, magic with a dark edge',
+        scales: { dorian: 2, lydian: 1.5, harmonicMinor: 1 }, bright: 0.5,
+        palette: { melody: ['flute', 'celesta', 'glass-bell', 'ocarina'], keys: ['harp', 'celesta'], arp: ['harp', 'celesta', 'kalimba'], bells: ['glass-bell', 'celesta', 'chime'] },
+        textures: ['owl', 'crickets', 'frogs'], patterns: { arp: ['twinkle', 'updown'] },
+      },
+    },
+  },
+  tense: {
+    about: "Something's wrong: pulsing strings and synths, a heartbeat or taiko, dark scales. For chases, stealth and countdowns.",
+    kinds: {
+      danger: { name: 'Danger', tip: 'Danger: pulsing strings and synths over a heartbeat or taiko' },
+      stealth: {
+        name: 'Stealth', tip: 'Stealth: sneaking past the guards: a low pulsing synth bass, ticking hats, a quiet suspense pad, short notes',
+        energy: 0.55, tuneTempo: [96, 116], kits: ['machine', 'clockwork'],
+        palette: { melody: ['pluck-lead', 'sine-bell', 'felt-keys', 'violin'] }, textures: ['hum'],
+        patterns: { drums: ['pulse', 'sparse', 'halftime'], bass: ['pulse', 'synco'], pad: ['pulse', 'sustain'], melody: ['fragments', 'calls'] },
+      },
+      countdown: {
+        name: 'Countdown', tip: 'Countdown: a clock ticking under racing pizzicato strings, faster and faster',
+        energy: 0.85, tuneTempo: [130, 156], kits: ['clockwork', 'taiko'],
+        palette: { arp: ['pizzicato', 'harpsichord', 'pluck-lead'] }, layers: { arp: 0.7 },
+        patterns: { drums: ['march', 'pulse'], arp: ['up', 'updown'], bass: ['pulse', 'octave'] },
+      },
+    },
+  },
+  eerie: {
+    about: 'Haunted and unsettling: music boxes, a whispering choir and drones, chords that never settle. For ghosts, crypts and the dark.',
+    kinds: {
+      haunting: { name: 'Haunting', tip: 'Haunting: music boxes, a whispering choir and drones, chords that never settle' },
+      carnival: {
+        name: 'Dead carnival', tip: 'Dead carnival: an empty funfair: a broken music box and an organ playing a waltz, wobbling out of tune',
+        meters: { '3/4': 4, '6/8': 1 }, chords: ['i V i V', 'i iv V i', 'i bII i V', 'i bVI V i', 'i #iv° V i'], methods: { bank: 4, chromatic: 1 },
+        palette: { melody: ['music-box', 'accordion', 'celesta'], keys: ['music-box', 'harpsichord', 'celesta'], pad: ['organ', 'haunted-pad'] },
+        drums: [0.1, 0.35], fx: { wobble: 0.6 }, patterns: { keys: ['waltz'] },
+      },
+      signal: {
+        name: 'Static', tip: 'Static: analog horror: tape hiss, a detuned sine bell, a cold drone, a Geiger counter ticking',
+        palette: { melody: ['sine-bell', 'glass-bell', 'soft-lead'], drone: ['tape-loop', 'void', 'deep-drone'], pad: ['reverse-piano', 'dark-pad', 'air-pad'] },
+        textures: ['geiger', 'hum', 'vinyl'], fx: { wobble: 0.6, drive: 0.2 },
+      },
+    },
+  },
+  desolate: {
+    about: "Fallout 1 and 2's world after it all ended: low drones, bowed metal, a lone plucked line, a Geiger counter. For ruins, wastelands and empty places.",
+    kinds: {
+      ashes: { name: 'Ashes', tip: 'Ashes: low drones, bowed metal, a lone plucked line and a Geiger counter' },
+      vault: {
+        name: 'Vault', tip: 'Vault: underground and humming: a machine pulse, metal pings and a cold synth line',
+        palette: { melody: ['sine-bell', 'soft-lead', 'felt-keys'], bells: ['metal-ping', 'sine-bell'] }, kits: ['machine'], textures: ['hum', 'drips', 'geiger'],
+      },
+      city: {
+        name: 'Ruined city', tip: "Ruined city: Fallout 3's bigger, sadder sound: strings and a piano among the drones",
+        palette: { melody: ['piano', 'violin', 'felt-keys'], pad: ['strings', 'dark-pad', 'choir-oo'] }, textures: ['wind', 'creaks'],
+      },
+    },
+  },
+  heroic: {
+    about: "Brave and bold: horns and strings over a march or taiko, the hero's theme. For quests, victories and setting out.",
+    kinds: {
+      quest: { name: 'Quest', tip: 'Quest: horns and strings over a march or taiko' },
+      fanfare: {
+        name: 'Fanfare', tip: 'Fanfare: a royal court: trumpets and a brass section, timpani and a snare, the glockenspiel doubling the tune',
+        scales: { major: 3, mixolydian: 1 }, chords: ['I IV V I', 'I V vi IV', 'I bVII IV I', 'I IV I V', 'I bVI bVII I'],
+        palette: { melody: ['trumpet', 'horn'], counter: ['trombone', 'horn', 'trumpet'], pad: ['brass-section', 'strings', 'organ'], bells: ['glock', 'bell'] },
+        kits: ['orchestra-kit'], patterns: { drums: ['march'] }, orchestra: { pass: 0.5, double: 0.5 },
+      },
+      spaceopera: {
+        name: 'Space opera', tip: 'Space opera: Star Wars and Mass Effect: a big brass theme over pulsing strings and synth pads',
+        scales: { mixolydian: 2, minor: 2, lydian: 1 },
+        palette: { melody: ['horn', 'trumpet', 'synth-brass', 'violin'], pad: ['strings', 'analog-pad', 'brass-section', 'choir-ah'], arp: ['pizzicato', 'pluck-lead'], bass: ['synth-bass', 'sub-bass', 'round-bass'] },
+        kits: ['orchestra-kit', 'taiko'], textures: ['hum'], patterns: { pad: ['pulse', 'sustain'], drums: ['march', 'tribal', 'halftime'] },
+      },
+    },
+  },
+  magic: {
+    about: "Wizard101's Wizard City and Hogwarts: a waltz on a celesta or flute over harp and pizzicato, the tune passed round a small orchestra. For magic schools and enchanted places.",
+    kinds: {
+      school: { name: 'Wizard school', tip: 'Wizard school: a celesta or flute waltz over harp and pizzicato, the tune passed round' },
+      fairy: {
+        name: 'Fairy glade', tip: 'Fairy glade: tiny and sparkling: harp, celesta and flutes, bells everywhere, lydian',
+        scales: { lydian: 3, major: 1 }, energy: 0.45, bright: 0.8, dark: 0.1,
+        palette: { melody: ['flute', 'celesta', 'glass-bell', 'music-box'], bells: ['glock', 'celesta', 'glass-bell', 'chime'] },
+        textures: ['chimes', 'birds', 'stream'], layers: { bells: 0.8, arp: 0.5 }, patterns: { arp: ['twinkle', 'up'], bells: ['sparkle', 'phasing'] },
+      },
+      forbidden: {
+        name: 'Forbidden', tip: 'Forbidden: dark magic: a low choir and cellos, harmonic minor, a music box in the dark',
+        scales: { harmonicMinor: 3, hungarianMinor: 1, minor: 1 }, dark: 0.65, bright: 0.4,
+        chords: ['i iv V i', 'i bVI V -', 'i v bVI V', 'i bII V i', 'i - bVI V'],
+        palette: { melody: ['music-box', 'oboe', 'violin', 'celesta', 'choir-oo'], counter: ['bassoon', 'clarinet', 'violin'], pad: ['choir-ah', 'strings', 'dark-pad', 'haunted-pad'], drone: ['cello-drone', 'deep-drone'] },
+        textures: ['owl', 'creaks', 'drips'],
+      },
+    },
+  },
+  gaslamp: {
+    about: "Wizard101's Marleybone, a foggy Victorian London: a detective's clarinet over a sneaking bass, harpsichord and pizzicato, clocks and rain. For cities and mysteries.",
+    kinds: {
+      fog: { name: 'Foggy streets', tip: "Foggy streets: a detective's clarinet over a sneaking bass, harpsichord, pizzicato and rain" },
+      musichall: {
+        name: 'Music hall', tip: 'Music hall: a Victorian music hall: an upright piano, a brass band and a jaunty oom-pah in a major key',
+        scales: { major: 3, mixolydian: 1 }, bright: 0.65, dark: 0.15, swing: 0.5, chords: ['I I7 IV iv', 'I vi ii V', 'I II7 V7 I', 'I IV I V'],
+        palette: { melody: ['honky-tonk', 'clarinet', 'trumpet', 'accordion', 'whistle'], keys: ['honky-tonk', 'piano'], bass: ['tuba', 'upright'] },
+        kits: ['orchestra-kit', 'tight-kit'], patterns: { keys: ['waltz', 'block'], drums: ['march', 'groove'] },
+      },
+      clockwork: {
+        name: 'Clockwork', tip: 'Clockwork: a steampunk workshop: clocks ticking, a harpsichord whirring, a celesta and a bassoon',
+        palette: { arp: ['harpsichord', 'celesta', 'music-box', 'pizzicato'], melody: ['oboe', 'clarinet', 'celesta', 'harpsichord'] },
+        kits: ['clockwork'], drums: [0.6, 0.9], layers: { arp: 0.8 }, textures: ['creaks', 'fire'],
+        patterns: { arp: ['up', 'updown', 'converge'], drums: ['march', 'pulse', 'groove'] },
+      },
+    },
+  },
+  dragon: {
+    about: "Wizard101's Dragonspyre: a choir, an organ and low brass in a burning city, timpani and fire. For dragons, volcanoes and dark citadels.",
+    kinds: {
+      citadel: { name: 'Burning citadel', tip: 'Burning citadel: a choir, an organ and low brass over timpani and fire' },
+      lair: {
+        name: 'Lair', tip: 'Lair: the dragon asleep: low drones and cellos, a heartbeat, a lone horn, embers',
+        style: 'ambient', energy: 0.35, kits: ['heartbeat', 'orchestra-kit'], drums: [0.3, 0.6],
+        palette: { melody: ['horn', 'oboe', 'choir-oo', 'violin'] }, textures: ['fire', 'rumble'],
+        patterns: { drums: ['pulse', 'sparse'], melody: ['long', 'fragments'] },
+      },
+      charge: {
+        name: 'Charge', tip: 'Charge: the knights ride out: a faster march, horns and trumpets in fifths, the choir driving',
+        tuneTempo: [120, 150], energy: 0.95, meters: { '4/4': 5, '6/8': 2 },
+        palette: { melody: ['trumpet', 'horn', 'choir-oo'], counter: ['trombone', 'horn'] },
+        patterns: { drums: ['march', 'tribal'], bass: ['octave', 'pulse'], pad: ['pulse', 'stabs'] },
+      },
+    },
+  },
+  metal: {
+    about: 'Doom (1993) and Metallica: chugging riffs, double kick, the bass doubling the riff, twin lead harmonies and solos. For bosses, hell and anything heavy.',
+    kinds: {
+      thrash: { name: 'Thrash', tip: 'Thrash: chugging riffs, double kick, twin leads and a solo' },
+      symphonic: {
+        name: 'Symphonic', tip: "Symphonic: Nightwish and Calamity's later bosses: the metal band with a choir and strings, a horn sometimes taking the tune",
+        scales: { harmonicMinor: 2, minor: 2, phrygian: 1 },
+        palette: { pad: ['choir-ah', 'strings', 'brass-section'], melody: ['metal-lead', 'horn', 'violin'], counter: ['lead-guitar', 'horn'] },
+        layers: { pad: 0.9 }, orchestra: { pass: 0.35, double: 0 },
+      },
+      stoner: {
+        name: 'Stoner', tip: 'Stoner: Black Sabbath and Sleep: slow, fuzzy and bluesy, a riff crawling on the sludge guitar',
+        tuneTempo: [64, 84], scales: { minorPentatonic: 2, blues: 1, minor: 1, phrygian: 1 },
+        palette: { guitar: ['sludge-guitar'], bass: ['fuzz-bass', 'pick-bass'] },
+        patterns: { drums: ['halftime', 'rock'], guitar: ['power', 'chug'] },
+      },
+    },
+  },
+  grunge: {
+    about: 'Nirvana, Hole and Alice in Chains: a quiet clean verse, then the distortion stamped on for the chorus. For angst, garages and rainy cities.',
+    kinds: {
+      seattle: { name: 'Seattle', tip: 'Seattle: a quiet clean verse, the distortion stamped on for the chorus' },
+      unplugged: {
+        name: 'Unplugged', tip: 'Unplugged: MTV Unplugged: acoustic guitars, a cello, soft drums, the same sad songs quieter',
+        energy: 0.5, edge: 0.7, loudQuiet: 0,
+        palette: { guitar: ['steel-guitar', 'clean-guitar'], melody: ['rasp-voice', 'violin', 'harmonica'], counter: ['violin', 'clean-guitar', 'harmonica'], pad: ['strings'], bass: ['upright', 'pick-bass'] },
+        kits: ['brushes', 'soft-kit'], textures: ['hum'],
+        patterns: { guitar: ['strum', 'ring'], drums: ['brush', 'halftime', 'groove'], bass: ['rootfifth', 'held'] },
+      },
+    },
+  },
+  hardcore: {
+    about: 'Title Fight, Citizen and Tigers Jaw: fast punk beats, driving eighths, a twinkling clean guitar and a breakdown. For skating, rebellion and running.',
+    kinds: {
+      melodic: { name: 'Melodic', tip: 'Melodic: punk beats, driving eighths, a twinkling clean guitar and a breakdown' },
+      poppunk: {
+        name: 'Pop punk', tip: 'Pop punk: Blink-182 and Green Day: major keys, bouncy, a catchy lead over a punk beat',
+        scales: { major: 3, mixolydian: 1 }, dark: 0.1, bright: 0.75, chords: ['I V vi IV', 'I IV V I', 'vi IV I V', 'I V IV IV', 'IV I V vi'],
+        patterns: { drums: ['punk', 'rock'] },
+      },
+      twinkle: {
+        name: 'Twinkle', tip: 'Twinkle: Midwest emo (American Football): clean guitars twinkling, softer drums, major sevenths',
+        tuneTempo: [100, 140], energy: 0.6, edge: 0.6, richness: [0.5, 0.9], loudQuiet: 0.2,
+        chords: ['IVmaj7 I V vi', 'Imaj7 IVmaj7', 'vi IV I V', 'IVmaj7 iii7 vi7 V', 'Imaj7 iii7 IVmaj7 -'],
+        palette: { guitar: ['clean-guitar', 'chorus-guitar'], arp: ['clean-guitar', 'chorus-guitar'], melody: ['lead-guitar', 'rasp-voice', 'chorus-guitar'] },
+        layers: { arp: 0.9, guitar: 0.7 }, patterns: { arp: ['twinkle', 'updown'], drums: ['rock', 'halftime', 'groove'], guitar: ['ring', 'strum'] },
+      },
+    },
+  },
+  shoegaze: {
+    about: 'My Bloody Valentine and Slowdive: guitars as a wall of sound, warping and reversed, a voice buried in it. For dreams, haze and feeling everything at once.',
+    kinds: {
+      wall: { name: 'Wall of sound', tip: 'Wall of sound: glide guitars warping, reverse reverb, a buried voice and a cymbal wash' },
+      blackgaze: {
+        name: 'Blackgaze', tip: 'Blackgaze: Deafheaven and Alcest: tremolo picked guitars, fast drums, a huge, bright wash in a minor key',
+        scales: { minor: 2, dorian: 1, major: 1 }, tuneTempo: [130, 170], energy: 0.95, dark: 0.45, edge: 1.1,
+        kits: ['gaze-kit', 'metal-kit'], patterns: { guitar: ['tremolo', 'tremolo', 'ring'], drums: ['rock', 'wash', 'double'] },
+      },
+    },
+  },
+  dreampop: {
+    about: "Beach House and Slowdive's quieter side: chorused clean guitars, a breathy voice floating, a slow organ and a drum machine. For night drives and half asleep.",
+    kinds: {
+      haze: { name: 'Haze', tip: 'Haze: chorused clean guitars, a breathy voice, organ and a drum machine' },
+      bedroom: {
+        name: 'Bedroom pop', tip: 'Bedroom pop: lo-fi and close: a jangling guitar, a cheap drum machine and worn tape',
+        energy: 0.55, tuneTempo: [90, 116], kits: ['machine', 'lofi-kit'], textures: ['vinyl'], fx: { wobble: 0.6 },
+        palette: { melody: ['dream-voice', 'chorus-guitar', 'soft-lead'] }, patterns: { drums: ['groove', 'halftime'], guitar: ['strum', 'ring'] },
+      },
+    },
+  },
+  ethereal: {
+    about: "The Cocteau Twins: a voice soaring and fluttering over chorused guitars cascading in long echoes, a bass with a tune of its own, a drum machine. Dreamy, but always melodic.",
+    kinds: {
+      soaring: { name: 'Soaring', tip: 'Soaring: Treasure and Blue Bell Knoll: the voice up front and fluttering, guitars cascading through the echo' },
+      dancing: {
+        name: 'Dancing', tip: 'Dancing: Heaven or Las Vegas and Iceblink Luck: brighter and quicker, four on the floor, a bass bouncing in octaves, guitars shimmering',
+        scales: { major: 3, lydian: 1, mixolydian: 1 }, tempo: [84, 96], tuneTempo: [112, 126], meters: { '4/4': 1 },
+        energy: 0.8, bright: 0.75, drums: [0.5, 1], kits: ['machine', 'club-kit'], opens: ['drums', 'bass', 'arp'],
+        patterns: { drums: ['four', 'groove', 'four'], bass: ['octave', 'synco', 'hook'], arp: ['updown', 'up'], guitar: ['strum', 'ring'] },
+      },
+      mellow: {
+        name: 'Mellow', tip: 'Mellow: Victorialand and the sadder songs: slow and minor, barely any drums, a guitar ringing alone in the echo, a sax drifting through',
+        scales: { dorian: 2, minor: 2, mixolydian: 1 }, tempo: [52, 66], tuneTempo: [66, 84],
+        chords: ['i bVI bIII bVII', 'i iv', 'vi IV I V', 'i bVII bVI bVII', 'Imaj7 vi7', 'i - bVI -', 'iv i'],
+        energy: 0.35, dark: 0.35, bright: 0.45, drums: [0, 0.25],
+        palette: { melody: ['dream-voice', 'tenor-sax', 'chorus-guitar'], counter: ['tenor-sax', 'clean-guitar', 'glass-bell'] },
+        patterns: { melody: ['long', 'phrases', 'fragments'], drums: ['wash', 'sparse', 'halftime'], bass: ['held', 'rootfifth'] },
+      },
+    },
+  },
+  desert: {
+    about: 'Arabian nights and the Andalusian sands: an oud and a shawm over hand drums and a drone, in the phrygian dominant. For deserts, bazaars and palaces.',
+    kinds: {
+      bazaar: { name: 'Bazaar', tip: 'Bazaar: an oud and a shawm over hand drums and a drone' },
+      oasis: {
+        name: 'Oasis', tip: 'Oasis: slower and cooler: a flute or oud over a drone, shade and water, few drums',
+        style: 'ambient', energy: 0.35, drums: [0.1, 0.4],
+        palette: { melody: ['flute', 'oud', 'pan-flute', 'violin'] }, textures: ['stream', 'crickets', 'wind'],
+        patterns: { drums: ['pulse', 'sparse', 'tribal'] },
+      },
+      palace: {
+        name: 'Palace', tip: "Palace: a sultan's court: strings sweeping in unison, the darbuka, the shawm wailing",
+        palette: { pad: ['strings', 'choir-ah'], counter: ['violin', 'oud', 'shawm'] }, layers: { pad: 0.9, counter: 0.6 },
+        kits: ['darbuka-kit', 'hand-drums'], patterns: { drums: ['maqsum', 'tribal', 'groove'] }, orchestra: { pass: 0.5, double: 0.1 },
+      },
+    },
+  },
+  tropical: {
+    about: 'Islands, jungles and beaches: steel drums and marimbas over a bouncing bass and hand drums. For beaches, jungles and holidays.',
+    kinds: {
+      island: { name: 'Island', tip: 'Island: steel drums and marimbas over a bouncing bass and hand drums' },
+      jungle: {
+        name: 'Jungle', tip: 'Jungle: deep in the canopy: pan pipes and marimba, frogs and birds, a busier hand drum beat, darker',
+        scales: { dorian: 2, minorPentatonic: 2, mixolydian: 1 }, dark: 0.3,
+        palette: { melody: ['pan-flute', 'marimba', 'kalimba', 'ocarina'] }, textures: ['frogs', 'birds', 'rain'],
+        kits: ['hand-drums', 'african-drums'], patterns: { drums: ['tribal', 'groove'] },
+      },
+      hawaii: {
+        name: 'Hawaii', tip: 'Hawaii: a lap steel sliding, a guitar strumming like a ukulele, waves, a slow sway',
+        tuneTempo: [84, 104], energy: 0.5, meters: { '4/4': 1 },
+        palette: { melody: ['pedal-steel', 'steel-guitar', 'vibes'], keys: ['steel-guitar', 'nylon'], arp: ['steel-guitar', 'nylon'], counter: ['pedal-steel', 'vibes', 'nylon'] },
+        textures: ['ocean', 'birds'], patterns: { drums: ['groove', 'halftime'], keys: ['strum'] },
+      },
+    },
+  },
+  folk: {
+    about: 'Celtic and village folk: a fiddle, tin whistle or bagpipe over a strummed guitar and droning fifths, jigs in 6/8. For villages, taverns and green hills.',
+    kinds: {
+      village: { name: 'Village', tip: 'Village: a fiddle or tin whistle over a strummed guitar and open fifths' },
+      tavern: {
+        name: 'Tavern', tip: 'Tavern: a rowdy session: fast reels, the fiddle and accordion together, stamping feet',
+        tuneTempo: [120, 150], energy: 0.8, kits: ['stomp-kit', 'hand-drums'],
+        palette: { melody: ['violin', 'accordion', 'whistle', 'bagpipe'], counter: ['accordion', 'violin', 'whistle'] },
+        patterns: { drums: ['groove', 'march', 'gallop'] }, orchestra: { pass: 0.5, double: 0.1 },
+      },
+      air: {
+        name: 'Slow air', tip: 'Slow air: a lone whistle or fiddle and a harp, mist on the hills',
+        tuneTempo: [66, 84], energy: 0.35, drums: [0.05, 0.2],
+        palette: { melody: ['whistle', 'violin', 'flute', 'pan-flute'], keys: ['harp', 'nylon'], arp: ['harp'] },
+        textures: ['wind', 'stream', 'birds'], patterns: { melody: ['long', 'phrases'] },
+      },
+    },
+  },
+  wintry: {
+    about: 'Snow and ice: from a quiet snowfall to Christmas by the fire. Celesta, glass bells and shimmering pads, a waltz, wind and a fire. For snowy towns and winter nights.',
+    kinds: {
+      snowfall: { name: 'Snowfall', tip: 'Snowfall: celesta and glass bells over shimmering pads, wind and a fire' },
+      snowtown: {
+        name: 'Snow town', tip: "Snow town: Undertale's Snowdin: a bouncy tune on bells or a pulse lead, a walking bass, cosy and a little silly",
+        style: 'tune', scales: { major: 3, majorPentatonic: 1, lydian: 1 }, tuneTempo: [100, 124], energy: 0.55,
+        palette: { melody: ['glock', 'celesta', 'pulse-lead', 'music-box', 'xylophone'], counter: ['celesta', 'vibes', 'marimba'], bass: ['upright', 'round-bass', 'chip-bass'] },
+        kits: ['soft-kit', 'chip-kit'], patterns: { bass: ['walking', 'rootfifth'], drums: ['groove'] },
+      },
+      christmas: {
+        name: 'Christmas', tip: 'Christmas: a jolly major tune on the glockenspiel or a horn, a choir, sleigh-ride swing, warm by the fire',
+        style: 'tune', scales: { major: 4, mixolydian: 1 }, energy: 0.65, swing: 0.4, richness: [0.3, 0.7],
+        chords: ['I vi IV V', 'I IV I V', 'I I7 IV iv', 'I vi ii V', 'IV V I vi', 'I III7 vi IV'],
+        palette: { melody: ['glock', 'celesta', 'flute', 'music-box', 'horn'], bells: ['glock', 'chime', 'celesta'], pad: ['choir-oo', 'strings', 'choir-ah'] },
+        layers: { bells: 0.7 }, kits: ['soft-kit', 'orchestra-kit'], textures: ['fire'],
+        patterns: { drums: ['groove', 'march'], bass: ['rootfifth', 'walking'] }, orchestra: { pass: 0.4, double: 0.5 },
+      },
+      icecave: {
+        name: 'Ice cave', tip: 'Ice cave: frozen and echoing: wine glasses and glass bells, drips, a cold drone, minor',
+        scales: { minor: 2, dorian: 1, lydian: 1 }, dark: 0.4,
+        palette: { melody: ['wine-glass', 'glass-bell', 'sine-bell', 'celesta'], drone: ['void', 'tape-loop'] }, textures: ['drips', 'wind'],
+      },
+    },
+  },
+  synthwave: {
+    about: 'Night drives in the 80s future: saw leads and synth brass over arps, an octave bass and a drum machine. For racing, neon and sunsets.',
+    kinds: {
+      outrun: { name: 'Outrun', tip: 'Outrun: saw leads and synth brass over arps, an octave bass and a drum machine' },
+      darksynth: {
+        name: 'Darksynth', tip: 'Darksynth: Carpenter Brut and Perturbator: faster and harder, a growling bass and a menacing minor lead',
+        tuneTempo: [110, 128], dark: 0.7, scales: { minor: 2, phrygian: 1, harmonicMinor: 1 },
+        palette: { bass: ['growl-bass', 'reese', 'synth-bass'] }, fx: { drive: 0.3, wobble: 0.1 }, patterns: { drums: ['four', 'groove'] },
+      },
+      dreamwave: {
+        name: 'Dreamwave', tip: 'Dreamwave: hazy and slow: soft leads, warm pads, a gated snare, tape gone soft in the sun',
+        tuneTempo: [80, 100], energy: 0.55,
+        palette: { melody: ['soft-lead', 'sine-bell', 'e-piano', 'pluck-lead'] }, fx: { wobble: 0.5 }, patterns: { drums: ['halftime', 'groove'] },
+      },
+    },
+  },
+  breakbeat: {
+    about: 'Drum and bass: breakbeats at 170 under a reese bass and airy pads. For speed, rain and flying.',
+    kinds: {
+      liquid: { name: 'Liquid', tip: 'Liquid: breaks at 170 under a reese bass, airy pads and a soft lead' },
+      jungle: {
+        name: 'Jungle', tip: 'Jungle: the 90s original: chopped breaks, a deep sub bass, organ chords on the off beat and an orchestra hit',
+        palette: { pad: ['orchestra-hit', 'strings', 'air-pad'], keys: ['hammond', 'e-piano'] }, layers: { keys: 0.6 },
+        patterns: { keys: ['skank'], bass: ['held', 'synco'] },
+      },
+      triphop: {
+        name: 'Trip hop', tip: 'Trip hop: Massive Attack and Portishead: the breaks slowed right down, a dusty kit, vinyl, minor and moody',
+        tempo: [70, 84], tuneTempo: [80, 96], dark: 0.5, energy: 0.55, swing: 0.4,
+        kits: ['boombap-kit', 'lofi-kit'], textures: ['vinyl', 'rain'],
+        palette: { melody: ['e-piano', 'sine-bell', 'violin', 'soft-lead'], pad: ['strings', 'dark-pad'] },
+        patterns: { drums: ['halftime', 'break', 'groove'] },
+      },
+    },
+  },
+  neon: {
+    about: "Crystal Castles and Dying Light's synths: a crushed chip lead over pumping pads, an octave bass and a club kick. Dark and serious. For night cities and hacking.",
+    kinds: {
+      club: { name: 'Night club', tip: 'Night club: a crushed chip lead over pumping pads, an octave bass and a club kick' },
+      cyberpunk: {
+        name: 'Rain city', tip: "Rain city: Blade Runner's neon in the rain: huge analog pads, a slow saw or soft lead, rain on the street",
+        tuneTempo: [90, 110], energy: 0.6,
+        palette: { melody: ['soft-lead', 'saw-lead', 'synth-brass', 'sine-bell'], pad: ['analog-pad', 'glass-pad', 'dark-pad', 'choir-ah'] },
+        textures: ['rain', 'hum'], patterns: { drums: ['halftime', 'groove'], pad: ['swell', 'sustain'] },
+      },
+      industrial: {
+        name: 'Industrial', tip: 'Industrial: Nine Inch Nails: a distorted machine beat, metal clanging, a growling bass',
+        kits: ['machine', 'junk-kit'], fx: { drive: 0.6 }, textures: ['hum', 'geiger'],
+        palette: { bass: ['growl-bass', 'reese', 'synth-bass'], bells: ['metal-ping', 'bell'] }, patterns: { drums: ['groove', 'halftime', 'four'] },
+      },
+    },
+  },
+  pop: {
+    about: 'Four chord pop: a bright piano or plucked synth with the hook, pads, a strummed guitar and a backbeat. For menus, montages and feeling good.',
+    kinds: {
+      radio: { name: 'Radio', tip: 'Radio: a piano or plucked synth hook, pads and a backbeat' },
+      ballad: {
+        name: 'Power ballad', tip: 'Power ballad: slow and big: a piano, strings swelling, the drums coming in huge for the chorus',
+        tuneTempo: [66, 84], energy: 0.55,
+        palette: { melody: ['piano', 'soft-lead', 'violin', 'e-piano'], keys: ['piano', 'e-piano'], pad: ['strings', 'synth-strings', 'warm-pad'] },
+        patterns: { drums: ['halftime', 'groove'], keys: ['block', 'broken'] },
+      },
+      bubblegum: {
+        name: 'Bubblegum', tip: 'Bubblegum: sugary J-pop and K-pop: fast and bright, a plucky synth and a glockenspiel, four on the floor',
+        tuneTempo: [124, 144], palette: { melody: ['pluck-lead', 'synth-brass', 'soft-lead', 'whistle'], bells: ['glock', 'celesta', 'sine-bell'] },
+        layers: { bells: 0.5 }, kits: ['club-kit', 'tight-kit'], patterns: { drums: ['four', 'groove'], bass: ['octave', 'synco'] },
+      },
+    },
+  },
+  hiphop: {
+    about: 'A beat tape with no rapper (J Dilla, Nujabes): a dusty boom bap kit, a Rhodes looping jazzy chords, vinyl and scratches. For chilling, studying and city streets.',
+    kinds: {
+      tape: { name: 'Beat tape', tip: 'Beat tape: a dusty boom bap kit, a Rhodes on jazzy chords, vinyl and scratches' },
+      study: {
+        name: 'Lo-fi study', tip: 'Lo-fi study: slower and softer: a felt piano or guitar, rain on the window, the beat lazier',
+        tuneTempo: [70, 84], energy: 0.45, textures: ['vinyl', 'rain'],
+        palette: { melody: ['felt-keys', 'e-piano', 'nylon', 'vibes'], keys: ['felt-keys', 'e-piano', 'nylon'] }, patterns: { drums: ['boombap', 'halftime'] },
+      },
+      jazzhop: {
+        name: 'Jazz hop', tip: 'Jazz hop: Nujabes and Samurai Champloo: a flute or sax, strings, minor sevenths, a crisp beat',
+        palette: { melody: ['flute', 'alto-sax', 'tenor-sax', 'piano'], counter: ['strings', 'vibes', 'harp'] }, layers: { counter: 0.5 },
+      },
+      golden: {
+        name: 'Golden age', tip: "Golden age: 90s New York: horns stabbing, a scratched record, a punchy kit",
+        palette: { pad: ['brass-section', 'orchestra-hit', 'strings'] }, layers: { pad: 0.8, texture: 0.7 }, textures: ['scratches', 'vinyl'],
+        patterns: { pad: ['stabs'] },
+      },
+    },
+  },
+  trap: {
+    about: 'Trap at 140: an 808 sliding under rolling hats, a clap on three, a dark simple hook. For villains, swagger and cities at night.',
+    kinds: {
+      dark: { name: 'Dark trap', tip: 'Dark trap: an 808 sliding under rolling hats and a dark, simple hook' },
+      cloud: {
+        name: 'Cloud rap', tip: 'Cloud rap: dreamy and floating: a glassy pad, a soft lead or flute hook, the 808 underneath',
+        scales: { minor: 1, dorian: 1, lydian: 1 }, dark: 0.35, bright: 0.65, fx: { wobble: 0.3 },
+        palette: { pad: ['glass-pad', 'air-pad', 'choir-oo', 'shimmer'], melody: ['flute', 'soft-lead', 'sine-bell', 'music-box'] },
+      },
+      drill: {
+        name: 'Drill', tip: 'Drill: sliding 808s, a choir and a piano in harmonic minor, sharper and darker',
+        scales: { harmonicMinor: 3, minor: 1, phrygian: 1 }, tuneTempo: [138, 146], dark: 0.75,
+        palette: { melody: ['piano', 'choir-oo', 'flute'], pad: ['choir-ah', 'strings', 'dark-pad'] },
+      },
+    },
+  },
+  jazz: {
+    about: 'A small jazz combo: a sax or trumpet over piano comping, a walking bass and a swinging ride. For clubs, cities and detectives.',
+    kinds: {
+      bebop: { name: 'Bebop', tip: 'Bebop: a sax or trumpet over piano comping, a walking bass and a swinging ride' },
+      ballad: {
+        name: 'Ballad', tip: 'Ballad: late at night: slow brushes, a breathy tenor sax or muted trumpet, lush chords',
+        tuneTempo: [60, 80], energy: 0.35, swingAmount: [0.35, 0.55], kits: ['brushes', 'jazz-kit'],
+        palette: { melody: ['tenor-sax', 'mute-trumpet', 'piano', 'vibes'] }, patterns: { drums: ['brush'], bass: ['walking', 'rootfifth', 'held'] },
+      },
+      bigband: {
+        name: 'Big band', tip: 'Big band: the swing era: a brass section stabbing, trumpets and trombones, a sax tune, the drummer driving',
+        tuneTempo: [140, 190], energy: 0.8, edge: 0.8,
+        palette: { pad: ['brass-section'], counter: ['trombone', 'trumpet', 'alto-sax'] }, layers: { pad: 0.9, counter: 0.7 },
+        patterns: { pad: ['stabs'] }, orchestra: { pass: 0.5, double: 0 },
+      },
+      noir: {
+        name: 'Noir', tip: 'Noir: a smoky detective film: minor, a muted trumpet or tenor sax, a slow walking bass, rain',
+        scales: { minor: 2, dorian: 1, harmonicMinor: 1, melodicMinor: 1 }, chords: ['i7 iv7 bVI7 V7', 'ii7 V7 i7 i7', 'i7 - bVI7 V7', 'i7 bVII7 bVI7 V7'],
+        dark: 0.45, tuneTempo: [70, 100], palette: { melody: ['mute-trumpet', 'tenor-sax', 'piano', 'vibes'] }, textures: ['rain', 'vinyl'],
+      },
+    },
+  },
+  lounge: {
+    about: 'Bossa nova and easy listening: a nylon guitar or a Rhodes on the bossa rhythm, a flute or vibes floating over it. For hotels, lifts and beaches.',
+    kinds: {
+      bossa: { name: 'Bossa nova', tip: 'Bossa nova: a nylon guitar or Rhodes on the bossa rhythm, a flute or vibes on top' },
+      lift: {
+        name: 'Lift music', tip: 'Lift music: strings and a soft lead on a slow, smooth beat, nothing to frighten anyone',
+        tuneTempo: [80, 100], energy: 0.35,
+        palette: { melody: ['soft-lead', 'vibes', 'flute'], pad: ['strings', 'synth-strings', 'warm-pad'] }, layers: { pad: 0.9 },
+        patterns: { drums: ['bossa', 'brush'] },
+      },
+      exotica: {
+        name: 'Exotica', tip: "Exotica: Martin Denny's tiki bar: vibes and marimba, birdcalls, bongos and a lush jungle of chords",
+        palette: { melody: ['vibes', 'marimba', 'flute', 'steel-drum'], keys: ['marimba', 'vibes', 'nylon'] },
+        textures: ['birds', 'frogs', 'ocean'], kits: ['latin-kit', 'hand-drums'], patterns: { drums: ['bossa', 'tribal'] },
+      },
+    },
+  },
+  soul: {
+    about: 'Soul and neo soul: a Rhodes on ninth chords, a fat sliding bass, a lazy beat and a wordless voice or sax. For late nights and smooth talkers.',
+    kinds: {
+      latenight: { name: 'Late night', tip: 'Late night: a Rhodes on ninth chords, a sliding bass, a lazy beat and a wordless voice' },
+      motown: {
+        name: 'Motown', tip: 'Motown: sixties soul: a tambourine backbeat, a bass that walks and hooks, strings and horns, a bright major tune',
+        scales: { major: 2, mixolydian: 1 }, tuneTempo: [104, 126], energy: 0.75, richness: [0.3, 0.6], swing: 0.3,
+        chords: ['I vi IV V', 'I IV I V', 'I iii IV V', 'ii V I vi', 'I V vi IV'],
+        palette: { pad: ['strings', 'brass-section'], keys: ['piano', 'hammond', 'wurlitzer'] },
+        kits: ['tight-kit', 'funk-kit'], patterns: { drums: ['groove', 'four'], bass: ['hook', 'walking', 'synco'] },
+      },
+      gospel: {
+        name: 'Gospel', tip: 'Gospel: a Hammond organ and a choir, a church piano, a slow 6/8 or a clapping shuffle',
+        meters: { '6/8': 3, '4/4': 2, '3/4': 1 }, chords: ['I IV I V', 'I I7 IV iv', 'IV I V vi', 'I vi ii V', 'I IV7 I V7'],
+        palette: { melody: ['soul-voice', 'piano', 'alto-sax'], pad: ['choir-ah', 'choir-oo', 'hammond', 'organ'], keys: ['hammond', 'piano'] },
+        kits: ['tight-kit', 'brushes'], patterns: { drums: ['shuffle', 'groove', 'halftime'], bass: ['walking', 'rootfifth', 'held'] },
+      },
+    },
+  },
+  showtime: {
+    about: "Funk and disco with the lights on, Mettaton's Death by Glamour: horns stabbing, a slap bass, funk guitar and four on the floor. For stages and big entrances.",
+    kinds: {
+      glamour: { name: 'Glamour', tip: 'Glamour: horns stabbing, a slap bass, a funk guitar and four on the floor' },
+      disco: {
+        name: 'Disco', tip: 'Disco: Saturday night: strings swooping, an octave bass, four on the floor, hats on the off beat',
+        tuneTempo: [116, 128],
+        palette: { pad: ['strings', 'synth-strings', 'brass-section'], melody: ['violin', 'alto-sax', 'soul-voice', 'synth-brass'] },
+        patterns: { drums: ['four', 'four'], bass: ['octave', 'octave', 'synco'], pad: ['swell', 'stabs'] },
+      },
+      gameshow: {
+        name: 'Game show', tip: 'Game show: bright and cheesy: a brass band, a Hammond, a xylophone, big major chords',
+        scales: { major: 3, mixolydian: 1 }, dark: 0.05, richness: [0.3, 0.7],
+        chords: ['I vi ii V', 'I IV V I', 'I bVII IV I', 'I II7 V7 I', 'I iii IV V'],
+        palette: { melody: ['trumpet', 'synth-brass', 'xylophone', 'alto-sax'], keys: ['hammond', 'piano', 'clavinet'], bells: ['glock', 'xylophone', 'vibes'] },
+      },
+    },
+  },
+  shop: {
+    about: "A game's shop, like Deltarune's Hip Shop: a short loop where the bass is the hook, jazzy chords and a lazy beat. For shops, cafés and hanging about.",
+    kinds: {
+      hip: { name: 'Hip shop', tip: 'Hip shop: the bass is the hook, under jazzy chords and a lazy beat' },
+      general: {
+        name: 'General store', tip: "General store: a village shop (Animal Crossing's, Zelda's): a marimba or ocarina tune, a plucked bass, a gentle beat",
+        scales: { major: 3, majorPentatonic: 1, mixolydian: 1 }, chords: ['I vi IV V', 'I IV I V', 'Imaj7 IVmaj7', 'I vi ii V', 'IV V I vi'],
+        swing: 0.5, richness: [0.2, 0.6], bright: 0.7, dark: 0.05,
+        palette: { melody: ['marimba', 'ocarina', 'xylophone', 'kalimba', 'flute'], keys: ['marimba', 'nylon', 'piano'], bass: ['upright', 'pluck-bass'] },
+        kits: ['soft-kit', 'tight-kit'], patterns: { drums: ['groove', 'halftime'], bass: ['rootfifth', 'hook', 'synco'] },
+      },
+      shady: {
+        name: 'Black market', tip: "Black market: a shady dealer's: minor, a muted trumpet or clarinet, a sneaking bass hook, a dusty beat",
+        scales: { minor: 2, dorian: 2, phrygian: 1, harmonicMinor: 1 }, dark: 0.45,
+        palette: { melody: ['mute-trumpet', 'clarinet', 'alto-sax', 'vibes'] }, textures: ['vinyl', 'rain'],
+      },
+    },
+  },
+  blues: {
+    about: 'Twelve bar blues: a harmonica or guitar bending its notes over a shuffle and a boogie bass. For saloons, rainy streets and hard times.',
+    kinds: {
+      shuffle: { name: 'Shuffle', tip: 'Shuffle: twelve bars, a harmonica or guitar bending, a boogie bass and a shuffle' },
+      delta: {
+        name: 'Delta', tip: 'Delta: the old country blues: an acoustic guitar and a harmonica, slow, a foot stomping',
+        tuneTempo: [66, 96], kits: ['stomp-kit'], textures: ['crickets', 'fire', 'rain'],
+        palette: { melody: ['harmonica', 'steel-guitar', 'nylon'], keys: ['steel-guitar', 'nylon'], arp: ['steel-guitar'], bass: ['upright'] },
+        layers: { keys: 0.8, pad: 0.05, counter: 0.3, guitar: 0 }, patterns: { drums: ['train', 'halftime', 'pulse'] },
+      },
+      electric: {
+        name: 'Electric', tip: 'Electric: Chicago blues: an electric guitar crunching, a Hammond, horns, louder',
+        energy: 0.75, edge: 0.9, palette: { guitar: ['crunch-guitar', 'drive-guitar'], melody: ['lead-guitar', 'harmonica', 'tenor-sax'] },
+        layers: { guitar: 0.85 }, kits: ['tight-kit', 'rock-kit'], patterns: { drums: ['shuffle', 'shuffle', 'rock'] },
+      },
+    },
+  },
+  country: {
+    about: 'Country and bluegrass: boom chick guitar, a rolling banjo, a fiddle and a pedal steel, and the train beat. For ranches, farms and long roads.',
+    kinds: {
+      road: { name: 'Country road', tip: 'Country road: boom chick guitar, banjo, fiddle, pedal steel and the train beat' },
+      bluegrass: {
+        name: 'Bluegrass', tip: 'Bluegrass: fast and acoustic: banjo rolls, a fiddle racing, barely any drums',
+        tuneTempo: [130, 170], energy: 0.8, drums: [0.05, 0.2],
+        palette: { melody: ['violin', 'banjo'], arp: ['banjo'] }, layers: { arp: 0.9 }, patterns: { arp: ['roll'], bass: ['rootfifth'] },
+      },
+      campfire: {
+        name: 'Campfire', tip: 'Campfire: a lonesome cowboy song: a harmonica or whistle over a slow strummed guitar in three, crickets and the fire',
+        meters: { '3/4': 3, '6/8': 1, '4/4': 1 }, tuneTempo: [72, 96], drums: [0.05, 0.3], energy: 0.4,
+        palette: { melody: ['harmonica', 'whistle', 'violin', 'pedal-steel'] }, textures: ['fire', 'crickets'],
+      },
+    },
+  },
+  fareast: {
+    about: 'Japan and China: a shakuhachi or erhu over a plucked koto, temple drums and a gong, pentatonic and spacious. For temples, bamboo forests and ninjas.',
+    kinds: {
+      temple: { name: 'Temple', tip: 'Temple: a shakuhachi or erhu over a koto, temple drums and a gong' },
+      matsuri: {
+        name: 'Festival', tip: 'Festival: a summer matsuri: taiko pounding, a bamboo flute dancing, a shamisen strumming',
+        tuneTempo: [110, 140], energy: 0.8, kits: ['taiko'], drums: [0.5, 1], scales: { majorPentatonic: 3, minorPentatonic: 1 },
+        palette: { melody: ['shakuhachi', 'flute'], keys: ['shamisen', 'koto'] }, patterns: { drums: ['tribal', 'march'] },
+      },
+      ninja: {
+        name: 'Ninja', tip: 'Ninja: fast and sharp: a shamisen and koto stabbing in in sen, taiko hits, a menacing flute',
+        scales: { inSen: 3, hirajoshi: 2 }, dark: 0.55, tuneTempo: [120, 150], energy: 0.85,
+        palette: { melody: ['shakuhachi', 'koto', 'erhu'], keys: ['shamisen', 'koto'] }, kits: ['taiko', 'temple'],
+      },
+      teahouse: {
+        name: 'Tea house', tip: 'Tea house: China: an erhu and a flute over a plucked zither (the koto stands in for the guzheng), slow and graceful',
+        scales: { majorPentatonic: 3, minorPentatonic: 1 }, tuneTempo: [70, 92], energy: 0.35, drums: [0.1, 0.4],
+        palette: { melody: ['erhu', 'flute', 'koto'] },
+      },
+    },
+  },
+  raga: {
+    about: 'India: a sitar or bansuri sliding over a tanpura and tabla, with no chord changes: the drone is the harmony. For temples, palaces and long journeys.',
+    kinds: {
+      raga: { name: 'Raga', tip: 'Raga: a sitar or bansuri over a tanpura plucked round and round, and tabla' },
+      dawn: {
+        name: 'Dawn', tip: 'Dawn: raga Bhairav at sunrise: the double harmonic scale, slow, a bansuri, birds waking',
+        scales: { doubleHarmonic: 3 }, tuneTempo: [60, 84], drums: [0.2, 0.5],
+        palette: { melody: ['bansuri', 'violin', 'sitar'] }, textures: ['birds', 'stream'],
+      },
+      filmi: {
+        name: 'Filmi', tip: 'Filmi: a Bollywood dance number: strings in unison, a harmonium, a big tune and the drums driving',
+        tuneTempo: [110, 135], energy: 0.85, chords: ['i bVII bVI bVII', 'i iv bVII i', 'I IV V I', 'i bVI bVII i'], methods: { bank: 1 },
+        palette: { pad: ['strings', 'harmonium'], melody: ['sitar', 'violin', 'bansuri', 'shawm'] },
+        layers: { pad: 0.9, bass: 0.9 }, kits: ['tabla', 'hand-drums'], patterns: { drums: ['tala', 'groove', 'tribal'], bass: ['octave', 'rootfifth'] },
+      },
+    },
+  },
+  reggae: {
+    about: 'Reggae: the one drop, the organ and guitar chopping the off beats, a deep round bass and a melodica on top. For beaches and lazy afternoons.',
+    kinds: {
+      roots: { name: 'Roots', tip: 'Roots: the one drop, the skank, a deep bass and a melodica' },
+      dub: {
+        name: 'Dub', tip: 'Dub: King Tubby and Lee Perry: the bass up front, echoes everywhere, the tune dropping in and out',
+        space: 0.85, fx: { echo: 0.45, wobble: 0.2 }, layers: { melody: 0.6, counter: 0.1 },
+        patterns: { melody: ['fragments', 'calls'] },
+      },
+      ska: {
+        name: 'Ska', tip: 'Ska: faster: horns on the tune, the skank on every off beat, a walking bass',
+        tuneTempo: [130, 165], energy: 0.85,
+        palette: { melody: ['trumpet', 'trombone', 'alto-sax', 'tenor-sax'], counter: ['trombone', 'trumpet'], bass: ['upright', 'pluck-bass'] },
+        kits: ['tight-kit', 'funk-kit'], patterns: { bass: ['walking', 'synco'], drums: ['groove', 'onedrop'] }, orchestra: { pass: 0.4, double: 0 },
+      },
+    },
+  },
+  steppe: {
+    about: "The Mongolian steppe: throat singing, a horse head fiddle, a plucked zither and a shaman's drum galloping. For plains, nomads and wide skies.",
+    kinds: {
+      plains: { name: 'Plains', tip: 'Plains: throat singing, a fiddle, a zither and a galloping drum' },
+      gallop: {
+        name: 'Gallop', tip: 'Gallop: the riders out on the plain: fast, the drum galloping hard, the fiddle and throat singers driving',
+        tuneTempo: [130, 160], energy: 0.9, drums: [0.6, 1], patterns: { drums: ['gallop'] },
+      },
+      yurt: {
+        name: 'Yurt', tip: "Yurt: night in a nomad's tent: the fire, a slow fiddle, a low throat singer droning, no drums",
+        style: 'ambient', drums: [0.05, 0.2], textures: ['fire', 'wind', 'crickets'],
+        palette: { drone: ['kargyraa', 'throat-singing', 'cello-drone'], melody: ['erhu', 'flute', 'throat-singing'] },
+      },
+    },
+  },
+  gamelan: {
+    about: 'Java and Bali: a bonang playing interlocking patterns, metallophones, a flute and drums, and the big gong closing each cycle. For temples, islands and dreams.',
+    kinds: {
+      court: { name: 'Court', tip: "Court: the bonang's kettle gongs interlocking, a flute, and the gong closing each cycle" },
+      kebyar: {
+        name: 'Kebyar', tip: 'Kebyar: Bali: faster and explosive, the metallophones racing',
+        tuneTempo: [120, 150], energy: 0.85, patterns: { arp: ['random', 'up', 'updown'] },
+      },
+      night: {
+        name: 'Night garden', tip: 'Night garden: soft and slow: a flute floating over a few gongs, frogs and rain',
+        style: 'ambient', drums: [0.2, 0.4], palette: { melody: ['flute', 'vibes', 'bonang'] }, textures: ['frogs', 'rain', 'crickets'],
+      },
+    },
+  },
+  flamenco: {
+    about: 'Andalusia: a nylon guitar strumming the Andalusian cadence over a cajón and clapping, a violin or trumpet crying in the phrygian dominant. For Spain, duels and passion.',
+    kinds: {
+      tablao: { name: 'Tablao', tip: 'Tablao: a guitar strumming the Andalusian cadence, a cajón, clapping and a crying violin' },
+      rumba: {
+        name: 'Rumba', tip: 'Rumba: quicker and sunnier, strummed and clapped, in a major key as often as not',
+        scales: { phrygianDominant: 2, major: 1.5, harmonicMinor: 1 }, tuneTempo: [110, 135],
+        chords: ['iv bIII bII I', 'I IV V I', 'i iv V i', 'I bII I -', 'I V vi IV'],
+      },
+      solea: {
+        name: 'Soleá', tip: 'Soleá: a guitar alone, slow and grave, no drums',
+        tuneTempo: [66, 86], energy: 0.4, drums: [0, 0.1],
+        layers: { keys: 0.9, pad: 0.2, counter: 0.3, arp: 0.3, bells: 0, drone: 0.1, bass: 0.3 },
+      },
+    },
+  },
+  aztec: {
+    about: "The Aztecs and the Maya, and Wizard101's Azteca: clay flutes and ocarinas over slit drums and a big hand drum, a death whistle far off. For jungles, pyramids and lost cities.",
+    kinds: {
+      azteca: { name: 'Azteca', tip: 'Azteca: ocarinas and pan pipes over slit drums, a marimba, strings and a horn' },
+      ritual: {
+        name: 'Ritual', tip: 'Ritual: atop the pyramid at night: drums and drones, a conch calling, the death whistle closer',
+        energy: 0.5, dark: 0.65, layers: { melody: 0.5 }, textures: ['death-whistle', 'conch', 'fire'],
+        palette: { melody: ['blown-bottle', 'ocarina', 'pan-flute'] }, patterns: { melody: ['long', 'fragments', 'calls'] },
+      },
+      rainforest: {
+        name: 'Rainforest', tip: 'Rainforest: lush and green: marimbas and pan pipes over rain and birds, softer drums',
+        scales: { majorPentatonic: 2, minorPentatonic: 2, dorian: 1 }, energy: 0.5, bright: 0.6, dark: 0.3,
+        textures: ['rainstick', 'birds', 'frogs'], patterns: { drums: ['march', 'sparse', 'pulse'] },
+      },
+    },
+  },
+  tribal: {
+    about: 'Drums round a fire: drums, stamping and clapping, a mbira riff and a didgeridoo. For villages, rituals and the wild.',
+    kinds: {
+      firelight: { name: 'Firelight', tip: 'Firelight: drums, stamping and clapping, a mbira riff and a didgeridoo' },
+      savanna: {
+        name: 'Savanna', tip: "Savanna: the plains at dawn: a kalimba and a choir, open and bright, lighter drums (The Lion King's opening)",
+        scales: { majorPentatonic: 3, major: 1 }, energy: 0.55, bright: 0.7,
+        palette: { pad: ['choir-ah', 'choir-oo'], melody: ['kalimba', 'marimba', 'flute', 'choir-oo'] }, layers: { pad: 0.9 },
+        textures: ['birds', 'crickets'],
+      },
+      war: {
+        name: 'War dance', tip: 'War dance: faster and harder: the drums driving in six, stamping, the didgeridoo growling',
+        meters: { '6/8': 3, '4/4': 2 }, tuneTempo: [120, 150], energy: 0.95, patterns: { drums: ['gallop', 'tribal'] },
+      },
+    },
+  },
+  egyptian: {
+    about: 'Ancient Egypt: the double harmonic scale, a mizmar or oboe over a lyre and an oud, the darbuka playing with finger cymbals. For pyramids, tombs and the Nile.',
+    kinds: {
+      nile: { name: 'The Nile', tip: 'The Nile: a mizmar or oboe over a lyre and an oud, the darbuka and finger cymbals' },
+      tomb: {
+        name: 'Tomb', tip: 'Tomb: inside the pyramid: dark and slow, a low drone, a lyre in the dark, wind through the shafts',
+        style: 'ambient', dark: 0.7, energy: 0.3, drums: [0.15, 0.4],
+        palette: { melody: ['lyre', 'flute', 'oboe'] }, textures: ['wind'], patterns: { drums: ['pulse', 'sparse'] },
+      },
+      pharaoh: {
+        name: 'Pharaoh', tip: 'Pharaoh: a royal procession: horns and a choir, strings, big drums, grand and slow',
+        energy: 0.75, edge: 0.8,
+        palette: { melody: ['horn', 'trumpet', 'oboe', 'choir-oo'], pad: ['brass-section', 'strings', 'choir-ah'] },
+        kits: ['darbuka-kit', 'orchestra-kit'], patterns: { drums: ['march', 'maqsum'] }, orchestra: { pass: 0.5, double: 0.15 },
+      },
+    },
+  },
+  antiquity: {
+    about: 'Greece and Rome: a lyre and a harp, an aulos or pan pipes, horns for the legions, a temple choir, in the old modes. For temples, arenas and myths.',
+    kinds: {
+      agora: { name: 'Agora', tip: 'Agora: a lyre and a harp, an aulos or pan pipes and a temple choir' },
+      legion: {
+        name: 'Legion', tip: 'Legion: Rome on the march: horns and trumpets, a marching drum, the choir in unison',
+        energy: 0.8, kits: ['orchestra-kit'],
+        palette: { melody: ['horn', 'trumpet', 'trombone'], counter: ['horn', 'trombone'], pad: ['brass-section', 'choir-ah'] },
+        patterns: { drums: ['march'] },
+      },
+      olympus: {
+        name: 'Olympus', tip: "Olympus: the gods' home: a lyre and a choir in a bright mode, no drums, light as air",
+        style: 'ambient', scales: { lydian: 2, mixolydian: 1, dorian: 1 }, drums: [0, 0.15],
+        palette: { melody: ['lyre', 'pan-flute', 'choir-oo', 'flute'], pad: ['choir-oo', 'choir-ah', 'strings'] },
+      },
+    },
+  },
+  medieval: {
+    about: 'Castles and taverns: a bagpipe, recorder or shawm, a harpsichord or lyre for the lute, a bassoon and a tabor. For castles, markets and knights.',
+    kinds: {
+      market: { name: 'Market', tip: 'Market: a bagpipe, recorder or shawm over a harpsichord, a bassoon and a tabor' },
+      courtdance: {
+        name: 'Court dance', tip: 'Court dance: a Renaissance court: recorders and a harpsichord, a stately pavane or a quick galliard',
+        meters: { '3/4': 3, '4/4': 2 }, drums: [0.1, 0.6], kits: ['hand-drums'],
+        palette: { melody: ['whistle', 'flute', 'oboe', 'bowed-psaltery'], keys: ['harpsichord', 'lyre'] }, patterns: { drums: ['march', 'pulse'] },
+      },
+      chant: {
+        name: 'Chant', tip: 'Chant: a monastery at vespers: a choir chanting over an organ drone, slow and holy',
+        style: 'ambient', kits: [], layers: { melody: 0.9 },
+        palette: { melody: ['choir-oo'], pad: ['choir-ah', 'organ'], drone: ['organ-drone', 'cello-drone'] },
+        patterns: { melody: ['long', 'phrases'] },
+      },
+    },
+  },
+  wasteland: {
+    about: 'Fallout: New Vegas and Mad Max: a twangy guitar, a harmonica or a lonely trumpet, a saloon piano, scrap metal drums, the wind. For deserts, ruins and outlaws.',
+    kinds: {
+      frontier: { name: 'Frontier', tip: 'Frontier: a twangy guitar, a harmonica or trumpet, scrap metal drums and the wind' },
+      western: {
+        name: 'High noon', tip: "High noon: Morricone's spaghetti westerns: a whistled tune, a trumpet, a twangy guitar, a whip of the snare",
+        tuneTempo: [90, 120], richness: [0, 0.2], chords: ['i bVII bVI V', 'i iv i V', 'i - bVI V', 'i bIII bVII iv'],
+        palette: { melody: ['whistle', 'trumpet', 'harmonica'], guitar: ['clean-guitar'] }, patterns: { drums: ['train', 'march'] },
+      },
+      radio: {
+        name: 'Old radio', tip: 'Old radio: a 1940s record playing in the ruins: a crooning clarinet or muted trumpet, a piano, a swing beat, crackle',
+        scales: { major: 3, mixolydian: 0.5 }, chords: ['I vi ii V', 'Imaj7 vi7 ii7 V7', 'I I7 IV iv', 'I II7 V7 I'], richness: [0.4, 0.8],
+        swing: 0.9, swingAmount: [0.4, 0.6], bright: 0.5, dark: 0.2, edge: 0.7, fx: { wobble: 0.5, drive: 0.2 },
+        palette: { melody: ['mute-trumpet', 'clarinet', 'piano', 'vibes'], keys: ['piano', 'honky-tonk'] },
+        textures: ['vinyl'], kits: ['brushes', 'jazz-kit'], layers: { guitar: 0.2 },
+        patterns: { drums: ['swing', 'brush'], bass: ['walking', 'rootfifth'] },
+      },
+    },
+  },
+  underwater: {
+    about: 'Under the sea, from the dark deep to a reef party: wine glasses and glassy pads, harps and vibes rippling, whale song and bubbles.',
+    kinds: {
+      deep: { name: 'The deep', tip: 'The deep: slow, wide and wavering: wine glasses, glassy pads, a whale calling far off' },
+      reef: {
+        name: 'Under the sea', tip: "Under the sea: a party on the reef, like The Little Mermaid's: steel drums and marimbas on a calypso bounce, horns, a walking bass",
+        style: 'tune', scales: { major: 3, mixolydian: 1, majorPentatonic: 1 }, tuneTempo: [108, 128], meters: { '4/4': 1 },
+        chords: ['I IV V IV', 'I vi IV V', 'I IV I V', 'I V vi IV', 'ii V I -'], richness: [0.15, 0.5],
+        energy: 0.75, bright: 0.8, dark: 0.05, edge: 0.75, swing: 0.4,
+        palette: {
+          melody: ['steel-drum', 'marimba', 'trumpet', 'flute', 'xylophone'], counter: ['trombone', 'marimba', 'vibes'], keys: ['marimba', 'steel-drum', 'nylon'],
+          arp: ['marimba', 'steel-drum', 'xylophone'], bass: ['tuba', 'upright', 'pluck-bass'], pad: ['brass-section', 'strings', 'warm-pad'],
+        },
+        kits: ['hand-drums', 'latin-kit', 'soft-kit'], drums: [0.3, 0.95], textures: ['bubbles', 'ocean'],
+        patterns: { drums: ['groove', 'tribal', 'bossa'], bass: ['walking', 'rootfifth', 'synco'], keys: ['strum', 'block', 'skank'], melody: ['phrases', 'riff', 'calls'] },
+        orchestra: { pass: 0.4, double: 0.3 },
+      },
+      lagoon: {
+        name: 'Lagoon', tip: 'Lagoon: sunlit shallows: a nylon guitar and vibes, a gentle bossa, waves on the shore',
+        tuneTempo: [84, 104], bright: 0.6, drums: [0.1, 0.6],
+        palette: { melody: ['vibes', 'flute', 'nylon', 'wine-glass'], keys: ['nylon', 'vibes'] },
+        kits: ['latin-kit', 'soft-kit'], textures: ['ocean', 'bubbles', 'birds'], patterns: { drums: ['bossa', 'pulse'], keys: ['bossa', 'broken'] },
+      },
+      sunken: {
+        name: 'Sunken city', tip: 'Sunken city: Atlantis in ruins: a choir and a harp in the deep, in old, strange modes, slow bells',
+        scales: { dorian: 2, lydian: 1, phrygian: 1 }, dark: 0.45,
+        palette: { melody: ['choir-oo', 'wine-glass', 'glass-bell'], pad: ['choir-ah', 'glass-pad', 'dark-pad'], bells: ['glass-bell', 'bell', 'sine-bell'] },
+        textures: ['whale', 'bubbles'],
+      },
+    },
+  },
+  pirate: {
+    about: 'Pirates on the high seas, from a rowdy shanty below decks to a swashbuckling film score. For ships, islands and treasure.',
+    kinds: {
+      shanty: { name: 'Shanty', tip: 'Shanty: an accordion and a fiddle, a tuba, the crew stamping a jig, the sea and the timbers creaking' },
+      swashbuckler: {
+        name: 'Swashbuckler', tip: 'Swashbuckler: Pirates of the Caribbean: strings driving in 6/8, horns blazing the tune, big drums, minor',
+        scales: { minor: 3, harmonicMinor: 1, dorian: 1 }, meters: { '6/8': 5, '4/4': 2, '3/4': 1 }, tuneTempo: [110, 140],
+        chords: ['i bVI bVII i', 'i iv V i', 'i bVII bVI V', 'i - bVI bVII', 'i v bVI bVII'],
+        energy: 0.9, dark: 0.5, edge: 0.85,
+        palette: { melody: ['horn', 'violin', 'trumpet'], counter: ['horn', 'trombone', 'violin'], pad: ['strings', 'brass-section', 'choir-ah'], keys: ['pizzicato', 'piano'], arp: ['pizzicato', 'harp'], bass: ['upright', 'tuba', 'bassoon'] },
+        kits: ['orchestra-kit', 'taiko'], layers: { pad: 1, counter: 0.6 },
+        patterns: { drums: ['march', 'tribal'], pad: ['pulse', 'stabs', 'sustain'], bass: ['octave', 'pulse'] }, orchestra: { pass: 0.5, double: 0.2 },
+      },
+      calmseas: {
+        name: 'Calm seas', tip: 'Calm seas: night on deck: a lone fiddle or accordion, the waves and the creak of the ship, slow and in three',
+        style: 'ambient', meters: { '3/4': 3, '6/8': 2 }, drums: [0.05, 0.25], tuneTempo: [76, 96], energy: 0.35, textures: ['ocean', 'creaks'],
+      },
+      ghost: {
+        name: 'Ghost ship', tip: 'Ghost ship: cursed pirates: an organ and an accordion wheezing out of tune, a choir moaning, fog',
+        scales: { harmonicMinor: 2, phrygian: 1, minor: 1 }, dark: 0.7, fx: { wobble: 0.5 },
+        palette: { melody: ['accordion', 'violin', 'music-box'], pad: ['organ', 'haunted-pad', 'choir-ah'] }, textures: ['creaks', 'ocean', 'wind'],
+      },
+    },
+  },
+  space: {
+    about: 'Outer space: analog pads drifting, sine bells like distant signals, the void humming, in lydian and the whole tone scale. For stars, stations and the unknown.',
+    kinds: {
+      drift: { name: 'Drift', tip: 'Drift: analog pads, sine bells and the void humming' },
+      station: {
+        name: 'Space station', tip: 'Space station: a busy orbital base: arps pulsing, a steady drum machine, bright synths',
+        style: 'tune', energy: 0.65, drums: [0.3, 0.9], layers: { arp: 0.7 },
+        patterns: { drums: ['four', 'groove', 'halftime'], arp: ['up', 'updown'] },
+      },
+      alien: {
+        name: 'Alien world', tip: 'Alien world: strange and hostile: the whole tone scale, bowed metal, metal pings, the void',
+        scales: { wholeTone: 2, phrygian: 1, locrian: 0.5 }, dark: 0.65, methods: { bank: 2, chromatic: 2, vamp: 1 },
+        palette: { melody: ['wine-glass', 'sine-bell', 'soft-lead'], bells: ['metal-ping', 'glass-bell'], drone: ['bowed-metal', 'void', 'deep-drone'] },
+        textures: ['hum', 'geiger'],
+      },
+    },
+  },
+};
+// the mood's kinds, plain mood first. a song names its flavour only when it's one of the others
+const flavourOf = (song) => FLAVOURS[song.mood]?.kinds[song.flavour];
+const plainFlavour = (moodId) => Object.keys(FLAVOURS[moodId]?.kinds || {})[0];
+// a mood in one of its flavours: the flavour's settings over the mood's, a role at a time for its
+// palette, patterns and layers
+function flavourMood(base, kind) {
+  const { name, tip, style, ...changes } = kind;
+  return { ...base, ...changes, palette: { ...base.palette, ...changes.palette }, patterns: { ...base.patterns, ...changes.patterns }, layers: { ...base.layers, ...changes.layers } };
+}
+
 // the patterns each style leans towards, when the mood doesn't say
 const STYLE_PATTERNS = {
   ambient: {
@@ -1935,11 +2992,12 @@ function cleanMods(mods) {
 // and bass. (terraria's and calamity's boss themes, which this was made for, are mostly a genre and a
 // place. the place used to be a blend; now a world mood with angry or fast does that job, or the
 // genre's own mood as a boss)
-// a song with neither gets the mood itself, untouched, so every song made before plays the same
+// a song with neither gets the mood itself, untouched, so every song made before plays the same. a
+// flavour (kind, FLAVOURS) comes first, so a modifier or a fight works on it as on any mood
 const moodEdge = (mood) => mood.edge ?? 0.3 + mood.energy * 0.6 + mood.dark * 0.2;
-function mixMood(base, mods, style) {
-  if (!mods.length && !FIGHTS[style]) return base;
-  const mood = { ...base, palette: { ...base.palette } };
+function mixMood(base, mods, style, kind) {
+  if (!mods.length && !FIGHTS[style] && !kind) return base;
+  const mood = kind ? flavourMood(base, kind) : { ...base, palette: { ...base.palette } };
   for (const id of mods) MODIFIERS[id].apply(mood, style);
   if (FIGHTS[style]) {
     mood.energy = Math.max(mood.energy, FIGHT_ENERGY[style]);
@@ -1962,8 +3020,8 @@ function mixMood(base, mods, style) {
 const moodCache = new Map();
 function songMood(song) {
   const mods = song.mods || [];
-  const key = `${song.mood}|${mods.join(',')}|${song.style}`;
-  if (!moodCache.has(key)) moodCache.set(key, mixMood(MOODS[song.mood], mods, song.style));
+  const key = `${song.mood}|${song.flavour || ''}|${mods.join(',')}|${song.style}`;
+  if (!moodCache.has(key)) moodCache.set(key, mixMood(MOODS[song.mood], mods, song.style, flavourOf(song)));
   return moodCache.get(key);
 }
 
@@ -2060,13 +3118,15 @@ const LAYER_DEFAULTS = {
 const FX_DEFAULTS = { reverb: 0.4, size: 0.6, tone: 0.5, echo: 0.2, echoTime: 0.75, echoRepeats: 0.35, warmth: 0.2, wobble: 0, drive: 0, volume: 0.8 };
 const ECHO_TIMES = [0.5, 0.75, 1, 1.5, 2];
 
-// blend: a second mood for flavour, or none (mixMood)
 // mods: the song's modifiers (MODIFIERS), any order. the random numbers don't depend on them, so
 // adding "fast" to a song gives the same song, faster, as near as it can
-function generateSong(moodId, style, seed, mods = []) {
+// flavour: one of the mood's kinds (FLAVOURS), or none for the mood as it is. the random numbers don't
+// depend on it either
+function generateSong(moodId, style, seed, mods = [], flavour) {
   const mood = MOODS[moodId] ? moodId : 'calm';
   const picked = cleanMods(mods);
-  const song = { name: seedTitle(seed), seed, mood, ...(picked.length ? { mods: picked } : {}), style: STYLES[style] ? style : 'ambient', parts: {}, layers: [], sections: [], fx: {} };
+  const kind = flavour !== plainFlavour(mood) && FLAVOURS[mood]?.kinds[flavour] ? { flavour } : {};
+  const song = { name: seedTitle(seed), seed, mood, ...kind, ...(picked.length ? { mods: picked } : {}), style: STYLES[style] ? style : 'ambient', parts: {}, layers: [], sections: [], fx: {} };
   pickTonality(song, makeRng(seed, mood, 'tonality'));
   pickChords(song, makeRng(seed, mood, 'chords'));
   pickLayers(song, makeRng(seed, mood, song.style, 'layers'));
@@ -2680,7 +3740,8 @@ function pickSpace(song, rng) {
     reverb: clamp01(mood.space * rng.range(0.55, 0.95)),
     size: clamp01(mood.space * rng.range(0.6, 1.15)),
     tone: clamp01(mood.bright * rng.range(0.6, 1.3)),
-    echo: clamp01(rng.range(0.1, 0.45) * (0.4 + mood.space * 0.6)),
+    // (fx.echo: a mood that lives in its echoes, the cocteau twins or dub)
+    echo: clamp01(rng.range(0.1, 0.45) * (0.4 + mood.space * 0.6) + (bias.echo || 0)),
     echoTime: rng.pick(ECHO_TIMES),
     echoRepeats: rng.range(0.2, 0.55),
     warmth: clamp01((1 - mood.bright) * rng.range(0.2, 0.7)),
@@ -2729,6 +3790,9 @@ function cleanSong(data) {
     // a track made by hand (blankSong), not written from the seed: only there when it is
     ...(d.own === true ? { own: true } : {}),
     mood: MOODS[moodId] ? moodId : 'calm',
+    // one of the mood's flavours (FLAVOURS), only there when it isn't the mood as it is, so a song
+    // without one saves as it always did
+    ...(MOODS[moodId] && d.flavour !== plainFlavour(moodId) && FLAVOURS[moodId]?.kinds[d.flavour] ? { flavour: d.flavour } : {}),
     // only there when there are some, so a song without modifiers saves as it always did. a song saved
     // with a blend (before modifiers replaced them) loses it, but keeps everything the blend picked
     ...(cleanMods(oldMods).length ? { mods: cleanMods(oldMods) } : {}),

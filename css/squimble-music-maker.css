@@ -180,6 +180,20 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   box-shadow:0 3px 0 color-mix(in srgb, var(--c) 50%, #000);
 }
 .mm-mood[aria-pressed="true"]::before{ background:var(--c-ink); }
+/* the song's mood, what it's for, and its flavours: a strip in the mood's colour under the moods */
+.mm-flavours{
+  display:grid; gap:10px;
+  margin-top:14px;
+  padding:12px 14px;
+  background:var(--mm-dark);
+  border-left:6px solid var(--mm-mood);
+  border-radius:4px;
+}
+.mm-about{ margin:0; max-width:90ch; font-size:14px; line-height:1.5; color:var(--mm-muted); }
+.mm-about b{ margin-right:4px; color:var(--mm-text); font-weight:800; }
+.mm-kinds-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
+.mm-kinds{ display:flex; flex-wrap:wrap; gap:6px 5px; }
+.mm-kind-tip{ margin:0; max-width:90ch; font-size:13px; line-height:1.45; color:var(--mm-text); }
 /* the modifiers under the moods: small outlined keys that light up in the mood's colour while on */
 .mm-mods-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:14px 0 12px; }
 .mm-mods-label{ font:700 10px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); white-space:nowrap; }

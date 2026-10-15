@@ -212,7 +212,7 @@
     const seed = seedField.value.trim().slice(0, 60);
     if (!seed || seed === song.seed) return;
     remember();
-    open(generateSong(song.mood, song.style, seed, song.mods));
+    open(generateSong(song.mood, song.style, seed, song.mods, song.flavour));
     say(`"${seed}" in ${MOODS[song.mood].name.toLowerCase()}.`);
   };
   seedField.addEventListener('change', useSeed);
@@ -220,7 +220,7 @@
 
   $('#mmNew').addEventListener('click', () => {
     remember();
-    open(generateSong(song.mood, song.style, newSeed(randomRng()), song.mods));
+    open(generateSong(song.mood, song.style, newSeed(randomRng()), song.mods, song.flavour));
   });
   $('#mmBlank').addEventListener('click', () => {
     remember();
@@ -262,9 +262,10 @@
     change();
     changed();
   };
+  // (a mood opens as it is, its first flavour: a flavour belongs to its own mood)
   for (const [id, mood] of Object.entries(MOODS)) {
     const button = key(mood.name, '', () => {
-      if (song.own) return retune(() => { song.mood = id; });
+      if (song.own) return retune(() => { song.mood = id; delete song.flavour; });
       remember();
       open(generateSong(id, LOOPS[song.style] ? song.style : mood.style, song.seed, song.mods));
     }, 'mm-mood');
@@ -291,7 +292,7 @@
         });
       } else {
         remember();
-        open(generateSong(song.mood, song.style, song.seed, next));
+        open(generateSong(song.mood, song.style, song.seed, next, song.flavour));
       }
       const words = (song.mods || []).map(modName);
       say(words.length ? `${MOODS[song.mood].name}, ${words.join(', ')}.` : `Just ${MOODS[song.mood].name.toLowerCase()}.`);
@@ -299,12 +300,47 @@
     button.dataset.mod = id;
     modKeys.append(button);
   }
+  // the song's mood said in a sentence, and its flavours (FLAVOURS in music.js): the kinds of music it
+  // holds, a key each, the first being the mood as it is. like a mood, a flavour brings the style it
+  // was made for (underwater's reef party is a tune), unless the song's a loop or a fight, and is
+  // written from the same seed. the line under the keys says what the one that's on sounds like
+  const kindKeys = $('#mmKinds');
+  let shownKinds = '';
+  const kindNow = () => song.flavour || plainFlavour(song.mood);
+  function renderKinds() {
+    const now = `${song.mood}|${kindNow()}`;
+    if (shownKinds === now) return;
+    shownKinds = now;
+    const mood = MOODS[song.mood];
+    const { about, kinds } = FLAVOURS[song.mood];
+    const name = make('b', '', mood.name);
+    $('#mmAbout').replaceChildren(name, ` ${about}`);
+    $('#mmKindTip').textContent = kinds[kindNow()].tip;
+    kindKeys.replaceChildren(...Object.entries(kinds).map(([id, kind]) => {
+      const button = key(kind.name, kind.tip, () => {
+        if (id === kindNow()) return;
+        const flavour = id === plainFlavour(song.mood) ? undefined : id;
+        if (song.own) {
+          retune(() => {
+            if (flavour) song.flavour = flavour;
+            else delete song.flavour;
+          });
+        } else {
+          remember();
+          open(generateSong(song.mood, LOOPS[song.style] ? song.style : kind.style || mood.style, song.seed, song.mods, flavour));
+        }
+        say(`${mood.name}: ${kind.name.toLowerCase()}.`);
+      }, 'mm-key-small mm-kind');
+      button.setAttribute('aria-pressed', id === kindNow());
+      return button;
+    }));
+  }
   for (const button of document.querySelectorAll('[data-style]')) {
     button.addEventListener('click', () => {
       if (song.style === button.dataset.style) return;
       if (song.own) return retune(() => { song.style = button.dataset.style; });
       remember();
-      open(generateSong(song.mood, button.dataset.style, song.seed, song.mods));
+      open(generateSong(song.mood, button.dataset.style, song.seed, song.mods, song.flavour));
     });
   }
 
@@ -394,6 +430,7 @@
     for (const button of moodKeys.children) button.setAttribute('aria-pressed', button.dataset.mood === song.mood);
     if (shownMood !== song.mood) showGroup(MOODS[song.mood].group);
     shownMood = song.mood;
+    renderKinds();
     for (const button of modKeys.children) button.setAttribute('aria-pressed', !!song.mods?.includes(button.dataset.mod));
     for (const button of document.querySelectorAll('[data-style]')) button.setAttribute('aria-pressed', button.dataset.style === song.style);
     const own = !!song.own;
@@ -404,7 +441,7 @@
       $('#mmMoodHeading').textContent = own ? 'Feel' : 'Mood';
       for (const button of moodKeys.children) {
         const { name } = MOODS[button.dataset.mood];
-        button.dataset.tip = own ? `${name}: how any parts written for you play, and the colours. Your own notes stay as they are` : `${name}: the same seed as this song, written in this mood`;
+        button.dataset.tip = own ? `${name}: how any parts written for you play, and the colours. Your own notes stay as they are` : `${name}: ${FLAVOURS[button.dataset.mood].about}`;
       }
     }
     const colour = MOODS[song.mood].colour;
@@ -1534,7 +1571,7 @@
       chip.style.background = MOODS[saved.mood].colour;
       const openKey = make('button', 'mm-library-name');
       openKey.type = 'button';
-      openKey.append(make('span', '', name), make('small', '', `${saved.own ? 'Your own track' : `${MOODS[saved.mood].name}${saved.mods ? ` (${saved.mods.map(modName).join(', ')})` : ''} ${STYLES[saved.style].toLowerCase()}`} ·${NOTE_NAMES[saved.key]} ${SCALES[saved.scale].name.toLowerCase()} · ${saved.tempo} bpm`));
+      openKey.append(make('span', '', name), make('small', '', `${saved.own ? 'Your own track' : `${MOODS[saved.mood].name}${saved.flavour ? `: ${FLAVOURS[saved.mood].kinds[saved.flavour].name.toLowerCase()}` : ''}${saved.mods ? ` (${saved.mods.map(modName).join(', ')})` : ''} ${STYLES[saved.style].toLowerCase()}`} ·${NOTE_NAMES[saved.key]} ${SCALES[saved.scale].name.toLowerCase()} · ${saved.tempo} bpm`));
       openKey.addEventListener('click', () => {
         remember();
         open(saved);

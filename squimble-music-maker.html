@@ -94,6 +94,15 @@
         </div>
         <!-- filled in: a key per mood -->
         <div class="mm-moods" id="mmMoods" role="group" aria-label="Mood"></div>
+        <!-- filled in: what the song's mood is, and a key for each of its flavours (FLAVOURS in music.js) -->
+        <div class="mm-flavours">
+          <p class="mm-about" id="mmAbout"></p>
+          <div class="mm-kinds-row">
+            <span class="mm-mods-label" data-tip="Flavours: the kinds of music a mood holds. Underwater is the slow deep and a party on the reef, Wintry is a snowfall and Christmas. The first is the mood as it's always been">Flavour</span>
+            <div class="mm-kinds" id="mmKinds" role="group" aria-label="Flavour"></div>
+          </div>
+          <p class="mm-kind-tip" id="mmKindTip"></p>
+        </div>
         <!-- filled in: a key per modifier (MODIFIERS in music.js), each lit while it's on -->
         <div class="mm-mods-row">
           <span class="mm-mods-label" data-tip="Modifiers: words that change how the mood plays. Calm folk, angry folk, fast jazzy folk. The mood keeps its own band, the modifiers change how it plays. Up to four at once">Modifiers</span>
@@ -191,6 +200,7 @@
           <ol class="mm-steps">
             <li><b>Pick a mood and press Play.</b> That's honestly it for a first go. The mood picks the key, the tempo, the chords, the band and how they play. The rows above the moods (Gentle, Bright, Magic...) just show different groups of them. Magic is the one I'd try first: it's my Wizard101 row.</li>
             <li><b>Pick a style.</b> Ambient is slow and drifty, for exploring. Tune has a melody you could hum and an ending. Loop is what a game actually plays in a town or a shop: no intro, no outro, round and round. Mini boss and Boss turn whatever mood you're on into a fight that loops.</li>
+            <li><b>Pick a flavour.</b> Most moods hold more than one kind of music, so under the moods are the song's mood's flavours. Underwater is the slow, dreamy deep or a calypso party on the reef, Wintry is a quiet snowfall, Snowdin or Christmas, and Pirates is a shanty below decks or a swashbuckling film score. The line above them says what the mood's for, and the one under them what the flavour sounds like. Ethereal (in the Loud row) is my Cocteau Twins one: try Dancing.</li>
             <li><b>Press New song</b> for another song in the same mood, or type any words into Seed and press Enter. The same words always make the same song, so if you find one you like, the seed is all you need to get it back.</li>
             <li><b>Add modifiers.</b> They're words in front of the mood: calm folk, angry folk, fast jazzy folk. The band stays the same and plays differently. You can have up to four.</li>
             <li><b>Remix one thing at a time.</b> The Remix keys pick just the chords, or just the melodies, or just the band again, and leave everything else alone. Orchestra hands the tune round a new way: another instrument taking turns with the melody, or bells doubling it.</li>

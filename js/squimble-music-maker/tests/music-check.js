@@ -18,7 +18,8 @@
 // preferred, a layer's choice of recording saves, blown and bowed lines slur, songs end at home, and
 // the parts that fill in stand on opposite sides. throat singers hold one note near their own, the
 // gamelan's gong comes round every cycle, and a place's own kits and scenery stay in its moods.
-// a blank track plays nothing, and its layers played by hand play only their own notes.
+// a blank track plays nothing, and its layers played by hand play only their own notes. every rule
+// above holds for every flavour of every mood too, and flavours name only real things and save.
 // (double stops, notes marked stop, are a second note under the tune on purpose, so the one note at a
 // time checks leave them out)
 // run it with
@@ -45,12 +46,16 @@ assert.strictEqual(parseChord('hello'), null);
 let strong = 0;
 let onChord = 0;
 const STYLES = ['ambient', 'tune', 'mini', 'boss', 'loop'];
-for (const mood of Object.keys(MOODS)) {
+// every mood plain, then every other flavour of it (FLAVOURS), which get fewer seeds
+const { FLAVOURS } = vm.runInContext('({ FLAVOURS })', page);
+const VARIANTS = [...Object.keys(MOODS).map((mood) => [mood]), ...Object.entries(FLAVOURS).flatMap(([mood, { kinds }]) => Object.keys(kinds).slice(1).map((kind) => [mood, kind]))];
+const named = (mood, kind) => (kind ? `${mood}/${kind}` : mood);
+for (const [mood, kind] of VARIANTS) {
   for (const style of STYLES) {
-    for (const seed of ['mossy-lantern', 'quiet-tide', 'x']) {
-      const where = `${mood} ${style} ${seed}`;
-      const song = generateSong(mood, style, seed);
-      same(song, generateSong(mood, style, seed), `${where}: the same seed makes the same song`);
+    for (const seed of kind ? ['quiet-tide'] : ['mossy-lantern', 'quiet-tide', 'x']) {
+      const where = `${named(mood, kind)} ${style} ${seed}`;
+      const song = generateSong(mood, style, seed, [], kind);
+      same(song, generateSong(mood, style, seed, [], kind), `${where}: the same seed makes the same song`);
       same(cleanSong(JSON.parse(JSON.stringify(song))), song, `${where}: saves and loads back the same`);
       assert(song.layers.length >= 1 && song.layers.length <= 7, `${where}: 1 to 7 layers`);
       const comp = composeSong(song);
@@ -123,11 +128,11 @@ let soloBars = 0;
 let soloNew = 0;
 let soloEnds = 0;
 let soloHome = 0;
-for (const mood of Object.keys(MOODS)) {
+for (const [mood, kind] of VARIANTS) {
   for (const style of STYLES) {
-    for (let n = 0; n < (FIGHTS[style] ? 6 : 12); n++) {
-      const song = generateSong(mood, style, `fit-${n}`);
-      const where = `${mood} ${style} fit-${n}`;
+    for (let n = 0; n < (FIGHTS[style] ? 6 : 12) / (kind ? 3 : 1); n++) {
+      const song = generateSong(mood, style, `fit-${n}`, [], kind);
+      const where = `${named(mood, kind)} ${style} fit-${n}`;
       // the mood as this style writes it (a fight drives harder, so allows a little harsher)
       const sm = songMood(song);
       const tonal = song.layers.filter((l) => roleFamily(l.role) === 'tonal');
@@ -158,8 +163,8 @@ for (const mood of Object.keys(MOODS)) {
       const textures = song.layers.filter((l) => l.role === 'texture').map((l) => INSTRUMENTS[l.instrument]);
       if (textures.length > 1) assert(textures[0] !== textures[1] && !(textures[0].bed && textures[1].bed), `${where}: two textures that don't go together`);
       const drums = song.layers.find((l) => l.role === 'drums');
-      if (mood === 'cozy' && drums && !FIGHTS[style]) assert(drums.instrument === 'brushes' && drums.pattern === 'brush', `${where}: cozy drums are brushes`);
-      if (mood === 'heavenly' && !FIGHTS[style]) assert(!drums, `${where}: no drums`);
+      if (mood === 'cozy' && !kind && drums && !FIGHTS[style]) assert(drums.instrument === 'brushes' && drums.pattern === 'brush', `${where}: cozy drums are brushes`);
+      if (mood === 'heavenly' && !kind && !FIGHTS[style]) assert(!drums, `${where}: no drums`);
 
       const comp = composeSong(song);
       const melody = song.layers.find((l) => l.role === 'melody');
@@ -702,12 +707,13 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
       for (let bar = 0; bar < section.bars; bar += 4) assert(comp.notes.some((note) => note.layer === drums.id && note.midi === 6 && Math.abs(note.t - (section.start + bar * bpb)) < 0.05), `gamelan gong-${n}: the gong comes round every four bars`);
     }
   }
-  for (const [id, mood] of Object.entries(MOODS)) {
+  for (const [id, kind] of VARIANTS) {
     for (const style of ['tune', 'ambient', 'boss']) {
-      for (let n = 0; n < 4; n++) {
-        const song = generateSong(id, style, `own-${n}`);
+      for (let n = 0; n < (kind ? 2 : 4); n++) {
+        const song = generateSong(id, style, `own-${n}`, [], kind);
+        const mood = songMood(song);
         for (const layer of song.layers.filter((one) => one.role === 'drums' || one.role === 'texture')) {
-          if (INSTRUMENTS[layer.instrument].own) assert([...mood.kits, ...mood.textures].includes(layer.instrument), `${id} ${style} own-${n}: the ${layer.instrument} is only where a mood names it`);
+          if (INSTRUMENTS[layer.instrument].own) assert([...mood.kits, ...mood.textures].includes(layer.instrument), `${named(id, kind)} ${style} own-${n}: the ${layer.instrument} is only where a mood names it`);
         }
       }
     }
@@ -782,4 +788,48 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
     assert.strictEqual(song.mood, mood, `a song saved in ${old} opens in ${mood}`);
     assert(mods.every((id) => song.mods?.includes(id)), `${old} opens as ${mood} with ${mods.join(', ') || 'no modifiers'}`);
   }
+}
+
+// flavours (FLAVOURS and flavourMood in music.js): every mood says what it is and has kinds, the first
+// of which is the mood as it is and never saved, so a song from before flavours makes the same notes.
+// a kind only names real instruments that fit their role, real patterns, kits, scenery and chords, and
+// never leaves a role with nothing gentle enough for the mood's cap. a flavour saves and loads, one the
+// mood doesn't have is dropped, modifiers work on it, and a style it brings is a real one
+{
+  const { PATTERNS, INSTRUMENTS, maxEdge, instrumentFits, parseProgression, MODIFIERS } = vm.runInContext('({ PATTERNS, INSTRUMENTS, maxEdge, instrumentFits, parseProgression, MODIFIERS })', page);
+  const mods = Object.keys(MODIFIERS);
+  for (const id of Object.keys(MOODS)) assert(FLAVOURS[id]?.about && Object.keys(FLAVOURS[id].kinds).length >= 2, `${id} says what it is and has flavours`);
+  for (const [id, { kinds }] of Object.entries(FLAVOURS)) {
+    assert(MOODS[id], `${id} has flavours but isn't a mood`);
+    const [plain, ...others] = Object.keys(kinds);
+    same(Object.keys(kinds[plain]).sort(), ['name', 'tip'], `${id}'s first flavour is the mood as it is`);
+    same(generateSong(id, 'tune', 'plain', [], plain), generateSong(id, 'tune', 'plain'), `${id}: the plain flavour is the mood`);
+    assert(!('flavour' in generateSong(id, 'tune', 'plain', [], plain)), `${id}: the plain flavour isn't saved`);
+    for (const [n, kind] of others.entries()) {
+      const where = `${id}/${kind}`;
+      const settings = kinds[kind];
+      assert(settings.name && settings.tip.startsWith(`${settings.name}:`), `${where}: a name and a tip`);
+      assert(!settings.style || STYLES.includes(settings.style), `${where}: its style is real`);
+      for (const [role, list] of Object.entries(settings.palette || {})) for (const inst of list) assert(instrumentFits(inst, role), `${where}: ${inst} isn't a ${role}`);
+      for (const [role, list] of Object.entries(settings.patterns || {})) for (const pattern of list) assert(PATTERNS[role.replace(/^\w+\./, '')]?.[pattern], `${where}: ${role} has no pattern ${pattern}`);
+      for (const kit of settings.kits || []) assert.strictEqual(INSTRUMENTS[kit]?.family, 'kit', `${where}: ${kit} isn't a kit`);
+      for (const texture of settings.textures || []) assert.strictEqual(INSTRUMENTS[texture]?.family, 'texture', `${where}: ${texture} isn't scenery`);
+      for (const chords of settings.chords || []) same(parseProgression(chords).bad, [], `${where}: ${chords} are chords`);
+      for (const style of STYLES) {
+        const song = generateSong(id, style, 'kind', [], kind);
+        assert.strictEqual(song.flavour, kind, `${where} ${style}: the flavour is kept`);
+        same(cleanSong(JSON.parse(JSON.stringify(song))), song, `${where} ${style}: saves and loads back the same`);
+        const sm = songMood(song);
+        for (const [role, list] of Object.entries(sm.palette)) assert(list.some((inst) => INSTRUMENTS[inst].edge <= maxEdge(sm, role) + 1e-9), `${where} ${style}: the ${role} has nothing gentle enough for the mood`);
+      }
+      // a modifier on a flavour, in a style it wasn't made for
+      const mod = mods[(n * 3 + id.length) % mods.length];
+      const song = generateSong(id, n % 2 ? 'ambient' : 'boss', 'mod', [mod], kind);
+      same(song.mods, [mod], `${where}+${mod}: the modifier is kept`);
+      assert(composeSong(song).notes.length > 0, `${where}+${mod}: makes notes`);
+    }
+  }
+  assert(!('flavour' in cleanSong({ mood: 'underwater', flavour: 'nonsense' })), 'an unknown flavour is dropped');
+  assert(!('flavour' in cleanSong({ mood: 'calm', flavour: 'reef' })), "another mood's flavour is dropped");
+  assert(!('flavour' in cleanSong({ mood: 'underwater', flavour: 'deep' })), 'the plain flavour is never saved');
 }
