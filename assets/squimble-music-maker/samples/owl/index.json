@@ -1,0 +1,28 @@
+{
+ "source": "Owl hoots by Gerent and Breviceps (freesound.org)",
+ "link": "https://cdn.freesound.org/previews/",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "event-1.mp3",
+   "hit": "event",
+   "vel": 0.8,
+   "midi": 68,
+   "tune": 27
+  },
+  {
+   "file": "event-2.mp3",
+   "hit": "event",
+   "vel": 0.8,
+   "midi": 66,
+   "tune": 38
+  },
+  {
+   "file": "event-3.mp3",
+   "hit": "event",
+   "vel": 0.8,
+   "midi": 66,
+   "tune": 29
+  }
+ ]
+}

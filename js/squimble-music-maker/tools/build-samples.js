@@ -67,6 +67,23 @@ const SOURCES = {
   conch: { url: 'https://cdn.freesound.org/previews/', name: 'Snailhorn by Ohrwurm (freesound.org/people/Ohrwurm)', licence: 'CC0 1.0' },
   bowls: { url: 'https://cdn.freesound.org/previews/', name: 'Singing bowls, a and c tuned, by brodjaman (freesound.org/people/brodjaman)', licence: 'CC0 1.0' },
   sistrum: { url: 'https://cdn.freesound.org/previews/', name: 'sistrum by memexikon (freesound.org/people/memexikon)', licence: 'CC0 1.0' },
+  // the fourth round: real scenery. the synthesised rain, sea, fire, brook, birds, owl, frogs, drips,
+  // creaks, leaves, wind and far off thunder got recordings, and there's new scenery for silent hill's
+  // fog (radio static, a siren, metal clanging, chains, footsteps, crows), minecraft's nether (lava)
+  // and a city's machines (a factory, steam). all cc0, from freesound
+  ...Object.fromEntries([
+    ['rain', 'Rain light 2 (rural) by jmbphilmes'], ['ocean', 'Ocean Waves by Noted451'], ['fire', 'Crackling Fire by samarobryn'],
+    ['stream', 'Creek 06 (loop) by VKProduktion'], ['birds', 'Birds In The Morning by BurghRecords'], ['owl', 'Owl hoots by Gerent'],
+    ['frogs', 'Nature sounds frog 1 by Sandermotions'], ['drips', 'Water Dripping in Cave by Sclolex'],
+    ['creaks', 'Long Metal Creak by LoafDV, Metal Creak 4 by ingudios and Metallic Groan by hinchinbrook'],
+    ['leaves', 'Rustling leaves by giddster, Leaves_Rustling_Edited by AmberdeMeillon and leaves.mp3 by DSOADigital'],
+    ['wind', 'Wind Gust by crashoverride6, gust of wind by Tony B kksm and Winter Winds by UrsaDaBear'],
+    ['thunder', 'Distant Thunder Clap_Gentle by mikala_oidua and distant thunder by moxobna'], ['lava', 'Lava Loop 4 by Fission9'],
+    ['static', 'Radio Interference/Static by harveyjnz and tv channel change static blips by kyles'], ['siren', 'Air Raid Siren Alarm by Poligonstudio'],
+    ['clanks', 'SFX Metal Shed Door - Hits, Clangs, Rattle by EpicWizard'], ['chains', 'ChainsRattling by klakmart and chain by nettimato'],
+    ['crows', 'Crows_01 by Q.K. and Crows by ken788'], ['footsteps', 'SlowStepsOnGravel by tabiCATcreations'],
+    ['factory', 'Large Warehouse/Factory Ambience by fimrod'], ['steam', 'Air (or steam) pressure release by brunoboselli and Steam.wav by sniperous'],
+  ].map(([key, name]) => [`fs-${key}`, { url: 'https://cdn.freesound.org/previews/', name: `${name} (freesound.org)`, licence: 'CC0 1.0' }])),
 };
 
 // ---------- what goes in each folder ----------
@@ -382,6 +399,34 @@ const KITS = {
   scratches: { from: 'scratch', hits: { event: [['661/661407_14498354-hq.mp3', 0.8, { split: { most: 6, longest: 2.5, gap: 0.08 } }]] } },
   rainstick: { from: 'rainstick', hits: { event: [['476/476851_8152631-hq.mp3', 0.8, { split: { most: 4, longest: 7 } }]] } },
   conch: { from: 'conch', hits: { event: [['64/64830_866470-hq.mp3', 0.8, { split: { most: 5, longest: 8 } }]] } },
+  // the fourth round's scenery. a steady sound with no quiet in it (rain, a fire, a brook, static, a
+  // siren's wail) is sliced instead (chop: how many slices, how long each, in seconds). a bed is
+  // played as slices one after another, crossfaded (synth.js), so it never loops the same few seconds
+  rain: { from: 'fs-rain', hits: { bed: [['200/200273_2322692-hq.mp3', 0.8, { chop: { most: 4, length: 18 } }]] } },
+  ocean: { from: 'fs-ocean', hits: { bed: [['531/531015_9818404-hq.mp3', 0.8, { chop: { most: 3, length: 20 } }]] } },
+  fire: { from: 'fs-fire', hits: { bed: [['414/414767_4955305-hq.mp3', 0.8, { chop: { most: 3, length: 18 } }]] } },
+  stream: { from: 'fs-stream', hits: { bed: [['231/231536_4034520-hq.mp3', 0.8, { chop: { most: 2, length: 16 } }]] } },
+  lava: { from: 'fs-lava', hits: { bed: [['474/474852_9395330-hq.mp3', 0.8, { chop: { most: 2, length: 18 } }]] } },
+  factory: { from: 'fs-factory', hits: { bed: [['278/278987_5322055-hq.mp3', 0.8, { chop: { most: 2, length: 10 } }]] } },
+  birds: { from: 'fs-birds', hits: { event: [['554/554513_7241289-hq.mp3', 0.8, { chop: { most: 8, length: 7 } }]] } },
+  drips: { from: 'fs-drips', hits: { event: [['177/177958_985466-hq.mp3', 0.8, { chop: { most: 6, length: 6 } }]] } },
+  // (pitched: an owl hoots on a note, so each hoot's pitch is measured and synth.js moves it to the
+  // song's home note, like the singing bowl)
+  owl: { from: 'fs-owl', hits: { event: ['558/558396_556505-hq.mp3', '558/558397_556505-hq.mp3', '558/558398_556505-hq.mp3'].map((file) => [file, 0.8, { pitched: true }]) } },
+  frogs: { from: 'fs-frogs', hits: { event: [['278/278868_1402315-hq.mp3', 0.8, { chop: { most: 5, length: 5 } }]] } },
+  creaks: { from: 'fs-creaks', hits: { event: ['238/238289_1554038-hq.mp3', '119/119468_1819253-hq.mp3', '496/496836_9847211-hq.mp3'].map((file) => [file, 0.8, { chop: { most: 1, length: 8 } }]) } },
+  leaves: { from: 'fs-leaves', hits: { event: ['437/437356_1738686-hq.mp3', '443/443065_8282799-hq.mp3', '362/362253_6115487-hq.mp3'].map((file) => [file, 0.8, { chop: { most: 1, length: 9 } }]) } },
+  // (even: every piece brought to the same loudness, for takes recorded at very different levels, so
+  // one gust or roll isn't 20 db under the next)
+  wind: { from: 'fs-wind', even: true, hits: { event: ['146/146932_1274078-hq.mp3', '80/80937_1247285-hq.mp3', '400/400992_7393256-hq.mp3'].map((file) => [file, 0.8, { chop: { most: 1, length: 11 } }]) } },
+  thunder: { from: 'fs-thunder', even: true, hits: { event: [['347/347562_5481182-hq.mp3', 0.8, { split: { most: 2, longest: 12, gap: 1 } }], ['107/107518_43834-hq.mp3', 0.8, { split: { most: 4, longest: 12, gap: 1 } }]] } },
+  static: { from: 'fs-static', hits: { event: [['337/337700_4004161-hq.mp3', 0.8, { chop: { most: 6, length: 5 } }], ['454/454259_612689-hq.mp3', 0.8, { split: { most: 4, longest: 4 } }]] } },
+  siren: { from: 'fs-siren', hits: { event: [['412/412171_7383104-hq.mp3', 0.8, { chop: { most: 4, length: 10 } }]] } },
+  clanks: { from: 'fs-clanks', hits: { event: [['264/264889_2291325-hq.mp3', 0.8, { split: { most: 10, longest: 3 } }]] } },
+  chains: { from: 'fs-chains', hits: { event: [['108/108265_179679-hq.mp3', 0.8, { split: { most: 4, longest: 4 } }], ['387/387240_1815993-hq.mp3', 0.8, { split: { most: 3, longest: 4 } }]] } },
+  crows: { from: 'fs-crows', hits: { event: [['56/56233_91374-hq.mp3', 0.8, { split: { most: 4, longest: 4 } }], ['386/386768_5768130-hq.mp3', 0.8, { split: { most: 4, longest: 4 } }]] } },
+  footsteps: { from: 'fs-footsteps', hits: { event: [['415/415783_6702737-hq.mp3', 0.8, { chop: { most: 6, length: 5 } }]] } },
+  steam: { from: 'fs-steam', hits: { event: [['457/457294_300738-hq.mp3', 0.8, { split: { most: 2, longest: 7 } }], ['365/365071_6639672-hq.mp3', 0.8, { chop: { most: 1, length: 8 } }]] } },
 };
 
 // ---------- notes ----------
@@ -460,6 +505,7 @@ function encode(data, file) {
 }
 
 const peakOf = (data) => data.reduce((top, x) => Math.max(top, Math.abs(x)), 0);
+const rmsOf = (data) => Math.sqrt(data.reduce((sum, x) => sum + x * x, 0) / data.length);
 
 // trims the silence before the note starts and after it's died away, and anything past seconds
 // (faded, so it can't click)
@@ -644,6 +690,24 @@ async function buildTonal(work, folder, spec) {
   writeIndex(folder, spec, sounds.map((one) => one.entry));
 }
 
+// a long, steady recording with no quiet in it (rain, static, a siren's wail) sliced instead: most slices
+// of length seconds spread across it (fewer if it's too short for them all not to overlap), each faded
+// in and out so it can't click
+function slices(data, { most, length }) {
+  const size = Math.min(data.length, Math.round(RATE * length));
+  const count = Math.max(1, Math.min(most, Math.floor(data.length / size)));
+  const fade = Math.round(RATE * Math.min(0.4, length / 6));
+  return Array.from({ length: count }, (_, k) => {
+    const at = count > 1 ? Math.round((k * (data.length - size)) / (count - 1)) : (data.length - size) >> 1;
+    const out = data.slice(at, at + size);
+    for (let i = 0; i < fade; i++) {
+      out[i] *= i / fade;
+      out[out.length - 1 - i] *= i / fade;
+    }
+    return out;
+  });
+}
+
 // a long recording cut into its events (a call, a scream, a scratch) where it goes quiet: runs of 50 ms
 // steps louder than a tenth of its loud level, joined over gaps shorter than gap seconds. the most
 // events kept are spread across the recording, each at most longest seconds (faded off)
@@ -682,8 +746,26 @@ async function buildKit(work, folder, spec) {
       let n = 0;
       takes.forEach(([, vel, how = {}], i) => {
         const whole = decode(files[i]);
-        for (const data of how.split ? events(whole, how.split) : [tidy(whole, 6)]) sounds.push({ data, entry: { file: `${hit}-${++n}.mp3`, hit, vel } });
+        const pieces = how.chop ? slices(whole, how.chop) : how.split ? events(whole, how.split) : [tidy(whole, 6)];
+        // a slice or event 30 db under the take's loudest is only the recording's quiet tail
+        const loudest = Math.max(...pieces.map(rmsOf));
+        for (const data of pieces.filter((one) => rmsOf(one) > loudest * 0.03)) {
+          const entry = { file: `${hit}-${++n}.mp3`, hit, vel };
+          const hz = how.pitched && pitchOf(data);
+          if (hz) {
+            entry.midi = Math.round(midiOf(hz));
+            entry.tune = Math.round((entry.midi - midiOf(hz)) * 100);
+          }
+          sounds.push({ data, entry });
+        }
       });
+    }
+  }
+  if (spec.even) {
+    const loudest = Math.max(...sounds.map((one) => rmsOf(one.data)));
+    for (const one of sounds) {
+      const k = loudest / rmsOf(one.data);
+      for (let i = 0; i < one.data.length; i++) one.data[i] *= k;
     }
   }
   level(sounds);

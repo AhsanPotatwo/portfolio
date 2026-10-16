@@ -14,7 +14,8 @@
 // mood's own band, clean up (no opposites, no unknowns, any order), and leave no trace on a song
 // without them. counter melodies in counterpoint stay under the tune and in the intervals that blend,
 // players ornament their notes, slides drawn by hand save and play, and sections keep their energy.
-// the recorded instruments' files are all there, and every folder of them gets played. recordings are
+// the recorded instruments' files are all there, and every folder of them gets played. a prelude opens
+// on scenery alone, drama stretches a song's quiet and loud, ambient songs have a tune. recordings are
 // preferred, a layer's choice of recording saves, blown and bowed lines slur, songs end at home, and
 // the parts that fill in stand on opposite sides. throat singers hold one note near their own, the
 // gamelan's gong comes round every cycle, and a place's own kits and scenery stay in its moods.
@@ -147,7 +148,8 @@ for (const [mood, kind] of VARIANTS) {
       // not crowded: two parts at most moving round the middle, ambient songs six layers at most, and
       // running notes no faster than six a second
       assert(parts.filter((l) => MIDDLE.includes(l.role)).length <= 2, `${where}: two middle parts at most`);
-      if (style === 'ambient') assert(song.layers.length <= 6, `${where}: ambient songs have room`);
+      // (the scenery doesn't count: an ambient song's lone tune can join six others, pickScenery)
+      if (style === 'ambient') assert(song.layers.filter((l) => l.role !== 'texture').length <= 6, `${where}: ambient songs have room`);
       for (const layer of song.layers.filter(usesRate)) assert(layer.rate === 'slow' || song.tempo / 60 / rateStep(layer.rate, METERS[song.meter].sub) <= MAX_RATE, `${where}: the ${layer.role} runs too fast`);
       // one band: chip and acoustic sounds never together, and surprises only from moods near this one
       const worlds = new Set(song.layers.map((l) => INSTRUMENTS[l.instrument].world));
@@ -157,8 +159,10 @@ for (const [mood, kind] of VARIANTS) {
       // no section is only scenery, and a tune opens on two of its band (one in ambient), never a lone
       // pad: an intro that was all texture made a happy song start out ambient
       const players = song.layers.filter((l) => OPENERS.includes(l.role)).map((l) => l.id);
-      for (const section of song.sections) assert(section.play.some((id) => song.layers.find((l) => l.id === id).role !== 'texture'), `${where}: ${section.name} is only the texture`);
-      assert(song.sections[0].play.filter((id) => players.includes(id)).length >= Math.min(players.length, OPENING[style]), `${where}: the intro is too thin`);
+      // (apart from a mood's prelude, which is scenery alone on purpose: warmth's embers before the music)
+      const prelude = sm.prelude && song.sections[0].name === sm.prelude ? 1 : 0;
+      for (const section of song.sections.slice(prelude)) assert(section.play.some((id) => song.layers.find((l) => l.id === id).role !== 'texture'), `${where}: ${section.name} is only the texture`);
+      assert(song.sections[prelude].play.filter((id) => players.includes(id)).length >= Math.min(players.length, OPENING[style]), `${where}: the intro is too thin`);
       // two textures are two different ones, and not two steady beds
       const textures = song.layers.filter((l) => l.role === 'texture').map((l) => INSTRUMENTS[l.instrument]);
       if (textures.length > 1) assert(textures[0] !== textures[1] && !(textures[0].bed && textures[1].bed), `${where}: two textures that don't go together`);
@@ -788,6 +792,49 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
     assert.strictEqual(song.mood, mood, `a song saved in ${old} opens in ${mood}`);
     assert(mods.every((id) => song.mods?.includes(id)), `${old} opens as ${mood} with ${mods.join(', ') || 'no modifiers'}`);
   }
+}
+
+// the fourth round: a prelude (warmth, silent hill's fog) is scenery alone, and the music comes in
+// after it, but a loop never has one. drama (tragic, the dramatic modifier) pulls the quiet sections
+// down and the loud ones up, in the same song shape. and an ambient song nearly always has a tune now,
+// and scenery where its place has some (pickScenery)
+{
+  const roles = (song, section) => section.play.map((id) => song.layers.find((l) => l.id === id).role);
+  for (const [mood, kind] of [['nostalgic', 'warmth'], ['eerie', 'fog']]) {
+    for (const style of ['ambient', 'tune']) {
+      for (const seed of ['ember', 'ash', 'smoke', 'x']) {
+        const where = `${mood}/${kind} ${style} ${seed}`;
+        const song = generateSong(mood, style, seed, [], kind);
+        assert(roles(song, song.sections[0]).every((role) => role === 'texture'), `${where}: opens on its scenery alone`);
+        assert(roles(song, song.sections[1]).some((role) => role !== 'texture'), `${where}: the music comes in after the scenery`);
+        assert(composeSong(song).notes.some((note) => note.layer.startsWith('texture') && note.t < 0.1), `${where}: the scenery plays from the start`);
+      }
+    }
+    const loop = generateSong(mood, 'loop', 'ember', [], kind);
+    assert(roles(loop, loop.sections[0]).some((role) => role !== 'texture'), `${mood}/${kind}: a loop has no prelude`);
+  }
+  for (const mood of ['calm', 'happy', 'heroic', 'sad']) {
+    for (const seed of ['drama-1', 'drama-2']) {
+      const plain = generateSong(mood, 'tune', seed);
+      const big = generateSong(mood, 'tune', seed, ['dramatic']);
+      const energies = (song) => song.sections.map((section) => section.energy);
+      same(big.sections.map((section) => section.name), plain.sections.map((section) => section.name), `${mood} ${seed}: drama keeps the song's shape`);
+      assert(Math.min(...energies(big)) < Math.min(...energies(plain)) && Math.max(...energies(big)) >= Math.max(...energies(plain)), `${mood} ${seed}: drama makes the quiet quieter and the loud no quieter`);
+    }
+  }
+  let tunes = 0;
+  let scenery = 0;
+  let songs = 0;
+  for (const mood of Object.keys(MOODS).filter((id) => MOODS[id].style === 'ambient')) {
+    for (let n = 0; n < 8; n++) {
+      const song = generateSong(mood, 'ambient', `full-${n}`);
+      songs++;
+      if (song.layers.some((l) => l.role === 'melody')) tunes++;
+      if (song.layers.some((l) => l.role === 'texture') || !songMood(song).textures.length) scenery++;
+    }
+  }
+  assert(tunes / songs > 0.75, `ambient songs mostly have a tune (${tunes} of ${songs})`);
+  assert(scenery / songs > 0.9, `ambient songs mostly have scenery (${scenery} of ${songs})`);
 }
 
 // flavours (FLAVOURS and flavourMood in music.js): every mood says what it is and has kinds, the first

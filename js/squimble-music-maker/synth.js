@@ -644,26 +644,26 @@ const INSTRUMENTS = {
   // textures. they're scenery: most are now things that happen now and then with quiet in between,
   // like the vinyl's crackle, because a steady wash (the old wind) was loud and rarely added anything.
   // each gain brings it to about the vinyl's loudness (measured with tests/levels.html)
-  wind:     { name: 'Wind', family: 'texture', kind: 'texture', texture: 'wind', gain: 0.25 },
+  wind:     { name: 'Wind', family: 'texture', kind: 'texture', texture: 'wind', gain: 0.25, samples: 'wind', sampled: { gain: 0.15 }, every: [8, 18] },
   // rain and crickets sit lower than the rest: they're mostly high frequencies, which the ear hears
   // as louder and harsher than the same level of wind or ocean
-  rain:     { name: 'Rain', family: 'texture', kind: 'texture', texture: 'rain', bed: true, gain: 0.12 },
-  ocean:    { name: 'Ocean', family: 'texture', kind: 'texture', texture: 'ocean', bed: true, gain: 0.2 },
+  rain:     { name: 'Rain', family: 'texture', kind: 'texture', texture: 'rain', bed: true, gain: 0.12, samples: 'rain', sampled: { gain: 0.45 } },
+  ocean:    { name: 'Ocean', family: 'texture', kind: 'texture', texture: 'ocean', bed: true, gain: 0.2, samples: 'ocean', sampled: { gain: 0.21 } },
   vinyl:    { name: 'Vinyl crackle', family: 'texture', kind: 'texture', texture: 'vinyl', bed: true, gain: 0.6 },
-  fire:     { name: 'Campfire', family: 'texture', kind: 'texture', texture: 'fire', bed: true, gain: 0.3 },
-  rumble:   { name: 'Rumble', family: 'texture', kind: 'texture', texture: 'rumble', gain: 0.4 },
+  fire:     { name: 'Campfire', family: 'texture', kind: 'texture', texture: 'fire', bed: true, gain: 0.3, samples: 'fire', sampled: { gain: 1.5 } },
+  rumble:   { name: 'Rumble', family: 'texture', kind: 'texture', texture: 'rumble', gain: 0.4, samples: 'thunder', sampled: { gain: 0.66 }, every: [16, 40] },
   crickets: { name: 'Crickets', family: 'texture', kind: 'texture', texture: 'crickets', bed: true, gain: 0.2 },
   hum:      { name: 'Hum', family: 'texture', kind: 'texture', texture: 'hum', bed: true, gain: 0.15 },
-  drips:    { name: 'Cave drips', family: 'texture', kind: 'texture', texture: 'drips', gain: 0.3 },
+  drips:    { name: 'Cave drips', family: 'texture', kind: 'texture', texture: 'drips', gain: 0.3, samples: 'drips', sampled: { gain: 0.9 }, every: [5, 12] },
   geiger:   { name: 'Geiger counter', family: 'texture', kind: 'texture', texture: 'geiger', gain: 0.7 },
-  birds:    { name: 'Birdsong', family: 'texture', kind: 'texture', texture: 'birds', gain: 0.15 },
-  creaks:   { name: 'Creaking metal', family: 'texture', kind: 'texture', texture: 'creaks', gain: 1.2 },
+  birds:    { name: 'Birdsong', family: 'texture', kind: 'texture', texture: 'birds', gain: 0.15, samples: 'birds', sampled: { gain: 0.44 }, every: [6, 16] },
+  creaks:   { name: 'Creaking metal', family: 'texture', kind: 'texture', texture: 'creaks', gain: 1.2, samples: 'creaks', sampled: { gain: 0.15 }, every: [8, 20] },
   // more of a place for ambient songs: a brook babbling (steady, but only bubbles, no hiss), leaves
   // rustling now and then, frogs, a far off owl, and wind chimes somewhere out of sight
-  stream:   { name: 'Brook', family: 'texture', kind: 'texture', texture: 'stream', bed: true, gain: 0.035 },
-  leaves:   { name: 'Rustling leaves', family: 'texture', kind: 'texture', texture: 'leaves', gain: 0.6 },
-  frogs:    { name: 'Frogs', family: 'texture', kind: 'texture', texture: 'frogs', gain: 0.8 },
-  owl:      { name: 'Owl', family: 'texture', kind: 'texture', texture: 'owl', gain: 0.08 },
+  stream:   { name: 'Brook', family: 'texture', kind: 'texture', texture: 'stream', bed: true, gain: 0.035, samples: 'stream', sampled: { gain: 0.148 } },
+  leaves:   { name: 'Rustling leaves', family: 'texture', kind: 'texture', texture: 'leaves', gain: 0.6, samples: 'leaves', sampled: { gain: 0.22 }, every: [6, 16] },
+  frogs:    { name: 'Frogs', family: 'texture', kind: 'texture', texture: 'frogs', gain: 0.8, samples: 'frogs', sampled: { gain: 2.8 }, every: [5, 16] },
+  owl:      { name: 'Owl', family: 'texture', kind: 'texture', texture: 'owl', gain: 0.08, samples: 'owl', sampled: { gain: 0.126 }, every: [14, 32] },
   chimes:   { name: 'Distant chimes', family: 'texture', kind: 'texture', texture: 'chimes', gain: 0.09 },
   // an amp starting to feed back now and then, for the loud moods
   feedback: { name: 'Feedback', family: 'texture', kind: 'texture', texture: 'feedback', gain: 0.04 },
@@ -678,6 +678,19 @@ const INSTRUMENTS = {
   rainstick: { name: 'Rainstick', family: 'texture', kind: 'texture', own: true, texture: 'rainstick', gain: 0.25, samples: 'rainstick', sampled: { gain: 0.58 }, every: [10, 24] },
   scratches: { name: 'Record scratches', family: 'texture', kind: 'texture', own: true, texture: 'scratches', gain: 0.63, samples: 'scratches', sampled: { gain: 0.34 }, every: [8, 20] },
   'singing-bowl': { name: 'Singing bowl', family: 'texture', kind: 'texture', own: true, texture: 'bowl', gain: 0.05, samples: 'singing-bowl', sampled: { gain: 0.13 }, every: [16, 34] },
+  // the fourth round's scenery, own too: silent hill's fog (a radio crackling with static, a siren far
+  // off, metal clanging, chains, footsteps of someone you can't see, crows), minecraft's nether (lava
+  // bubbling under the embers) and a city of machines (a factory humming, steam let out of a pipe).
+  // all recorded, with a synthesised version for when the recordings can't load
+  lava:     { name: 'Lava', family: 'texture', kind: 'texture', own: true, texture: 'lava', bed: true, gain: 0.148, samples: 'lava', sampled: { gain: 0.83 } },
+  factory:  { name: 'Factory', family: 'texture', kind: 'texture', own: true, texture: 'factory', bed: true, gain: 0.098, samples: 'factory', sampled: { gain: 0.126 } },
+  static:   { name: 'Radio static', family: 'texture', kind: 'texture', own: true, texture: 'static', gain: 0.2, samples: 'static', sampled: { gain: 0.34 }, every: [6, 18] },
+  siren:    { name: 'Distant siren', family: 'texture', kind: 'texture', own: true, texture: 'siren', gain: 0.057, samples: 'siren', sampled: { gain: 0.133 }, every: [25, 50] },
+  clanks:   { name: 'Clanging metal', family: 'texture', kind: 'texture', own: true, texture: 'clanks', gain: 0.067, samples: 'clanks', sampled: { gain: 0.376 }, every: [6, 16] },
+  chains:   { name: 'Chains', family: 'texture', kind: 'texture', own: true, texture: 'chains', gain: 0.166, samples: 'chains', sampled: { gain: 0.6 }, every: [10, 24] },
+  crows:    { name: 'Crows', family: 'texture', kind: 'texture', own: true, texture: 'crows', gain: 0.65, samples: 'crows', sampled: { gain: 0.39 }, every: [12, 28] },
+  footsteps: { name: 'Footsteps', family: 'texture', kind: 'texture', own: true, texture: 'footsteps', gain: 0.6, samples: 'footsteps', sampled: { gain: 1.95 }, every: [14, 30] },
+  steam:    { name: 'Steam', family: 'texture', kind: 'texture', own: true, texture: 'steam', gain: 0.079, samples: 'steam', sampled: { gain: 0.176 }, every: [10, 24] },
 };
 // how the instrument lists are grouped on the page
 const FAMILIES = { pad: 'Pads', keys: 'Keys and mallets', guitar: 'Guitars', bell: 'Bells', lead: 'Leads', bass: 'Basses', drone: 'Drones', kit: 'Drum kits', texture: 'Textures' };
@@ -2245,6 +2258,151 @@ const TEXTURES = {
       }
     }
   },
+  // lava (minecraft's nether): thick bubbles bursting slowly, low, over the far off roll of the rumble
+  lava(ctx, out, when, end, bright) {
+    TEXTURES.rumble(ctx, out, when, end, bright);
+    for (const at of moments(when, end, 0.4, 2.5)) {
+      const f = 70 + Math.random() * 110;
+      const length = 0.08 + Math.random() * 0.12;
+      const osc = ctx.createOscillator();
+      osc.frequency.setValueAtTime(f, at);
+      osc.frequency.exponentialRampToValueAtTime(f * 2.2, at + length);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, at);
+      gain.gain.linearRampToValueAtTime(0.4 + Math.random() * 0.6, at + length * 0.4);
+      gain.gain.linearRampToValueAtTime(0, at + length);
+      osc.connect(gain).connect(spot(ctx, out));
+      osc.start(at);
+      osc.stop(at + length + 0.02);
+    }
+  },
+  // a factory somewhere close: a machine humming on the home note and something heavy rolling
+  factory(ctx, out, when, end, bright, midi) {
+    TEXTURES.hum(ctx, out, when, end, bright, midi);
+    TEXTURES.rumble(ctx, out, when, end, bright);
+  },
+  // a radio between stations (silent hill's warns you something's near): bursts of static that
+  // swell, flicker and cut out
+  static(ctx, out, when, end) {
+    for (const at of moments(when, end, 6, 18)) {
+      const length = 1 + Math.random() * 3;
+      const band = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 1800 + Math.random() * 1500, Q: 0.7 });
+      const flicker = ctx.createGain();
+      flicker.gain.value = 0.6;
+      lfo(ctx, 6 + Math.random() * 14, 0.4, flicker.gain, at, at + length + 0.05, 'square');
+      const level = ctx.createGain();
+      level.gain.value = 0;
+      swell(level.gain, at, 0.15, length, 1);
+      noiseSource(ctx, at, at + length + 0.05).connect(band).connect(flicker).connect(level).connect(spot(ctx, out));
+    }
+  },
+  // an air raid siren far off: one slow wail rising, holding and falling away, now and then
+  siren(ctx, out, when, end) {
+    for (const at of moments(when, end, 25, 50)) {
+      const length = 7 + Math.random() * 4;
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(180, at);
+      osc.frequency.exponentialRampToValueAtTime(560, at + length * 0.35);
+      osc.frequency.setValueAtTime(560, at + length * 0.55);
+      osc.frequency.exponentialRampToValueAtTime(170, at + length);
+      const low = new BiquadFilterNode(ctx, { type: 'lowpass', frequency: 1100, Q: 1 });
+      const level = ctx.createGain();
+      level.gain.value = 0;
+      swell(level.gain, at, length * 0.35, length * 0.65, 1);
+      osc.connect(low).connect(level).connect(spot(ctx, out));
+      osc.start(at);
+      osc.stop(at + length + 0.05);
+    }
+  },
+  // metal struck somewhere off in the dark, ringing at a struck plate's out of tune overtones (silent
+  // hill's otherworld, a factory floor): one to three blows
+  clanks(ctx, out, when, end, bright) {
+    for (const at of moments(when, end, 6, 16)) {
+      const where = spot(ctx, out);
+      const f = 160 + Math.random() * 260;
+      for (let k = 0, t = at; k < 1 + Math.floor(Math.random() * 3); k++, t += 0.25 + Math.random() * 0.6) {
+        for (const [ratio, level, ring] of [[1, 1, 1.2], [2.76, 0.5, 0.6], [5.4, 0.3, 0.3], [8.93, 0.15, 0.15]]) {
+          const osc = ctx.createOscillator();
+          osc.frequency.value = f * ratio * Math.min(1.2, bright);
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(level, t + 0.002);
+          gain.gain.setTargetAtTime(0, t + 0.002, ring / 4);
+          osc.connect(gain).connect(where);
+          osc.start(t);
+          osc.stop(t + ring + 0.05);
+        }
+      }
+    }
+  },
+  // chains rattling: a second or so of little metal ticks, bunched
+  chains(ctx, out, when, end) {
+    for (const at of moments(when, end, 10, 24)) {
+      const where = spot(ctx, out);
+      const length = 0.4 + Math.random() * 0.8;
+      for (let t = at; t < at + length; t += 0.01 + Math.random() ** 2 * 0.08) {
+        const osc = ctx.createOscillator();
+        osc.frequency.value = 2200 + Math.random() * 4000;
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.3 + Math.random() * 0.7, t);
+        gain.gain.setTargetAtTime(0, t + 0.001, 0.012);
+        osc.connect(gain).connect(where);
+        osc.start(t);
+        osc.stop(t + 0.08);
+      }
+    }
+  },
+  // crows somewhere above: two or three harsh caws, a buzzing voice falling a little
+  crows(ctx, out, when, end) {
+    for (const at of moments(when, end, 12, 28)) {
+      const where = spot(ctx, out);
+      const f = 480 + Math.random() * 220;
+      for (let k = 0, t = at; k < 2 + Math.floor(Math.random() * 2); k++, t += 0.35 + Math.random() * 0.2) {
+        const length = 0.2 + Math.random() * 0.12;
+        const osc = ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(f, t);
+        osc.frequency.linearRampToValueAtTime(f * 0.85, t + length);
+        const band = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 1500, Q: 3 });
+        const rasp = ctx.createGain();
+        rasp.gain.value = 0.6;
+        lfo(ctx, 45, 0.4, rasp.gain, t, t + length + 0.05, 'square');
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(1, t + 0.02);
+        gain.gain.linearRampToValueAtTime(0, t + length);
+        osc.connect(band).connect(rasp).connect(gain).connect(where);
+        osc.start(t);
+        osc.stop(t + length + 0.05);
+      }
+    }
+  },
+  // slow footsteps somewhere you can't see, a few crunches on gravel, then gone
+  footsteps(ctx, out, when, end) {
+    for (const at of moments(when, end, 14, 30)) {
+      const where = spot(ctx, out);
+      for (let k = 0, t = at; k < 3 + Math.floor(Math.random() * 4); k++, t += 0.6 + Math.random() * 0.2) {
+        const band = new BiquadFilterNode(ctx, { type: 'bandpass', frequency: 1200 + Math.random() * 600, Q: 0.8 });
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, t);
+        gain.gain.linearRampToValueAtTime(0.7 + Math.random() * 0.3, t + 0.01);
+        gain.gain.setTargetAtTime(0, t + 0.01, 0.05);
+        noiseSource(ctx, t, t + 0.25).connect(band).connect(gain).connect(where);
+      }
+    }
+  },
+  // steam let out of a pipe: a hiss coming on hard and dying away
+  steam(ctx, out, when, end) {
+    for (const at of moments(when, end, 10, 24)) {
+      const length = 1.5 + Math.random() * 2.5;
+      const high = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 2500, Q: 0.5 });
+      const level = ctx.createGain();
+      level.gain.value = 0;
+      swell(level.gain, at, 0.1, length, 1);
+      noiseSource(ctx, at, at + length + 0.15).connect(high).connect(level).connect(spot(ctx, out));
+    }
+  },
   // a singing bowl struck now and then, on the home note: the bowl's out of tune overtones (2.71, 5.15)
   // dying long, beating slowly against a twin a hair apart
   bowl(ctx, out, when, end, bright, midi = 60) {
@@ -2284,6 +2442,30 @@ function recordedScenery(ctx, out, inst, set, when, end, midi = 60) {
   }
 }
 
+// a recorded bed (rain, a fire, a brook) never stops, so its slices play one after another, crossfaded
+// over a second and a half, never the same slice twice running: one slice looped would be the same
+// few seconds of rain coming round and round
+const BED_FADE = 1.5;
+const BED_RISE = Float32Array.from({ length: 32 }, (_, i) => Math.sin((Math.PI / 2) * (i / 31)));
+const BED_FALL = BED_RISE.slice().reverse();
+function recordedBed(ctx, out, set, when, end) {
+  let last = null;
+  for (let at = when; at < end;) {
+    const others = set.notes.filter((one) => one !== last);
+    const take = (last = pickOne(others.length ? others : set.notes));
+    const length = take.buffer.duration;
+    const source = ctx.createBufferSource();
+    source.buffer = take.buffer;
+    const level = ctx.createGain();
+    level.gain.setValueCurveAtTime(BED_RISE, at, BED_FADE);
+    level.gain.setValueCurveAtTime(BED_FALL, at + length - BED_FADE, BED_FADE);
+    source.connect(level).connect(out);
+    source.start(at);
+    source.stop(Math.min(end, at + length));
+    at += length - BED_FADE;
+  }
+}
+
 function playTexture(ctx, out, inst, tone, when, dur, vel, midi) {
   const fade = Math.min(3, dur / 3);
   const end = when + dur;
@@ -2296,7 +2478,8 @@ function playTexture(ctx, out, inst, tone, when, dur, vel, midi) {
   gain.gain.setValueAtTime(level, end - fade);
   gain.gain.linearRampToValueAtTime(0, end);
   gain.connect(out);
-  if (set) recordedScenery(ctx, gain, inst, set, when, end + 0.05, midi);
+  if (set && inst.bed) recordedBed(ctx, gain, set, when, end + 0.05);
+  else if (set) recordedScenery(ctx, gain, inst, set, when, end + 0.05, midi);
   else TEXTURES[inst.texture](ctx, gain, when, end + 0.05, Math.min(3, tone.bright), midi);
 }
 

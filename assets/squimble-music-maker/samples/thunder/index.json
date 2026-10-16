@@ -1,0 +1,22 @@
+{
+ "source": "Distant Thunder Clap_Gentle by mikala_oidua and distant thunder by moxobna (freesound.org)",
+ "link": "https://cdn.freesound.org/previews/",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "event-1.mp3",
+   "hit": "event",
+   "vel": 0.8
+  },
+  {
+   "file": "event-2.mp3",
+   "hit": "event",
+   "vel": 0.8
+  },
+  {
+   "file": "event-3.mp3",
+   "hit": "event",
+   "vel": 0.8
+  }
+ ]
+}

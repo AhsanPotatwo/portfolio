@@ -444,6 +444,11 @@ const carries = (layer) => (layer.role === 'counter' && layer.pattern === 'tune'
 //   orchestra   { pass, double }: the chance its tune is handed between two instruments section by
 //               section, and the chance bells double it an octave up when it comes round big
 //               (pickOrchestra). left out, neither: a mood plays its tune on one instrument
+//   prelude     the name of a section of scenery alone that opens its songs, before the music swells
+//               in (pickArrangement): warmth's embers and lava, silent hill's static. left out, none
+//   drama       how far its sections' energies are stretched apart, 1 unless it says: the quiet ones
+//               quieter and thinner, the loud ones bigger (pickArrangement). calamity's music swings a
+//               long way, and the dramatic modifier sets it
 // and some that only modifiers set (MODIFIERS): most (more or fewer layers than the style's most),
 // busy (busier or sparser parts), soft (slower attacks) and reharm (the mood's progressions are
 // moved into whatever scale the song picks, see reharmonise())
@@ -614,6 +619,30 @@ const MOODS = {
     textures: ['vinyl', 'rain', 'birds', 'leaves', 'chimes'], kits: ['brushes'], drums: [0.05, 0.45],
     patterns: { drums: ['brush', 'sparse'], melody: ['fragments', 'phrases', 'long'] }, fx: { wobble: 0.45 }, ornate: 0.8,
   },
+  // c418's minecraft, volume alpha and volume beta: not happy and not sad, somewhere in between, and
+  // nostalgic. a felt piano or a rhodes playing a few notes with a lot of room round them (sweden, wet
+  // hands, dry hands), over a warm analog pad and a sub bass (subwoofer lullaby), in a major key that
+  // keeps leaning on its ii, iii and borrowed iv, worn like an old tape. the tune wanders off and stops,
+  // and the quiet is part of it. its flavours are the albums' other sides: the nether's warmth, the
+  // jolly creative tracks and the long synth builds
+  nostalgic: {
+    group: 'Gentle', opens: ['keys', 'pad', 'drone'],
+    name: 'Nostalgic', colour: '#86a98f', style: 'ambient',
+    scales: { major: 3, lydian: 1.5, mixolydian: 1, majorPentatonic: 1, dorian: 0.5 }, tempo: [58, 76], tuneTempo: [72, 96],
+    meters: { '4/4': 5, '3/4': 2, '6/8': 1 },
+    chords: ['ii IV I iii', 'I iii IV iv', 'Imaj7 IVmaj7', 'IV I vi V', 'vi IV I V', 'I V vi IV', 'IVmaj7 iii7 vi -', 'I - IV -', 'IV iv I -', 'I vi iii IV'],
+    methods: { bank: 5, markov: 2, vamp: 1.5 },
+    richness: [0.35, 0.8], energy: 0.3, space: 0.75, bright: 0.45, dark: 0.12, edge: 0.6, surprise: 0, ornate: 0.4,
+    palette: {
+      melody: ['piano', 'felt-keys', 'e-piano', 'soft-lead', 'music-box'], counter: ['felt-keys', 'e-piano', 'soft-lead', 'piano'],
+      keys: ['piano', 'felt-keys', 'e-piano', 'wurlitzer'], arp: ['felt-keys', 'e-piano', 'piano', 'harp', 'sine-bell'], bells: ['sine-bell', 'glass-bell', 'music-box'],
+      pad: ['warm-pad', 'analog-pad', 'strings', 'air-pad', 'glass-pad'], bass: ['sub-bass', 'round-bass'], drone: ['tape-loop', 'organ-drone', 'cello-drone'],
+    },
+    textures: ['drips', 'rain', 'birds', 'leaves', 'stream', 'crickets'], kits: ['machine', 'soft-kit'], drums: [0.05, 0.4],
+    layers: { keys: 0.75 },
+    patterns: { melody: ['fragments', 'phrases', 'fragments', 'long'], keys: ['broken', 'block', 'broken'], pad: ['sustain', 'swell'], bass: ['held', 'rootfifth'], drums: ['sparse', 'pulse', 'halftime'], arp: ['updown', 'up', 'random'] },
+    fx: { wobble: 0.3 },
+  },
   sad: {
     group: 'Dark',
     opens: ['pad', 'keys', 'drone'],
@@ -627,6 +656,33 @@ const MOODS = {
       bells: ['glass-bell', 'music-box'], bass: ['sub-bass', 'round-bass', 'upright', 'chorus-bass'], drone: ['cello-drone', 'deep-drone'],
     },
     textures: ['rain', 'vinyl', 'wind', 'owl'], kits: ['soft-kit', 'brushes'], drums: [0.05, 0.4], patterns: { drums: ['sparse', 'pulse', 'brush'] },
+  },
+  // calamity's title theme, the tale of a cruel world (dm dokuro): sad and dramatic at once, and moving
+  // rather than gloomy. a lone piano, then strings and a choir swelling in under it, building to the
+  // whole orchestra with the timpani crashing, then falling back to the piano. harmonic minor's raised
+  // seventh pulls it home, and its sections swing a long way between quiet and loud (drama)
+  tragic: {
+    group: 'Dark', opens: ['keys', 'drone', 'pad'],
+    name: 'Tragic', colour: '#94455a', style: 'tune',
+    scales: { minor: 3, harmonicMinor: 2.5, dorian: 0.5 }, tempo: [52, 68], tuneTempo: [66, 90],
+    meters: { '4/4': 5, '3/4': 1.5, '6/8': 1.5 },
+    chords: ['i bVI bIII bVII', 'i iv bVI V', 'bVI bVII i -', 'i v bVI bIII iv i iv V', 'i bVII bVI V', 'iv bVI bVII i', 'i bIII bVII iv', 'i - bVI V'],
+    methods: { bank: 6, markov: 1.5 },
+    richness: [0.15, 0.55], energy: 0.55, space: 0.85, bright: 0.45, dark: 0.55, edge: 0.75, surprise: 0, ornate: 0.8, drama: 1.3,
+    palette: {
+      melody: ['piano', 'violin', 'choir-oo', 'horn', 'oboe'], counter: ['violin', 'horn', 'choir-oo', 'oboe', 'trombone'],
+      keys: ['piano', 'harp'], arp: ['piano', 'harp'], bells: ['bell', 'glock', 'celesta'],
+      pad: ['strings', 'choir-ah', 'choir-oo', 'brass-section'], bass: ['upright', 'round-bass', 'sub-bass', 'tuba'], drone: ['cello-drone', 'organ-drone', 'deep-drone'],
+    },
+    textures: ['wind', 'rain', 'rumble'], kits: ['orchestra-kit', 'taiko'], drums: [0.2, 0.75],
+    layers: { pad: 1, keys: 0.85, counter: 0.55 },
+    patterns: { drums: ['halftime', 'march', 'tribal'], keys: ['broken', 'broken', 'block'], pad: ['swell', 'sustain', 'pulse'], melody: ['phrases', 'long', 'phrases'], bass: ['held', 'octave', 'pulse'], counter: ['counterpoint', 'harmony'], drone: ['tonic', 'fifths'] },
+    // a prologue on the piano, the theme growing each time round, and a climax before it falls away
+    forms: [
+      [['Prologue', 'C', 8, 0.3], ['Theme', 'A', 8, 0.55], ['Theme', 'A', 8, 0.7], ['Rise', 'B', 8, 0.85], ['Theme', 'A', 8, 0.95], ['Climax', 'B', 8, 1], ['Epilogue', 'A', 4, 0.3]],
+      [['Prologue', 'A', 4, 0.3], ['Theme', 'A', 8, 0.6], ['Rise', 'B', 8, 0.8], ['Fall', 'C', 8, 0.45], ['Theme', 'A', 8, 0.9], ['Climax', 'B', 8, 1], ['Climax', 'B', 8, 1], ['Epilogue', 'C', 4, 0.3]],
+    ],
+    orchestra: { pass: 0.5, double: 0.3 },
   },
   // have a nice life: a slow wall of fuzz, a lone chanted line, a cheap drum machine in a huge room,
   // all of it worn and washed out. serious rather than sad
@@ -1596,6 +1652,29 @@ const MOODS = {
     fx: { wobble: 0.1 },
     patterns: { drums: ['halftime', 'pulse', 'four'], arp: ['up', 'updown', 'random', 'converge'], melody: ['long', 'phrases', 'fragments'], pad: ['swell', 'sustain'] },
   },
+  // daxter on the psp (jamey scott's score) and haven city: a city under the baron's iron fist. the
+  // baron's palace is serious and brooding, but you'd still put it on: low strings and a bass hook, a
+  // dark pizzicato or marimba riff, brass stabs and a choir, over a mid tempo beat that's half orchestra
+  // and half machine. it loops, like the game's levels. its flavours are daxter's day job spraying bugs,
+  // the city's factories and the baron's prison
+  ironcity: {
+    group: 'Places', opens: ['bass', 'drums', 'arp'],
+    name: 'Iron city', colour: '#6f6b8f', style: 'loop',
+    scales: { minor: 2, dorian: 2, harmonicMinor: 1.5, phrygian: 0.7 }, tempo: [64, 80], tuneTempo: [92, 112],
+    meters: { '4/4': 1 },
+    chords: ['i bVI bVII i', 'i - iv -', 'i bII i bVII', 'i iv bVI V', 'i bVII bVI V', 'i - bVI bVII', 'i v bVI iv'],
+    methods: { bank: 5, markov: 1, vamp: 2 },
+    richness: [0.1, 0.45], energy: 0.65, space: 0.6, bright: 0.45, dark: 0.6, edge: 0.85, surprise: 0, ornate: 0.8,
+    palette: {
+      melody: ['horn', 'synth-brass', 'violin', 'trombone', 'clarinet', 'oboe'], counter: ['trombone', 'horn', 'pizzicato', 'bassoon', 'clarinet'],
+      keys: ['pizzicato', 'marimba', 'harpsichord', 'piano'], arp: ['pizzicato', 'marimba', 'pluck-lead', 'harpsichord'], bells: ['glock', 'metal-ping', 'bell'],
+      pad: ['strings', 'choir-ah', 'brass-section', 'dark-pad', 'synth-strings'], bass: ['synth-bass', 'upright', 'tuba', 'round-bass', 'bassoon'], drone: ['deep-drone', 'cello-drone', 'organ-drone'],
+    },
+    textures: ['factory', 'steam', 'clanks', 'rain'], kits: ['machine', 'orchestra-kit', 'tight-kit', 'junk-kit'], drums: [0.35, 0.9],
+    layers: { arp: 0.6, pad: 0.85 },
+    patterns: { drums: ['groove', 'halftime', 'break', 'march'], bass: ['hook', 'synco', 'octave', 'pulse'], arp: ['up', 'updown', 'converge'], keys: ['broken', 'block'], pad: ['stabs', 'sustain', 'pulse'], melody: ['phrases', 'calls', 'riff'], counter: ['counterpoint', 'answer'] },
+    orchestra: { pass: 0.45, double: 0.15 },
+  },
 };
 // the rows of moods on the page, in order
 // (twelve rows went down to ten when the roots moods joined easy, electronic and pop became beats, and
@@ -1782,6 +1861,40 @@ const FLAVOURS = {
       },
     },
   },
+  nostalgic: {
+    about: "C418's Minecraft: not happy and not sad, somewhere in between. A felt piano with room round it, a warm pad and a sub bass, worn like an old tape. For wandering, building and remembering.",
+    kinds: {
+      alpha: { name: 'Volume Alpha', tip: 'Volume Alpha: a felt piano or Rhodes playing a few notes with silence round them, a warm pad and a sub bass (Sweden, Wet Hands, Dry Hands)' },
+      warmth: {
+        name: 'Warmth', tip: "Warmth: Volume Beta's Nether: nothing but the embers crackling and lava bubbling, then a sad synth and strings swell in, slow and reflective",
+        scales: { dorian: 2, minor: 2, mixolydian: 1 }, tempo: [50, 64], tuneTempo: [64, 80], meters: { '4/4': 4, '3/4': 1 },
+        chords: ['i bVI', 'i - bVI -', 'i bVII bVI bVII', 'iv i', 'i bIII bVII iv', 'bVI bVII i -'], energy: 0.25, dark: 0.35, prelude: 'Embers',
+        palette: { melody: ['soft-lead', 'violin', 'felt-keys', 'piano', 'e-piano'], pad: ['dark-pad', 'analog-pad', 'strings', 'warm-pad', 'choir-oo'], drone: ['deep-drone', 'tape-loop', 'cello-drone'], keys: ['e-piano', 'felt-keys', 'piano'], bells: ['sine-bell', 'glass-bell'] },
+        textures: ['lava', 'fire', 'rumble'], kits: [], drums: [0, 0], layers: { texture: 1, melody: 0.8 },
+        patterns: { pad: ['swell', 'swell', 'sustain'], melody: ['long', 'fragments'], drone: ['tonic', 'fifths'] },
+      },
+      creative: {
+        name: 'Creative', tip: 'Creative: the jolly side (Danny, Haggstrom, Biome Fest): a bouncy piano tune, plucky synths and a light drum machine',
+        style: 'tune', scales: { major: 3, lydian: 1, mixolydian: 1, majorPentatonic: 1 }, tuneTempo: [96, 124], energy: 0.6, bright: 0.6, dark: 0.05, edge: 0.8,
+        palette: { melody: ['piano', 'pluck-lead', 'e-piano', 'soft-lead', 'music-box', 'marimba'], keys: ['piano', 'e-piano', 'felt-keys'], arp: ['pluck-lead', 'e-piano', 'kalimba', 'felt-keys'], counter: ['e-piano', 'pluck-lead', 'felt-keys'], bass: ['round-bass', 'synth-bass', 'sub-bass', 'pluck-bass'] },
+        textures: ['birds', 'stream'], kits: ['machine', 'lofi-kit', 'soft-kit'], drums: [0.2, 0.8], layers: { arp: 0.55 },
+        patterns: { drums: ['groove', 'halftime', 'groove'], bass: ['rootfifth', 'octave', 'synco'], keys: ['broken', 'block'], melody: ['phrases', 'calls', 'phrases'], arp: ['updown', 'up'] },
+      },
+      dreiton: {
+        name: 'Dreiton', tip: "Dreiton: Volume Beta's long builds (Dreiton, The End, Aria Math): a dark analog pad, then arps, then a drum machine and a wailing synth lead, then it all falls away",
+        style: 'tune', scales: { minor: 2, dorian: 2, phrygian: 0.5 }, tuneTempo: [100, 126], energy: 0.7, bright: 0.5, dark: 0.45, edge: 1,
+        chords: ['i bVI bIII bVII', 'i - bVI -', 'i bVII bVI bVII', 'i v bVI iv', 'bVI bVII i -'],
+        palette: { melody: ['saw-lead', 'soft-lead', 'synth-brass', 'pluck-lead'], arp: ['pluck-lead', 'sine-bell', 'e-piano', 'soft-lead'], pad: ['analog-pad', 'dark-pad', 'synth-strings', 'glass-pad'], bass: ['synth-bass', 'reese', 'sub-bass'], keys: ['e-piano', 'felt-keys'], bells: ['sine-bell', 'glass-bell'], counter: ['pluck-lead', 'soft-lead', 'synth-brass'] },
+        textures: ['rumble'], kits: ['machine', 'club-kit'], drums: [0.4, 0.95], layers: { arp: 0.8, pad: 0.9 },
+        patterns: { drums: ['break', 'halftime', 'groove'], arp: ['up', 'updown', 'converge'], bass: ['octave', 'pulse', 'held'], pad: ['sustain', 'swell', 'pulse'], melody: ['long', 'phrases'] },
+        // the dark start, the arps, the build, the beat, and falling away to nothing at the end
+        forms: [
+          [['Dark', 'C', 8, 0.3], ['Arps', 'A', 8, 0.55], ['Build', 'A', 8, 0.75], ['Drive', 'B', 8, 0.95], ['Peak', 'B', 8, 1], ['Fall', 'C', 8, 0.4], ['Drive', 'B', 8, 0.95], ['Away', 'A', 8, 0.3]],
+          [['Dark', 'A', 8, 0.3], ['Arps', 'A', 16, 0.6], ['Drive', 'B', 16, 0.95], ['Fall', 'C', 8, 0.45], ['Peak', 'B', 16, 1], ['Away', 'C', 8, 0.3]],
+        ],
+      },
+    },
+  },
   sad: {
     about: 'Sorrowful and slow: strings, a felt piano or a violin in a minor key, rain on the glass. For losses, rain and the end of things.',
     kinds: {
@@ -1797,6 +1910,29 @@ const FLAVOURS = {
         palette: { melody: ['piano', 'felt-keys'], keys: ['felt-keys', 'piano'] }, kits: [],
         layers: { pad: 0.3, drone: 0.1, bells: 0.1, counter: 0.1, arp: 0.1, keys: 0.9, bass: 0.15, texture: 0.6 },
         patterns: { melody: ['fragments', 'phrases', 'long'], keys: ['broken', 'strum'] },
+      },
+    },
+  },
+  tragic: {
+    about: "Calamity's title theme, The Tale of a Cruel World: sad and dramatic at once. A lone piano, strings and a choir swelling in, building to the whole orchestra, then falling away. For title screens, losses and the moments before the end.",
+    kinds: {
+      cruel: { name: 'Cruel world', tip: 'Cruel world: a lone piano, strings and a choir swelling in, building to the whole orchestra and timpani, then falling back' },
+      sulphur: {
+        name: 'Sulphurous sea', tip: 'Sulphurous sea: a poisoned sea at dusk: a clean guitar ringing through long echoes, slow and serene, strings swelling, a half time beat, waves and rain',
+        tuneTempo: [66, 86], energy: 0.5, dark: 0.5, edge: 0.75,
+        palette: { guitar: ['clean-guitar', 'chorus-guitar', 'crunch-guitar'], melody: ['chorus-guitar', 'violin', 'piano', 'felt-keys'], pad: ['strings', 'dark-pad', 'choir-oo'] },
+        kits: ['rock-kit', 'machine'], textures: ['ocean', 'rain', 'wind'], layers: { guitar: 0.85, keys: 0.5 }, fx: { echo: 0.15 },
+        patterns: { guitar: ['ring', 'tremolo', 'strum'], drums: ['halftime', 'rock', 'halftime'], melody: ['long', 'phrases'] },
+      },
+      musicbox: {
+        name: 'Music box', tip: "Music box: the menu's music box: the theme on a lone music box or celesta, slow, in an empty room, a cello drone under it",
+        style: 'ambient', tempo: [50, 64],
+        palette: { melody: ['music-box', 'celesta', 'piano'], keys: ['music-box', 'celesta', 'harp'], arp: ['music-box', 'celesta'], drone: ['cello-drone'] },
+        kits: [], drums: [0, 0], layers: { melody: 1, pad: 0.5, keys: 0.6, counter: 0.15, bells: 0.15, bass: 0.1 }, patterns: { melody: ['phrases', 'long'] },
+      },
+      laststand: {
+        name: 'Last stand', tip: 'Last stand: the cruel world as a battle: the tune on the horns over a choir and strings, taiko pounding',
+        style: 'boss', palette: { melody: ['horn', 'violin', 'choir-oo', 'trumpet'], pad: ['choir-ah', 'strings', 'brass-section'] }, edge: 0.85, kits: ['taiko', 'orchestra-kit'],
       },
     },
   },
@@ -1869,6 +2005,26 @@ const FLAVOURS = {
         name: 'Static', tip: 'Static: analog horror: tape hiss, a detuned sine bell, a cold drone, a Geiger counter ticking',
         palette: { melody: ['sine-bell', 'glass-bell', 'soft-lead'], drone: ['tape-loop', 'void', 'deep-drone'], pad: ['reverse-piano', 'dark-pad', 'air-pad'] },
         textures: ['geiger', 'hum', 'vinyl'], fx: { wobble: 0.6, drive: 0.2 },
+      },
+      // akira yamaoka's silent hill: industrial noise and scenery standing in for most of the music
+      fog: {
+        name: 'Fog', tip: "Fog: Silent Hill's empty streets: a radio crackling with static before anything else, a cold drone, a siren far off, a lone piano, footsteps that aren't yours",
+        prelude: 'Static', palette: { melody: ['piano', 'felt-keys', 'sine-bell', 'music-box'], pad: ['dark-pad', 'haunted-pad', 'reverse-piano', 'air-pad'], drone: ['void', 'deep-drone', 'tape-loop', 'bowed-metal'], keys: ['piano', 'felt-keys'] },
+        textures: ['static', 'footsteps', 'siren', 'crows', 'hum'], layers: { texture: 1 }, fx: { wobble: 0.3, drive: 0.15 },
+      },
+      otherworld: {
+        name: 'Otherworld', tip: 'Otherworld: rust and blood: metal clanging like a slow, broken machine, chains, a siren wailing, grinding drones and a low industrial beat',
+        energy: 0.35, edge: 0.85, kits: ['junk-kit'], drums: [0.5, 0.85], textures: ['clanks', 'chains', 'siren', 'factory'],
+        palette: { drone: ['bowed-metal', 'deep-drone', 'void'], pad: ['haunted-pad', 'dark-pad', 'fuzz-wall'], bass: ['sub-bass', 'reese'], melody: ['music-box', 'sine-bell', 'piano', 'violin'] },
+        patterns: { drums: ['halftime', 'sparse', 'pulse', 'march'], drone: ['cluster', 'tonic'] }, fx: { drive: 0.3 },
+      },
+      promise: {
+        name: 'Promise', tip: "Promise: Yamaoka's sad side: a piano and a tremolo picked guitar over a slow, dusty trip hop beat, rain and the radio",
+        style: 'tune', scales: { minor: 2, dorian: 1.5, harmonicMinor: 1 }, tuneTempo: [76, 92], energy: 0.55, dark: 0.6,
+        chords: ['i bVI bIII bVII', 'i iv bVI V', 'i - bVI -', 'i bVII bVI V', 'iv i bVI V'], methods: { bank: 5, markov: 1 },
+        palette: { guitar: ['clean-guitar', 'chorus-guitar'], melody: ['piano', 'chorus-guitar', 'felt-keys'], bass: ['round-bass', 'sub-bass', 'pluck-bass'], keys: ['piano', 'e-piano'] },
+        kits: ['lofi-kit', 'machine'], drums: [0.5, 0.9], textures: ['rain', 'static'], layers: { guitar: 0.7 },
+        patterns: { guitar: ['tremolo', 'ring'], drums: ['halftime', 'groove'], bass: ['held', 'rootfifth'], melody: ['phrases', 'long'] },
       },
     },
   },
@@ -2633,6 +2789,29 @@ const FLAVOURS = {
       },
     },
   },
+  ironcity: {
+    about: "Daxter's Haven City: a city under an iron fist. Brooding low strings and brass, a sneaking riff and a beat that's half orchestra and half machine. Serious, but fun to listen to. For palaces, guards and getting up to no good.",
+    kinds: {
+      palace: { name: "Baron's palace", tip: "Baron's palace: brooding low strings and a bass hook, a dark pizzicato or marimba riff, brass stabs and a choir, over a half machine beat" },
+      bughunt: {
+        name: 'Bug hunt', tip: "Bug hunt: Daxter's day job, spraying bugs round the city: a sneaky, bouncy groove, pizzicato and a bassoon, a clarinet tune, a funky little beat",
+        scales: { dorian: 2, minor: 1, mixolydian: 1 }, tuneTempo: [104, 124], energy: 0.7, dark: 0.35, edge: 0.7, swing: 0.3,
+        palette: { melody: ['clarinet', 'oboe', 'pizzicato', 'marimba', 'mute-trumpet'], keys: ['pizzicato', 'marimba', 'xylophone'], bass: ['bassoon', 'tuba', 'upright', 'pluck-bass'] },
+        kits: ['tight-kit', 'clockwork', 'funk-kit'], patterns: { drums: ['groove', 'funk', 'march'], bass: ['walking', 'hook', 'synco'], melody: ['calls', 'phrases'] },
+      },
+      factory: {
+        name: 'Factory floor', tip: 'Factory floor: the power station and the dark, industrial edge of the city: metal percussion clanking, a pulsing synth bass, steam and machines',
+        energy: 0.75, edge: 1, kits: ['junk-kit', 'machine'], textures: ['factory', 'steam', 'clanks'],
+        palette: { melody: ['synth-brass', 'saw-lead', 'pluck-lead', 'horn'], bass: ['reese', 'synth-bass', 'growl-bass'], arp: ['pluck-lead', 'pizzicato', 'marimba'], pad: ['dark-pad', 'analog-pad', 'synth-strings'] },
+        patterns: { drums: ['groove', 'march', 'break'], bass: ['pulse', 'octave', 'synco'], arp: ['up', 'updown'] },
+      },
+      prison: {
+        name: 'Prison', tip: "Prison: the baron's prison: a slow, heavy march, low brass and a choir, chains rattling and water dripping in the cells",
+        style: 'ambient', tempo: [56, 70], energy: 0.4, dark: 0.75, kits: ['orchestra-kit', 'junk-kit'], drums: [0.4, 0.8], textures: ['chains', 'drips', 'clanks'],
+        palette: { melody: ['horn', 'violin', 'oboe', 'felt-keys'], pad: ['strings', 'choir-ah', 'dark-pad'] }, patterns: { drums: ['march', 'halftime', 'sparse'] },
+      },
+    },
+  },
 };
 // the mood's kinds, plain mood first. a song names its flavour only when it's one of the others
 const flavourOf = (song) => FLAVOURS[song.mood]?.kinds[song.flavour];
@@ -2973,6 +3152,20 @@ const MODIFIERS = {
       setPatterns(mood, { melody: ['long', 'phrases', 'fragments'], pad: ['swell', 'sustain'] });
     },
   },
+  // calamity's music, and film scores: everything bigger at both ends. the quiet sections get quieter
+  // and thinner and the loud ones bigger (drama), strings swell under the tune, a minor key leans on
+  // harmonic minor's raised seventh to pull home, and the room grows
+  dramatic: {
+    name: 'Dramatic', tip: 'Dramatic: bigger swings between quiet and loud, strings swelling under the tune, a minor key pulling hard for home, and a bigger room',
+    apply(mood) {
+      mood.drama = Math.max(mood.drama || 1, 1.5);
+      mood.space = Math.min(1, mood.space + 0.15);
+      if (mood.scales.minor) mood.scales = { ...mood.scales, harmonicMinor: (mood.scales.harmonicMinor || 0) + mood.scales.minor * 0.5 };
+      mood.palette = { ...mood.palette, pad: [...new Set(['strings', ...mood.palette.pad])] };
+      mood.layers = { ...mood.layers, pad: Math.max(mood.layers?.pad || 0, 0.9) };
+      setPatterns(mood, { pad: ['swell', 'sustain', 'swell'], melody: keepOr(mood, 'melody', ['long', 'phrases'], ['phrases', 'long']) });
+    },
+  },
 };
 // a song's modifiers cleaned up: known ones, once each, in MODIFIERS' order, the first of an opposite
 // pair kept, at most MOST_MODS
@@ -3132,6 +3325,7 @@ function generateSong(moodId, style, seed, mods = [], flavour) {
   pickLayers(song, makeRng(seed, mood, song.style, 'layers'));
   pickArrangement(song, makeRng(seed, mood, song.style, 'arrangement'));
   pickOrchestra(song, makeRng(seed, mood, song.style, 'orchestra'));
+  pickScenery(song, makeRng(seed, mood, song.style, 'scenery'));
   pickSpace(song, makeRng(seed, mood, 'space'));
   return cleanSong(song);
 }
@@ -3558,9 +3752,12 @@ function partBars(song, part) {
 // or more, or the song's loudest if none reach it), the way a guitarist stamps on a distortion pedal
 // for the chorus
 const LOUD = 0.85;
+// how far a mood's drama (or the dramatic modifier) stretches a section's energy, round 0.65: 0.3 to
+// 0.13 and 0.85 to 0.95 at 1.5, so the quiet sections have fewer players and are played softer
+const stretch = (energy, drama) => Math.round(Math.min(1, Math.max(0.1, 0.65 + (energy - 0.65) * drama)) * 100) / 100;
 function pickArrangement(song, rng) {
   const mood = songMood(song);
-  const form = rng.pick((song.style === 'tune' && mood.forms) || FORMS[song.style]);
+  const form = rng.pick((song.style === 'tune' && mood.forms) || FORMS[song.style]).map(([name, part, bars, energy]) => [name, part, bars, mood.drama ? stretch(energy, mood.drama) : energy]);
   const entry = {};
   for (const layer of song.layers) entry[layer.id] = rng.range(...ROLE_ENTRY[layer.role]);
   // the song opens on its mood's opening parts (MOODS opens), two in a tune and one in an ambient
@@ -3602,6 +3799,12 @@ function pickArrangement(song, rng) {
   addSolo(song, rng, form);
   // (and if someone takes or doubles the tune, it's handed round again for the new sections)
   passTune(song);
+  // a mood that starts on its scenery alone (prelude): warmth's embers crackling and lava bubbling with
+  // no music at all, then the pads swelling in. never in a loop, which has no start to speak of
+  const scenery = song.layers.filter((layer) => layer.role === 'texture').map((layer) => layer.id);
+  if (mood.prelude && !LOOPS[song.style] && scenery.length) {
+    song.sections.unshift({ name: mood.prelude, part: song.sections[0].part, bars: Math.max(2, Math.round(24 / METERS[song.meter].beats)), play: scenery, energy: 0.2 });
+  }
 }
 
 // a solo: the tune stretches out into a long line that doesn't repeat (solo() below), over the
@@ -3731,6 +3934,46 @@ function pickOrchestra(song, rng, chances = songMood(song).orchestra) {
   }
   fitBand(song);
   passTune(song);
+}
+
+// ---------- a fuller ambient song ----------
+//
+// ambient songs were thin: about half had no tune at all, and in a fifth to a third of their beats
+// nothing moved, only a pad, a drone and now and then a bird. so once the band and its arrangement are
+// picked, an ambient song with no tune gets one most of the time, a lone line that comes and goes the
+// way c418's and aphex twin's ambient pieces have a few notes drifting over the pads, and one with no
+// scenery gets some if its place has any. it's its own pick with its own random numbers, so everything
+// picked before stays as it was, and a song that already had a tune and scenery is untouched
+const LONE_TUNE = 0.7;
+const MORE_SCENERY = 0.8;
+function pickScenery(song, rng) {
+  if (song.style !== 'ambient') return;
+  const mood = songMood(song);
+  // (the scenery doesn't count here: the six layers at most are there to keep the band from crowding)
+  const room = () => song.layers.filter((layer) => layer.role !== 'texture').length < Math.max(2, Math.min(7, MOST_LAYERS.ambient + (mood.most || 0)));
+  // (both rolled first, so whether it gets scenery never depends on whether it got a tune)
+  const tune = rng.chance(LONE_TUNE);
+  const scenery = rng.chance(MORE_SCENERY);
+  const has = (role) => song.layers.some((layer) => layer.role === role);
+  // a new player comes in once the song's past its quiet start (from energy), and stays in, the way
+  // pickArrangement's layers do
+  const join = (role, from) => {
+    const layer = { ...clone(LAYER_DEFAULTS), id: role, role };
+    const at = song.layers.findIndex((one) => ROLE_ORDER.indexOf(one.role) > ROLE_ORDER.indexOf(role));
+    song.layers.splice(at < 0 ? song.layers.length : at, 0, layer);
+    dressLayer(song, layer, rng, true);
+    let before = false;
+    for (const section of song.sections) {
+      const energy = section.energy ?? 0.75;
+      before = section.play.length > 0 && (energy >= from || (before && energy >= from - 0.2));
+      if (before) section.play.push(role);
+    }
+    // a quiet song still hears it somewhere: in its loudest section
+    if (!song.sections.some((section) => section.play.includes(role))) [...song.sections].sort((a, b) => (b.energy ?? 0.75) - (a.energy ?? 0.75))[0].play.push(role);
+  };
+  if (tune && room() && !has('melody') && mood.palette.melody?.length && mood.layers?.melody !== 0) join('melody', 0.5);
+  if (scenery && room() && !has('texture') && mood.textures.length) join('texture', 0);
+  fitBand(song);
 }
 
 function pickSpace(song, rng) {
