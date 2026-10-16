@@ -13,11 +13,11 @@
     "gr": "grass",
     "di": "dirt",
     "sa": "sand",
-    "pl": "planks",
+    "ro": "roof",
     "wt": "water",
+    "pl": "planks",
     "la": "lava",
-    "sp": "spikes",
-    "ro": "roof"
+    "sp": "spikes"
   },
   "rows": [
     "wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa",
@@ -81,8 +81,7 @@
     { "name": "hut", "col": -11, "row": -5, "to": "hut", "toWarp": "exit", "activate": "interact", "enemies": true }
   ],
   "areas": [
-    { "atmosphere": "graveyard", "col": 25, "row": -9, "cols": 18, "rows": 18, "shape": "box", "fade": 3, "strength": 100 },
-    { "atmosphere": "lava-heat", "col": -14, "row": 2, "cols": 8, "rows": 8, "shape": "oval", "fade": 3, "strength": 100 },
-    { "atmosphere": "hot-spring", "col": 4, "row": -10, "cols": 10, "rows": 8, "shape": "oval", "fade": 3, "strength": 100 }
-  ]
+    { "atmosphere": "graveyard", "col": 25, "row": -9, "cols": 18, "rows": 18, "shape": "box", "fade": 3, "strength": 100 }
+  ],
+  "sounds": []
 }
