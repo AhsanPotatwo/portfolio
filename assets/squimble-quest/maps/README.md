@@ -15,7 +15,7 @@ A map is made of:
 | File | What it is |
 |---|---|
 | `default.json` | A blank white map (80 × 50 tiles) |
-| `example.json` | The testing map: a bit of every tile (hut, pond, lava, spikes), tables and rugs, two training dummies to hit, and a villager to talk to (walk up and press **E**). Press **E** at the hut's door to go inside. The game starts here (`START_MAP` in `maps.js`) |
+| `example.json` | The testing map: a bit of every tile (hut, pond, lava, spikes), tables and rugs, two training dummies to hit, and a villager to talk to (walk up and press **E**). Press **E** at the hut's door to go inside. Follow the road east through the gap in the wall to a test graveyard with its own foggy, eerie atmosphere area (see [Atmosphere areas](#atmosphere-areas)); the lava pool and the pond have areas too (heat haze and embers, steam). The game starts here (`START_MAP` in `maps.js`) |
 | `hut.json` | Inside the hut on `example`: a room with a rug, a table and a villager. Walk back out through the gap in the bottom wall |
 | `node-test.json` | For trying out the warp graph (**Show links**, see [Warps](#warps)). Warps that teleport around the same map, each on a coloured tile so you can see it without the editor: a family on dirt that branches like a tree, a family on sand that goes round in a loop, a village on grass to the right (20 doors leading to one `square`, some with a back room and a cellar, for testing a warp with lots of links), and two on planks that aren't linked to the others (one leads nowhere, one leads to the spawn point). Press **E** on one to use it |
 | `ai-test.json` | Twelve rooms off one hallway for watching the enemy AIs (see [The AI test map](#the-ai-test-map)). Get there with dev mode's **M** |
@@ -190,7 +190,21 @@ Rest the mouse on any row to see what it does, and right click a slider to put i
 
 The ones in `atmospheres/` are a start for each kind of world, to use or copy: **misty-forest**, **underwater**, **volcano**, **inferno**, **desert**, **wasteland**, **snowfield**, **swamp**, **cave**, **storm**, **space**, **alien** and **dreamy**.
 
-To see the map without its atmosphere while you build, untick **Atmosphere** in the dev menu (**H**, or **Dev** in the toolbar). A map whose atmosphere has been renamed or deleted just has none (the console says so); pick another.
+To see the map without its atmosphere while you build, untick **Atmosphere** in the dev menu (**H**, or **Dev** in the toolbar). It hides areas too. A map whose atmosphere has been renamed or deleted just has none (the console says so); pick another.
+
+### Atmosphere areas
+
+An area is a box or oval of tiles with an atmosphere of its own, on top of the map's: a foggy graveyard in a sunny field, heat haze and embers round a lava pool, steam off a hot spring, a glowing swamp patch, a dark corner of a forest, a sunlit clearing, a toxic pit, a haunted house's garden. Any atmosphere works, including the whole-world ones (a **swamp** area, a **storm** area over one hill).
+
+- **Making one:** **Triggers** tab, pick **area** (the dashed box), then drag over the map. Its settings open when you let go.
+- **Changing one:** right click anywhere inside it. Changes show on the map as you make them, and **Cancel** puts it back.
+  - **Area** tab: **Atmosphere** (which one), **Shape** (a box, or an oval that fits in it, for round pools and clearings), **Fade** (how many tiles in from its edge it takes to fade in fully; 0 is a hard edge), **Strength** (how strong all of it is, so one atmosphere can be thick in one place and faint in another). **Edit atmosphere** opens the atmosphere itself (the same box as the toolbar's, and every map and area using it changes) or makes a new one with **Save as**. **Delete area** takes it off the map.
+  - **Where** tab: its left column, top row, width and height in tiles (type a minus sign for negative numbers).
+- **What it does:** its fog, overlay, tint and drained colour sit on the ground inside it, so you see the graveyard's fog from outside. Its weather only falls inside it, thinning out over the fade. Its sound comes from the nearest part of it, getting louder as you walk in (from as far as the sound's own **Heard from**). Its screen **Edges** and **Flashes** grow as you walk in, so stepping into the graveyard darkens the edges of the screen.
+- In the editor, areas show as dashed outlines with their atmosphere's name (red if it isn't loaded); the dotted line inside shows where the fade ends. While editing, the edges and flashes go by the middle of the screen rather than the player.
+- Overlapping areas all draw, the last made on top, and right click opens the last made. Areas are saved in the map file (**Export** the map).
+
+The atmospheres made for areas are **graveyard**, **lava-heat** and **hot-spring**, with the particles **ghost-lights** and **steam**, and the objects **gravestone**, **crypt** and **dead-tree** for the test graveyard.
 
 ### Changing a map you've already made
 
@@ -272,6 +286,9 @@ You can open a map in any text editor. It looks like this:
   "warps": [
     { "name": "front", "col": 0, "row": 2, "to": "house", "toWarp": "exit", "activate": "interact" }
   ],
+  "areas": [
+    { "atmosphere": "graveyard", "col": 1, "row": -1, "cols": 4, "rows": 3, "shape": "box", "fade": 1, "strength": 100 }
+  ],
   "sounds": [
     { "sound": "coin", "col": 3, "row": 0, "activate": "step" }
   ]
@@ -287,6 +304,7 @@ You can open a map in any text editor. It looks like this:
 - **`left`, `top`**: the tile column and row of the map's top-left corner. Tile `(0, 0)` is at the middle of the world, so `-5, -2` puts the middle of a 10 × 5 map there.
 - **`spawn`**: where the player starts, in pixels (the centre of the player). Easiest to set with **spawn** in the editor's **Triggers** tab.
 - **`atmosphere`**: the name of its atmosphere (its file in `atmospheres/`), only there if it has one. See [Atmospheres](#atmospheres).
+- **`areas`**: see [Atmosphere areas](#atmosphere-areas). `atmosphere` is an atmosphere's name, `col`, `row` its top-left tile and `cols`, `rows` its size in tiles, `shape` is `"box"` or `"oval"`, `fade` is tiles (0 is a hard edge) and `strength` 0 to 100. Maps without this list just have no areas.
 
 Older map files may also have a `"showGrid"` line. It isn't used any more and can be left in or deleted.
 

@@ -10,7 +10,7 @@ const assert = require('assert');
 
 const warnings = [];
 // the canvas bits particles.js touches when it loads. nothing gets drawn here
-class Path2D { lineTo() {} moveTo() {} arc() {} bezierCurveTo() {} closePath() {} }
+class Path2D { lineTo() {} moveTo() {} arc() {} ellipse() {} bezierCurveTo() {} closePath() {} }
 const game = { console: { warn: (w) => warnings.push(w) }, Path2D, radians: (d) => (d * Math.PI) / 180, loadImage: () => ({}) };
 vm.createContext(game);
 vm.runInContext(['utils.js', 'datafiles.js', 'particles.js'].map((f) => fs.readFileSync(`${__dirname}/../${f}`, 'utf8')).join('\n')

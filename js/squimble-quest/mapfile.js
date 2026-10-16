@@ -44,6 +44,9 @@
 //     "warps": [                            (warps.js)
 //       { "name": "hut", "col": -11, "row": -5, "to": "hut", "toWarp": "exit", "activate": "interact", "enemies": true }
 //     ],
+//     "areas": [                            atmosphere areas (atmosphere.js): a box or oval of tiles
+//       { "atmosphere": "graveyard", "col": 24, "row": -8, "cols": 16, "rows": 14, "shape": "box", "fade": 3, "strength": 100 }
+//     ],
 //     "sounds": [                           sound blocks (soundblocks.js), a sound's name.
 //       { "sound": "coin", "col": 2, "row": 4, "activate": "step" },    move, distance, speed and show
 //       { "sound": "car", "col": 0, "row": 9, "activate": "loop", "move": "past", "distance": 40, "speed": 14 }
@@ -104,6 +107,8 @@ function mapToData(map) {
     data[info.fileKey] = map[info.list].map(({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats }) => ({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats }));
   }
   data.warps = map.warps.map(({ name, col, row, to, toWarp, activate, enemies }) => ({ name, col, row, to, toWarp, activate, enemies }));
+  // atmosphere first, so mapDataToText() squashes each one onto one line. only maps with some
+  if (map.areas.length > 0) data.areas = map.areas.map(({ atmosphere, col, row, cols, rows, shape, fade, strength }) => ({ atmosphere, col, row, cols, rows, shape, fade, strength }));
   // sound first, so mapDataToText() squashes each one onto one line. moving and seen ones only
   data.sounds = map.sounds.map(({ sound, col, row, activate, move, distance, speed, show }) => ({ sound, col, row, activate, move, distance, speed, show }));
   return data;
@@ -233,6 +238,29 @@ function mapFromData(data) {
     map.sounds.push(block);
   }
 
+  // "areas" (atmosphere.js), which older maps don't have. the tiles are needed, the rest has a normal.
+  // an atmosphere that isn't loaded is kept, like sound blocks, but does nothing and is red in the editor
+  for (const entry of data.areas ?? []) {
+    const whole = (n) => Number.isInteger(n);
+    if (!whole(entry.col) || !whole(entry.row) || !(entry.cols >= 1) || !(entry.rows >= 1)) {
+      unknown.add('an atmosphere area without a col, row, cols or rows');
+      continue;
+    }
+    const atmosphere = typeof entry.atmosphere === 'string' ? entry.atmosphere : '';
+    if (atmosphere && !ATMOSPHERES[atmosphere]) console.warn(`An atmosphere area uses "${atmosphere}", which isn't in atmospheres/index.json, so it does nothing`);
+    const number = (value, normal, min, max) => (typeof value === 'number' ? constrain(value, min, max) : normal);
+    map.areas.push({
+      atmosphere,
+      col: entry.col,
+      row: entry.row,
+      cols: Math.round(entry.cols),
+      rows: Math.round(entry.rows),
+      shape: Object.hasOwn(ATMOSPHERE_AREA_SHAPES, entry.shape) ? entry.shape : 'box',
+      fade: number(entry.fade, ATMOSPHERE_AREA.fade, 0, 100),
+      strength: number(entry.strength, ATMOSPHERE_AREA.strength, 0, 100),
+    });
+  }
+
   if (unknown.size > 0) {
     console.warn(`This map has things the game doesn't know, so they've been left out: ${[...unknown].join(', ')}.`);
   }
@@ -311,12 +339,12 @@ function openMapFile() {
 // ---------- small helpers ----------
 
 // the text of a map file: json with 2 space indents (one tile row per line), with each object, enemy,
-// npc, warp and sound block squashed onto one line so long lists are still easy to read
+// npc, warp, sound block and area squashed onto one line so long lists are still easy to read
 function mapDataToText(data) {
   return JSON.stringify(data, null, 2)
-    // an object, character, warp or sound block is a { } starting with "type", "name" or "sound" with
-    // only plain values in it
-    .replace(/\{\s+("(?:type|name|sound)":[^{}[\]]*?)\s+\}/g, (match, inside) => `{ ${inside.replace(/,\s+/g, ', ')} }`)
+    // an object, character, warp, sound block or area is a { } starting with "type", "name", "sound"
+    // or "atmosphere" with only plain values in it
+    .replace(/\{\s+("(?:type|name|sound|atmosphere)":[^{}[\]]*?)\s+\}/g, (match, inside) => `{ ${inside.replace(/,\s+/g, ', ')} }`)
     + '\n';
 }
 

@@ -44,7 +44,8 @@
 //     their characters, loadMap() in sketch.js)
 //   - triggers, click to place: the spawn (yellow ring, there's only one so it moves) and warps (purple
 //     square, warps.js). placing a warp opens its settings, or right click it later. Show links opens
-//     warpgraph.js
+//     warpgraph.js. drag to make an atmosphere area (dashed outline, atmosphere.js), which opens its
+//     settings, or right click inside it later
 //   - the toolbar's map buttons ask for things with a FormBox (formbox.js): Resize (never smaller than
 //     the area with tiles), New (any size and fill), Open (from a file), Export (to a file), and
 //     Atmosphere (the map's fog, colour, weather and background sound, atmosphere.js)
@@ -126,6 +127,8 @@ const TRIGGER_TYPES = {
   spawn: { place: (map, col, row) => Editor.placeSpawn(map, col, row) },
   // a way to another map or somewhere else on this one (warps.js). one per tile
   warp: { place: (map, col, row) => Editor.placeWarp(map, col, row) },
+  // a box or oval with an atmosphere of its own (atmosphere.js), dragged out over the map
+  area: { place: (map, col, row) => AtmosphereAreas.start(col, row) },
 };
 
 // the palette tabs, left to right. kind is what the editor calls the things on that tab, types is
@@ -506,9 +509,11 @@ const Editor = {
       const { kind, name } = this.selected;
       EDITOR_TABS.find((tab) => tab.kind === kind).place?.(map, name, over.col, over.row);
     }
+    // an area being dragged out (atmosphere.js) follows the mouse, and opens its settings when let go
+    AtmosphereAreas.update(map, over);
 
     // right click: the settings for what's there (a warp, then a sound block, then an enemy, then an
-    // npc). any new settings boxes can hook in here
+    // npc, then an atmosphere area). any new settings boxes can hook in here
     if (over && Input.mousePressed('right')) {
       const warp = map.warpAt(over.col, over.row);
       const sound = map.soundAt(over.col, over.row);
@@ -518,6 +523,7 @@ const Editor = {
       else if (sound) SoundBlocks.edit(sound);
       else if (enemy) this.editEnemy(enemy);
       else if (npc) this.editNpc(npc);
+      else if (AtmosphereAreas.at(map, over.col, over.row)) AtmosphereAreas.edit(map, AtmosphereAreas.at(map, over.col, over.row));
     }
 
     // painting and erasing keep going while the mouse is held
@@ -1050,8 +1056,9 @@ const Editor = {
     // one screen pixel, so lines stay the same thickness at any zoom
     const px = 1 / camera.zoom;
 
-    // sound blocks (soundblocks.js), warps on top of them (warps.js), and the spawn ring where the
-    // player's feet go
+    // atmosphere areas under everything (atmosphere.js), sound blocks (soundblocks.js), warps on top of
+    // them (warps.js), and the spawn ring where the player's feet go
+    AtmosphereAreas.drawAll(map, px);
     for (const block of map.sounds) drawSoundMarker(block, px);
     for (const warp of map.warps) drawWarpMarker(warp, px);
     drawSpawnRing(map.spawn.x, map.spawn.y + feetBelowCentre(PLAYER), px);
@@ -1201,7 +1208,7 @@ class EditorStatusBar extends UIElement {
       where = `(${over.col}, ${over.row})  ${worldMap.inside(over.col, over.row) ? tile?.name ?? 'empty' : 'off the map'}`;
     }
     const s = Editor.selected;
-    const click = s === null ? 'erase' : s.kind === 'voice' ? `give an NPC ${s.name}` : `${s.kind === 'tile' ? 'paint' : 'place'} ${s.name}`;
+    const click = s === null ? 'erase' : s.kind === 'voice' ? `give an NPC ${s.name}` : s.name === 'area' ? 'drag out an area' : `${s.kind === 'tile' ? 'paint' : 'place'} ${s.name}`;
 
     setText(11, BOLD, LEFT, CENTER);
     fill(C.text);
@@ -1370,6 +1377,9 @@ function inspectorInfo(selected) {
   }
   if (kind === 'trigger' && name === 'spawn') {
     return { title: 'spawn', kind: 'Trigger', rows: [], note: "Where the player starts on this map. There's only one, so placing it moves it" };
+  }
+  if (kind === 'trigger' && name === 'area') {
+    return { title: 'area', kind: 'Trigger', rows: [], note: 'Drag over the map for a box with its own atmosphere: fog, colour, weather, sound. Right click inside one to change it' };
   }
   if (kind === 'trigger') {
     return { title: 'warp', kind: 'Trigger', rows: [], note: 'A way to another map. Placing one opens its settings, right click it on the map to change them later' };
@@ -1661,6 +1671,8 @@ function drawPaletteArt(kind, name, x, y, size) {
     line(middleX + r, middleY - r, middleX - r, middleY + r);
   } else if (kind === 'trigger' && name === 'spawn') {
     drawSpawnRing(middleX, middleY);
+  } else if (kind === 'trigger' && name === 'area') {
+    drawAreaArt(x, y, size); // atmosphere.js
   } else if (kind === 'trigger') {
     // a warp, same as its marker on the map (warps.js)
     const w = size * 0.6;

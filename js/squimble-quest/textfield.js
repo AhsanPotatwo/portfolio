@@ -96,16 +96,17 @@ class NumberField extends TextField {
   constructor(options = {}) {
     const min = options.min ?? 0;
     const max = options.max ?? Infinity;
-    // digits only, and only as many as max has (9 if there's no max)
-    super({ ...options, value: options.value ?? min, allowed: /^[0-9]$/, maxLength: String(max === Infinity ? 1e9 : max).length });
+    // digits only (and a minus if it can go below 0), and only as many as max has (9 if there's no max)
+    const longest = Math.max(String(max === Infinity ? 1e9 : max).length, String(min).length);
+    super({ ...options, value: options.value ?? min, allowed: min < 0 ? /^[-0-9]$/ : /^[0-9]$/, maxLength: longest });
     this.min = min;
     this.max = max;
   }
 
-  // kept between min and max. empty counts as min
+  // kept between min and max. empty (or just a minus) counts as 0, or min if that's above 0
   get value() {
     const number = parseInt(this.text, 10);
-    return constrain(Number.isNaN(number) ? this.min : number, this.min, this.max);
+    return constrain(Number.isNaN(number) ? 0 : number, this.min, this.max);
   }
 
   set value(number) {

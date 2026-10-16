@@ -1,0 +1,19 @@
+{
+  "tintColour": "#e8f4ff",
+  "tintAmount": 15,
+  "tintMode": "screen",
+  "fogColour": "#ffffff",
+  "fogAmount": 45,
+  "fogPattern": "wisps",
+  "fogSize": 180,
+  "fogCover": 55,
+  "fogSoftness": 80,
+  "fogSpeed": 18,
+  "fogDirection": 270,
+  "fogChurn": 60,
+  "fogBreathe": 60,
+  "weather": [
+    "steam"
+  ],
+  "weatherAmount": 150
+}

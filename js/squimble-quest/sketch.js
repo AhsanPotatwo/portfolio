@@ -355,9 +355,10 @@ function draw() {
   // (particles.js). tiles and objects on screen that keep making particles go first, but not under the
   // full screen editors, where you can't see them
   if (!WarpGraph.active && !SoundEditor.active) ParticleEmitters.update(dt, worldMap, gameCamera.view());
-  // the map's flashes of lightning and background sound (atmosphere.js). its weather is particles, so
-  // it's in ParticleEmitters
-  Atmosphere.update(worldMap, dt);
+  // the map's and its areas' flashes of lightning and background sounds (atmosphere.js), going by
+  // where the player's feet are, or the middle of the screen in the editor. their weather is
+  // particles, so it's in ParticleEmitters
+  Atmosphere.update(worldMap, dt, Editor.active ? gameCamera : { x: player.x, y: player.y + feetBelowCentre(PLAYER) });
   Particles.update(dt, worldMap);
   DamageNumbers.update(dt);
   // sounds get quieter the further they are from the player's feet, and higher or lower as they and
@@ -378,19 +379,19 @@ function draw() {
     Shaders.capture('ground');
     // sort by feet so whatever's lower on screen is in front. drops sort by their shadow (even while
     // they're being thrown), and so do arrows and flying particles. drops show in the editor too,
-    // since you can place them there
+    // since you can place them there. there can be thousands of flying particles, so they keep their
+    // own sorted list and get drawn in runs between these (particles.js)
     const things = [
       ...[player, ...enemies, ...npcs].map((c) => ({ y: c.y + c.h / 2, draw: () => c.draw() })),
       ...worldMap.drops.map((d) => ({ y: Drops.where(d).y, draw: () => Drops.draw(d) })),
       ...arrows.map((a) => ({ y: a.y, draw: () => a.draw() })),
-      ...Particles.flying(view).map((p) => ({ y: p.y, draw: () => Particles.drawOne(p) })),
     ];
     things.sort((a, b) => a.y - b.y);
-    for (const thing of things) thing.draw();
+    Particles.drawFlyingWith(things, view);
     // ...to here
     Shaders.capture('things');
-    // fog, colour and the rest of the map's atmosphere over all of it (atmosphere.js), but under damage
-    // numbers, prompts and the editor's cursor so they stay readable
+    // fog, colour and the rest of the map's atmosphere over all of it, then its areas' (atmosphere.js),
+    // but under damage numbers, prompts and the editor's cursor so they stay readable
     Atmosphere.draw(gameCamera, worldMap);
     // over everything, so they're never hidden behind someone (weapons.js)
     DamageNumbers.draw();

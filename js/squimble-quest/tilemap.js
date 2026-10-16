@@ -33,6 +33,9 @@ class TileMap {
     // the name of its fog, colour, weather and background sound in ATMOSPHERES (atmosphere.js), or ''
     // for none. one that doesn't exist (its file was renamed) is kept but shows nothing
     this.atmosphere = '';
+    // boxes and ovals of tiles with an atmosphere of their own, each { atmosphere, col, row, cols, rows,
+    // shape, fade, strength } (explained under "areas" in atmosphere.js)
+    this.areas = [];
 
     // each { type, col, row } (objects.js)
     this.objects = [];

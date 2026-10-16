@@ -1,0 +1,27 @@
+{
+  "sound": "wind",
+  "soundVolume": 45,
+  "tintColour": "#6a7a8a",
+  "tintAmount": 40,
+  "drain": 45,
+  "flicker": 15,
+  "flickerSpeed": 0.5,
+  "edgeColour": "#05080a",
+  "edgeAmount": 55,
+  "edgeSize": 60,
+  "fogColour": "#b8c4c0",
+  "fogAmount": 60,
+  "fogSize": 260,
+  "fogCover": 60,
+  "fogSoftness": 70,
+  "fogSpeed": 6,
+  "fogLayers": 3,
+  "fogChurn": 50,
+  "fogBreathe": 50,
+  "weather": [
+    "ghost-lights",
+    "motes"
+  ],
+  "flashes": 1,
+  "flashColour": "#c8e0ff"
+}

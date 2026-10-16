@@ -27,6 +27,11 @@
 //
 // particles are only for show and never change the game, so like sound they'd just run on each
 // player's own computer in multiplayer. they're forgotten when you change map (loadMap() in sketch.js)
+//
+// there can be thousands at once (weather, hits, weapons, footsteps...), so drawing is built to make
+// as few canvas calls as it can: colour buckets, rectangles, no save/restore (see beginDrawing() for
+// why, and the Particles notes in README.md for the numbers), flying ones keep a sorted list between frames (sortFlying()), and things that
+// make them nonstop turn down on computers that can't keep up (PARTICLE_EMITTERS)
 
 // every setting an effect has, which is also its row in the particle editor: which tab it's on, the
 // words next to it, its normal value (PARTICLE_DEFAULTS, below), and the tip the editor shows while
@@ -172,8 +177,11 @@ const PARTICLE_GOES_AT = {
 };
 
 // the most there can be at once in each system (the map's, and the editor's preview). past this the
-// oldest go first, so lots of hits at once can't slow the game down
-const PARTICLE_LIMIT = 3000;
+// oldest go first, so lots of hits at once can't slow the game down. drawing 6000 small ones holds
+// 40 to 60 fps drawn at 2x on a GTX 1070 (about 2.5 times what it managed before the drawing was
+// rebuilt, see beginDrawing()), and things that keep making them turn down on slower computers
+// (PARTICLE_EMITTERS), so this is a ceiling for big moments rather than what's normally there
+const PARTICLE_LIMIT = 8000;
 // how many times over effects can make effects (a trail's trail's trail...), so one that makes
 // itself can't go on forever
 const PARTICLE_CHAIN_DEPTH = 4;
@@ -252,16 +260,24 @@ function sayParticleEffect(name) {
 // preview has its own
 class ParticleSystem {
   constructor() {
-    // each one is { effect, x, y, z, vx, vy, vz, ox, oy, size, rgb, colour, end, angle, spin, flip,
+    // each one is { effect, x, y, z, vx, vy, vz, ox, oy, size, rgb, end, angle, spin, flip,
     // flipSpeed, phase, swaySpeed, age, life, depth, img, bit }: its effect's settings, its floor spot
     // and height (px), their speeds (px/s), the middle of its burst (for pull and swirl), its
-    // size at the start, its colour at the start as [r, g, b] and 'rgb(...)' and the [r, g, b] it
+    // size at the start, its colour at the start as [r, g, b] and the [r, g, b] it
     // turns to, which way it's turned and how fast it's turning (radians, radians/s), the same for
     // tumbling over, where it is in its sway and how fast it sways (radians, radians/s), seconds alive
     // and how many it gets, how many effects made it (0 if it came straight from burst()), and its
     // picture (a p5 image or null) and which bit of it ({ u, v, n }: the bit's column and row out of
     // n, or null for the whole picture)
     this.list = [];
+    // the flying ones in the order they were last drawn (sortFlying()), and a number that goes up
+    // every time it sorts, to mark which ones it's using
+    this.order = [];
+    this.stamp = 0;
+    // the particles being drawn, by colour, and those with shadows (beginDrawing()). kept and emptied
+    // each time rather than made new
+    this.buckets = new Map();
+    this.shadows = [];
   }
 
   // particles from an effect (a PARTICLE_EFFECTS name, or its settings) bursting out from above the
@@ -311,7 +327,6 @@ class ParticleSystem {
         oy: y,
         size: Math.max(1, vary(e.size, e.sizeRandom)),
         rgb: colour,
-        colour: `rgb(${colour.join(', ')})`,
         end,
         angle: e.randomTurn ? randomBetween(0, Math.PI * 2) : 0,
         spin: radians(randomBetween(-e.spin, e.spin)),
@@ -326,11 +341,15 @@ class ParticleSystem {
         bit: e.shape === 'bits' ? { u: Math.floor(randomBetween(0, e.bits)), v: Math.floor(randomBetween(0, e.bits)), n: e.bits } : null,
       });
     }
-    if (this.list.length > PARTICLE_LIMIT) this.list.splice(0, this.list.length - PARTICLE_LIMIT);
+    // update() keeps it to PARTICLE_LIMIT once a frame, since cutting the front off the list here on
+    // every burst (lots of them a frame at the limit) moved the whole list each time. this only
+    // catches lots of bursts with no updates between
+    if (this.list.length > PARTICLE_LIMIT * 2) this.list.splice(0, this.list.length - PARTICLE_LIMIT);
   }
 
   clear() {
     this.list = [];
+    this.order = [];
   }
 
   // moves them all on by dt seconds. map is a TileMap whose solid tiles they bounce off (if their
@@ -416,27 +435,74 @@ class ParticleSystem {
         } else p.y = y;
       }
     }
-    this.list = this.list.filter((p) => {
-      if (p.age < p.life) return true;
-      if (p.effect.then) chain.push([p.effect.then, p]);
-      return false;
-    });
+    // the ones still going shuffle down the list in place, rather than filter() making a new list of
+    // thousands every frame for the garbage collector to clear up (a stutter every so often)
+    let kept = 0;
+    for (let i = 0; i < this.list.length; i++) {
+      const p = this.list[i];
+      if (p.age < p.life) this.list[kept++] = p;
+      else if (p.effect.then) chain.push([p.effect.then, p]);
+    }
+    this.list.length = kept;
+    // past the limit the oldest go first (they're at the front)
+    if (kept > PARTICLE_LIMIT) this.list.splice(0, kept - PARTICLE_LIMIT);
     for (const [name, p] of chain) {
       if (p.depth < PARTICLE_CHAIN_DEPTH) this.burst(name, p.x, p.y, { height: Math.max(0, p.z), img: p.img, rgb: particleRgb(p), depth: p.depth + 1 });
     }
   }
 
   // the ones lying on the floor, in world positions (inside camera.begin/end). they go under
-  // everything else, and flying() ones get sorted in with the characters (sketch.js). view is the
-  // camera's (camera.view()) so ones off the screen get skipped, or leave it out for all of them
+  // everything else, and flying ones get sorted in with the characters (drawFlyingWith()). view is
+  // the camera's (camera.view()) so ones off the screen get skipped, or leave it out for all of them
   drawFloor(view) {
+    const batch = this.beginDrawing();
     for (const p of this.list) {
-      if (p.z <= 0 && this.onScreen(p, view)) this.drawOne(p);
+      if (p.z <= 0 && this.onScreen(p, view)) this.drawOne(p, batch);
     }
+    this.endDrawing(batch);
   }
 
-  flying(view) {
-    return this.list.filter((p) => p.z > 0 && this.onScreen(p, view));
+  // the flying ones on screen, sorted in with `things` (each { y, draw() }, already sorted by y) so
+  // whatever's lower on screen is in front, then drawn (sketch.js). they're drawn in runs between the
+  // things, rather than each being a thing of its own to sort, which cost a little object for every
+  // particle every frame
+  drawFlyingWith(things, view) {
+    const flying = this.sortFlying(view);
+    let from = 0;
+    for (const thing of things) {
+      // a particle level with a thing goes behind it, like the sort this replaced
+      let to = from;
+      while (to < flying.length && flying[to].y < thing.y) to++;
+      this.drawRange(flying, from, to);
+      thing.draw();
+      from = to;
+    }
+    this.drawRange(flying, from, flying.length);
+  }
+
+  // the flying ones on screen sorted by their floor spot (y). the order is kept from frame to frame
+  // (this.order): last frame's that are still flying on screen, in last frame's order, then new ones
+  // on the end. particles barely move in a frame, so it's nearly sorted already, which the browser's
+  // sort gets through in about one pass
+  sortFlying(view) {
+    const stamp = ++this.stamp;
+    for (const p of this.list) {
+      if (p.z > 0 && this.onScreen(p, view)) p.stamp = stamp;
+    }
+    const order = this.order;
+    let kept = 0;
+    for (const p of order) {
+      // marked as kept, so the loop below doesn't add it again
+      if (p.stamp === stamp) {
+        order[kept++] = p;
+        p.stamp = -stamp;
+      }
+    }
+    order.length = kept;
+    for (const p of this.list) {
+      if (p.stamp === stamp) order.push(p);
+    }
+    return order.sort(byFloorSpot);
   }
 
   onScreen(p, view) {
@@ -447,53 +513,224 @@ class ParticleSystem {
   // all of them, floor ones first (the editor's preview)
   drawAll() {
     this.drawFloor();
-    for (const p of this.flying()) this.drawOne(p);
+    this.drawRange(this.list.filter((p) => p.z > 0));
   }
 
-  // straight onto the canvas instead of through p5's push() and pop(), since there can be thousands
-  drawOne(p) {
+  // list[from] to list[to - 1]
+  drawRange(list, from = 0, to = list.length) {
+    if (from >= to) return;
+    const batch = this.beginDrawing();
+    for (let i = from; i < to; i++) this.drawOne(list[i], batch);
+    this.endDrawing(batch);
+  }
+
+  // drawing is most of what particles cost, and the canvas costs about the same for every call
+  // whatever it draws, so it's built to make as few calls as it can (measured in Chrome with 3000 on
+  // screen, drawn at 2x, on a GTX 1070):
+  //   - setting the colour is the dearest call (the canvas reads the colour's text every time), so a
+  //     run of particles is sorted into buckets of one colour (rounded to steps of 8 out of 255, which
+  //     you can't see on something a few pixels across) and each bucket sets it once
+  //   - rectangles are by far the cheapest thing to fill, and the most common shapes are squares and
+  //     streaks. small circles are drawn as pixel art circles made of three rectangles
+  //     (fillParticleBlob()), which also suits the art. bigger circles and the fancier shapes (stars,
+  //     hearts, rings...) are filled as shapes, which the graphics card finds harder, so lots of big
+  //     stars still cost more than lots of squares
+  //   - only particles that are turned get a transform of their own. the rest draw straight in world
+  //     positions under the camera's
+  //   - nothing per particle uses save() and restore()
+  // which of two particles in the same run is on top can change, which doesn't show
+  beginDrawing() {
+    const ctx = drawingContext;
+    const m = ctx.getTransform();
+    for (const bucket of this.buckets.values()) bucket.length = 0;
+    // a colour that's been seen before keeps its bucket, but lots of them (rainbow confetti) would
+    // pile up
+    if (this.buckets.size > 512) this.buckets.clear();
+    this.shadows.length = 0;
+    return { ctx, m, alpha: ctx.globalAlpha, blend: ctx.globalCompositeOperation, scale: Math.hypot(m.a, m.b), turned: false };
+  }
+
+  // fills the shadows, then each colour's bucket, then puts the canvas back how it was
+  endDrawing(batch) {
+    const { ctx } = batch;
+    if (this.shadows.length > 0) {
+      ctx.fillStyle = '#000';
+      for (const p of this.shadows) {
+        ctx.globalAlpha = batch.alpha * p.drawShadow;
+        // they're faint, so a flat rectangle does unless they're big, which saves two calls each
+        const half = p.drawHalf;
+        if (half * batch.scale > PARTICLE_BLOB.big) fillParticleBlob(batch, p.x, p.y, half, half / 2);
+        else {
+          if (batch.turned) unturnParticles(batch);
+          ctx.fillRect(p.x - half, p.y - half / 2, half * 2, half);
+        }
+      }
+    }
+    for (const [key, bucket] of this.buckets) {
+      if (bucket.length === 0) continue;
+      ctx.globalCompositeOperation = key & PARTICLE_GLOWS ? 'lighter' : batch.blend;
+      ctx.fillStyle = particleColourText(key);
+      for (const p of bucket) {
+        ctx.globalAlpha = batch.alpha * p.drawAlpha;
+        fillParticle(batch, p);
+      }
+    }
+    if (batch.turned) ctx.setTransform(batch.m);
+    ctx.globalAlpha = batch.alpha;
+    ctx.globalCompositeOperation = batch.blend;
+  }
+
+  // works out how one particle looks now and puts it in its colour's bucket (and its shadow with the
+  // shadows), between beginDrawing() and endDrawing(), in world positions. ones with a picture are
+  // drawn straight away, since they don't have a colour
+  drawOne(p, batch) {
     const e = p.effect;
-    const size = p.size * (1 + (e.endSize / 100 - 1) * (p.age / p.life));
+    const t = p.age / p.life;
+    const size = p.size * (1 + (e.endSize / 100 - 1) * t);
     if (size < 0.5) return;
     // fading in over the first fadeIn seconds and out over the last fadeTime (x / 0 is Infinity, so
     // 0 never fades out), and twinkling at random
     const fadeIn = e.fadeIn ? p.age / e.fadeIn : 1;
-    const twinkle = 1 - (Math.random() * e.twinkle) / 100;
+    const twinkle = e.twinkle ? 1 - (Math.random() * e.twinkle) / 100 : 1;
     const alpha = (e.opacity / 100) * Math.min(1, fadeIn, (p.life - p.age) / e.fadeTime) * twinkle;
-    const half = size / 2;
-    const ctx = drawingContext;
-    ctx.save();
-    ctx.globalAlpha *= alpha;
+    if (alpha <= 0) return;
+    p.drawAlpha = alpha;
+    p.drawHalf = size / 2;
     // a shadow on its floor spot, fainter the higher it is
-    if (e.shadow && p.z > 0) {
-      ctx.fillStyle = `rgba(0, 0, 0, ${0.3 * Math.max(0, 1 - p.z / 200)})`;
-      ctx.beginPath();
-      ctx.ellipse(p.x, p.y, half, half / 2, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    if (e.glow) ctx.globalCompositeOperation = 'lighter';
-    // whole pixels, so they stay sharp like the rest of the art
-    ctx.translate(Math.round(p.x), Math.round(p.y - p.z));
-    if (p.angle) ctx.rotate(p.angle);
-    // stretched long, and squashed flat as it tumbles over (flip)
-    ctx.scale(e.stretch / 100, Math.cos(p.flip));
+    p.drawShadow = e.shadow && p.z > 0 ? alpha * 0.3 * (1 - p.z / 200) : 0;
+    if (p.drawShadow > 0) this.shadows.push(p);
+
     // a p5 image is 1 x 1 until it's loaded
     const img = p.img && p.img.width > 1 ? p.img : null;
-    if (img && p.bit) {
-      const w = img.width / p.bit.n;
-      const h = img.height / p.bit.n;
-      image(img, -half, -half, size, size, p.bit.u * w, p.bit.v * h, w, h);
-    } else if (img) {
-      const h = size * (img.height / img.width);
-      image(img, -half, -h / 2, size, h);
-    } else {
-      ctx.fillStyle = e.colourChange ? `rgb(${particleRgb(p).join(', ')})` : p.colour;
-      ctx.scale(half, half);
-      // a picture that hasn't loaded (or failed to) is a square
-      ctx.fill(PARTICLE_SHAPES[e.shape].path ?? PARTICLE_SHAPES.square.path, 'evenodd');
+    if (img) {
+      const { ctx } = batch;
+      ctx.globalAlpha = batch.alpha * alpha;
+      ctx.globalCompositeOperation = e.glow ? 'lighter' : batch.blend;
+      turnParticle(batch, p);
+      if (p.bit) {
+        const w = img.width / p.bit.n;
+        const h = img.height / p.bit.n;
+        ctx.drawImage(img.canvas, p.bit.u * w, p.bit.v * h, w, h, -1, -1, 2, 2);
+      } else {
+        const h = img.height / img.width;
+        ctx.drawImage(img.canvas, -1, -h, 2, h * 2);
+      }
+      ctx.globalAlpha = batch.alpha;
+      ctx.globalCompositeOperation = batch.blend;
+      return;
     }
-    ctx.restore();
+    let [r, g, b] = p.rgb;
+    if (e.colourChange) {
+      const turn = (e.colourChange / 100) * t;
+      r += (p.end[0] - r) * turn;
+      g += (p.end[1] - g) * turn;
+      b += (p.end[2] - b) * turn;
+    }
+    const key = (e.glow ? PARTICLE_GLOWS : 0) | ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+    let bucket = this.buckets.get(key);
+    if (!bucket) this.buckets.set(key, bucket = []);
+    bucket.push(p);
   }
+}
+
+// the bit of a colour bucket's key that says it glows (ParticleSystem.drawOne())
+const PARTICLE_GLOWS = 1 << 15;
+// a bucket's colour as the canvas wants it, by key, so it's only made once
+const PARTICLE_COLOUR_TEXT = new Map();
+
+function particleColourText(key) {
+  let text = PARTICLE_COLOUR_TEXT.get(key);
+  if (!text) {
+    // the middle of each step of 8
+    const level = (shift) => (((key >> shift) & 31) << 3) + 4;
+    text = `rgb(${level(10)}, ${level(5)}, ${level(0)})`;
+    PARTICLE_COLOUR_TEXT.set(key, text);
+  }
+  return text;
+}
+
+// screen px from the middle to the edge a circle can be and still be drawn as a pixel art circle
+// rather than a shape. under small it's just a square
+const PARTICLE_BLOB = { small: 3, big: 12 };
+
+// one particle in the colour and see-throughness already set
+function fillParticle(batch, p) {
+  const e = p.effect;
+  const { ctx } = batch;
+  // a picture that hasn't loaded (or failed to) is a square
+  const shape = PARTICLE_SHAPES[e.shape].path ? e.shape : 'square';
+  // stretched long, and squashed flat as it tumbles over (flip)
+  const rx = (e.stretch / 100) * p.drawHalf;
+  const ry = Math.abs(Math.cos(p.flip)) * p.drawHalf;
+  // whole pixels, so they stay sharp like the rest of the art
+  const x = Math.round(p.x);
+  const y = Math.round(p.y - p.z);
+  if (shape === 'square' && !p.angle) {
+    if (batch.turned) unturnParticles(batch);
+    ctx.fillRect(x - rx, y - ry, rx * 2, ry * 2);
+  } else if (shape === 'circle' && Math.max(rx, ry) * batch.scale <= PARTICLE_BLOB.big) {
+    fillParticleBlob(batch, x, y, rx, ry);
+  } else {
+    turnParticle(batch, p, x, y, rx, ry);
+    if (shape === 'square') ctx.fillRect(-1, -1, 2, 2);
+    else if (shape === 'streak') ctx.fillRect(-1, -0.3, 2, 0.6);
+    else ctx.fill(PARTICLE_SHAPES[shape].path, 'evenodd');
+  }
+}
+
+// a pixel art circle rx by ry round x, y: a band across the middle and a shorter one above and below
+// it, which don't overlap, so see-through ones don't show darker where they would. tiny ones are a
+// square, and big ones are a real circle. shadows use it too
+function fillParticleBlob(batch, x, y, rx, ry) {
+  const { ctx } = batch;
+  const across = Math.max(rx, ry) * batch.scale;
+  if (across > PARTICLE_BLOB.big) {
+    turnParticle(batch, null, x, y, rx, ry);
+    ctx.fill(PARTICLE_SHAPES.circle.path);
+    return;
+  }
+  if (batch.turned) unturnParticles(batch);
+  if (across < PARTICLE_BLOB.small) {
+    ctx.fillRect(x - rx, y - ry, rx * 2, ry * 2);
+    return;
+  }
+  const inset = 0.6;
+  ctx.fillRect(x - rx, y - ry * inset, rx * 2, ry * inset * 2);
+  ctx.fillRect(x - rx * inset, y - ry, rx * inset * 2, ry * (1 - inset));
+  ctx.fillRect(x - rx * inset, y + ry * inset, rx * inset * 2, ry * (1 - inset));
+}
+
+// sets the canvas's transform to the camera's (batch.m), moved to x, y, turned by p's angle (none for
+// null) and scaled by rx, ry (the sums are those matrices multiplied out), so it draws from -1 to 1.
+// given only p, it works those out the way fillParticle() does, for pictures
+function turnParticle(batch, p, x, y, rx, ry) {
+  if (x === undefined) {
+    rx = (p.effect.stretch / 100) * p.drawHalf;
+    ry = Math.cos(p.flip) * p.drawHalf;
+    x = Math.round(p.x);
+    y = Math.round(p.y - p.z);
+  }
+  const { m } = batch;
+  const angle = p ? p.angle : 0;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const a = cos * rx;
+  const b = sin * rx;
+  const c = -sin * ry;
+  const d = cos * ry;
+  batch.ctx.setTransform(m.a * a + m.c * b, m.b * a + m.d * b, m.a * c + m.c * d, m.b * c + m.d * d, m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f);
+  batch.turned = true;
+}
+
+// back to the camera's transform, for particles drawn in world positions
+function unturnParticles(batch) {
+  batch.ctx.setTransform(batch.m);
+  batch.turned = false;
+}
+
+// sorts particles by their floor spot (ParticleSystem.sortFlying())
+function byFloorSpot(a, b) {
+  return a.y - b.y;
 }
 
 // the map's particles. sketch.js updates and draws them
@@ -513,9 +750,21 @@ const Particles = new ParticleSystem();
 //     rather than the first ones looked at getting it all. that leaves room for hits, so blood always
 //     shows
 //   - particles that have stopped on the floor skip moving, and ones off screen aren't drawn (above)
+//   - on a computer that can't keep up (frames slower than slowFrame) they turn down further, bit by
+//     bit, and back up once frames are quicker than fastFrame (quality). hits, deaths and anything
+//     else bursting from code are never turned down, so the game's own feedback always shows
 const PARTICLE_EMITTERS = {
   // the part of PARTICLE_LIMIT they can fill
   share: 0.6,
+  // seconds a frame: slower than slowFrame (50 fps) turns them down, quicker than fastFrame (57 fps)
+  // turns them back up, never below lowest of what they'd make. down is quicker than up, so it
+  // doesn't swing back and forth
+  slowFrame: 1 / 50,
+  fastFrame: 1 / 57,
+  lowest: 0.2,
+  // how much quality changes a second each way
+  down: 0.8,
+  up: 0.2,
   // world px past the screen's edge that still count as on screen, so smoke drifting in from just
   // off the edge is already going
   margin: 64,
@@ -525,9 +774,17 @@ const ParticleEmitters = {
   // how much they're turned down (1 is not at all, 0.5 is half as many), worked out from the frame
   // before. the dev panel shows it (debug.js)
   turnedDown: 1,
+  // 0 to 1, how far they're turned down for a computer that can't keep up, and the frame time it
+  // goes by (smoothed over about a quarter of a second, so one slow frame doesn't count)
+  quality: 1,
+  frameTime: 1 / 60,
 
   // every frame from sketch.js. view is the camera's (camera.view())
   update(dt, map, view) {
+    const P = PARTICLE_EMITTERS;
+    this.frameTime += (dt - this.frameTime) * Math.min(1, dt * 4);
+    if (this.frameTime > P.slowFrame) this.quality = Math.max(P.lowest, this.quality - P.down * dt);
+    else if (this.frameTime < P.fastFrame) this.quality = Math.min(1, this.quality + P.up * dt);
     const m = PARTICLE_EMITTERS.margin;
     const left = view.left - m;
     const right = view.right + m;
@@ -579,9 +836,30 @@ const ParticleEmitters = {
         if (e) emit([name], (tiles * air.weatherAmount) / 100, left, top, right - left, bottom - top + e.startHeight + e.jumpHeight);
       }
     }
+    // and each area's, only from the part of it on screen (and below, like the map's), thinning out
+    // over its soft edge (areaAmount() in atmosphere.js)
+    for (const { area, a } of Atmosphere.showingAreas(map)) {
+      if (!a.weather) continue;
+      const box = areaBox(area);
+      const x0 = Math.max(left, box.left);
+      const x1 = Math.min(right, box.right);
+      const y0 = Math.max(top, box.top);
+      for (const name of a.weather) {
+        const e = PARTICLE_EFFECTS[name];
+        const y1 = Math.min(bottom + (e?.startHeight ?? 0) + (e?.jumpHeight ?? 0), box.bottom);
+        if (!e || x1 <= x0 || y1 <= y0) continue;
+        const rate = (((x1 - x0) * (y1 - y0)) / (TILE * TILE)) * (a.weatherAmount / 100) * (area.strength / 100);
+        wanted += e.rate * rate * e.count * e.lifetime;
+        for (let i = burstsIn(e.rate * rate * this.turnedDown, dt); i > 0; i--) {
+          const x = randomBetween(x0, x1);
+          const y = randomBetween(y0, y1);
+          if (randomBetween(0, 1) < areaAmount(area, x, y)) Particles.burst(e, x, y);
+        }
+      }
+    }
 
     const room = PARTICLE_LIMIT * PARTICLE_EMITTERS.share;
-    this.turnedDown = wanted > room ? room / wanted : 1;
+    this.turnedDown = (wanted > room ? room / wanted : 1) * this.quality;
   },
 };
 
