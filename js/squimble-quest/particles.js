@@ -531,10 +531,10 @@ class ParticleSystem {
   //     run of particles is sorted into buckets of one colour (rounded to steps of 8 out of 255, which
   //     you can't see on something a few pixels across) and each bucket sets it once
   //   - rectangles are by far the cheapest thing to fill, and the most common shapes are squares and
-  //     streaks. small circles are drawn as pixel art circles made of three rectangles
-  //     (fillParticleBlob()), which also suits the art. bigger circles and the fancier shapes (stars,
-  //     hearts, rings...) are filled as shapes, which the graphics card finds harder, so lots of big
-  //     stars still cost more than lots of squares
+  //     streaks, so those are fillRect()s. circles (and shadows) and the fancier shapes (stars, hearts,
+  //     rings...) are filled as real shapes, which the graphics card finds harder, so lots of circles
+  //     cost more than lots of squares. I tried drawing small circles as pixel art circles made of
+  //     rectangles, which was quicker but looked bad
   //   - only particles that are turned get a transform of their own. the rest draw straight in world
   //     positions under the camera's
   //   - nothing per particle uses save() and restore()
@@ -557,13 +557,9 @@ class ParticleSystem {
       ctx.fillStyle = '#000';
       for (const p of this.shadows) {
         ctx.globalAlpha = batch.alpha * p.drawShadow;
-        // they're faint, so a flat rectangle does unless they're big, which saves two calls each
-        const half = p.drawHalf;
-        if (half * batch.scale > PARTICLE_BLOB.big) fillParticleBlob(batch, p.x, p.y, half, half / 2);
-        else {
-          if (batch.turned) unturnParticles(batch);
-          ctx.fillRect(p.x - half, p.y - half / 2, half * 2, half);
-        }
+        // an oval on its floor spot, half as tall as it's wide
+        turnParticle(batch, null, p.x, p.y, p.drawHalf, p.drawHalf / 2);
+        ctx.fill(PARTICLE_SHAPES.circle.path);
       }
     }
     for (const [key, bucket] of this.buckets) {
@@ -649,10 +645,6 @@ function particleColourText(key) {
   return text;
 }
 
-// screen px from the middle to the edge a circle can be and still be drawn as a pixel art circle
-// rather than a shape. under small it's just a square
-const PARTICLE_BLOB = { small: 3, big: 12 };
-
 // one particle in the colour and see-throughness already set
 function fillParticle(batch, p) {
   const e = p.effect;
@@ -668,36 +660,12 @@ function fillParticle(batch, p) {
   if (shape === 'square' && !p.angle) {
     if (batch.turned) unturnParticles(batch);
     ctx.fillRect(x - rx, y - ry, rx * 2, ry * 2);
-  } else if (shape === 'circle' && Math.max(rx, ry) * batch.scale <= PARTICLE_BLOB.big) {
-    fillParticleBlob(batch, x, y, rx, ry);
   } else {
     turnParticle(batch, p, x, y, rx, ry);
     if (shape === 'square') ctx.fillRect(-1, -1, 2, 2);
     else if (shape === 'streak') ctx.fillRect(-1, -0.3, 2, 0.6);
     else ctx.fill(PARTICLE_SHAPES[shape].path, 'evenodd');
   }
-}
-
-// a pixel art circle rx by ry round x, y: a band across the middle and a shorter one above and below
-// it, which don't overlap, so see-through ones don't show darker where they would. tiny ones are a
-// square, and big ones are a real circle. shadows use it too
-function fillParticleBlob(batch, x, y, rx, ry) {
-  const { ctx } = batch;
-  const across = Math.max(rx, ry) * batch.scale;
-  if (across > PARTICLE_BLOB.big) {
-    turnParticle(batch, null, x, y, rx, ry);
-    ctx.fill(PARTICLE_SHAPES.circle.path);
-    return;
-  }
-  if (batch.turned) unturnParticles(batch);
-  if (across < PARTICLE_BLOB.small) {
-    ctx.fillRect(x - rx, y - ry, rx * 2, ry * 2);
-    return;
-  }
-  const inset = 0.6;
-  ctx.fillRect(x - rx, y - ry * inset, rx * 2, ry * inset * 2);
-  ctx.fillRect(x - rx * inset, y - ry, rx * inset * 2, ry * (1 - inset));
-  ctx.fillRect(x - rx * inset, y + ry * inset, rx * inset * 2, ry * (1 - inset));
 }
 
 // sets the canvas's transform to the camera's (batch.m), moved to x, y, turned by p's angle (none for
