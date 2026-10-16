@@ -1,0 +1,26 @@
+{
+  "sound": "wind",
+  "soundVolume": 35,
+  "tintColour": "#ffb766",
+  "tintAmount": 35,
+  "tintMode": "soft-light",
+  "fogColour": "#f0d6a6",
+  "fogAmount": 20,
+  "fogPattern": "streaks",
+  "fogSize": 300,
+  "fogSpeed": 70,
+  "fogLayers": 1,
+  "overlayColour": "#6f6585",
+  "overlayAmount": 35,
+  "overlayPattern": "patches",
+  "overlayBlend": "shade",
+  "overlaySize": 900,
+  "overlayCover": 40,
+  "overlaySoftness": 70,
+  "overlaySpeed": 15,
+  "overlayDirection": 20,
+  "weather": [
+    "sand"
+  ],
+  "weatherAmount": 50
+}

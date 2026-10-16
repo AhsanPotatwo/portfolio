@@ -501,7 +501,7 @@ const Particles = new ParticleSystem();
 
 // ---------- things that keep making particles ----------
 // tiles and objects whose particles setting is a list of effect names (tiles.js, objects.js) keep
-// bursting each of them, the effect's rate times a second times their own particleRate: tiles from a
+// bursting each of them (and so does the map's weather, from all over the screen, atmosphere.js), the effect's rate times a second times their own particleRate: tiles from a
 // random spot on the tile, objects from the middle of the tiles they cover (moved by particleX,
 // particleY px). only on the map you're on. it's built to stay cheap even on a map covered in lava:
 //   - only ones on screen (or within PARTICLE_EMITTERS.margin of it) make any, so a big map costs the
@@ -566,6 +566,18 @@ const ParticleEmitters = {
       const x = (obj.col + type.width / 2) * TILE + type.particleX;
       const y = (obj.row + type.height / 2) * TILE + type.particleY;
       if (x > left && x < right && y > top && y < bottom) emit(type.particles, type.particleRate, x, y, 0, 0);
+    }
+
+    // the map's weather (atmosphere.js): as if every tile on screen made it, times its amount. they
+    // start anywhere on screen and further down by however high they start, so rain and snow falling
+    // from up there reach the bottom of the screen too
+    const air = Atmosphere.showing(map);
+    if (air?.weather) {
+      const tiles = ((right - left) * (bottom - top)) / (TILE * TILE);
+      for (const name of air.weather) {
+        const e = PARTICLE_EFFECTS[name];
+        if (e) emit([name], (tiles * air.weatherAmount) / 100, left, top, right - left, bottom - top + e.startHeight + e.jumpHeight);
+      }
     }
 
     const room = PARTICLE_LIMIT * PARTICLE_EMITTERS.share;

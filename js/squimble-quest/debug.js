@@ -91,6 +91,8 @@ const DEV_OVERLAYS = [
   { name: 'grid', label: 'Tile grid', note: 'and (0, 0)', key: 'grid', on: true },
   { name: 'paths', label: 'Enemy AI', note: 'labels, routes', key: 'enemyPaths', on: true },
   { name: 'hitboxes', label: 'UI hitboxes', note: 'ui.js', on: false },
+  // untick to see the map plainly while editing (atmosphere.js)
+  { name: 'atmosphere', label: 'Atmosphere', note: 'fog, colour, weather', on: true },
 ];
 
 // the menu's tools. keys are the KEYS actions that do it, and run is what clicking it does (none for

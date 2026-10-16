@@ -1,0 +1,31 @@
+{
+  "sound": "lava-rumble",
+  "soundVolume": 50,
+  "tintColour": "#ff7a3a",
+  "tintAmount": 45,
+  "tintMode": "soft-light",
+  "flicker": 35,
+  "flickerSpeed": 3,
+  "edgeColour": "#2a0600",
+  "edgeAmount": 55,
+  "fogColour": "#3b2b28",
+  "fogAmount": 50,
+  "fogSize": 380,
+  "fogCover": 55,
+  "fogSpeed": 22,
+  "fogDirection": 300,
+  "fogChurn": 55,
+  "overlayColour": "#ff5a14",
+  "overlayAmount": 25,
+  "overlayPattern": "patches",
+  "overlaySize": 600,
+  "overlayCover": 35,
+  "overlaySoftness": 85,
+  "overlaySpeed": 3,
+  "overlayBreathe": 50,
+  "weather": [
+    "embers",
+    "ash"
+  ],
+  "weatherAmount": 70
+}

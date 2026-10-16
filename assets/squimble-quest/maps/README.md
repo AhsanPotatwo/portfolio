@@ -75,6 +75,7 @@ It's laid out like a game engine: a **toolbar** along the top (the map's buttons
 | **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** / **Weapons** / **Armour** / **Items** / **Sounds** / **Voices** / **Particles** tabs at the top of the palette | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs, triggers (the player's spawn point, and warps), weapons, things you wear, other items, sound blocks, NPC voices and particle effects. When there are more tabs than fit, **‹ ›** (or the mouse wheel over them) scrolls along. **Lights** is an empty example for now |
 | A weapon or item picked | Click the map to put one on the ground (it isn't saved by Export). **Give** in the inspector puts one in your inventory, **Edit** (or right click it in the palette) changes its name, rarity, colour, where it's worn (**Worn on**, for the equipment slots) and everything about its weapon: **Weapon** (swing or shoot, how many hits its combo has, the time to carry on the combo, for bows how long to hold to fully draw, how strong a quick tap is and how fast you walk while drawing, how fast you walk while holding it, and its colour), **Hit** (damage, reach, arc, windup before a swing, timings, arrow speed) and **Feel** (knockback, stagger, lunge, recoil, screen shake and how long it lasts, hit stop). Each combo hit has its own Hit and Feel numbers: pick which with **Hit** at the top. The box on the right keeps doing the whole combo on a dummy over a faint tile grid, shaking like the screen would, so you can tune it as you drag (click it to start over). Rest the mouse on a row to see what it does. The enemies' own weapons (like the grunt's claws) are at the end of the Weapons tab with a little enemy badge: click one to change it the same way. **Export** in the inspector downloads the file of each item or enemy you've changed: put them in `assets/squimble-quest/items/` or `enemies/` (replacing the old ones) to keep the changes |
 | **New** / **Open** / **Resize** / **Export** (toolbar) | Make a new map, open a map file, change this map's size, or save it as a file |
+| **Atmosphere** (toolbar) | The map's fog, colour, weather and background sound. See [Atmospheres](#atmospheres) |
 | Click something in the palette | Choose it, and switch to the **Paint** tool. Hover over one to see its name. The mouse wheel scrolls the palette while the mouse is over it |
 | Left click / drag (tile chosen) | Paint that tile, replacing the one there. Tiles with a little badge of two overlapping squares in the corner are dual grid tiles (like grass): their edges round off and blend into the tiles next to them by themselves |
 | **New** / **Edit** in the inspector, or right click a tile in the palette (**Tiles** tab) | Make a tile, or see and change everything about one. **Export** (next to them) saves them all. See the [tiles README](../tiles/README.md) |
@@ -173,6 +174,24 @@ Enemies and NPCs can carry a sound around too, looping it wherever they go while
 
 Making and changing the sounds themselves is in the [sounds README](../sounds/README.md). Sounds stop when the editor opens, and the game won't make any sound until it's been clicked (browsers don't allow it before then).
 
+### Atmospheres
+
+An atmosphere is how a map *feels*: fog drifting over it, light rippling on a sea floor, cloud shadows or stars, a colour over everything, colour drained out, flickering firelight, dark or bright edges, weather (rain, snow, ash, embers, bubbles, sand, spores, fireflies, falling leaves, floating dust), flashes of lightning and a sound looping in the background. The game will have worlds of different themes, and a world's maps can all share one atmosphere, so changing it changes all of them.
+
+Click **Atmosphere** in the toolbar. The box changes the map behind it as you drag, and the picture on its right shows it over a made-up bit of map, for when the box is in the way. Drag the box by its title to see more.
+
+- **Main**: **Atmosphere** is the one this map uses (**none** for none). Picking another starts on that one, and its little picture shows what it looks like. **Save as** is the name it's saved under: a new name makes a copy and leaves the old one, and leaving it empty takes the atmosphere off this map. **Sound** loops everywhere on the map (silent in the editor), at **Volume**. **Pixel size** is how chunky fog and the overlay are: bigger is more pixel art and quicker on slow computers, and unticking **Smooth** gives them hard pixel edges. **Bands** steps them into flat shades, for a cel shaded look.
+- **Colour**: a **Tint** over everything (blue underwater, orange in a volcano), how strong, and how it mixes (**Tint mode**: shades, brightens, recolours...). **Drained** takes the colour out of everything. **Flicker** makes the tint flicker like firelight, at **Flicker rate**. **Edges** darken (or with a light **Edge colour**, brighten) the edges of the screen.
+- **Fog** and **Overlay**: two sheets, the same apart from where they start. **Amount** turns one on. **Pattern**: soft clouds, long wisps, big patches, ripples of light (underwater), streaks (heat shimmer, blowing sand) or specks (stars, dust). **Blend**: covers (fog), glow (adds light) or shade (cloud shadows). **Size** is how big the pattern is, **Cover** how much of the screen it covers, **Softness** how soft its edges are.
+- **Fog moves** and **Overlay moves**: **Speed** and **Direction** it drifts. **Layers** stacks smaller, nearer copies for depth, and **Churn** makes them move differently so it swirls. **Parallax** is how much it moves with the map: 100 sits on the ground, 0 stays on the screen, over 100 is nearer than the ground. **Breathe** slowly thickens and thins it.
+- **Weather**: **Particles** to fall or float all over the screen (any particle effect: make your own on the **Particles** tab), and how many (**Amount**: at 100% it's as if every tile on screen made them at their **Keep going** rate). **Flashes** a minute, their colour, and a sound for each (like thunder).
+
+Rest the mouse on any row to see what it does, and right click a slider to put it back. **Save** keeps it and gives this map that atmosphere. **Save and export** also downloads the atmosphere files that are new or changed, for `assets/squimble-quest/atmospheres/` (the message says which names to add to its `index.json`). **Export** the map too, so it remembers which atmosphere it uses.
+
+The ones in `atmospheres/` are a start for each kind of world, to use or copy: **misty-forest**, **underwater**, **volcano**, **inferno**, **desert**, **wasteland**, **snowfield**, **swamp**, **cave**, **storm**, **space**, **alien** and **dreamy**.
+
+To see the map without its atmosphere while you build, untick **Atmosphere** in the dev menu (**H**, or **Dev** in the toolbar). A map whose atmosphere has been renamed or deleted just has none (the console says so); pick another.
+
 ### Changing a map you've already made
 
 Go to it with **M** (or **Open file**), edit it, **Export** it with the same name, and replace the old file in this folder with the new one.
@@ -224,6 +243,7 @@ You can open a map in any text editor. It looks like this:
   "left": -5,
   "top": -2,
   "spawn": { "x": 16, "y": -5 },
+  "atmosphere": "misty-forest",
   "legend": {
     "..": null,
     "wa": "wall",
@@ -266,6 +286,7 @@ You can open a map in any text editor. It looks like this:
 - **`sounds`**: see [Sound blocks](#sound-blocks). `sound` is the name of a sound (its file in `sounds/`), `col`, `row` is its tile, and `activate` is `"step"`, `"interact"` (press E) or `"loop"` (constantly nearby). A moving one also has `move` (`"side"`, `"upDown"`, `"past"`, `"pastDown"` or `"circle"`), `distance` and `speed` (tiles, and tiles a second), and one that's seen while playing has `"show": true`. Maps without this list just have no sound blocks.
 - **`left`, `top`**: the tile column and row of the map's top-left corner. Tile `(0, 0)` is at the middle of the world, so `-5, -2` puts the middle of a 10 × 5 map there.
 - **`spawn`**: where the player starts, in pixels (the centre of the player). Easiest to set with **spawn** in the editor's **Triggers** tab.
+- **`atmosphere`**: the name of its atmosphere (its file in `atmospheres/`), only there if it has one. See [Atmospheres](#atmospheres).
 
 Older map files may also have a `"showGrid"` line. It isn't used any more and can be left in or deleted.
 

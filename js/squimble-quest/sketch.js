@@ -1,4 +1,7 @@
-// squimble quest, a top down rpg. if you're new to the code, read README.md in this folder first.
+// squimble quest, a top down rpg of quests and combat across worlds with their own themes: forests,
+// underwater, volcanoes and fire, deserts, wastelands, snow, caves, space and alien planets. each map
+// gets its feel from an atmosphere (atmosphere.js). if you're new to the code, read README.md in this
+// folder first.
 //
 // this file is the game loop. squimble-quest.html loads all the other files before it, in this order:
 //   config.js     settings: sizes, speeds, controls, button styles
@@ -39,6 +42,7 @@
 //   tileeditor.js editor's tile box (after editor.js)
 //   soundeditor.js the sound editor, a full screen synthesiser (after editor.js)
 //   particleeditor.js the particle editor box and its preview (after tileeditor.js)
+//   atmosphere.js a map's fog, colour, weather and background sound, and its editor box (after particleeditor.js)
 //   weaponeditor.js the weapon editor tabs, enemy weapons in the palette, and the combo preview (after editor.js)
 //   shaders.js    WebGL effects over the world (lighting, shadows, screen effects), dev mode only for now
 //   debug.js      dev mode (` or Ctrl + D)
@@ -351,6 +355,9 @@ function draw() {
   // (particles.js). tiles and objects on screen that keep making particles go first, but not under the
   // full screen editors, where you can't see them
   if (!WarpGraph.active && !SoundEditor.active) ParticleEmitters.update(dt, worldMap, gameCamera.view());
+  // the map's flashes of lightning and background sound (atmosphere.js). its weather is particles, so
+  // it's in ParticleEmitters
+  Atmosphere.update(worldMap, dt);
   Particles.update(dt, worldMap);
   DamageNumbers.update(dt);
   // sounds get quieter the further they are from the player's feet, and higher or lower as they and
@@ -382,6 +389,9 @@ function draw() {
     for (const thing of things) thing.draw();
     // ...to here
     Shaders.capture('things');
+    // fog, colour and the rest of the map's atmosphere over all of it (atmosphere.js), but under damage
+    // numbers, prompts and the editor's cursor so they stay readable
+    Atmosphere.draw(gameCamera, worldMap);
     // over everything, so they're never hidden behind someone (weapons.js)
     DamageNumbers.draw();
     // dev mode: each enemy's ai and its route (pathfinding.js)

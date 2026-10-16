@@ -1,0 +1,16 @@
+{
+  "sound": "drone",
+  "soundVolume": 20,
+  "tintColour": "#4c4c66",
+  "tintAmount": 45,
+  "edgeAmount": 75,
+  "edgeSize": 70,
+  "fogColour": "#2b2b36",
+  "fogAmount": 30,
+  "fogCover": 45,
+  "fogSpeed": 3,
+  "weather": [
+    "motes"
+  ],
+  "weatherAmount": 30
+}

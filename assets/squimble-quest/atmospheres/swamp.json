@@ -1,0 +1,17 @@
+{
+  "tintColour": "#93ab64",
+  "tintAmount": 35,
+  "drain": 20,
+  "edgeColour": "#0b1608",
+  "edgeAmount": 40,
+  "fogColour": "#8d9c6c",
+  "fogAmount": 55,
+  "fogSize": 300,
+  "fogCover": 65,
+  "fogSpeed": 5,
+  "fogLayers": 3,
+  "fogBreathe": 50,
+  "weather": [
+    "fireflies"
+  ]
+}

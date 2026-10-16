@@ -30,6 +30,9 @@ class TileMap {
     this.name = '';
     // where the player starts (their middle), in world positions
     this.spawn = { x: 0, y: 0 };
+    // the name of its fog, colour, weather and background sound in ATMOSPHERES (atmosphere.js), or ''
+    // for none. one that doesn't exist (its file was renamed) is kept but shows nothing
+    this.atmosphere = '';
 
     // each { type, col, row } (objects.js)
     this.objects = [];

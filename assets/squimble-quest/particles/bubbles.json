@@ -1,0 +1,21 @@
+{
+  "count": 1,
+  "countRandom": 0,
+  "area": 0,
+  "speed": 0,
+  "jumpHeight": 0,
+  "gravity": -15,
+  "sway": 25,
+  "hitsWalls": false,
+  "shape": "ring",
+  "size": 4,
+  "sizeRandom": 60,
+  "colour": "#d8f4ff",
+  "colour2": "#9fd8f0",
+  "lifetime": 4,
+  "lifetimeRandom": 40,
+  "fadeIn": 0.6,
+  "opacity": 70,
+  "shadow": false,
+  "rate": 0.05
+}

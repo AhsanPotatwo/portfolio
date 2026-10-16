@@ -1,0 +1,30 @@
+{
+  "sound": "drone",
+  "soundVolume": 35,
+  "pixel": 2,
+  "smooth": false,
+  "tintColour": "#20224a",
+  "tintAmount": 40,
+  "edgeAmount": 50,
+  "fogColour": "#7a3fb0",
+  "fogAmount": 30,
+  "fogBlend": "glow",
+  "fogSize": 900,
+  "fogCover": 45,
+  "fogSoftness": 90,
+  "fogSpeed": 3,
+  "fogParallax": 40,
+  "overlayAmount": 100,
+  "overlayPattern": "specks",
+  "overlaySize": 512,
+  "overlayCover": 2,
+  "overlaySoftness": 20,
+  "overlaySpeed": 1,
+  "overlayLayers": 2,
+  "overlayParallax": 25,
+  "overlayBreathe": 35,
+  "weather": [
+    "motes"
+  ],
+  "weatherAmount": 40
+}

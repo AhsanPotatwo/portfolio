@@ -3,7 +3,7 @@
 // assets/squimble-quest/maps/README.md.
 //
 // it's laid out like a game engine:
-//   - the toolbar along the top: New, Open, Resize and Export, the Paint and Erase tools, Grid and
+//   - the toolbar along the top: New, Open, Resize, Atmosphere and Export, the Paint and Erase tools, Grid and
 //     Keys (same as G and H), Play (closes the editor), and the map's name and size
 //   - the dock on the right: the palette, with tabs for tiles, objects, enemies, npcs, triggers and
 //     items (the wheel scrolls it), and the inspector under it showing what's picked
@@ -46,7 +46,8 @@
 //     square, warps.js). placing a warp opens its settings, or right click it later. Show links opens
 //     warpgraph.js
 //   - the toolbar's map buttons ask for things with a FormBox (formbox.js): Resize (never smaller than
-//     the area with tiles), New (any size and fill), Open (from a file), Export (to a file)
+//     the area with tiles), New (any size and fill), Open (from a file), Export (to a file), and
+//     Atmosphere (the map's fog, colour, weather and background sound, atmosphere.js)
 //   - dev mode keys still work (zoom, teleport, next map), and H lists them
 //
 // new tiles and catalogue entries show up in the palette by themselves. changes are made to the
@@ -254,6 +255,8 @@ const Editor = {
     button('New', { onClick: () => this.newMap() });
     button('Open', { onClick: () => openMapFile() });
     button('Resize', { onClick: () => this.resizeMap() });
+    // the map's fog, colour, weather and background sound (atmosphere.js). worldMap is sketch.js's
+    button('Atmosphere', { onClick: () => AtmosphereEditor.open(worldMap.atmosphere) });
     button('Export', { style: 'editorPrimary', onClick: () => this.askToExport() });
     separator();
     button('Paint', { isOn: () => this.selected !== null, onClick: () => { this.selected = this.lastPicked; } });

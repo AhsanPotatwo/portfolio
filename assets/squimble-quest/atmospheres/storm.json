@@ -1,0 +1,20 @@
+{
+  "sound": "rain",
+  "soundVolume": 70,
+  "tintColour": "#5d6c84",
+  "tintAmount": 45,
+  "drain": 30,
+  "edgeAmount": 40,
+  "fogColour": "#8592a4",
+  "fogAmount": 35,
+  "fogPattern": "wisps",
+  "fogSpeed": 80,
+  "fogDirection": 20,
+  "weather": [
+    "rain"
+  ],
+  "weatherAmount": 30,
+  "flashes": 4,
+  "flashColour": "#e8f0ff",
+  "flashSound": "explosion"
+}

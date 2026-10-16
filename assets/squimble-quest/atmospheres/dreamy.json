@@ -1,0 +1,26 @@
+{
+  "pixel": 4,
+  "tintColour": "#ffd2f2",
+  "tintAmount": 25,
+  "tintMode": "screen",
+  "edgeColour": "#ffffff",
+  "edgeAmount": 35,
+  "fogColour": "#f2d4ff",
+  "fogAmount": 30,
+  "fogPattern": "wisps",
+  "fogBlend": "glow",
+  "fogSize": 520,
+  "fogSpeed": 8,
+  "fogChurn": 60,
+  "fogParallax": 70,
+  "fogBreathe": 50,
+  "overlayAmount": 10,
+  "overlaySize": 400,
+  "overlayCover": 15,
+  "overlaySoftness": 80,
+  "overlaySpeed": 3,
+  "weather": [
+    "motes"
+  ],
+  "weatherAmount": 50
+}

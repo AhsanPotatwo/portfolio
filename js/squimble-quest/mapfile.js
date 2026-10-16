@@ -8,7 +8,8 @@
 //     "left": -20,                          left edge column (tile coords)
 //     "top": -12,                           top edge row
 //     "spawn": { "x": 0, "y": 0 },          player start, world pixels
-//     "legend": {                           code: tile
+//     "atmosphere": "underwater",           fog, colour, weather (atmosphere.js), only if it has one
+//     "legend": {                         code: tile
 //       "..": null,                         always empty
 //       "gr": "grass",
 //       "wa": "wall"
@@ -91,6 +92,8 @@ function mapToData(map) {
     left: map.left,
     top: map.top,
     spawn: { x: map.spawn.x, y: map.spawn.y },
+    // left out when there isn't one (JSON leaves out undefined)
+    atmosphere: map.atmosphere || undefined,
     legend,
     rows,
     objects: map.objects.map((obj) => ({ type: obj.type, col: obj.col, row: obj.row })),
@@ -139,6 +142,11 @@ function mapFromData(data) {
 
   const map = new TileMap(data.left ?? 0, data.top ?? 0, cols, rows, null);
   if (data.spawn) map.spawn = { x: data.spawn.x, y: data.spawn.y };
+  // kept even if it isn't loaded (renamed, say), so exporting doesn't lose it, like sound blocks
+  if (typeof data.atmosphere === 'string') {
+    map.atmosphere = data.atmosphere;
+    if (data.atmosphere && !ATMOSPHERES[data.atmosphere]) console.warn(`A map uses the atmosphere "${data.atmosphere}", which isn't in atmospheres/index.json, so it has none`);
+  }
   // older files might have a "showGrid" that isn't used any more (the grid is dev mode only now)
 
   // anything it doesn't know (like a tile whose file got renamed) gets left out, with one

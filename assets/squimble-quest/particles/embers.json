@@ -1,0 +1,22 @@
+{
+  "count": 1,
+  "countRandom": 0,
+  "area": 0,
+  "speed": 10,
+  "jumpHeight": 0,
+  "gravity": -30,
+  "wind": 25,
+  "sway": 30,
+  "hitsWalls": false,
+  "size": 2,
+  "endSize": 0,
+  "colour": "#ffb347",
+  "colour2": "#ff4a00",
+  "twinkle": 40,
+  "lifetime": 3,
+  "lifetimeRandom": 40,
+  "fadeIn": 0.3,
+  "glow": true,
+  "shadow": false,
+  "rate": 0.05
+}

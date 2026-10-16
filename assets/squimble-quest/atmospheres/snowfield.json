@@ -1,0 +1,18 @@
+{
+  "sound": "wind",
+  "soundVolume": 55,
+  "tintColour": "#dfe8ff",
+  "tintAmount": 35,
+  "edgeColour": "#c4d4f0",
+  "edgeAmount": 35,
+  "fogColour": "#ffffff",
+  "fogAmount": 40,
+  "fogPattern": "wisps",
+  "fogSpeed": 60,
+  "fogDirection": 15,
+  "fogParallax": 120,
+  "weather": [
+    "snow"
+  ],
+  "weatherAmount": 50
+}

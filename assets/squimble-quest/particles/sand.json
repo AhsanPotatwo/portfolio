@@ -1,0 +1,22 @@
+{
+  "count": 1,
+  "countRandom": 0,
+  "area": 0,
+  "speed": 0,
+  "jumpHeight": 10,
+  "startHeight": 20,
+  "gravity": 20,
+  "wind": 400,
+  "hitsWalls": false,
+  "shape": "streak",
+  "size": 4,
+  "stretch": 250,
+  "colour": "#e8cf98",
+  "colour2": "#c8a86a",
+  "lifetime": 1.5,
+  "fadeIn": 0.2,
+  "fadeTime": 0.6,
+  "opacity": 55,
+  "shadow": false,
+  "rate": 0.12
+}

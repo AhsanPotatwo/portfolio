@@ -1,0 +1,20 @@
+{
+  "sound": "wind",
+  "soundVolume": 25,
+  "tintColour": "#dce8d2",
+  "tintAmount": 25,
+  "edgeAmount": 30,
+  "fogColour": "#d4ddd6",
+  "fogAmount": 50,
+  "fogSize": 420,
+  "fogCover": 55,
+  "fogSoftness": 75,
+  "fogSpeed": 8,
+  "fogParallax": 110,
+  "fogBreathe": 40,
+  "weather": [
+    "fireflies",
+    "leaves"
+  ],
+  "weatherAmount": 60
+}

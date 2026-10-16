@@ -12,6 +12,7 @@ Everything the game is made of lives in these folders, **one file per thing**, n
 | `enemies/` | kind of enemy. Its weapon (the grunt's claws) is inside it | the top of [`enemies.js`](../../js/squimble-quest/enemies.js) |
 | `npcs/` | kind of NPC, with what they say | the top of [`npcs.js`](../../js/squimble-quest/npcs.js) |
 | `particles/` | particle effect (blood when something's hit, sparks, smoke…). Pictures go in `particles/pictures/` | the top of [`particles.js`](../../js/squimble-quest/particles.js) |
+| `atmospheres/` | look and feel a map can have: fog, colour, weather, background sound (underwater, volcano, space…) | [maps README](maps/README.md#atmospheres) and the top of [`atmosphere.js`](../../js/squimble-quest/atmosphere.js) |
 | `maps/` | map | [maps README](maps/README.md) |
 
 Each folder also has an **`index.json`**: the list of names the game loads, in order. The order is the order they show in the editor's palette.
@@ -41,7 +42,7 @@ Replacing a file that's already in the folder (a changed tile, say) is just step
 
 ## Exporting from the editor
 
-The **Export** buttons in the map editor download a file for **everything that's new or changed** since the page loaded: tiles on the Tiles tab, sounds, voices and particles on theirs, items on the Weapons, Armour and Items tabs, and enemies whose own weapon you changed on the Weapons tab. New pictures and audio files come too. The message at the top of the screen says where each file goes and which names to add to `index.json`. If there's a lot, the browser console (**F12**) lists it all instead. Exporting again only downloads what's changed since the last time.
+The **Export** buttons in the map editor download a file for **everything that's new or changed** since the page loaded: tiles on the Tiles tab, sounds, voices and particles on theirs, atmospheres from the toolbar's Atmosphere box (**Save and export**), items on the Weapons, Armour and Items tabs, and enemies whose own weapon you changed on the Weapons tab. New pictures and audio files come too. The message at the top of the screen says where each file goes and which names to add to `index.json`. If there's a lot, the browser console (**F12**) lists it all instead. Exporting again only downloads what's changed since the last time.
 
 Enemies, NPCs and objects can't be made in the editor yet. Make those by copying a file.
 
