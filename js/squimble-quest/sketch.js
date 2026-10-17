@@ -58,7 +58,7 @@ let npcs = [];
 // arrows in the air on it (Arrow in weapons.js), from anyone. they're forgotten on changing map, and
 // whenever the characters are made again (spawnCharacters())
 let arrows = [];
-// false until the tiles and maps have loaded, and a loading message shows until then
+// false until the tiles and maps have loaded, and a loading screen shows until then
 let mapsReady = false;
 
 // p5 waits for anything loaded in here before it runs setup(), so pictures for buttons go here too.
@@ -107,8 +107,16 @@ function setup() {
   // checks its tiles, sounds and characters exist. then it starts on START_MAP (maps.js). this isn't
   // in preload() because there a missing file would stop the game starting, but here it just gets
   // skipped
+  // a loading screen over the game until then (js/loading-screen.js), filling as each kind finishes
+  const loading = LoadingScreen.show(canvas.elt.parentElement, { theme: 'squimble', text: 'Loading…' });
   const kinds = Object.keys(DATA_KINDS).filter((kind) => kind !== 'map');
-  Promise.all(kinds.map((kind) => DataFiles.load(kind))).then(() => DataFiles.load('map')).then(() => {
+  let loadedKinds = 0;
+  const kindLoaded = () => loading.progress(++loadedKinds / (kinds.length + 1));
+  Promise.all(kinds.map((kind) => DataFiles.load(kind).then(kindLoaded))).then(() => {
+    loading.text('Loading maps…');
+    return DataFiles.load('map');
+  }).then(() => {
+    kindLoaded();
     player.giveStartingItems();
     // the editor starts with the first tile picked, which exists now
     Editor.checkSelected();
@@ -127,6 +135,7 @@ function setup() {
     // console warnings for broken warp links (warps.js)
     checkAllWarps();
     mapsReady = true;
+    loading.hide();
   });
 
   // turns dev mode back on if it was on last time, and the shader that was on
@@ -252,10 +261,8 @@ function spawnCharacters() {
 }
 
 function draw() {
-  if (!mapsReady) {
-    drawLoading();
-    return;
-  }
+  // the loading screen covers it till then (setup())
+  if (!mapsReady) return;
 
   // how long the last frame took in seconds, capped (MAX_DT in config.js)
   const dt = Math.min(deltaTime / 1000, MAX_DT);

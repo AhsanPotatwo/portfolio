@@ -40,15 +40,6 @@ function drawHurtFlash(player) {
   drawingContext.fillRect(0, 0, GAME_W, GAME_H);
 }
 
-// shown while the map files load at the start
-function drawLoading() {
-  background(WORLD_COLOURS.outside); // world.js
-  noStroke();
-  fill(255);
-  setText(22);
-  text('Loading maps…', GAME_W / 2, GAME_H / 2);
-}
-
 // shown along the bottom on the blank stand-in map, when none of the map files loaded
 function drawNoMapsMessage() {
   const lines = [

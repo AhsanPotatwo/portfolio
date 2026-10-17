@@ -143,6 +143,8 @@ html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
 /* while playing, the game draws its own crosshair (ui.js) in place of the cursor */
 .sq-game-stage canvas:focus{ outline:none; cursor:none; }
 .sq-game-stage{
+  /* the loading screen goes over it (js/loading-screen.js) */
+  position:relative;
   aspect-ratio:16/9;
   border-radius:14px;
   overflow:hidden;

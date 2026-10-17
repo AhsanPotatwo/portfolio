@@ -1,0 +1,63 @@
+/* loading screens (js/loading-screen.js). the base is shared, then each theme is styled under .ls-<name>.
+   sizes in var(--u) are design px, so they scale with whatever the overlay covers */
+.loading-screen{
+  position:absolute; inset:0;
+  z-index:5;
+  container-type:size;
+  --u:calc(100cqw / var(--ls-design-w, 960));
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  /* clicks go through, so clicking the game while it loads still focuses it */
+  pointer-events:none;
+  transition:opacity .4s ease;
+}
+.loading-screen.ls-hidden{ opacity:0; }
+
+/* ---------- squimble: temporary, a night forest like the squimble quest page ---------- */
+.ls-squimble{
+  gap:calc(22 * var(--u));
+  background:
+    radial-gradient(ellipse at 50% 120%, rgba(63,143,82,.45), transparent 60%),
+    linear-gradient(#070e0b, #13291f);
+  color:#9fb3a5;
+}
+.ls-squimble .ls-title{
+  font-family:'Quicksand', sans-serif;
+  font-weight:700;
+  font-size:calc(52 * var(--u));
+  color:#fff;
+  -webkit-text-stroke:calc(7 * var(--u)) #245a33;
+  paint-order:stroke fill;
+}
+.ls-squimble .ls-title span{ color:#7bd88f; }
+/* a chunky pixel bar, cut into blocks */
+.ls-squimble .ls-bar{
+  width:calc(320 * var(--u));
+  height:calc(20 * var(--u));
+  padding:calc(4 * var(--u));
+  border:calc(4 * var(--u)) solid #3f8f52;
+  background:#1b2a1f;
+}
+.ls-squimble .ls-bar-fill{
+  width:calc(var(--progress) * 100%);
+  height:100%;
+  background:repeating-linear-gradient(90deg, #7bd88f 0 calc(12 * var(--u)), transparent 0 calc(16 * var(--u)));
+  transition:width .3s steps(4);
+}
+.ls-squimble .ls-text{
+  margin:0;
+  font-family:'Courier Prime', monospace;
+  font-size:calc(18 * var(--u));
+}
+/* square fireflies, blinking as they drift */
+.ls-squimble .ls-firefly{
+  position:absolute;
+  left:var(--x); top:var(--y);
+  width:calc(4 * var(--u)); height:calc(4 * var(--u));
+  background:#eaff9a;
+  box-shadow:0 0 calc(10 * var(--u)) #eaff9a;
+  animation:lsFirefly 4s ease-in-out var(--d) infinite;
+}
+@keyframes lsFirefly{
+  0%, 100%{ opacity:.15; transform:translate(0, 0); }
+  50%{ opacity:1; transform:translate(calc(14 * var(--u)), calc(-10 * var(--u))); }
+}
