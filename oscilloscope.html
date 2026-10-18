@@ -43,7 +43,7 @@
 
     <div class="os-intro">
       <h1 class="os-title">Oscilloscope Playground</h1>
-      <p class="os-lede">A dual-trace analogue oscilloscope, the kind that sat on every electronics bench in the seventies and eighties, with a shelf of things to plug into it. Press <strong>POWER</strong>, let the tube warm up, then turn anything. Drag from any socket to another to run a cable. The <a href="#notebook">lab notebook</a> below has experiments that set the bench up for you.</p>
+      <p class="os-lede">A dual-trace analogue oscilloscope, the kind that sat on every electronics bench in the seventies and eighties, with a cabinet of things to plug into it. Press <strong>POWER</strong>, let the tube warm up, then turn anything. Put equipment on the bench from the cabinet under the scope, then tap any socket to choose what to plug it into, or drag a cable between two. The <a href="#notebook">lab notebook</a> below has experiments that set the bench up for you.</p>
       <ul class="os-tags" aria-label="Built with">
         <li>JavaScript</li>
         <li>WebGL</li>
@@ -80,6 +80,14 @@
                 <p class="sc-nogl" id="scNoGL" hidden>This browser can't draw the tube (it needs WebGL 2). Everything else still works.</p>
               </div>
               <i class="sc-screw" aria-hidden="true"></i><i class="sc-screw" aria-hidden="true"></i><i class="sc-screw" aria-hidden="true"></i><i class="sc-screw" aria-hidden="true"></i>
+            </div>
+
+            <!-- phones only: one group of controls at a time, so the screen stays in sight -->
+            <div class="sc-tabs" role="group" aria-label="Control groups">
+              <button type="button" class="sc-tab" data-tab="display" aria-pressed="true">Display</button>
+              <button type="button" class="sc-tab" data-tab="vert" aria-pressed="false">Vertical</button>
+              <button type="button" class="sc-tab" data-tab="horiz" aria-pressed="false">Horizontal</button>
+              <button type="button" class="sc-tab" data-tab="trig" aria-pressed="false">Trigger</button>
             </div>
 
             <div class="sc-crtrow">
@@ -206,16 +214,28 @@
         <div class="sc-feet" aria-hidden="true"><i></i><i></i></div>
       </div>
 
-      <!-- ===================== bench controls ===================== -->
-      <div class="os-benchbar">
-        <button type="button" class="os-btn" data-toggle="sfx" data-help="Clicks, clunks and the cable thunk.">Sounds</button>
-        <button type="button" class="os-btn" data-toggle="ghost" data-help="Makes the cables see-through so they don't hide anything.">See-through cables</button>
-        <button type="button" class="os-btn" id="osUnplug" data-help="Pulls every cable out.">Unplug everything</button>
-        <button type="button" class="os-btn" id="osReset" data-help="Puts every knob back where it started and plugs generator A into channel I.">Reset the bench</button>
+      <!-- ===================== the equipment cabinet ===================== -->
+      <div class="os-cabinet">
+        <div class="cab-head">
+          <h2 class="cab-title">Equipment</h2>
+          <p class="cab-hint">Drag anything onto the bench below, or tap it.</p>
+          <div class="os-benchbar">
+            <button type="button" class="os-btn" data-toggle="sfx" data-help="Clicks, clunks and the cable thunk.">Sounds</button>
+            <button type="button" class="os-btn" data-toggle="ghost" data-help="Makes the cables see-through so they don't hide anything.">See-through cables</button>
+            <button type="button" class="os-btn" id="osUnplug" data-help="Pulls every cable out.">Unplug all</button>
+            <button type="button" class="os-btn" id="osReset" data-help="Puts every knob back where it started, clears the bench, and plugs generator A into channel I.">Reset</button>
+          </div>
+        </div>
+        <ul class="cab-list" id="cabList"></ul>
       </div>
 
-      <!-- ===================== accessories ===================== -->
-      <div class="os-shelf">
+      <!-- ===================== the bench: whatever you've put out ===================== -->
+      <div class="os-shelf" id="osShelf">
+        <p class="shelf-empty">The bench is empty. Drag some equipment here, or tap it in the cabinet.</p>
+      </div>
+
+      <!-- everything that isn't on the bench waits here. bench.js moves units in and out -->
+      <div class="os-store" id="osStore" hidden>
 
         <!-- filled in by bench.js, from one template for both -->
         <div class="unit unit-gen" data-unit="genA" data-gen="genA" data-letter="A"></div>
@@ -504,6 +524,20 @@
       <p>Made in <span id="year">2026</span> by pondering my crystal orb ~ Ahsan, Full Stack Wizard</p>
     </div>
   </footer>
+
+  <!-- the "plug into" list that opens when you tap a socket -->
+  <div class="os-pop" id="osPop" role="dialog" aria-labelledby="osPopTitle" hidden>
+    <div class="pop-head">
+      <div><b id="osPopTitle"></b><span id="osPopSub"></span></div>
+      <button type="button" class="pop-close" id="osPopClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="pop-body" id="osPopBody"></div>
+  </div>
+
+  <!-- a little copy of the screen that follows you down the page -->
+  <button type="button" class="os-mini" id="osMini" aria-label="Back to the oscilloscope screen" hidden>
+    <canvas id="osMiniCanvas" width="224" height="184"></canvas>
+  </button>
 
   <script src="js/main.js"></script>
   <script src="js/oscilloscope/signals.js"></script>

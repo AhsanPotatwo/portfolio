@@ -1523,41 +1523,42 @@ a{ color:inherit; text-decoration:none; }
   paint-order:stroke fill;
 }
 
-/* squimble sound studio card: the studio's green lcd set into its slate panel, showing a sound's
-   waveform. flat, like the studio. on hover a playhead sweeps it and the bars darken as it passes */
+/* squimble sound studio card: the studio's green lcd, edge to edge, dot matrix and all. the whole
+   sound is drawn as the studio's scope draws it, and on hover a playhead sweeps it */
 .project-card-studio{
   position:relative;
   overflow:hidden;
-  background:#313c52;
+  background:
+    radial-gradient(rgba(38,50,31,.13) .8px, transparent 1.3px) 0 0/4px 4px,
+    radial-gradient(130% 120% at 50% 35%, #bdcda0, #9aab7d);
 }
 .project-card-studio:hover,
-.project-card-studio:focus-within{ background:#3a4660; }
-.project-card-studio .project-card-link{
-  inset:12px;
-  background:#b4c497;
-  border:5px solid #192030;
-  border-radius:8px;
+.project-card-studio:focus-within{
+  background:
+    radial-gradient(rgba(38,50,31,.13) .8px, transparent 1.3px) 0 0/4px 4px,
+    radial-gradient(130% 120% at 50% 35%, #c8d8ab, #a5b688);
 }
 .studio-wave{
   position:absolute;
-  inset:10px 16px;
+  inset:16px 22px;
   display:flex; align-items:center; gap:3px;
 }
 .studio-wave i{
   flex:1;
   height:calc(var(--h) * 100%);
+  border-radius:1px;
   background:#5f7249;
-  opacity:.5;
+  opacity:.45;
 }
 .project-card-studio:hover .studio-wave i,
 .project-card-studio:focus-within .studio-wave i{ animation:studio-pulse 1.8s ease-out calc(var(--i) * 1.8s / 44) infinite; }
 @keyframes studio-pulse{
   0%{ opacity:1; background:#26321f; }
-  30%,100%{ opacity:.5; background:#5f7249; }
+  30%,100%{ opacity:.45; background:#5f7249; }
 }
 .studio-playhead{
   position:absolute;
-  top:6px; bottom:6px; left:16px;
+  top:10px; bottom:10px; left:22px;
   width:2px;
   background:#26321f;
   opacity:0;
@@ -1565,9 +1566,9 @@ a{ color:inherit; text-decoration:none; }
 .project-card-studio:hover .studio-playhead,
 .project-card-studio:focus-within .studio-playhead{ animation:studio-sweep 1.8s linear infinite; }
 @keyframes studio-sweep{
-  0%{ left:16px; opacity:1; }
+  0%{ left:22px; opacity:1; }
   92%{ opacity:1; }
-  100%{ left:calc(100% - 16px); opacity:0; }
+  100%{ left:calc(100% - 22px); opacity:0; }
 }
 .studio-title{
   position:relative; z-index:2;
@@ -1577,32 +1578,41 @@ a{ color:inherit; text-decoration:none; }
   font-size:clamp(21px,2.3vw,30px);
   letter-spacing:.01em;
   color:#26321f;
-  -webkit-text-stroke:5px #b4c497;
+  -webkit-text-stroke:5px #b2c295;
   paint-order:stroke fill;
 }
 
-/* squimble music maker card: a scrap of the maker's score on its cream paper, in the maker's warm
-   black bezel. on hover a playhead sweeps it and each note goes dark as it's played */
+/* squimble music maker card: the maker's cream paper edge to edge, as a piano roll, with the keys
+   down the left. on hover a playhead sweeps it and each note goes dark as it's played */
 .project-card-music{
   position:relative;
   overflow:hidden;
-  background:#292520;
+  background:
+    linear-gradient(90deg, rgba(44,39,33,.09) 1px, transparent 1px) 36px 0/calc((100% - 36px) / 8) 100%,
+    repeating-linear-gradient(rgba(44,39,33,.045) 0 1px, transparent 1px 10px),
+    #efe6d3;
 }
 .project-card-music:hover,
-.project-card-music:focus-within{ background:#332e28; }
-.project-card-music .project-card-link{
-  inset:12px;
-  background:
-    linear-gradient(90deg, rgba(44,39,33,.08) 1px, transparent 1px) 0 0/12.5% 100%,
-    #efe6d3;
-  border:5px solid #12100d;
-  border-radius:6px;
+.project-card-music:focus-within{ background-color:#f5ede0; }
+/* white keys, then the black ones over them, an octave every 120px */
+.project-card-music::before,
+.project-card-music::after{ content:""; position:absolute; left:0; top:0; bottom:0; pointer-events:none; }
+.project-card-music::before{
+  width:28px;
+  background:repeating-linear-gradient(#faf5ea 0 16px, #b9ad98 16px 17px);
+  box-shadow:inset -2px 0 0 #2c2721;
 }
-.music-roll{ position:absolute; inset:8px 12px; }
+.project-card-music::after{
+  width:17px;
+  background:repeating-linear-gradient(transparent 0 11px, #2c2721 11px 21px, transparent 21px 28px, #2c2721 28px 38px,
+    transparent 38px 62px, #2c2721 62px 72px, transparent 72px 79px, #2c2721 79px 89px, transparent 89px 96px, #2c2721 96px 106px, transparent 106px 120px);
+}
+.music-roll{ position:absolute; inset:10px 14px 10px 42px; }
 .music-roll i{
   position:absolute;
   left:var(--x); top:var(--y);
-  width:var(--w); height:5px;
+  width:var(--w); height:6px;
+  border-radius:2px;
   background:var(--c);
 }
 .project-card-music:hover .music-roll i,
@@ -1613,7 +1623,7 @@ a{ color:inherit; text-decoration:none; }
 }
 .music-playhead{
   position:absolute;
-  top:4px; bottom:4px; left:12px;
+  top:0; bottom:0; left:42px;
   width:2px;
   background:#2c2721;
   opacity:0;
@@ -1621,12 +1631,13 @@ a{ color:inherit; text-decoration:none; }
 .project-card-music:hover .music-playhead,
 .project-card-music:focus-within .music-playhead{ animation:music-sweep 2.4s linear infinite; }
 @keyframes music-sweep{
-  0%{ left:12px; opacity:1; }
+  0%{ left:42px; opacity:1; }
   94%{ opacity:1; }
-  100%{ left:calc(100% - 12px); opacity:0; }
+  100%{ left:calc(100% - 14px); opacity:0; }
 }
 .music-title{
   position:relative; z-index:2;
+  margin-left:28px;
   font-family:"Recursive", var(--font-sans);
   font-weight:900;
   font-variation-settings:"CASL" 1;
@@ -1638,47 +1649,48 @@ a{ color:inherit; text-decoration:none; }
   line-height:1.05;
 }
 
+/* oscilloscope playground card: a phosphor screen edge to edge with a lissajous figure glowing on
+   it, lettered like the scope's own badge. on hover the beam runs round the figure, tail fading */
 .project-card-osc{
   position:relative;
   overflow:hidden;
-  background:#cfccc2;
+  background:
+    linear-gradient(90deg, rgba(140,175,150,.13) 1px, transparent 1px) 0 0/10% 100%,
+    linear-gradient(rgba(140,175,150,.13) 1px, transparent 1px) 0 0/100% 12.5%,
+    radial-gradient(120% 115% at 50% 45%, #12231b, #050907);
 }
 .project-card-osc:hover,
-.project-card-osc:focus-within{ background:#dad7cd; }
-.project-card-osc .project-card-link{
-  inset:12px;
-  overflow:hidden;
+.project-card-osc:focus-within{
   background:
-    linear-gradient(90deg, rgba(150,165,145,.2) 1px, transparent 1px) 0 0/10% 100%,
-    linear-gradient(rgba(150,165,145,.2) 1px, transparent 1px) 0 0/100% 12.5%,
-    radial-gradient(120% 100% at 50% 50%, #12201a, #070b09);
-  border:6px solid #17191b;
-  border-radius:14px / 16px;
-  box-shadow:inset 0 0 18px rgba(0,0,0,.85);
+    linear-gradient(90deg, rgba(140,175,150,.16) 1px, transparent 1px) 0 0/10% 100%,
+    linear-gradient(rgba(140,175,150,.16) 1px, transparent 1px) 0 0/100% 12.5%,
+    radial-gradient(120% 115% at 50% 45%, #163024, #060b08);
 }
-.osc-trace{ position:absolute; left:0; top:18%; width:200%; height:64%; overflow:visible; }
-.osc-trace path{
-  fill:none;
-  stroke:#8dffad;
-  stroke-width:2.5;
-  vector-effect:non-scaling-stroke;
-  filter:drop-shadow(0 0 3px #3dff7a) drop-shadow(0 0 9px rgba(60,255,120,.55));
-  opacity:.55;
-}
-.project-card-osc:hover .osc-trace,
-.project-card-osc:focus-within .osc-trace{ animation:osc-run 1.4s linear infinite; }
-@keyframes osc-run{ to{ transform:translateX(-50%); } }
+.osc-trace{ position:absolute; inset:0; width:100%; height:100%; overflow:visible; }
+.osc-trace path{ fill:none; vector-effect:non-scaling-stroke; stroke-linecap:round; stroke-linejoin:round; }
+.osc-glow{ stroke:#6dff96; stroke-width:2; opacity:.42; filter:drop-shadow(0 0 4px rgba(60,255,120,.7)); }
+.osc-tail, .osc-head{ opacity:0; }
+.osc-tail{ stroke:#8dffad; stroke-width:2.5; stroke-dasharray:28 72; filter:drop-shadow(0 0 5px #3dff7a); }
+.osc-head{ stroke:#f2fff5; stroke-width:3.5; stroke-dasharray:3 97; filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 10px #3dff7a); }
+.project-card-osc:hover .osc-tail,
+.project-card-osc:focus-within .osc-tail{ opacity:.55; animation:osc-tail 1.6s linear infinite; }
+.project-card-osc:hover .osc-head,
+.project-card-osc:focus-within .osc-head{ opacity:1; animation:osc-head 1.6s linear infinite; }
+@keyframes osc-head{ from{ stroke-dashoffset:0; } to{ stroke-dashoffset:-100; } }
+@keyframes osc-tail{ from{ stroke-dashoffset:25; } to{ stroke-dashoffset:-75; } }
 .osc-title{
   position:relative; z-index:2;
   padding:0 12px;
-  font-family:"Tektur", var(--font-sans);
-  font-weight:800;
-  font-stretch:80%;
-  font-size:clamp(21px,2.3vw,30px);
-  line-height:1.05;
+  font-family:"Barlow Condensed", var(--font-sans);
+  font-style:italic;
+  font-weight:700;
+  font-size:clamp(23px,2.5vw,32px);
+  line-height:1;
+  letter-spacing:.08em;
+  text-transform:uppercase;
   text-align:center;
-  color:#e2ffe9;
-  text-shadow:0 0 2px #fff, 0 0 10px #3dff7a, 0 0 22px rgba(60,255,120,.6);
+  color:#eafff0;
+  text-shadow:0 0 2px #fff, 0 0 12px #3dff7a, 0 0 26px rgba(60,255,120,.55), 0 0 2px #050907;
 }
 
 /* contact + footer */
@@ -1887,7 +1899,7 @@ a{ color:inherit; text-decoration:none; }
   .cli-ping, .cli-scan{ animation:none; }
   .studio-wave i, .studio-playhead{ animation:none; }
   .music-roll i, .music-playhead{ animation:none; }
-  .osc-trace{ animation:none; }
+  .osc-tail, .osc-head{ animation:none; }
   .btn::after{ display:none; }
   .pantry-food, .pantry-food-inner{ animation:none; }
 }

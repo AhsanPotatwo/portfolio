@@ -40,6 +40,7 @@
   }, prefix('genA', gen(1)), prefix('genB', gen(1.5)));
   const S = Object.assign({}, DEFAULTS);
   const START_PATCH = [['gena', 'ch1']];
+  const START_UNITS = ['genA'];
 
   // ---------- knob specs: range, detents, and how the value reads ----------
   const VLABELS = OS.VDIV.map((v) => (v >= 0.1 ? short(v) : trim(v * 1000)));
@@ -162,6 +163,8 @@
 
   // ---------- the label maker tape ----------
   const tapeName = $('#osTapeName'), tapeText = $('#osTapeText');
+  // on a phone the tape sits over the bottom of the screen; a tap folds it down to its title
+  $('#osTape').addEventListener('click', (e) => e.currentTarget.classList.toggle('is-min'));
   let tapeKey = null;
   function tape(name, text, key) {
     tapeName.textContent = name;
@@ -498,131 +501,352 @@
   const unitOf = (id) => jacks.get(id).closest('[data-unit]').dataset.unit;
   const label = (id) => jacks.get(id).getAttribute('aria-label');
   const sourceFor = (id) => { const p = patches.get(id); return p ? OUT[p.out] : null; };
+  const shown = (el) => el.getClientRects().length > 0;
 
   function centre(el, box) {
     const r = el.getBoundingClientRect();
     return [r.left + r.width / 2 - box.left, r.top + r.height / 2 - box.top];
   }
-  function cable(p, q, colour, cls) {
+  function cable(p, q, colour, cls, ends = 2) {
     const d = Math.hypot(q[0] - p[0], q[1] - p[1]), sag = Math.min(240, 30 + d * 0.32);
     const path = `M${p[0]},${p[1]} C${p[0]},${p[1] + sag} ${q[0]},${q[1] + sag} ${q[0]},${q[1]}`;
     const plug = (c) => `<circle class="plug" cx="${c[0]}" cy="${c[1]}" r="9"/><circle class="plug-ring" cx="${c[0]}" cy="${c[1]}" r="5.5"/>`;
-    return `<g class="cable ${cls || ''}" style="--c:${colour}"><path class="cable-shadow" d="${path}"/><path class="cable-body" d="${path}"/><path class="cable-shine" d="${path}"/>${plug(p)}${plug(q)}</g>`;
+    return `<g class="cable ${cls || ''}" style="--c:${colour}"><path class="cable-shadow" d="${path}"/><path class="cable-body" d="${path}"/><path class="cable-shine" d="${path}"/>${plug(p)}${ends > 1 ? plug(q) : ''}</g>`;
   }
+  // a cable whose other end is out of sight (on a phone, behind another tab of controls) is drawn
+  // as a plug with a short length of cable hanging from it
   function drawCables() {
     const box = bench.getBoundingClientRect();
     svg.setAttribute('width', box.width);
     svg.setAttribute('height', box.height);
     svg.setAttribute('viewBox', `0 0 ${box.width} ${box.height}`);
     let out = '';
-    patches.forEach((p, inId) => { out += cable(centre(jacks.get(p.out), box), centre(jacks.get(inId), box), p.colour); });
-    if (carry) {
-      const from = centre(jacks.get(carry.from), box);
-      const to = carry.x === null ? [from[0] + 10, from[1] + 70] : [carry.x - box.left, carry.y - box.top];
-      out += cable(from, to, carry.colour, 'is-loose');
-    }
+    patches.forEach((p, inId) => {
+      const a = jacks.get(p.out), b = jacks.get(inId), sa = shown(a), sb = shown(b);
+      if (sa && sb) out += cable(centre(a, box), centre(b, box), p.colour);
+      else if (sa || sb) { const c = centre(sa ? a : b, box); out += cable(c, [c[0] + 14, c[1] + 58], p.colour, 'is-stub', 1); }
+    });
+    if (carry) out += cable(centre(jacks.get(carry.from), box), [carry.x - box.left, carry.y - box.top], carry.colour, 'is-loose');
     svg.innerHTML = out;
     jacks.forEach((el, id) => el.classList.toggle('is-plugged', patches.has(id) || Array.from(patches.values()).some((p) => p.out === id)));
   }
   // the filter's outputs are worked out from its own input, so a cable from one back into the other
   // would chase its own tail forever. everything else can be plugged into itself, like CAL into CH I
   const loops = (a, b) => unitOf(a) === 'rc' && unitOf(b) === 'rc';
-  function connect(a, b) {
+  function connect(a, b, colour) {
     if (io(a) === io(b) || loops(a, b)) {
       tape("That won't go", io(a) === io(b) ? 'Cables run from an output to an input.' : "The filter can't be fed its own output.");
       sfx('unplug');
       return;
     }
     const [o, i] = io(a) === 'out' ? [a, b] : [b, a];
-    patches.set(i, { out: o, colour: carry.colour });
+    patches.set(i, { out: o, colour: colour || nextColour() });
     sfx('plug');
     if (OUT[o].live && unitOf(i) === 'spk') tape(label(o) + ' → ' + label(i), "The speaker stays quiet for the microphone and songs, or it would howl. Songs already play through your speakers.");
     else tape(label(o) + ' → ' + label(i), jacks.get(i).dataset.help);
   }
-  function drop() {
-    carry = null;
-    document.body.removeAttribute('data-carry');
-    document.body.removeAttribute('data-carry-unit');
-    drawCables();
+  function unplug(id) {
+    if (io(id) === 'in') patches.delete(id);
+    else patches.forEach((p, i) => { if (p.out === id) patches.delete(i); });
+    sfx('unplug');
+    tape('Unplugged ' + label(id), '');
   }
-  function pickUp(e, id) {
-    if (carry) {
-      if (id !== carry.from) connect(carry.from, id);
-      drop();
-      return;
-    }
-    ac();
-    if (io(id) === 'in' && patches.has(id)) {
-      // pulling a plug out of an input leaves you holding its cable, still plugged in at the other end
-      const p = patches.get(id);
-      patches.delete(id);
-      sfx('unplug');
-      carry = { from: p.out, colour: p.colour };
-    } else carry = { from: id, colour: nextColour() };
-    carry.x = e ? e.clientX : null;
-    carry.y = e ? e.clientY : null;
-    carry.x0 = carry.x; carry.y0 = carry.y; carry.moved = false;
-    document.body.dataset.carry = io(carry.from) === 'out' ? 'in' : 'out';
-    document.body.dataset.carryUnit = unitOf(carry.from);
-    tape('Holding a cable from ' + label(carry.from), 'Drop it on an ' + document.body.dataset.carry + 'put, or anywhere else to let go.');
-    drawCables();
-  }
-  jacks.forEach((el, id) => {
-    el.addEventListener('pointerdown', (e) => { if (e.button) return; e.preventDefault(); e.stopPropagation(); pickUp(e, id); });
-    el.addEventListener('click', (e) => { if (e.detail === 0) pickUp(null, id); });
-    el.addEventListener('mouseenter', () => { if (!carry) tape(label(id), el.dataset.help); });
-    el.dataset.name = label(id);
-  });
-  document.addEventListener('pointermove', (e) => {
-    if (!carry || carry.x === null) return;
-    carry.x = e.clientX; carry.y = e.clientY;
-    if (Math.hypot(carry.x - carry.x0, carry.y - carry.y0) > 8) carry.moved = true;
-    drawCables();
-  });
-  document.addEventListener('pointerup', (e) => {
-    if (!carry || !carry.moved) return;
-    const hit = document.elementFromPoint(e.clientX, e.clientY);
-    const el = hit && hit.closest('.jack');
-    if (el && el.dataset.jack !== carry.from) connect(carry.from, el.dataset.jack);
-    else if (!el) tape('Let go of the cable', 'Drag from a socket to another socket to plug in.');
-    drop();
-  });
-  document.addEventListener('pointerdown', () => { if (carry) drop(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && carry) drop(); });
-  $$('.banana').forEach((el) => el.addEventListener('mouseenter', () => tape('Component tester sockets', 'Parts clip on here rather than cables. Pick one from the parts drawer, then press CT.')));
-  if ('ResizeObserver' in window) new ResizeObserver(drawCables).observe(bench);
-  window.addEventListener('resize', drawCables);
-  if (document.fonts) document.fonts.ready.then(drawCables);
-
   function plugIn(list) {
     patches.clear();
     colourIdx = 0;
     for (const [o, i] of list) patches.set(i, { out: o, colour: nextColour() });
     drawCables();
   }
-  $('#osUnplug').addEventListener('click', () => { patches.clear(); sfx('unplug'); drawCables(); tape('Unplugged everything', 'Drag from any socket to another to plug in again.'); });
+
+  // ---------- the bench: units come out of the store onto the shelf, and go back ----------
+  const shelf = $('#osShelf'), store = $('#osStore'), cabinet = $('.os-cabinet');
+  const UNITS = new Map($$('.unit', store).map((el) => [el.dataset.unit, { el, name: el.querySelector('.unit-title span').textContent }]));
+  const placed = (id) => UNITS.get(id).el.parentNode === shelf;
+  const onBench = (jack) => unitOf(jack) === 'scope' || placed(unitOf(jack));
+  $('#cabList').innerHTML = Array.from(UNITS, ([id, u]) =>
+    `<li><button type="button" class="cab-tile" data-tile="${id}" data-kind="${u.el.classList[1].slice(5)}" aria-pressed="false"><i class="cab-chip" aria-hidden="true"></i><span>${u.name}</span></button></li>`).join('');
+  const tiles = new Map($$('.cab-tile').map((el) => [el.dataset.tile, el]));
+
+  function sync() {
+    tiles.forEach((el, id) => el.setAttribute('aria-pressed', String(placed(id))));
+    shelf.classList.toggle('is-empty', !Array.from(UNITS.keys()).some(placed));
+    drawCables();
+  }
+  function place(id, before) {
+    const el = UNITS.get(id).el;
+    shelf.insertBefore(el, before === el ? el.nextElementSibling : before || null);
+    sync();
+  }
+  function putAway(id) {
+    patches.forEach((p, i) => { if (unitOf(i) === id || unitOf(p.out) === id) patches.delete(i); });
+    if (id === 'aud') stopLive();
+    store.append(UNITS.get(id).el);
+    sync();
+    sfx('unplug');
+    tape(UNITS.get(id).name + ' is back in the cabinet', 'Its cables came out with it.');
+  }
+  function setBench(ids) {
+    UNITS.forEach((u, id) => { if (!ids.includes(id)) store.append(u.el); });
+    if (!ids.includes('aud')) stopLive();
+    ids.forEach((id) => shelf.append(UNITS.get(id).el));
+    sync();
+  }
+  function flash(el) {
+    el.classList.remove('is-flash');
+    void el.offsetWidth;
+    el.classList.add('is-flash');
+    const r = el.getBoundingClientRect();
+    if (r.top > innerHeight - 80 || r.bottom < 120) el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' });
+  }
+  UNITS.forEach((u, id) => {
+    const title = u.el.querySelector('.unit-title');
+    const x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'unit-x';
+    x.setAttribute('aria-label', 'Put ' + u.name + ' back in the cabinet');
+    x.innerHTML = '&times;';
+    x.addEventListener('click', () => putAway(id));
+    title.append(x);
+    title.addEventListener('pointerdown', (e) => {
+      if (e.button || e.pointerType === 'touch' || e.target.closest('button')) return;
+      startDrag(e, 'unit', id);
+    });
+  });
+  let swallowClick = false;
+  tiles.forEach((el, id) => {
+    el.addEventListener('pointerdown', (e) => { if (!e.button && e.pointerType !== 'touch') startDrag(e, 'unit', id); });
+    el.addEventListener('click', () => {
+      if (swallowClick) { swallowClick = false; return; }
+      ac();
+      if (!placed(id)) { place(id, null); sfx('plug'); tape(UNITS.get(id).name + ' is on the bench', 'Tap any of its sockets to plug it into something.'); }
+      flash(UNITS.get(id).el);
+    });
+    el.addEventListener('mouseenter', () => tape(UNITS.get(id).name, placed(id)
+      ? 'On the bench. Drag it back here, or press × on it, to put it away.'
+      : 'Drag it onto the bench, or click to put it at the end.'));
+  });
+
+  // ---------- dragging: cables, and equipment onto the bench ----------
+  // one pointer at a time. it only counts as a drag once it's moved 8px; less is a tap. near the top
+  // or bottom of the window the page scrolls by itself, so nobody needs a scroll wheel mid-drag
+  const ghost = document.createElement('div');
+  ghost.className = 'os-dragchip';
+  ghost.hidden = true;
+  document.body.append(ghost);
+  let drag = null, dropAt = null, scrollLoop = 0;
+  function startDrag(e, kind, what) {
+    drag = { kind, what, id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, moved: false };
+  }
+  function beginDrag() {
+    if (drag.kind === 'cable') {
+      const id = drag.what;
+      if (io(id) === 'in' && patches.has(id)) {
+        // pulling a plug out of an input leaves you holding its cable, still plugged in at the other end
+        const p = patches.get(id);
+        patches.delete(id);
+        sfx('unplug');
+        carry = { from: p.out, colour: p.colour };
+      } else carry = { from: id, colour: nextColour() };
+      document.body.dataset.carry = io(carry.from) === 'out' ? 'in' : 'out';
+      document.body.dataset.carryUnit = unitOf(carry.from);
+      tape('Holding a cable from ' + label(carry.from), 'Drop it on an ' + document.body.dataset.carry + 'put. Near the edge of the window, the page scrolls for you.');
+    } else {
+      ghost.textContent = UNITS.get(drag.what).name;
+      ghost.hidden = false;
+      document.body.classList.add('is-moving-unit');
+      tape('Moving ' + UNITS.get(drag.what).name, 'Drop it on the bench, or back on the cabinet to put it away.');
+    }
+    scrollLoop = requestAnimationFrame(edgeScroll);
+  }
+  function moveDrag() {
+    if (drag.kind === 'cable') {
+      carry.x = drag.x; carry.y = drag.y;
+      drawCables();
+      return;
+    }
+    ghost.style.transform = `translate(${drag.x + 14}px, ${drag.y + 10}px)`;
+    if (dropAt) dropAt.el.classList.remove('is-before', 'is-after');
+    dropAt = null;
+    const hit = document.elementFromPoint(drag.x, drag.y);
+    const over = hit && hit.closest('#osShelf .unit');
+    if (over) {
+      const r = over.getBoundingClientRect();
+      dropAt = { el: over, after: drag.x > r.left + r.width / 2 };
+      over.classList.add(dropAt.after ? 'is-after' : 'is-before');
+    }
+    shelf.classList.toggle('is-target', !!(hit && hit.closest('#osShelf')));
+    cabinet.classList.toggle('is-target', !!(hit && hit.closest('.os-cabinet')) && placed(drag.what));
+  }
+  function endDrag(d) {
+    cancelAnimationFrame(scrollLoop);
+    if (d.kind === 'cable') {
+      const hit = document.elementFromPoint(d.x, d.y);
+      const el = hit && hit.closest('.jack');
+      if (el && el.dataset.jack !== carry.from) connect(carry.from, el.dataset.jack, carry.colour);
+      else if (!el) tape('Let go of the cable', 'Tap a socket to choose what to plug it into, or drag between two sockets.');
+      carry = null;
+      document.body.removeAttribute('data-carry');
+      document.body.removeAttribute('data-carry-unit');
+      drawCables();
+      return;
+    }
+    const id = d.what, hit = document.elementFromPoint(d.x, d.y);
+    if (hit && hit.closest('#osShelf')) {
+      const was = placed(id);
+      place(id, dropAt ? (dropAt.after ? dropAt.el.nextElementSibling : dropAt.el) : null);
+      if (!was) { sfx('plug'); tape(UNITS.get(id).name + ' is on the bench', 'Tap any of its sockets to plug it into something.'); }
+    } else if (hit && hit.closest('.os-cabinet') && placed(id)) putAway(id);
+    if (dropAt) dropAt.el.classList.remove('is-before', 'is-after');
+    dropAt = null;
+    ghost.hidden = true;
+    shelf.classList.remove('is-target');
+    cabinet.classList.remove('is-target');
+    document.body.classList.remove('is-moving-unit');
+  }
+  function edgeScroll() {
+    if (!drag || !drag.moved) return;
+    const head = $('.site-header').getBoundingClientRect().bottom;
+    const tapeR = $('#osTape').getBoundingClientRect();
+    const top = Math.max(head, tapeR.top < innerHeight / 2 ? tapeR.bottom : 0) + 50;
+    const bottom = (tapeR.top > innerHeight / 2 ? tapeR.top : innerHeight) - 50;
+    const v = drag.y < top ? -Math.min(1, (top - drag.y) / 60) * 16 : drag.y > bottom ? Math.min(1, (drag.y - bottom) / 60) * 16 : 0;
+    if (v) { window.scrollBy(0, v); moveDrag(); }
+    scrollLoop = requestAnimationFrame(edgeScroll);
+  }
+  document.addEventListener('pointermove', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    drag.x = e.clientX; drag.y = e.clientY;
+    if (!drag.moved && Math.hypot(drag.x - drag.x0, drag.y - drag.y0) > 8) { drag.moved = true; ac(); beginDrag(); }
+    if (drag.moved) { e.preventDefault(); moveDrag(); }
+  }, { passive: false });
+  document.addEventListener('pointerup', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag;
+    drag = null;
+    if (d.moved) { if (d.kind === 'unit') swallowClick = true; endDrag(d); }
+    else if (d.kind === 'cable') openPop(d.what);
+  });
+  document.addEventListener('pointercancel', (e) => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const d = drag;
+    drag = null;
+    if (d.moved) { d.x = -1; d.y = -1; endDrag(d); }
+  });
+  window.addEventListener('scroll', () => { if (carry) drawCables(); }, { passive: true });
+
+  jacks.forEach((el, id) => {
+    el.addEventListener('pointerdown', (e) => { if (e.button) return; e.preventDefault(); startDrag(e, 'cable', id); });
+    el.addEventListener('click', (e) => { if (e.detail === 0) openPop(id); });
+    el.addEventListener('mouseenter', () => { if (!carry) tape(label(id), el.dataset.help); });
+    el.dataset.name = label(id);
+  });
+  $$('.banana').forEach((el) => el.addEventListener('mouseenter', () => tape('Component tester sockets', 'Parts clip on here rather than cables. Pick one from the parts drawer, then press CT.')));
+  if ('ResizeObserver' in window) new ResizeObserver(drawCables).observe(bench);
+  window.addEventListener('resize', drawCables);
+  if (document.fonts) document.fonts.ready.then(drawCables);
+
+  // ---------- the "plug into" list ----------
+  // tapping a socket lists everything on the bench it could go to, so a cable never needs dragging
+  // further than the window. tapping something already plugged in unplugs it
+  const pop = $('#osPop'), popBody = $('#osPopBody');
+  const sheet = window.matchMedia('(max-width:700px)');
+  let popFrom = null;
+  function openPop(id) {
+    ac();
+    popFrom = id;
+    const want = io(id) === 'out' ? 'in' : 'out';
+    const groups = new Map();
+    jacks.forEach((el, j) => {
+      if (io(j) !== want || !onBench(j) || loops(id, j)) return;
+      const g = unitOf(j);
+      if (!groups.has(g)) groups.set(g, []);
+      groups.get(g).push(j);
+    });
+    $('#osPopTitle').textContent = label(id);
+    $('#osPopSub').textContent = want === 'in' ? 'Plug it into…' : 'Take a signal from…';
+    let html = '';
+    groups.forEach((list, g) => {
+      html += `<h4>${g === 'scope' ? 'Oscilloscope' : UNITS.get(g).name}</h4><div class="pop-items">`;
+      for (const j of list) {
+        const p = want === 'in' ? patches.get(j) : patches.get(id);
+        const on = !!p && (want === 'in' ? p.out === id : p.out === j);
+        const note = on ? 'plugged in · tap to unplug' : want === 'in' && p ? 'replaces ' + label(p.out) : '';
+        html += `<button type="button" class="pop-item" data-to="${j}" aria-pressed="${on}"><i style="--c:${on ? p.colour : 'transparent'}"></i><span>${label(j)}${note ? `<small>${note}</small>` : ''}</span></button>`;
+      }
+      html += '</div>';
+    });
+    if (!groups.size) html = `<p class="pop-none">Nothing on the bench has ${want === 'in' ? 'an input' : 'an output'} for this. Add something from the cabinet.</p>`;
+    const plugged = want === 'in' ? Array.from(patches.values()).some((p) => p.out === id) : patches.has(id);
+    if (plugged) html += `<button type="button" class="pop-unplug">Unplug ${want === 'in' ? 'every cable from here' : 'this socket'}</button>`;
+    popBody.innerHTML = html;
+    pop.hidden = false;
+    if (sheet.matches) { pop.style.left = ''; pop.style.top = ''; }
+    else {
+      const r = jacks.get(id).getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+      pop.style.left = Math.max(12, Math.min(innerWidth - w - 12, r.left + r.width / 2 - w / 2)) + 'px';
+      pop.style.top = (r.bottom + 10 + h < innerHeight - 12 ? r.bottom + 10 : Math.max(12, r.top - h - 10)) + 'px';
+    }
+    const first = popBody.querySelector('button');
+    if (first) first.focus({ preventScroll: true });
+    tape(label(id), jacks.get(id).dataset.help);
+  }
+  function closePop(back) {
+    if (pop.hidden) return;
+    pop.hidden = true;
+    if (back && popFrom) jacks.get(popFrom).focus({ preventScroll: true });
+    popFrom = null;
+  }
+  popBody.addEventListener('click', (e) => {
+    const item = e.target.closest('.pop-item'), from = popFrom;
+    if (item) {
+      const j = item.dataset.to;
+      if (item.getAttribute('aria-pressed') === 'true') unplug(io(j) === 'in' ? j : from);
+      else connect(from, j);
+    } else if (e.target.closest('.pop-unplug')) unplug(from);
+    else return;
+    closePop(true);
+    drawCables();
+  });
+  $('#osPopClose').addEventListener('click', () => closePop(true));
+  document.addEventListener('pointerdown', (e) => { if (!pop.hidden && !pop.contains(e.target)) closePop(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePop(true); });
+  window.addEventListener('scroll', () => { if (!sheet.matches) closePop(); }, { passive: true });
+
+  $('#osUnplug').addEventListener('click', () => { patches.clear(); sfx('unplug'); drawCables(); tape('Unplugged everything', 'Tap any socket to plug it in again.'); });
   $('#osReset').addEventListener('click', () => {
     const keep = { power: S.power, sfx: S.sfx, ghost: S.ghost };
     Object.assign(S, DEFAULTS, keep);
     renderAll();
+    setBench(START_UNITS);
     plugIn(START_PATCH);
     sfx('button');
     tape('Bench reset', 'Every knob is back where it started, and generator A is plugged into channel I.');
   });
 
+  // ---------- phones: one group of scope controls at a time ----------
+  const sc = $('.sc');
+  sc.dataset.tab = 'display';
+  $$('.sc-tab').forEach((b) => b.addEventListener('click', () => {
+    sc.dataset.tab = b.dataset.tab;
+    $$('.sc-tab').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    sfx('button');
+    drawCables();
+  }));
+
   // ---------- the lab notebook ----------
+  // each experiment puts out the equipment its cables need, plus anything listed in units
   const LAB = {
     first: { s: { focus: 0.64, intens: 0.42 }, patch: [['gena', 'ch1']], tip: 'The trace is a little soft and dim. Turn FOCUS and INTENS until it is crisp.' },
     measure: { patch: [['gena', 'ch1'], ['gena', 'cnt']], tip: 'Count the squares: 2 divisions high, 5 across for one cycle. The counter agrees.' },
     trigger: { s: { 'trig.mode': 'NORM', 'trig.level': 0.75 }, patch: [['gena', 'ch1']], tip: 'Nothing on screen: the signal never reaches LEVEL. Turn LEVEL down.' },
-    slow: { s: { tdiv: 2, tube: 'P7', 'genA.range': 0, 'genA.dial': 1.5, 'genA.amp': 0.25 }, patch: [['gena', 'ch1']], tip: 'Watch the dot. The long-glow tube keeps the wave behind it.' },
-    probe: { s: { 'p1.x10': true, 'p1.comp': 0.2, 'ch1.vdiv': 11, 'ch1.pos': -0.33 }, patch: [['cal', 'ch1']], tip: "Turn probe 1's COMP trimmer, on the probes card, until the corners are square." },
+    slow: { s: { tdiv: 2, tube: 'P7', 'genA.range': 0, 'genA.dial': 1.5, 'genA.amp': 0.25 }, patch: [['gena', 'ch1']], units: ['tubes'], tip: 'Watch the dot. The long-glow tube keeps the wave behind it.' },
+    probe: { s: { 'p1.x10': true, 'p1.comp': 0.2, 'ch1.vdiv': 11, 'ch1.pos': -0.33 }, patch: [['cal', 'ch1']], units: ['probes'], tip: "Turn probe 1's COMP trimmer, on the probes card, until the corners are square." },
     ripple: { s: { 'ch1.vdiv': 2, tdiv: 6, 'ch1.pos': -0.5 }, patch: [['tp4', 'ch1']], tip: 'Press AC, re-centre with Y-POS, then turn VOLTS/DIV clockwise.' },
     rectifier: { s: { vmode: 'DUAL', chop: true, 'ch1.vdiv': 1, 'ch2.vdiv': 1, 'ch1.pos': 0.36, 'ch2.pos': -0.55, tdiv: 6, 'trig.src': 'LINE' }, patch: [['tp1', 'ch1'], ['tp3', 'ch2']], tip: 'The bridge flips every bottom half upwards, so it pulses at 100 Hz.' },
     lissajous: { s: { xy: true, 'genA.amp': 0.15, 'genB.amp': 0.15, 'genB.dial': 1.5 }, patch: [['gena', 'ch1'], ['genb', 'ch2']], tip: "Nudge generator B's FREQUENCY dial, with Shift held for fine." },
     rc: { s: { vmode: 'DUAL', 'genA.wave': 'square', 'genA.amp': 0.1, 'ch1.pos': 0.33, 'ch2.pos': -0.33 }, patch: [['gena', 'ch1'], ['gena', 'rcin'], ['rclp', 'ch2']], tip: "Turn the filter's TIME CONST. knob, or move channel II's cable to HIGH PASS." },
     beats: { s: { vmode: 'ADD', tdiv: 4, 'genA.amp': 0.1, 'genB.amp': 0.1, 'genB.dial': 1.004 }, patch: [['gena', 'ch1'], ['genb', 'ch2'], ['gena', 'spkl'], ['genb', 'spkr']], tip: "Turn generator B's dial with Shift held: the closer the two, the slower the beats." },
-    ct: { s: { ct: true, part: 'si' }, patch: [], tip: 'Click through the parts drawer and watch the shape change.' },
+    ct: { s: { ct: true, part: 'si' }, patch: [], units: ['parts'], tip: 'Click through the parts drawer and watch the shape change.' },
     vector: { s: { xy: true, 'vec.prog': 1, 'spk.vol': 0.3 }, patch: [['vecx', 'ch1'], ['vecy', 'ch2'], ['vecx', 'spkl'], ['vecy', 'spkr']], tip: 'Turn PICTURE, SPIN and RATE on the vector box.' },
     clock: { s: { xy: true, 'vec.prog': 5, 'vec.size': 0.85, 'vec.rate': 0.25 }, patch: [['vecx', 'ch1'], ['vecy', 'ch2']], tip: 'It keeps real time.' },
     tv: { s: { 'ch1.vdiv': 6, tdiv: 14, 'trig.slope': '-', 'trig.mode': 'NORM', 'trig.level': 0.125, 'ch1.pos': -0.5 }, patch: [['tp9', 'ch1']], tip: 'Try X-MAG and X-POS to look at the colour burst after the sync pulse.' },
@@ -634,11 +858,25 @@
     ac();
     Object.assign(S, DEFAULTS, { power: true, sfx: S.sfx, ghost: S.ghost }, lab.s || {});
     renderAll();
+    const units = new Set(lab.units || []);
+    for (const pair of lab.patch) for (const j of pair) if (unitOf(j) !== 'scope') units.add(unitOf(j));
+    setBench(Array.from(units));
     plugIn(lab.patch);
     sfx('plug');
     tape(btn.closest('.nb-card').querySelector('h3').textContent, lab.tip);
     bench.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
   }));
+
+  // ---------- the little screen that follows you ----------
+  // once the real screen has scrolled away but you're still at the bench, a copy of it floats in the
+  // corner, so you can watch the trace while turning a generator's knobs. tap it to go back up
+  const mini = $('#osMini'), miniCtx = $('#osMiniCanvas').getContext('2d');
+  let screenSeen = true, benchSeen = true;
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver((e) => { screenSeen = e[0].isIntersecting; }, { rootMargin: '-90px 0px 0px 0px', threshold: 0.35 }).observe($('#scScreen'));
+    new IntersectionObserver((e) => { benchSeen = e[0].isIntersecting; }, { threshold: 0 }).observe(bench);
+  }
+  mini.addEventListener('click', () => $('#scScreen').scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' }));
 
   // ---------- speaker ----------
   // plays its inputs at the audio rate, four samples averaged per output sample to tame the
@@ -724,6 +962,10 @@
     const ch = [OS.probe(sourceFor('ch1'), S['p1.x10'], S['p1.comp'], t), OS.probe(sourceFor('ch2'), S['p2.x10'], S['p2.comp'], t)];
     scope.frame(S, { ch, ext: sourceFor('ext') }, tPrev, t);
     if (crt) crt.draw(scope.seg, scope.n, dt, { sigma: scope.sigma, rot: S.rot * 0.0524, tube: S.tube });
+    const floating = !!crt && S.power && !screenSeen && benchSeen;
+    if (mini.hidden === floating) mini.hidden = !floating;
+    // copied straight after drawing, while the webgl canvas still holds this frame
+    if (floating) miniCtx.drawImage(crt.canvas, 0, 0, miniCtx.canvas.width, miniCtx.canvas.height);
 
     lamp('power', S.power);
     lamp('trig', S.power && scope.trigLit && !S.xy && !S.ct);
@@ -749,7 +991,8 @@
   }
 
   renderAll();
+  setBench(START_UNITS);
   plugIn(START_PATCH);
   requestAnimationFrame(frame);
-  window.OscBench = { S, set, patches, plugIn, scope, frame };
+  window.OscBench = { S, set, patches, plugIn, scope, frame, setBench, placed };
 })();
