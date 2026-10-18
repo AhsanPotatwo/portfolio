@@ -604,7 +604,6 @@
     x.type = 'button';
     x.className = 'unit-x';
     x.setAttribute('aria-label', 'Put ' + u.name + ' back in the cabinet');
-    x.innerHTML = '&times;';
     x.addEventListener('click', () => putAway(id));
     title.append(x);
     title.addEventListener('pointerdown', (e) => {
