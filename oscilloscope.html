@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Oscilloscope Playground — Ahsan</title>
+  <meta name="description"
+    content="Oscilloscope Playground — a vintage analogue oscilloscope in your browser, with signal generators, a trainer board, a component tester, oscilloscope art and patch cables. Every trace is drawn like a real electron beam on phosphor.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=Special+Elite&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/oscilloscope.css">
+</head>
+
+<body class="os-page">
+
+  <a class="skip-link" href="#bench">Skip to the oscilloscope</a>
+
+  <header class="site-header" id="header">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html#home"><span class="brand-bracket">[</span>Ahsan<span class="brand-bracket">]</span></a>
+
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="nav" id="primaryNav" aria-label="Primary">
+        <a href="index.html#home" class="nav-link">Home</a>
+        <a href="index.html#about" class="nav-link">About</a>
+        <a href="index.html#skills" class="nav-link">Skills</a>
+        <a href="index.html#projects" class="nav-link is-active">Projects</a>
+        <a href="index.html#contact" class="nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <div class="os-intro">
+      <h1 class="os-title">Oscilloscope Playground</h1>
+      <p class="os-lede">A dual-trace analogue oscilloscope, the kind that sat on every electronics bench in the seventies and eighties, with a shelf of things to plug into it. Press <strong>POWER</strong>, let the tube warm up, then turn anything. Drag from any socket to another to run a cable. The <a href="#notebook">lab notebook</a> below has experiments that set the bench up for you.</p>
+      <ul class="os-tags" aria-label="Built with">
+        <li>JavaScript</li>
+        <li>WebGL</li>
+        <li>Web Audio</li>
+        <li>No libraries</li>
+      </ul>
+    </div>
+
+    <!-- the label maker tape: says what the last thing you touched is and does -->
+    <div class="os-tape" id="osTape" aria-live="polite">
+      <b id="osTapeName">Welcome to the bench</b>
+      <span id="osTapeText">Press POWER on the scope. Generator A is already plugged into channel I.</span>
+    </div>
+
+    <section class="os-bench" id="bench" aria-label="Workbench">
+      <svg class="os-cables" id="osCables" aria-hidden="true"></svg>
+
+      <!-- ===================== the oscilloscope ===================== -->
+      <div class="sc" data-unit="scope">
+        <div class="sc-handle" aria-hidden="true"></div>
+        <div class="sc-front">
+
+          <div class="sc-left">
+            <div class="sc-badge">
+              <span class="sc-logo">ORBTEK</span>
+              <span class="sc-model">OX-203</span>
+              <span class="sc-spec">20 MHz dual trace oscilloscope</span>
+            </div>
+            <div class="sc-bezel">
+              <div class="sc-screen" id="scScreen">
+                <canvas id="crt" role="img" aria-label="Oscilloscope screen"></canvas>
+                <svg class="sc-grat" id="scGrat" viewBox="-0.6 -4.6 11.2 9.2" preserveAspectRatio="none" aria-hidden="true"></svg>
+                <div class="sc-glass" aria-hidden="true"></div>
+                <p class="sc-nogl" id="scNoGL" hidden>This browser can't draw the tube (it needs WebGL 2). Everything else still works.</p>
+              </div>
+              <i class="sc-screw" aria-hidden="true"></i><i class="sc-screw" aria-hidden="true"></i><i class="sc-screw" aria-hidden="true"></i><i class="sc-screw" aria-hidden="true"></i>
+            </div>
+
+            <div class="sc-crtrow">
+              <div class="sc-power">
+                <button type="button" class="pb pb-power" id="scPower" data-toggle="power" data-help="Turns the scope on. The tube's heater needs a couple of seconds before the beam appears, and switching off folds the picture into a dot.">POWER</button>
+                <i class="lamp lamp-power" data-lamp="power" aria-hidden="true"></i>
+              </div>
+              <div class="kn kn-md" data-k="intens" data-help="How hard the electron gun fires. Fast sweeps spread the beam thin, so they need more. Don't leave a still dot at full blast: on a real tube it burns the phosphor.">INTENS</div>
+              <div class="kn kn-md" data-k="focus" data-help="Squeezes the beam into a fine spot. Sharpest near the middle; either end blurs it.">FOCUS</div>
+              <div class="kn kn-trim" data-k="rot" data-help="Trace rotation, a screwdriver adjustment. The earth's magnetic field tilts the beam a little, so this lines the trace back up with the graticule.">TR</div>
+              <div class="kn kn-sm" data-k="illum" data-help="Lights the graticule, the grid etched on the inside of the glass, so you can read it in the dark or photograph it.">ILLUM</div>
+            </div>
+
+            <div class="sc-lower">
+              <div class="sc-group">
+                <span class="sc-lbl">CAL</span>
+                <div class="sc-jack">
+                  <button type="button" class="jack jack-tp" data-jack="cal" data-io="out" aria-label="Calibrator, 0.2 volts" data-help="A 1 kHz square wave, exactly 0.2 V high. Clip a probe onto it to check the volts/div and to compensate a x10 probe."></button>
+                  <span>0.2 V</span>
+                </div>
+                <div class="sc-jack">
+                  <button type="button" class="jack jack-tp" data-jack="cal2" data-io="out" aria-label="Calibrator, 2 volts" data-help="The same 1 kHz square wave, 2 V high."></button>
+                  <span>2 V</span>
+                </div>
+                <span class="sc-tiny">1 kHz <svg viewBox="0 0 20 10" aria-hidden="true"><path d="M1 9h4V1h5v8h5V1h4" /></svg></span>
+              </div>
+              <div class="sc-group sc-ct">
+                <span class="sc-lbl">COMPONENT TESTER</span>
+                <button type="button" class="pb" data-toggle="ct" data-help="Component tester. Puts 8.5 V of 50 Hz across whatever is clipped to the two sockets and draws its current against its voltage. Every kind of part has its own shape. Pick one from the parts drawer.">CT</button>
+                <span class="banana banana-red" aria-hidden="true"></span>
+                <span class="banana banana-black" aria-hidden="true"></span>
+                <span class="sc-part" id="scPart">nothing clipped on</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="sc-right">
+            <section class="sc-sect sc-vert" aria-label="Vertical">
+              <h3 class="sc-head">Vertical</h3>
+              <div class="sc-vgrid">
+                <div class="sc-ch">
+                  <span class="sc-chname">CH I</span>
+                  <div class="kn kn-lg" data-k="ch1.vdiv" data-inner="ch1.var" data-help="Volts per division for channel I: how many volts one square of the grid is worth, up and down. Clockwise is more sensitive." data-inner-help="The red knob is a fine gain. Anywhere but fully clockwise (CAL) and the volts/div markings aren't true any more, so the UNCAL lamp lights.">VOLTS/DIV</div>
+                  <div class="sc-chside">
+                    <div class="kn kn-sm" data-k="ch1.pos" data-help="Moves channel I's trace up and down.">Y-POS</div>
+                    <span class="sc-lamp"><i class="lamp lamp-amber" data-lamp="uncal1" aria-hidden="true"></i>UNCAL</span>
+                  </div>
+                  <div class="sc-btns">
+                    <button type="button" class="pb" data-toggle="ch1.coup" data-on="AC" data-off="DC" data-help="Out: DC coupling, the whole signal. In: AC coupling, which blocks the steady part so you can zoom in on the wiggle riding on top.">AC</button>
+                    <button type="button" class="pb" data-toggle="ch1.gnd" data-help="Disconnects the input and shows 0 V, so you can see where zero is.">GND</button>
+                  </div>
+                  <div class="sc-jack sc-jack-bnc">
+                    <button type="button" class="jack jack-bnc" data-jack="ch1" data-io="in" aria-label="Channel I input" data-help="Channel I input, through probe 1. In X-Y mode this channel moves the beam sideways."></button>
+                    <span>CH I &middot; X</span>
+                  </div>
+                  <span class="sc-tiny">1 MΩ ∥ 30 pF</span>
+                </div>
+
+                <div class="sc-modes" role="group" aria-label="Vertical mode">
+                  <button type="button" class="pb" data-set="vmode=CH1" data-help="Shows channel I only.">CH I</button>
+                  <button type="button" class="pb" data-set="vmode=CH2" data-help="Shows channel II only.">CH II</button>
+                  <button type="button" class="pb" data-set="vmode=DUAL" data-help="Both channels. There's only one beam, so it takes turns: one sweep each (ALT), or with CHOP in, flicking between them a million times a second.">DUAL</button>
+                  <button type="button" class="pb" data-set="vmode=ADD" data-help="Adds the two channels into one trace. With channel II inverted, it shows the difference between them.">ADD</button>
+                  <button type="button" class="pb" data-toggle="chop" data-help="In DUAL, switch channels a million times a second instead of every sweep. Better for slow sweeps; at fast ones you can see the chopping.">CHOP</button>
+                  <button type="button" class="pb" data-toggle="ch2.inv" data-help="Turns channel II upside down.">INV II</button>
+                </div>
+
+                <div class="sc-ch">
+                  <span class="sc-chname">CH II</span>
+                  <div class="kn kn-lg" data-k="ch2.vdiv" data-inner="ch2.var" data-help="Volts per division for channel II." data-inner-help="Channel II's fine gain. Fully clockwise is CAL.">VOLTS/DIV</div>
+                  <div class="sc-chside">
+                    <div class="kn kn-sm" data-k="ch2.pos" data-help="Moves channel II's trace up and down. In X-Y mode, moves the picture up and down.">Y-POS</div>
+                    <span class="sc-lamp"><i class="lamp lamp-amber" data-lamp="uncal2" aria-hidden="true"></i>UNCAL</span>
+                  </div>
+                  <div class="sc-btns">
+                    <button type="button" class="pb" data-toggle="ch2.coup" data-on="AC" data-off="DC" data-help="AC or DC coupling for channel II.">AC</button>
+                    <button type="button" class="pb" data-toggle="ch2.gnd" data-help="Shows where 0 V is on channel II.">GND</button>
+                  </div>
+                  <div class="sc-jack sc-jack-bnc">
+                    <button type="button" class="jack jack-bnc" data-jack="ch2" data-io="in" aria-label="Channel II input" data-help="Channel II input, through probe 2. In X-Y mode this channel moves the beam up and down."></button>
+                    <span>CH II &middot; Y</span>
+                  </div>
+                  <span class="sc-tiny">1 MΩ ∥ 30 pF</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="sc-sect sc-horiz" aria-label="Horizontal">
+              <h3 class="sc-head">Horizontal</h3>
+              <div class="kn kn-lg" data-k="tdiv" data-inner="tvar" data-help="Time per division: how long the beam takes to cross one square. Clockwise is faster, so you see less time in more detail. Below about 20 ms/div you can watch the dot crawl." data-inner-help="Fine sweep speed. Fully clockwise is CAL; anywhere else and the time/div markings aren't true.">TIME/DIV</div>
+              <span class="sc-lamp"><i class="lamp lamp-amber" data-lamp="uncalt" aria-hidden="true"></i>UNCAL</span>
+              <div class="kn kn-md" data-k="xpos" data-help="Slides the trace left and right. With X-MAG in, it scrolls along the stretched sweep.">X-POS</div>
+              <div class="sc-btns">
+                <button type="button" class="pb" data-toggle="mag" data-help="Stretches the sweep ten times around the middle of the screen. Spin X-POS to look along it.">X-MAG ×10</button>
+                <button type="button" class="pb" data-toggle="xy" data-help="Turns off the timebase. Channel I moves the beam sideways and channel II moves it up and down, so two signals draw a picture together.">X-Y</button>
+              </div>
+            </section>
+
+            <section class="sc-sect sc-trig" aria-label="Trigger">
+              <h3 class="sc-head">Trigger</h3>
+              <div class="sc-trigtop">
+                <div class="kn kn-md" data-k="trig.level" data-help="The voltage the signal has to cross to start a sweep. Every sweep starts at the same point on the wave, which is what makes it stand still.">LEVEL</div>
+                <span class="sc-lamp"><i class="lamp lamp-green" data-lamp="trig" aria-hidden="true"></i>TRIG'D</span>
+              </div>
+              <div class="kn kn-sm" data-k="holdoff" data-help="Keeps the trigger shut for a while after each sweep. Signals that repeat in bursts, like serial data, only stand still when the trigger waits out the whole burst.">HOLD OFF</div>
+              <div class="sc-btns">
+                <button type="button" class="pb" data-toggle="trig.mode" data-on="NORM" data-off="AUTO" data-help="Out: AT, automatic. Finds the signal's top and bottom and spreads LEVEL across them, and sweeps anyway if nothing triggers. In: NORM. LEVEL is absolute, and no trigger means no trace.">NORM</button>
+                <button type="button" class="pb" data-toggle="trig.slope" data-on="-" data-off="+" data-help="Out: trigger on the way up. In: trigger on the way down.">SLOPE −</button>
+              </div>
+              <div class="sc-btns sc-src" role="group" aria-label="Trigger source">
+                <button type="button" class="pb pb-sm" data-set="trig.src=CH1" data-help="Trigger from channel I.">I</button>
+                <button type="button" class="pb pb-sm" data-set="trig.src=CH2" data-help="Trigger from channel II.">II</button>
+                <button type="button" class="pb pb-sm" data-set="trig.src=EXT" data-help="Trigger from whatever is plugged into EXT TRIG, without showing it.">EXT</button>
+                <button type="button" class="pb pb-sm" data-set="trig.src=LINE" data-help="Trigger from the mains, 50 times a second. Anything running off the mains stands still.">LINE</button>
+              </div>
+              <div class="sc-jack sc-jack-bnc">
+                <button type="button" class="jack jack-bnc" data-jack="ext" data-io="in" aria-label="External trigger input" data-help="External trigger input. Set the trigger source to EXT and the sweep starts from this signal instead."></button>
+                <span>EXT TRIG</span>
+              </div>
+            </section>
+          </div>
+
+        </div>
+        <div class="sc-feet" aria-hidden="true"><i></i><i></i></div>
+      </div>
+
+      <!-- ===================== bench controls ===================== -->
+      <div class="os-benchbar">
+        <button type="button" class="os-btn" data-toggle="sfx" data-help="Clicks, clunks and the cable thunk.">Sounds</button>
+        <button type="button" class="os-btn" data-toggle="ghost" data-help="Makes the cables see-through so they don't hide anything.">See-through cables</button>
+        <button type="button" class="os-btn" id="osUnplug" data-help="Pulls every cable out.">Unplug everything</button>
+        <button type="button" class="os-btn" id="osReset" data-help="Puts every knob back where it started and plugs generator A into channel I.">Reset the bench</button>
+      </div>
+
+      <!-- ===================== accessories ===================== -->
+      <div class="os-shelf">
+
+        <!-- filled in by bench.js, from one template for both -->
+        <div class="unit unit-gen" data-unit="genA" data-gen="genA" data-letter="A"></div>
+        <div class="unit unit-gen" data-unit="genB" data-gen="genB" data-letter="B"></div>
+
+        <div class="unit unit-board" data-unit="board">
+          <div class="unit-title"><span>Trainer board</span><small>TB-12 · twelve test points</small></div>
+          <div class="board-pcb">
+            <svg class="board-traces" viewBox="0 0 400 200" preserveAspectRatio="none" aria-hidden="true">
+              <path d="M10 30h120l20 20h90l20-20h130M10 100h60l20 20h120l20-20h160M10 170h150l20-20h70l20 20h120M70 30v140M200 50v100M330 30v140" />
+            </svg>
+            <ul class="board-tps">
+              <li><button type="button" class="jack jack-tp" data-jack="tp1" data-io="out" aria-label="TP1, transformer" data-help="The secondary of a mains transformer: about 12 V AC at 50 Hz. Notice the slightly flat tops, from everything else on the street drawing current at the peaks."></button><span><b>TP1</b>12 V AC</span></li>
+              <li><button type="button" class="jack jack-tp" data-jack="tp2" data-io="out" aria-label="TP2, half-wave rectifier" data-help="After one diode: only the top halves get through, minus the diode's 0.7 V."></button><span><b>TP2</b>Half wave</span></li>
+              <li><button type="button" class="jack jack-tp" data-jack="tp3" data-io="out" aria-label="TP3, bridge rectifier" data-help="After a bridge of four diodes: the bottom halves are flipped up too, so the humps come twice as often, at 100 Hz."></button><span><b>TP3</b>Full wave</span></li>
+              <li><button type="button" class="jack jack-tp" data-jack="tp4" data-io="out" aria-label="TP4, smoothed supply" data-help="With a big capacitor after the bridge: nearly flat DC, sagging a little between humps. That sag is the ripple. Try AC coupling at 0.5 V/div to see it."></button><span><b>TP4</b>Smoothed DC</span></li>
+              <li><button type="button" class="jack jack-tp" data-jack="tp5" data-io="out" aria-label="TP5, 555 timing capacitor" data-help="The timing capacitor of a 555 timer, charging up to 6 V and draining to 3 V, around a thousand times a second. The curves are exponentials."></button><span><b>TP5</b>555 capacitor</span></li>
+              <li><button type="button" class="jack jack-tp" data-jack="tp6" data-io="out" aria-label="TP6, 555 output" data-help="The 555's output: high while the capacitor charges, low while it drains. Put TP5 on the other channel and compare."></button><span><b>TP6</b>555 output</span></li>
+              <li><button type="button" class="jack jack-tp" data-jack="tp7" data-io="out" aria-label="TP7, ringing square wave" data-help="A square wave down a cable nobody terminated. Every edge overshoots and rings. Zoom into an edge at 2 µs/div."></button><span><b>TP7</b>Ringing</span></li>
+              <li><button type="button" class="jack jack-tp" data-jack="tp8" data-io="out" aria-label="TP8, serial data" data-help="A serial line sending the letters Hi! at 9600 baud, every 4 ms. Each letter is a low start bit, eight data bits lowest first, and a high stop bit. Use HOLD OFF to make it stand still."></button><span><b>TP8</b>Serial data</span></li>
+              <li><button type="button" class="jack jack-tp" data-jack="tp9" data-io="out" aria-label="TP9, video" data-help="One line of a colour TV picture, 64 µs long: a sync pulse, a little burst of colour carrier, then eight colour bars getting darker. Trigger on the falling edge of the sync."></button><span><b>TP9</b>Video line</span></li>
+              <li><button type="button" class="jack jack-tp" data-jack="tp10" data-io="out" aria-label="TP10, AM radio" data-help="An AM radio signal: a 455 kHz carrier whose strength follows a 1 kHz tone. At slow sweeps the carrier is a solid band and the tone is its outline."></button><span><b>TP10</b>AM radio</span></li>
+              <li><button type="button" class="jack jack-tp" data-jack="tp11" data-io="out" aria-label="TP11, motor PWM" data-help="Pulse width modulation driving a motor at 20 kHz. The motor's speed is the fraction of each pulse spent high, and someone's working the throttle."></button><span><b>TP11</b>Motor PWM</span></li>
+              <li><button type="button" class="jack jack-tp" data-jack="tp12" data-io="out" aria-label="TP12, noisy sensor" data-help="A 100 Hz sensor signal with a lot of noise on it. The trigger struggles; try a lower INTENS to pick out the average."></button><span><b>TP12</b>Noisy sensor</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="unit unit-rc" data-unit="rc">
+          <div class="unit-title"><span>Filter module</span><small>RC-1 · one resistor, one capacitor</small></div>
+          <svg class="rc-diagram" viewBox="0 0 220 90" aria-hidden="true">
+            <path d="M10 30h40l5-8 10 16 10-16 10 16 10-16 5 8h40M140 30h70M140 30v20M126 50h28M126 58h28M140 58v22M120 80h40" />
+            <text x="64" y="16">R</text><text x="160" y="58">C</text>
+          </svg>
+          <div class="unit-row">
+            <div class="unit-jack">
+              <button type="button" class="jack jack-bnc" data-jack="rcin" data-io="in" aria-label="Filter input" data-help="Filter input. Try a square wave from a generator."></button>
+              <span>IN</span>
+            </div>
+            <div class="kn kn-md kn-dark" data-k="rc.tau" data-help="The time constant, resistance times capacitance: how long the capacitor takes to get two thirds of the way to a new voltage.">TIME CONST.</div>
+            <div class="unit-jack">
+              <button type="button" class="jack jack-bnc" data-jack="rclp" data-io="out" aria-label="Low-pass output" data-help="Across the capacitor: a low-pass filter. Slow changes get through; fast ones are smoothed away, and edges become exponential curves."></button>
+              <span>LOW PASS</span>
+            </div>
+            <div class="unit-jack">
+              <button type="button" class="jack jack-bnc" data-jack="rchp" data-io="out" aria-label="High-pass output" data-help="Across the resistor: a high-pass filter. Only changes get through, so a square wave becomes spikes at its edges."></button>
+              <span>HIGH PASS</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="unit unit-vec" data-unit="vec">
+          <div class="unit-title"><span>Vector box</span><small>VX-2 · pictures out of voltage</small></div>
+          <div class="unit-row">
+            <div class="kn kn-lg kn-dark" data-k="vec.prog" data-help="What to draw. Plug X into channel I and Y into channel II, press X-Y, and the beam draws it.">PICTURE</div>
+            <div class="vec-knobs">
+              <div class="kn kn-sm kn-dark" data-k="vec.ratio" data-help="For the Lissajous figure: the ratio of the two frequencies. Whole number ratios make closed loops.">RATIO</div>
+              <div class="kn kn-sm kn-dark" data-k="vec.spin" data-help="How fast the picture turns.">SPIN</div>
+              <div class="kn kn-sm kn-dark" data-k="vec.size" data-help="How big the picture is, in volts.">SIZE</div>
+              <div class="kn kn-sm kn-dark" data-k="vec.rate" data-help="How many times a second the picture is drawn. Faster flickers less, and plugged into the speaker, sounds higher.">RATE</div>
+            </div>
+          </div>
+          <div class="unit-row unit-row-jacks">
+            <div class="unit-jack">
+              <button type="button" class="jack jack-bnc" data-jack="vecx" data-io="out" aria-label="Vector box X output" data-help="The sideways half of the picture."></button>
+              <span>X</span>
+            </div>
+            <div class="unit-jack">
+              <button type="button" class="jack jack-bnc" data-jack="vecy" data-io="out" aria-label="Vector box Y output" data-help="The up and down half of the picture."></button>
+              <span>Y</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="unit unit-audio" data-unit="aud">
+          <div class="unit-title"><span>Audio interface</span><small>AI-2 · microphone or a song</small></div>
+          <div class="unit-row">
+            <button type="button" class="os-key" id="audMic" data-help="Uses your microphone. Your browser will ask first, and nothing leaves your computer.">Microphone</button>
+            <label class="os-key" data-help="Plays an audio file from your computer through both outputs and your speakers. Stereo files made for oscilloscopes draw pictures in X-Y mode.">Load a song<input type="file" id="audFile" accept="audio/*" hidden></label>
+            <button type="button" class="os-key" id="audStop" data-help="Stops the microphone or the song.">Stop</button>
+            <div class="kn kn-sm kn-dark" data-k="aud.gain" data-help="How many volts the sound comes out as.">GAIN</div>
+          </div>
+          <p class="aud-status" id="audStatus">Nothing playing.</p>
+          <div class="unit-row unit-row-jacks">
+            <div class="unit-jack">
+              <button type="button" class="jack jack-bnc" data-jack="audl" data-io="out" aria-label="Audio left output" data-help="The left channel, or the microphone."></button>
+              <span>LEFT</span>
+            </div>
+            <div class="unit-jack">
+              <button type="button" class="jack jack-bnc" data-jack="audr" data-io="out" aria-label="Audio right output" data-help="The right channel, or the microphone."></button>
+              <span>RIGHT</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="unit unit-speaker" data-unit="spk">
+          <div class="unit-title"><span>Monitor speaker</span><small>Hear any signal</small></div>
+          <div class="spk-body">
+            <div class="spk-grille" aria-hidden="true"><i class="spk-cone" id="spkCone"></i></div>
+            <div class="spk-side">
+              <div class="kn kn-md kn-dark" data-k="spk.vol" data-help="Volume. Square waves are buzzy, sines are pure, and the vector box's pictures have a sound of their own.">VOLUME</div>
+              <div class="unit-row unit-row-jacks">
+                <div class="unit-jack">
+                  <button type="button" class="jack jack-bnc" data-jack="spkl" data-io="in" aria-label="Speaker left input" data-help="Left speaker input. With only this one plugged in, both sides play it."></button>
+                  <span>L</span>
+                </div>
+                <div class="unit-jack">
+                  <button type="button" class="jack jack-bnc" data-jack="spkr" data-io="in" aria-label="Speaker right input" data-help="Right speaker input."></button>
+                  <span>R</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="unit unit-counter" data-unit="cnt">
+          <div class="unit-title"><span>Frequency counter</span><small>FC-7 · nixie readout</small></div>
+          <div class="cnt-window" role="img" aria-label="Frequency reading" id="cntWindow">
+            <div class="cnt-tubes" id="cntTubes"></div>
+            <span class="cnt-unit">kHz</span>
+          </div>
+          <div class="unit-row">
+            <div class="unit-jack">
+              <button type="button" class="jack jack-bnc" data-jack="cnt" data-io="in" aria-label="Counter input" data-help="Counts how many times a second the signal goes round."></button>
+              <span>INPUT</span>
+            </div>
+            <div class="sc-btns" role="group" aria-label="Gate time">
+              <button type="button" class="os-key os-key-sm" data-set="cnt.gate=0" data-help="Counts for a tenth of a second: quick, to the nearest 10 Hz.">0.1 s</button>
+              <button type="button" class="os-key os-key-sm" data-set="cnt.gate=1" data-help="Counts for a second: to the nearest hertz.">1 s</button>
+              <button type="button" class="os-key os-key-sm" data-set="cnt.gate=2" data-help="Counts for ten seconds: slow, to a tenth of a hertz.">10 s</button>
+            </div>
+            <span class="sc-lamp"><i class="lamp lamp-red" data-lamp="gate" aria-hidden="true"></i>GATE</span>
+          </div>
+        </div>
+
+        <div class="unit unit-probes" data-unit="probes">
+          <div class="unit-title"><span>Probes</span><small>Built into the channel cables</small></div>
+          <p class="probe-note">Whatever you plug into CH I goes through probe 1, and CH II through probe 2. Set the divider here, and turn COMP with the screwdriver slot.</p>
+          <div class="probe">
+            <span class="probe-tag probe-tag-1">1</span>
+            <span class="probe-body" aria-hidden="true"><i></i></span>
+            <button type="button" class="slide" data-toggle="p1.x10" data-help="Probe 1's divider. x10 divides the signal by ten, so read the volts/div ten times bigger, and loads the circuit far less.">×1 <span class="slide-knob"></span> ×10</button>
+            <div class="kn kn-trim" data-k="p1.comp" data-help="Probe 1's compensation trimmer. Only matters at x10: with the calibrator plugged in, turn it until the square wave's corners are square.">COMP</div>
+          </div>
+          <div class="probe">
+            <span class="probe-tag probe-tag-2">2</span>
+            <span class="probe-body" aria-hidden="true"><i></i></span>
+            <button type="button" class="slide" data-toggle="p2.x10" data-help="Probe 2's divider, x1 or x10.">×1 <span class="slide-knob"></span> ×10</button>
+            <div class="kn kn-trim" data-k="p2.comp" data-help="Probe 2's compensation trimmer.">COMP</div>
+          </div>
+        </div>
+
+        <div class="unit unit-parts" data-unit="parts">
+          <div class="unit-title"><span>Parts drawer</span><small>For the component tester</small></div>
+          <div class="parts-grid" role="group" aria-label="Part clipped to the component tester" id="partsGrid"></div>
+        </div>
+
+        <div class="unit unit-tubes" data-unit="tubes">
+          <div class="unit-title"><span>Spare tubes</span><small>Swap the phosphor</small></div>
+          <div class="tubes-row" role="group" aria-label="Phosphor">
+            <button type="button" class="tube-pick" data-set="tube=P31" data-help="P31: the usual bright green, with a short afterglow."><i style="--c:#5dff7a"></i>P31<small>green</small></button>
+            <button type="button" class="tube-pick" data-set="tube=P7" data-help="P7: a blue-white flash that leaves a long yellow-green afterglow, made for radar. Lovely with slow sweeps."><i style="--c:#a8c4ff"></i>P7<small>long glow</small></button>
+            <button type="button" class="tube-pick" data-set="tube=P1" data-help="P1: the old yellow-green, slower to fade than P31."><i style="--c:#a4ff4a"></i>P1<small>yellow-green</small></button>
+            <button type="button" class="tube-pick" data-set="tube=P4" data-help="P4: white, from television tubes."><i style="--c:#eef2ff"></i>P4<small>white</small></button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===================== lab notebook ===================== -->
+    <section class="os-notebook" id="notebook" aria-labelledby="notebookHeading">
+      <h2 class="os-h2" id="notebookHeading">Lab notebook</h2>
+      <p class="os-sub">Each experiment sets the bench up, then leaves the knobs to you.</p>
+      <ol class="nb-list">
+        <li class="nb-card">
+          <h3>Find the trace</h3>
+          <p>A sine wave from generator A, sweeping across the screen. Turn INTENS and FOCUS until the line is thin and bright, then try TR to tilt it.</p>
+          <button type="button" class="os-btn" data-lab="first">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>Measure a wave</h3>
+          <p>Count squares. The peaks are 2 divisions from the middle at 1 V/div, so 2 V. One cycle is 5 divisions at 0.2 ms/div: 1 ms, so 1000 cycles a second. Plug the counter in to check.</p>
+          <button type="button" class="os-btn" data-lab="measure">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>Make it stand still</h3>
+          <p>The trigger is in NORM with LEVEL above the top of the wave, so nothing ever starts a sweep. Turn LEVEL down until the trace appears, then flip SLOPE.</p>
+          <button type="button" class="os-btn" data-lab="trigger">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>Watch the beam move</h3>
+          <p>A slow sweep and a long-glow tube. At 0.1 s/div you can follow the dot across the screen and see the wave drawn behind it.</p>
+          <button type="button" class="os-btn" data-lab="slow">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>Compensate a probe</h3>
+          <p>The calibrator through a x10 probe whose trimmer is wrong, so the square wave has rounded corners. Turn probe 1's COMP until it's square. Too far and it spikes.</p>
+          <button type="button" class="os-btn" data-lab="probe">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>Ripple on a power supply</h3>
+          <p>The smoothed supply looks flat at 5 V/div. Press AC and turn VOLTS/DIV to 0.5 V and the ripple appears: the capacitor sagging between top-ups.</p>
+          <button type="button" class="os-btn" data-lab="ripple">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>Two traces: rectifiers</h3>
+          <p>The transformer on channel I and the bridge rectifier on channel II, triggered from the mains. See how the bottom halves get flipped up.</p>
+          <button type="button" class="os-btn" data-lab="rectifier">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>Lissajous figures</h3>
+          <p>Two generators in X-Y mode at 1 kHz and 1.5 kHz, a 2:3 ratio. Nudge generator B's frequency and the figure tumbles; land it on a whole number ratio and it freezes.</p>
+          <button type="button" class="os-btn" data-lab="lissajous">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>What a filter does to a square</h3>
+          <p>A square wave on channel I and the same wave through the low-pass filter on channel II. Change the time constant, or move the cable to the high-pass output.</p>
+          <button type="button" class="os-btn" data-lab="rc">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>Beats</h3>
+          <p>Two waves a few hertz apart, added together. They drift in and out of step, and the sum swells and fades. Plug it into the speaker to hear the wobble.</p>
+          <button type="button" class="os-btn" data-lab="beats">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>Test parts without a circuit</h3>
+          <p>The component tester with a silicon diode clipped on: flat while it blocks, straight up once it conducts. Try the others in the parts drawer.</p>
+          <button type="button" class="os-btn" data-lab="ct">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>Draw with sound</h3>
+          <p>The vector box in X-Y mode, drawing a spinning cube, and playing through the speaker so you can hear what it looks like.</p>
+          <button type="button" class="os-btn" data-lab="vector">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>An oscilloscope clock</h3>
+          <p>The vector box drawing a clock with the real time. Look for the faint lines where the beam flicks between hands.</p>
+          <button type="button" class="os-btn" data-lab="clock">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>One line of TV</h3>
+          <p>A colour bar video line, triggered on the falling edge of the sync pulse. The fuzzy bands on the bars are the colour, carried on a 4.43 MHz wave.</p>
+          <button type="button" class="os-btn" data-lab="tv">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>Catch a serial message</h3>
+          <p>"Hi!" sent over a serial line. It keeps jumping because the trigger fires on any falling edge. Turn HOLD OFF up slowly until it locks onto the first one.</p>
+          <button type="button" class="os-btn" data-lab="serial">Set it up</button>
+        </li>
+        <li class="nb-card">
+          <h3>See your voice</h3>
+          <p>The microphone on channel I. Press Microphone on the audio interface, then hum. A steady hum is almost a sine; a whistle is purer still.</p>
+          <button type="button" class="os-btn" data-lab="mic">Set it up</button>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ===================== how it works ===================== -->
+    <section class="os-explain" aria-labelledby="explainHeading">
+      <h2 class="os-h2" id="explainHeading">How it works</h2>
+      <div class="os-cols">
+        <div>
+          <h3>Signals are functions of time</h3>
+          <p>Everything you can plug in is a function that gives a voltage for any moment. The scope asks for whichever moments it needs: the trigger searches forward for a crossing and narrows it down by halving, then the sweep samples the signal across the screen with a little jitter, so a wave too fast to draw fills in as a solid band, as it would on a real tube.</p>
+        </div>
+        <div>
+          <h3>The timebase is simulated, event by event</h3>
+          <p>Wait for the trigger, sweep, retrace, hold off, again. At slow sweeps that happens in real time and you watch the dot move. At fast ones there are thousands of sweeps a frame, so it samples short runs of them and scales their brightness to stand in for the rest. AC coupling, AUTO's timeout and CHOP all behave like the real circuits.</p>
+        </div>
+        <div>
+          <h3>The beam is drawn as light</h3>
+          <p>Each piece of the beam's path is a gaussian spot integrated along its length in a WebGL shader, so brightness follows how long the beam lingered. It's added into a floating-point buffer that fades at the phosphor's own rates, with a soft halo on top. That's why edges are faint, parked dots glow hot, and slow sweeps leave a tail.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="page-back">
+      <a href="index.html#projects"><span aria-hidden="true">&larr;</span> Back to all projects</a>
+    </div>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Made in <span id="year">2026</span> by pondering my crystal orb ~ Ahsan, Full Stack Wizard</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/oscilloscope/signals.js"></script>
+  <script src="js/oscilloscope/crt.js"></script>
+  <script src="js/oscilloscope/bench.js"></script>
+</body>
+
+</html>

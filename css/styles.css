@@ -1638,6 +1638,49 @@ a{ color:inherit; text-decoration:none; }
   line-height:1.05;
 }
 
+.project-card-osc{
+  position:relative;
+  overflow:hidden;
+  background:#cfccc2;
+}
+.project-card-osc:hover,
+.project-card-osc:focus-within{ background:#dad7cd; }
+.project-card-osc .project-card-link{
+  inset:12px;
+  overflow:hidden;
+  background:
+    linear-gradient(90deg, rgba(150,165,145,.2) 1px, transparent 1px) 0 0/10% 100%,
+    linear-gradient(rgba(150,165,145,.2) 1px, transparent 1px) 0 0/100% 12.5%,
+    radial-gradient(120% 100% at 50% 50%, #12201a, #070b09);
+  border:6px solid #17191b;
+  border-radius:14px / 16px;
+  box-shadow:inset 0 0 18px rgba(0,0,0,.85);
+}
+.osc-trace{ position:absolute; left:0; top:18%; width:200%; height:64%; overflow:visible; }
+.osc-trace path{
+  fill:none;
+  stroke:#8dffad;
+  stroke-width:2.5;
+  vector-effect:non-scaling-stroke;
+  filter:drop-shadow(0 0 3px #3dff7a) drop-shadow(0 0 9px rgba(60,255,120,.55));
+  opacity:.55;
+}
+.project-card-osc:hover .osc-trace,
+.project-card-osc:focus-within .osc-trace{ animation:osc-run 1.4s linear infinite; }
+@keyframes osc-run{ to{ transform:translateX(-50%); } }
+.osc-title{
+  position:relative; z-index:2;
+  padding:0 12px;
+  font-family:"Tektur", var(--font-sans);
+  font-weight:800;
+  font-stretch:80%;
+  font-size:clamp(21px,2.3vw,30px);
+  line-height:1.05;
+  text-align:center;
+  color:#e2ffe9;
+  text-shadow:0 0 2px #fff, 0 0 10px #3dff7a, 0 0 22px rgba(60,255,120,.6);
+}
+
 /* contact + footer */
 .contact{ padding-bottom:var(--section-pad); }
 .contact-inner{ display:flex; flex-direction:column; align-items:center; text-align:center; }
@@ -1844,6 +1887,7 @@ a{ color:inherit; text-decoration:none; }
   .cli-ping, .cli-scan{ animation:none; }
   .studio-wave i, .studio-playhead{ animation:none; }
   .music-roll i, .music-playhead{ animation:none; }
+  .osc-trace{ animation:none; }
   .btn::after{ display:none; }
   .pantry-food, .pantry-food-inner{ animation:none; }
 }
