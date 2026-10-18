@@ -95,6 +95,7 @@
     song = cleanSong(next);
     if (!song.layers.some((layer) => layer.id === selected)) selected = (song.layers.find((layer) => layer.role === 'melody') || song.layers[0])?.id ?? null;
     changed();
+    player.restart();
   }
 
   function step(from, to) {

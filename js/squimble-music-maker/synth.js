@@ -918,6 +918,7 @@ function lfo(ctx, rate, depth, param, when, end, type = 'sine') {
   osc.connect(amount).connect(param);
   osc.start(when);
   osc.stop(end);
+  amount.osc = osc;
   return amount;
 }
 
@@ -3082,6 +3083,23 @@ class MusicPlayer {
     }
     this.timer = setInterval(() => this.tick(), 25);
     this.tick();
+  }
+
+  // a different song while it plays: the old one fades out on its own graph, taking its notes and its
+  // reverb and echo tails with it, and the new one starts where the playhead is, with anything held
+  // over the playhead (a pad, a drone) sounding straight away rather than from its next note
+  restart() {
+    if (!this.playing) return;
+    const at = this.position();
+    const old = this.graph;
+    old.master.gain.setTargetAtTime(0, this.ctx.currentTime, 0.03);
+    setTimeout(() => {
+      old.master.disconnect();
+      old.wow.osc.stop();
+      old.flutter.osc.stop();
+    }, 400);
+    this.graph = buildGraph(this.ctx);
+    this.play(at < this.comp.beats ? at : 0);
   }
 
   send(note, when) {
