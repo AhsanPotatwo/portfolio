@@ -80,10 +80,12 @@
 //
 // ---------- the room ----------
 //
-// each layer has a channel (its instrument's rig if it has one, then volume, pan, and sends to the
-// reverb and echo), and they meet in buildGraph()'s chain: drive -> warmth (a low pass filter) ->
-// tape wobble -> compressor -> volume.
-// the reverb plays an impulse made of decaying noise (impulse()), so it needs no recorded room.
+// each layer has a channel, like a strip on a mixing desk (its instrument's rig if it has one, a low
+// cut, an eq that gives its part a place in the mix, then volume, pan, and sends to the room, the
+// reverb and the echo), and they meet in buildGraph()'s chain: drive -> warmth (a low pass filter) ->
+// tape wobble -> glue compressor -> a little mud taken out -> tape saturation -> volume -> limiter.
+// the reverb plays an impulse made of decaying noise (impulse()), so it needs no recorded room, and the
+// room every part shares is the same idea made small (roomImpulse()). see "the mixing desk" below.
 
 const mtof = (midi) => 440 * 2 ** ((midi - 69) / 12);
 
@@ -988,7 +990,7 @@ function voiceChain(ctx, out, inst, tone, f, when, dur, vel, note = {}, again = 
     const { freq, q = 0.7, env = 1, attack: opens = 0.01, decay: closes = 0.3, track = 0, lfo: sweep } = inst.filter;
     const filter = ctx.createBiquadFilter();
     filter.Q.value = q;
-    const base = Math.min(16000, freq * tone.bright * (f / 262) ** track * hardness(vel));
+    const base = Math.min(16000, freq * tone.bright * (f / 262) ** track * (inst.kind === 'sample' ? recordedHardness(vel) : hardness(vel)));
     filter.frequency.setValueAtTime(base, when);
     if (sweep) lfo(ctx, sweep[0], base * sweep[1], filter.frequency, when, end);
     // backwards, it opens up as the note swells instead of closing as it fades
@@ -1007,6 +1009,11 @@ function voiceChain(ctx, out, inst, tone, f, when, dur, vel, note = {}, again = 
 // instrument does this (a piano struck hard rings brighter, not just louder), and every note sounding
 // the same colour whatever its strength was a lot of what made the band sound like midi
 const hardness = (vel) => 0.6 + 0.55 * vel;
+// the same for a recording, but steeper, the way a sampler's velocity opens its filter: most folders
+// have one loudness of each note, so a soft note was the loud recording turned down, as bright as a
+// hard one, and that's the sampled keyboard sound. 1 at a middling 0.75 (as recorded), a soft 0.4
+// closes it to under half (about 5 khz), and a hard note opens it a little past the recording
+const recordedHardness = (vel) => Math.min(1.4, Math.max(0.25, (vel / 0.75) ** 1.3));
 
 function vibrato(ctx, inst, tone, when, end) {
   const depth = (inst.vibrato?.depth || 0) + tone.vibrato;
@@ -1495,7 +1502,11 @@ ENGINES.sample = (ctx, voice, inst, tone, f, midi, note = {}) => {
     into.connect(stop).connect(voice.input);
   }
   source.connect(into);
-  source.start(voice.when);
+  // legato: a slurred note (note.slur, joined on to the last without a fresh breath or bow) starts in
+  // its recording's steady middle, past the attack, so a flute or violin line goes from note to note
+  // the way the player does instead of every note starting with its own puff or scrape. the last
+  // note's release overlaps it, which is the crossfade a legato sample library makes between notes
+  source.start(voice.when, note.slur && take.loop ? take.loop[0] : 0);
   source.stop(voice.end);
 };
 
@@ -2490,6 +2501,9 @@ function playTexture(ctx, out, inst, tone, when, dur, vel, midi) {
 // (voiceChain). worked out when the notes are handed over (MusicPlayer.load, renderSong), not stored on
 // the notes, so the composer's output stays as it was
 const restrikes = new WeakMap();
+// how far apart a keyboard's lowest and highest notes are spread (playNote), a share of hard left to
+// hard right two and a half octaves either side of the middle
+const KEY_SPREAD = 0.35;
 function findRestrikes(notes) {
   const last = new Map();
   for (const note of notes) {
@@ -2526,7 +2540,15 @@ function playNote(ctx, channel, layer, note, when, secondsPerBeat) {
     singLine(ctx, channel, played, layer.tone, note, when, dur, secondsPerBeat);
     return;
   }
-  const voice = voiceChain(ctx, channel.input, played, layer.tone, f, when, dur, note.vel, note, (restrikes.get(note) ?? Infinity) * secondsPerBeat);
+  // keys and mallets are spread by pitch, low notes left and high notes right, as a piano or a marimba
+  // is heard from the player's seat and recorded in stereo. the recordings are mono, and every note
+  // from one point is the flat, boxed in sound of a cheap sampler
+  let out = channel.input;
+  if (inst.family === 'keys' || inst.family === 'bell') {
+    out = new StereoPannerNode(ctx, { pan: Math.max(-1, Math.min(1, (note.midi - 66) / 30)) * KEY_SPREAD });
+    out.connect(channel.input);
+  }
+  const voice = voiceChain(ctx, out, played, layer.tone, f, when, dur, note.vel, note, (restrikes.get(note) ?? Infinity) * secondsPerBeat);
   voice.pitch = pitchMods(ctx, played, layer.tone, note, when, voice.end, secondsPerBeat);
   ENGINES[played.kind](ctx, voice, played, layer.tone, f, note.midi, note);
 }
@@ -2840,6 +2862,80 @@ function driveCurve(amount) {
   return curve;
 }
 
+// ---------- the mixing desk ----------
+//
+// the band used to meet in one pile: every part as bright as it was made, all of them dry apart from
+// one big reverb, through a fast compressor that flattened every hit. each part could sound fine on its
+// own and still not sound like one band playing together, which is a lot of what made songs sound like
+// midi rather than a record. a mixing engineer's first jobs fix exactly that, so the desk does them:
+//   - one room for everyone (roomImpulse, PLACES.room): a short, small room, mostly its early
+//     reflections, that every part (the drums too) is sent to a little. it's what makes recordings made
+//     in different places, and synths made in none, sound like they were played in the same place. the
+//     big reverb is still there on top, for distance
+//   - every part has a place (PLACES): the tune gets a little presence (2.5 khz, where the ear is
+//     keenest) and the parts behind it give that range up, and the air on top, so they sit back and the
+//     tune stands in front of them without being turned up. far away things lose their top end
+//   - the reverb and echo lose their low end on the way back (a high pass on their returns): a bass
+//     note's boom ringing round the room for three seconds was mud under every chord
+//   - glue: a gentle compressor that lets each hit's start through (a slow attack) and rides the band
+//     together, rather than a fast one squashing every drum hit flat
+//   - tape: a soft saturation on the whole mix, lopsided like a tape machine's, which rounds the peaks
+//     and adds the even harmonics that make a mix sound warm. too little to hear as distortion
+//   - a limiter last, so a loud chorus with every part in can't clip the speakers
+// what each part gets, by role: presence and air in db, and how much of it goes to the room
+const PLACES = {
+  melody: { presence: 1.5, air: 1, room: 0.2 },
+  counter: { presence: -1, air: 0, room: 0.22 },
+  arp: { presence: -2, air: -1, room: 0.25 },
+  bells: { presence: -1.5, air: 0, room: 0.25 },
+  keys: { presence: -2, air: -1, room: 0.25 },
+  guitar: { presence: -1, air: -1, room: 0.2 },
+  pad: { presence: -3, air: -2, room: 0.25 },
+  drone: { presence: -3, air: -2, room: 0.25 },
+  bass: { presence: 0, air: -2, room: 0.05 },
+  drums: { presence: 0, air: 0, room: 0.3 },
+  texture: { presence: -2, air: -1, room: 0.1 },
+};
+
+// the room everyone shares: a small one with hard walls, a cluster of early reflections in the first
+// 40 ms (each side's different, so it's wide) and a short tail that's gone in about half a second,
+// darker as it dies. kept per context: it never changes
+const roomImpulses = new WeakMap();
+function roomImpulse(ctx) {
+  if (!roomImpulses.has(ctx)) {
+    const rate = ctx.sampleRate;
+    const length = Math.floor(rate * 0.6);
+    const buffer = ctx.createBuffer(2, length, rate);
+    for (let channel = 0; channel < 2; channel++) {
+      const data = buffer.getChannelData(channel);
+      let low = 0;
+      for (let i = 0; i < length; i++) {
+        low += (Math.random() * 2 - 1 - low) * (0.5 - (0.35 * i) / length);
+        data[i] = low * Math.exp((-6.9 * i) / length) * 0.3;
+      }
+      for (let k = 0; k < 14; k++) {
+        const at = Math.floor(rate * (0.003 + Math.random() * 0.04));
+        const level = (Math.random() < 0.5 ? -1 : 1) * Math.exp(-at / (rate * 0.03));
+        for (let j = 0; j < 16 && at + j < length; j++) data[at + j] += level * Math.exp(-j / 4);
+      }
+    }
+    roomImpulses.set(ctx, buffer);
+  }
+  return roomImpulses.get(ctx);
+}
+
+// tape saturation's curve: tanh, pushed a little off centre so the two halves of the wave clip
+// differently (even harmonics, a tape machine's warmth), and scaled so quiet sound passes at the same
+// level: only the peaks are rounded. a peak at half scale comes out about 1 db lower
+function tapeCurve() {
+  const k = 1.1;
+  const bias = 0.1;
+  const slope = k * (1 - Math.tanh(k * bias) ** 2);
+  const curve = new Float32Array(2048);
+  for (let i = 0; i < curve.length; i++) curve[i] = (Math.tanh(k * ((i / 2047) * 2 - 1 + bias)) - Math.tanh(k * bias)) / slope;
+  return curve;
+}
+
 function buildGraph(ctx) {
   const g = { ctx };
   g.bus = ctx.createGain();
@@ -2853,18 +2949,28 @@ function buildGraph(ctx) {
   g.wobble.delayTime.value = 0.015;
   g.wow = lfo(ctx, 0.5, 0, g.wobble.delayTime, 0, 1e6);
   g.flutter = lfo(ctx, 6.5, 0, g.wobble.delayTime, 0, 1e6);
-  g.comp = ctx.createDynamicsCompressor();
-  g.comp.threshold.value = -14;
-  g.comp.knee.value = 12;
-  g.comp.ratio.value = 3;
-  g.comp.attack.value = 0.005;
-  g.comp.release.value = 0.2;
+  // glue (see the mixing desk above). its attack is slow enough to let a drum's hit through before it
+  // turns down, so the beat keeps its punch, and its ratio is low, so it rides the band rather than
+  // pumping it: the old one (3 to 1, 5 ms) flattened every hit and pumped on every kick
+  g.comp = new DynamicsCompressorNode(ctx, { threshold: -24, knee: 10, ratio: 2, attack: 0.03, release: 0.25 });
+  // a little of the boxy low mids out of the whole mix, where every part's body piles up
+  const mud = new BiquadFilterNode(ctx, { type: 'peaking', frequency: 300, Q: 0.8, gain: -1.5 });
+  const tape = new WaveShaperNode(ctx, { curve: tapeCurve(), oversample: '2x' });
   g.master = ctx.createGain();
-  g.bus.connect(g.drive).connect(g.warmth).connect(g.wobble).connect(g.comp).connect(g.master).connect(ctx.destination);
+  // the limiter: hard and fast, only there to catch peaks
+  const limiter = new DynamicsCompressorNode(ctx, { threshold: -2, knee: 0, ratio: 20, attack: 0.001, release: 0.08 });
+  g.bus.connect(g.drive).connect(g.warmth).connect(g.wobble).connect(g.comp).connect(mud).connect(tape).connect(g.master).connect(limiter).connect(ctx.destination);
   g.reverbIn = ctx.createGain();
   g.reverb = ctx.createConvolver();
-  g.reverbIn.connect(g.reverb).connect(g.bus);
-  // the echo bounces left and right (ping pong), losing some top end each time
+  g.reverbIn.connect(g.reverb).connect(new BiquadFilterNode(ctx, { type: 'highpass', frequency: 200, Q: 0.5 })).connect(g.bus);
+  // the room every part shares, its boom and its fizz taken off
+  g.roomIn = ctx.createGain();
+  g.roomIn.connect(new ConvolverNode(ctx, { buffer: roomImpulse(ctx) })).connect(new BiquadFilterNode(ctx, { type: 'highpass', frequency: 180, Q: 0.5 }))
+    .connect(new BiquadFilterNode(ctx, { frequency: 8000, Q: 0.5 })).connect(g.bus);
+  // the echo bounces left and right (ping pong), losing some top end each time, and its low end on
+  // the way back to the band
+  const echoOut = new BiquadFilterNode(ctx, { type: 'highpass', frequency: 250, Q: 0.5 });
+  echoOut.connect(g.bus);
   g.echoIn = ctx.createGain();
   g.echoLeft = ctx.createDelay(4);
   g.echoRight = ctx.createDelay(4);
@@ -2877,9 +2983,9 @@ function buildGraph(ctx) {
   const right = ctx.createStereoPanner();
   right.pan.value = 0.7;
   g.echoIn.connect(g.echoLeft);
-  g.echoLeft.connect(left).connect(g.bus);
+  g.echoLeft.connect(left).connect(echoOut);
   g.echoLeft.connect(damp).connect(g.feedLeft).connect(g.echoRight);
-  g.echoRight.connect(right).connect(g.bus);
+  g.echoRight.connect(right).connect(echoOut);
   g.echoRight.connect(g.feedRight).connect(g.echoLeft);
   return g;
 }
@@ -2912,20 +3018,26 @@ function applySpace(g, fx, tempo) {
   set(g.warmth.frequency, 700 * 2 ** ((1 - fx.warmth) * 4.8));
   set(g.wow.gain, fx.wobble * 0.004);
   set(g.flutter.gain, fx.wobble * 0.0003);
-  set(g.master.gain, fx.volume ** 2 * 1.3);
+  // (1.1: the glue and the room made songs about 2 db louder than the old desk, so this was 1.3)
+  set(g.master.gain, fx.volume ** 2 * 1.1);
   g.ready = true;
 }
 
 // a layer's channel: notes go into input, then through its instrument's own chain if it has one (its
-// body, rig or speaker: instrumentChain, plugged in by setChannel), then volume, pan, and how much goes
-// to the reverb and the echo. the rig comes before the volume, so turning a guitar down doesn't drive
-// its amp any less
+// body, rig or speaker: instrumentChain, plugged in by setChannel), its low cut and its place in the mix
+// (presence and air, PLACES), then volume, pan, and how much goes to the room, the reverb and the echo.
+// the rig comes before the volume, so turning a guitar down doesn't drive its amp any less
 function makeChannel(g) {
   const { ctx } = g;
-  const channel = { ctx, input: ctx.createGain(), cut: new BiquadFilterNode(ctx, { type: 'highpass', frequency: 20, Q: 0.6 }), volume: ctx.createGain(), pan: ctx.createStereoPanner(), reverb: ctx.createGain(), echo: ctx.createGain() };
-  channel.cut.connect(channel.volume);
+  const channel = {
+    ctx, input: ctx.createGain(), cut: new BiquadFilterNode(ctx, { type: 'highpass', frequency: 20, Q: 0.6 }),
+    presence: new BiquadFilterNode(ctx, { type: 'peaking', frequency: 2500, Q: 0.8 }), air: new BiquadFilterNode(ctx, { type: 'highshelf', frequency: 8000 }),
+    volume: ctx.createGain(), pan: ctx.createStereoPanner(), room: ctx.createGain(), reverb: ctx.createGain(), echo: ctx.createGain(),
+  };
+  channel.cut.connect(channel.presence).connect(channel.air).connect(channel.volume);
   channel.volume.connect(channel.pan);
   channel.pan.connect(g.bus);
+  channel.pan.connect(channel.room).connect(g.roomIn);
   channel.pan.connect(channel.reverb).connect(g.reverbIn);
   channel.pan.connect(channel.echo).connect(g.echoIn);
   return channel;
@@ -2963,6 +3075,10 @@ function setChannel(channel, song, layer, now, glide) {
   wireRig(channel, layer.instrument, layer.recording);
   const set = (param, value) => (glide ? param.setTargetAtTime(value, now, 0.02) : param.setValueAtTime(value, now));
   set(channel.cut.frequency, cutFor(song, layer));
+  const place = PLACES[layer.role] || PLACES.keys;
+  set(channel.presence.gain, place.presence);
+  set(channel.air.gain, place.air);
+  set(channel.room.gain, place.room);
   set(channel.volume.gain, audible(song, layer) ? layer.volume ** 2 * 1.6 : 0);
   set(channel.pan.pan, layer.pan);
   set(channel.reverb.gain, layer.reverb);
