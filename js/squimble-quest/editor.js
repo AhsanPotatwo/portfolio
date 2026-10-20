@@ -983,16 +983,26 @@ const Editor = {
       label: (name) => (!name ? own : VOICES[name] ? name : `${name} (missing)`),
     });
     const button = (label, onClick) => ({ label: '', field: new Button({ w: 180, label, style: 'editor', onClick }) });
+    // skin test (recolour.js): a colour box for each colour its picture can swap. skin starts as the
+    // picture's own, and the rest start empty, which means they follow the skin
+    const parts = Object.keys(type.recolour ?? {});
+    const colourFields = parts.map((part) => new ColourField({ w: 180, value: spawn.skin?.[part] ?? (part === 'skin' ? type.recolour.skin : '') }));
+    const picked = () => Object.fromEntries(parts.map((part, i) => [part, colourFields[i].value.toLowerCase()]).filter(([, hex]) => HEX_COLOUR.test(hex)));
     FormBox.open({
       title: `NPC: ${type.label}`,
       hint: 'Voices are made in the Voices tab',
       confirmLabel: 'Save',
-      // a picture of them, like the enemy box's (CharacterPreview in inventory.js)
-      side: (x, y, w, h) => [new CharacterPreview({ x, y, w, h, look: () => ({ settings: type, caption: [`"${type.dialogue[0]}"`] }) })],
+      // a picture of them, like the enemy box's (CharacterPreview in inventory.js). recoloured live
+      side: (x, y, w, h) => [new CharacterPreview({ x, y, w, h, look: () => ({ settings: recolouredSettings(type, picked()), caption: [`"${type.dialogue[0]}"`] }) })],
       minRows: 6,
       rows: [
         { label: 'Voice', field: picker, tip: 'What they talk with. Say plays their first line with it' },
         { label: 'Sound', field: this.characterSoundPicker(spawn, type), tip: 'A sound they loop wherever they go, like a jingling cart' },
+        ...parts.map((part, i) => ({
+          label: part[0].toUpperCase() + part.slice(1),
+          field: colourFields[i],
+          tip: part === 'skin' ? 'Their skin colour. The others follow it unless you pick them' : `Leave empty to follow the skin, or pick their own ${part}`,
+        })),
         // buttons last, so their (undefined) values don't shift the ones onConfirm gets
         button('▶  Say', () => Sound.preview(VOICES[voiceOf(picker.value)], { say: type.dialogue[0] })),
         button('Edit voice', () => {
@@ -1012,6 +1022,8 @@ const Editor = {
       onConfirm: ([voice, sound]) => {
         if (voice) spawn.voice = voice;
         else delete spawn.voice;
+        // skin test: only lasts until reload, map files don't save it
+        if (parts.length) spawn.skin = picked();
         this.setCharacterSound(spawn, sound);
       },
     });

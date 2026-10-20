@@ -1,0 +1,17 @@
+{
+  "label": "Squimble",
+  "dialogue": [
+    "Right click me in the editor to change my skin!"
+  ],
+  "voice": "villager-voice",
+  "colour": "#fff8c8",
+  "outline": "#4f1e03",
+  "width": 32,
+  "height": 64,
+  "image": "assets/squimble-quest/npcs/squimble.png",
+  "recolour": {
+    "skin": "#fff8c8",
+    "shading": "#e8c083",
+    "outline": "#4f1e03"
+  }
+}

@@ -22,6 +22,9 @@
 //   speed                  px/s, if their ai walks
 //   colour, outline        placeholder colours
 //   image                  a picture to use instead of the placeholder
+//   recolour               skin test: the exact colours in image that can be recoloured, like
+//                          { "skin": "#fff8c8", "shading": "#e8c083", "outline": "#4f1e03" }. right
+//                          click one in the editor to pick its skin (recolour.js)
 //   portrait               the picture in the text box, like 'assets/squimble-quest/npcs/baker.png'.
 //                          without one they get a placeholder face
 //   ai                     an ENEMY_AIS name, same as an enemy's (enemies.js). null just stands
@@ -53,6 +56,9 @@ const NPC_DEFAULTS = {
   image: null,
   portrait: null,
   ai: null,
+  // skin test: the exact colours in its picture that can be recoloured, like { skin, shading, outline }
+  // (recolour.js), or null for none
+  recolour: null,
 };
 
 // filled in from the npc files (bottom of this file)
