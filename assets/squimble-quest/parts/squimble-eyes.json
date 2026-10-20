@@ -1,0 +1,7 @@
+{
+  "slot": "eyes",
+  "image": "assets/squimble-quest/parts/squimble-eyes.png",
+  "recolour": {
+    "eyes": "#4f1e03"
+  }
+}

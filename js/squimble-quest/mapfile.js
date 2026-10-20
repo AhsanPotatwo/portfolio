@@ -37,9 +37,11 @@
 //                                           its own ENEMY_SPAWN_STATS (enemies.js), only ones that differ
 //                                           from its kind's
 //     ],
-//     "npcs": [                             start tiles (npcs.js), voice (VOICES) and sound only if picked
+//     "npcs": [                             start tiles (npcs.js), voice (VOICES), sound and look only if picked
 //       { "type": "villager", "col": -3, "row": -3 },
-//       { "type": "villager", "col": 2, "row": -3, "voice": "old-man" }
+//       { "type": "villager", "col": 2, "row": -3, "voice": "old-man" },
+//       { "type": "squimble", "col": 4, "row": -3, "look": { "parts": { "body": "squimble-body" } } }
+//                                           its own look (looks.js) instead of its kind's, only if picked
 //     ],
 //     "warps": [                            (warps.js)
 //       { "name": "hut", "col": -11, "row": -5, "to": "hut", "toWarp": "exit", "activate": "interact", "enemies": true }
@@ -103,8 +105,8 @@ function mapToData(map) {
   };
   // "enemies" and "npcs" (SPAWN_KINDS in tilemap.js)
   for (const info of Object.values(SPAWN_KINDS)) {
-    // ai, voice, sound, follows, particles, wears, holds and stats only go in if one was picked (JSON leaves out undefined)
-    data[info.fileKey] = map[info.list].map(({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats }) => ({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats }));
+    // ai, voice, sound, follows, particles, wears, holds, stats and look only go in if one was picked (JSON leaves out undefined)
+    data[info.fileKey] = map[info.list].map(({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats, look }) => ({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats, look }));
   }
   data.warps = map.warps.map(({ name, col, row, to, toWarp, activate, enemies }) => ({ name, col, row, to, toWarp, activate, enemies }));
   // atmosphere first, so mapDataToText() squashes each one onto one line. only maps with some
@@ -188,7 +190,7 @@ function mapFromData(data) {
         unknown.add(`${kind} "${spawn.type}"`);
         continue;
       }
-      map.addSpawn(kind, spawn.type, spawn.col, spawn.row, { ai: spawn.ai, voice: spawn.voice, sound: spawn.sound, follows: spawn.follows, hitParticles: spawn.hitParticles, deathParticles: spawn.deathParticles, wears: spawn.wears, holds: spawn.holds, stats: spawn.stats });
+      map.addSpawn(kind, spawn.type, spawn.col, spawn.row, { ai: spawn.ai, voice: spawn.voice, sound: spawn.sound, follows: spawn.follows, hitParticles: spawn.hitParticles, deathParticles: spawn.deathParticles, wears: spawn.wears, holds: spawn.holds, stats: spawn.stats, look: spawn.look });
     }
   }
 

@@ -588,9 +588,9 @@ class Character {
 
   // the body, what it's wearing and which way it's facing, in world positions (inside camera.begin/end).
   //
-  // ponytail: the rectangle is its hitbox (bodyBox()), so you see exactly what attacks hit, squashed
-  // while rolling. nothing in the game reads what's drawn, so a sprite can go here at its own size,
-  // with the box moved behind a dev mode overlay (DEV_OVERLAYS, debug.js)
+  // ponytail: the placeholder rectangle is its hitbox (bodyBox()), so you see exactly what attacks hit,
+  // squashed while rolling. a picture is drawn at its own size instead (drawCharacter()), so with one
+  // you can't see the hitbox. a dev mode overlay could show it (DEV_OVERLAYS, debug.js)
   //
   // just hit, it's squashed wide and short on its feet (COMBAT.squash), and while it can't be hit
   // again (invincible) it blinks see-through
@@ -630,8 +630,14 @@ function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, 
   const left = Math.round(x - w / 2);
   const top = Math.round(y - h / 2);
 
-  if (settings.img) {
-    image(settings.img, left, top, w, h);
+  // read once, since a look's picture is worked out by a getter (withLook() in looks.js)
+  const img = settings.img;
+  if (img) {
+    // at its own size rather than the hitbox's, so art can be any size, with its bottom middle on the
+    // body's. squashed like the body when w and h are (a roll or a hit)
+    const imgW = Math.round((img.width * w) / settings.width);
+    const imgH = Math.round((img.height * h) / settings.height);
+    image(img, Math.round(x - imgW / 2), Math.round(y + h / 2) - imgH, imgW, imgH);
   } else {
     stroke(settings.outline);
     strokeWeight(2);
@@ -662,7 +668,7 @@ function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, 
   if (held) drawItemIcon({ type: held }, left + w - 5, top + Math.round(h * 0.5), 12);
 
   // the facing dot is only for the placeholder, a picture would show which way it's facing itself
-  if (settings.img) return;
+  if (img) return;
   noStroke();
   fill(settings.outline);
   circle(Math.round(x + facing.x * w * 0.3), Math.round(y + facing.y * h * 0.3), 8);

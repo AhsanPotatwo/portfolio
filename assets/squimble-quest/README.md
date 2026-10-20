@@ -11,6 +11,7 @@ Everything the game is made of lives in these folders, **one file per thing**, n
 | `objects/` | kind of object (tables, rugs, chests…) | the top of [`objects.js`](../../js/squimble-quest/objects.js) |
 | `enemies/` | kind of enemy. Its weapon (the grunt's claws) is inside it | the top of [`enemies.js`](../../js/squimble-quest/enemies.js) |
 | `npcs/` | kind of NPC, with what they say | the top of [`npcs.js`](../../js/squimble-quest/npcs.js) |
+| `parts/` | part a character's look is built from (a body, eyes, a mouth, a shirt…), with its picture beside it | the top of [`looks.js`](../../js/squimble-quest/looks.js) |
 | `particles/` | particle effect (blood when something's hit, sparks, smoke…). Pictures go in `particles/pictures/` | the top of [`particles.js`](../../js/squimble-quest/particles.js) |
 | `atmospheres/` | look and feel a map can have: fog, colour, weather, background sound (underwater, volcano, space…) | [maps README](maps/README.md#atmospheres) and the top of [`atmosphere.js`](../../js/squimble-quest/atmosphere.js) |
 | `maps/` | map | [maps README](maps/README.md) |

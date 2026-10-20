@@ -1,0 +1,10 @@
+{
+  "slot": "mouth",
+  "image": "assets/squimble-quest/parts/squimble-mouth.png",
+  "recolour": {
+    "skin": "#fff8c8",
+    "shading": "#e8c083",
+    "outline": "#4f1e03"
+  },
+  "colours": "skin"
+}

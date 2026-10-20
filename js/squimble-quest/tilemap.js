@@ -205,8 +205,9 @@ class TileMap {
   // doesn't lose it, but it's silent. enemies can also have hitParticles and deathParticles, particle
   // effect names (particles.js) or null for none, wears, item names by EQUIPMENT_SLOTS key
   // (inventory.js) like { head: 'iron-helmet' }, holds, the item it holds instead of its kind's
-  // weapon (null for empty hands), and stats, its own ENEMY_SPAWN_STATS numbers like { speed: 80 }
-  addSpawn(kind, type, col, row, { ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats } = {}) {
+  // weapon (null for empty hands), and stats, its own ENEMY_SPAWN_STATS numbers like { speed: 80 }. npcs
+  // can have a look, what they look like instead of their kind's (looks.js)
+  addSpawn(kind, type, col, row, { ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats, look } = {}) {
     const info = SPAWN_KINDS[kind];
     if (!info.types[type]) {
       console.warn(`There's no ${kind} called "${type}", add its file to ${DATA_FOLDER}${DATA_KINDS[kind]}`);
@@ -256,6 +257,8 @@ class TileMap {
       }
       if (Object.keys(kept).length > 0) spawn.stats = kept;
     }
+    // ponytail: only checks it's an object. a missing part is just left out when it's drawn (lookImage())
+    if (kind === 'npc' && look && typeof look === 'object') spawn.look = look;
     this[info.list].push(spawn);
   }
 

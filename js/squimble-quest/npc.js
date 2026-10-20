@@ -4,10 +4,10 @@
 // attacking wouldn't hurt anyone
 class Npc extends Character {
   // type: an NPC_TYPES name. col, row: its tile. voice: a voice's name (VOICES in sound.js) to talk
-  // with instead of its kind's own (picked by right clicking it in the editor). skin: skin test, its
-  // picked colours (recolour.js), or undefined for its picture as drawn
-  constructor(type, col, row, voice, skin) {
-    super(0, 0, recolouredSettings(NPC_TYPES[type], skin));
+  // with instead of its kind's own (picked by right clicking it in the editor). look: what it looks
+  // like instead of its kind's (looks.js, also picked in the editor), or undefined for its kind's
+  constructor(type, col, row, voice, look) {
+    super(0, 0, withLook(NPC_TYPES[type], look));
     this.type = NPC_TYPES[type];
     // what it talks with in dialogue.js, or null for silent
     this.voice = voice ?? this.type.voice;

@@ -27,7 +27,7 @@
 //   player.js     the player (after character.js)
 //   enemy.js      an enemy (after character.js)
 //   npc.js        an npc (after character.js)
-//   recolour.js   swapping a character picture's skin colour, its shading and outline following (skin test)
+//   looks.js      what characters look like: parts (body, eyes, shirt...) from parts/, stacked and recoloured
 //   ui.js         UIElement and the UI manager
 //   button.js     buttons (after ui.js)
 //   textfield.js  text and number boxes (after ui.js)
@@ -244,8 +244,7 @@ function spawnCharacters() {
   // they'd hang in the air in the editor, or hit the new characters
   arrows = [];
   enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row, spawn.ai, spawn.follows, spawn.stats));
-  // spawn.skin: skin test (recolour.js)
-  npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row, spawn.voice, spawn.skin));
+  npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row, spawn.voice, spawn.look));
   // the sound each one loops wherever it goes: its own if its spawn picked one, otherwise its kind's
   // (soundblocks.js plays them)
   enemies.forEach((enemy, i) => { enemy.sound = worldMap.enemySpawns[i].sound ?? enemy.type.sound; });
