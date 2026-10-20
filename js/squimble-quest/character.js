@@ -615,8 +615,9 @@ const WORN_BANDS = {
   feet: [0.86, 1],
 };
 
-// a character's body (its picture, or a placeholder rectangle) with what it's wearing on top and a dot
-// towards whichever of the 8 directions it's facing, to show which sprite it would use. settings is
+// a character's body (its picture, or a placeholder rectangle) with what it's wearing on top. the
+// placeholder also gets a dot towards whichever of the 8 directions it's facing, to show which sprite
+// it would use. settings is
 // PLAYER or an enemy or npc type, and x, y its middle. Character.drawBody() draws it on the map, and
 // the inventory and the editor's enemy and npc boxes draw big ones (CharacterPreview, inventory.js).
 //   facing  { x, y } each -1 to 1 (Character.facing), normally down
@@ -660,6 +661,8 @@ function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, 
   // its held item, small in its right hand (drawItemIcon() in inventory.js)
   if (held) drawItemIcon({ type: held }, left + w - 5, top + Math.round(h * 0.5), 12);
 
+  // the facing dot is only for the placeholder, a picture would show which way it's facing itself
+  if (settings.img) return;
   noStroke();
   fill(settings.outline);
   circle(Math.round(x + facing.x * w * 0.3), Math.round(y + facing.y * h * 0.3), 8);
