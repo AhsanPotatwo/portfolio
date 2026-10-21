@@ -246,19 +246,11 @@ const Editor = {
   // whether it's been opened since the page loaded (the first time says if there are unsaved changes)
   openedBefore: false,
 
-  // made in init(). showTab() only shows the tiles' New and Export on the Tiles tab, the sounds' on the
-  // Sounds tab, and the items' Export on item tabs. Edit is for when a tile, item or sound is picked,
-  // and Give is for when an item is
+  // made in init()
   menuBar: null,
   palette: null,
   search: null,
   tabStrip: null,
-  tileButtons: [],
-  soundButtons: [],
-  particleButtons: [],
-  exportItemsButton: null,
-  editButton: null,
-  giveButton: null,
 
   // called once from setup(). makes the menu bar, tool strip, dock (palette and inspector) and status
   // bar, all hidden until the editor opens
@@ -285,7 +277,7 @@ const Editor = {
     const hereW = Math.ceil(textWidth('Play here')) + 20;
     const playX = Math.round((GAME_W - playW - hereW - 4) / 2);
     add(new EditorButton({ x: playX, y: 3, w: playW, h: L.toolbarHeight - 6, label: '▶  Play', style: 'editorPrimary', onClick: () => this.close(player, gameCamera) }));
-    add(new EditorButton({ x: playX + playW + 4, y: 3, w: hereW, h: L.toolbarHeight - 6, label: 'Play here', isOn: () => this.choosingStart, onClick: () => { this.choosingStart = !this.choosingStart; } }));
+    add(new EditorButton({ x: playX + playW + 4, y: 3, w: hereW, h: L.toolbarHeight - 6, label: 'Play here', isOn: () => this.choosingStart, onClick: () => { if (this.choosingStart) this.choosingStart = false; else this.startPlayHere(); } }));
 
     this.tabStrip = add(new EditorTabStrip({ x: dockX, y: dockY, w: L.dockWidth, h: L.tabHeight }));
     // under the tabs: the search box and the recent row
@@ -301,33 +293,33 @@ const Editor = {
     // the inspector's buttons along its bottom, for tiles (tileeditor.js), sounds (soundeditor.js) and
     // items
     const buttonW = (L.dockWidth - L.padding * 2 - 8) / 3;
-    const inspectorButton = (i, label, onClick) => add(new EditorButton({
-      x: dockX + L.padding + i * (buttonW + 4), y: GAME_H - L.statusHeight - 28, w: buttonW, h: 22, label, onClick,
+    // each one says when it shows (EditorButton's shows), since they share spots: New and Give are both
+    // second, and the Exports are all third
+    const inspectorButton = (i, label, shows, onClick) => add(new EditorButton({
+      x: dockX + L.padding + i * (buttonW + 4), y: GAME_H - L.statusHeight - 28, w: buttonW, h: 22, label, shows, onClick,
     }));
-    this.editButton = inspectorButton(0, 'Edit', () => {
+    const kind = () => this.selected.kind;
+    // Edit, with a tile, item, sound or particle effect picked
+    inspectorButton(0, 'Edit', () => kind() === 'tile' || kind() === 'particle' || isSoundKind(kind()) || isItemKind(kind()), () => {
       if (this.selected.kind === 'tile') TileEditor.open(TILE_TYPES[this.selected.name]);
       else if (isSoundKind(this.selected.kind)) SoundEditor.open(this.selected.name);
       else if (this.selected.kind === 'particle') ParticleEditor.open(this.selected.name);
       else this.editItem(this.selected.name);
     });
-    this.tileButtons = [
-      inspectorButton(1, 'New', () => TileEditor.open(null)),
-      inspectorButton(2, 'Export', () => TileEditor.exportTiles()),
-    ];
-    this.soundButtons = [
-      // a new sound on Sounds, a new voice on Voices
-      inspectorButton(1, 'New', () => SoundEditor.open(null, this.tab)),
-      inspectorButton(2, 'Export', () => SoundEditor.exportSounds()),
-    ];
-    this.particleButtons = [
-      inspectorButton(1, 'New', () => ParticleEditor.open(null)),
-      inspectorButton(2, 'Export', () => ParticleEditor.exportEffects()),
-    ];
-    // it's in the same spot as New, so it's never shown on the Tiles tab (update())
-    this.giveButton = inspectorButton(1, 'Give', () => this.giveItem(this.selected.name));
+    // New and Export for tiles, sounds (a new sound on Sounds, a new voice on Voices) and particles, on
+    // their own tabs
+    const onTab = (test) => () => test(this.tab);
+    inspectorButton(1, 'New', onTab((tab) => tab === 'tile'), () => TileEditor.open(null));
+    inspectorButton(2, 'Export', onTab((tab) => tab === 'tile'), () => TileEditor.exportTiles());
+    inspectorButton(1, 'New', onTab(isSoundKind), () => SoundEditor.open(null, this.tab));
+    inspectorButton(2, 'Export', onTab(isSoundKind), () => SoundEditor.exportSounds());
+    inspectorButton(1, 'New', onTab((tab) => tab === 'particle'), () => ParticleEditor.open(null));
+    inspectorButton(2, 'Export', onTab((tab) => tab === 'particle'), () => ParticleEditor.exportEffects());
+    // Give, with an item picked and an item tab open (it's where New is on the other tabs)
+    inspectorButton(1, 'Give', () => isItemKind(kind()) && isItemKind(this.tab), () => this.giveItem(this.selected.name));
     // the file of every item that's new or changed, weapon and all (datafiles.js), and of every enemy
     // whose own weapon was changed on the Weapons tab (weaponeditor.js)
-    this.exportItemsButton = inspectorButton(2, 'Export', () => DataFiles.export(['item', 'enemy']));
+    inspectorButton(2, 'Export', onTab(isItemKind), () => DataFiles.export(['item', 'enemy']));
 
     UI.showGroup('editor', false);
   },
@@ -410,6 +402,17 @@ const Editor = {
     this.flash = { col, row, until: millis() + 1600 };
   },
 
+  // Play here (Space, Help > Play here, or the button next to Play): with the mouse on the map it
+  // plays from there straight away, otherwise (it's on a menu or button) the next click on the map
+  // picks where
+  startPlayHere() {
+    // decided by where the mouse is now (UI.hovered is this frame's), not last frame's over, which can
+    // still be the map in the frame a button or menu is clicked
+    if (this.over && !UI.hovered) return this.playHere();
+    this.choosingStart = true;
+    showMessage('Click where to start playing (right click or Esc to stop)');
+  },
+
   // closes the editor and puts the player on the tile under the mouse (or `over`), if they can stand
   // there
   playHere(over = this.over) {
@@ -462,8 +465,9 @@ const Editor = {
     const last = this.lastView?.map === worldMap ? this.lastView : null;
     this.view = { x: last?.x ?? camera.x, y: last?.y ?? camera.y };
     camera.follow(this.view);
-    // shown straight away instead of fading in
+    // shown straight away instead of fading in, even if Tab hid it last time
     this.uiAlpha = 1;
+    this.uiHidden = false;
     this.stillFor = EDITOR_UI_FADE.showDelay;
     UI.showGroup('editor', true);
     // the status bar goes where the hotbar is (inventory.js)
@@ -482,9 +486,12 @@ const Editor = {
 
   close(player, camera) {
     this.active = false;
+    // nothing half done carries over to next time
     this.choosingStart = false;
     EditTools.drag = null;
     EditTools.lastPaint = null;
+    EditTools.pasting = false;
+    EditTools.picking = false;
     this.menuBar.close();
     this.search.blur();
     this.lastView = { map: worldMap, x: this.view.x, y: this.view.y };
@@ -507,10 +514,16 @@ const Editor = {
   showTab(kind) {
     this.tab = kind;
     this.tabStrip.reveal(kind);
-    for (const button of this.tileButtons) button.visible = kind === 'tile';
-    for (const button of this.soundButtons) button.visible = isSoundKind(kind);
-    for (const button of this.particleButtons) button.visible = kind === 'particle';
-    this.exportItemsButton.visible = isItemKind(kind);
+  },
+
+  // picks something (from the map, the recent row, the art report...), opens its tab, scrolls it into
+  // view, and turns Paint back on if the tool that's on can't use it (edittools.js)
+  choose(thing) {
+    this.pick({ kind: thing.kind, name: thing.name });
+    this.showTab(thing.kind);
+    this.palette.reveal(thing.name);
+    const tileOnly = this.tool === 'fill' || this.tool === 'rect';
+    if (['pick', 'erase', 'select'].includes(this.tool) || (tileOnly && thing.kind !== 'tile')) EditTools.setTool('paint');
   },
 
   isSelected(kind, name) {
@@ -611,6 +624,9 @@ const Editor = {
     // (editormenu.js)
     if (this.search.focused) this.search.type();
     else EditorKeys.update();
+    // a key that closed the editor (Play here) or opened a box (New map) has taken over, so the rest of
+    // this frame is skipped, otherwise it'd carry on with an editor that isn't there
+    if (!this.active || FormBox.active || SoundEditor.active) return;
 
     const dir = Input.direction();
 
@@ -620,11 +636,6 @@ const Editor = {
     const showUI = !this.uiHidden && this.stillFor >= EDITOR_UI_FADE.showDelay;
     this.uiAlpha = approach(this.uiAlpha, showUI ? 1 : 0, EDITOR_UI_FADE.speed, dt);
     for (const el of UI.group('editor')) el.interactive = showUI;
-    // Edit only shows with a tile or item picked, and Give only with an item (it's in the same spot as
-    // New on Tiles)
-    const itemPicked = isItemKind(this.selected.kind);
-    this.editButton.visible = this.selected.kind === 'tile' || this.selected.kind === 'particle' || isSoundKind(this.selected.kind) || itemPicked;
-    this.giveButton.visible = itemPicked && this.tab !== 'tile';
 
     // dividing by the zoom keeps the speed on screen the same
     const speed = EDITOR_PAN_SPEED / camera.zoom;
@@ -1289,14 +1300,31 @@ const Editor = {
 // built on ui.js and button.js (see "to make a new kind of element" in ui.js)
 
 // a small flat button for the menu bar (Play) and inspector. the optional isOn() lights it up like a toggle,
-// and it's checked every frame (like Paint lighting up while something's picked)
+// and it's checked every frame (like Play here lighting up while it waits for a click). the optional
+// shows() says whether it's there at all, also checked every frame, so it can never be left showing
+// when it shouldn't (the inspector's buttons). its group being hidden hides it whatever shows() says
 class EditorButton extends Button {
   constructor(options) {
     super({ style: 'editor', ...options });
     this.isOn = options.isOn ?? null;
+    this.shows = options.shows ?? null;
+  }
+
+  // not there: can't be hovered or clicked, and isn't drawn
+  gone() {
+    return this.shows !== null && !this.shows();
+  }
+
+  contains(px, py) {
+    return !this.gone() && super.contains(px, py);
+  }
+
+  update(hovered) {
+    super.update(hovered && !this.gone());
   }
 
   draw() {
+    if (this.gone()) return;
     if (this.isOn) {
       this.toggle = true;
       this.on = this.isOn();
@@ -1786,17 +1814,13 @@ class PaletteGrid extends UIElement {
       rect(trackX, this.y + 3 + (track - thumb) * (this.scroll[Editor.tab] / max), L.scrollbarWidth, thumb, 2);
     }
 
-    // the hovered square's name in a little box above it (or below it on the top row)
+    // the hovered square's name in a little box above it (or below it on the top row), on top of
+    // everything
     if (this.hoveredName) {
       const cell = this.cell(names.indexOf(this.hoveredName));
-      setText(11, BOLD, CENTER, CENTER);
-      const w = textWidth(this.hoveredName) + 12;
-      const x = constrain(cell.x + size / 2 - w / 2, this.x + 2, this.x + this.w - w - 2);
+      const name = this.hoveredName;
       const y = cell.y - 22 < this.y ? cell.y + size + 4 : cell.y - 22;
-      fill(0, 0, 0, 220);
-      rect(x, y, w, 18, 3);
-      fill(255);
-      text(this.hoveredName, x + w / 2, y + 9);
+      UI.drawOnTop(() => drawTip(name, cell.x + size / 2, y, this.x + 2, this.x + this.w - 2));
     }
   }
 }
@@ -1933,13 +1957,7 @@ class RecentStrip extends UIElement {
     if (!this.under) return;
     const { thing } = this.under;
     if (Input.buttonsPressed.has('left') && Input.shift) return Editor.togglePin(thing);
-    if (Input.buttonsPressed.has('left')) {
-      Editor.showTab(thing.kind);
-      Editor.pick({ kind: thing.kind, name: thing.name });
-      Editor.palette.reveal(thing.name);
-      // a tool that can't use it goes back to Paint (edittools.js)
-      if (Editor.tool === 'erase' || Editor.tool === 'pick' || (thing.kind !== 'tile' && (Editor.tool === 'fill' || Editor.tool === 'rect'))) EditTools.setTool('paint');
-    }
+    if (Input.buttonsPressed.has('left')) Editor.choose(thing);
     if (Input.buttonsPressed.has('right')) {
       Editor.recent = Editor.recent.filter((other) => other !== thing);
       Editor.saveRecent();
@@ -1969,19 +1987,26 @@ class RecentStrip extends UIElement {
         circle(sq.x + sq.size - 3, sq.y + 3, 6);
       }
     }
-    // its name above it while the mouse is on it
+    // its name under it while the mouse is on it, drawn on top since it hangs over the palette
     if (this.under) {
-      const words = `${this.under.thing.name}${this.under.thing.pinned ? ' (pinned)' : ''}`;
-      setText(11, BOLD, CENTER, CENTER);
-      const w = textWidth(words) + 12;
-      const x = constrain(this.under.x + this.under.size / 2 - w / 2, this.x + 2, this.x + this.w - w - 2);
-      noStroke();
-      fill(0, 0, 0, 220);
-      rect(x, this.y + this.h, w, 18, 3);
-      fill(255);
-      text(words, x + w / 2, this.y + this.h + 9);
+      const under = this.under;
+      const words = `${under.thing.name}${under.thing.pinned ? ' (pinned)' : ''}`;
+      UI.drawOnTop(() => drawTip(words, under.x + under.size / 2, this.y + this.h, this.x + 2, this.x + this.w - 2));
     }
   }
+}
+
+// a name in a little dark box, centred on middleX with its top at y, kept between left and right
+// (the palette's and recent row's tips)
+function drawTip(words, middleX, y, left, right) {
+  setText(11, BOLD, CENTER, CENTER);
+  const w = textWidth(words) + 12;
+  const x = constrain(middleX - w / 2, left, right - w);
+  noStroke();
+  fill(0, 0, 0, 220);
+  rect(x, y, w, 18, 3);
+  fill(255);
+  text(words, x + w / 2, y + 9);
 }
 
 // the picture for something in the palette (an EDITOR_TABS kind and a name) or the Erase tool (kind

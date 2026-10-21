@@ -121,10 +121,7 @@ const ArtReport = {
   },
 
   pick(problem) {
-    const kind = this.kindOf(problem);
-    Editor.pick({ kind, name: problem.name });
-    Editor.showTab(kind);
-    Editor.palette.reveal(problem.name);
+    Editor.choose({ kind: this.kindOf(problem), name: problem.name });
   },
 };
 

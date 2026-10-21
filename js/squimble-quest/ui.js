@@ -56,6 +56,8 @@ const UI = {
   elements: [],
   // the element under the mouse, or null
   hovered: null,
+  // things to draw over every element this frame (drawOnTop())
+  onTop: [],
 
   // ---------- adding and removing ----------
 
@@ -107,12 +109,21 @@ const UI = {
     for (const el of [...this.elements]) el.update(el === this.hovered);
   },
 
+  // an element's draw() can hand this something to draw after every element, for anything that
+  // spills outside it, like a tip with a name in. otherwise elements added later would cover it
+  drawOnTop(draw) {
+    this.onTop.push(draw);
+  },
+
   // runs after the world is drawn (sketch.js). UI.draw(true) outlines every element, invisible ones
   // too, which helps for lining up invisible buttons. green, or pink for the one under the mouse
   draw(showHitboxes = false) {
     for (const el of this.elements) {
       if (el.visible) el.draw();
     }
+    const onTop = this.onTop;
+    this.onTop = [];
+    for (const draw of onTop) draw();
     if (showHitboxes) this.drawHitboxes();
   },
 

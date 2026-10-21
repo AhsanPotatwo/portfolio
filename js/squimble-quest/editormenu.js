@@ -51,7 +51,7 @@ const EDITOR_COMMANDS = {
 
   shortcuts: { label: 'Keys and mouse', run: () => openShortcuts() },
   play: { label: 'Play', run: () => Editor.close(player, gameCamera) },
-  playHere: { label: 'Play from the mouse', key: 'editorPlayHere', run: () => Editor.playHere() },
+  playHere: { label: 'Play here', key: 'editorPlayHere', run: () => Editor.startPlayHere() },
 };
 
 // '-' is a line between groups
@@ -75,18 +75,24 @@ function commandKey(command) {
 const EDITOR_MENU = { titlePad: 10, rowHeight: 22, lineHeight: 9, minWidth: 190 };
 
 // the editor's keys, every frame while it's open and nothing's being typed (Editor.update()). Shift
-// turns undo into redo and save into save as. Escape closes a menu, then works like Let go
+// turns undo into redo and save into save as. Escape closes a menu, stops choosing where to play,
+// then works like Let go. commands wait while a mouse button's held, so nothing (like undo) happens
+// halfway through a drag
 const EditorKeys = {
   update() {
     if (Input.wasPressed('escape')) {
       if (Editor.menuBar.open >= 0) Editor.menuBar.close();
+      else if (Editor.choosingStart) Editor.choosingStart = false;
       else EditTools.escape();
     }
+    if (Input.buttonsHeld.size > 0) return;
     for (const [name, command] of Object.entries(EDITOR_COMMANDS)) {
       if (!command.key || !Input.wasPressed(command.key)) continue;
       const shifted = Input.wasPressedWithShift(command.key) && { undo: 'redo', save: 'saveAs' }[name];
       const run = EDITOR_COMMANDS[shifted || name];
       if (run.enabled && !run.enabled()) continue;
+      // a key works like clicking the command, so an open menu closes
+      Editor.menuBar.close();
       run.run();
       // one command a frame, so a key that opens a box doesn't also do something under it
       return;
@@ -354,7 +360,9 @@ class EditorToolStrip extends UIElement {
       rect(button.x, button.y, button.w, button.h, 3);
       drawToolIcon(button, on || (hot && enabled) ? 255 : enabled ? C.text : 90);
     }
-    if (this.under && this.restFor > 0.35) this.drawTip(this.under);
+    // on top, since it hangs out over the map and the dock
+    const under = this.under;
+    if (under && this.restFor > 0.35) UI.drawOnTop(() => this.drawTip(under));
   }
 
   // the name, key and what it does, in a box to the right of the button

@@ -210,7 +210,7 @@ const EditTools = {
 
   // picks whatever's on the tile in the palette, top first: a character, an object, an item on the
   // ground, a warp, a sound block, then the tile. an empty tile turns Erase on. tools that can't use
-  // what was picked go back to Paint
+  // what was picked go back to Paint (Editor.choose())
   pickAt(map, { col, row }) {
     const enemy = map.spawnsAt('enemy', col, row)[0];
     const npc = map.spawnsAt('npc', col, row)[0];
@@ -230,11 +230,7 @@ const EditTools = {
       if (map.inside(col, row) && !tile) this.setTool('erase');
       return;
     }
-    Editor.pick(thing);
-    Editor.showTab(thing.kind);
-    Editor.palette.reveal(thing.name);
-    const tileOnly = Editor.tool === 'fill' || Editor.tool === 'rect';
-    if (['pick', 'erase', 'select'].includes(Editor.tool) || (tileOnly && thing.kind !== 'tile')) this.setTool('paint');
+    Editor.choose(thing);
   },
 
   // ---------- copy and paste ----------
