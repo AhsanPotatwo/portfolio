@@ -1,6 +1,7 @@
 // boxes you can type in, built on UIElement (ui.js). the editor's form box (formbox.js) uses them:
 //   TextField    words, like a map name
-//   NumberField  a whole number, like a map width (a TextField that only takes digits)
+//   NumberField  a whole number, like a map width (a TextField that only takes digits). the up and
+//                down arrows nudge it, by 10 with Shift
 //   ColourField  a colour like #6fae4f, with a little square that opens the ColourPicker
 //   ColourPicker the little window you can drag around to pick a colour
 // Ctrl + V pastes into any of them (paste()).
@@ -114,6 +115,14 @@ class NumberField extends TextField {
     this.text = String(number);
   }
 
+  // the up and down arrows nudge it by 1, or 10 with Shift (Input.typed in input.js)
+  type(key) {
+    const nudge = { ArrowUp: 1, ArrowDown: -1, 'Shift+ArrowUp': 10, 'Shift+ArrowDown': -10 }[key];
+    if (!nudge) return super.type(key);
+    this.text = String(constrain(this.value + nudge, this.min, this.max));
+    this.selected = false;
+  }
+
   // also tidies the text up to the number it counts as (so empty becomes min)
   blur() {
     super.blur();
@@ -173,7 +182,7 @@ class ColourField extends TextField {
 // over a slider nudges it by 1. drag the title bar to move it, and it opens where you left it next
 // time. the ×, Escape, clicking the square again or the box closing closes it. only one is ever open
 // (ColourPicker.current), and clicking another field's square switches it to that one
-const COLOUR_PICKER = { w: 216, titleHeight: 24, pad: 10, squareHeight: 120, hueHeight: 12, tabHeight: 18, barHeight: 20, footHeight: 22, recent: 6, storageKey: 'sq-colour-picker' };
+const COLOUR_PICKER = { w: 216, pad: 10, squareHeight: 120, hueHeight: 12, tabHeight: 18, barHeight: 20, footHeight: 22, recent: 6, storageKey: 'sq-colour-picker' };
 
 // the ways the picker's sliders can show a colour. channels are [letter, what all the way shows as,
 // unit]. from() turns the picker's [hue 0 to 360, saturation 0 to 1, value 0 to 1] into each channel 0
@@ -220,7 +229,7 @@ function mouseOver(part, reach = 0) {
   return Boolean(part) && x >= part.x - reach && x < part.x + part.w + reach && y >= part.y - reach && y < part.y + part.h + reach;
 }
 
-class ColourPicker extends UIElement {
+class ColourPicker extends FloatingWindow {
   static current = null;
   // its top left when it was last moved or opened, so it opens there again
   static spot = null;
@@ -256,15 +265,15 @@ class ColourPicker extends UIElement {
   }
 
   constructor(owner) {
-    const { w, titleHeight, pad, squareHeight, hueHeight, tabHeight, barHeight, footHeight } = COLOUR_PICKER;
+    const { w, pad, squareHeight, hueHeight, tabHeight, barHeight, footHeight } = COLOUR_PICKER;
+    // read before super(), which puts it in the middle (and moveTo() would remember that)
+    const spot = ColourPicker.spot;
     // tall enough for 4 sliders, so it stays the same size whichever mode it's in
-    super({ w, h: titleHeight + pad + squareHeight + 8 + hueHeight + 8 + tabHeight + 6 + 4 * barHeight + 4 + footHeight + pad });
+    super({ title: 'Colour', w, h: FLOATING_WINDOW.titleHeight + pad + squareHeight + 8 + hueHeight + 8 + tabHeight + 6 + 4 * barHeight + 4 + footHeight + pad });
     // the colour as hue 0 to 360, saturation and value 0 to 1. grey until the field has a colour
     [this.hue, this.sat, this.val] = [0, 0, 0.5];
-    // what's being dragged: 'title', 'square', 'hue', a slider's number, or null
+    // what's being dragged: 'square', 'hue', a slider's number, or null (FloatingWindow does the title)
     this.held = null;
-    // the mouse's offset from the top left while dragging the title bar
-    this.grab = null;
     // the square's picture, and the hue and pixel density it was made for (squareImage())
     this.squareCanvas = null;
     this.squareFor = null;
@@ -272,14 +281,19 @@ class ColourPicker extends UIElement {
     // where it was left, otherwise to the right of the form box (or the left if there's no room)
     const box = FormBox.box;
     const right = box.x + box.w + 8;
-    this.moveTo(ColourPicker.spot?.x ?? (right + w <= GAME_W ? right : box.x - w - 8), ColourPicker.spot?.y ?? owner.y - 40);
+    this.moveTo(spot?.x ?? (right + w <= GAME_W ? right : box.x - w - 8), spot?.y ?? owner.y - 40);
   }
 
-  // kept on screen, and on whole px so the square's picture stays sharp
+  // remembers where it is, so it opens there next time
   moveTo(x, y) {
-    this.x = Math.round(constrain(x, 0, GAME_W - this.w));
-    this.y = Math.round(constrain(y, 0, GAME_H - this.h));
+    super.moveTo(x, y);
     ColourPicker.spot = { x: this.x, y: this.y };
+  }
+
+  // the ×
+  close() {
+    if (ColourPicker.current === this) ColourPicker.close();
+    else UI.remove(this);
   }
 
   follow(owner) {
@@ -364,10 +378,10 @@ class ColourPicker extends UIElement {
   // (leaving room for their letter on the left and number on the right), and along the bottom the old
   // and new colour, the recent ones and the eyedropper (null when the browser has none)
   parts() {
-    const { titleHeight, pad, squareHeight, hueHeight, tabHeight, barHeight, footHeight } = COLOUR_PICKER;
+    const { pad, squareHeight, hueHeight, tabHeight, barHeight, footHeight } = COLOUR_PICKER;
     const x = this.x + pad;
     const w = this.w - pad * 2;
-    const square = { x, y: this.y + titleHeight + pad, w, h: squareHeight };
+    const square = { x, y: this.contentTop() + pad, w, h: squareHeight };
     const hue = { x, y: square.y + square.h + 8, w, h: hueHeight };
     const names = Object.keys(COLOUR_MODES);
     const tabW = (w - 2 * (names.length - 1)) / names.length;
@@ -382,16 +396,11 @@ class ColourPicker extends UIElement {
     return { square, hue, tabs, bars, old, now, recent, dropper };
   }
 
-  // the mouse is over the × in the title bar
-  overClose() {
-    return this.hovered && Input.mouse.y < this.y + COLOUR_PICKER.titleHeight && Input.mouse.x >= this.x + this.w - 24;
-  }
-
   update(hovered) {
     if (ColourPicker.current !== this) return;
-    this.hovered = hovered;
     // its field got hidden (another tab) or taken away
     if (!this.owner.visible || !UI.elements.includes(this.owner)) return ColourPicker.close();
+    if (this.updateWindow(hovered)) return;
     this.readField();
     const { x, y } = Input.mouse;
     const parts = this.parts();
@@ -400,11 +409,7 @@ class ColourPicker extends UIElement {
     if (hovered && Input.buttonsPressed.has('left')) {
       const tab = parts.tabs.find((part) => mouseOver(part));
       const recent = parts.recent.find((part) => mouseOver(part));
-      if (this.overClose()) return ColourPicker.close();
-      if (y < this.y + COLOUR_PICKER.titleHeight) {
-        this.held = 'title';
-        this.grab = { x: x - this.x, y: y - this.y };
-      } else if (mouseOver(square)) this.held = 'square';
+      if (mouseOver(square)) this.held = 'square';
       else if (mouseOver(hue, 4)) this.held = 'hue';
       else if (bar >= 0) this.held = bar;
       else if (tab) {
@@ -423,7 +428,6 @@ class ColourPicker extends UIElement {
     }
     if (!Input.buttonsHeld.has('left')) this.held = null;
     if (this.held === null) return;
-    if (this.held === 'title') return this.moveTo(x - this.grab.x, y - this.grab.y);
 
     // how far along a part the mouse is, 0 to 1
     const along = (part) => constrain((x - part.x) / part.w, 0, 1);
@@ -464,31 +468,10 @@ class ColourPicker extends UIElement {
   draw() {
     const C = EDITOR_COLOURS;
     const S = BUTTON_STYLES.editor;
-    const { titleHeight, pad } = COLOUR_PICKER;
-    const { x, y, w, h } = this;
-    const lit = (part, reach) => this.hovered && this.held === null && mouseOver(part, reach);
-
-    // a window like the form box
-    fill(C.bar);
-    stroke(C.edge);
-    strokeWeight(1);
-    rect(x, y, w, h, 4);
-    noStroke();
-    fill(C.header);
-    rect(x + 1, y + 1, w - 2, titleHeight - 1, 4, 4, 0, 0);
-    fill(C.edge);
-    rect(x, y + titleHeight, w, 1);
-    fill(C.text);
-    setText(12, BOLD, LEFT, CENTER);
-    text('Colour', x + 10, y + titleHeight / 2);
-    // the ×, red while hovered like the form box's
-    if (this.overClose()) {
-      fill(BUTTON_STYLES.danger.fill);
-      rect(x + w - 24, y + 3, 20, titleHeight - 6, 3);
-    }
-    fill(C.text);
-    setText(16, BOLD, CENTER, CENTER);
-    text('×', x + w - 14, y + titleHeight / 2);
+    const { pad } = COLOUR_PICKER;
+    const { x, w } = this;
+    const lit = (part, reach) => this.hovered && this.held === null && !this.grab && mouseOver(part, reach);
+    this.drawWindow();
 
     // the canvas's own gradients, which p5 doesn't have
     const ctx = drawingContext;

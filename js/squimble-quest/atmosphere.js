@@ -36,7 +36,7 @@
 //                 the editor's cursor
 //   particles.js  ParticleEmitters.update() makes the weather, the map's and each area's
 //   tilemap.js, mapfile.js   map.atmosphere and map.areas, saved as "atmosphere" and "areas"
-//   editor.js     the toolbar's Atmosphere button, the Triggers tab's area (dragged out on the map,
+//   editor.js     Map > Atmosphere in the menu bar, the Triggers tab's area (dragged out on the map,
 //                 AtmosphereAreas), right clicking inside an area, and drawing their outlines
 //   debug.js      untick Atmosphere in the dev menu (H) to see the map plainly while editing
 //
@@ -756,7 +756,7 @@ const AtmosphereEditor = {
     tabs[0].rows.push({
       label: '',
       field: new Button({ w: 180, label: 'Save and export', style: 'editor', onClick: () => { exporting = true; FormBox.confirm(); } }),
-      tip: 'Saves, then downloads the files of new or changed atmospheres for atmospheres/. Export the map too, so it remembers which one it uses',
+      tip: 'Saves, then downloads the files of new or changed atmospheres for atmospheres/. Save the map too (Ctrl + S), so it remembers which one it uses',
     });
 
     FormBox.open({

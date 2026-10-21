@@ -164,7 +164,8 @@ function mapFromData(data) {
     for (let c = 0; c < cols; c++) {
       // short rows get padded with empty tiles
       const code = codes[c];
-      const name = code === undefined ? null : data.legend[code];
+      // a renamed tile's old name gets the tile it's called now (resolveTileName() in tiles.js)
+      const name = code === undefined ? null : resolveTileName(data.legend[code]);
       if (name === undefined) {
         unknown.add(`code "${code}" (not in the legend)`);
       } else if (name !== null && !TILE_TYPES[name]) {

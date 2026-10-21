@@ -3,11 +3,17 @@
 // assets/squimble-quest/maps/README.md.
 //
 // it's laid out like a game engine:
-//   - the toolbar along the top: New, Open, Resize, Atmosphere and Export, the Paint and Erase tools, Grid and
-//     Keys (same as G and H), Play (closes the editor), and the map's name and size
+//   - the menu bar along the top (editormenu.js): File (new, open, save, recover), Edit (undo, copy and
+//     paste), View, Map (resize, atmosphere, problems, art), Tools and Help, with every command's key.
+//     Play and Play here in the middle, and the map's name and size on the right (a yellow dot while
+//     it's unsaved, edithistory.js)
+//   - the tool strip down the left (edittools.js): Paint, Erase, Fill, Rectangle, Select and Pick, the
+//     brush size, undo and redo
 //   - the dock on the right: the palette, with tabs for tiles, objects, enemies, npcs, triggers and
-//     items (the wheel scrolls it), and the inspector under it showing what's picked
-//   - the status bar along the bottom: the tile under the mouse, what clicking will do, and the zoom
+//     items (the wheel scrolls it), a search box, a row of what was picked lately (Shift + click pins
+//     one), and the inspector under it showing what's picked
+//   - the status bar along the bottom: the tile under the mouse, what clicking will do, the selection,
+//     the brush and the zoom
 //
 // while it's open:
 //   - everyone stops, and WASD / the arrows move the camera. the ui fades out while you move and comes
@@ -33,9 +39,9 @@
 //   - particles (particles.js): click the map to try one out there, fanned out to the right as if it
 //     was hit from the left. New, Edit or right click in the palette opens the particle editor
 //     (particleeditor.js), and the inspector's Export downloads the files of new or changed effects
-//   - Erase, then click or drag: if you start on an object, enemy, npc, item, warp or sound block it
-//     removes those, otherwise it empties tiles (like off the map, so they aren't drawn and can't be
-//     walked on)
+//   - the tools (edittools.js, whose header says what each does): Erase empties tiles (like off the
+//     map, so they aren't drawn and can't be walked on) or removes things, Fill, Rectangle, Select with
+//     copy and paste, and Pick (or Alt + click). Ctrl + Z undoes anything on the map (edithistory.js)
 //   - right click: the settings for a warp, a sound block (its sound, and how it moves), an enemy (its
 //     weapon, armour, ai, sound and particles, next to a picture of it) or an npc (its voice and sound) on the
 //     map, or a tile, item, sound or voice in the palette. resting the mouse on a row says what it does
@@ -46,14 +52,16 @@
 //     square, warps.js). placing a warp opens its settings, or right click it later. Show links opens
 //     warpgraph.js. drag to make an atmosphere area (dashed outline, atmosphere.js), which opens its
 //     settings, or right click inside it later
-//   - the toolbar's map buttons ask for things with a FormBox (formbox.js): Resize (never smaller than
-//     the area with tiles), New (any size and fill), Open (from a file), Export (to a file), and
+//   - the File and Map menus ask for things with a FormBox (formbox.js): New (any size and fill),
+//     Open (from a file), Save as (to a file), Resize (never smaller than the area with tiles), and
 //     Atmosphere (the map's fog, colour, weather and background sound, atmosphere.js)
+//   - Space closes the editor and plays from the mouse. opening it again goes back to where you were
 //   - dev mode keys still work (zoom, teleport, next map), and H lists them
 //
 // new tiles and catalogue entries show up in the palette by themselves. changes are made to the
-// current map, and pressing M to go away and back keeps them, but reloading rebuilds the maps from
-// their files, so Export if you want to keep them
+// current map, and pressing M to go away and back keeps them. reloading rebuilds the maps from their
+// files, but unsaved changes are kept in the browser until they're saved (File > Recover unsaved
+// changes, edithistory.js). Save (Ctrl + S) downloads the map's file to put in the maps folder
 
 // how fast WASD moves the camera, in screen px/s (so it's the same at any zoom)
 const EDITOR_PAN_SPEED = 600;
@@ -64,10 +72,12 @@ const EDITOR_MAX_MAP_SIZE = 500;
 // what a New map is called until it's exported
 const NEW_MAP_NAME = 'new-map';
 
-// [key, what it does], listed in the dev menu while the editor's open (debug.js)
+// [key, what it does], listed in the dev menu while the editor's open (debug.js). the rest are in the
+// menus and Help > Keys and mouse (editormenu.js)
 const EDITOR_KEYS = [
-  ['Left click', 'paint or place'],
+  ['Left click', 'use the tool'],
   ['Right click', 'settings'],
+  ['Alt+click', 'pick'],
   ['WASD', 'move around'],
   ['Wheel', 'zoom'],
 ];
@@ -82,11 +92,17 @@ const EDITOR_UI_FADE = {
 
 // in screen px (see the top of this file)
 const EDITOR_LAYOUT = {
-  toolbarHeight: 28,
+  // the menu bar (still called the toolbar, since debug.js and others keep clear of it), the status
+  // bar and the tool strip down the left
+  toolbarHeight: 26,
   statusHeight: 20,
-  // the dock, its row of tabs, and the inspector at the bottom of it
+  toolStripWidth: 34,
+  // the dock, its row of tabs, the search box and recent row under them, and the inspector at the
+  // bottom of it
   dockWidth: 224,
   tabHeight: 22,
+  searchHeight: 26,
+  recentHeight: 30,
   inspectorHeight: 150,
   // a palette square, and its cell (the square plus the gap)
   swatchSize: 36,
@@ -104,7 +120,7 @@ const EDITOR_LAYOUT = {
 const EDITOR_COLOURS = {
   // the background of the dock and the form box
   bar: '#1f232b',
-  // the toolbar, status bar, panel headers and closed tabs
+  // the menu bar, tool strip, status bar, panel headers and closed tabs
   header: '#171a20',
   // behind objects and characters in the palette, and inside text boxes
   well: '#14171c',
@@ -192,31 +208,50 @@ function resizedStart(start, length, newLength, first, last) {
   return constrain(centred, last - newLength + 1, first);
 }
 
+// the localStorage key for the recent row (Editor.recent)
+const EDITOR_RECENT_KEY = 'sq-editor-recent';
+
 const Editor = {
   active: false,
-  // { kind, name } (kind is from EDITOR_TABS), or null for Erase. it starts on a tile that doesn't
-  // exist so checkSelected() picks the first real one once the tiles load
+  // what's picked in the palette, { kind, name } (kind is from EDITOR_TABS), which Paint, Fill and
+  // Rectangle use. it starts on a tile that doesn't exist so checkSelected() picks the first real one
+  // once the tiles load
   selected: { kind: 'tile', name: '' },
-  // the last thing picked in the palette, so Paint can go back to it after Erase
-  lastPicked: null,
+  // the tool that's on (EDITOR_TOOLS in edittools.js), and how many tiles across the brush is
+  tool: 'paint',
+  brush: 1,
+  // what was picked lately, newest first, each { kind, name, pinned }. pinned ones stay at the front.
+  // kept in this browser (EDITOR_RECENT_KEY)
+  recent: [],
   // which palette tab is showing (a kind)
   tab: 'tile',
   // what the camera follows while editing, moved by WASD
   view: { x: 0, y: 0 },
   // { col, row } of the tile under the mouse, or null. for the status bar
   over: null,
-  // where the mouse was last frame while dragging, so fast drags don't leave gaps
-  lastPaint: null,
-  // whether this erase drag removes things (true) or empties tiles (false)
-  erasingThings: false,
   // how see-through the ui is (1 is solid, 0 is gone). it fades while WASD moves the camera
-  // (sketch.js applies it). stillFor is the seconds since the camera last moved
+  // (sketch.js applies it). stillFor is the seconds since the camera last moved, and uiHidden is Tab
+  // hiding it until Tab's pressed again
   uiAlpha: 1,
   stillFor: 0,
+  uiHidden: false,
+  // where the camera was when it closed, { map, x, y }, so opening it on the same map goes back there
+  lastView: null,
+  // a tile flashing after Check for problems went to it, { col, row, until }, or null
+  flash: null,
+  // a box was open last frame (so closing it counts as a change to check, edithistory.js)
+  boxWasOpen: false,
+  // Play here was clicked, so the next click on the map starts playing there
+  choosingStart: false,
+  // whether it's been opened since the page loaded (the first time says if there are unsaved changes)
+  openedBefore: false,
 
   // made in init(). showTab() only shows the tiles' New and Export on the Tiles tab, the sounds' on the
   // Sounds tab, and the items' Export on item tabs. Edit is for when a tile, item or sound is picked,
   // and Give is for when an item is
+  menuBar: null,
+  palette: null,
+  search: null,
   tabStrip: null,
   tileButtons: [],
   soundButtons: [],
@@ -225,58 +260,43 @@ const Editor = {
   editButton: null,
   giveButton: null,
 
-  // called once from setup(). makes the toolbar, the dock (palette and inspector) and the status bar,
-  // all hidden until the editor opens
+  // called once from setup(). makes the menu bar, tool strip, dock (palette and inspector) and status
+  // bar, all hidden until the editor opens
   init() {
     const L = EDITOR_LAYOUT;
     const dockX = GAME_W - L.dockWidth;
     const dockY = L.toolbarHeight;
     const dockH = GAME_H - L.toolbarHeight - L.statusHeight;
     const inspectorY = dockY + dockH - L.inspectorHeight;
+    this.loadRecent();
 
     // they all go in the 'editor' group. the backgrounds go first so they're underneath, and they stop
     // clicks in the gaps between buttons from painting the map
     const add = (element) => UI.add(Object.assign(element, { group: 'editor' }));
-    const toolbar = add(new EditorToolbar({ x: 0, y: 0, w: GAME_W, h: L.toolbarHeight }));
+    this.menuBar = add(new EditorMenuBar({ x: 0, y: 0, w: GAME_W, h: L.toolbarHeight })); // editormenu.js
     add(new EditorStatusBar({ x: 0, y: GAME_H - L.statusHeight, w: GAME_W, h: L.statusHeight }));
+    add(new EditorToolStrip({ x: 0, y: L.toolbarHeight, w: L.toolStripWidth, h: dockH }));
     add(new EditorDock({ x: dockX, y: dockY, w: L.dockWidth, h: dockH, inspectorY }));
 
-    // the toolbar buttons from left to right, each as wide as its label. EditorToolbar draws the lines
-    // between them
-    setText(12, BOLD, CENTER, CENTER, BUTTON_STYLES.default.font);
-    let x = 6;
-    const button = (label, options) => {
-      const w = Math.ceil(textWidth(label)) + 18;
-      const made = add(new EditorButton({ x, y: 4, w, h: L.toolbarHeight - 8, label, ...options }));
-      x += w + 4;
-      return made;
-    };
-    const separator = () => {
-      toolbar.separators.push(x + 2);
-      x += 8;
-    };
-    button('New', { onClick: () => this.newMap() });
-    button('Open', { onClick: () => openMapFile() });
-    button('Resize', { onClick: () => this.resizeMap() });
-    // the map's fog, colour, weather and background sound (atmosphere.js). worldMap is sketch.js's
-    button('Atmosphere', { onClick: () => AtmosphereEditor.open(worldMap.atmosphere) });
-    button('Export', { style: 'editorPrimary', onClick: () => this.askToExport() });
-    separator();
-    button('Paint', { isOn: () => this.selected !== null, onClick: () => { this.selected = this.lastPicked; } });
-    button('Erase', { isOn: () => this.selected === null, onClick: () => { this.selected = null; } });
-    separator();
-    button('Grid', { isOn: () => Debug.show.grid, onClick: () => Debug.flip('grid') });
-    // the dev menu (debug.js), which has the keys too
-    button('Dev', { isOn: () => Debug.menu.visible, onClick: () => Debug.toggleMenu() });
     // Play goes in the middle like in a game engine, and closes the editor (player and gameCamera are
-    // from sketch.js)
-    x = Math.max(x + 16, (GAME_W - 64) / 2);
-    button('▶  Play', { style: 'editorPrimary', onClick: () => this.close(player, gameCamera) });
+    // from sketch.js). Play here plays from the mouse (Space)
+    setText(12, BOLD, CENTER, CENTER, BUTTON_STYLES.default.font);
+    const playW = Math.ceil(textWidth('▶  Play')) + 20;
+    const hereW = Math.ceil(textWidth('Play here')) + 20;
+    const playX = Math.round((GAME_W - playW - hereW - 4) / 2);
+    add(new EditorButton({ x: playX, y: 3, w: playW, h: L.toolbarHeight - 6, label: '▶  Play', style: 'editorPrimary', onClick: () => this.close(player, gameCamera) }));
+    add(new EditorButton({ x: playX + playW + 4, y: 3, w: hereW, h: L.toolbarHeight - 6, label: 'Play here', isOn: () => this.choosingStart, onClick: () => { this.choosingStart = !this.choosingStart; } }));
 
     this.tabStrip = add(new EditorTabStrip({ x: dockX, y: dockY, w: L.dockWidth, h: L.tabHeight }));
+    // under the tabs: the search box and the recent row
+    this.search = add(new PaletteSearch({ x: dockX + L.padding, y: dockY + L.tabHeight + 4, w: L.dockWidth - L.padding * 2, h: L.searchHeight - 6 }));
+    add(new RecentStrip({ x: dockX, y: dockY + L.tabHeight + L.searchHeight, w: L.dockWidth, h: L.recentHeight }));
 
-    // goes between the tabs and the inspector
-    add(new PaletteGrid({ x: dockX, y: dockY + L.tabHeight, w: L.dockWidth, h: inspectorY - dockY - L.tabHeight }));
+    // goes between those and the inspector
+    const gridY = dockY + L.tabHeight + L.searchHeight + L.recentHeight;
+    this.palette = add(new PaletteGrid({ x: dockX, y: gridY, w: L.dockWidth, h: inspectorY - gridY }));
+    // the menu bar's open menu, which goes on top of everything when it opens (editormenu.js)
+    this.menuBar.list = add(new EditorMenuList({ bar: this.menuBar }));
 
     // the inspector's buttons along its bottom, for tiles (tileeditor.js), sounds (soundeditor.js) and
     // items
@@ -316,14 +336,106 @@ const Editor = {
   // runs after the tiles load (sketch.js)
   checkSelected() {
     if (this.selected && !EDITOR_CATALOGUES[this.selected.kind][this.selected.name]) {
-      this.pick({ kind: 'tile', name: Object.keys(TILE_TYPES)[0] });
+      // not pick(), so it doesn't go in the recent row every time the page loads
+      this.selected = { kind: 'tile', name: Object.keys(TILE_TYPES)[0] };
     }
   },
 
-  // thing is { kind, name } for Paint to use
+  // thing is { kind, name } for Paint to use. it goes first in the recent row
   pick(thing) {
     this.selected = thing;
-    this.lastPicked = thing;
+    const pinned = this.recent.find((other) => other.kind === thing.kind && other.name === thing.name)?.pinned ?? false;
+    this.recent = this.recent.filter((other) => other.kind !== thing.kind || other.name !== thing.name);
+    this.recent.splice(pinned ? 0 : this.recent.filter((other) => other.pinned).length, 0, { ...thing, pinned });
+    // the pinned ones, then the newest unpinned, as many as fit
+    this.recent = this.recent.slice(0, Math.max(RECENT_STRIP.most, this.recent.filter((other) => other.pinned).length));
+    this.saveRecent();
+  },
+
+  // pins or unpins something in the recent row (Shift + click in the palette or the row)
+  togglePin(thing) {
+    const found = this.recent.find((other) => other.kind === thing.kind && other.name === thing.name);
+    if (!found) this.recent.unshift({ ...thing, pinned: true });
+    else found.pinned = !found.pinned;
+    // pinned ones first, keeping their order
+    this.recent = [...this.recent.filter((other) => other.pinned), ...this.recent.filter((other) => !other.pinned)];
+    this.saveRecent();
+  },
+
+  loadRecent() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(EDITOR_RECENT_KEY));
+      if (Array.isArray(saved)) this.recent = saved.filter((thing) => thing && typeof thing.kind === 'string' && typeof thing.name === 'string');
+    } catch (e) {}
+  },
+
+  saveRecent() {
+    try { localStorage.setItem(EDITOR_RECENT_KEY, JSON.stringify(this.recent)); } catch (e) {}
+  },
+
+  // something in a catalogue was renamed (to null if it was deleted), so what's picked and the recent
+  // row follow it (renameTile() and deleteTile() in tileeditor.js)
+  renamed(kind, from, to) {
+    for (const thing of [this.selected, ...this.recent]) {
+      if (thing.kind === kind && thing.name === from) thing.name = to;
+    }
+    this.recent = this.recent.filter((thing) => thing.name !== null);
+    this.saveRecent();
+    if (this.selected.name === null) this.checkSelected();
+  },
+
+  // how many tiles across the brush is (edittools.js)
+  setBrush(size) {
+    this.brush = constrain(size, 1, EDIT_TOOLS.maxBrush);
+  },
+
+  // Tab hides the editor's ui to see the map on its own, and brings it back
+  toggleUI() {
+    this.uiHidden = !this.uiHidden;
+    if (this.uiHidden) showMessage(`Editor hidden. ${keyName(KEYS.editorHideUI[0])} brings it back`);
+  },
+
+  undo() {
+    if (!EditHistory.undo(worldMap)) showMessage('Nothing to undo');
+  },
+
+  redo() {
+    if (!EditHistory.redo(worldMap)) showMessage('Nothing to redo');
+  },
+
+  // moves the camera to a tile and flashes it (Check for problems, mapcheck.js)
+  goTo(col, row) {
+    this.view.x = (col + 0.5) * TILE;
+    this.view.y = (row + 0.5) * TILE;
+    this.flash = { col, row, until: millis() + 1600 };
+  },
+
+  // closes the editor and puts the player on the tile under the mouse (or `over`), if they can stand
+  // there
+  playHere(over = this.over) {
+    this.choosingStart = false;
+    if (!over || worldMap.isSolid(over.col, over.row)) return showMessage('Put the mouse on a tile the player can stand on');
+    this.close(player, gameCamera); // sketch.js
+    const feet = standingOnTile(PLAYER, over.col, over.row); // character.js
+    player.placeAt(feet.x, feet.y);
+    // so a warp or sound block under them doesn't go off straight away (warps.js)
+    Warps.arrived(player, worldMap);
+    gameCamera.snap();
+  },
+
+  // Save: downloads the map's file under its name, or asks for one if it's never been saved
+  save() {
+    if (worldMap.name === NEW_MAP_NAME || !DataFiles.listed.map?.has(worldMap.name)) return this.askToExport();
+    this.exportAs(worldMap.name);
+  },
+
+  // exports the map as `name` (exportMap() in mapfile.js), which counts as saving it. a new name
+  // throws away the copy kept under the old one (edithistory.js)
+  exportAs(name) {
+    const before = worldMap.name;
+    exportMap(worldMap, name);
+    EditHistory.markSaved(worldMap);
+    if (worldMap.name !== before) EditHistory.discard(before);
   },
 
   // ---------- opening and closing ----------
@@ -345,9 +457,10 @@ const Editor = {
     // everyone goes back to their spawns, even defeated ones, so it shows the whole design and resets
     // the enemies (sketch.js)
     spawnCharacters();
-    // start from where the camera already is, and follow the view instead of the player. follow()
-    // also stops any dialogue glide
-    this.view = { x: camera.x, y: camera.y };
+    // start from where the camera was when it last closed on this map, otherwise where it is now, and
+    // follow the view instead of the player. follow() also stops any dialogue glide
+    const last = this.lastView?.map === worldMap ? this.lastView : null;
+    this.view = { x: last?.x ?? camera.x, y: last?.y ?? camera.y };
     camera.follow(this.view);
     // shown straight away instead of fading in
     this.uiAlpha = 1;
@@ -357,11 +470,26 @@ const Editor = {
     if (InventoryScreen.active) InventoryScreen.show(false);
     Hotbar.show(false);
     this.showTab(this.tab);
+    // whatever happened while playing (items picked up) isn't a change to undo (edithistory.js)
+    EditHistory.rebase(worldMap);
+    // the first time, say if there are unsaved changes from before
+    if (!this.openedBefore) {
+      this.openedBefore = true;
+      const copies = EditHistory.copies();
+      if (copies.length > 0) showMessage(`Unsaved changes from last time on ${copies.map((copy) => copy.name).join(', ')}. File > Recover unsaved changes`);
+    }
   },
 
   close(player, camera) {
     this.active = false;
-    this.lastPaint = null;
+    this.choosingStart = false;
+    EditTools.drag = null;
+    EditTools.lastPaint = null;
+    this.menuBar.close();
+    this.search.blur();
+    this.lastView = { map: worldMap, x: this.view.x, y: this.view.y };
+    // so nothing changed is missed by undo or the kept copy
+    EditHistory.check(worldMap);
     camera.follow(player);
     // everyone goes back to their spawns on full health (sketch.js)
     spawnCharacters();
@@ -386,7 +514,7 @@ const Editor = {
   },
 
   isSelected(kind, name) {
-    return this.selected !== null && this.selected.kind === kind && this.selected.name === name;
+    return this.selected.kind === kind && this.selected.name === name;
   },
 
   // ---------- new map, resizing and exporting ----------
@@ -441,17 +569,17 @@ const Editor = {
     });
   },
 
-  // asks for a name, then exports the current map (exportMap() and cleanMapName() are in mapfile.js,
-  // worldMap is in sketch.js)
+  // Save as: asks for a name, then exports the current map, downloading its file (exportMap() and
+  // cleanMapName() are in mapfile.js, worldMap is in sketch.js)
   askToExport() {
     FormBox.open({
-      title: 'Export map',
+      title: 'Save map as',
       hint: 'Letters, numbers, - and _',
-      confirmLabel: 'Export',
+      confirmLabel: 'Save',
       rows: [{ label: 'Name', field: new TextField({ w: 180, value: worldMap.name }) }],
       // it needs a file name (just spaces counts as no name)
       canConfirm: ([name]) => cleanMapName(name) !== '',
-      onConfirm: ([name]) => exportMap(worldMap, name),
+      onConfirm: ([name]) => this.exportAs(name),
     });
   },
 
@@ -464,32 +592,38 @@ const Editor = {
     // moving) would be invisible. the warp graph sits on top of a warp's box and takes over until it
     // closes (warpgraph.js)
     // the sound editor covers everything and takes over until it closes (soundeditor.js)
-    if (SoundEditor.active) {
+    const boxOpen = SoundEditor.active || FormBox.active;
+    if (boxOpen) {
       this.uiAlpha = 1;
       this.stillFor = EDITOR_UI_FADE.showDelay;
-      SoundEditor.update();
-      return;
-    }
-    if (FormBox.active) {
-      this.uiAlpha = 1;
-      this.stillFor = EDITOR_UI_FADE.showDelay;
-      if (WarpGraph.active) WarpGraph.update();
+      this.boxWasOpen = true;
+      // the box has the typing now
+      this.search.blur();
+      this.menuBar.close();
+      EditTools.drag = null;
+      if (SoundEditor.active) SoundEditor.update();
+      else if (WarpGraph.active) WarpGraph.update();
       else FormBox.update();
       return;
     }
 
+    // the search box has the typing while it's clicked on, otherwise the editor's keys work
+    // (editormenu.js)
+    if (this.search.focused) this.search.type();
+    else EditorKeys.update();
+
     const dir = Input.direction();
 
     // moving fades the ui out, and stopping for a moment fades it back in. hidden ui can't be clicked,
-    // so clicks go through to the map
+    // so clicks go through to the map. Tab hides it until it's pressed again
     this.stillFor = dir.x === 0 && dir.y === 0 ? this.stillFor + dt : 0;
-    const showUI = this.stillFor >= EDITOR_UI_FADE.showDelay;
+    const showUI = !this.uiHidden && this.stillFor >= EDITOR_UI_FADE.showDelay;
     this.uiAlpha = approach(this.uiAlpha, showUI ? 1 : 0, EDITOR_UI_FADE.speed, dt);
     for (const el of UI.group('editor')) el.interactive = showUI;
     // Edit only shows with a tile or item picked, and Give only with an item (it's in the same spot as
     // New on Tiles)
-    const itemPicked = isItemKind(this.selected?.kind);
-    this.editButton.visible = this.selected?.kind === 'tile' || this.selected?.kind === 'particle' || isSoundKind(this.selected?.kind) || itemPicked;
+    const itemPicked = isItemKind(this.selected.kind);
+    this.editButton.visible = this.selected.kind === 'tile' || this.selected.kind === 'particle' || isSoundKind(this.selected.kind) || itemPicked;
     this.giveButton.visible = itemPicked && this.tab !== 'tile';
 
     // dividing by the zoom keeps the speed on screen the same
@@ -503,18 +637,22 @@ const Editor = {
     // the status bar shows it unless the mouse is over the ui
     this.over = UI.hovered ? null : over;
 
-    // one per click, using the picked tab's place() (EDITOR_TABS). mousePressed() already ignores
-    // clicks on the ui (input.js)
-    if (over && Input.mousePressed('left') && this.selected) {
-      const { kind, name } = this.selected;
-      EDITOR_TABS.find((tab) => tab.kind === kind).place?.(map, name, over.col, over.row);
+    // Play here: the next click on the map starts playing there
+    if (this.choosingStart) {
+      if (over && Input.mousePressed('left')) return this.playHere(over);
+      if (Input.mousePressed('right')) this.choosingStart = false;
+    } else {
+      // the left button does what the tool does (edittools.js). mousePressed() ignores clicks on the ui
+      // (input.js)
+      EditTools.update(map, over, aim);
     }
     // an area being dragged out (atmosphere.js) follows the mouse, and opens its settings when let go
     AtmosphereAreas.update(map, over);
 
     // right click: the settings for what's there (a warp, then a sound block, then an enemy, then an
-    // npc, then an atmosphere area). any new settings boxes can hook in here
-    if (over && Input.mousePressed('right')) {
+    // npc, then an atmosphere area). any new settings boxes can hook in here. not while pasting, where
+    // it stops pasting (edittools.js)
+    if (over && Input.mousePressed('right') && !EditTools.pasting && !this.choosingStart) {
       const warp = map.warpAt(over.col, over.row);
       const sound = map.soundAt(over.col, over.row);
       const enemy = map.spawnsAt('enemy', over.col, over.row)[0];
@@ -526,37 +664,12 @@ const Editor = {
       else if (AtmosphereAreas.at(map, over.col, over.row)) AtmosphereAreas.edit(map, AtmosphereAreas.at(map, over.col, over.row));
     }
 
-    // painting and erasing keep going while the mouse is held
-    const erasing = this.selected === null && Input.mouseHeld('left');
-    const painting = this.selected?.kind === 'tile' && Input.mouseHeld('left');
-
-    if (over && (painting || erasing)) {
-      // a drag that starts on a thing only removes things, otherwise it only empties tiles. that way
-      // one drag can't remove a table and then the floor under it
-      if (!this.lastPaint) this.erasingThings = erasing && this.thingsAt(map, over.col, over.row);
-
-      let removedCharacter = false;
-      this.forEachTileOnLine(map, this.lastPaint ?? aim, aim, (col, row) => {
-        if (painting) {
-          map.set(col, row, this.selected.name);
-        } else if (this.erasingThings) {
-          map.removeObjectsAt(col, row);
-          map.removeWarpAt(col, row);
-          map.removeSoundAt(col, row);
-          const items = this.dropsAt(map, col, row);
-          map.drops = map.drops.filter((drop) => !items.includes(drop));
-          for (const kind of Object.keys(SPAWN_KINDS)) {
-            if (map.removeSpawnsAt(kind, col, row)) removedCharacter = true;
-          }
-        } else {
-          map.set(col, row, null);
-        }
-      });
-      // removed characters disappear straight away
-      if (removedCharacter) spawnCharacters();
-      this.lastPaint = aim;
-    } else {
-      this.lastPaint = null;
+    // undo notices changes once nothing's held: straight after a click, key or box, otherwise now and
+    // then (edithistory.js)
+    if (!FormBox.active && !SoundEditor.active && Input.buttonsHeld.size === 0 && !AtmosphereAreas.drawing) {
+      const nudged = this.boxWasOpen || Input.buttonsReleased.size > 0 || Input.keysPressed.size > 0 || Input.typed.length > 0;
+      this.boxWasOpen = false;
+      EditHistory.update(map, dt, nudged);
     }
   },
 
@@ -1033,7 +1146,7 @@ const Editor = {
     spawnCharacters();
     const type = NPC_TYPES[spawn.type];
     Sound.preview(VOICES[name], { say: type.dialogue[0] });
-    showMessage(`${type.label} talks with ${name} now. Export the map to keep it`);
+    showMessage(`${type.label} talks with ${name} now. Save the map (Ctrl + S) to keep it`);
   },
 
   // the body box of a character type standing on this tile (standingOnTile() in character.js, same as
@@ -1070,30 +1183,53 @@ const Editor = {
     for (const warp of map.warps) drawWarpMarker(warp, px);
     drawSpawnRing(map.spawn.x, map.spawn.y + feetBelowCentre(PLAYER), px);
 
-    if (!aim || !Input.mouse.inside || UI.hovered) return;
+    // a tile Check for problems went to (mapcheck.js), flashing
+    if (this.flash && millis() < this.flash.until) {
+      noFill();
+      const on = Math.floor(millis() / 200) % 2 === 0;
+      this.outline(this.flash.col * TILE - 4 * px, this.flash.row * TILE - 4 * px, TILE + 8 * px, TILE + 8 * px, on ? EDITOR_COLOURS.picked : '#ffffff', px);
+    }
+    // the selection, boxes being dragged, what's being pasted and the brush (edittools.js)
+    const over = aim && Input.mouse.inside ? { col: map.colAt(aim.x), row: map.rowAt(aim.y) } : null;
+    EditTools.draw(map, px, over);
+
+    if (!aim || !Input.mouse.inside || UI.hovered || EditTools.pasting || EditTools.drag) return;
     const col = map.colAt(aim.x);
     const row = map.rowAt(aim.y);
     if (!map.inside(col, row)) return;
+    // Play here: where the player would start
+    if (this.choosingStart) {
+      noFill();
+      this.outline(col * TILE, row * TILE, TILE, TILE, map.isSolid(col, row) ? EDITOR_COLOURS.erase : EDITOR_COLOURS.accent, px);
+      return;
+    }
+    const tool = this.tool;
+    // the brush is already outlined, and the box tools show their box once dragged
+    if (tool === 'select' || tool === 'rect') {
+      noFill();
+      this.outline(col * TILE, row * TILE, TILE, TILE, '#ffffff', px);
+      return;
+    }
 
     // a sound block under the mouse shows how far away it can be heard
     const sound = map.soundAt(col, row);
     if (sound) drawSoundRange(sound, px);
 
     // spawn: a preview of its ring, plus the tile outline further down
-    if (this.isSelected('trigger', 'spawn')) {
+    if (tool === 'paint' && this.isSelected('trigger', 'spawn')) {
       const feet = standingOnTile(PLAYER, col, row);
       drawSpawnRing(feet.x, feet.y + feetBelowCentre(PLAYER), px);
     }
 
     // object: a see-through preview over its tiles
-    if (this.selected?.kind === 'object') {
+    if (tool === 'paint' && this.selected.kind === 'object') {
       const type = OBJECT_TYPES[this.selected.name];
       this.drawGhost(type, col * TILE, row * TILE, type.width * TILE, type.height * TILE, px);
       return;
     }
 
     // enemy or npc: a see-through preview standing on the tile
-    if (this.selected && isCharacterKind(this.selected.kind)) {
+    if (tool === 'paint' && isCharacterKind(this.selected.kind)) {
       const type = EDITOR_CATALOGUES[this.selected.kind][this.selected.name];
       const body = this.characterBodyOnTile(type, col, row);
       this.drawGhost(type, body.x, body.y, body.w, body.h, px);
@@ -1101,7 +1237,7 @@ const Editor = {
     }
 
     // erasing: outline whatever would get removed
-    if (this.selected === null) {
+    if (tool === 'erase') {
       noFill();
       for (const obj of map.objectsAt(col, row)) {
         const type = OBJECT_TYPES[obj.type];
@@ -1115,9 +1251,10 @@ const Editor = {
       }
     }
 
-    // the tile under the mouse, in red when erasing
+    // the tile under the mouse, unless the brush outline (edittools.js) already shows it
+    if (tool === 'erase' || (tool === 'paint' && this.selected.kind === 'tile')) return;
     noFill();
-    this.outline(col * TILE, row * TILE, TILE, TILE, this.selected === null ? EDITOR_COLOURS.erase : '#ffffff', px);
+    this.outline(col * TILE, row * TILE, TILE, TILE, '#ffffff', px);
   },
 
   // a see-through preview with an outline, for an object or character type
@@ -1151,7 +1288,7 @@ const Editor = {
 // ---------- the editor's ui elements ----------
 // built on ui.js and button.js (see "to make a new kind of element" in ui.js)
 
-// a small flat button for the toolbar and inspector. the optional isOn() lights it up like a toggle,
+// a small flat button for the menu bar (Play) and inspector. the optional isOn() lights it up like a toggle,
 // and it's checked every frame (like Paint lighting up while something's picked)
 class EditorButton extends Button {
   constructor(options) {
@@ -1168,36 +1305,8 @@ class EditorButton extends Button {
   }
 }
 
-// the toolbar's background, with the map's name and size on the right. separators is the x of each
-// line between buttons (Editor.init() adds them)
-class EditorToolbar extends UIElement {
-  constructor(options) {
-    super(options);
-    this.separators = [];
-  }
-
-  draw() {
-    const C = EDITOR_COLOURS;
-    noStroke();
-    fill(C.header);
-    rect(this.x, this.y, this.w, this.h);
-    fill(C.edge);
-    rect(this.x, this.y + this.h - 1, this.w, 1);
-    for (const x of this.separators) rect(x, this.y + 6, 1, this.h - 12);
-
-    // worldMap is the game's (sketch.js)
-    const middleY = this.y + this.h / 2;
-    const size = `${worldMap.cols} × ${worldMap.rows}`;
-    fill(C.dimText);
-    setText(12, BOLD, RIGHT, CENTER);
-    text(size, this.x + this.w - 10, middleY);
-    fill(C.text);
-    text(worldMap.name, this.x + this.w - 18 - textWidth(size), middleY);
-  }
-}
-
 // the strip along the bottom: the tile under the mouse (left), what clicking does (middle), and the
-// zoom (right)
+// selection, brush and zoom (right)
 class EditorStatusBar extends UIElement {
   draw() {
     const C = EDITOR_COLOURS;
@@ -1214,18 +1323,38 @@ class EditorStatusBar extends UIElement {
       const tile = worldMap.get(over.col, over.row);
       where = `(${over.col}, ${over.row})  ${worldMap.inside(over.col, over.row) ? tile?.name ?? 'empty' : 'off the map'}`;
     }
-    const s = Editor.selected;
-    const click = s === null ? 'erase' : s.kind === 'voice' ? `give an NPC ${s.name}` : s.name === 'area' ? 'drag out an area' : `${s.kind === 'tile' ? 'paint' : 'place'} ${s.name}`;
-
     setText(11, BOLD, LEFT, CENTER);
     fill(C.text);
     text(where, this.x + 10, middleY);
     fill(C.dimText);
-    // cut short on a narrow screen so it doesn't run into the zoom (about 80px on the right)
-    text(fitText(`Left click: ${click}   ·   Right click: settings   ·   WASD: move   ·   Wheel: zoom`, this.w - 180 - 80), this.x + 180, middleY);
+    const right = [];
+    const box = EditTools.selection;
+    if (box) right.push(`Selected ${box.right - box.left + 1} × ${box.bottom - box.top + 1}`);
+    if (Editor.tool === 'paint' || Editor.tool === 'erase') right.push(`Brush ${Editor.brush}`);
+    right.push(`Zoom ${Math.round(gameCamera.zoom * 100)}%`);
+    const rightText = right.join('   ·   ');
+    // cut short on a narrow screen so it doesn't run into the right hand side
+    text(fitText(statusHint(), this.w - 190 - textWidth(rightText) - 30), this.x + 190, middleY);
     textAlign(RIGHT, CENTER);
-    text(`Zoom ${Math.round(gameCamera.zoom * 100)}%`, this.x + this.w - 10, middleY);
+    text(rightText, this.x + this.w - 10, middleY);
   }
+}
+
+// what the status bar says clicking does, from the tool and what's picked
+function statusHint() {
+  const s = Editor.selected;
+  const tile = s.kind === 'tile';
+  if (Editor.choosingStart) return 'Click where to start playing   ·   Right click: stop';
+  if (EditTools.pasting) return 'Click: paste here   ·   Right click or Esc: stop pasting';
+  const hints = {
+    paint: `Click: ${s.kind === 'voice' ? `give an NPC ${s.name}` : s.name === 'area' ? 'drag out an area' : `${tile ? 'paint' : 'place'} ${s.name}`}${tile ? '   ·   Shift + drag: rectangle' : ''}`,
+    erase: 'Drag: erase   ·   Shift + drag: rectangle',
+    fill: tile ? `Click: fill with ${s.name}` : 'Fill needs a tile picked',
+    rect: tile ? `Drag: a rectangle of ${s.name}` : 'Rectangle needs a tile picked',
+    select: 'Drag: select   ·   Ctrl + C copy   ·   Ctrl + X cut   ·   Del clear',
+    pick: 'Click: pick what\'s there',
+  };
+  return `${hints[Editor.tool]}   ·   Alt + click: pick   ·   Right click: settings`;
 }
 
 // the dock's background, the strip behind the tabs, and the inspector (what's picked). the tabs,
@@ -1271,7 +1400,8 @@ class EditorDock extends UIElement {
     const L = EDITOR_LAYOUT;
     const C = EDITOR_COLOURS;
     const x = this.x + L.padding + 2;
-    const s = Editor.selected;
+    // the Erase tool shows itself instead of what's picked
+    const s = Editor.tool === 'erase' ? null : Editor.selected;
     const info = inspectorInfo(s);
     const size = L.swatchSize;
 
@@ -1531,10 +1661,22 @@ class PaletteGrid extends UIElement {
     this.hoveredName = null;
   }
 
-  // the Weapons tab also has the enemies' own weapons at the end (weaponeditor.js)
-  names() {
-    const names = Object.keys(EDITOR_CATALOGUES[Editor.tab]);
-    return Editor.tab === 'weapon' ? [...names, ...enemyWeaponNames()] : names;
+  // the Weapons tab also has the enemies' own weapons at the end (weaponeditor.js). only ones that
+  // match the search box, if it has anything in it
+  names(tab = Editor.tab) {
+    const names = Object.keys(EDITOR_CATALOGUES[tab]);
+    const all = tab === 'weapon' ? [...names, ...enemyWeaponNames()] : names;
+    return all.filter((name) => Editor.search.matches(name, EDITOR_CATALOGUES[tab][name]?.label));
+  }
+
+  // scrolls the open tab so the square called name shows (after picking it from the map)
+  reveal(name) {
+    const i = this.names().indexOf(name);
+    if (i < 0) return;
+    const L = EDITOR_LAYOUT;
+    const top = L.padding + Math.floor(i / this.columns()) * L.cellSize;
+    const scroll = this.scroll[Editor.tab] ?? 0;
+    this.scroll[Editor.tab] = constrain(scroll, top + L.cellSize + L.padding - this.h, top);
   }
 
   columns() {
@@ -1588,6 +1730,8 @@ class PaletteGrid extends UIElement {
       if (Input.buttonsPressed.has('left') || Input.buttonsPressed.has('right')) editEnemyWeapon(enemy);
       return;
     }
+    // Shift + click pins it in the recent row instead
+    if (Input.buttonsPressed.has('left') && Input.shift) return Editor.togglePin({ kind: tab, name: this.hoveredName });
     if (Input.buttonsPressed.has('left')) Editor.pick({ kind: tab, name: this.hoveredName });
     if (tab === 'tile' && Input.buttonsPressed.has('right')) TileEditor.open(TILE_TYPES[this.hoveredName]);
     if (isItemKind(tab) && Input.buttonsPressed.has('right')) Editor.editItem(this.hoveredName);
@@ -1626,8 +1770,8 @@ class PaletteGrid extends UIElement {
     noStroke();
     if (names.length === 0) {
       fill(C.dimText);
-      setText(11, BOLD, CENTER, CENTER);
-      text('Nothing here yet', this.x + this.w / 2, this.y + 30);
+      setText(11, BOLD, CENTER, TOP);
+      text(Editor.search.text ? this.otherMatches() : 'Nothing here yet', this.x + 10, this.y + 22, this.w - 20, this.h - 30);
     }
 
     // a scrollbar when they don't all fit
@@ -1653,6 +1797,189 @@ class PaletteGrid extends UIElement {
       rect(x, y, w, 18, 3);
       fill(255);
       text(this.hoveredName, x + w / 2, y + 9);
+    }
+  }
+}
+
+// while searching and nothing on this tab matches: which tabs have some
+PaletteGrid.prototype.otherMatches = function otherMatches() {
+  const found = EDITOR_TABS.filter(({ kind }) => kind !== Editor.tab && this.names(kind).length > 0).map(({ kind, label }) => `${label} (${this.names(kind).length})`);
+  return found.length > 0 ? `Nothing here matches. Try ${found.join(', ')}` : 'Nothing anywhere matches';
+};
+
+// the search box at the top of the palette: click it (or press / or Ctrl + F) and type, and the
+// palette only shows what has that in its name. it has the typing while it's clicked on, so the
+// editor's keys wait. Enter picks the first match, Escape empties it, and clicking anywhere else lets
+// go. the × empties it
+class PaletteSearch extends UIElement {
+  constructor(options) {
+    super(options);
+    this.text = '';
+    this.focused = false;
+  }
+
+  // does a name (or its label) have the search in it? everything does when it's empty
+  matches(name, label) {
+    if (!this.text) return true;
+    const words = this.text.toLowerCase();
+    return name.toLowerCase().includes(words) || Boolean(label && String(label).toLowerCase().includes(words));
+  }
+
+  focus() {
+    this.focused = true;
+    Input.typing = true;
+  }
+
+  // lets go of the typing, unless a box has taken it
+  blur() {
+    if (!this.focused) return;
+    this.focused = false;
+    if (!FormBox.active && !SoundEditor.active) Input.typing = false;
+  }
+
+  // the × at the right hand end, when there's something to empty
+  overClear() {
+    return this.text && this.hovered && Input.mouse.x >= this.x + this.w - 18;
+  }
+
+  update(hovered) {
+    this.hovered = hovered;
+    if (!Input.buttonsPressed.has('left')) return;
+    if (this.overClear()) {
+      this.text = '';
+      return;
+    }
+    if (hovered) this.focus();
+    else this.blur();
+  }
+
+  // what's been typed, every frame while it's focused (Editor.update())
+  type() {
+    for (const key of Input.typed) {
+      if (key === 'Escape') {
+        this.text = '';
+        return this.blur();
+      }
+      if (key === 'Enter' || key === 'Tab') {
+        const first = Editor.palette.names()[0];
+        if (first && key === 'Enter') Editor.pick({ kind: Editor.tab, name: first });
+        return this.blur();
+      }
+      if (key === 'Backspace' || key === 'Delete') this.text = this.text.slice(0, -1);
+      else if (key.paste !== undefined) this.text = (this.text + key.paste.trim()).slice(0, 24);
+      else if (key.length === 1 && this.text.length < 24) this.text += key;
+    }
+  }
+
+  draw() {
+    const C = EDITOR_COLOURS;
+    fill(C.well);
+    stroke(this.focused ? BUTTON_STYLES.primary.fill : this.hovered ? 140 : C.edge);
+    strokeWeight(1);
+    rect(this.x, this.y, this.w, this.h, 3);
+    noStroke();
+    const middleY = this.y + this.h / 2;
+    // a little magnifying glass
+    stroke(C.dimText);
+    strokeWeight(1.5);
+    noFill();
+    circle(this.x + 11, middleY - 1, 7);
+    line(this.x + 13.5, middleY + 1.5, this.x + 16, middleY + 4);
+    noStroke();
+    setText(11, BOLD, LEFT, CENTER);
+    if (this.text) {
+      fill(C.text);
+      text(fitText(this.text, this.w - 46), this.x + 22, middleY);
+      fill(this.overClear() ? 255 : C.dimText);
+      setText(14, BOLD, CENTER, CENTER);
+      text('×', this.x + this.w - 10, middleY - 1);
+    } else {
+      fill(C.dimText);
+      text(`Search   ${keyName(KEYS.editorSearch[0])}`, this.x + 22, middleY);
+    }
+    // a blinking line where typing goes
+    if (this.focused && millis() % 1000 < 500) {
+      setText(11, BOLD, LEFT, CENTER);
+      fill(C.text);
+      rect(this.x + 23 + textWidth(fitText(this.text, this.w - 46)), middleY - 6, 1.5, 12);
+    }
+  }
+}
+
+// the row under the search box: what was picked lately (Editor.recent), pinned ones first with a dot.
+// click one to pick it (its tab opens), Shift + click to pin or unpin it, right click to take it off
+const RECENT_STRIP = { size: 22, gap: 4, most: 7 };
+
+class RecentStrip extends UIElement {
+  constructor(options) {
+    super(options);
+    this.under = null;
+  }
+
+  // the recent things that still exist, with where each square goes
+  squares() {
+    const { size, gap } = RECENT_STRIP;
+    const room = Math.floor((this.w - EDITOR_LAYOUT.padding * 2 + gap) / (size + gap));
+    return Editor.recent
+      .filter((thing) => EDITOR_CATALOGUES[thing.kind]?.[thing.name])
+      .slice(0, room)
+      .map((thing, i) => ({ thing, x: this.x + EDITOR_LAYOUT.padding + i * (size + gap), y: this.y + (this.h - size) / 2, size }));
+  }
+
+  update(hovered) {
+    this.hovered = hovered;
+    const { x, y } = Input.mouse;
+    this.under = hovered ? this.squares().find((sq) => x >= sq.x && x < sq.x + sq.size && y >= sq.y && y < sq.y + sq.size) ?? null : null;
+    if (!this.under) return;
+    const { thing } = this.under;
+    if (Input.buttonsPressed.has('left') && Input.shift) return Editor.togglePin(thing);
+    if (Input.buttonsPressed.has('left')) {
+      Editor.showTab(thing.kind);
+      Editor.pick({ kind: thing.kind, name: thing.name });
+      Editor.palette.reveal(thing.name);
+      // a tool that can't use it goes back to Paint (edittools.js)
+      if (Editor.tool === 'erase' || Editor.tool === 'pick' || (thing.kind !== 'tile' && (Editor.tool === 'fill' || Editor.tool === 'rect'))) EditTools.setTool('paint');
+    }
+    if (Input.buttonsPressed.has('right')) {
+      Editor.recent = Editor.recent.filter((other) => other !== thing);
+      Editor.saveRecent();
+    }
+  }
+
+  draw() {
+    const C = EDITOR_COLOURS;
+    const squares = this.squares();
+    noStroke();
+    if (squares.length === 0) {
+      fill(C.dimText);
+      setText(10, BOLD, LEFT, CENTER);
+      text('Picked lately shows here', this.x + EDITOR_LAYOUT.padding + 2, this.y + this.h / 2);
+      return;
+    }
+    for (const sq of squares) {
+      drawPaletteArt(sq.thing.kind, sq.thing.name, sq.x, sq.y, sq.size);
+      noFill();
+      const picked = Editor.isSelected(sq.thing.kind, sq.thing.name);
+      stroke(picked ? C.picked : sq === this.under ? 255 : C.edge);
+      strokeWeight(picked ? 2 : 1);
+      rect(sq.x, sq.y, sq.size, sq.size);
+      if (sq.thing.pinned) {
+        noStroke();
+        fill(C.accent);
+        circle(sq.x + sq.size - 3, sq.y + 3, 6);
+      }
+    }
+    // its name above it while the mouse is on it
+    if (this.under) {
+      const words = `${this.under.thing.name}${this.under.thing.pinned ? ' (pinned)' : ''}`;
+      setText(11, BOLD, CENTER, CENTER);
+      const w = textWidth(words) + 12;
+      const x = constrain(this.under.x + this.under.size / 2 - w / 2, this.x + 2, this.x + this.w - w - 2);
+      noStroke();
+      fill(0, 0, 0, 220);
+      rect(x, this.y + this.h, w, 18, 3);
+      fill(255);
+      text(words, x + w / 2, this.y + this.h + 9);
     }
   }
 }

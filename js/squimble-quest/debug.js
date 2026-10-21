@@ -1,7 +1,7 @@
 // dev mode: hidden tools for testing, turned on and off with ` (under Esc) or Ctrl + D. players never
 // see it unless they press the key, and this browser remembers if it's on. while it's on:
 //   - the info panel in the top left shows what's going on: the fps, the map, the player, the mouse...
-//   - H (or Dev in the editor's toolbar) opens the dev menu. it picks what the info panel and the map
+//   - H (or View > Dev menu in the editor) opens the dev menu. it picks what the info panel and the map
 //     show, has buttons for the tools, and lists every dev key (and the editor's while that's open).
 //     what's picked is remembered too
 //   - G and P flip the tile grid and the enemy ai routes (pathfinding.js) without opening the menu
@@ -215,9 +215,10 @@ const Debug = {
     }
   },
 
-  // the info panel, in screen positions (after camera.end()). it goes under the editor toolbar while
-  // that's open, and under the menu while that's open (or next to it if there isn't room). it's as
-  // wide as what's in it, so nothing spills out, and values too long for the space get cut short
+  // the info panel, in screen positions (after camera.end()). it goes under the editor's menu bar and
+  // right of its tool strip while that's open, and under the menu while that's open (or next to it if
+  // there isn't room). it's as wide as what's in it, so nothing spills out, and values too long for
+  // the space get cut short
   draw(player, camera, map, aim) {
     if (!this.enabled) return;
     const P = DEV_PANEL;
@@ -243,7 +244,8 @@ const Debug = {
     const top = (Editor.active ? EDITOR_LAYOUT.toolbarHeight : 0) + P.margin;
     const bottom = GAME_H - (Editor.active ? EDITOR_LAYOUT.statusHeight : 0) - P.margin;
     const right = GAME_W - (Editor.active ? EDITOR_LAYOUT.dockWidth : 0) - P.margin;
-    let x = P.margin;
+    // right of the editor's tool strip while it's open
+    let x = (Editor.active ? EDITOR_LAYOUT.toolStripWidth : 0) + P.margin;
     let y = top;
     if (this.menu.visible) {
       const below = this.menu.y + this.menu.h + P.margin;
@@ -280,7 +282,7 @@ const Debug = {
 
 // the dev menu: two columns of things you can click, ticks for what shows on the left, and tools and
 // keys on the right. it's one element that works out where everything goes each frame (layout()), so
-// the editor's part can come and go, and it sits in the top left under the editor toolbar if that's
+// the editor's part can come and go, and it sits in the top left under the editor's menu bar if that's
 // open
 class DevMenu extends UIElement {
   constructor(options) {
@@ -293,7 +295,7 @@ class DevMenu extends UIElement {
   // every bit of the menu as { x, y, w, h, kind, click? } in screen px
   layout() {
     const M = DEV_MENU;
-    this.x = DEV_PANEL.margin;
+    this.x = (Editor.active ? EDITOR_LAYOUT.toolStripWidth : 0) + DEV_PANEL.margin;
     this.y = (Editor.active ? EDITOR_LAYOUT.toolbarHeight : 0) + DEV_PANEL.margin;
     this.w = M.padding * 3 + M.columnWidth * 2;
 
@@ -463,8 +465,13 @@ function shownKeys(action) {
 // a KEYS code (an e.code name, config.js) as it's printed on the key: 'KeyG' is G, 'Control+KeyD' is
 // Ctrl+D. anything else (like 'WASD') stays as it is
 function keyName(code) {
-  const names = { Backquote: '`', Equal: '=', Minus: '-', Control: 'Ctrl' };
-  return code.split('+').map((part) => names[part] ?? part.replace(/^(Key|Digit)(.)$/, '$2')).join('+');
+  const names = {
+    Backquote: '`', Equal: '=', Minus: '-', Control: 'Ctrl', Slash: '/', Backslash: '\\', Comma: ',', Period: '.',
+    Semicolon: ';', Quote: "'", BracketLeft: '[', BracketRight: ']', Escape: 'Esc', Delete: 'Del',
+    ShiftLeft: 'Shift', ShiftRight: 'Shift', ControlLeft: 'Ctrl', ControlRight: 'Ctrl', AltLeft: 'Alt', AltRight: 'Alt',
+    ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→',
+  };
+  return code.split('+').map((part) => names[part] ?? part.replace(/^(Key|Digit|Numpad)(.)$/, '$2')).join('+');
 }
 
 // green when it's smooth, yellow when it's a bit slow, red when it's struggling

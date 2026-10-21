@@ -22,6 +22,8 @@ function getMap(name) {
   if (!VISITED_MAPS[name]) {
     VISITED_MAPS[name] = MAPS[name]();
     VISITED_MAPS[name].name = name;
+    // it might have been checked before a tile it uses was renamed (tilemap.js)
+    VISITED_MAPS[name].updateTileNames();
   }
   return VISITED_MAPS[name];
 }

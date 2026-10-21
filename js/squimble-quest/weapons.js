@@ -278,7 +278,8 @@ const DamageNumbers = {
   // amount is the hit's damage, mine is whether it hit this computer's player
   add(target, amount, mine) {
     const shown = Math.round(amount);
-    if (shown <= 0) return;
+    // turned off in the pause menu (GAME_SETTINGS in config.js)
+    if (shown <= 0 || !GAME_SETTINGS.damageNumbers) return;
     const size = DAMAGE_NUMBER.size + (DAMAGE_NUMBER.bigSize - DAMAGE_NUMBER.size) * Math.min(1, shown / DAMAGE_NUMBER.big);
     this.list.push({
       x: target.x, y: target.y - target.h / 2,

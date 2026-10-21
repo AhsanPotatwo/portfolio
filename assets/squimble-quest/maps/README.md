@@ -52,9 +52,9 @@ Rooms below, left to right:
 ## Quick start
 
 1. Open the game, click it, press **`** or **Ctrl + D** (developer mode), then **B** (map editor).
-2. Click **New** in the toolbar along the top, type a width and height, and choose what to fill it with. Or just edit the map you're on.
+2. Click **File > New map** in the menu bar along the top, type a width and height, and choose what to fill it with. Or just edit the map you're on.
 3. Paint tiles and place objects.
-4. Click **Export** in the toolbar, type a name, and it downloads as `yourname.json`.
+4. Press **Ctrl + S** (or **File > Save**), type a name, and it downloads as `yourname.json`.
 5. Move the file into this folder (`assets/squimble-quest/maps/`).
 6. Add its name (without `.json`) to `index.json` in this folder:
 
@@ -66,17 +66,25 @@ Rooms below, left to right:
 
 ## Making a map
 
-Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything you do changes the map you're on, so you can close the editor (**B**, or **Play** in the toolbar) and walk around it straight away.
+Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything you do changes the map you're on, so you can close the editor (**B**, or **▶ Play** at the top) and walk around it straight away, or press **Space** to start playing from wherever the mouse is.
 
-It's laid out like a game engine: a **toolbar** along the top (the map's buttons, the Paint and Erase tools, Grid, Dev (the dev menu) and Play, and the map's name and size on the right), a **dock** on the right (the **palette** of things to place, and the **inspector** under it showing what's picked), and a **status bar** along the bottom (the tile under the mouse, what a click does, and the zoom).
+It's laid out like a game engine:
+
+- a **menu bar** along the top: **File** (new, open, save, recover), **Edit** (undo, redo, cut, copy, paste, select all, search), **View** (grid, atmosphere, AI routes, zoom, hide the editor, dev menu), **Map** (resize, atmosphere, check for problems, art report), **Tools** and **Help** (every key). Each menu line shows its key. **▶ Play** and **Play here** are in the middle, and the map's name and size on the right, with a yellow dot while it has changes that aren't saved
+- a **tool strip** down the left: **Paint**, **Erase**, **Fill**, **Rectangle**, **Select** and **Pick**, the **brush** size, and **undo** and **redo**. Rest the mouse on one to see what it does and its key
+- a **dock** on the right: the **palette** of things to place, with a **search** box and a row of what you picked lately above it, and the **inspector** under it showing what's picked
+- a **status bar** along the bottom: the tile under the mouse, what a click does, the selection's size, the brush and the zoom
 
 | Control | What it does |
 |---|---|
 | **Tiles** / **Objects** / **Enemies** / **NPCs** / **Triggers** / **Weapons** / **Armour** / **Items** / **Sounds** / **Voices** / **Particles** tabs at the top of the palette | Switch between the ground tiles, objects (furniture, decorations…), enemies, friendly NPCs, triggers (the player's spawn point, and warps), weapons, things you wear, other items, sound blocks, NPC voices and particle effects. When there are more tabs than fit, **‹ ›** (or the mouse wheel over them) scrolls along. **Lights** is an empty example for now |
-| A weapon or item picked | Click the map to put one on the ground (it isn't saved by Export). **Give** in the inspector puts one in your inventory, **Edit** (or right click it in the palette) changes its name, rarity, colour, where it's worn (**Worn on**, for the equipment slots) and everything about its weapon: **Weapon** (swing or shoot, how many hits its combo has, the time to carry on the combo, for bows how long to hold to fully draw, how strong a quick tap is and how fast you walk while drawing, how fast you walk while holding it, and its colour), **Hit** (damage, reach, arc, windup before a swing, timings, arrow speed) and **Feel** (knockback, stagger, lunge, recoil, screen shake and how long it lasts, hit stop). Each combo hit has its own Hit and Feel numbers: pick which with **Hit** at the top. The box on the right keeps doing the whole combo on a dummy over a faint tile grid, shaking like the screen would, so you can tune it as you drag (click it to start over). Rest the mouse on a row to see what it does. The enemies' own weapons (like the grunt's claws) are at the end of the Weapons tab with a little enemy badge: click one to change it the same way. **Export** in the inspector downloads the file of each item or enemy you've changed: put them in `assets/squimble-quest/items/` or `enemies/` (replacing the old ones) to keep the changes |
-| **New** / **Open** / **Resize** / **Export** (toolbar) | Make a new map, open a map file, change this map's size, or save it as a file |
-| **Atmosphere** (toolbar) | The map's fog, colour, weather and background sound. See [Atmospheres](#atmospheres) |
-| Click something in the palette | Choose it, and switch to the **Paint** tool. Hover over one to see its name. The mouse wheel scrolls the palette while the mouse is over it |
+| A weapon or item picked | Click the map to put one on the ground (it isn't saved with the map). **Give** in the inspector puts one in your inventory, **Edit** (or right click it in the palette) changes its name, rarity, colour, where it's worn (**Worn on**, for the equipment slots) and everything about its weapon: **Weapon** (swing or shoot, how many hits its combo has, the time to carry on the combo, for bows how long to hold to fully draw, how strong a quick tap is and how fast you walk while drawing, how fast you walk while holding it, and its colour), **Hit** (damage, reach, arc, windup before a swing, timings, arrow speed) and **Feel** (knockback, stagger, lunge, recoil, screen shake and how long it lasts, hit stop). Each combo hit has its own Hit and Feel numbers: pick which with **Hit** at the top. The box on the right keeps doing the whole combo on a dummy over a faint tile grid, shaking like the screen would, so you can tune it as you drag (click it to start over). Rest the mouse on a row to see what it does. The enemies' own weapons (like the grunt's claws) are at the end of the Weapons tab with a little enemy badge: click one to change it the same way. **Export** in the inspector downloads the file of each item or enemy you've changed: put them in `assets/squimble-quest/items/` or `enemies/` (replacing the old ones) to keep the changes |
+| **File > New map** / **Open map** (**Ctrl + O**) / **Map > Resize** | Make a new map, open a map file, or change this map's size |
+| **File > Save** (**Ctrl + S**) / **Save as** (**Ctrl + Shift + S**) | Download the map's file to put in this folder. Save uses its name (or asks, for a map that's never been saved); Save as always asks. See [Saving and unsaved changes](#saving-and-unsaved-changes) |
+| **Map > Atmosphere** | The map's fog, colour, weather and background sound. See [Atmospheres](#atmospheres) |
+| Click something in the palette | Choose it. Hover over one to see its name. The mouse wheel scrolls the palette while the mouse is over it. It also goes in the row above the palette |
+| **Search** box above the palette (**/** or **Ctrl + F**) | Type part of a name to only show matching ones. **Enter** picks the first, **Escape** empties it. If nothing on this tab matches it says which tabs have some. While it has the typing, the editor's keys wait |
+| The row above the palette | What you picked lately. Click one to pick it again (its tab opens), **Shift + click** pins it to the front (a blue dot), right click takes it off. **Shift + click** a palette square pins it too |
 | Left click / drag (tile chosen) | Paint that tile, replacing the one there. Tiles with a little badge of two overlapping squares in the corner are dual grid tiles (like grass): their edges round off and blend into the tiles next to them by themselves |
 | **New** / **Edit** in the inspector, or right click a tile in the palette (**Tiles** tab) | Make a tile, or see and change everything about one. **Export** (next to them) saves them all. See the [tiles README](../tiles/README.md) |
 | Left click (object chosen) | Place the object, its top-left corner on the tile under the mouse. A see-through preview shows where it'll go |
@@ -88,31 +96,50 @@ It's laid out like a game engine: a **toolbar** along the top (the map's buttons
 | Left click (**Particles** tab) | Try the effect out here: it bursts from half a tile up, fanned out to the right as if hit from the left. Nothing is placed or saved. **New** / **Edit** in the inspector (or right click one in the palette) opens the particle editor: tabs of sliders (how many, speed, spread, jump height, gravity, air drag, floor grip, bounce, wind, walls, shape, two colours, size, end size, spin, picture, bits, how long they last, fade, opacity, glow, shadow) with a preview beside them that bursts every 1.5 seconds (click it for another). Right click a slider to put it back to normal. Shapes are squares, circles, a whole picture, or bits cut from a picture (**Bits across** sets how many; lots gives single pixels). **Choose picture** picks one from your computer; left as **the thing's own**, an enemy's picture is used. Gravity below 0 floats them up, like smoke. **Start higher** starts them above where they come from. The **Keep going** tab is for tiles and objects that make it nonstop: **Bursts** is how many times a second each one bursts it, and the preview shows one tile making it while that tab's open. Saving under a new name makes a copy. **Export** downloads the changed effects (and new pictures, for `particles/pictures/`) |
 | Tiles and objects that make particles nonstop | A tile kind ticks its effects on the tile editor's **Particles** tab (lava bubbles and smokes). An object kind lists them in its file in `objects/`, like the **campfire** (flames, smoke, embers): `"particles": ["campfire-flames", "campfire-smoke"]`, plus optional `particleRate` (2 is twice as often) and `particleX`, `particleY` (px to move where they come from, like up to a chimney). Only ones on screen make any, and if there'd be too many they all turn down evenly, so the game stays smooth. Dev mode's **Particles** readout shows how many there are and how far they're turned down |
 | Right click | Change the settings of what's under the mouse: a warp, a sound block, an enemy (its weapon and armour; its **Stats**: health, speed, damage, attack rate, and how much knockback and stagger it takes; its **Behaviour**: AI, following through warps, and how far it sees, hears, chases and alerts allies, how long it remembers you and how close it gets to attack; its sound and particles; beside a picture of it). The sliders start on its kind's numbers: once you move one, a yellow tick marks the kind's and the number turns yellow, and right click or **Reset** puts them back, or an NPC's voice. Rest the mouse on a row in any of these boxes to see what it does |
-| **Erase** (toolbar), then left click / drag | Delete. Starting on an object, enemy, NPC, warp or sound block removes those; starting on bare ground empties tiles |
+| **Erase** (**X**), then left click / drag | Delete. Starting on an object, enemy, NPC, warp or sound block removes those; starting on bare ground empties tiles. **Shift + drag** erases a rectangle the same way |
+| **Paint** (**N**) | Click to place what's picked, or drag to paint tiles. **Shift + drag** paints a rectangle of the picked tile |
+| **Brush** (**,** and **.**, or click / right click / wheel on it) | How many tiles across Paint and Erase are, 1 to 5 |
+| **Fill** (**L**), then click | Fills the patch of the same tile (joined up, down, left or right) with the picked tile. Empty patches fill too |
+| **Rectangle** (**R**), then drag | Fills a box with the picked tile |
+| **Select** (**V**), then drag | Selects a box. **Ctrl + C** copies what's in it (tiles, objects, enemies and NPCs with their settings, warps, sound blocks and areas), **Ctrl + X** cuts it, **Delete** clears it. **Ctrl + A** selects the whole map, **Escape** lets go |
+| **Ctrl + V** | The copy follows the mouse (its top left on the mouse's tile), and each click stamps it, until **Escape** or right click. Empty tiles in the copy don't paste over anything, so it stamps like a sticker. Pasted warps get a name of their own. It works on other maps too |
+| **Pick** (**K**), or **Alt + click** with any tool | Picks what's under the mouse in the palette: an enemy or NPC, then an object, an item, a warp, a sound block, then the tile. An empty tile turns on Erase |
+| **Ctrl + Z** / **Ctrl + Y** (or **Ctrl + Shift + Z**) | Undo and redo anything on the map: painting (a whole drag is one undo), erasing, filling, pasting, placing, and the settings boxes (one undo each). Each map has its own, until you reload. Tiles', sounds' and items' own settings aren't undone this way (their boxes have Cancel) |
+| **Space**, or **Play here** then click the map | Close the editor and start playing on that tile. Opening the editor again goes back to where you were |
+| **Tab** | Hide the editor to see the map on its own. **Tab** again brings it back |
+| **Map > Check for problems** | A list of things that'd go wrong in the game: the spawn or a warp players arrive at on a solid or empty tile, warps that go nowhere real, enemies or NPCs standing in walls, sounds, voices, items, particles and atmospheres that don't exist. Click one to go there (it flashes). It checks again as you fix things. Drag it by its title |
+| **Map > Art report** | Pictures that didn't load or are the wrong size: tiles that aren't square, variants and frames a different size to their texture, dual grid tilesets that can't be cut up, objects whose picture is a different shape to their tiles. Click one to pick it in the palette. Handy after adding a batch of sprites |
+| **Help > Keys and mouse** | Every key and mouse action in one list |
 | **WASD** | Move around the map. The editor's buttons and panels fade out while you move, so you can see the map, and come back when you stop |
 | **−** **=** or mouse wheel | Zoom out and in (**0** resets) |
 | **M** | Go to the next map |
 | **G** | Show or hide the tile grid |
-| **H** | Open or close the dev menu (**Dev** in the toolbar does too): tick what the info panel and the map show, click tools, and see every key |
+| **H** | Open or close the dev menu (**View > Dev menu** does too): tick what the info panel and the map show, and click tools |
 | **B** | Close the editor |
 
 Empty tiles show the dark background and can't be walked on, like the edge of the map.
 
-While the editor's open, everyone stands still. Opening it brings back every enemy placed on the map, including ones you've defeated, so you always see the whole design (it's also a quick way to reset them while testing). Closing it puts every enemy and NPC back where it was placed, with full health. Defeating an enemy never removes it from the map, so it's still in the file when you export.
+While the editor's open, everyone stands still. Opening it brings back every enemy placed on the map, including ones you've defeated, so you always see the whole design (it's also a quick way to reset them while testing). Closing it puts every enemy and NPC back where it was placed, with full health. Defeating an enemy never removes it from the map, so it's still in the file when you save.
+
+### Saving and unsaved changes
+
+**Ctrl + S** (**File > Save**) downloads the map's file (`name.json`): put it in this folder, replacing the old one, and add the name to `index.json` if it's new. **Save as** (**Ctrl + Shift + S**) asks for a name first, and saving under a new name works like "save as" anywhere (see [Changing a map that's already in the game](#changing-a-map-youve-already-made)).
+
+While a map has changes since it loaded or was last saved, a yellow dot shows by its name at the top right, and a copy is kept in your browser, so reloading the page or closing it doesn't lose them. After a reload, opening the editor says which maps have unsaved changes: **File > Recover unsaved changes** lists them, and each can be brought back (you go to it, still unsaved until you save it), thrown away, or left for later. Changing a map without bringing its changes back first replaces the old copy. Undoing back to how it was saved throws the copy away.
 
 ### New maps
 
-Click **New** in the toolbar. A box asks for the width and height in tiles: click a number (or press **Tab**) to type into it, then press **Enter** or **Make map** (**Escape** or **Cancel** closes it). The smallest is 1 × 1 and the biggest is 500 × 500. Tile `(0, 0)` is in the middle of the new map, and that's where the player spawns.
+Click **File > New map**. A box asks for the width and height in tiles: click a number (or press **Tab**) to type into it, then press **Enter** or **Make map** (**Escape** or **Cancel** closes it). The smallest is 1 × 1 and the biggest is 500 × 500. Tile `(0, 0)` is in the middle of the new map, and that's where the player spawns.
 
 **Fill** is what every tile starts as. It starts on `blank` (plain white). Click it to pick from a list of every tile (with their pictures), or use its **‹ ›** arrows to step through them. The last one is **empty**: the map starts with no tiles at all.
 
 **Rooms that aren't rectangles** (L-shapes, crosses, rooms joined by corridors): fill with **empty**, make the map big enough to fit the whole shape, then paint the floor in the shape you want. Everything you don't paint stays empty, and empty tiles work like walls. Remember to put the spawn point (**Triggers** tab) on the floor.
 
-A new map is called `new-map` until you export it with a name of its own.
+A new map is called `new-map` until you save it with a name of its own.
 
 ### Resizing a map
 
-Click **Resize** in the toolbar, and type the new width and height into the box (it works like the **New map** one). The map grows or shrinks around its middle, and any new space is empty, ready to paint.
+Click **Map > Resize**, and type the new width and height into the box (it works like the **New map** one). The map grows or shrinks around its middle, and any new space is empty, ready to paint.
 
 It can't be made smaller than the area with tiles in it: the box says what the smallest is, and won't go any lower. So a 10 × 10 map made 20 × 20 can go back to 10 × 10, but if you've painted one tile past the old edge on the right and bottom, the smallest is 11 × 11. Objects, enemies and NPCs on any part that's cut off are removed.
 
@@ -178,7 +205,7 @@ Making and changing the sounds themselves is in the [sounds README](../sounds/RE
 
 An atmosphere is how a map *feels*: fog drifting over it, light rippling on a sea floor, cloud shadows or stars, a colour over everything, colour drained out, flickering firelight, dark or bright edges, weather (rain, snow, ash, embers, bubbles, sand, spores, fireflies, falling leaves, floating dust), flashes of lightning and a sound looping in the background. The game will have worlds of different themes, and a world's maps can all share one atmosphere, so changing it changes all of them.
 
-Click **Atmosphere** in the toolbar. The box changes the map behind it as you drag, and the picture on its right shows it over a made-up bit of map, for when the box is in the way. Drag the box by its title to see more.
+Click **Map > Atmosphere**. The box changes the map behind it as you drag, and the picture on its right shows it over a made-up bit of map, for when the box is in the way. Drag the box by its title to see more.
 
 - **Main**: **Atmosphere** is the one this map uses (**none** for none). Picking another starts on that one, and its little picture shows what it looks like. **Save as** is the name it's saved under: a new name makes a copy and leaves the old one, and leaving it empty takes the atmosphere off this map. **Sound** loops everywhere on the map (silent in the editor), at **Volume**. **Pixel size** is how chunky fog and the overlay are: bigger is more pixel art and quicker on slow computers, and unticking **Smooth** gives them hard pixel edges. **Bands** steps them into flat shades, for a cel shaded look.
 - **Colour**: a **Tint** over everything (blue underwater, orange in a volcano), how strong, and how it mixes (**Tint mode**: shades, brightens, recolours...). **Drained** takes the colour out of everything. **Flicker** makes the tint flicker like firelight, at **Flicker rate**. **Edges** darken (or with a light **Edge colour**, brighten) the edges of the screen.
@@ -190,7 +217,7 @@ Rest the mouse on any row to see what it does, and right click a slider to put i
 
 The ones in `atmospheres/` are a start for each kind of world, to use or copy: **misty-forest**, **underwater**, **volcano**, **inferno**, **desert**, **wasteland**, **snowfield**, **swamp**, **cave**, **storm**, **space**, **alien** and **dreamy**.
 
-To see the map without its atmosphere while you build, untick **Atmosphere** in the dev menu (**H**, or **Dev** in the toolbar). It hides areas too. A map whose atmosphere has been renamed or deleted just has none (the console says so); pick another.
+To see the map without its atmosphere while you build, untick **View > Atmosphere** (or **Atmosphere** in the dev menu, **H**). It hides areas too. A map whose atmosphere has been renamed or deleted just has none (the console says so); pick another.
 
 ### Atmosphere areas
 
@@ -202,13 +229,13 @@ An area is a box or oval of tiles with an atmosphere of its own, on top of the m
   - **Where** tab: its left column, top row, width and height in tiles (type a minus sign for negative numbers).
 - **What it does:** its fog, overlay, tint and drained colour sit on the ground inside it, so you see the graveyard's fog from outside. Its weather only falls inside it, thinning out over the fade. Its sound comes from the nearest part of it, getting louder as you walk in (from as far as the sound's own **Heard from**). Its screen **Edges** and **Flashes** grow as you walk in, so stepping into the graveyard darkens the edges of the screen.
 - In the editor, areas show as dashed outlines with their atmosphere's name (red if it isn't loaded); the dotted line inside shows where the fade ends. While editing, the edges and flashes go by the middle of the screen rather than the player.
-- Overlapping areas all draw, the last made on top, and right click opens the last made. Areas are saved in the map file (**Export** the map).
+- Overlapping areas all draw, the last made on top, and right click opens the last made. Areas are saved in the map file (save the map).
 
 The atmospheres made for areas are **graveyard**, **lava-heat** and **hot-spring**, with the particles **ghost-lights** and **steam**, and the objects **gravestone**, **crypt** and **dead-tree** for the test graveyard.
 
 ### Changing a map you've already made
 
-Go to it with **M** (or **Open file**), edit it, **Export** it with the same name, and replace the old file in this folder with the new one.
+Go to it with **M** (or **File > Open map**), edit it, save it (**Ctrl + S**, same name), and replace the old file in this folder with the new one.
 
 ## Playing a map without adding it to the game
 
@@ -229,7 +256,7 @@ The **M** key goes through every map in this order:
 1. The maps in `index.json`, in the order they're listed
 2. Any maps made, opened or exported since the page loaded
 
-Opening or exporting a map with the same name as one that's already loaded replaces it until you reload the page. Exporting under a **new** name works like "save as": the map you're on becomes the new one, and the old name goes back to its own file (without your unsaved changes).
+Opening or saving a map with the same name as one that's already loaded replaces it until you reload the page. Saving under a **new** name (**Save as**) works like "save as": the map you're on becomes the new one, and the old name goes back to its own file (without your unsaved changes).
 
 Going to a different map and back keeps the changes you made in the editor, but reloading the page loses them, so export them first.
 

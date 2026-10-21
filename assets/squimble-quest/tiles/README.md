@@ -6,7 +6,7 @@ Every tile in the game is its own file in this folder, named after it (`lava.jso
 |---|---|
 | `grass.json`, `lava.json`… | One tile each: its colour, texture and settings |
 | `index.json` | The names of the tiles the game loads, in palette order |
-| `normal/` | Textures for normal tiles: one picture, drawn on every tile of that kind (planks, a tiled floor, a wall). 16 × 16 pixel art works well |
+| `normal/` | Textures for normal tiles: one picture, drawn on every tile of that kind (planks, a tiled floor, a wall), plus any variants and animation frames. 16 × 16 pixel art works well |
 | `dual-grid/` | Tilesets for dual grid tiles: ground that rounds off and blends into the tiles next to it (grass, dirt, sand, stone, gravel). A square picture of 4 × 4 pieces, e.g. 64 × 64 with 16 × 16 pieces |
 
 ## Making or changing a tile
@@ -15,9 +15,14 @@ Every tile in the game is its own file in this folder, named after it (`lava.jso
 2. On the palette's **Tiles** tab, click **New** in the inspector, or **right click** a tile in the palette (or pick it and click **Edit**) to change it. Changes to a tile that's already on the map show on the map as you make them; drag the box by its title bar to see behind it. **Save** keeps them, **Cancel** (or **×**, or **Escape**) puts the tile back.
 3. Set it up. The pictures on the right show the texture file and how the tile looks on the map as you go. Rest the mouse on a setting to see what it does. A choice with **‹ ›** steps with the arrows, or click its middle to see every option in a list. The tabs along the top switch between groups of settings:
    - **Look**
+     - **Name**: what maps call it. Changing it renames the tile when you save, and maps keep working (the tile remembers its old name, so map files that still say it get this tile).
      - **Kind**: **normal**, or **dual grid**.
      - **Colour**: what it looks like without a texture, e.g. `#6fae4f`. Click the square at the end of the box for a colour picker, or paste one in with **Ctrl + V** (hex like `#6fae4f`, or rgb like `rgb(111, 174, 79)`).
      - **Texture**: click **Choose picture** to pick one from your computer, or set it back to **none, just colour**. A texture always covers the colour.
+     - **Variants** (normal tiles with a texture): more pictures. Each tile on the map shows the texture or one of these, picked by where it is so it never changes, so a field of grass doesn't look like the same square over and over. Click **+** to add a picture from your computer, and click one to take it off.
+     - **Frames** (normal tiles with a texture): pictures it goes through after the texture, so it moves (water, lava, flowers in the wind). Every tile of the kind moves together. A tile with frames doesn't use its variants.
+     - **Frame time**: how long each frame shows, in milliseconds.
+     Variants and frames should be the same size as the texture (the editor's **Map > Art report** lists any that aren't).
    - **Behaviours**
      - **Solid**: nothing can walk onto it.
      - **See over**: for solid tiles you can see across, like water. Enemies can spot you over it; other solid tiles (walls, roofs) block their view.
@@ -55,7 +60,7 @@ Every tile in the game is its own file in this folder, named after it (`lava.jso
 
    Every Behaviours and Effects setting works on enemies and NPCs too.
 4. Click **Save**. It's in the game straight away, so you can paint with it and walk on it.
-5. Click **Export** in the inspector. It downloads the file of every tile you've made or changed (like `ice.json`), and the picture too if you chose a new one. The message on screen says where each goes:
+5. Click **Export** in the inspector. It downloads the file of every tile you've made or changed (like `ice.json`), and the pictures too if you chose new ones (texture, variants, frames). The message on screen says where each goes:
    - drag the tile files into this folder in VS Code, replacing any old ones
    - for a new tile, add its name to `index.json`, like `"ice"`
    - drag the picture into `normal/` or `dual-grid/`
@@ -79,9 +84,10 @@ Each tile's file only needs the settings that are different from normal (`TILE_D
 }
 ```
 
-Do these by hand, since the tile editor doesn't:
+**Renaming** is the **Name** box (above). **Deleting**: open the tile and click **Delete tile** under the pictures. It says which maps use it and asks what to put in its place (another tile, or empty). Maps that use it get the replacement, now and whenever they load, since the replacement remembers the deleted name. Either way, **Export** afterwards says which old file to delete and what to change in `index.json`.
+
+Do this by hand, since the tile editor doesn't:
 
 - **Reorder tiles**: the order in `index.json` is the order in the editor's palette. Where two dual grid tiles meet, the one further down goes on top, so put the ones underneath first (dirt before grass).
-- **Rename or delete a tile**: rename or delete its file and its name in `index.json`. Maps store tile names, so this loses the tile from every map that uses it. The browser console lists what went missing.
 
 If a texture can't be found, the tile is drawn in its colour and the browser console says why.

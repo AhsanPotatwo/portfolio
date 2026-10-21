@@ -2,8 +2,15 @@
 // it only listens while the canvas has focus, otherwise the arrow keys couldn't scroll the page.
 // properties starting with _ are only meant to be used inside this file
 
-// longer key names that count as typing while Input.typing is on (single characters always do)
-const TYPING_KEYS = ['Backspace', 'Delete', 'Enter', 'Escape', 'Tab'];
+// longer key names that count as typing while Input.typing is on (single characters always do). the
+// arrows nudge number boxes (NumberField in textfield.js)
+const TYPING_KEYS = ['Backspace', 'Delete', 'Enter', 'Escape', 'Tab', 'ArrowUp', 'ArrowDown'];
+// typing keys that come in as 'Shift+Tab' and so on while Shift is held (going back a field, nudging
+// by 10)
+const SHIFTED_TYPING_KEYS = ['Tab', 'ArrowUp', 'ArrowDown'];
+// Ctrl + these does what the browser normally does while typing (paste, copy, cut, select all), so
+// pasting into a box still works even though the editor uses them too
+const BROWSER_TYPING_KEYS = ['KeyV', 'KeyC', 'KeyX', 'KeyA'];
 
 const Input = {
   // the canvas has focus. "click to play" shows when it doesn't (hud.js)
@@ -12,14 +19,26 @@ const Input = {
   // ---------- keyboard ----------
   // e.code of every key being held, like 'KeyW'
   held: new Set(),
-  // keys that went down since last frame (only lasts one frame, see update())
+  // keys that went down since last frame (only lasts one frame, see update()), and the ones of those
+  // that went down with Shift held (wasPressedWithShift())
   keysPressed: new Set(),
+  keysPressedWithShift: new Set(),
   // something's being typed into (textfield.js). keys go into typed instead and none of them count
   // for the game
   typing: false,
   // what was typed since last frame while typing, as e.key names ('7', 'Backspace', 'Enter',
-  // 'Escape', 'Tab'...) plus { paste: 'text' } for Ctrl + V. only lasts one frame
+  // 'Escape', 'Tab', 'ArrowUp'...) plus { paste: 'text' } for Ctrl + V. with Shift held, Tab and the
+  // arrows come in as 'Shift+Tab', 'Shift+ArrowUp'... only lasts one frame
   typed: [],
+  // whether Shift, Alt and Ctrl are held, from the last key or mouse event (the editor's Alt + click
+  // picks, and Shift + drag draws a rectangle)
+  shift: false,
+  alt: false,
+  ctrl: false,
+  // every code in KEYS, so their normal browser behaviour gets blocked. rebuildKeys() makes it again
+  // after the pause menu changes a key
+  gameKeys: new Set(),
+  // a function waiting for the next key press (captureNextKey()), or null
 
   // ---------- mouse ----------
   // screen position in game pixels (0 to GAME_W, GAME_H), whatever size the canvas is on the page. the
@@ -37,12 +56,14 @@ const Input = {
   // true stops the wheel scrolling the page. the hotbar turns it on (inventory.js)
   captureWheel: false,
 
+  _capture: null,
   _el: null,
   // the browser's mouse position in page pixels, turned into game pixels in update()
   _clientX: null,
   _clientY: null,
   // input that's happened but the game hasn't seen yet
   _pendingKeys: new Set(),
+  _pendingShiftKeys: new Set(),
   _pendingTyped: [],
   _pendingClicks: new Set(),
   _pendingReleases: new Set(),
@@ -57,30 +78,53 @@ const Input = {
     // so it can get focus by clicking or tabbing to it
     el.setAttribute('tabindex', '0');
 
-    // every key the game uses. their normal browser behaviour gets blocked
-    const gameKeys = new Set(Object.values(KEYS).flat());
+    this.rebuildKeys();
+    // the modifier keys, kept up to date by every key and mouse event
+    const modifiers = (e) => {
+      this.shift = e.shiftKey;
+      this.alt = e.altKey;
+      this.ctrl = e.ctrlKey;
+    };
 
     el.addEventListener('keydown', (e) => {
+      modifiers(e);
+      // the pause menu waiting for a key to use for something. Escape gives up
+      if (this._capture && !e.repeat) {
+        e.preventDefault();
+        const capture = this._capture;
+        this._capture = null;
+        capture(e.code === 'Escape' ? null : e.code);
+        return;
+      }
+      // Alt on its own would open the browser's menu in some browsers (Alt + click picks in the editor)
+      if (e.key === 'Alt') e.preventDefault();
       // while typing, characters and TYPING_KEYS get typed instead of used. other keys (F5, F12...)
       // still work like normal
       if (this.typing && !e.ctrlKey && (e.key.length === 1 || TYPING_KEYS.includes(e.key))) {
         // stops things like Tab moving focus off the canvas
         e.preventDefault();
-        this._pendingTyped.push(e.key);
+        this._pendingTyped.push(e.shiftKey && SHIFTED_TYPING_KEYS.includes(e.key) ? `Shift+${e.key}` : e.key);
         return;
       }
 
       // with Ctrl held, a combo the game uses (like 'Control+KeyD') counts instead of the plain key,
       // so Ctrl + D doesn't also walk right. only combos in KEYS (config.js) count
       const combo = `Control+${e.code}`;
-      const name = e.ctrlKey && gameKeys.has(combo) ? combo : e.code;
-      if (!gameKeys.has(name)) return;
+      // while typing, Ctrl + V and the like do the browser's normal thing (the paste event below), and
+      // the only combo that counts is dev mode's (it closes the editor even while a box is open)
+      if (this.typing && e.ctrlKey && !KEYS.devMode.includes(combo)) {
+        if (!BROWSER_TYPING_KEYS.includes(e.code) && this.gameKeys.has(combo)) e.preventDefault();
+        return;
+      }
+      const name = e.ctrlKey && this.gameKeys.has(combo) ? combo : e.code;
+      if (!this.gameKeys.has(name)) return;
 
       // game keys don't scroll the page or trigger browser Ctrl shortcuts
       e.preventDefault();
       this.held.add(name);
       // ignore the repeats you get from holding a key down
       if (!e.repeat) this._pendingKeys.add(name);
+      if (!e.repeat && e.shiftKey) this._pendingShiftKeys.add(name);
     });
 
     // Ctrl + V isn't caught as typing above, so the browser does its paste and this picks it up. it's
@@ -92,17 +136,20 @@ const Input = {
     });
 
     el.addEventListener('keyup', (e) => {
+      modifiers(e);
       this.held.delete(e.code);
       this.held.delete(`Control+${e.code}`);
     });
 
     // on window, so aiming still works if the mouse slips off the canvas
     window.addEventListener('pointermove', (e) => {
+      modifiers(e);
       this._clientX = e.clientX;
       this._clientY = e.clientY;
     });
 
     el.addEventListener('pointerdown', (e) => {
+      modifiers(e);
       // focus arrives after this event, so the click that starts the game isn't also an attack
       if (!this.focused) return;
       const button = MOUSE_BUTTONS[e.button];
@@ -144,12 +191,25 @@ const Input = {
       this.held.clear();
       this.buttonsHeld.clear();
       this._pendingKeys.clear();
+      this._pendingShiftKeys.clear();
       this._pendingTyped = [];
       this._pendingClicks.clear();
       this._pendingReleases.clear();
       this._pendingWheel = 0;
       this._claimed.clear();
+      this.shift = this.alt = this.ctrl = false;
     });
+  },
+
+  // makes gameKeys again from KEYS, after a key's been changed (pausemenu.js)
+  rebuildKeys() {
+    this.gameKeys = new Set(Object.values(KEYS).flat());
+  },
+
+  // the next key pressed goes to onKey(code) instead of the game (or null if it was Escape). for the
+  // pause menu's key changing
+  captureNextKey(onKey) {
+    this._capture = onKey;
   },
 
   // once at the start of every frame, before anything reads the input
@@ -161,6 +221,8 @@ const Input = {
     // the pending input becomes this frame's and is gone next frame, so each press only counts once
     this.keysPressed = this._pendingKeys;
     this._pendingKeys = new Set();
+    this.keysPressedWithShift = this._pendingShiftKeys;
+    this._pendingShiftKeys = new Set();
     this.typed = this._pendingTyped;
     this._pendingTyped = [];
     this.buttonsPressed = this._pendingClicks;
@@ -191,6 +253,12 @@ const Input = {
   // was the action pressed this frame (once per press). for one-off things like toggles
   wasPressed(action) {
     return KEYS[action].some((code) => this.keysPressed.has(code));
+  },
+
+  // was it pressed with Shift held, like Ctrl + Shift + Z (Shift may be let go before the frame runs,
+  // so Input.shift can't tell)
+  wasPressedWithShift(action) {
+    return KEYS[action].some((code) => this.keysPressedWithShift.has(code));
   },
 
   // { x, y } each -1, 0 or 1 (y goes down). opposite keys cancel out

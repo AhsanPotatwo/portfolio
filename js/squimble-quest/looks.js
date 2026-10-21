@@ -289,7 +289,7 @@ DataFiles.register('part', {
   loaded: () => {
     for (const part of Object.values(PART_TYPES)) {
       part.img = part.image ? loadImage(part.image, undefined, () => {
-        console.warn(`Couldn't load "${part.image}" for the part ${part.name}, so it's left out`);
+        artProblem('part', part.name, part.image, "couldn't load, so it's left out"); // utils.js
         part.img = null;
       }) : null;
     }

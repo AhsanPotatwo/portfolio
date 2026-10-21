@@ -44,6 +44,8 @@ class Camera {
   // takes over a smaller one instead of adding up, so lots of little hits don't turn into an
   // earthquake. weapons shake it with their shake and shakeTime (hitWith() in weapons.js)
   shake(px, time) {
+    // turned off in the pause menu (GAME_SETTINGS in config.js)
+    if (!GAME_SETTINGS.screenShake) return;
     if (px <= this.shaking || time <= 0) return;
     this.shakeSize = px;
     this.shakeTime = time;

@@ -5,6 +5,10 @@
 //   - the tabs are Look, then TILE_BEHAVIOURS' tabs (Behaviours, Effects, Sounds, Footsteps), then Dual grid
 //     (blendsWith). settings with lots of choices (particles, which tiles blend onto it) are one row
 //     each with a list that drops down (MultiPicker in formbox.js), so the tabs never spill over
+//   - the Look tab has its name, kind, colour and texture, and for normal tiles more pictures:
+//     Variants (each tile on the map shows one of them or the texture, picked by where it is) and
+//     Frames (it goes through them, every Frame time ms, so it moves). the + adds a picture, clicking
+//     one takes it off. tiles.js draws them (tileImageAt())
 //   - a column down the side shows the texture file and a little patch of the tile like on the map
 //   - a tile that already exists changes on the map while you edit it (drag the box out of the way to
 //     see). Save keeps the changes, and Cancel, Escape or the x puts it back how it was
@@ -12,8 +16,9 @@
 //   - Export (next to New) downloads the file of every new or changed tile for
 //     assets/squimble-quest/tiles/ (DataFiles.export() in datafiles.js), plus any pictures
 //     chosen since the page loaded. the message says which folder they go in
-// there's no renaming or deleting, because maps store tile names, so either one would lose the tile
-// from every map. do those by hand in the tile files
+//   - changing the name renames it when it's saved, and Delete tile (down the side) asks for a tile to
+//     put in its place. maps keep working either way: the tile remembers the old name (oldNames in
+//     tiles.js), so map files that still say it get it. Export tiles then says which old file to delete
 
 // every setting apart from the look ones (TILE_DEFAULTS in tiles.js), each as a row in the editor on
 // its tab. the tabs come after Look in the order they're first mentioned, and a tab name that's new
@@ -91,9 +96,9 @@ const TileEditor = {
     const original = type && Object.fromEntries(['name', ...Object.keys(TILE_DEFAULTS)].map((key) => [key, type[key]]));
     const ownImg = type?.textureImg ?? null;
 
-    // the fields are kept in variables instead of reading them from onConfirm's values, because the
-    // Name row is only there for new tiles and would shift the rest along
-    const nameField = new TextField({ w: 180, value: '' });
+    // the fields are kept in variables instead of reading them from onConfirm's values. typing a new
+    // name for a tile that exists renames it when it's saved
+    const nameField = new TextField({ w: 180, value: type?.name ?? '', maxLength: 32 });
     // false is normal and true is dual grid, same as dualGrid in a tile file
     const kindPicker = new Picker({
       w: 180,
@@ -110,6 +115,10 @@ const TileEditor = {
       value: type?.texture ?? null,
       label: (file) => file ?? 'none, just colour',
     });
+    // more pictures, for normal tiles only (greyed out for dual grid), and how long each frame shows
+    const variantList = new PictureListField({ w: 180, value: type?.variants ?? [] });
+    const frameList = new PictureListField({ w: 180, value: type?.frames ?? [] });
+    const frameTimeField = new NumberField({ w: 90, value: Math.round((type?.frameTime ?? TILE_DEFAULTS.frameTime) * 1000), min: 20, max: 10000 });
     // a row for each TILE_BEHAVIOURS entry, starting on the tile's value (or the default)
     const behaviourRows = TILE_BEHAVIOURS.map((b) => {
       const value = type?.[b.key] ?? TILE_DEFAULTS[b.key];
@@ -159,12 +168,17 @@ const TileEditor = {
       return ownImg;
     };
     // the settings as they are now, in the same shape as a tile file (tiles.js)
+    // (an existing tile keeps its name until it's saved, then renameTile() renames it)
     const settingsNow = () => {
       const settings = {
         name: isNew ? cleanMapName(nameField.value) : type.name,
         colour: colourField.value.toLowerCase(),
         dualGrid: kindPicker.value,
         texture: texturePicker.value,
+        variants: variantList.value.length > 0 ? [...variantList.value] : null,
+        frames: frameList.value.length > 0 ? [...frameList.value] : null,
+        frameTime: frameTimeField.value / 1000,
+        oldNames: type?.oldNames ?? null,
       };
       for (const row of behaviourRows) settings[row.key] = row.scale ? row.field.value / row.scale : row.field.value;
       settings.blendsWith = blendPicker.value ? null : blendTiles.value;
@@ -179,8 +193,8 @@ const TileEditor = {
       // tile names follow the same rules as map names (cleanMapName() in mapfile.js), since maps
       // store them
       const name = cleanMapName(nameField.value);
-      if (isNew && !name) return 'It needs a name';
-      if (isNew && TILE_TYPES[name]) return `There's already a tile called ${name}`;
+      if (!name) return 'It needs a name';
+      if (TILE_TYPES[name] && name !== type?.name) return `There's already a tile called ${name}`;
       if (!HEX_COLOUR.test(colourField.value)) return 'The colour needs to look like #6fae4f';
       const img = picture();
       const tilesetProblem = kindPicker.value && img ? dualTilesetProblem(img) : null;
@@ -196,34 +210,50 @@ const TileEditor = {
         {
           label: 'Look',
           rows: [
-            // no renaming (see the top of this file)
-            ...(isNew ? [{ label: 'Name', field: nameField }] : []),
+            { label: 'Name', field: nameField, tip: isNew ? 'Letters, numbers, - and _' : 'A new name renames it when you save. Maps keep working' },
             { label: 'Kind', field: kindPicker },
             { label: 'Colour', field: colourField },
             { label: 'Texture', field: texturePicker },
+            { label: 'Variants', field: variantList, tip: 'More pictures. Each tile on the map shows the texture or one of these, so it looks less repeated' },
+            { label: 'Frames', field: frameList, tip: 'Pictures it goes through after the texture, so it moves. A tile with frames ignores its variants' },
+            { label: 'Frame time', field: frameTimeField, after: 'ms', tip: 'How long each frame shows' },
           ],
         },
         ...tabs,
       ],
       minRows: TILE_EDITOR_ROWS,
-      // the previews, with Choose picture under them
+      // the previews, with Choose picture (and Delete tile for one that exists) under them
       side: (x, y, w, h) => [
         new TilePreview({
-          x, y, w, h: h - 32,
-          look: () => ({ dualGrid: kindPicker.value, colour: colourField.value, img: picture(), problem: problem() }),
+          x, y, w, h: h - (isNew ? 32 : 60),
+          look: () => ({
+            dualGrid: kindPicker.value, colour: colourField.value, img: picture(), problem: problem(),
+            // the pictures the 2 x 2 patch shows: the frames as they go, or the variants mixed up
+            pictures: [picture(), ...(frameList.value.length ? frameList : variantList).images()].filter(Boolean),
+            animated: frameList.value.length > 0, frameTime: frameTimeField.value / 1000,
+          }),
         }),
         new Button({
-          x, y: y + h - 24, w, h: 24, label: 'Choose picture', style: 'editor',
+          x, y: y + h - (isNew ? 24 : 52), w, h: 24, label: 'Choose picture', style: 'editor',
           onClick: () => this.choosePicture((file, img) => {
             chosen = { file, img };
             texturePicker.setChoices([null, file.name], file.name);
           }),
         }),
+        ...(isNew ? [] : [new Button({
+          x, y: y + h - 24, w, h: 24, label: 'Delete tile', style: 'danger',
+          onClick: () => {
+            FormBox.close();
+            this.askToDelete(type.name);
+          },
+        })]),
       ],
       canConfirm: () => problem() === null,
       // a tile that already exists updates live whenever the box would be able to save. a new one
       // isn't on the map yet
       onUpdate: () => {
+        // variants and frames are only for normal tiles
+        variantList.enabled = frameList.enabled = frameTimeField.enabled = !kindPicker.value;
         if (isNew || problem() !== null) return;
         const settings = settingsNow();
         const now = { settings: JSON.stringify(settings), img: picture() };
@@ -237,14 +267,19 @@ const TileEditor = {
       },
       onConfirm: () => {
         const settings = settingsNow();
-        const { name, texture } = settings;
+        const { texture } = settings;
         const isChosen = chosen !== null && texture === chosen.file.name;
         if (isChosen) this.newPictures[texture] = chosen.file;
+        // variant and frame pictures chosen in this box, so Export tiles downloads them
+        for (const list of [variantList, frameList]) Object.assign(this.newPictures, list.chosenFiles());
         // an old texture on a tile that switched kind now belongs in the other folder
         const moved = !isNew && !isChosen && texture && kindPicker.value !== original.dualGrid;
 
         // tiles.js. uses the picture directly, since it might not be in its folder yet
         setTile(settings, picture());
+        // a new name for a tile that exists renames it
+        const name = cleanMapName(nameField.value);
+        if (!isNew && name !== type.name) renameTile(type.name, name);
 
         // the palette reads TILE_TYPES every frame, so it's already up to date. a new tile gets picked
         // (editor.js)
@@ -252,6 +287,25 @@ const TileEditor = {
         showMessage(moved
           ? `Saved ${name}. Move ${texture} into tiles/${this.folderName(TILE_TYPES[name])}/ too`
           : `Saved ${name}. Export tiles to keep it`);
+      },
+    });
+  },
+
+  // asks which tile goes where this one was, then deletes it (deleteTile()). it says which maps use it
+  askToDelete(name) {
+    const others = Object.keys(TILE_TYPES).filter((other) => other !== name);
+    if (others.length === 0) return showMessage("That's the only tile, so it can't go");
+    const users = mapsUsingTile(name);
+    const picker = tilePicker(others[0]); // editor.js
+    picker.setChoices([...others, null], others[0]);
+    FormBox.open({
+      title: `Delete tile: ${name}`,
+      hint: users.length > 0 ? `Used on ${users.join(', ')}` : 'No map uses it',
+      confirmLabel: 'Delete',
+      rows: [{ label: 'Replace with', field: picker, tip: 'Maps that use it get this instead, now and whenever they load. Empty leaves holes' }],
+      onConfirm: ([replacement]) => {
+        deleteTile(name, replacement);
+        showMessage(`Deleted ${name}. Export tiles to say which file to delete${users.length > 0 && !replacement ? ', and save the maps that used it' : ''}`);
       },
     });
   },
@@ -282,11 +336,15 @@ const TileEditor = {
   exportTiles() {
     const pictures = [];
     for (const type of Object.values(TILE_TYPES)) {
-      const file = this.newPictures[type.texture];
-      // pictures used by more than one tile only download once
-      if (!file || pictures.some((p) => p.name === type.texture)) continue;
-      pictures.push({ name: type.texture, data: file, folder: `tiles/${this.folderName(type)}/` });
-      delete this.newPictures[type.texture];
+      // the texture, then the variants and frames, which are always normal tile pictures
+      const files = [[type.texture, this.folderName(type)], ...[...(type.variants ?? []), ...(type.frames ?? [])].map((name) => [name, 'normal'])];
+      for (const [name, folder] of files) {
+        const file = this.newPictures[name];
+        // pictures used by more than one tile only download once
+        if (!file || pictures.some((p) => p.name === name)) continue;
+        pictures.push({ name, data: file, folder: `tiles/${folder}/` });
+        delete this.newPictures[name];
+      }
     }
     DataFiles.export(['tile'], pictures);
   },
@@ -294,7 +352,8 @@ const TileEditor = {
 
 // the column down the side: the texture file, a 2 x 2 patch like it'd look on the map, and anything
 // stopping it saving.
-//   look  () => { dualGrid, colour, img, problem }
+//   look  () => { dualGrid, colour, img, problem, pictures, animated, frameTime }. pictures is what the
+//         patch shows for a normal tile: the frames as they go if it's animated, otherwise mixed up
 class TilePreview extends UIElement {
   constructor(options) {
     // just for show, clicks go through to the form box
@@ -307,7 +366,7 @@ class TilePreview extends UIElement {
   }
 
   draw() {
-    const { dualGrid, colour, img, problem } = this.look();
+    const { dualGrid, colour, img, problem, pictures, animated, frameTime } = this.look();
     // black until the colour is finished (while you're halfway through typing it)
     const fillColour = HEX_COLOUR.test(colour) ? colour : '#000000';
     // two squares side by side, with room underneath for the problem. it's a multiple of 6 whole px,
@@ -373,7 +432,9 @@ class TilePreview extends UIElement {
         const x = secondLeft + (i % 2) * half;
         const y = top + Math.floor(i / 2) * half;
         if (img && !dualGrid) {
-          image(img, x, y, half, half);
+          // like tileImageAt() (tiles.js)
+          const frame = animated ? Math.floor(millis() / 1000 / Math.max(0.02, frameTime)) : tileHash(i % 2, Math.floor(i / 2));
+          image(pictures[frame % pictures.length] ?? img, x, y, half, half);
         } else {
           noStroke();
           fill(fillColour);
@@ -399,4 +460,150 @@ class TilePreview extends UIElement {
     }
     return this.pieces;
   }
+}
+
+// a row of little pictures (a tile's variants or frames) with a + at the end. the + picks a picture
+// (TileEditor.choosePicture()), clicking one takes it off. value is their file names in order.
+// enabled false greys it out
+class PictureListField extends UIElement {
+  constructor(options) {
+    super(options);
+    this.value = [...options.value];
+    // file name => p5 image, as they load (tilePicture() in tiles.js), and pictures chosen here
+    this.loaded = {};
+    this.chosen = {};
+    for (const file of this.value) tilePicture(file, 'the tile editor').then((img) => { this.loaded[file] = img; });
+    // the square the mouse is over: a number, 'add', or null
+    this.under = null;
+  }
+
+  // the pictures in order (ones still loading or that failed are left out)
+  images() {
+    return this.value.map((file) => this.loaded[file]).filter(Boolean);
+  }
+
+  // the Files picked in this box that are still in the list, by name (for Export tiles)
+  chosenFiles() {
+    return Object.fromEntries(Object.entries(this.chosen).filter(([name]) => this.value.includes(name)));
+  }
+
+  // each square's { x, y, size }, the pictures then the +. as many pictures as fit, then a count
+  squares() {
+    const size = this.h - 6;
+    const room = Math.floor((this.w - 4) / (size + 3)) - 1;
+    return { size, room, at: (i) => ({ x: this.x + 3 + i * (size + 3), y: this.y + 3 }) };
+  }
+
+  update(hovered) {
+    this.hovered = hovered && this.enabled;
+    const { size, room } = this.squares();
+    this.under = null;
+    if (!this.hovered) return;
+    const shown = Math.min(this.value.length, room);
+    const i = Math.floor((Input.mouse.x - this.x - 3) / (size + 3));
+    if (i >= 0 && i < shown) this.under = i;
+    else if (i === shown) this.under = 'add';
+    if (!Input.buttonsPressed.has('left') || this.under === null) return;
+    if (this.under === 'add') {
+      TileEditor.choosePicture((file, img) => {
+        // the game finds it by name from now on (TILE_PICTURES in tiles.js)
+        TILE_PICTURES[file.name] = Promise.resolve(img);
+        this.loaded[file.name] = img;
+        this.chosen[file.name] = file;
+        this.value.push(file.name);
+      });
+      return;
+    }
+    this.value.splice(this.under, 1);
+  }
+
+  draw() {
+    push();
+    if (!this.enabled) drawingContext.globalAlpha *= BUTTON_STYLES.default.disabledAlpha;
+    drawFieldBox(this, this.hovered); // formbox.js
+    const { size, room, at } = this.squares();
+    const shown = Math.min(this.value.length, room);
+    for (let i = 0; i < shown; i++) {
+      const { x, y } = at(i);
+      const img = this.loaded[this.value[i]];
+      if (img) image(img, x, y, size, size);
+      noFill();
+      stroke(this.under === i ? EDITOR_COLOURS.erase : EDITOR_COLOURS.edge);
+      strokeWeight(1);
+      rect(x, y, size, size);
+      // a cross while the mouse is on it, since clicking takes it off
+      if (this.under === i) {
+        line(x + 3, y + 3, x + size - 3, y + size - 3);
+        line(x + size - 3, y + 3, x + 3, y + size - 3);
+      }
+    }
+    const add = at(shown);
+    noStroke();
+    fill(this.under === 'add' ? 255 : EDITOR_COLOURS.dimText);
+    setText(14, BOLD, CENTER, CENTER);
+    text('+', add.x + size / 2, add.y + size / 2);
+    if (this.value.length > shown) {
+      setText(11, BOLD, LEFT, CENTER);
+      text(`+${this.value.length - shown}`, add.x + size + 4, add.y + size / 2);
+    }
+    if (this.value.length === 0) {
+      fill(EDITOR_COLOURS.dimText);
+      setText(11, BOLD, LEFT, CENTER);
+      text('none', add.x + size + 6, add.y + size / 2);
+    }
+    pop();
+  }
+}
+
+// renames a tile and keeps maps working: maps that have been built swap the name, the tile remembers
+// its old one (oldNames in tiles.js) for maps still to be built and map files that still say it, other
+// tiles' blendsWith follow, and so does the editor. Export tiles then downloads it under the new name
+// and says to delete the old file
+function renameTile(oldName, newName) {
+  const type = TILE_TYPES[oldName];
+  type.name = newName;
+  type.oldNames = [...new Set([...(type.oldNames ?? []), oldName])].filter((name) => name !== newName);
+  delete TILE_TYPES[oldName];
+  TILE_TYPES[newName] = type;
+  sortTiles();
+  swapTileInMaps(oldName, newName);
+  for (const other of Object.values(TILE_TYPES)) {
+    if (other.blendsWith?.includes(oldName)) other.blendsWith = other.blendsWith.map((name) => (name === oldName ? newName : name));
+  }
+  Editor.renamed('tile', oldName, newName); // editor.js
+}
+
+// deletes a tile. maps that use it get `replacement` instead (a tile's name, or null for empty), which
+// remembers the deleted name (oldNames) so map files that still say it get the replacement too
+function deleteTile(name, replacement) {
+  const type = TILE_TYPES[name];
+  delete TILE_TYPES[name];
+  if (replacement) {
+    const into = TILE_TYPES[replacement];
+    into.oldNames = [...new Set([...(into.oldNames ?? []), name, ...(type.oldNames ?? [])])];
+  }
+  swapTileInMaps(name, replacement ?? null);
+  for (const other of Object.values(TILE_TYPES)) {
+    if (other.blendsWith?.includes(name)) other.blendsWith = other.blendsWith.filter((other2) => other2 !== name);
+  }
+  Editor.renamed('tile', name, replacement); // editor.js
+}
+
+// puts TILE_TYPES back in layer order, since the palette goes by its order (a renamed tile would
+// otherwise jump to the end)
+function sortTiles() {
+  const types = Object.values(TILE_TYPES).sort((a, b) => a.layer - b.layer);
+  for (const type of types) delete TILE_TYPES[type.name];
+  for (const type of types) TILE_TYPES[type.name] = type;
+}
+
+// every map that's been built uses `to` (a tile name or null) where it used `from` (maps.js). the
+// editor's undo and copy and paste swap old names when they're used (resolveTileName())
+function swapTileInMaps(from, to) {
+  for (const map of Object.values(VISITED_MAPS)) map.tiles = map.tiles.map((name) => (name === from ? to : name));
+}
+
+// the names of the maps that use a tile. it builds every map to look (maps.js)
+function mapsUsingTile(name) {
+  return Object.keys(MAPS).filter((mapName) => getMap(mapName).tiles.includes(name));
 }

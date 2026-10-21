@@ -2,7 +2,7 @@
 // prompt()). the map editor uses it for New map, Resize map, Export and warp settings (editor.js), and
 // so does the tile editor (tileeditor.js). click a field to type in it, Tab goes to the next one,
 // Enter or the confirm button says yes, and Escape, Cancel or the x closes it. it works like a window,
-// so you can drag the title bar to move it.
+// so you can drag the title bar to move it. a box with tabs opens on the tab it was last on (lastTabs).
 //   FormBox   the box itself. FormBox.open({ title, rows, onConfirm... }) lays itself out (see open())
 //   Picker    pick one thing from a list, with the < > arrows or from a list that drops down
 //   MultiPicker  pick any number of things from a list that drops down, with tick boxes
@@ -35,6 +35,9 @@ const FormBox = {
   backdrop: null,
   // the mouse position while dragging the title bar, otherwise null
   dragFrom: null,
+  // the label of the tab each kind of box was last on, by memoryKey(), so the item box opens on the
+  // Feel tab again if that's where you were
+  lastTabs: {},
 
   // options: { title, hint, confirmLabel, rows, tabs, canConfirm(values), onConfirm(values) }
   //   rows        each one is { label, field, after, tip }. field is a TextField, NumberField, Picker,
@@ -52,6 +55,9 @@ const FormBox = {
   //               editor's pictures). x, y, w, h is the space it gets
   //   onUpdate    optional, runs every frame while it's open (for live previews, say)
   //   onCancel    optional, runs when it's closed without confirming (like to undo those previews)
+  //   cancelLabel optional words for the Cancel button, or null to leave it out (the pause menu)
+  //   memory      optional name its open tab is remembered by (lastTabs), otherwise the title up to
+  //               any colon, so every "Item: ..." box shares one
   open(options) {
     this.options = options;
     this.active = true;
@@ -108,7 +114,7 @@ const FormBox = {
     if (options.side) options.side(x + FORM_BOX.width, y + sideTop, FORM_BOX.sideWidth - 16, sideBottom - sideTop - 6).forEach(add);
     // bottom right, where you'd expect them
     const buttonY = y + h - (FORM_BOX.footerHeight + 24) / 2;
-    add(new Button({ x: x + w - 182, y: buttonY, w: 80, h: 24, label: 'Cancel', style: 'editor', onClick: () => this.close() }));
+    if (options.cancelLabel !== null) add(new Button({ x: x + w - 182, y: buttonY, w: 80, h: 24, label: options.cancelLabel ?? 'Cancel', style: 'editor', onClick: () => this.close() }));
     this.confirmButton = add(new Button({
       x: x + w - 96, y: buttonY, w: 80, h: 24, label: options.confirmLabel, style: 'editorPrimary',
       onClick: () => this.confirm(),
@@ -117,7 +123,14 @@ const FormBox = {
     add(new FormBoxTip());
 
     this.fields = [];
-    this.showTab(0);
+    // the tab it was last on, if it still has one with that label
+    const last = this.tabs.findIndex(({ label }) => label !== undefined && label === this.lastTabs[this.memoryKey()]);
+    this.showTab(Math.max(0, last));
+  },
+
+  // what the open box's tab is remembered by (open()'s memory)
+  memoryKey() {
+    return this.options.memory ?? String(this.options.title).split(':')[0];
   },
 
   // the rows on the open tab
@@ -140,6 +153,7 @@ const FormBox = {
     ChoiceList.close();
     for (const field of this.fields) field.blur();
     this.tab = index;
+    if (this.tabs[index].label !== undefined) this.lastTabs[this.memoryKey()] = this.tabs[index].label;
     this.tabButtons.forEach((button, i) => { button.on = i === index; });
     this.tabs.forEach(({ rows }, i) => rows.forEach(({ field }) => { field.visible = i === index; }));
     this.fields = this.rows().map(({ field }) => field).filter((field) => field instanceof TextField);
@@ -151,6 +165,7 @@ const FormBox = {
   close(confirmed = false) {
     ChoiceList.close();
     ColourPicker.close();
+    Slider.stopTyping();
     this.active = false;
     Input.typing = false;
     UI.removeGroup('form-box');
@@ -201,7 +216,10 @@ const FormBox = {
       // nothing on this tab to type into
       if (this.fields.length === 0) continue;
       const focused = this.fields.find((field) => field.focused);
-      if (key === 'Tab') this.focus(this.fields[(this.fields.indexOf(focused) + 1) % this.fields.length]);
+      const count = this.fields.length;
+      if (key === 'Tab') this.focus(this.fields[(this.fields.indexOf(focused) + 1) % count]);
+      // backwards, going round to the last one
+      else if (key === 'Shift+Tab') this.focus(this.fields[(this.fields.indexOf(focused) - 1 + count) % count]);
       else if (key.paste !== undefined) focused.paste(key.paste);
       else focused.type(key);
     }
@@ -667,7 +685,9 @@ class Checkbox extends UIElement {
 
 // drag along it to pick a number, like a knob on a synthesiser (the sound editor uses lots of them).
 // the label goes on the left, the bar in the middle and the value on the right. click or drag the bar
-// to set it, scroll the wheel over it to nudge it, and right click to put it back to normal.
+// to set it, scroll the wheel over it to nudge it, and right click to put it back to normal. click the
+// value to type an exact number: Enter or clicking anywhere else uses it, Escape gives up (one slider
+// at a time, Slider.typing).
 //   label     words on the left
 //   min, max  the smallest and biggest it can be
 //   step      what it rounds to (1 for whole numbers, 0.1 for one decimal place...)
@@ -696,6 +716,17 @@ class Checkbox extends UIElement {
 //   - valueAt() and positionOf() only use min, max and curve, so other code can borrow them for a
 //     plain object with those (SoundEditor.randomSettings() does)
 class Slider extends UIElement {
+  // the slider whose number is being typed, or null, and what Input.typing was before it started
+  static typing = null;
+  static typingWas = false;
+
+  // stops typing into a slider without using what was typed (its box closing, say)
+  static stopTyping() {
+    if (!Slider.typing) return;
+    Slider.typing = null;
+    Input.typing = Slider.typingWas;
+  }
+
   constructor(options) {
     super(options);
     this.label = options.label;
@@ -712,6 +743,45 @@ class Slider extends UIElement {
     this.labelWidth = options.labelWidth ?? 100;
     // being dragged
     this.dragging = false;
+    // the number typed so far while it's being typed into (Slider.typing)
+    this.typed = '';
+  }
+
+  // where the value is, on the right. clicking it starts typing a number
+  valueBox() {
+    const bar = this.bar();
+    return { x: bar.x + bar.w + 6, w: this.x + this.w - (bar.x + bar.w + 6) };
+  }
+
+  // turns typing on for this slider, starting with its number all there to type over
+  startTyping() {
+    // another slider being typed into keeps its number, like clicking from one text box to another
+    if (Slider.typing) Slider.typing.finishTyping(true);
+    Slider.typing = this;
+    Slider.typingWas = Input.typing;
+    Input.typing = true;
+    this.typed = '';
+  }
+
+  // what's been typed (Input.typed in input.js). used up, so a form box or the sound editor doesn't
+  // also take Enter or Escape as theirs
+  typeNumber() {
+    for (const key of Input.typed) {
+      if (key === 'Enter' || key === 'Tab') return this.finishTyping(true);
+      if (key === 'Escape') return this.finishTyping(false);
+      if (key === 'Backspace' || key === 'Delete') this.typed = this.typed.slice(0, -1);
+      else if (typeof key === 'string' && /^[0-9.-]$/.test(key) && this.typed.length < 10) this.typed += key;
+      else if (key.paste !== undefined) this.typed = key.paste.trim().slice(0, 10);
+    }
+    Input.typed = [];
+  }
+
+  // a number that was typed gets used (rounded to step, kept in range). anything else is ignored
+  finishTyping(use) {
+    const number = parseFloat(this.typed);
+    Slider.stopTyping();
+    Input.typed = [];
+    if (use && Number.isFinite(number)) this.set(number);
   }
 
   // where the bar is, inside the slider: after the label, before the value
@@ -755,10 +825,19 @@ class Slider extends UIElement {
 
   update(hovered) {
     this.hovered = hovered && this.enabled;
+    // whichever slider runs first tidies up after one being typed into that's been taken away
+    if (Slider.typing && !UI.elements.includes(Slider.typing)) Slider.stopTyping();
+    if (Slider.typing === this) {
+      // a click anywhere else uses what was typed, like leaving a text box
+      const onValue = this.hovered && Input.mouse.x >= this.valueBox().x;
+      if (Input.buttonsPressed.size > 0 && !onValue) this.finishTyping(true);
+      else return this.typeNumber();
+    }
     if (!this.enabled) {
       this.dragging = false;
       return;
     }
+    if (this.hovered && Input.buttonsPressed.has('left') && Input.mouse.x >= this.valueBox().x) return this.startTyping();
     if (this.hovered && Input.buttonsPressed.has('left')) this.dragging = true;
     if (!Input.buttonsHeld.has('left')) this.dragging = false;
     const bar = this.bar();
@@ -802,7 +881,24 @@ class Slider extends UIElement {
     fill(this.dragging ? 255 : this.hovered ? 230 : 200);
     circle(at, middleY, this.dragging ? 12 : 10);
 
-    fill(changed ? EDITOR_COLOURS.picked : EDITOR_COLOURS.text);
+    if (Slider.typing === this) {
+      // a little text box over the value, with a blinking line after what's typed
+      const box = this.valueBox();
+      fill(EDITOR_COLOURS.well);
+      stroke(BUTTON_STYLES.primary.fill);
+      strokeWeight(1);
+      rect(box.x, middleY - 9, box.w, 18, 3);
+      noStroke();
+      fill(EDITOR_COLOURS.text);
+      setText(11, BOLD, RIGHT, CENTER);
+      const caret = millis() % 1000 < 500 ? '|' : ' ';
+      text(`${this.typed}${caret}`, this.x + this.w - 4, middleY);
+      pop();
+      return;
+    }
+    // lighter while the mouse is on it, since clicking it types a number
+    const onValue = this.hovered && Input.mouse.x >= this.valueBox().x;
+    fill(changed ? EDITOR_COLOURS.picked : onValue ? 255 : EDITOR_COLOURS.text);
     setText(11, BOLD, RIGHT, CENTER);
     text(this.format ? this.format(this.value) : `${this.value} ${this.unit}`, this.x + this.w, middleY);
     pop();

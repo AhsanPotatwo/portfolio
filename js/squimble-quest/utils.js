@@ -95,6 +95,16 @@ function fitText(words, maxWidth) {
   return `${words}…`;
 }
 
+// pictures that didn't load or are the wrong size, each { kind, name, file, problem }, for the map
+// editor's Art report (Map menu, mapcheck.js). artProblem() adds one, with a console warning too, as
+// the pictures load, and checkArtSizes() (mapcheck.js) adds the wrong sizes once they all have
+const ART_PROBLEMS = [];
+
+function artProblem(kind, name, file, problem) {
+  ART_PROBLEMS.push({ kind, name, file, problem });
+  console.warn(`The ${kind} "${name}": ${file} ${problem}`);
+}
+
 // loads the pictures and makes the p5 colours once, instead of on every draw. objects, enemies, npcs
 // and items run it once their files have loaded (their DataFiles.register() calls), and preload()
 // (sketch.js) runs it for the rarities. tiles do their own thing in setTile() (tiles.js). kind is only
@@ -105,7 +115,7 @@ function prepareArt(types, kind) {
     type.img = null;
     if (type.image) {
       type.img = loadImage(type.image, undefined, () => {
-        console.warn(`Couldn't load "${type.image}" for the ${type.name} ${kind}, using its colour instead`);
+        artProblem(kind, type.name, type.image, "couldn't load, so it's its colour");
         type.img = null;
       });
     }
@@ -113,7 +123,7 @@ function prepareArt(types, kind) {
     type.portraitImg = null;
     if (type.portrait) {
       type.portraitImg = loadImage(type.portrait, undefined, () => {
-        console.warn(`Couldn't load "${type.portrait}" for the ${type.name} ${kind}'s portrait, using a placeholder instead`);
+        artProblem(kind, type.name, type.portrait, "(its portrait) couldn't load, so it's a placeholder");
         type.portraitImg = null;
       });
     }

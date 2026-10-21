@@ -13,8 +13,8 @@
 // by hand: a file named after the tile, like tiles/lava.json, with only the settings that are
 // different from TILE_DEFAULTS (each one is explained there), and its name in tiles/index.json:
 //   { "colour": "#e4572e", "speed": 0.7, "damagePerSecond": 25 }
-// renaming a tile loses it from every map that uses it. the settings work on everyone (walk() and
-// checkTile() in character.js). the order in index.json is the order in the editor bar, and where
+// rename or delete tiles in the tile editor, which keeps maps working (oldNames). the settings work on
+// everyone (walk() and checkTile() in character.js). the order in index.json is the order in the editor bar, and where
 // dual grid tiles meet the later one goes on top, so put the lower ones first (dirt before grass)
 //
 // ---------- adding a new tile setting ----------
@@ -43,6 +43,18 @@ const TILE_DEFAULTS = {
   // stretch it over each tile (16 x 16 pixel art works well). dual grid tiles look in
   // DUAL_TILESET_FOLDER and need 4 x 4 pieces
   texture: null,
+  // more pictures for a normal tile with a texture, like ["grass-2.png", "grass-3.png"]
+  // (TILE_IMAGE_FOLDER). each tile on the map shows the texture or one of these, picked by where it is
+  // so it never changes, so a field doesn't look like the same square over and over. null for none
+  variants: null,
+  // pictures it goes through after its texture, like ["water-2.png", "water-3.png"], one every
+  // frameTime seconds, so it moves (water, lava, flowers in the wind). every tile of the kind moves
+  // together. a tile with frames doesn't use its variants. normal tiles only, null for none
+  frames: null,
+  frameTime: 0.25,
+  // the names it had before, like ["flowers"], so maps that still say an old name get this tile. the
+  // tile editor adds to it when a tile's renamed, or deleted with this one to replace it
+  oldNames: null,
   // can't be walked on (walls, deep water)
   solid: false,
   // solid, but doesn't block seeing past it (water), so enemies can spot you across it (clearLine()
@@ -122,6 +134,8 @@ const SLIPPERY_GRIP = 10;
 //   fill        its colour as a p5 colour, made once
 //   textureImg  the texture (a p5 image) or null. the tile editor shows it
 //   img         a normal tile's picture, or null
+//   variantImgs the variants' pictures that loaded, maybe none (tileImageAt())
+//   frameImgs   the frames' pictures that loaded, maybe none
 //   dualTiles   a dual grid tileset cut into pieces (dualgrid.js), or null
 // without an img or dualTiles (no texture, or it hasn't loaded) it's drawn in its colour
 const TILE_TYPES = {};
@@ -130,8 +144,9 @@ const TILE_TYPES = {};
 // you pass in `picture` (a p5 image, like one just chosen in the tile editor). gives back a promise
 // that finishes when the texture has loaded or failed, so the game can wait for it
 function setTile(settings, picture = null) {
-  // a tile that's being changed keeps its place, a new one goes on the end
-  const type = TILE_TYPES[settings.name] ?? { layer: Object.keys(TILE_TYPES).length };
+  // a tile that's being changed keeps its place, a new one goes on the end (after the last one, since
+  // deleting tiles leaves gaps)
+  const type = TILE_TYPES[settings.name] ?? { layer: Math.max(-1, ...Object.values(TILE_TYPES).map((other) => other.layer)) + 1 };
   // defaults go on first, so a setting that's been left out goes back to normal instead of keeping
   // its old value
   Object.assign(type, TILE_DEFAULTS, settings);
@@ -139,18 +154,77 @@ function setTile(settings, picture = null) {
   type.fill = color(type.colour);
 
   useTexture(type, picture);
+  const extras = useExtraPictures(type);
   // nothing to load
-  if (picture || !type.texture) return Promise.resolve();
+  if (picture || !type.texture) return extras;
   // it's just its colour until the texture loads
-  return new Promise((done) => {
+  return Promise.all([extras, new Promise((done) => {
     loadImage(texturePath(type), (img) => {
       useTexture(type, img);
       done();
     }, () => {
-      console.warn(`Couldn't load "${texturePath(type)}" for the ${type.name} tile, using its colour instead`);
+      artProblem('tile', type.name, texturePath(type), "couldn't load, so it's its colour"); // utils.js
       done();
     });
+  })]);
+}
+
+// the variants' and frames' pictures (a normal tile's), from TILE_PICTURES. they're empty lists until
+// they load, and one that changed again in the meantime (the tile editor's live preview) is left alone
+function useExtraPictures(type) {
+  const loads = [['variantImgs', 'variants'], ['frameImgs', 'frames']].map(([key, setting]) => {
+    type[key] = [];
+    const files = type.dualGrid ? null : type[setting];
+    if (!files?.length) return null;
+    const wanted = JSON.stringify(files);
+    return Promise.all(files.map((file) => tilePicture(file, type.name))).then((imgs) => {
+      if (JSON.stringify(type[setting]) === wanted && !type.dualGrid) type[key] = imgs.filter(Boolean);
+    });
   });
+  return Promise.all(loads);
+}
+
+// variant and frame pictures by file name, each a promise of its p5 image (null if it didn't load), so
+// a picture is only loaded once. the tile editor puts pictures you choose in here too
+const TILE_PICTURES = {};
+
+function tilePicture(file, tileName) {
+  TILE_PICTURES[file] ??= new Promise((done) => {
+    loadImage(TILE_IMAGE_FOLDER + file, done, () => {
+      artProblem('tile', tileName, TILE_IMAGE_FOLDER + file, "couldn't load, so that picture's left out"); // utils.js
+      done(null);
+    });
+  });
+  return TILE_PICTURES[file];
+}
+
+// the picture a normal tile with a texture shows at col, row: with frames, the one they're up to (every
+// tile of the kind together), with variants, one picked by where it is (so it doesn't change), and
+// otherwise its texture. tilemap.js draws with it
+function tileImageAt(type, col, row) {
+  if (type.frameImgs.length > 0) {
+    const pictures = [type.img, ...type.frameImgs];
+    return pictures[Math.floor(millis() / 1000 / Math.max(0.02, type.frameTime)) % pictures.length];
+  }
+  if (type.variantImgs.length > 0) {
+    const pictures = [type.img, ...type.variantImgs];
+    return pictures[tileHash(col, row) % pictures.length];
+  }
+  return type.img;
+}
+
+// a number that looks random but is always the same for the same col, row, so neighbours don't match
+function tileHash(col, row) {
+  let h = Math.imul(col, 374761393) + Math.imul(row, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
+// the tile a map's name for one means: itself if there's a tile called that, otherwise the tile that
+// used to be called it (oldNames), otherwise the name as it is (so it shows as unknown)
+function resolveTileName(name) {
+  if (name === null || name === undefined || TILE_TYPES[name]) return name;
+  return Object.values(TILE_TYPES).find((type) => type.oldNames?.includes(name))?.name ?? name;
 }
 
 function texturePath(type) {

@@ -28,7 +28,7 @@
 //   enemy.js      an enemy (after character.js)
 //   npc.js        an npc (after character.js)
 //   looks.js      what characters look like: parts (body, eyes, shirt...) from parts/, stacked and recoloured
-//   ui.js         UIElement and the UI manager
+//   ui.js         UIElement and the UI manager, and windows you can drag around
 //   button.js     buttons (after ui.js)
 //   textfield.js  text and number boxes (after ui.js)
 //   formbox.js    the editors' ask-for-things box, Picker and Checkbox
@@ -40,12 +40,17 @@
 //   sound.js      the sound library and synthesiser: working sounds out, playing them, drawing them
 //   soundblocks.js sound blocks: tiles that play a sound, and their settings box (after sound.js)
 //   editor.js     the map editor, from dev mode (after button.js, textfield.js)
+//   edittools.js  the editor's tools (fill, rectangle, select...) and copy and paste (after editor.js)
+//   edithistory.js the editor's undo and redo, and keeping unsaved maps in the browser
+//   editormenu.js the editor's menu bar, tool strip and keys (after edittools.js)
+//   mapcheck.js   the editor's problem list and art report
 //   tileeditor.js editor's tile box (after editor.js)
 //   soundeditor.js the sound editor, a full screen synthesiser (after editor.js)
 //   particleeditor.js the particle editor box and its preview (after tileeditor.js)
 //   atmosphere.js a map's fog, colour, weather and background sound, and its editor box (after particleeditor.js)
 //   weaponeditor.js the weapon editor tabs, enemy weapons in the palette, and the combo preview (after editor.js)
 //   shaders.js    WebGL effects over the world (lighting, shadows, screen effects), dev mode only for now
+//   pausemenu.js  the pause menu: volumes, screen shake, damage numbers and keys (after formbox.js)
 //   debug.js      dev mode (` or Ctrl + D)
 
 let player;
@@ -92,8 +97,15 @@ function setup() {
   // keeps pixel art sharp when it's scaled up. p5 keeps it when fitResolution() changes the resolution
   noSmooth();
 
+  // the pause menu's saved settings and keys, before the keys are listened for (pausemenu.js)
+  PauseMenu.load();
   // canvas.elt is the actual <canvas> element
   Input.attach(canvas.elt);
+  // closing the page asks first if a map has changes that couldn't be kept in the browser
+  // (edithistory.js), which only happens if its storage is full or blocked
+  window.addEventListener('beforeunload', (e) => {
+    if (EditHistory.notKept.size > 0) e.preventDefault();
+  });
 
   player = new Player(0, 0);
   gameCamera = new Camera();
@@ -133,8 +145,10 @@ function setup() {
       console.warn(`START_MAP is "${START_MAP}", but that map didn't load. Starting on "${first}" instead.`);
     }
     loadMap(first);
-    // console warnings for broken warp links (warps.js)
+    // console warnings for broken warp links (warps.js), and pictures the wrong size once they've had a
+    // few seconds to load (mapcheck.js)
     checkAllWarps();
+    setTimeout(checkArtSizes, 3000);
     mapsReady = true;
     loading.hide();
   });
@@ -280,10 +294,19 @@ function draw() {
 
   // 2. update: dev tools first (they can move the player and zoom), and the camera last
   Debug.update(player, gameCamera, worldMap, aim, dt);
-  // in the editor WASD moves the camera and everyone stands still
+  // in the editor WASD moves the camera and everyone stands still. the pause menu stops everything
+  // (pausemenu.js)
+  const paused = !Editor.active && PauseMenu.active;
   if (Editor.active) {
     Editor.update(worldMap, gameCamera, aim, dt);
+  } else if (paused) {
+    FormBox.update();
   } else {
+    // Escape closes the inventory, otherwise it pauses
+    if (Input.wasPressed('escape')) {
+      if (InventoryScreen.active) InventoryScreen.show(false);
+      else PauseMenu.open();
+    }
     // what characters know about the world (top of character.js). characters is made once here
     // instead of once per character
     const world = { map: worldMap, players: [player], enemies, npcs, characters: [player, ...enemies, ...npcs], arrows };
@@ -362,13 +385,15 @@ function draw() {
   // in the editor too, so the Particles tab can try them out and tiles show theirs while you edit them
   // (particles.js). tiles and objects on screen that keep making particles go first, but not under the
   // full screen editors, where you can't see them
-  if (!WarpGraph.active && !SoundEditor.active) ParticleEmitters.update(dt, worldMap, gameCamera.view());
+  if (!WarpGraph.active && !SoundEditor.active && !paused) ParticleEmitters.update(dt, worldMap, gameCamera.view());
   // the map's and its areas' flashes of lightning and background sounds (atmosphere.js), going by
   // where the player's feet are, or the middle of the screen in the editor. their weather is
   // particles, so it's in ParticleEmitters
-  Atmosphere.update(worldMap, dt, Editor.active ? gameCamera : { x: player.x, y: player.y + feetBelowCentre(PLAYER) });
-  Particles.update(dt, worldMap);
-  DamageNumbers.update(dt);
+  if (!paused) {
+    Atmosphere.update(worldMap, dt, Editor.active ? gameCamera : { x: player.x, y: player.y + feetBelowCentre(PLAYER) });
+    Particles.update(dt, worldMap);
+    DamageNumbers.update(dt);
+  }
   // sounds get quieter the further they are from the player's feet, and higher or lower as they and
   // the player move (the doppler effect, sound.js). this runs in the editor too, so finished sounds
   // (like the sound editor's previews) still get tidied up

@@ -90,6 +90,13 @@ class TileMap {
     if (this.inside(col, row)) this.tiles[this.index(col, row)] = name;
   }
 
+  // swaps any old tile names (a tile that's been renamed, or deleted with another to replace it,
+  // oldNames in tiles.js) for the tile's name now. getMap() does it to every map it builds
+  updateTileNames() {
+    if (!Object.values(TILE_TYPES).some((type) => type.oldNames?.length)) return;
+    this.tiles = this.tiles.map(resolveTileName);
+  }
+
   // the box around all the tiles that aren't empty, as { left, top, right, bottom } (first and last
   // col and row), or null if they're all empty. the editor won't resize a map smaller than this
   usedArea() {
@@ -472,7 +479,8 @@ class TileMap {
         if (!type || type.dualTiles) continue;
         const left = x(2 * col);
         if (type.img) {
-          image(type.img, left, top, x(2 * col + 2) - left, h);
+          // its variant or animation frame (tiles.js)
+          image(tileImageAt(type, col, row), left, top, x(2 * col + 2) - left, h);
           continue;
         }
         // keep going while the next tile matches, then draw them all as one rect

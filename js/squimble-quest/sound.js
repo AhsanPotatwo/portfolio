@@ -248,7 +248,6 @@
 //   - walls muffling sounds: if clearLine() (tilemap.js) is blocked between the sound and the
 //     listener, turn the volume down or add a low-pass to the voice
 //   - music: long file sounds as loops, with a fade between maps. a separate music volume
-//   - a volume setting or a mute key (a gain node between the voices and ctx.destination)
 //   - more effects: distortion, a proper chorus. each is a setting plus a few lines in the effects
 //     part of renderSound()
 //   - rhythms for tunes (dotted, swung), not just even notes and a long last one
@@ -1287,6 +1286,10 @@ const Sound = {
   rendered: new Map(),
   // { started (millis()), seconds, loop } while the sound editor's preview plays, else null
   previewing: null,
+  // how loud each channel is, 0 to 1, from the pause menu (pausemenu.js): all of it, then voices
+  // (npcs talking), world (loops: sound blocks, tiles, atmospheres, things characters carry) and
+  // effects (everything else: hits, steps, one-off blocks). the editors' previews only go by all
+  volumes: { all: 1, voices: 1, world: 1, effects: 1 },
 
   // the audio, or null if the browser doesn't have it. made on first use, since browsers don't let
   // pages make sound before you've clicked on them. if it gets made before a click anyway (a loop
@@ -1346,6 +1349,8 @@ const Sound = {
     const pan = ctx.createStereoPanner();
     // was is where it was last frame, for the doppler effect (update())
     const voice = { source, out, pan, at, range, doppler, key, loop, ended: false, was: at && { x: at.x, y: at.y, map: at.map }, rate, volume, minVolume };
+    // which of the pause menu's volumes it goes by (volumes)
+    voice.channel = key === 'preview' ? null : say !== null ? 'voices' : loop ? 'world' : 'effects';
     out.gain.value = this.loudness(voice);
     pan.pan.value = this.panAt(at, range);
     source.connect(out).connect(pan).connect(ctx.destination);
@@ -1386,7 +1391,8 @@ const Sound = {
   loudness(voice) {
     const near = this.volumeAt(voice.at, voice.range);
     if (voice.at && voice.at.map !== this.listener?.map) return 0;
-    return SOUND_MASTER_VOLUME * voice.volume * Math.max(voice.minVolume, near);
+    const setting = this.volumes.all * (voice.channel ? this.volumes[voice.channel] : 1);
+    return SOUND_MASTER_VOLUME * setting * voice.volume * Math.max(voice.minVolume, near);
   },
 
   volumeAt(at, range) {
@@ -1421,7 +1427,11 @@ const Sound = {
         this.voices = this.voices.filter((other) => other !== voice);
         continue;
       }
-      if (!voice.at) continue;
+      // ones without a place only need their volume kept up with the pause menu's
+      if (!voice.at) {
+        voice.out.gain.setTargetAtTime(this.loudness(voice), now, 0.05);
+        continue;
+      }
       const volume = this.loudness(voice);
       if (voice.loop && volume === 0) {
         this.stop(voice);

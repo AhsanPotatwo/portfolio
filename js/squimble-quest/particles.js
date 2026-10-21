@@ -209,7 +209,7 @@ function defineParticles(name, settings) {
   }
   if (effect.picture && !(effect.picture in PARTICLE_PICTURES)) {
     PARTICLE_PICTURES[effect.picture] = loadImage(PARTICLE_PICTURE_FOLDER + effect.picture, undefined, () => {
-      console.warn(`Couldn't load "${PARTICLE_PICTURE_FOLDER}${effect.picture}" for the particle effect "${name}", so it's plain colour`);
+      artProblem('particle effect', name, PARTICLE_PICTURE_FOLDER + effect.picture, "couldn't load, so it's plain colour"); // utils.js
       PARTICLE_PICTURES[effect.picture] = null;
     });
   }

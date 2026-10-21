@@ -233,6 +233,9 @@ const KEYS = {
   drop: ['KeyQ'],
   // full screen on and off (toggleFullscreen() in sketch.js). holding Escape leaves it too
   fullscreen: ['KeyF'],
+  // opens the pause menu in the game (pausemenu.js), and in the editor drops the selection or what's
+  // being pasted (edittools.js). boxes that are being typed in get it as typing instead
+  escape: ['Escape'],
 
   // turns dev mode on and off (debug.js). ` is the key under Esc, and Ctrl + D is for keyboards that
   // don't have one. everything below this only works in dev mode
@@ -253,6 +256,39 @@ const KEYS = {
   // the shader before and after this one (shaders.js)
   shaderPrev: ['BracketLeft'],
   shaderNext: ['BracketRight'],
+
+  // the map editor's own keys (EDITOR_COMMANDS in editormenu.js, which says what each does). they only
+  // do anything while it's open. Shift with undo redoes, and Shift with save saves as
+  editorUndo:      ['Control+KeyZ'],
+  editorRedo:      ['Control+KeyY'],
+  editorCut:       ['Control+KeyX'],
+  editorCopy:      ['Control+KeyC'],
+  editorPaste:     ['Control+KeyV'],
+  editorSelectAll: ['Control+KeyA'],
+  editorDelete:    ['Delete', 'Backspace'],
+  editorSave:      ['Control+KeyS'],
+  editorOpen:      ['Control+KeyO'],
+  editorSearch:    ['Slash', 'Control+KeyF'],
+  editorHideUI:    ['Tab'],
+  editorPlayHere:  ['Space'],
+  toolPaint:       ['KeyN'],
+  toolErase:       ['KeyX'],
+  toolFill:        ['KeyL'],
+  toolRect:        ['KeyR'],
+  toolSelect:      ['KeyV'],
+  toolPick:        ['KeyK'],
+  brushSmaller:    ['Comma'],
+  brushBigger:     ['Period'],
+};
+
+// the pause menu's settings (pausemenu.js, which keeps them in localStorage). they're here so the files
+// that use them (camera.js, weapons.js) work without the menu, like in the tests. sound volumes are in
+// Sound.volumes (sound.js) for the same reason
+const GAME_SETTINGS = {
+  // the camera shakes on big hits (Camera.shake())
+  screenShake: true,
+  // numbers pop out of whatever gets hit (DamageNumbers in weapons.js)
+  damageNumbers: true,
 };
 
 // browser mouse button numbers to names. I left middle click out because on windows it starts auto
