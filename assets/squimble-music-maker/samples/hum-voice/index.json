@@ -1,0 +1,23 @@
+{
+ "source": "Humming C D A by drotzruhn (freesound.org)",
+ "link": "https://cdn.freesound.org/previews/",
+ "licence": "CC0 1.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "c4.mp3",
+   "midi": 60,
+   "tune": 8
+  },
+  {
+   "file": "d4.mp3",
+   "midi": 62,
+   "tune": 10
+  },
+  {
+   "file": "a3.mp3",
+   "midi": 57,
+   "tune": -25
+  }
+ ]
+}

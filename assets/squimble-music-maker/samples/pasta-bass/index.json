@@ -1,0 +1,167 @@
+{
+ "source": "Pastabass (Karoryfer Samples)",
+ "link": "https://github.com/sfzinstruments/karoryfer.pastabass",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "e1-5.mp3",
+   "midi": 28,
+   "vel": 0.45
+  },
+  {
+   "file": "e1-9.mp3",
+   "midi": 28,
+   "vel": 0.9
+  },
+  {
+   "file": "g1-5.mp3",
+   "midi": 31,
+   "vel": 0.45
+  },
+  {
+   "file": "g1-9.mp3",
+   "midi": 31,
+   "vel": 0.9
+  },
+  {
+   "file": "bb1-5.mp3",
+   "midi": 34,
+   "vel": 0.45
+  },
+  {
+   "file": "bb1-9.mp3",
+   "midi": 34,
+   "vel": 0.9
+  },
+  {
+   "file": "db2-5.mp3",
+   "midi": 37,
+   "vel": 0.45
+  },
+  {
+   "file": "db2-9.mp3",
+   "midi": 37,
+   "vel": 0.9
+  },
+  {
+   "file": "e2-5.mp3",
+   "midi": 40,
+   "vel": 0.45
+  },
+  {
+   "file": "e2-9.mp3",
+   "midi": 40,
+   "vel": 0.9
+  },
+  {
+   "file": "g2-5.mp3",
+   "midi": 43,
+   "vel": 0.45
+  },
+  {
+   "file": "g2-9.mp3",
+   "midi": 43,
+   "vel": 0.9
+  },
+  {
+   "file": "bb2-5.mp3",
+   "midi": 46,
+   "vel": 0.45
+  },
+  {
+   "file": "bb2-9.mp3",
+   "midi": 46,
+   "vel": 0.9
+  },
+  {
+   "file": "db3-5.mp3",
+   "midi": 49,
+   "vel": 0.45
+  },
+  {
+   "file": "db3-9.mp3",
+   "midi": 49,
+   "vel": 0.9
+  },
+  {
+   "file": "e3-5.mp3",
+   "midi": 52,
+   "vel": 0.45
+  },
+  {
+   "file": "e3-9.mp3",
+   "midi": 52,
+   "vel": 0.9
+  },
+  {
+   "file": "g3-5.mp3",
+   "midi": 55,
+   "vel": 0.45
+  },
+  {
+   "file": "g3-9.mp3",
+   "midi": 55,
+   "vel": 0.9
+  },
+  {
+   "file": "bb3-5.mp3",
+   "midi": 58,
+   "vel": 0.45
+  },
+  {
+   "file": "bb3-9.mp3",
+   "midi": 58,
+   "vel": 0.9
+  },
+  {
+   "file": "db4-5.mp3",
+   "midi": 61,
+   "vel": 0.45
+  },
+  {
+   "file": "db4-9.mp3",
+   "midi": 61,
+   "vel": 0.9
+  },
+  {
+   "file": "e4-5.mp3",
+   "midi": 64,
+   "vel": 0.45
+  },
+  {
+   "file": "e4-9.mp3",
+   "midi": 64,
+   "vel": 0.9
+  },
+  {
+   "file": "g4-5.mp3",
+   "midi": 67,
+   "vel": 0.45
+  },
+  {
+   "file": "g4-9.mp3",
+   "midi": 67,
+   "vel": 0.9
+  },
+  {
+   "file": "bb4-5.mp3",
+   "midi": 70,
+   "vel": 0.45
+  },
+  {
+   "file": "bb4-9.mp3",
+   "midi": 70,
+   "vel": 0.9
+  },
+  {
+   "file": "db5-5.mp3",
+   "midi": 73,
+   "vel": 0.45
+  },
+  {
+   "file": "db5-9.mp3",
+   "midi": 73,
+   "vel": 0.9
+  }
+ ]
+}

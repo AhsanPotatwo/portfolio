@@ -1,0 +1,124 @@
+{
+ "source": "Weresax (Karoryfer Samples)",
+ "link": "https://github.com/sfzinstruments/karoryfer.weresax",
+ "licence": "CC0 1.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "db3-9.mp3",
+   "midi": 49,
+   "vel": 0.9,
+   "tune": 1
+  },
+  {
+   "file": "db3-4.mp3",
+   "midi": 49,
+   "vel": 0.4,
+   "tune": -1
+  },
+  {
+   "file": "e3-9.mp3",
+   "midi": 52,
+   "vel": 0.9
+  },
+  {
+   "file": "e3-4.mp3",
+   "midi": 52,
+   "vel": 0.4
+  },
+  {
+   "file": "g3-9.mp3",
+   "midi": 55,
+   "vel": 0.9
+  },
+  {
+   "file": "g3-4.mp3",
+   "midi": 55,
+   "vel": 0.4
+  },
+  {
+   "file": "bb3-9.mp3",
+   "midi": 58,
+   "vel": 0.9
+  },
+  {
+   "file": "bb3-4.mp3",
+   "midi": 58,
+   "vel": 0.4
+  },
+  {
+   "file": "db4-9.mp3",
+   "midi": 61,
+   "vel": 0.9
+  },
+  {
+   "file": "db4-4.mp3",
+   "midi": 61,
+   "vel": 0.4
+  },
+  {
+   "file": "e4-9.mp3",
+   "midi": 64,
+   "vel": 0.9
+  },
+  {
+   "file": "e4-4.mp3",
+   "midi": 64,
+   "vel": 0.4
+  },
+  {
+   "file": "g4-9.mp3",
+   "midi": 67,
+   "vel": 0.9
+  },
+  {
+   "file": "g4-4.mp3",
+   "midi": 67,
+   "vel": 0.4
+  },
+  {
+   "file": "bb4-9.mp3",
+   "midi": 70,
+   "vel": 0.9
+  },
+  {
+   "file": "bb4-4.mp3",
+   "midi": 70,
+   "vel": 0.4
+  },
+  {
+   "file": "db5-9.mp3",
+   "midi": 73,
+   "vel": 0.9
+  },
+  {
+   "file": "db5-4.mp3",
+   "midi": 73,
+   "vel": 0.4,
+   "tune": -1
+  },
+  {
+   "file": "e5-9.mp3",
+   "midi": 76,
+   "vel": 0.9,
+   "tune": -2
+  },
+  {
+   "file": "e5-4.mp3",
+   "midi": 76,
+   "vel": 0.4
+  },
+  {
+   "file": "ab5-9.mp3",
+   "midi": 80,
+   "vel": 0.9,
+   "tune": -2
+  },
+  {
+   "file": "ab5-4.mp3",
+   "midi": 80,
+   "vel": 0.4,
+   "tune": -2
+  }
+ ]
+}

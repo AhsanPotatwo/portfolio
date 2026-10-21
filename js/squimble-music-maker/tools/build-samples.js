@@ -84,6 +84,26 @@ const SOURCES = {
     ['crows', 'Crows_01 by Q.K. and Crows by ken788'], ['footsteps', 'SlowStepsOnGravel by tabiCATcreations'],
     ['factory', 'Large Warehouse/Factory Ambience by fimrod'], ['steam', 'Air (or steam) pressure release by brunoboselli and Steam.wav by sniperous'],
   ].map(([key, name]) => [`fs-${key}`, { url: 'https://cdn.freesound.org/previews/', name: `${name} (freesound.org)`, licence: 'CC0 1.0' }])),
+  // the fifth round: real recordings for the sounds that still came from the general midi set (the
+  // nylon guitar, the voices, the banjo, the oboe and bassoon), and second and third recordings of the
+  // commonest instruments, so two songs on the same instrument don't sound the same. the university of
+  // iowa's recordings say they "may be downloaded and used for any projects, without restrictions"
+  iowa: { url: 'https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/guitar/', name: 'University of Iowa Electronic Music Studios, Musical Instrument Samples (a Raimundo 118 classical guitar)', licence: 'Free for any use, without restrictions' },
+  hadzi: { git: 'https://github.com/sfzinstruments/legato_vocal_tutorial', name: "Hadzi-Fia's sung a vowel (Karoryfer Samples), via sfzinstruments' legato vocal", licence: 'CC0 1.0' },
+  cello: { git: 'https://github.com/sfzinstruments/karoryfer-bigcat.cello', name: 'Karoryfer x Bigcat cello (Karoryfer Samples and Bigcat Instruments)', licence: 'CC0 1.0' },
+  ganjo: { git: 'https://github.com/sfzinstruments/ganjo', name: 'Ganjo, a guitar banjo (sfzinstruments)', licence: 'CC0 1.0' },
+  zither: { git: 'https://github.com/sfzinstruments/hungarian_zither', name: 'Hungarian zither (sfzinstruments)', licence: 'CC0 1.0' },
+  growly: { git: 'https://github.com/sfzinstruments/karoryfer.growlybass', name: 'Growlybass (Karoryfer Samples)', licence: 'CC0 1.0' },
+  pasta: { git: 'https://github.com/sfzinstruments/karoryfer.pastabass', name: 'Pastabass (Karoryfer Samples)', licence: 'CC0 1.0' },
+  sneaky: { git: 'https://github.com/sfzinstruments/karoryfer.sneakybass', name: 'Sneakybass (Karoryfer Samples)', licence: 'CC0 1.0' },
+  weresax: { git: 'https://github.com/sfzinstruments/karoryfer.weresax', name: 'Weresax (Karoryfer Samples)', licence: 'CC0 1.0' },
+  splendid: { git: 'https://github.com/sfzinstruments/SplendidGrandPiano', name: 'Splendid Grand Piano (Akai, mapped by kinwie)', licence: 'Public domain' },
+  // a second general midi set, for the choirs and the rhodes: its recordings are different ones from
+  // fluidr3's, which is the point. cc by-sa 3.0: these files can go in a game, with a credit, and
+  // anyone can share them on the same terms
+  hum: { url: 'https://cdn.freesound.org/previews/', name: 'Humming C D A by drotzruhn (freesound.org)', licence: 'CC0 1.0' },
+  sharon: { url: 'https://cdn.freesound.org/previews/', name: 'Music, Sharon Sings Notes and Shouts by CHallSmith (freesound.org)', licence: 'CC0 1.0' },
+  musyng: { url: 'https://gleitz.github.io/midi-js-soundfonts/MusyngKite/', name: 'Musyng Kite soundfont, via midi-js-soundfonts', licence: 'CC BY-SA 3.0' },
 };
 
 // ---------- what goes in each folder ----------
@@ -244,6 +264,64 @@ const FOLDERS = {
   fiddle: { gm: 'fiddle', low: 55, high: 96, loop: true },
   // a singing bowl rubbed round its rim, tuned, for the underwater and temple scenery
   'singing-bowl': { from: 'bowls', files: [['204/204915_710671-hq.mp3', 46], ['204/204917_710671-hq.mp3', 75]], seconds: 12, measure: true },
+
+  // ----- the fifth round: real recordings where the general midi set stood in, and more to choose from -----
+  // a real classical guitar, three loudnesses. each of iowa's files is a run of notes up one string
+  // (runs: [file, its first note, loudness]), cut where it goes quiet. one string per octave, so a run
+  // of notes keeps one colour: the low e, then the a, the g and the high e
+  'iowa-nylon': {
+    from: 'iowa', every: 2, seconds: 4,
+    // (the loud run up the high e stops a note early, at b flat)
+    runs: ['pp', 'mf', 'ff'].flatMap((dyn, v) => [['sulE.E2B2', 40], ['sulA.C3B3', 48], ['sulG.C4B4', 60], [dyn === 'ff' ? 'sul_E.C5Bb5' : 'sul_E.C5B5', 72]]
+      .map(([run, first]) => [`Guitar.${dyn}.${run}.mono.aif`, first, [0.3, 0.6, 0.9][v]])),
+  },
+  // real voices, sung, so they glide between notes (singLine in synth.js). a man singing ah, low (its
+  // names are an octave high: the file called c4 sings 129 hz), for chant and the bottom of a choir
+  'chant-voice': { from: 'hadzi', shift: -1, dir: 'Samples/vowel_sustain/a/', match: /^vowel_a_([a-g]b?\d)\.wav$/, every: 2, loop: true, seconds: 6 },
+  // someone humming three long notes, a3, c4 and d4 (cut from one take), for lullabies and memories
+  'hum-voice': { from: 'hum', files: [[1.6, 60], [19.5, 62], [40.2, 57]].map(([at, midi]) => ['439/439504_6616150-hq.mp3', midi, undefined, at]), loop: true, seconds: 3.6, measure: true },
+  // an operatic soprano's held notes from g4 to c6, with her own vibrato, for the high voice over a choir
+  soprano: { from: 'sharon', files: [[0.1, 79], [20.7, 81], [40.3, 67], [45.85, 72], [84.6, 84]].map(([at, midi]) => ['870/870863_18412227-hq.mp3', midi, undefined, at]), loop: true, seconds: 3.2, measure: true },
+  // a solo cello, bowed, at four loudnesses on the d and g strings (the d's, which is the warmer)
+  cello: { from: 'cello', shift: 1, dir: 'Samples/sus/', match: /^([A-G]b?\d)_(p|mf|f)_d\.wav$/, layers: { p: 0.35, mf: 0.6, f: 0.9 }, loop: true, seconds: 5 },
+  // the general midi banjo was a toy. this is a real one (a six string guitar banjo), several takes of
+  // each note, so a rolling banjo doesn't machine gun
+  'ganjo': { from: 'ganjo', shift: -1, dir: 'Common/', match: /^Banjo_Common - ([A-G]#?\d)(?:_\d+)?\.wav$/, every: 2, rr: 2, seconds: 3, retune: true },
+  // a hungarian zither (citera): melody strings over drones, bright and rattly, for folk, the middle ages
+  // and the steppe
+  zither: { from: 'zither', dir: 'Samples/mel/', match: /^prime_zither_([a-g]b?\d)_mel_rr\d\.flac$/, rr: 2, seconds: 4 },
+  // vcsl's knight upright, the softest of its two loudnesses: a felt piano (c418's)
+  'knight-upright': { from: 'vcsl', shift: 1, dir: 'Chordophones/Zithers/Upright Piano, Knight/Sustains/', match: /^Player_(vl\d)_rr1_([A-G]#?-?\d)\.wav$/, note: 2, layer: 1, layers: { vl1: 0.35, vl2: 0.8 }, low: 28, high: 100, every: 3, seconds: 6 },
+  'splendid-piano': { from: 'splendid', shift: 1, dir: 'Samples/', match: /^(PP|MF|FF) ([A-G]#?\d)\.flac$/, note: 2, layer: 1, layers: { PP: 0.3, MF: 0.6, FF: 0.9 }, low: 28, high: 100, every: 3, seconds: 6 },
+  // bowed vibraphone: a pure, glassy tone that swells in and hangs, for pads and ambient bells
+  'bowed-vibes': { from: 'vcsl', shift: 1, dir: 'Idiophones/Struck Idiophones/Vibraphone/Bowed/', match: /^Vibes_bowed_([A-G]#?\d)_rr1_Main\.wav$/, every: 1, loop: true, seconds: 8 },
+  // the orchestra's tremolo strings (violins over violas over cellos), the shiver under a tense scene
+  'tremolo-strings': {
+    loop: true, seconds: 4, parts: [
+      { from: 'vsco', dir: 'Strings/Cello Section/trem/', shift: 1, match: /^trem_([A-G]#?\d)_v2_1\.wav$/, high: 47 },
+      { from: 'vsco', dir: 'Strings/Viola Section/trem/', shift: 1, match: /^Violas_trem_([A-G]#?\d)_v2_rr1\.wav$/, low: 48, high: 54 },
+      { from: 'vsco', dir: 'Strings/Violin Section/Trem/', shift: 1, match: /^VlnEns_Trem_([A-G]#?\d)_v2\.wav$/, low: 55 },
+    ],
+  },
+  // vsco's real oboe and bassoon, where the general midi ones stood in
+  'vsco-oboe': { from: 'vsco', shift: 1, dir: 'Woodwinds/Oboe/Vib/', match: /^Oboe_Vib_([A-G]#?\d)_(v1|v3)_Main\.wav$/, layers: { v1: 0.4, v3: 0.85 }, loop: true, seconds: 4 },
+  'vsco-bassoon': { from: 'vsco', shift: 1, dir: 'Woodwinds/Bassoon/sus/', match: /^PSBassoon_([A-G]#?\d)_(v1|v2)_1\.wav$/, layers: { v1: 0.45, v2: 0.85 }, loop: true, seconds: 4 },
+  'straight-trumpet': { from: 'vsco', shift: 1, dir: 'Brass/Trumpet/straightM-sus/', match: /_([A-G]#?\d)_v3_rr1\.wav$/, loop: true, seconds: 4 },
+  // a saxello (a straight soprano sax), and karoryfer's alto: other saxes to choose from
+  saxello: { from: 'vcsl', shift: 1, dir: 'Aerophones/Reed Aerophones/Saxello/Vibrato/', match: /_SusVB_MainSpirit_([A-G]#?\d)_vl2_rr1\.wav$/, every: 2, loop: true, seconds: 4 },
+  'weresax-alto': { from: 'weresax', shift: 1, dir: 'Samples/alto/', match: /^([a-g]b?\d)_(p|f)_rr1_cnd\.wav$/, layers: { p: 0.4, f: 0.9 }, loop: true, seconds: 4 },
+  // karoryfer's green guitar, the black one's brother: a second electric, so two guitar parts in one
+  // song aren't the same recording
+  'green-guitar': { from: 'guitars', dir: 'Samples/green/ord/', shift: -1, match: /twang_([a-g]b?\d)_(p|f)_rr[12]\.wav$/, layers: { p: 0.35, f: 0.9 }, rr: 2, seconds: 5 },
+  // more basses, each its own: a growly electric, a pastabass (picked, fat), a double bass played softly
+  'growly-bass': { from: 'growly', shift: -1, dir: 'sustain/', match: /^([a-g]b?\d)_(p|f)_rr1\.wav$/, layers: { p: 0.4, f: 0.9 }, seconds: 4 },
+  'pasta-bass': { from: 'pasta', shift: -1, dir: 'samples/fetuccine/', match: /^([a-g]b?\d)_(vl2|vl4)_rr1\.wav$/, layers: { vl2: 0.45, vl4: 0.9 }, seconds: 4 },
+  'sneaky-bass': { from: 'sneaky', shift: -1, dir: 'Samples/finger/', match: /^sneakybass_([a-g]b?\d)_finger_rr[12]\.wav$/, rr: 2, seconds: 3 },
+  // the second general midi set's choirs and rhodes, for a second (and with fluidr3's, a third) choir
+  'choir-aahs-2': { gm: 'choir_aahs', font: 'musyng', low: 41, high: 84, loop: true },
+  'voice-oohs-2': { gm: 'voice_oohs', font: 'musyng', low: 41, high: 84, loop: true },
+  'synth-choir': { gm: 'synth_choir', font: 'musyng', low: 41, high: 84, loop: true },
+  rhodes: { gm: 'electric_piano_1', font: 'musyng', low: 33, high: 100 },
 };
 
 // a kit's hits: [file, loudness]. vrr() spells out a set of takes: {v} and {r} in the name are the
@@ -447,10 +525,12 @@ const fileName = (midi) => `${FLATS[midi % 12].toLowerCase()}${Math.floor(midi /
 function pickNotes(spec, trees) {
   if (spec.gm) {
     const out = [];
-    for (let midi = spec.low; midi <= spec.high; midi += spec.every || 3) out.push({ source: 'fluid', file: `${spec.gm}-mp3/${gmName(midi)}.mp3`, midi });
+    for (let midi = spec.low; midi <= spec.high; midi += spec.every || 3) out.push({ source: spec.font || 'fluid', file: `${spec.gm}-mp3/${gmName(midi)}.mp3`, midi });
     return out;
   }
   // files: picked by hand, [path, midi, loudness, the second to start from, cents out of tune]
+  // runs: files of several notes each, cut apart later (buildTonal), so only the files are named here
+  if (spec.runs) return spec.runs.map(([file, midi, vel]) => ({ source: spec.from, file, midi, vel, layer: vel, run: true }));
   if (spec.files) return spec.files.map(([file, midi, vel, start = 0, tune = 0]) => ({ source: spec.from, file, midi, vel, layer: vel, start, tune }));
   return (spec.parts || [spec]).flatMap((part) => {
     const shift = 12 * (part.shift ?? spec.shift ?? 0);
@@ -479,10 +559,10 @@ function pickNotes(spec, trees) {
     }
     const out = [];
     for (const midi of kept) {
-      const seen = new Set();
+      // rr: how many takes of each note at each loudness (round robins, played in turn), one unless it says
+      const seen = {};
       for (const one of found.filter((f) => f.midi === midi).sort((a, b) => a.file.localeCompare(b.file))) {
-        if (seen.has(one.layer)) continue;
-        seen.add(one.layer);
+        if ((seen[one.layer] = (seen[one.layer] || 0) + 1) > (part.rr ?? spec.rr ?? 1)) continue;
         out.push(one);
       }
     }
@@ -626,7 +706,7 @@ async function mtgTunes(work, file) {
 // ---------- building ----------
 
 function sourcesOf(spec) {
-  if (spec.gm) return ['fluid'];
+  if (spec.gm) return [spec.font || 'fluid'];
   if (spec.hits) return [spec.from, ...(spec.more ? [spec.more.from] : [])];
   return [...new Set((spec.parts || [spec]).map((part) => part.from))];
 }
@@ -650,13 +730,43 @@ function level(sounds) {
 }
 
 async function buildTonal(work, folder, spec) {
-  const notes = pickNotes(spec, TREES);
+  let notes = pickNotes(spec, TREES);
   const tunes = spec.tunes ? await mtgTunes(work, spec.tunes) : null;
-  const files = await downloadAll(work, notes.map((note) => [note.source, note.file]));
+  let files = await downloadAll(work, notes.map((note) => [note.source, note.file]));
+  // a run is a file of notes going up a semitone at a time, each one let ring a long while: cut at
+  // each note's start (onsets), the first its first note, then every few kept. a plucked note's tail
+  // goes nearly quiet long before the next one, so cutting where it goes quiet split notes in two
+  const cut = new Map();
+  if (spec.runs) {
+    const pieces = [];
+    // (a finger squeak or a buzz can look like a note starting, so every piece's pitch is measured, and
+    // each note of the run keeps its loudest piece that's clearly that note)
+    notes.forEach((note, i) => {
+      const whole = decode(files[i]);
+      const last = parseNote(/\.[A-G]b?\d([A-G]b?\d)\.mono/.exec(note.file)[1]);
+      const starts = onsets(whole);
+      const best = new Map();
+      starts.forEach((at, k) => {
+        const data = tidy(whole.slice(at, starts[k + 1] ?? whole.length), spec.seconds || 4);
+        const hz = pitchOf(data);
+        if (!hz) return;
+        const midi = Math.round(midiOf(hz));
+        if (midi < note.midi || midi > last || Math.abs(midiOf(hz) - midi) > 0.35 || (midi - 40) % (spec.every || 3)) return;
+        if (!best.has(midi) || peakOf(data) > peakOf(best.get(midi).data)) {
+          // (its tune: iowa's guitar is about 20 cents flat)
+          best.set(midi, { ...note, midi, file: `${note.file}#${midi}`, data, tune: Math.round((midi - midiOf(hz)) * 100) });
+        }
+      });
+      pieces.push(...best.values());
+    });
+    notes = pieces;
+    files = pieces.map((piece) => piece.file);
+    for (const piece of pieces) cut.set(piece.file, piece.data);
+  }
   const sounds = [];
   const counts = {};
   for (const [i, note] of notes.entries()) {
-    const data = tidy(decode(files[i]).subarray(Math.round((note.start || 0) * RATE)), spec.seconds || 4);
+    const data = cut.get(files[i]) || tidy(decode(files[i]).subarray(Math.round((note.start || 0) * RATE)), spec.seconds || 4);
     const hz = pitchOf(data);
     const heard = hz ? midiOf(hz) : null;
     let tune = note.tune || 0;
@@ -667,7 +777,9 @@ async function buildTonal(work, folder, spec) {
       tune = Math.round((note.midi - heard) * 100);
     } else note.midi = Math.round(note.midi);
     if (tunes) tune = tunes[path.basename(note.file).replace(/\.\w+$/, '')] || 0;
-    else if (!note.tune && !spec.measure && heard !== null && spec.loop && Math.abs(heard - note.midi) < 0.35) tune = Math.round((note.midi - heard) * 100);
+    // (retune: a plucked instrument tuned its own way, the ganjo about a quarter tone sharp, measured and
+    // tuned note by note like a held one)
+    else if (!note.tune && !spec.measure && heard !== null && (spec.loop || spec.retune) && Math.abs(heard - note.midi) < (spec.retune ? 0.7 : 0.35)) tune = Math.round((note.midi - heard) * 100);
     if (heard === null) console.log(`  ${folder} ${fileName(note.midi)}: couldn't hear its pitch`);
     else if (Math.abs(heard - note.midi) > 0.5) {
       // a held note's pitch is clear, so one that measures off is a mislabelled file, and it's left
@@ -736,6 +848,27 @@ function events(data, { most, longest, gap = 0.25 }) {
   const long = runs.filter(([a, z]) => (z - a) * 0.05 >= 0.3);
   const kept = long.length <= most ? long : Array.from({ length: most }, (_, k) => long[Math.floor((k * long.length) / most)]);
   return kept.map(([a, z]) => tidy(data.slice(Math.max(0, a * hop - Math.round(RATE * 0.02)), Math.min(data.length, (z + 2) * hop)), longest));
+}
+
+// where each note in a recording of separate notes starts, as sample offsets: a 10 ms step at least
+// six times louder than the 100 ms before it, and loud enough to be a note (a tenth of the loudest),
+// at least a second and a half after the last one
+function onsets(data) {
+  const hop = Math.round(RATE * 0.01);
+  const levels = [];
+  for (let at = 0; at + hop <= data.length; at += hop) {
+    let sum = 0;
+    for (let i = at; i < at + hop; i++) sum += data[i] * data[i];
+    levels.push(sum / hop);
+  }
+  const loud = Math.max(...levels);
+  // (a file that starts on its first note has nothing quiet before it to rise from)
+  const found = [levels.findIndex((level) => level > loud * 0.01)];
+  for (let i = found[0] + 150; i < levels.length; i++) {
+    const before = levels.slice(i - 10, i).reduce((a, b) => a + b, 0) / 10;
+    if (levels[i] > loud * 0.01 && levels[i] > before * 6 && (!found.length || i - found[found.length - 1] > 150)) found.push(i);
+  }
+  return found.map((i) => Math.max(0, (i - 1) * hop));
 }
 
 async function buildKit(work, folder, spec) {

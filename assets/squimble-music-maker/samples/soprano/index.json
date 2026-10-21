@@ -1,0 +1,33 @@
+{
+ "source": "Music, Sharon Sings Notes and Shouts by CHallSmith (freesound.org)",
+ "link": "https://cdn.freesound.org/previews/",
+ "licence": "CC0 1.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "g5.mp3",
+   "midi": 79,
+   "tune": 8
+  },
+  {
+   "file": "ab5.mp3",
+   "midi": 80,
+   "tune": 11
+  },
+  {
+   "file": "gb4.mp3",
+   "midi": 66,
+   "tune": -3
+  },
+  {
+   "file": "c5.mp3",
+   "midi": 72,
+   "tune": 34
+  },
+  {
+   "file": "c6.mp3",
+   "midi": 84,
+   "tune": 23
+  }
+ ]
+}

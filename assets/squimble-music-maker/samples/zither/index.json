@@ -1,0 +1,95 @@
+{
+ "source": "Hungarian zither (sfzinstruments)",
+ "link": "https://github.com/sfzinstruments/hungarian_zither",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "g4.mp3",
+   "midi": 67
+  },
+  {
+   "file": "g4-2.mp3",
+   "midi": 67
+  },
+  {
+   "file": "bb4.mp3",
+   "midi": 70
+  },
+  {
+   "file": "bb4-2.mp3",
+   "midi": 70
+  },
+  {
+   "file": "db5.mp3",
+   "midi": 73
+  },
+  {
+   "file": "db5-2.mp3",
+   "midi": 73
+  },
+  {
+   "file": "e5.mp3",
+   "midi": 76
+  },
+  {
+   "file": "e5-2.mp3",
+   "midi": 76
+  },
+  {
+   "file": "g5.mp3",
+   "midi": 79
+  },
+  {
+   "file": "g5-2.mp3",
+   "midi": 79
+  },
+  {
+   "file": "bb5.mp3",
+   "midi": 82
+  },
+  {
+   "file": "bb5-2.mp3",
+   "midi": 82
+  },
+  {
+   "file": "db6.mp3",
+   "midi": 85
+  },
+  {
+   "file": "db6-2.mp3",
+   "midi": 85
+  },
+  {
+   "file": "e6.mp3",
+   "midi": 88
+  },
+  {
+   "file": "e6-2.mp3",
+   "midi": 88
+  },
+  {
+   "file": "g6.mp3",
+   "midi": 91
+  },
+  {
+   "file": "g6-2.mp3",
+   "midi": 91
+  },
+  {
+   "file": "bb6.mp3",
+   "midi": 94
+  },
+  {
+   "file": "bb6-2.mp3",
+   "midi": 94
+  },
+  {
+   "file": "c7.mp3",
+   "midi": 96
+  },
+  {
+   "file": "c7-2.mp3",
+   "midi": 96
+  }
+ ]
+}

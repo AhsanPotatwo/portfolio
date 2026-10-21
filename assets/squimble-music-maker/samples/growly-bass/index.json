@@ -1,0 +1,137 @@
+{
+ "source": "Growlybass (Karoryfer Samples)",
+ "link": "https://github.com/sfzinstruments/karoryfer.growlybass",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "db1-9.mp3",
+   "midi": 25,
+   "vel": 0.9
+  },
+  {
+   "file": "db1-4.mp3",
+   "midi": 25,
+   "vel": 0.4
+  },
+  {
+   "file": "e1-9.mp3",
+   "midi": 28,
+   "vel": 0.9
+  },
+  {
+   "file": "e1-4.mp3",
+   "midi": 28,
+   "vel": 0.4
+  },
+  {
+   "file": "a1-9.mp3",
+   "midi": 33,
+   "vel": 0.9
+  },
+  {
+   "file": "a1-4.mp3",
+   "midi": 33,
+   "vel": 0.4
+  },
+  {
+   "file": "c2-9.mp3",
+   "midi": 36,
+   "vel": 0.9
+  },
+  {
+   "file": "c2-4.mp3",
+   "midi": 36,
+   "vel": 0.4
+  },
+  {
+   "file": "eb2-9.mp3",
+   "midi": 39,
+   "vel": 0.9
+  },
+  {
+   "file": "eb2-4.mp3",
+   "midi": 39,
+   "vel": 0.4
+  },
+  {
+   "file": "gb2-9.mp3",
+   "midi": 42,
+   "vel": 0.9
+  },
+  {
+   "file": "gb2-4.mp3",
+   "midi": 42,
+   "vel": 0.4
+  },
+  {
+   "file": "a2-9.mp3",
+   "midi": 45,
+   "vel": 0.9
+  },
+  {
+   "file": "a2-4.mp3",
+   "midi": 45,
+   "vel": 0.4
+  },
+  {
+   "file": "c3-9.mp3",
+   "midi": 48,
+   "vel": 0.9
+  },
+  {
+   "file": "c3-4.mp3",
+   "midi": 48,
+   "vel": 0.4
+  },
+  {
+   "file": "eb3-9.mp3",
+   "midi": 51,
+   "vel": 0.9
+  },
+  {
+   "file": "eb3-4.mp3",
+   "midi": 51,
+   "vel": 0.4
+  },
+  {
+   "file": "gb3-9.mp3",
+   "midi": 54,
+   "vel": 0.9
+  },
+  {
+   "file": "gb3-4.mp3",
+   "midi": 54,
+   "vel": 0.4
+  },
+  {
+   "file": "a3-9.mp3",
+   "midi": 57,
+   "vel": 0.9
+  },
+  {
+   "file": "a3-4.mp3",
+   "midi": 57,
+   "vel": 0.4
+  },
+  {
+   "file": "c4-9.mp3",
+   "midi": 60,
+   "vel": 0.9
+  },
+  {
+   "file": "c4-4.mp3",
+   "midi": 60,
+   "vel": 0.4
+  },
+  {
+   "file": "eb4-9.mp3",
+   "midi": 63,
+   "vel": 0.9
+  },
+  {
+   "file": "eb4-4.mp3",
+   "midi": 63,
+   "vel": 0.4
+  }
+ ]
+}

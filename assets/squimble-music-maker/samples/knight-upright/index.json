@@ -1,0 +1,197 @@
+{
+ "source": "Versilian Community Sample Library (Versilian Studios)",
+ "link": "https://github.com/sgossner/VCSL",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "f1-4.mp3",
+   "midi": 29,
+   "vel": 0.35
+  },
+  {
+   "file": "f1-8.mp3",
+   "midi": 29,
+   "vel": 0.8
+  },
+  {
+   "file": "a1-4.mp3",
+   "midi": 33,
+   "vel": 0.35
+  },
+  {
+   "file": "a1-8.mp3",
+   "midi": 33,
+   "vel": 0.8
+  },
+  {
+   "file": "db2-4.mp3",
+   "midi": 37,
+   "vel": 0.35
+  },
+  {
+   "file": "db2-8.mp3",
+   "midi": 37,
+   "vel": 0.8
+  },
+  {
+   "file": "f2-4.mp3",
+   "midi": 41,
+   "vel": 0.35
+  },
+  {
+   "file": "f2-8.mp3",
+   "midi": 41,
+   "vel": 0.8
+  },
+  {
+   "file": "a2-4.mp3",
+   "midi": 45,
+   "vel": 0.35
+  },
+  {
+   "file": "a2-8.mp3",
+   "midi": 45,
+   "vel": 0.8
+  },
+  {
+   "file": "db3-4.mp3",
+   "midi": 49,
+   "vel": 0.35
+  },
+  {
+   "file": "db3-8.mp3",
+   "midi": 49,
+   "vel": 0.8
+  },
+  {
+   "file": "f3-4.mp3",
+   "midi": 53,
+   "vel": 0.35
+  },
+  {
+   "file": "f3-8.mp3",
+   "midi": 53,
+   "vel": 0.8
+  },
+  {
+   "file": "a3-4.mp3",
+   "midi": 57,
+   "vel": 0.35
+  },
+  {
+   "file": "a3-8.mp3",
+   "midi": 57,
+   "vel": 0.8
+  },
+  {
+   "file": "db4-4.mp3",
+   "midi": 61,
+   "vel": 0.35
+  },
+  {
+   "file": "db4-8.mp3",
+   "midi": 61,
+   "vel": 0.8
+  },
+  {
+   "file": "f4-4.mp3",
+   "midi": 65,
+   "vel": 0.35
+  },
+  {
+   "file": "f4-8.mp3",
+   "midi": 65,
+   "vel": 0.8
+  },
+  {
+   "file": "a4-4.mp3",
+   "midi": 69,
+   "vel": 0.35
+  },
+  {
+   "file": "a4-8.mp3",
+   "midi": 69,
+   "vel": 0.8
+  },
+  {
+   "file": "db5-4.mp3",
+   "midi": 73,
+   "vel": 0.35
+  },
+  {
+   "file": "db5-8.mp3",
+   "midi": 73,
+   "vel": 0.8
+  },
+  {
+   "file": "f5-4.mp3",
+   "midi": 77,
+   "vel": 0.35
+  },
+  {
+   "file": "f5-8.mp3",
+   "midi": 77,
+   "vel": 0.8
+  },
+  {
+   "file": "a5-4.mp3",
+   "midi": 81,
+   "vel": 0.35
+  },
+  {
+   "file": "a5-8.mp3",
+   "midi": 81,
+   "vel": 0.8
+  },
+  {
+   "file": "db6-4.mp3",
+   "midi": 85,
+   "vel": 0.35
+  },
+  {
+   "file": "db6-8.mp3",
+   "midi": 85,
+   "vel": 0.8
+  },
+  {
+   "file": "f6-4.mp3",
+   "midi": 89,
+   "vel": 0.35
+  },
+  {
+   "file": "f6-8.mp3",
+   "midi": 89,
+   "vel": 0.8
+  },
+  {
+   "file": "a6-4.mp3",
+   "midi": 93,
+   "vel": 0.35
+  },
+  {
+   "file": "a6-8.mp3",
+   "midi": 93,
+   "vel": 0.8
+  },
+  {
+   "file": "db7-4.mp3",
+   "midi": 97,
+   "vel": 0.35
+  },
+  {
+   "file": "db7-8.mp3",
+   "midi": 97,
+   "vel": 0.8
+  },
+  {
+   "file": "eb7-4.mp3",
+   "midi": 99,
+   "vel": 0.35
+  },
+  {
+   "file": "eb7-8.mp3",
+   "midi": 99,
+   "vel": 0.8
+  }
+ ]
+}

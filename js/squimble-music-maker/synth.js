@@ -77,6 +77,11 @@
 // time, instead of round their role's usual note (the drone composer in music.js). sung: a voice
 // recording that glides from note to note through a phrase instead of starting again each note
 // (singLine).
+// octave: where the instrument plays a part, in octaves from the role's usual place (a cello's tune an
+// octave under a flute's). range: [lowest, highest], the notes a voice was recorded singing: its part
+// is folded into them by octaves (composeSong), since a voice moved an octave sounds like a cartoon.
+// pedal: a piano's sustain pedal, which moods that want it hold down (pedal in music.js), so its notes
+// ring on into each other until the chord changes
 //
 // ---------- the room ----------
 //
@@ -141,8 +146,15 @@ const INSTRUMENTS = {
   'glass-pad':   { name: 'Glass pad', family: 'pad', edge: 0.25, kind: 'sub', osc: [['glass', -5], ['glass', 6, 1, 0.3]], filter: { freq: 4200, q: 0.5 }, env: [1.8, 2, 0.75, 3.5], gain: 0.07 },
   // a choir is lots of people, each a little out of time and tune with the others (ensemble: every
   // singer drifts on their own), which is why a real one shimmers and a synth "choir" sounds flat
-  'choir-ah':    { name: 'Choir, ah', family: 'pad', edge: 0.2, world: 'acoustic', kind: 'choir', vowel: 'ah', env: [1.1, 1, 0.85, 2.4], ensemble: true, drift: 7, gain: 0.22, vibrato: { rate: 4.8, depth: 9, delay: 0.8 }, samples: 'choir-aahs', sampled: { gain: 0.2 } },
-  'choir-oo':    { name: 'Choir, oo', family: 'pad', edge: 0.1, world: 'acoustic', kind: 'choir', vowel: 'oo', env: [1.4, 1, 0.85, 2.8], ensemble: true, drift: 7, gain: 0.3, vibrato: { rate: 4.5, depth: 8, delay: 1 }, samples: 'choir-oohs', sampled: { gain: 0.57 } },
+  'choir-ah':    { name: 'Choir, ah', family: 'pad', edge: 0.2, world: 'acoustic', kind: 'choir', vowel: 'ah', env: [1.1, 1, 0.85, 2.4], ensemble: true, drift: 7, gain: 0.22, vibrato: { rate: 4.8, depth: 9, delay: 0.8 }, samples: 'choir-aahs', sampled: { name: 'Choir (FluidR3)', gain: 0.2 }, more: { 'choir-aahs-2': { name: 'Choir (Musyng Kite)', gain: 0.18 } } },
+  'choir-oo':    { name: 'Choir, oo', family: 'pad', edge: 0.1, world: 'acoustic', kind: 'choir', vowel: 'oo', env: [1.4, 1, 0.85, 2.8], ensemble: true, drift: 7, gain: 0.3, vibrato: { rate: 4.5, depth: 8, delay: 1 }, samples: 'choir-oohs', sampled: { name: 'Choir (FluidR3)', gain: 0.57 }, more: { 'voice-oohs-2': { name: 'Choir (Musyng Kite)', gain: 0.65 } } },
+  // the sounds a pad can be that are neither synths nor the string section: a synth choir (an "ooh"
+  // from a keyboard, the eighties' and c418's), a vibraphone played with a bow (a glassy tone that swells
+  // in and hangs, aphex twin and c418's ambient pieces), and the strings shivering in tremolo, the
+  // sound of a film's tense scene or a dragon's lair
+  'vox-pad':     { name: 'Synth choir', family: 'pad', edge: 0.15, kind: 'choir', vowel: 'oo', env: [1.3, 1, 0.85, 2.6], ensemble: true, drift: 4, gain: 0.3, samples: 'synth-choir', sampled: { name: 'Synth choir (Musyng Kite)', gain: 0.41 } },
+  'bowed-vibes': { name: 'Bowed vibraphone', family: 'pad', edge: 0.1, world: 'acoustic', kind: 'sub', osc: [['sine', 0], ['sine', 2, 1, 0.12], ['sine', -2, 2, 0.04]], env: [1.4, 1, 0.9, 3.5], gain: 0.083, samples: 'bowed-vibes', sampled: { name: 'Bowed vibraphone (VCSL)', gain: 0.93, reach: 12 } },
+  'tremolo-strings': { name: 'Tremolo strings', family: 'pad', edge: 0.4, world: 'acoustic', kind: 'sub', osc: [['bowed', -8], ['bowed', 7], ['bowed', 0, 0, 0.8]], breath: 0.05, filter: { freq: 2800, q: 0.5, track: 0.3 }, body: [[280, 4, 2], [460, 3, 2.5], [2800, 4, 0.9]], env: [0.5, 1, 0.9, 1.2], ensemble: true, drift: 5, gain: 0.03, tremolo: { rate: 11, depth: 0.45 }, samples: 'tremolo-strings', sampled: { name: 'Tremolo strings (VSCO)', gain: 0.68 } },
   // a string section: bowed waves (WAVES.bowed) for several players, each drifting on their own, a
   // little bow noise (breath), and a violin's wooden body (body) on top, which is most of what made it
   // sound like strings rather than a synth pad
@@ -163,7 +175,7 @@ const INSTRUMENTS = {
   // guitars as pads: slowdive's volume swells (the knob rolled up after each chord's picked, through a
   // chorus), and my bloody valentine's reverse reverb, a fuzzed chord sucked in backwards
   'swell-guitar':  { name: 'Swelling guitar', family: 'pad', edge: 0.2, own: true, kind: 'pluck', bright: 0.55, soft: 0.3, decay: 4, sustain: 0.8, env: [0.9, 2, 0.9, 2.5], gain: 1,
-    amp: { tight: 80, curve: 'tube', gain: 2, cab: 5000, level: 0.3, chorus: [0.5, 0.005] }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.9, env: [0.5, 1, 1, 1.5] }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 2.6 } } },
+    amp: { tight: 80, curve: 'tube', gain: 2, cab: 5000, level: 0.3, chorus: [0.5, 0.005] }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.9, env: [0.5, 1, 1, 1.5] }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 2.6 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1.4, env: [0.5, 1, 1, 1.5] } } },
   'reverse-guitar': { name: 'Reversed guitar', family: 'pad', edge: 0.4, own: true, kind: 'sub', reverse: true, osc: [['sawtooth', -6], ['sawtooth', 6]], filter: { freq: 1600, q: 0.5 }, env: [0, 0, 1, 0.08], gain: 0.5,
     amp: { tight: 60, curve: 'soft', gain: 30, mids: [900, -6], cab: 3500, level: 0.05, reverse: 0.6 } },
   // a horn section (trumpets, saxes and a trombone) playing chords together: the punchy stabs of funk,
@@ -186,12 +198,14 @@ const INSTRUMENTS = {
   // brightness right but not the way a struck bar or string sings on its lowest notes as the top dies
   // a felt piano: felt laid between the hammers and strings, so the top's soft and the strike's a
   // muffled thump (nils frahm, the quiet minecraft pieces). two strings a note, beating slowly
-  'felt-keys':   { name: 'Felt piano', family: 'keys', edge: 0.1, kind: 'modal', modes: [[1, 1, 3.4], [2, 0.42, 1.9, 0.3], [3, 0.16, 1.2, 0.6], [4, 0.07, 0.8, 0.9], [5, 0.03, 0.5, 1.2]], strike: [0.22, 500, 0.025], unison: 0.9, stretch: 0.0003, track: 0.5, env: [0.003, 1, 1, 0.5], gain: 0.47, samples: 'upright-piano', sampled: { gain: 0.82, filter: { freq: 2400, q: 0.5 } } },
+  'felt-keys':   { name: 'Felt piano', family: 'keys', edge: 0.1, pedal: true, kind: 'modal', modes: [[1, 1, 3.4], [2, 0.42, 1.9, 0.3], [3, 0.16, 1.2, 0.6], [4, 0.07, 0.8, 0.9], [5, 0.03, 0.5, 1.2]], strike: [0.22, 500, 0.025], unison: 0.9, stretch: 0.0003, track: 0.5, env: [0.003, 1, 1, 0.5], gain: 0.47, samples: 'knight-upright', sampled: { name: 'Knight upright, played softly (VCSL)', gain: 0.82, filter: { freq: 2200, q: 0.5 } }, more: { 'upright-piano': { name: 'Upright piano (VSCO)', gain: 0.82, filter: { freq: 2400, q: 0.5 } } } },
   // a fender rhodes: a struck tine, nearly a pure tone, its second harmonic growling in when it's hit
   // hard (the "bark", hard), with the stereo tremolo the suitcase model had
-  'e-piano':     { name: 'Electric piano', family: 'keys', edge: 0.2, kind: 'modal', modes: [[1, 1, 3.6], [2, 0.16, 1.5, 0.8], [3, 0.05, 0.6, 1.4], [7, 0.05, 0.05, 2]], strike: [0.04, 3000, 0.003], track: 0.4, env: [0.003, 1, 1, 0.6], gain: 0.3, tremolo: { rate: 4.5, depth: 0.12 }, samples: 'electric-piano', sampled: { name: 'Rhodes (FluidR3)', gain: 0.22 }, more: { 'dx-piano': { name: 'DX7 style electric piano (FluidR3)', gain: 0.41 }, 'fm-piano': { name: 'Yamaha TX81Z FM piano (VCSL)', gain: 0.52 } } },
+  'e-piano':     { name: 'Electric piano', family: 'keys', edge: 0.2, pedal: true, kind: 'modal', modes: [[1, 1, 3.6], [2, 0.16, 1.5, 0.8], [3, 0.05, 0.6, 1.4], [7, 0.05, 0.05, 2]], strike: [0.04, 3000, 0.003], track: 0.4, env: [0.003, 1, 1, 0.6], gain: 0.3, tremolo: { rate: 4.5, depth: 0.12 }, samples: 'electric-piano', sampled: { name: 'Rhodes (FluidR3)', gain: 0.22 }, more: { rhodes: { name: 'Rhodes (Musyng Kite)', gain: 0.28 }, 'dx-piano': { name: 'DX7 style electric piano (FluidR3)', gain: 0.41, weight: 0.5 }, 'fm-piano': { name: 'Yamaha TX81Z FM piano (VCSL)', gain: 0.52, weight: 0.5 } } },
   // a harp's soundboard (body) gives its low strings their warmth
   harp:          { name: 'Harp', family: 'keys', edge: 0.15, world: 'acoustic', kind: 'pluck', bright: 0.3, soft: 0.75, decay: 3, filter: { freq: 2000, q: 0.5, track: 0.5 }, body: [[220, 3, 1.2], [700, 2, 1.2]], env: [0.006, 3, 1, 2.5], gain: 0.43, samples: 'harp', sampled: { name: 'Concert harp (VCSL)', gain: 0.55 }, more: { 'folk-harp': { name: 'Folk harp (VCSL)', gain: 0.6 } } },
+  // a hungarian zither (citera): melody strings over drones, plucked with a pick, bright and rattly
+  zither:        { name: 'Zither', family: 'keys', edge: 0.3, world: 'acoustic', kind: 'pluck', bright: 0.75, soft: 0.2, decay: 2.5, ring: 0.4, twang: 6, body: [[300, 3, 1.5], [1300, 3, 1.5]], env: [0.002, 2.5, 1, 1], gain: 0.69, ornaments: { grace: 0.08, slide: 0.04 }, samples: 'zither', sampled: { name: 'Hungarian zither (sfzinstruments)', gain: 1.3, reach: 12 } },
   // a music box's comb: steel teeth plucked by pins, a tick and then nearly pure tones
   'music-box':   { name: 'Music box', family: 'keys', edge: 0.3, world: 'acoustic', kind: 'modal', modes: [[1, 1, 1.8], [4, 0.2, 0.35, 0.8], [2, 0.05, 1]], strike: [0.12, 6000, 0.003], track: 0.4, env: [0.002, 1, 1, 0.6], gain: 0.34, samples: 'music-box', sampled: { gain: 0.53 } },
   // a marimba's bars are tuned so their first overtones are two octaves and a bit over three up, and
@@ -205,7 +219,7 @@ const INSTRUMENTS = {
   vibes:         { name: 'Vibraphone', family: 'keys', edge: 0.15, world: 'acoustic', kind: 'modal', modes: [[1, 1, 3.5], [4, 0.08, 0.7, 0.6], [10, 0.02, 0.12, 1]], strike: [0.06, 2500, 0.004], track: 0.5, env: [0.003, 1, 1, 1.2], gain: 0.39, tremolo: { rate: 5.5, depth: 0.35 }, samples: 'vibraphone', sampled: { gain: 0.58 } },
   // guitars ring through a wooden box: its air rings at about 100 hz and its top at about 200, which
   // is the warmth an acoustic guitar has and a plucked string alone doesn't
-  nylon:         { name: 'Nylon guitar', family: 'keys', edge: 0.2, world: 'acoustic', kind: 'pluck', bright: 0.5, soft: 0.45, decay: 2.2, filter: { freq: 3000, q: 0.6, track: 0.3 }, body: [[105, 5, 2], [210, 4, 2], [420, -2, 1.5], [2500, 2, 0.8]], env: [0.003, 2.2, 1, 0.8], gain: 0.8, ornaments: { slide: 0.05, grace: 0.04 }, samples: 'nylon-guitar', sampled: { gain: 0.29 } },
+  nylon:         { name: 'Nylon guitar', family: 'keys', edge: 0.2, world: 'acoustic', kind: 'pluck', bright: 0.5, soft: 0.45, decay: 2.2, filter: { freq: 3000, q: 0.6, track: 0.3 }, body: [[105, 5, 2], [210, 4, 2], [420, -2, 1.5], [2500, 2, 0.8]], env: [0.003, 2.2, 1, 0.8], gain: 0.8, ornaments: { slide: 0.05, grace: 0.04 }, samples: 'iowa-nylon', sampled: { name: 'Classical guitar (University of Iowa)', gain: 0.64 }, more: { 'nylon-guitar': { name: 'Nylon guitar (FluidR3)', gain: 0.29, weight: 0.5 } } },
   // a steel string guitar, brighter and longer ringing than the nylon: stardew valley's strummed and
   // fingerpicked guitar
   'steel-guitar': { name: 'Steel guitar', family: 'keys', edge: 0.3, world: 'acoustic', kind: 'pluck', bright: 0.7, soft: 0.25, decay: 2.8, filter: { freq: 4200, q: 0.5, track: 0.3 }, body: [[100, 5, 2], [190, 4, 2], [3000, 3, 1]], env: [0.002, 2.8, 1, 0.8], gain: 0.5, ornaments: { slide: 0.05 }, samples: 'steel-guitar', sampled: { name: 'Steel string guitar (FluidR3)', gain: 0.3 }, more: { 'shiny-acoustic': { name: 'Acoustic guitar (Karoryfer)', gain: 0.53 } } },
@@ -219,7 +233,7 @@ const INSTRUMENTS = {
   // sharp of true (stretch, the stiffness of steel strings, which is why pianos are tuned stretched),
   // each dying at its own rate, the top dying first, and the felt hammer's thump. harder is brighter
   // (hard on the upper modes)
-  piano:         { name: 'Grand piano', family: 'keys', edge: 0.2, world: 'acoustic', kind: 'modal', modes: [[1, 1, 5], [2, 0.55, 3.3, 0.2], [3, 0.35, 2.4, 0.4], [4, 0.22, 1.8, 0.6], [5, 0.14, 1.4, 0.8], [6, 0.09, 1.1, 1], [7, 0.05, 0.9, 1.2], [8, 0.04, 0.7, 1.4], [9, 0.025, 0.5, 1.6], [10, 0.015, 0.4, 1.8]], strike: [0.3, 2500, 0.012], unison: 1.2, stretch: 0.0005, track: 0.6, env: [0.002, 1, 1, 0.35], gain: 0.45, samples: 'piano', sampled: { name: 'Steinway B grand (VCSL)', gain: 0.68 }, more: { cp80: { name: 'Yamaha CP80 electric grand', gain: 0.23 } } },
+  piano:         { name: 'Grand piano', family: 'keys', edge: 0.2, world: 'acoustic', pedal: true, kind: 'modal', modes: [[1, 1, 5], [2, 0.55, 3.3, 0.2], [3, 0.35, 2.4, 0.4], [4, 0.22, 1.8, 0.6], [5, 0.14, 1.4, 0.8], [6, 0.09, 1.1, 1], [7, 0.05, 0.9, 1.2], [8, 0.04, 0.7, 1.4], [9, 0.025, 0.5, 1.6], [10, 0.015, 0.4, 1.8]], strike: [0.3, 2500, 0.012], unison: 1.2, stretch: 0.0005, track: 0.6, env: [0.002, 1, 1, 0.35], gain: 0.45, samples: 'piano', sampled: { name: 'Steinway B grand (VCSL)', gain: 0.68 }, more: { 'splendid-piano': { name: 'Steinway grand (Akai, Splendid Grand)', gain: 0.55 }, cp80: { name: 'Yamaha CP80 electric grand', gain: 0.23, weight: 0.5 } } },
   // a hammond organ: tonewheels (perfectly in tune, so no drift), the drawbars, a click as each key
   // makes contact (chiff), and the leslie speaker spinning (rotary, see instrumentChain), which is the
   // swirl of jazz, gospel and soul organ
@@ -229,7 +243,7 @@ const INSTRUMENTS = {
   clavinet:      { name: 'Clavinet', family: 'keys', edge: 0.45, kind: 'pluck', bright: 0.85, soft: 0, decay: 0.7, ring: 0.4, body: [[1200, 5, 1.5], [3000, 4, 1]], env: [0.002, 0.7, 1, 0.06], gain: 0.59, samples: 'clavinet', sampled: { gain: 0.32 } },
   // a banjo: a string over a drum skin, so it's bright, short and ringing with no deep bass (the head
   // rings at about 700 hz). twang: a plucked string starts a little sharp and settles
-  banjo:         { name: 'Banjo', family: 'keys', edge: 0.4, world: 'acoustic', kind: 'pluck', bright: 0.8, soft: 0.05, decay: 1.1, twang: 10, body: [[700, 7, 2.5], [2200, 5, 1.5], [160, -5, 1]], env: [0.002, 1.1, 1, 0.25], gain: 0.69, ornaments: { slide: 0.08, grace: 0.06 }, samples: 'banjo', sampled: { gain: 0.5 } },
+  banjo:         { name: 'Banjo', family: 'keys', edge: 0.4, world: 'acoustic', kind: 'pluck', bright: 0.8, soft: 0.05, decay: 1.1, twang: 10, body: [[700, 7, 2.5], [2200, 5, 1.5], [160, -5, 1]], env: [0.002, 1.1, 1, 0.25], gain: 0.69, ornaments: { slide: 0.08, grace: 0.06 }, samples: 'ganjo', sampled: { name: 'Guitar banjo (sfzinstruments)', gain: 0.57 }, more: { banjo: { name: 'Banjo (FluidR3)', gain: 0.5, weight: 0.5 } } },
   // a sitar: its curved bridge (the jawari) lets the string brush it, so it buzzes and the buzz sweeps
   // as the note dies (buzz). players bend and slide between notes (meend) all the time, so it has a
   // lot of ornaments, and slow slides (glide)
@@ -251,7 +265,7 @@ const INSTRUMENTS = {
   // a wurlitzer: a steel reed struck by a hammer under a pickup, rounder than a rhodes at the bottom and
   // barking at the top when it's hit hard, with the built in tremolo. soul, ray charles, supertramp,
   // and the indie and dream pop of now
-  wurlitzer:     { name: 'Wurlitzer', family: 'keys', edge: 0.3, kind: 'modal', modes: [[1, 1, 2.5], [2, 0.3, 1.2, 0.9], [3, 0.12, 0.5, 1.2], [5, 0.05, 0.2, 1.5]], strike: [0.06, 2500, 0.003], track: 0.4, env: [0.003, 1, 1, 0.4], gain: 0.41, tremolo: { rate: 5.5, depth: 0.15 }, samples: 'wurlitzer', sampled: { name: 'Wurlitzer EP200', gain: 0.31 }, more: { pianet: { name: 'Hohner Pianet T', gain: 0.26 } } },
+  wurlitzer:     { name: 'Wurlitzer', family: 'keys', edge: 0.3, pedal: true, kind: 'modal', modes: [[1, 1, 2.5], [2, 0.3, 1.2, 0.9], [3, 0.12, 0.5, 1.2], [5, 0.05, 0.2, 1.5]], strike: [0.06, 2500, 0.003], track: 0.4, env: [0.003, 1, 1, 0.4], gain: 0.41, tremolo: { rate: 5.5, depth: 0.15 }, samples: 'wurlitzer', sampled: { name: 'Wurlitzer EP200', gain: 0.31 }, more: { pianet: { name: 'Hohner Pianet T', gain: 0.26 } } },
   // a mbira from zimbabwe: metal keys on a board over a gourd, plucked with the thumbs. like a kalimba,
   // with the bottle caps on it buzzing (the high, out of tune modes) and a deeper ring
   mbira:         { name: 'Mbira', family: 'keys', edge: 0.3, world: 'acoustic', own: true, kind: 'modal', modes: [[1, 1, 1.8], [2, 0.08, 0.6], [5.4, 0.15, 0.15, 1], [11.3, 0.06, 0.05, 1.2]], strike: [0.25, 3500, 0.004], track: 0.5, env: [0.002, 1, 1, 0.7], gain: 0.46, samples: 'mbira', sampled: { name: 'Mbira dzavadzimu (VCSL)', gain: 1.9 } },
@@ -273,35 +287,35 @@ const INSTRUMENTS = {
   // die like an acoustic one. ornaments.slide is the rock trick of sliding into a power chord
   // clean, bright and a little squashed: the twinkling guitar of emo (tigers jaw, american football)
   'clean-guitar':  { name: 'Clean guitar', family: 'guitar', edge: 0.2, kind: 'pluck', bright: 0.6, soft: 0.2, decay: 3, env: [0.002, 3, 1, 0.3], gain: 1,
-    amp: { tight: 90, curve: 'tube', gain: 1.2, mids: [700, -2], presence: [3200, 3], cab: 7500, level: 0.5, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 0.88 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.2 } } },
+    amp: { tight: 90, curve: 'tube', gain: 1.2, mids: [700, -2], presence: [3200, 3], cab: 7500, level: 0.5, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 0.88 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.2 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 0.69 } } },
   // clean through a chorus pedal, shimmering left and right: come as you are, and all of dream pop
   'chorus-guitar': { name: 'Chorus guitar', family: 'guitar', edge: 0.2, kind: 'pluck', bright: 0.55, soft: 0.3, decay: 3.2, env: [0.002, 3, 1, 0.4], gain: 1,
-    amp: { tight: 90, curve: 'tube', gain: 1.2, presence: [3000, 2], cab: 6500, level: 0.45, chorus: [0.7, 0.0035] }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 0.77 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.1 } } },
+    amp: { tight: 90, curve: 'tube', gain: 1.2, presence: [3000, 2], cab: 6500, level: 0.45, chorus: [0.7, 0.0035] }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 0.77 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.1 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 0.71 } } },
   // a valve amp turned up until it just breaks up: crunchy when picked hard, nearly clean when soft
   'crunch-guitar': { name: 'Crunch guitar', family: 'guitar', edge: 0.45, kind: 'pluck', bright: 0.6, soft: 0.1, decay: 4, ring: 0.4, env: [0.002, 3, 1, 0.25], gain: 1, ornaments: { slide: 0.1, glide: 0.06 },
-    amp: { tight: 100, curve: 'tube', gain: 4, sustain: 6, presence: [2500, 3], cab: 5500, level: 0.165, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 0.94 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.3 } } },
+    amp: { tight: 100, curve: 'tube', gain: 4, sustain: 6, presence: [2500, 3], cab: 5500, level: 0.165, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 0.94 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.3 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 0.85 } } },
   // an overdrive pedal (a tube screamer) into a hot amp: the mids pushed before the clipping, so it
   // sings rather than fizzes
   'drive-guitar':  { name: 'Overdrive guitar', family: 'guitar', edge: 0.6, kind: 'pluck', bright: 0.65, soft: 0.1, decay: 6, ring: 0.35, env: [0.002, 3, 1, 0.25], gain: 1, ornaments: { slide: 0.15, glide: 0.06 },
-    amp: { tight: 140, boost: [720, 6], curve: 'soft', gain: 12, sustain: 10, presence: [2800, 2], cab: 5000, level: 0.0254, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.1 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.5 } } },
+    amp: { tight: 140, boost: [720, 6], curve: 'soft', gain: 12, sustain: 10, presence: [2800, 2], cab: 5000, level: 0.0254, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.1 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.5 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 0.95 } } },
   // a distortion pedal (a boss ds-1, a rat): hard clipped, flatter and rawer. nirvana's chorus
   'dist-guitar':   { name: 'Distortion guitar', family: 'guitar', edge: 0.75, kind: 'pluck', bright: 0.7, soft: 0.05, decay: 6, ring: 0.35, env: [0.002, 3, 1, 0.25], gain: 1, ornaments: { slide: 0.2, glide: 0.06 },
-    amp: { tight: 110, curve: 'hard', gain: 30, sustain: 14, mids: [700, -3], presence: [3000, 3], cab: 4500, level: 0.0265, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.1 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.5 } } },
+    amp: { tight: 110, curve: 'hard', gain: 30, sustain: 14, mids: [700, -3], presence: [3000, 3], cab: 4500, level: 0.0265, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.1 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.5 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 0.96 } } },
   // a big muff fuzz: so much gain every note sustains, the mids scooped out and the top rolled off, so
   // it's thick and woolly rather than sharp. the smashing pumpkins, weezer, my bloody valentine
   'fuzz-guitar':   { name: 'Fuzz guitar', family: 'guitar', edge: 0.65, kind: 'pluck', bright: 0.6, soft: 0.1, decay: 7, ring: 0.3, env: [0.002, 3, 1, 0.35], gain: 1, ornaments: { slide: 0.15, glide: 0.07 },
-    amp: { tight: 50, curve: 'soft', gain: 70, sustain: 18, mids: [900, -9], cab: 3800, level: 0.0213, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.1 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.5 } } },
+    amp: { tight: 50, curve: 'soft', gain: 70, sustain: 18, mids: [900, -9], cab: 3800, level: 0.0213, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.1 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.5 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1 } } },
   // a high gain amp, metallica's and doom's: the lows cut before the clipping so a chug stays tight,
   // then the mids scooped and the low end and bite put back after
   'metal-guitar':  { name: 'Metal guitar', family: 'guitar', edge: 0.9, kind: 'pluck', bright: 0.75, soft: 0, decay: 6, ring: 0.35, env: [0.002, 3, 1, 0.15], gain: 1, ornaments: { slide: 0.12, glide: 0.05 },
-    amp: { tight: 150, boost: [800, 5], curve: 'hard', gain: 90, sustain: 12, mids: [550, -10], body: [110, 6], presence: [3500, 5], cab: 5500, level: 0.0231, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.4 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.9 } } },
+    amp: { tight: 150, boost: [800, 5], curve: 'hard', gain: 90, sustain: 12, mids: [550, -10], body: [110, 6], presence: [3500, 5], cab: 5500, level: 0.0231, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.4 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.9 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1.1 } } },
   // fuzz on a guitar tuned way down, the speaker rolled off early: sleep, electric wizard, whirr
   'sludge-guitar': { name: 'Sludge guitar', family: 'guitar', edge: 0.7, kind: 'pluck', bright: 0.55, soft: 0.1, decay: 7.5, ring: 0.3, env: [0.002, 4, 1, 0.4], gain: 1, ornaments: { slide: 0.2, glide: 0.1 },
-    amp: { tight: 40, curve: 'soft', gain: 120, sustain: 18, mids: [700, -6], body: [120, 6], cab: 3000, level: 0.021, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.2 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.6 } } },
+    amp: { tight: 40, curve: 'soft', gain: 120, sustain: 18, mids: [700, -6], body: [120, 6], cab: 3000, level: 0.021, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.2 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.6 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1 } } },
   // kevin shields' glide guitar: fuzz, the tremolo arm never still so whole chords warp in and out of
   // tune, a held tone under the string so chords don't die, and reverse reverb swelling up behind
   'glide-guitar':  { name: 'Glide guitar', family: 'guitar', edge: 0.55, kind: 'pluck', bright: 0.6, soft: 0.2, decay: 6, ring: 0.35, sustain: 0.5, env: [0.01, 3, 1, 0.5], gain: 1, vibrato: { rate: 0.6, depth: 32, delay: 0 },
-    amp: { tight: 60, curve: 'soft', gain: 40, sustain: 12, mids: [1000, -4], cab: 3500, level: 0.0263, chorus: [0.45, 0.004], reverse: 0.8 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.1 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.5 } } },
+    amp: { tight: 60, curve: 'soft', gain: 40, sustain: 12, mids: [1000, -4], cab: 3500, level: 0.0263, chorus: [0.45, 0.004], reverse: 0.8 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.1 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.5 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1.1 } } },
   // a hollow body jazz guitar on its neck pickup, the tone knob rolled back, into a clean valve amp:
   // round and warm (wes montgomery, joe pass)
   'jazz-guitar':   { name: 'Jazz guitar', family: 'guitar', edge: 0.15, kind: 'pluck', bright: 0.4, soft: 0.4, decay: 2.6, body: [[110, 3, 1.5], [250, 2, 1.5]], env: [0.003, 2.6, 1, 0.3], gain: 1, ornaments: { slide: 0.1, grace: 0.05 },
@@ -331,11 +345,17 @@ const INSTRUMENTS = {
   flute:         { name: 'Flute', family: 'lead', edge: 0.15, world: 'acoustic', kind: 'sub', osc: [['sine', 0], ['triangle', 2, 1, 0.12], ['sine', 0, 2, 0.04]], breath: 0.35, chiff: 0.35, env: [0.09, 0.3, 0.85, 0.5], scoop: 15, drift: 4, gain: 0.19, vibrato: { rate: 5, depth: 12, delay: 0.35 }, ornaments: { grace: 0.2, slide: 0.06, trill: 0.06, swell: 0.15 }, samples: 'flute', sampled: { gain: 2.5 } },
   ocarina:       { name: 'Ocarina', family: 'lead', edge: 0.15, world: 'acoustic', kind: 'sub', osc: [['soft', 0]], breath: 0.15, chiff: 0.2, filter: { freq: 2500, q: 0.4 }, env: [0.05, 0.3, 0.8, 0.45], scoop: 10, drift: 3, gain: 0.21, vibrato: { rate: 5.5, depth: 8, delay: 0.3 }, ornaments: { grace: 0.12, slide: 0.08, swell: 0.15 }, samples: 'ocarina', sampled: { name: 'Ocarina (FluidR3)', gain: 0.39 }, more: { 'clay-ocarina': { name: 'Clay ocarina (VCSL)', gain: 0.71 } } },
   'soft-lead':   { name: 'Soft lead', family: 'lead', edge: 0.2, kind: 'sub', osc: [['triangle', -3], ['triangle', 4]], filter: { freq: 1800, q: 0.6, track: 0.5 }, env: [0.04, 0.4, 0.75, 0.6], scoop: 8, gain: 0.16, vibrato: { rate: 5, depth: 6, delay: 0.4 }, ornaments: { slide: 0.12, glide: 0.08, swell: 0.15 } },
+  // a moog's lead, the voyager c418 played: two saws and a square an octave down through its ladder
+  // filter, sliding between notes (portamento), round and buttery rather than buzzy
+  'moog-lead':   { name: 'Moog lead', family: 'lead', edge: 0.45, kind: 'sub', osc: [['sawtooth', -4], ['sawtooth', 5], ['square', 0, -1, 0.3]], filter: { freq: 1400, q: 2, env: 1.4, attack: 0.03, decay: 0.6, track: 0.5 }, env: [0.02, 0.4, 0.8, 0.45], drift: 2, gain: 0.17, vibrato: { rate: 5, depth: 6, delay: 0.5 }, ornaments: { glide: 0.35, slide: 0.3, swell: 0.1 } },
   'saw-lead':    { name: 'Saw lead', family: 'lead', edge: 1, kind: 'sub', osc: [['sawtooth', -6], ['sawtooth', 6]], filter: { freq: 1600, q: 2, env: 2.2, attack: 0.02, decay: 0.3, track: 0.5 }, env: [0.01, 0.3, 0.7, 0.35], gain: 0.085, vibrato: { rate: 5.5, depth: 9, delay: 0.3 }, ornaments: { slide: 0.15, glide: 0.07 } },
   'square-lead': { name: 'Square lead', family: 'lead', edge: 0.85, world: 'chip', kind: 'sub', osc: [['square', -4], ['square', 5, -1, 0.3]], filter: { freq: 2000, q: 0.7, track: 0.4 }, env: [0.01, 0.25, 0.65, 0.25], gain: 0.07, vibrato: { rate: 6, depth: 7, delay: 0.25 }, ornaments: { slide: 0.1, glide: 0.05 } },
   // a violin: the bowed wave through its body, bow noise, drift, slides between notes and the odd
   // double stop (two strings at once, stop) the way fiddlers play
   violin:        { name: 'Violin', family: 'lead', edge: 0.5, world: 'acoustic', kind: 'sub', osc: [['bowed', 0], ['bowed', 4, 0, 0.35]], breath: 0.05, filter: { freq: 3400, q: 0.6, track: 0.3 }, body: [[280, 5, 2], [460, 4, 2.5], [1500, -3, 1.2], [2800, 5, 0.9]], env: [0.15, 0.4, 0.85, 0.5], scoop: 20, drift: 5, gain: 0.048, vibrato: { rate: 5.6, depth: 16, delay: 0.25 }, ornaments: { slide: 0.25, grace: 0.15, trill: 0.05, stop: 0.1, glide: 0.12, swell: 0.3 }, samples: 'violin', sampled: { name: 'Violin (VSCO)', gain: 0.33 }, more: { fiddle: { name: 'Fiddle (FluidR3)', gain: 0.3 } } },
+  // a solo cello, an octave under the violin: the warmest voice in the orchestra, for sad, tragic and
+  // grand tunes and for a second melody under a violin's
+  cello:         { name: 'Cello', family: 'lead', edge: 0.35, world: 'acoustic', kind: 'sub', osc: [['bowed', 0], ['bowed', 4, 0, 0.35]], breath: 0.05, filter: { freq: 2200, q: 0.6, track: 0.3 }, body: [[110, 4, 2], [230, 5, 2], [600, 3, 1.5], [2000, 2, 1]], env: [0.18, 0.4, 0.85, 0.6], scoop: 18, drift: 5, gain: 0.04, octave: -1, vibrato: { rate: 5.2, depth: 14, delay: 0.3 }, ornaments: { slide: 0.25, grace: 0.08, glide: 0.12, swell: 0.35 }, samples: 'cello', sampled: { name: 'Solo cello (Karoryfer x Bigcat)', gain: 0.17 } },
   // a french horn: brass waves, dark, the filter opening as each note blooms
   horn:          { name: 'Horn', family: 'lead', edge: 0.45, world: 'acoustic', kind: 'sub', osc: [['brass', -3], ['brass', 3]], filter: { freq: 650, q: 0.8, env: 2.6, attack: 0.12, decay: 0.5, track: 0.6 }, body: [[450, 4, 1.2]], env: [0.08, 0.4, 0.8, 0.5], scoop: 15, drift: 3, gain: 0.12, vibrato: { rate: 4.8, depth: 6, delay: 0.5 }, ornaments: { slide: 0.08, fall: 0.06, swell: 0.3 }, samples: 'horn', sampled: { gain: 0.2 } },
   whistle:       { name: 'Whistle', family: 'lead', edge: 0.3, world: 'acoustic', kind: 'sub', osc: [['sine', 0]], breath: 0.25, chiff: 0.25, env: [0.06, 0.2, 0.9, 0.35], scoop: 25, drift: 4, gain: 0.2, vibrato: { rate: 6, depth: 18, delay: 0.2 }, ornaments: { grace: 0.25, slide: 0.12, trill: 0.08, swell: 0.1 }, samples: 'recorder', sampled: { name: 'Soprano recorder (VCSL)', gain: 1.3 }, more: { whistle: { name: 'Whistled (FluidR3)', gain: 0.42 } } },
@@ -361,28 +381,34 @@ const INSTRUMENTS = {
   // used to be a coin toss in the synth on every play; now the composer writes them, so they're the
   // same every time and you can see them in the score
   'lead-guitar': { name: 'Lead guitar', family: 'lead', edge: 0.65, own: true, kind: 'pluck', bright: 0.7, soft: 0.1, decay: 5, ring: 0.35, sustain: 0.35, env: [0.003, 2, 0.9, 0.25], gain: 1, vibrato: { rate: 5.5, depth: 10, delay: 0.3 }, ornaments: { bend: 0.35, bendBy: 2, slide: 0.2, shake: 0.45, stop: 0.06, glide: 0.08, release: 0.15 },
-    amp: { tight: 150, boost: [800, 6], curve: 'soft', gain: 25, sustain: 10, presence: [2800, 2], cab: 4800, level: 0.034 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 2.2 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 3 } } },
+    amp: { tight: 150, boost: [800, 6], curve: 'soft', gain: 25, sustain: 10, presence: [2800, 2], cab: 4800, level: 0.034 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 2.2 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 3 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1.7 } } },
   // shred: more gain, wider vibrato, whole tone bends (kirk hammett, dimebag, the doom solos)
   'metal-lead':  { name: 'Metal lead', family: 'lead', edge: 0.85, own: true, kind: 'pluck', bright: 0.75, soft: 0, decay: 5, ring: 0.35, sustain: 0.4, env: [0.002, 2, 0.9, 0.2], gain: 1, vibrato: { rate: 6, depth: 14, delay: 0.22 }, ornaments: { bend: 0.4, bendBy: 2, slide: 0.25, shake: 0.55, glide: 0.06, release: 0.12 },
-    amp: { tight: 200, boost: [900, 5], curve: 'hard', gain: 70, sustain: 12, mids: [600, -5], presence: [3200, 4], cab: 5200, level: 0.036 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 2.9 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 4 } } },
+    amp: { tight: 200, boost: [900, 5], curve: 'hard', gain: 70, sustain: 12, mids: [600, -5], presence: [3200, 4], cab: 5200, level: 0.036 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 2.9 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 4 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 2.2 } } },
   // a fuzz lead, thick and sustaining forever: billy corgan, j mascis
   'fuzz-lead':   { name: 'Fuzz lead', family: 'lead', edge: 0.65, own: true, kind: 'pluck', bright: 0.6, soft: 0.1, decay: 6, ring: 0.3, sustain: 0.45, env: [0.003, 2, 0.9, 0.3], gain: 1, vibrato: { rate: 5, depth: 10, delay: 0.35 }, ornaments: { bend: 0.3, bendBy: 1, slide: 0.2, shake: 0.4, glide: 0.09, release: 0.12 },
-    amp: { tight: 70, curve: 'soft', gain: 80, sustain: 16, mids: [900, -6], cab: 3600, level: 0.038 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 2.5 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 3.4 } } },
+    amp: { tight: 70, curve: 'soft', gain: 80, sustain: 16, mids: [900, -6], cab: 3600, level: 0.038 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 2.5 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 3.4 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1.6 } } },
   // voices with no words, for the moods whose songs would have a singer: a breathy one sung close and
   // buried in the guitars (rachel goswell, bilinda butcher), and one rasping like it's shouting
   // (kurt cobain, courtney love). singers slide between notes more than any instrument
   'dream-voice': { name: 'Dreamy voice', family: 'lead', edge: 0.1, own: true, kind: 'choir', vowel: 'oo', singers: [-5, 5], breath: 0.5, env: [0.12, 0.5, 0.85, 0.9], scoop: 15, drift: 5, gain: 0.26, vibrato: { rate: 5, depth: 10, delay: 0.4 }, ornaments: { slide: 0.3, grace: 0.06, glide: 0.12, swell: 0.3 } },
   'rasp-voice':  { name: 'Rasping voice', family: 'lead', edge: 0.55, own: true, kind: 'choir', vowel: 'ah', singers: [0, 6], rasp: 4, breath: 0.3, env: [0.03, 0.3, 0.85, 0.3], scoop: 35, drift: 6, gain: 0.21, vibrato: { rate: 5.5, depth: 14, delay: 0.3 }, ornaments: { slide: 0.25, fall: 0.12, glide: 0.08, swell: 0.15 } },
+  // real voices singing, each gliding from note to note through a phrase (sung): a man singing ah, low,
+  // for chant and the bottom of a choir; an operatic soprano with her own wide vibrato, for the voice
+  // over a choir; someone humming, for lullabies and memories. each keeps to what they sang (range)
+  'chant-voice': { name: 'Low voice', family: 'lead', edge: 0.1, world: 'acoustic', own: true, kind: 'choir', vowel: 'ah', singers: [0], breath: 0.12, octave: -2, range: [41, 62], sung: true, env: [0.25, 0.5, 0.9, 1.2], drift: 4, gain: 0.93, vibrato: { rate: 5, depth: 10, delay: 0.5 }, ornaments: { slide: 0.2, glide: 0.15, swell: 0.3 }, samples: 'chant-voice', sampled: { name: "Hadzi-Fia's ah (Karoryfer)", gain: 0.35 } },
+  soprano:       { name: 'Soprano', family: 'lead', edge: 0.2, world: 'acoustic', own: true, kind: 'choir', vowel: 'ah', singers: [0], breath: 0.08, range: [62, 88], sung: true, env: [0.2, 0.5, 0.9, 1], drift: 6, gain: 0.5, vibrato: { rate: 5.6, depth: 30, delay: 0.3 }, ornaments: { slide: 0.15, glide: 0.12, swell: 0.35 }, samples: 'soprano', sampled: { name: 'Soprano (CHallSmith)', gain: 0.62 } },
+  humming:       { name: 'Humming voice', family: 'lead', edge: 0.05, world: 'acoustic', own: true, kind: 'choir', vowel: 'oo', singers: [0], breath: 0.2, octave: -1, range: [50, 70], sung: true, env: [0.2, 0.5, 0.9, 1], drift: 5, gain: 0.32, ornaments: { slide: 0.25, glide: 0.15, swell: 0.3 }, samples: 'hum-voice', sampled: { name: 'Humming (drotzruhn)', gain: 0.16, reach: 10 } },
   // saxophones: the reed wave, a puff of breath, the brass body's resonances, and the filter opening
   // as each note's blown harder. players scoop into notes, slide, fall off the ends of phrases and
   // shake long notes (bebop, mettaton's death by glamour, lounge and soul)
-  'alto-sax':    { name: 'Alto sax', family: 'lead', edge: 0.45, world: 'acoustic', kind: 'sub', osc: [['reed', 0], ['reed', 4, 0, 0.25]], breath: 0.18, chiff: 0.15, filter: { freq: 1800, q: 0.7, env: 1.8, attack: 0.06, decay: 0.4, track: 0.6 }, body: [[550, 3, 1.2], [1500, 4, 1.2], [2700, 3, 1.5]], env: [0.04, 0.4, 0.85, 0.3], scoop: 20, drift: 6, gain: 0.094, vibrato: { rate: 5.2, depth: 14, delay: 0.45 }, ornaments: { slide: 0.2, bend: 0.15, bendBy: 1, fall: 0.2, grace: 0.1, shake: 0.2, glide: 0.08, swell: 0.2, doit: 0.12 }, samples: 'alto-sax', sampled: { gain: 0.32 } },
+  'alto-sax':    { name: 'Alto sax', family: 'lead', edge: 0.45, world: 'acoustic', kind: 'sub', osc: [['reed', 0], ['reed', 4, 0, 0.25]], breath: 0.18, chiff: 0.15, filter: { freq: 1800, q: 0.7, env: 1.8, attack: 0.06, decay: 0.4, track: 0.6 }, body: [[550, 3, 1.2], [1500, 4, 1.2], [2700, 3, 1.5]], env: [0.04, 0.4, 0.85, 0.3], scoop: 20, drift: 6, gain: 0.094, vibrato: { rate: 5.2, depth: 14, delay: 0.45 }, ornaments: { slide: 0.2, bend: 0.15, bendBy: 1, fall: 0.2, grace: 0.1, shake: 0.2, glide: 0.08, swell: 0.2, doit: 0.12 }, samples: 'alto-sax', sampled: { name: 'Alto sax (MTG)', gain: 0.32 }, more: { 'weresax-alto': { name: 'Alto sax (Karoryfer)', gain: 0.17 }, saxello: { name: 'Saxello, a straight soprano (VCSL)', gain: 0.25, weight: 0.5 } } },
   'tenor-sax':   { name: 'Tenor sax', family: 'lead', edge: 0.4, world: 'acoustic', kind: 'sub', osc: [['reed', 0], ['reed', 5, 0, 0.25]], breath: 0.22, chiff: 0.15, filter: { freq: 1300, q: 0.7, env: 1.8, attack: 0.06, decay: 0.45, track: 0.6 }, body: [[450, 4, 1.2], [1100, 4, 1.2], [2300, 2, 1.5]], env: [0.05, 0.4, 0.85, 0.35], scoop: 20, drift: 6, gain: 0.09, vibrato: { rate: 5, depth: 12, delay: 0.5 }, ornaments: { slide: 0.2, bend: 0.15, bendBy: 1, fall: 0.2, grace: 0.1, shake: 0.2, glide: 0.09, swell: 0.2, doit: 0.1 }, samples: 'tenor-sax', sampled: { gain: 0.26 } },
   // a trumpet: brass waves, the filter flaring open on every note, the bell's bright resonances, a
   // lip slur up onto the note (scoop) and falls off the ends of phrases
   trumpet:       { name: 'Trumpet', family: 'lead', edge: 0.55, world: 'acoustic', kind: 'sub', osc: [['brass', -2], ['brass', 2]], filter: { freq: 900, q: 0.9, env: 3.5, attack: 0.05, decay: 0.35, track: 0.7 }, body: [[1200, 5, 1.4], [2500, 4, 1.5]], env: [0.03, 0.35, 0.85, 0.25], scoop: 25, drift: 4, gain: 0.083, vibrato: { rate: 5.5, depth: 10, delay: 0.5 }, ornaments: { fall: 0.25, slide: 0.1, bend: 0.1, bendBy: 1, shake: 0.1, glide: 0.06, swell: 0.15, doit: 0.12 }, samples: 'trumpet', sampled: { gain: 0.3 } },
   // a trumpet with a harmon mute in its bell: thin, nasal and close (miles davis)
-  'mute-trumpet': { name: 'Muted trumpet', family: 'lead', edge: 0.35, world: 'acoustic', kind: 'sub', osc: [['brass', -2], ['brass', 2]], breath: 0.05, filter: { freq: 1500, q: 2.2, env: 1.6, attack: 0.05, decay: 0.3, track: 0.6 }, body: [[1600, 9, 3], [600, -8, 1]], env: [0.03, 0.35, 0.85, 0.3], scoop: 20, drift: 4, gain: 0.098, vibrato: { rate: 5, depth: 8, delay: 0.5 }, ornaments: { fall: 0.2, slide: 0.15, bend: 0.1, bendBy: 1, glide: 0.07, doit: 0.1 }, samples: 'harmon-trumpet', sampled: { gain: 0.5 } },
+  'mute-trumpet': { name: 'Muted trumpet', family: 'lead', edge: 0.35, world: 'acoustic', kind: 'sub', osc: [['brass', -2], ['brass', 2]], breath: 0.05, filter: { freq: 1500, q: 2.2, env: 1.6, attack: 0.05, decay: 0.3, track: 0.6 }, body: [[1600, 9, 3], [600, -8, 1]], env: [0.03, 0.35, 0.85, 0.3], scoop: 20, drift: 4, gain: 0.098, vibrato: { rate: 5, depth: 8, delay: 0.5 }, ornaments: { fall: 0.2, slide: 0.15, bend: 0.1, bendBy: 1, glide: 0.07, doit: 0.1 }, samples: 'harmon-trumpet', sampled: { name: 'Harmon mute (VSCO)', gain: 0.5 }, more: { 'straight-trumpet': { name: 'Straight mute (VSCO)', gain: 0.47 } } },
   // a trombone's slide is the one brass instrument that slides for real, so it slides often and slowly
   trombone:      { name: 'Trombone', family: 'lead', edge: 0.4, world: 'acoustic', kind: 'sub', osc: [['brass', -3], ['brass', 3]], filter: { freq: 600, q: 0.9, env: 3, attack: 0.08, decay: 0.5, track: 0.6 }, body: [[500, 4, 1.2], [1100, 3, 1.3]], env: [0.05, 0.4, 0.85, 0.3], scoop: 15, drift: 4, gain: 0.091, vibrato: { rate: 4.8, depth: 6, delay: 0.6 }, ornaments: { slide: 0.55, fall: 0.2, glide: 0.18, swell: 0.2, doit: 0.1 }, samples: 'trombone', sampled: { gain: 0.14 } },
   // a harmonica: free reeds, cupped hands (body) and breath. players bend notes down with their mouth
@@ -409,7 +435,7 @@ const INSTRUMENTS = {
   bagpipe:       { name: 'Bagpipe', family: 'lead', edge: 0.65, world: 'acoustic', own: true, kind: 'sub', osc: [['pulse12', 0], ['sawtooth', 2, 0, 0.5]], filter: { freq: 2400, q: 1.2, track: 0.4 }, body: [[1000, 4, 2], [2500, 3, 1.5]], env: [0.03, 0.2, 0.95, 0.15], drift: 2, gain: 0.11, ornaments: { grace: 0.4, trill: 0.05 }, samples: 'bagpipe', sampled: { name: 'Squidpipes (Karoryfer)', gain: 0.27 }, more: { 'gm-bagpipe': { name: 'Bagpipe (FluidR3)', gain: 0.2 } } },
   // an oboe: a double reed, nasal and plaintive, the pastoral solo of the orchestra. its ancestor, the
   // aulos, is the ancient world's pipe
-  oboe:          { name: 'Oboe', family: 'lead', edge: 0.4, world: 'acoustic', kind: 'sub', osc: [['reed', 0]], breath: 0.05, filter: { freq: 2000, q: 1.2, track: 0.4 }, body: [[1100, 6, 2], [2700, 4, 1.5]], env: [0.04, 0.3, 0.85, 0.3], scoop: 15, drift: 4, gain: 0.25, vibrato: { rate: 5.2, depth: 10, delay: 0.35 }, ornaments: { grace: 0.15, trill: 0.06, slide: 0.08, swell: 0.25 }, samples: 'oboe', sampled: { gain: 0.41 } },
+  oboe:          { name: 'Oboe', family: 'lead', edge: 0.4, world: 'acoustic', kind: 'sub', osc: [['reed', 0]], breath: 0.05, filter: { freq: 2000, q: 1.2, track: 0.4 }, body: [[1100, 6, 2], [2700, 4, 1.5]], env: [0.04, 0.3, 0.85, 0.3], scoop: 15, drift: 4, gain: 0.25, vibrato: { rate: 5.2, depth: 10, delay: 0.35 }, ornaments: { grace: 0.15, trill: 0.06, slide: 0.08, swell: 0.25 }, samples: 'vsco-oboe', sampled: { name: 'Oboe (VSCO)', gain: 0.5 }, more: { oboe: { name: 'Oboe (FluidR3)', gain: 0.41, weight: 0.5 } } },
   // blowing across a bottle: nearly a pure tone in a lot of breath. underwater, a cave, something old
   'blown-bottle': { name: 'Blown bottle', family: 'lead', edge: 0.1, world: 'acoustic', kind: 'sub', osc: [['sine', 0], ['sine', 0, 1, 0.05]], breath: 0.9, chiff: 0.3, env: [0.08, 0.3, 0.8, 0.4], drift: 4, gain: 0.2, ornaments: { slide: 0.1, swell: 0.2 }, samples: 'blown-bottle', sampled: { gain: 0.41 } },
   // wine glasses sung by a wet finger round the rim: pure, glassy and very still. only four were
@@ -424,11 +450,14 @@ const INSTRUMENTS = {
   // basses
   'sub-bass':    { name: 'Sub bass', family: 'bass', edge: 0, kind: 'sub', osc: [['sine', 0], ['triangle', 0, 0, 0.25]], env: [0.02, 0.3, 0.9, 0.3], gain: 0.42 },
   'round-bass':  { name: 'Round bass', family: 'bass', edge: 0.1, kind: 'sub', osc: [['triangle', 0], ['sine', 0, -1, 0.5]], filter: { freq: 600, q: 0.5 }, env: [0.01, 0.4, 0.75, 0.2], gain: 0.4 },
+  // a moog's bass (c418 kept his voyager for basses): a saw and a square through the ladder filter, a
+  // little squelch on each note's start, and a slide into the next
+  'moog-bass':   { name: 'Moog bass', family: 'bass', edge: 0.3, kind: 'sub', osc: [['sawtooth', 0], ['square', -5, -1, 0.5]], filter: { freq: 380, q: 3, env: 2.5, attack: 0.005, decay: 0.3, track: 0.4 }, env: [0.005, 0.4, 0.8, 0.18], gain: 0.2, ornaments: { glide: 0.2, slide: 0.12 } },
   'synth-bass':  { name: 'Synth bass', family: 'bass', edge: 0.5, kind: 'sub', osc: [['sawtooth', -4], ['square', 4, -1, 0.5]], filter: { freq: 280, q: 4, env: 4, attack: 0.005, decay: 0.15 }, env: [0.005, 0.3, 0.7, 0.12], gain: 0.15, ornaments: { slide: 0.1, glide: 0.05 } },
   // an electric bass played with the fingers: round, with a soft thump
-  'pluck-bass':  { name: 'Plucked bass', family: 'bass', edge: 0.2, kind: 'pluck', bright: 0.45, soft: 0.3, decay: 2, filter: { freq: 900, q: 0.7 }, env: [0.002, 1.5, 1, 0.15], gain: 1.3, ornaments: { slide: 0.08, glide: 0.06 }, samples: 'bass-guitar', sampled: { gain: 0.83 } },
+  'pluck-bass':  { name: 'Plucked bass', family: 'bass', edge: 0.2, kind: 'pluck', bright: 0.45, soft: 0.3, decay: 2, filter: { freq: 900, q: 0.7 }, env: [0.002, 1.5, 1, 0.15], gain: 1.3, ornaments: { slide: 0.08, glide: 0.06 }, samples: 'bass-guitar', sampled: { name: 'Darkblack bass (Karoryfer)', gain: 0.83 }, more: { 'pasta-bass': { name: 'Pastabass (Karoryfer)', gain: 1.1 }, 'growly-bass': { name: 'Growlybass (Karoryfer)', gain: 1 } } },
   // a double bass, its big wooden body booming under the plucked string
-  upright:       { name: 'Upright bass', family: 'bass', edge: 0.1, world: 'acoustic', kind: 'pluck', bright: 0.22, soft: 0.6, decay: 1.4, filter: { freq: 600, q: 0.8 }, body: [[90, 4, 2], [180, 3, 1.5], [1100, 2, 1.2]], env: [0.004, 1, 1, 0.14], gain: 0.6, ornaments: { slide: 0.05, glide: 0.06 }, samples: 'double-bass', sampled: { name: 'Contrabass (VSCO)', gain: 0.72 }, more: { 'meat-bass': { name: 'Meatbass (Karoryfer)', gain: 0.39 } } },
+  upright:       { name: 'Upright bass', family: 'bass', edge: 0.1, world: 'acoustic', kind: 'pluck', bright: 0.22, soft: 0.6, decay: 1.4, filter: { freq: 600, q: 0.8 }, body: [[90, 4, 2], [180, 3, 1.5], [1100, 2, 1.2]], env: [0.004, 1, 1, 0.14], gain: 0.6, ornaments: { slide: 0.05, glide: 0.06 }, samples: 'double-bass', sampled: { name: 'Contrabass (VSCO)', gain: 0.72 }, more: { 'meat-bass': { name: 'Meatbass (Karoryfer)', gain: 0.39 }, 'sneaky-bass': { name: 'Double bass played softly (Karoryfer)', gain: 1.5 } } },
   // (edge 0.7 rather than a lead's 1: it's buzzy, but under the band, and at 1 it never fitted under any
   // mood's backing cap, so it was never picked)
   'growl-bass':  { name: 'Growl bass', family: 'bass', edge: 0.7, kind: 'sub', osc: [['sawtooth', -10], ['sawtooth', 10], ['square', 0, -1, 0.6]], filter: { freq: 420, q: 6, env: 3, attack: 0.01, decay: 0.25 }, env: [0.005, 0.3, 0.8, 0.12], gain: 0.11, ornaments: { slide: 0.15, glide: 0.06 } },
@@ -437,16 +466,16 @@ const INSTRUMENTS = {
   reese:         { name: 'Reese bass', family: 'bass', edge: 0.6, kind: 'sub', osc: [['sawtooth', -14], ['sawtooth', 14], ['sine', 0, -1, 0.6]], filter: { freq: 380, q: 1.5, lfo: [0.2, 0.35] }, env: [0.01, 0.3, 0.9, 0.15], gain: 0.12, ornaments: { slide: 0.15, glide: 0.08 } },
   // a bassoon: the oboe's big brother, a double reed folded in two. woody and a little comic, a medieval
   // or pastoral band's bass
-  bassoon:       { name: 'Bassoon', family: 'bass', edge: 0.25, world: 'acoustic', kind: 'sub', osc: [['reed', 0]], filter: { freq: 900, q: 1, track: 0.5 }, body: [[500, 4, 2], [1150, 3, 1.5]], env: [0.04, 0.3, 0.85, 0.25], scoop: 10, drift: 3, gain: 0.14, ornaments: { slide: 0.05 }, samples: 'bassoon', sampled: { gain: 0.21 } },
+  bassoon:       { name: 'Bassoon', family: 'bass', edge: 0.25, world: 'acoustic', kind: 'sub', osc: [['reed', 0]], filter: { freq: 900, q: 1, track: 0.5 }, body: [[500, 4, 2], [1150, 3, 1.5]], env: [0.04, 0.3, 0.85, 0.25], scoop: 10, drift: 3, gain: 0.14, ornaments: { slide: 0.05 }, samples: 'vsco-bassoon', sampled: { name: 'Bassoon (VSCO)', gain: 0.25 }, more: { bassoon: { name: 'Bassoon (FluidR3)', gain: 0.21, weight: 0.5 } } },
   // the high, chorused post-punk bass that carries the tune as much as the root
   'chorus-bass': { name: 'Chorus bass', family: 'bass', edge: 0.35, kind: 'sub', osc: [['sawtooth', -8], ['triangle', 8], ['sine', 0, -1, 0.4]], filter: { freq: 1100, q: 0.8, env: 2, attack: 0.005, decay: 0.2, track: 0.4 }, env: [0.004, 0.5, 0.6, 0.15], gain: 0.18 },
   // a bass played with a pick through a grinding amp, with its clean low end blended back in (dry),
   // the way a bass rig keeps its weight: rock, punk and grunge
   'pick-bass':   { name: 'Picked bass', family: 'bass', edge: 0.3, own: true, kind: 'pluck', bright: 0.55, soft: 0.1, decay: 1.8, env: [0.002, 1.6, 1, 0.1], gain: 1,
-    amp: { low: 35, curve: 'tube', gain: 4, presence: [1500, 3], cab: 2800, level: 0.15, dry: 0.45 }, samples: 'bass-guitar', sampled: { gain: 0.92 } },
+    amp: { low: 35, curve: 'tube', gain: 4, presence: [1500, 3], cab: 2800, level: 0.15, dry: 0.45 }, samples: 'bass-guitar', sampled: { name: 'Darkblack bass (Karoryfer)', gain: 0.92 }, more: { 'pasta-bass': { name: 'Pastabass (Karoryfer)', gain: 1.3 }, 'growly-bass': { name: 'Growlybass (Karoryfer)', gain: 1.2 } } },
   // a fuzz bass, as heavy as the guitars: sludge and nugaze
   'fuzz-bass':   { name: 'Fuzz bass', family: 'bass', edge: 0.5, own: true, kind: 'pluck', bright: 0.5, soft: 0.1, decay: 3, env: [0.002, 2, 1, 0.12], gain: 1,
-    amp: { low: 35, curve: 'soft', gain: 25, sustain: 8, mids: [600, -3], cab: 2200, level: 0.03, dry: 0.5 }, samples: 'bass-guitar', sampled: { gain: 0.98 } },
+    amp: { low: 35, curve: 'soft', gain: 25, sustain: 8, mids: [600, -3], cab: 2200, level: 0.03, dry: 0.5 }, samples: 'bass-guitar', sampled: { name: 'Darkblack bass (Karoryfer)', gain: 0.98 }, more: { 'pasta-bass': { name: 'Pastabass (Karoryfer)', gain: 1.4 }, 'growly-bass': { name: 'Growlybass (Karoryfer)', gain: 1.3 } } },
   // slap bass: the thumb slapping the low strings and fingers popping the high ones, so it's bright
   // and percussive (funk, mettaton's disco)
   'slap-bass':   { name: 'Slap bass', family: 'bass', edge: 0.35, kind: 'pluck', bright: 0.85, soft: 0, decay: 1.6, ring: 0.4, body: [[80, 3, 1], [2500, 4, 1]], env: [0.002, 1.6, 1, 0.08], gain: 0.5, ornaments: { slide: 0.15, glide: 0.07 }, samples: 'slap-bass', sampled: { gain: 0.68 } },
@@ -463,7 +492,7 @@ const INSTRUMENTS = {
   // drones
   'deep-drone':  { name: 'Deep drone', family: 'drone', edge: 0.35, kind: 'sub', osc: [['sawtooth', -10], ['sawtooth', 9], ['sine', 0, -1, 0.7]], filter: { freq: 300, q: 2 }, env: [4, 3, 0.85, 5], gain: 0.07, tremolo: { rate: 0.13, depth: 0.25 } },
   // cellos holding a note: bowed waves, a cello's body, each player drifting on their own
-  'cello-drone': { name: 'Cello drone', family: 'drone', edge: 0.3, world: 'acoustic', kind: 'sub', osc: [['bowed', -3], ['bowed', 4]], breath: 0.03, filter: { freq: 900, q: 1 }, body: [[130, 4, 2], [400, 3, 2], [2000, 2, 1]], env: [2.5, 2, 0.85, 3], ensemble: true, drift: 4, gain: 0.0525, vibrato: { rate: 4.5, depth: 7, delay: 1.5 }, samples: 'cello-section', sampled: { gain: 0.36 } },
+  'cello-drone': { name: 'Cello drone', family: 'drone', edge: 0.3, world: 'acoustic', kind: 'sub', osc: [['bowed', -3], ['bowed', 4]], breath: 0.03, filter: { freq: 900, q: 1 }, body: [[130, 4, 2], [400, 3, 2], [2000, 2, 1]], env: [2.5, 2, 0.85, 3], ensemble: true, drift: 4, gain: 0.0525, vibrato: { rate: 4.5, depth: 7, delay: 1.5 }, samples: 'cello-section', sampled: { name: 'Cello section (VSCO)', gain: 0.36 }, more: { cello: { name: 'Solo cello (Karoryfer x Bigcat)', gain: 0.21 } } },
   void:          { name: 'The void', family: 'drone', edge: 0.1, kind: 'sub', osc: [['sine', 0], ['sine', 7], ['sine', -5, 1, 0.3]], breath: 0.6, env: [5, 3, 0.85, 6], gain: 0.17, tremolo: { rate: 0.08, depth: 0.4 } },
   'bowed-metal': { name: 'Bowed metal', family: 'drone', edge: 0.6, kind: 'fm', ratio: 2.71, index: 1.4, indexDecay: 6, sustainIndex: 0.9, env: [3, 2, 0.85, 4], gain: 0.07, vibrato: { rate: 0.3, depth: 20, delay: 0 } },
   'organ-drone': { name: 'Organ drone', family: 'drone', edge: 0.3, kind: 'sub', osc: [['organ', 0], ['organ', 3, -1, 0.5]], filter: { freq: 1600, q: 0.3 }, env: [2, 2, 0.9, 3], gain: 0.06, samples: 'pipe-organ', sampled: { gain: 0.37 } },
@@ -1409,7 +1438,10 @@ const sampleFolders = (inst, choice) => [recordingFolder(inst, choice), ...(inst
 // starts loading everything a song plays, for awaiting before a render
 function songSamples(song) {
   if (!RECORDINGS.on) return Promise.resolve();
-  const folders = new Set(song.layers.flatMap((layer) => sampleFolders(INSTRUMENTS[layer.instrument], layer.recording)));
+  const folders = new Set(song.layers.flatMap((layer) => [
+    ...sampleFolders(INSTRUMENTS[layer.instrument], layer.recording),
+    ...(layer.with || []).map((one) => recordingFolder(INSTRUMENTS[one.instrument], one.recording)).filter(Boolean),
+  ]));
   return Promise.all([...folders].map(loadSamples));
 }
 const sampleSet = (folder) => (RECORDINGS.on ? RECORDINGS.sets.get(folder)?.ready : null);
@@ -1491,7 +1523,7 @@ ENGINES.sample = (ctx, voice, inst, tone, f, midi, note = {}) => {
     source.loop = true;
     [source.loopStart, source.loopEnd] = take.loop;
   }
-  source.detune.value = (midi - take.midi) * 100 + (take.tune || 0) + scatter(tone) * 0.5;
+  source.detune.value = (midi - take.midi) * 100 + (take.tune || 0) + scatter(tone) * 0.5 + (note.cents || 0);
   bendWith(voice.pitch, source.detune);
   let into = voice.input;
   // a palm mute: the string's top taken off and the note stopped short (see the pluck engine)
@@ -2532,25 +2564,90 @@ function playNote(ctx, channel, layer, note, when, secondsPerBeat) {
     playTexture(ctx, channel.input, inst, layer.tone, when, dur, note.vel, note.midi);
     return;
   }
-  const f = mtof(note.midi);
+  playTone(ctx, channel, inst, recorded(inst, inst.sung ? undefined : note.midi, layer.recording) || inst, layer, note, when, secondsPerBeat);
+  // the layer's doublers (layer.with) play it too, where the composer marked it doubled (note.double)
+  if (note.double && layer.with) channel.doubles?.forEach((double, i) => playDouble(ctx, double, i, layer, note, when, secondsPerBeat));
+}
+
+// one tonal note on an instrument (or its recording, played), into a channel or a doubler's chain
+function playTone(ctx, target, inst, played, layer, note, when, secondsPerBeat) {
+  const dur = note.dur * secondsPerBeat;
   // the recording, if it's loaded (recorded()). a sung one is the singer's voice however far it's
   // moved, so it never swaps to the synthesised version part way through a phrase
-  const played = recorded(inst, inst.sung ? undefined : note.midi, layer.recording) || inst;
   if (inst.sung && played.kind === 'sample' && !note.stop) {
-    singLine(ctx, channel, played, layer.tone, note, when, dur, secondsPerBeat);
+    singLine(ctx, target, played, layer.tone, note, when, dur, secondsPerBeat);
     return;
   }
   // keys and mallets are spread by pitch, low notes left and high notes right, as a piano or a marimba
   // is heard from the player's seat and recorded in stereo. the recordings are mono, and every note
   // from one point is the flat, boxed in sound of a cheap sampler
-  let out = channel.input;
+  let out = target.input;
   if (inst.family === 'keys' || inst.family === 'bell') {
     out = new StereoPannerNode(ctx, { pan: Math.max(-1, Math.min(1, (note.midi - 66) / 30)) * KEY_SPREAD });
-    out.connect(channel.input);
+    out.connect(target.input);
   }
-  const voice = voiceChain(ctx, out, played, layer.tone, f, when, dur, note.vel, note, (restrikes.get(note) ?? Infinity) * secondsPerBeat);
+  const voice = voiceChain(ctx, out, played, layer.tone, mtof(note.midi), when, dur, note.vel, note, (restrikes.get(note) ?? Infinity) * secondsPerBeat);
   voice.pitch = pitchMods(ctx, played, layer.tone, note, when, voice.end, secondsPerBeat);
-  ENGINES[played.kind](ctx, voice, played, layer.tone, f, note.midi, note);
+  ENGINES[played.kind](ctx, voice, played, layer.tone, mtof(note.midi), note.midi, note);
+}
+
+// ---------- doubling ----------
+//
+// a tune played by one instrument is one player, and a choir on one recording is one sound, however
+// many singers were in it, and a choir singing the tune sounded thin and synthetic. orchestras
+// double a tune instead (a flute with the violins, a choir's sopranos with its altos, a horn with the
+// cellos), and that's what layer.with is: other instruments playing the layer's notes with it, in its
+// channel, each a few cents and milliseconds apart and a little to one side, the way two real players
+// are never quite together. a choir singing the tune is two or three recordings of voices at once, a
+// section rather than a sample. doublers only ever play recordings: a doubled synthesised voice is
+// exactly the computer sound this is here to get rid of. the composer says which notes are doubled
+// (note.double, in composeSong): a choir's all of them, anything else only where the song is loud
+const DOUBLE_LEVEL = 0.5;
+const DOUBLE_SPREAD = 0.3;
+function playDouble(ctx, double, i, layer, note, when, secondsPerBeat) {
+  const inst = INSTRUMENTS[double.instrument];
+  if (!inst || !double.input) return;
+  let midi = note.midi + 12 * (double.octave || 0);
+  // a voice sings within what it was recorded singing (range), anything else must be in its recordings'
+  // reach, or the doubler leaves that note out rather than play its synthesised self
+  if (inst.range) {
+    while (midi > inst.range[1]) midi -= 12;
+    while (midi < inst.range[0]) midi += 12;
+  }
+  const played = recorded(inst, inst.sung ? undefined : midi, double.recording);
+  if (!played) return;
+  const side = i % 2 ? -1 : 1;
+  const doubled = { ...note, midi, vel: note.vel * 0.85, cents: side * (5 + 2 * i), bend: note.bend, slur: note.slur };
+  playTone(ctx, double, inst, played, layer, doubled, when + 0.008 * (i + 1), secondsPerBeat);
+}
+// a channel's doublers: for each, an input, its instrument's chain (body, rig) and a pan a little to one
+// side, into the channel's strip after the layer's own chain, so they share its eq, volume and sends.
+// rebuilt when the doublers change or their recordings load (a doubler with none loaded has no input)
+function wireDoubles(channel, layer) {
+  const key = JSON.stringify((layer.with || []).map((one) => [one.instrument, one.recording, !!recorded(INSTRUMENTS[one.instrument], undefined, one.recording)]));
+  if (channel.doublesFor === key) return;
+  channel.doublesFor = key;
+  for (const double of channel.doubles || []) {
+    double.input?.disconnect();
+    double.rig?.output.disconnect();
+    double.rig?.stop();
+    double.pan?.disconnect();
+  }
+  channel.doubles = (layer.with || []).map((one, i) => {
+    const inst = INSTRUMENTS[one.instrument];
+    const played = inst && recorded(inst, undefined, one.recording);
+    if (!played) return { ...one };
+    const { ctx } = channel;
+    const input = new GainNode(ctx, { gain: DOUBLE_LEVEL });
+    const pan = new StereoPannerNode(ctx, { pan: (i % 2 ? -1 : 1) * DOUBLE_SPREAD });
+    const rig = instrumentChain(ctx, played);
+    if (rig) {
+      input.connect(rig.input);
+      rig.output.connect(pan);
+    } else input.connect(pan);
+    pan.connect(channel.cut);
+    return { ...one, input, rig, pan };
+  });
 }
 
 // a sung line (sung on an instrument: the throat singers). a recording of a voice started again on
@@ -2579,7 +2676,7 @@ function singLine(ctx, channel, inst, tone, note, when, dur, spb) {
       [source.loopStart, source.loopEnd] = take.loop;
     }
     const amp = ctx.createGain();
-    cents = (note.midi - take.midi) * 100 + (take.tune || 0);
+    cents = (note.midi - take.midi) * 100 + (take.tune || 0) + (note.cents || 0);
     source.detune.setValueAtTime(cents, when);
     amp.gain.setValueAtTime(0, when);
     amp.gain.linearRampToValueAtTime(peak, when + Math.max(0.01, Math.min(inst.env[0] * tone.attack, dur * 0.5)));
@@ -2588,7 +2685,7 @@ function singLine(ctx, channel, inst, tone, note, when, dur, spb) {
     voice = channel.voice = { inst, take, source, amp, start: when };
   } else {
     const { source, amp, take } = voice;
-    cents = (note.midi - take.midi) * 100 + (take.tune || 0);
+    cents = (note.midi - take.midi) * 100 + (take.tune || 0) + (note.cents || 0);
     // the glide: quick, and never more than a share of either note, so a run of short notes still
     // lands on each of them
     const glide = Math.min(GLIDE, (when - voice.at) * 0.4, dur * 0.4);
@@ -2956,10 +3053,11 @@ function buildGraph(ctx) {
   // a little of the boxy low mids out of the whole mix, where every part's body piles up
   const mud = new BiquadFilterNode(ctx, { type: 'peaking', frequency: 300, Q: 0.8, gain: -1.5 });
   const tape = new WaveShaperNode(ctx, { curve: tapeCurve(), oversample: '2x' });
+  const tapeTop = new BiquadFilterNode(ctx, { type: 'highshelf', frequency: 9000, gain: -2 });
   g.master = ctx.createGain();
   // the limiter: hard and fast, only there to catch peaks
   const limiter = new DynamicsCompressorNode(ctx, { threshold: -2, knee: 0, ratio: 20, attack: 0.001, release: 0.08 });
-  g.bus.connect(g.drive).connect(g.warmth).connect(g.wobble).connect(g.comp).connect(mud).connect(tape).connect(g.master).connect(limiter).connect(ctx.destination);
+  g.bus.connect(g.drive).connect(g.warmth).connect(g.wobble).connect(g.comp).connect(mud).connect(tape).connect(tapeTop).connect(g.master).connect(limiter).connect(ctx.destination);
   g.reverbIn = ctx.createGain();
   g.reverb = ctx.createConvolver();
   g.reverbIn.connect(g.reverb).connect(new BiquadFilterNode(ctx, { type: 'highpass', frequency: 200, Q: 0.5 })).connect(g.bus);
@@ -3073,10 +3171,11 @@ const cutFor = (song, layer) => {
 const audible = (song, layer) => (song.layers.some((other) => other.solo) ? layer.solo : !layer.mute);
 function setChannel(channel, song, layer, now, glide) {
   wireRig(channel, layer.instrument, layer.recording);
+  wireDoubles(channel, layer);
   const set = (param, value) => (glide ? param.setTargetAtTime(value, now, 0.02) : param.setValueAtTime(value, now));
   set(channel.cut.frequency, cutFor(song, layer));
   const place = PLACES[layer.role] || PLACES.keys;
-  set(channel.presence.gain, place.presence);
+  set(channel.presence.gain, place.presence > 0 ? place.presence * (1 - (INSTRUMENTS[layer.instrument]?.edge ?? 0)) : place.presence);
   set(channel.air.gain, place.air);
   set(channel.room.gain, place.room);
   set(channel.volume.gain, audible(song, layer) ? layer.volume ** 2 * 1.6 : 0);
@@ -3093,6 +3192,10 @@ function closeChannel(channel, now) {
   setTimeout(() => {
     channel.input.disconnect();
     channel.rig?.stop();
+    for (const double of channel.doubles || []) {
+      double.input?.disconnect();
+      double.rig?.stop();
+    }
   }, 300);
 }
 

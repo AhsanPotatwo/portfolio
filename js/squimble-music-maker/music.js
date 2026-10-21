@@ -488,6 +488,8 @@ const GAZE_FORMS = [
   [['Swell', 'B', 8, 0.6], ['Verse', 'A', 8, 0.75], ['Chorus', 'B', 8, 1], ['Verse', 'A', 8, 0.75], ['Chorus', 'B', 8, 1], ['Wash', 'B', 8, 0.9]],
 ];
 
+// (pedal: the pianos in this mood play with the sustain pedal down, ringing on into each other until
+// the chord changes, the way c418's felt piano does. see pedal())
 const MOODS = {
   calm: {
     group: 'Gentle',
@@ -497,7 +499,7 @@ const MOODS = {
     chords: ['I IV', 'I - IV -', 'I vi IV I', 'IV I', 'I iii IV IV', 'Imaj7 IVmaj7', 'ii I', 'I V vi IV'],
     richness: [0.3, 0.75], energy: 0.25, space: 0.65, bright: 0.55, dark: 0.05,
     palette: {
-      pad: ['warm-pad', 'glass-pad', 'strings', 'air-pad', 'analog-pad'], melody: ['flute', 'felt-keys', 'ocarina', 'soft-lead', 'pan-flute', 'piano'],
+      pad: ['warm-pad', 'glass-pad', 'strings', 'air-pad', 'analog-pad', 'bowed-vibes'], melody: ['flute', 'felt-keys', 'ocarina', 'soft-lead', 'pan-flute', 'piano'],
       counter: ['felt-keys', 'harp', 'soft-lead', 'nylon'], keys: ['felt-keys', 'harp', 'e-piano', 'nylon', 'piano'], arp: ['harp', 'kalimba', 'felt-keys', 'nylon'],
       bells: ['glass-bell', 'chime', 'vibes', 'sine-bell'], bass: ['sub-bass', 'round-bass', 'upright'], drone: ['organ-drone', 'deep-drone', 'cello-drone'],
     },
@@ -512,8 +514,8 @@ const MOODS = {
     chords: ['I V vi iii IV I IV V', 'I IV I V', 'IV I', 'I bVII IV I', 'I V vi IV', 'IV V vi I', 'I iii vi IV'],
     richness: [0.2, 0.6], energy: 0.2, space: 1, bright: 0.75, dark: 0,
     palette: {
-      pad: ['choir-ah', 'organ', 'shimmer', 'strings'], melody: ['choir-oo', 'flute', 'glass-bell', 'violin'],
-      counter: ['harp', 'celesta', 'choir-oo'], keys: ['harp', 'celesta', 'organ'], arp: ['harp', 'celesta'],
+      pad: ['choir-ah', 'organ', 'shimmer', 'strings', 'bowed-vibes', 'vox-pad'], melody: ['choir-oo', 'flute', 'glass-bell', 'violin', 'soprano'],
+      counter: ['harp', 'celesta', 'choir-oo', 'cello'], keys: ['harp', 'celesta', 'organ'], arp: ['harp', 'celesta'],
       bells: ['bell', 'glass-bell', 'celesta', 'chime', 'sine-bell'], bass: ['sub-bass', 'round-bass'], drone: ['organ-drone', 'cello-drone'],
     },
     textures: ['wind', 'birds', 'chimes', 'stream'], kits: [], drums: [0, 0], patterns: { drone: ['fifths', 'tonic'] }, ornate: 0.5,
@@ -530,7 +532,7 @@ const MOODS = {
     richness: [0.1, 0.5], energy: 0.65, space: 0.4, bright: 0.75, dark: 0,
     palette: {
       pad: ['strings', 'warm-pad', 'organ'], melody: ['flute', 'clarinet', 'accordion', 'ocarina', 'whistle', 'marimba', 'pan-flute', 'square-lead', 'pulse-lead'],
-      counter: ['marimba', 'clarinet', 'pizzicato', 'nylon'], keys: ['steel-guitar', 'nylon', 'felt-keys', 'e-piano', 'piano'], arp: ['nylon', 'steel-guitar', 'harp', 'kalimba', 'marimba', 'xylophone'],
+      counter: ['marimba', 'clarinet', 'pizzicato', 'nylon'], keys: ['steel-guitar', 'nylon', 'felt-keys', 'e-piano', 'piano'], arp: ['nylon', 'steel-guitar', 'harp', 'kalimba', 'marimba', 'xylophone', 'banjo'],
       bells: ['celesta', 'vibes', 'chime', 'glock', 'xylophone'], bass: ['upright', 'pluck-bass', 'round-bass', 'chip-bass'], drone: ['organ-drone'],
     },
     textures: ['birds', 'crickets', 'stream', 'leaves'], kits: ['soft-kit', 'soft-kit', 'tight-kit', 'chip-kit'], drums: [0.1, 0.85], swing: 0.2,
@@ -584,7 +586,7 @@ const MOODS = {
     palette: {
       pad: ['warm-pad', 'strings', 'shimmer', 'analog-pad'], melody: ['saw-lead', 'square-lead', 'pluck-lead', 'whistle', 'synth-brass', 'pulse-lead'],
       counter: ['pluck-lead', 'e-piano', 'marimba'], keys: ['e-piano', 'felt-keys', 'steel-guitar', 'wurlitzer'], arp: ['pluck-lead', 'kalimba', 'e-piano', 'saw-lead', 'steel-guitar'],
-      bells: ['vibes', 'chime'], bass: ['synth-bass', 'pluck-bass', 'growl-bass', '808-bass'], drone: ['deep-drone'],
+      bells: ['vibes', 'chime'], bass: ['synth-bass', 'pluck-bass', 'growl-bass', '808-bass', 'moog-bass'], drone: ['deep-drone'],
     },
     textures: [], kits: ['tight-kit', 'lofi-kit', 'club-kit'], drums: [0.15, 0.95], edge: 1,
     patterns: { bass: ['octave', 'synco', 'pulse', 'rootfifth'], drums: ['groove', 'groove', 'halftime', 'four', 'break'] },
@@ -597,7 +599,7 @@ const MOODS = {
     chords: ['Imaj7 vi ii V7', 'I IV iii vi ii V', 'IVmaj7 iii ii Imaj7', 'I vi ii V', 'ii V7 Imaj7 -', 'Imaj7 IVmaj7', 'vi ii V7 Imaj7'],
     richness: [0.6, 1], energy: 0.45, space: 0.45, bright: 0.4, dark: 0.05, swing: 0.8,
     palette: {
-      pad: ['warm-pad', 'organ', 'strings'], melody: ['e-piano', 'felt-keys', 'flute', 'vibes', 'soft-lead', 'nylon', 'clarinet', 'piano', 'mute-trumpet', 'wurlitzer'],
+      pad: ['warm-pad', 'organ', 'strings'], melody: ['e-piano', 'felt-keys', 'flute', 'vibes', 'soft-lead', 'nylon', 'clarinet', 'piano', 'mute-trumpet', 'wurlitzer', 'humming'],
       counter: ['felt-keys', 'vibes', 'harp', 'nylon'], keys: ['e-piano', 'felt-keys', 'nylon', 'piano', 'jazz-guitar', 'wurlitzer'], arp: ['e-piano', 'harp', 'vibes', 'nylon'],
       bells: ['vibes', 'chime'], bass: ['upright', 'round-bass', 'sub-bass'], drone: ['organ-drone'],
     },
@@ -607,13 +609,13 @@ const MOODS = {
   wistful: {
     group: 'Gentle',
     opens: ['keys', 'pad', 'arp'],
-    name: 'Wistful', colour: '#e3b3a0', style: 'ambient',
+    pedal: true, name: 'Wistful', colour: '#e3b3a0', style: 'ambient',
     scales: { mixolydian: 1.5, dorian: 2, major: 1.5, majorPentatonic: 1 }, tempo: [56, 72], tuneTempo: [74, 94],
     chords: ['I iii IV iv', 'IV iv I', 'I V vi iii IV I IV V', 'vi IV I V', 'I bVII IV I', 'Imaj7 IVmaj7 iii vi', 'IV I V vi', 'I III IV iv'],
     richness: [0.4, 0.85], energy: 0.35, space: 0.7, bright: 0.45, dark: 0.15,
     palette: {
-      pad: ['strings', 'warm-pad', 'glass-pad', 'choir-oo', 'analog-pad', 'reverse-piano'], melody: ['music-box', 'e-piano', 'celesta', 'flute', 'violin', 'nylon', 'piano'],
-      counter: ['harp', 'felt-keys', 'celesta'], keys: ['felt-keys', 'e-piano', 'harp', 'piano', 'wurlitzer'], arp: ['harp', 'music-box', 'celesta'],
+      pad: ['strings', 'warm-pad', 'glass-pad', 'choir-oo', 'analog-pad', 'reverse-piano', 'bowed-vibes'], melody: ['music-box', 'e-piano', 'celesta', 'flute', 'violin', 'nylon', 'piano', 'cello', 'humming'],
+      counter: ['harp', 'felt-keys', 'celesta', 'cello'], keys: ['felt-keys', 'e-piano', 'harp', 'piano', 'wurlitzer'], arp: ['harp', 'music-box', 'celesta'],
       bells: ['music-box', 'celesta', 'glass-bell'], bass: ['round-bass', 'sub-bass', 'upright'], drone: ['cello-drone', 'organ-drone', 'tape-loop'],
     },
     textures: ['vinyl', 'rain', 'birds', 'leaves', 'chimes'], kits: ['brushes'], drums: [0.05, 0.45],
@@ -627,16 +629,16 @@ const MOODS = {
   // jolly creative tracks and the long synth builds
   nostalgic: {
     group: 'Gentle', opens: ['keys', 'pad', 'drone'],
-    name: 'Nostalgic', colour: '#86a98f', style: 'ambient',
+    pedal: true, name: 'Nostalgic', colour: '#86a98f', style: 'ambient',
     scales: { major: 3, lydian: 1.5, mixolydian: 1, majorPentatonic: 1, dorian: 0.5 }, tempo: [58, 76], tuneTempo: [72, 96],
     meters: { '4/4': 5, '3/4': 2, '6/8': 1 },
     chords: ['ii IV I iii', 'I iii IV iv', 'Imaj7 IVmaj7', 'IV I vi V', 'vi IV I V', 'I V vi IV', 'IVmaj7 iii7 vi -', 'I - IV -', 'IV iv I -', 'I vi iii IV'],
     methods: { bank: 5, markov: 2, vamp: 1.5 },
     richness: [0.35, 0.8], energy: 0.3, space: 0.75, bright: 0.45, dark: 0.12, edge: 0.6, surprise: 0, ornate: 0.4,
     palette: {
-      melody: ['piano', 'felt-keys', 'e-piano', 'soft-lead', 'music-box'], counter: ['felt-keys', 'e-piano', 'soft-lead', 'piano'],
+      melody: ['piano', 'felt-keys', 'e-piano', 'soft-lead', 'music-box', 'humming'], counter: ['felt-keys', 'e-piano', 'soft-lead', 'piano'],
       keys: ['piano', 'felt-keys', 'e-piano', 'wurlitzer'], arp: ['felt-keys', 'e-piano', 'piano', 'harp', 'sine-bell'], bells: ['sine-bell', 'glass-bell', 'music-box'],
-      pad: ['warm-pad', 'analog-pad', 'strings', 'air-pad', 'glass-pad'], bass: ['sub-bass', 'round-bass'], drone: ['tape-loop', 'organ-drone', 'cello-drone'],
+      pad: ['warm-pad', 'analog-pad', 'strings', 'air-pad', 'glass-pad', 'bowed-vibes', 'vox-pad'], bass: ['sub-bass', 'round-bass', 'moog-bass'], drone: ['tape-loop', 'organ-drone', 'cello-drone'],
     },
     textures: ['drips', 'rain', 'birds', 'leaves', 'stream', 'crickets'], kits: ['machine', 'soft-kit'], drums: [0.05, 0.4],
     layers: { keys: 0.75 },
@@ -646,13 +648,13 @@ const MOODS = {
   sad: {
     group: 'Dark',
     opens: ['pad', 'keys', 'drone'],
-    name: 'Sad', colour: '#6b95d8', style: 'ambient',
+    pedal: true, name: 'Sad', colour: '#6b95d8', style: 'ambient',
     scales: { minor: 3, dorian: 1.5, harmonicMinor: 0.7, minorPentatonic: 1 }, tempo: [52, 70], tuneTempo: [66, 88],
     chords: ['i bVI bIII bVII', 'i iv bVI V', 'vi IV I V', 'i bVII bVI bVII', 'i iv i v', 'i - bVI -', 'iv i', 'i bVI iv V', 'i bIII bVII iv'],
     richness: [0.3, 0.8], energy: 0.3, space: 0.7, bright: 0.35, dark: 0.3,
     palette: {
-      pad: ['strings', 'warm-pad', 'choir-oo', 'dark-pad', 'fuzz-wall', 'reverse-piano'], melody: ['felt-keys', 'violin', 'flute', 'e-piano', 'music-box', 'piano'],
-      counter: ['felt-keys', 'harp', 'violin'], keys: ['felt-keys', 'harp', 'e-piano', 'piano'], arp: ['harp', 'felt-keys'],
+      pad: ['strings', 'warm-pad', 'choir-oo', 'dark-pad', 'fuzz-wall', 'reverse-piano', 'bowed-vibes'], melody: ['felt-keys', 'violin', 'flute', 'e-piano', 'music-box', 'piano', 'cello', 'humming'],
+      counter: ['felt-keys', 'harp', 'violin', 'cello'], keys: ['felt-keys', 'harp', 'e-piano', 'piano'], arp: ['harp', 'felt-keys'],
       bells: ['glass-bell', 'music-box'], bass: ['sub-bass', 'round-bass', 'upright', 'chorus-bass'], drone: ['cello-drone', 'deep-drone'],
     },
     textures: ['rain', 'vinyl', 'wind', 'owl'], kits: ['soft-kit', 'brushes'], drums: [0.05, 0.4], patterns: { drums: ['sparse', 'pulse', 'brush'] },
@@ -670,9 +672,9 @@ const MOODS = {
     methods: { bank: 6, markov: 1.5 },
     richness: [0.15, 0.55], energy: 0.55, space: 0.85, bright: 0.45, dark: 0.55, edge: 0.75, surprise: 0, ornate: 0.8, drama: 1.3,
     palette: {
-      melody: ['piano', 'violin', 'choir-oo', 'horn', 'oboe'], counter: ['violin', 'horn', 'choir-oo', 'oboe', 'trombone'],
+      melody: ['piano', 'violin', 'choir-oo', 'horn', 'oboe', 'cello', 'soprano'], counter: ['violin', 'horn', 'choir-oo', 'oboe', 'trombone', 'cello'],
       keys: ['piano', 'harp'], arp: ['piano', 'harp'], bells: ['bell', 'glock', 'celesta'],
-      pad: ['strings', 'choir-ah', 'choir-oo', 'brass-section'], bass: ['upright', 'round-bass', 'sub-bass', 'tuba'], drone: ['cello-drone', 'organ-drone', 'deep-drone'],
+      pad: ['strings', 'choir-ah', 'choir-oo', 'brass-section', 'tremolo-strings'], bass: ['upright', 'round-bass', 'sub-bass', 'tuba'], drone: ['cello-drone', 'organ-drone', 'deep-drone'],
     },
     textures: ['wind', 'rain', 'rumble'], kits: ['orchestra-kit', 'taiko'], drums: [0.2, 0.75],
     layers: { pad: 1, keys: 0.85, counter: 0.55 },
@@ -695,7 +697,7 @@ const MOODS = {
     methods: { bank: 5, markov: 1, vamp: 2 },
     richness: [0.15, 0.5], energy: 0.4, space: 1, bright: 0.3, dark: 0.55,
     palette: {
-      pad: ['fuzz-wall', 'choir-ah', 'choir-oo', 'dark-pad'], melody: ['violin', 'whistle', 'felt-keys', 'nylon', 'choir-oo'],
+      pad: ['fuzz-wall', 'choir-ah', 'choir-oo', 'dark-pad', 'vox-pad'], melody: ['violin', 'whistle', 'felt-keys', 'nylon', 'choir-oo', 'cello', 'chant-voice'],
       counter: ['strings', 'felt-keys', 'nylon'], keys: ['felt-keys', 'e-piano', 'nylon'], arp: ['nylon', 'felt-keys', 'sine-bell'],
       bells: ['sine-bell', 'glass-bell'], bass: ['chorus-bass', 'sub-bass', 'round-bass'], drone: ['deep-drone', 'cello-drone', 'organ-drone', 'tape-loop'],
     },
@@ -712,7 +714,7 @@ const MOODS = {
     methods: { bank: 4, markov: 2, vamp: 3 },
     richness: [0.4, 0.9], energy: 0.35, space: 0.8, bright: 0.45, dark: 0.45,
     palette: {
-      pad: ['choir-oo', 'air-pad', 'glass-pad', 'dark-pad'], melody: ['kalimba', 'flute', 'glass-bell', 'ocarina', 'whistle'],
+      pad: ['choir-oo', 'air-pad', 'glass-pad', 'dark-pad', 'bowed-vibes'], melody: ['kalimba', 'flute', 'glass-bell', 'ocarina', 'whistle'],
       counter: ['kalimba', 'harp', 'pizzicato'], keys: ['harp', 'kalimba', 'celesta', 'harpsichord'], arp: ['kalimba', 'harp', 'marimba'],
       bells: ['glass-bell', 'bell', 'chime', 'metal-ping', 'sine-bell'], bass: ['sub-bass', 'pluck-bass', 'upright'], drone: ['deep-drone', 'void', 'cello-drone', 'tape-loop'],
     },
@@ -727,8 +729,8 @@ const MOODS = {
     methods: { bank: 5, markov: 1, vamp: 2, chromatic: 1 },
     richness: [0.2, 0.6], energy: 0.65, space: 0.5, bright: 0.4, dark: 0.65,
     palette: {
-      pad: ['strings', 'dark-pad', 'haunted-pad', 'analog-pad'], melody: ['violin', 'saw-lead', 'horn', 'pluck-lead', 'synth-brass'],
-      counter: ['pizzicato', 'pluck-lead', 'strings'], keys: ['felt-keys', 'pizzicato', 'harp', 'harpsichord'], arp: ['pluck-lead', 'pizzicato', 'saw-lead', 'marimba', 'harpsichord'],
+      pad: ['strings', 'dark-pad', 'haunted-pad', 'analog-pad', 'tremolo-strings'], melody: ['violin', 'saw-lead', 'horn', 'pluck-lead', 'synth-brass'],
+      counter: ['pizzicato', 'pluck-lead', 'strings', 'cello'], keys: ['felt-keys', 'pizzicato', 'harp', 'harpsichord'], arp: ['pluck-lead', 'pizzicato', 'saw-lead', 'marimba', 'harpsichord'],
       bells: ['bell', 'glass-bell', 'metal-ping'], bass: ['synth-bass', 'sub-bass', 'growl-bass', 'reese'], drone: ['deep-drone', 'cello-drone', 'bowed-metal'],
     },
     textures: ['rumble', 'hum', 'creaks', 'geiger'], kits: ['heartbeat', 'clockwork', 'taiko', 'machine'], drums: [0.3, 0.9], edge: 0.9,
@@ -746,9 +748,9 @@ const MOODS = {
     methods: { bank: 5, markov: 1, vamp: 2 },
     richness: [0.1, 0.45], energy: 0.85, space: 0.6, bright: 0.6, dark: 0.6, edge: 1,
     palette: {
-      pad: ['analog-pad', 'dark-pad', 'choir-ah', 'glass-pad'], melody: ['bit-lead', 'pulse-lead', 'saw-lead', 'sine-bell'],
+      pad: ['analog-pad', 'dark-pad', 'choir-ah', 'glass-pad', 'vox-pad'], melody: ['bit-lead', 'pulse-lead', 'saw-lead', 'sine-bell'],
       counter: ['pluck-lead', 'pulse-lead', 'synth-brass'], keys: ['e-piano', 'pluck-lead'], arp: ['pluck-lead', 'pulse-lead', 'sine-bell', 'saw-lead'],
-      bells: ['sine-bell', 'glass-bell'], bass: ['synth-bass', 'reese', 'growl-bass', 'sub-bass', '808-bass'], drone: ['deep-drone', 'void'],
+      bells: ['sine-bell', 'glass-bell'], bass: ['synth-bass', 'reese', 'growl-bass', 'sub-bass', '808-bass', 'moog-bass'], drone: ['deep-drone', 'void'],
     },
     textures: ['hum', 'vinyl'], kits: ['club-kit', 'machine', 'chip-kit'], drums: [0.35, 1],
     patterns: { drums: ['four', 'four', 'break', 'halftime'], pad: ['pump', 'pump', 'sustain'], bass: ['octave', 'synco', 'pulse'], melody: ['riff', 'phrases', 'riff'] },
@@ -763,7 +765,7 @@ const MOODS = {
     methods: { chromatic: 4, bank: 3, vamp: 1 },
     richness: [0.4, 1], energy: 0.2, space: 0.9, bright: 0.3, dark: 1,
     palette: {
-      pad: ['haunted-pad', 'dark-pad', 'choir-oo', 'air-pad', 'reverse-piano'], melody: ['music-box', 'glass-bell', 'whistle', 'violin', 'harpsichord'],
+      pad: ['haunted-pad', 'dark-pad', 'choir-oo', 'air-pad', 'reverse-piano', 'bowed-vibes', 'tremolo-strings'], melody: ['music-box', 'glass-bell', 'whistle', 'violin', 'harpsichord', 'soprano'],
       counter: ['music-box', 'celesta', 'bowed-metal'], keys: ['music-box', 'celesta', 'felt-keys', 'harpsichord'], arp: ['music-box', 'celesta', 'glass-bell'],
       bells: ['bell', 'glass-bell', 'music-box', 'metal-ping'], bass: ['sub-bass', 'deep-drone'], drone: ['void', 'bowed-metal', 'deep-drone', 'cello-drone', 'tape-loop'],
     },
@@ -781,7 +783,7 @@ const MOODS = {
     methods: { bank: 4, vamp: 3, chromatic: 1 },
     richness: [0.2, 0.7], energy: 0.25, space: 0.95, bright: 0.3, dark: 0.75, edge: 0.8,
     palette: {
-      pad: ['dark-pad', 'reverse-piano', 'analog-pad', 'haunted-pad'], melody: ['nylon', 'sine-bell', 'felt-keys', 'whistle'],
+      pad: ['dark-pad', 'reverse-piano', 'analog-pad', 'haunted-pad', 'bowed-vibes'], melody: ['nylon', 'sine-bell', 'felt-keys', 'whistle'],
       counter: ['nylon', 'felt-keys', 'metal-ping'], keys: ['felt-keys', 'nylon', 'e-piano'], arp: ['nylon', 'sine-bell', 'felt-keys'],
       bells: ['metal-ping', 'sine-bell', 'glass-bell'], bass: ['sub-bass', 'reese', 'round-bass'], drone: ['bowed-metal', 'deep-drone', 'tape-loop', 'void'],
     },
@@ -798,8 +800,8 @@ const MOODS = {
     chords: ['I bVII IV I', 'i bVI bIII bVII', 'I V vi IV', 'IV V iii vi', 'I bVI bVII I', 'i bVI bVII i', 'I IV V I', 'I iii IV V'],
     richness: [0.1, 0.45], energy: 0.8, space: 0.6, bright: 0.65, dark: 0.2,
     palette: {
-      pad: ['strings', 'choir-ah', 'warm-pad', 'organ', 'brass-section'], melody: ['horn', 'violin', 'flute', 'saw-lead', 'synth-brass', 'trumpet'],
-      counter: ['horn', 'strings', 'violin'], keys: ['harp', 'pizzicato', 'felt-keys'], arp: ['harp', 'pizzicato', 'pluck-lead'],
+      pad: ['strings', 'choir-ah', 'warm-pad', 'organ', 'brass-section', 'tremolo-strings'], melody: ['horn', 'violin', 'flute', 'saw-lead', 'synth-brass', 'trumpet'],
+      counter: ['horn', 'strings', 'violin', 'cello'], keys: ['harp', 'pizzicato', 'felt-keys'], arp: ['harp', 'pizzicato', 'pluck-lead'],
       bells: ['bell', 'chime'], bass: ['pluck-bass', 'synth-bass', 'round-bass'], drone: ['cello-drone', 'organ-drone'],
     },
     textures: ['wind'], kits: ['taiko', 'tight-kit'], drums: [0.2, 0.95], edge: 0.9,
@@ -826,7 +828,7 @@ const MOODS = {
     methods: { bank: 6, markov: 2 },
     richness: [0.2, 0.6], energy: 0.55, space: 0.7, bright: 0.65, dark: 0.3, edge: 0.6, surprise: 0, ornate: 0.9,
     palette: {
-      melody: ['celesta', 'flute', 'clarinet', 'oboe', 'violin', 'music-box'], counter: ['clarinet', 'oboe', 'horn', 'violin', 'flute', 'bassoon'],
+      melody: ['celesta', 'flute', 'clarinet', 'oboe', 'violin', 'music-box'], counter: ['clarinet', 'oboe', 'horn', 'violin', 'flute', 'bassoon', 'cello'],
       keys: ['harp', 'pizzicato', 'harpsichord', 'celesta'], arp: ['harp', 'celesta', 'pizzicato', 'music-box'], bells: ['glock', 'celesta', 'glass-bell', 'music-box'],
       pad: ['strings', 'choir-oo', 'shimmer', 'organ'], bass: ['bassoon', 'upright', 'tuba'], drone: ['cello-drone', 'organ-drone'],
     },
@@ -847,7 +849,7 @@ const MOODS = {
     methods: { bank: 6, markov: 2, vamp: 0.5 },
     richness: [0.2, 0.55], energy: 0.6, space: 0.5, bright: 0.45, dark: 0.45, edge: 0.7, surprise: 0, ornate: 1, swing: 0.35, swingAmount: [0.15, 0.3],
     palette: {
-      melody: ['clarinet', 'oboe', 'violin', 'harpsichord', 'accordion', 'mute-trumpet'], counter: ['bassoon', 'clarinet', 'horn', 'oboe', 'trombone'],
+      melody: ['clarinet', 'oboe', 'violin', 'harpsichord', 'accordion', 'mute-trumpet'], counter: ['bassoon', 'clarinet', 'horn', 'oboe', 'trombone', 'cello'],
       keys: ['harpsichord', 'pizzicato', 'honky-tonk', 'piano'], arp: ['pizzicato', 'harpsichord', 'celesta'], bells: ['glock', 'celesta', 'chime'],
       pad: ['strings', 'organ', 'brass-section'], bass: ['tuba', 'bassoon', 'upright'], drone: ['cello-drone', 'organ-drone'],
     },
@@ -868,9 +870,9 @@ const MOODS = {
     methods: { bank: 6, markov: 1, vamp: 1.5 },
     richness: [0, 0.3], energy: 0.75, space: 0.8, bright: 0.45, dark: 0.75, edge: 0.9, surprise: 0, ornate: 0.8,
     palette: {
-      melody: ['horn', 'choir-oo', 'violin', 'trombone', 'oboe', 'trumpet'], counter: ['trombone', 'horn', 'strings', 'bassoon'],
+      melody: ['horn', 'choir-oo', 'violin', 'trombone', 'oboe', 'trumpet', 'chant-voice', 'cello'], counter: ['trombone', 'horn', 'strings', 'bassoon', 'chant-voice'],
       keys: ['pizzicato', 'harp', 'piano', 'harpsichord'], arp: ['pizzicato', 'harp', 'piano'], bells: ['bell', 'glock', 'chime'],
-      pad: ['choir-ah', 'strings', 'organ', 'brass-section', 'dark-pad'], bass: ['tuba', 'round-bass', 'sub-bass', 'bassoon'], drone: ['organ-drone', 'cello-drone', 'deep-drone'],
+      pad: ['choir-ah', 'strings', 'organ', 'brass-section', 'dark-pad', 'tremolo-strings'], bass: ['tuba', 'round-bass', 'sub-bass', 'bassoon'], drone: ['organ-drone', 'cello-drone', 'deep-drone'],
     },
     textures: ['fire', 'rumble', 'wind'], kits: ['orchestra-kit', 'taiko'], drums: [0.4, 1],
     layers: { pad: 1, drone: 0.4, counter: 0.6 },
@@ -983,7 +985,7 @@ const MOODS = {
     chords: ['Imaj7 IVmaj7', 'I vi IV V', 'I iii vi IV', 'IVmaj7 V iii vi', 'I II IV I', 'vi IV I V', 'I V vi iii', 'Imaj7 iii IVmaj7 iv'],
     richness: [0.45, 0.9], energy: 0.5, space: 0.95, bright: 0.55, dark: 0.15, edge: 0.8, surprise: 0,
     palette: {
-      guitar: ['chorus-guitar', 'clean-guitar'], pad: ['swell-guitar', 'analog-pad', 'organ', 'glass-pad', 'choir-oo'], melody: ['dream-voice', 'chorus-guitar', 'sine-bell'],
+      guitar: ['chorus-guitar', 'clean-guitar'], pad: ['swell-guitar', 'analog-pad', 'organ', 'glass-pad', 'choir-oo', 'vox-pad'], melody: ['dream-voice', 'chorus-guitar', 'sine-bell'],
       counter: ['chorus-guitar', 'clean-guitar', 'glass-bell'], keys: ['e-piano', 'chorus-guitar', 'wurlitzer'], arp: ['chorus-guitar', 'clean-guitar', 'harp'], bells: ['glass-bell', 'sine-bell', 'celesta'],
       bass: ['round-bass', 'chorus-bass', 'pick-bass'], drone: ['organ-drone', 'tape-loop'],
     },
@@ -1007,7 +1009,7 @@ const MOODS = {
     palette: {
       guitar: ['chorus-guitar', 'clean-guitar'], melody: ['dream-voice', 'dream-voice', 'chorus-guitar', 'glass-bell'], counter: ['chorus-guitar', 'clean-guitar', 'glass-bell', 'choir-oo'],
       keys: ['chorus-guitar', 'e-piano', 'harp'], arp: ['chorus-guitar', 'clean-guitar', 'harp', 'celesta'], bells: ['glass-bell', 'celesta', 'sine-bell', 'glock'],
-      pad: ['swell-guitar', 'reverse-guitar', 'glass-pad', 'choir-oo', 'shimmer'], bass: ['chorus-bass', 'pick-bass', 'round-bass', 'fretless'], drone: ['tape-loop', 'organ-drone'],
+      pad: ['swell-guitar', 'reverse-guitar', 'glass-pad', 'choir-oo', 'shimmer', 'vox-pad'], bass: ['chorus-bass', 'pick-bass', 'round-bass', 'fretless'], drone: ['tape-loop', 'organ-drone'],
     },
     textures: ['vinyl', 'ocean'], kits: ['machine', 'gaze-kit'], drums: [0.3, 0.9],
     layers: { guitar: 0.6, arp: 0.75, pad: 0.8, keys: 0.2, counter: 0.35, bells: 0.3, drone: 0.15, texture: 0.25 },
@@ -1069,7 +1071,7 @@ const MOODS = {
     richness: [0, 0.3], energy: 0.6, space: 0.5, bright: 0.6, dark: 0.15, surprise: 0,
     palette: {
       pad: ['strings', 'organ', 'warm-pad'], melody: ['violin', 'whistle', 'pan-flute', 'shawm', 'accordion', 'flute'], counter: ['violin', 'whistle', 'harp', 'clarinet'],
-      keys: ['nylon', 'harp', 'steel-guitar'], arp: ['harp', 'nylon', 'steel-guitar', 'banjo'], bells: ['chime', 'celesta'],
+      keys: ['nylon', 'harp', 'steel-guitar', 'zither'], arp: ['harp', 'nylon', 'steel-guitar', 'banjo', 'zither'], bells: ['chime', 'celesta'],
       bass: ['upright', 'round-bass', 'tuba'], drone: ['organ-drone', 'cello-drone'],
     },
     textures: ['birds', 'leaves', 'stream', 'fire', 'owl'], kits: ['hand-drums'], drums: [0.15, 0.85],
@@ -1086,8 +1088,8 @@ const MOODS = {
     chords: ['I II', 'i bVI bIII bVII', 'Imaj7 IVmaj7', 'I iii IV iv', 'vi IV I V', 'i iv bVII bIII', 'IV V iii vi'],
     richness: [0.4, 0.85], energy: 0.35, space: 0.85, bright: 0.8, dark: 0.15, surprise: 0,
     palette: {
-      pad: ['glass-pad', 'shimmer', 'strings', 'choir-oo', 'air-pad'], melody: ['celesta', 'glass-bell', 'flute', 'music-box', 'violin', 'glock'], counter: ['harp', 'celesta', 'flute'],
-      keys: ['celesta', 'harp', 'felt-keys', 'piano', 'harpsichord'], arp: ['celesta', 'music-box', 'harp', 'glass-bell', 'glock', 'harpsichord'], bells: ['glass-bell', 'chime', 'celesta', 'sine-bell', 'glock'],
+      pad: ['glass-pad', 'shimmer', 'strings', 'choir-oo', 'air-pad', 'bowed-vibes'], melody: ['celesta', 'glass-bell', 'flute', 'music-box', 'violin', 'glock'], counter: ['harp', 'celesta', 'flute'],
+      keys: ['celesta', 'harp', 'felt-keys', 'piano', 'harpsichord'], arp: ['celesta', 'music-box', 'harp', 'glass-bell', 'glock', 'harpsichord', 'zither'], bells: ['glass-bell', 'chime', 'celesta', 'sine-bell', 'glock'],
       bass: ['round-bass', 'sub-bass', 'upright'], drone: ['organ-drone', 'cello-drone'],
     },
     textures: ['wind', 'chimes', 'fire'], kits: ['soft-kit', 'brushes'], drums: [0.05, 0.5],
@@ -1105,9 +1107,9 @@ const MOODS = {
     methods: { bank: 5, markov: 1, vamp: 1 },
     richness: [0.15, 0.5], energy: 0.75, space: 0.7, bright: 0.65, dark: 0.35, edge: 1, surprise: 0,
     palette: {
-      pad: ['analog-pad', 'warm-pad', 'strings', 'glass-pad'], melody: ['saw-lead', 'synth-brass', 'square-lead', 'soft-lead'], counter: ['synth-brass', 'pluck-lead', 'soft-lead'],
+      pad: ['analog-pad', 'warm-pad', 'strings', 'glass-pad', 'vox-pad'], melody: ['saw-lead', 'synth-brass', 'square-lead', 'soft-lead', 'moog-lead'], counter: ['synth-brass', 'pluck-lead', 'soft-lead'],
       keys: ['e-piano', 'pluck-lead'], arp: ['pluck-lead', 'saw-lead', 'sine-bell'], bells: ['sine-bell', 'glass-bell'],
-      bass: ['synth-bass', 'reese', 'sub-bass', '808-bass'], drone: ['deep-drone'],
+      bass: ['synth-bass', 'reese', 'sub-bass', '808-bass', 'moog-bass'], drone: ['deep-drone'],
     },
     textures: ['hum'], kits: ['machine', 'club-kit'], drums: [0.3, 1],
     patterns: { drums: ['groove', 'four', 'halftime', 'groove'], bass: ['octave', 'octave', 'pulse'], arp: ['up', 'updown', 'down'], pad: ['sustain', 'swell'], melody: ['phrases', 'long', 'riff'] },
@@ -1125,7 +1127,7 @@ const MOODS = {
     methods: { bank: 4, vamp: 2, markov: 1 },
     richness: [0.4, 0.9], energy: 0.85, space: 0.7, bright: 0.55, dark: 0.4, edge: 0.9, surprise: 0,
     palette: {
-      pad: ['air-pad', 'glass-pad', 'analog-pad', 'strings'], melody: ['soft-lead', 'sine-bell', 'e-piano', 'saw-lead', 'whistle'],
+      pad: ['air-pad', 'glass-pad', 'analog-pad', 'strings', 'vox-pad'], melody: ['soft-lead', 'sine-bell', 'e-piano', 'saw-lead', 'whistle'],
       counter: ['e-piano', 'pluck-lead', 'sine-bell'], keys: ['e-piano', 'felt-keys'], arp: ['pluck-lead', 'sine-bell', 'e-piano'], bells: ['sine-bell', 'glass-bell'],
       bass: ['reese', 'sub-bass', 'synth-bass', '808-bass'], drone: ['deep-drone', 'void'],
     },
@@ -1424,7 +1426,7 @@ const MOODS = {
     methods: { bank: 5, vamp: 2, markov: 1 },
     richness: [0, 0.25], energy: 0.5, space: 0.7, bright: 0.6, dark: 0.3, surprise: 0, ornate: 1.1,
     palette: {
-      melody: ['oboe', 'pan-flute', 'lyre', 'horn', 'flute'], counter: ['lyre', 'harp', 'pan-flute', 'oboe'],
+      melody: ['oboe', 'pan-flute', 'lyre', 'horn', 'flute', 'chant-voice'], counter: ['lyre', 'harp', 'pan-flute', 'oboe'],
       keys: ['lyre', 'harp', 'pizzicato'], arp: ['lyre', 'harp', 'pizzicato'], bells: ['glass-bell', 'chime', 'bell'],
       pad: ['choir-ah', 'choir-oo', 'strings', 'brass-section'], bass: ['upright', 'round-bass', 'bassoon'], drone: ['cello-drone', 'organ-drone'],
     },
@@ -1444,8 +1446,8 @@ const MOODS = {
     methods: { bank: 5, vamp: 2, markov: 1 },
     richness: [0, 0.15], energy: 0.6, space: 0.55, bright: 0.6, dark: 0.25, surprise: 0, ornate: 1.2,
     palette: {
-      melody: ['bagpipe', 'whistle', 'shawm', 'violin', 'flute'], counter: ['whistle', 'violin', 'bowed-psaltery', 'oboe'],
-      keys: ['harpsichord', 'lyre', 'harp', 'oud'], arp: ['harpsichord', 'lyre', 'harp', 'oud'], bells: ['chime', 'bell'],
+      melody: ['bagpipe', 'whistle', 'shawm', 'violin', 'flute', 'chant-voice'], counter: ['whistle', 'violin', 'bowed-psaltery', 'oboe'],
+      keys: ['harpsichord', 'lyre', 'harp', 'oud', 'zither'], arp: ['harpsichord', 'lyre', 'harp', 'oud', 'zither'], bells: ['chime', 'bell'],
       pad: ['organ', 'choir-ah', 'strings'], bass: ['bassoon', 'upright', 'round-bass'], drone: ['organ-drone', 'cello-drone'],
     },
     textures: ['fire', 'birds', 'leaves', 'owl'], kits: ['hand-drums', 'stomp-kit'], drums: [0.15, 0.9],
@@ -1467,7 +1469,7 @@ const MOODS = {
     richness: [0, 0.15], energy: 0.6, space: 0.75, bright: 0.55, dark: 0.3, surprise: 0, ornate: 1.2,
     palette: {
       melody: ['throat-singing', 'throat-singing', 'throat-singing', 'erhu', 'flute', 'shakuhachi'], counter: ['erhu', 'throat-singing', 'koto', 'flute'],
-      keys: ['koto', 'harp', 'nylon'], arp: ['koto', 'harp', 'nylon'], bells: ['chime'],
+      keys: ['koto', 'harp', 'nylon', 'zither'], arp: ['koto', 'harp', 'nylon', 'zither'], bells: ['chime'],
       pad: ['strings', 'choir-oo', 'air-pad'], bass: ['upright', 'round-bass', 'sub-bass'], drone: ['throat-singing', 'throat-singing', 'kargyraa', 'cello-drone'],
     },
     textures: ['wind', 'fire', 'crickets', 'birds'], kits: ['shaman-drum'], drums: [0.3, 0.95],
@@ -1606,9 +1608,9 @@ const MOODS = {
     chords: ['Imaj7 IVmaj7', 'I II', 'ii7 Imaj7', 'i7 iv7', 'Imaj7 iii7 IVmaj7 -', 'vi7 IVmaj7 Imaj7 V'],
     richness: [0.5, 0.9], energy: 0.3, space: 0.9, bright: 0.45, dark: 0.2, surprise: 0, ornate: 0.6,
     palette: {
-      melody: ['wine-glass', 'blown-bottle', 'vibes', 'sine-bell', 'celesta', 'flute'], counter: ['harp', 'vibes', 'soft-lead', 'celesta'],
+      melody: ['wine-glass', 'blown-bottle', 'vibes', 'sine-bell', 'celesta', 'flute', 'soprano'], counter: ['harp', 'vibes', 'soft-lead', 'celesta'],
       keys: ['harp', 'felt-keys', 'e-piano', 'vibes'], arp: ['harp', 'celesta', 'vibes', 'sine-bell', 'music-box'], bells: ['glass-bell', 'sine-bell', 'celesta'],
-      pad: ['glass-pad', 'choir-oo', 'air-pad', 'shimmer'], bass: ['sub-bass', 'round-bass'], drone: ['void', 'deep-drone', 'tape-loop'],
+      pad: ['glass-pad', 'choir-oo', 'air-pad', 'shimmer', 'bowed-vibes'], bass: ['sub-bass', 'round-bass'], drone: ['void', 'deep-drone', 'tape-loop'],
     },
     textures: ['whale', 'bubbles', 'ocean'], kits: ['soft-kit'], drums: [0.05, 0.4],
     fx: { wobble: 0.3 },
@@ -1644,9 +1646,9 @@ const MOODS = {
     chords: ['I II', 'Imaj7 II', 'i bVI', 'I bVII', 'Imaj7 IVmaj7', 'i - bII -'],
     richness: [0.4, 0.9], energy: 0.4, space: 0.95, bright: 0.6, dark: 0.35, edge: 0.8, surprise: 0, ornate: 0.6,
     palette: {
-      melody: ['soft-lead', 'sine-bell', 'wine-glass', 'synth-brass'], counter: ['soft-lead', 'sine-bell', 'pluck-lead'],
+      melody: ['soft-lead', 'sine-bell', 'wine-glass', 'synth-brass', 'moog-lead'], counter: ['soft-lead', 'sine-bell', 'pluck-lead'],
       keys: ['e-piano', 'pluck-lead', 'felt-keys'], arp: ['pluck-lead', 'sine-bell', 'e-piano', 'celesta'], bells: ['sine-bell', 'glass-bell', 'metal-ping'],
-      pad: ['analog-pad', 'glass-pad', 'synth-strings', 'choir-oo', 'shimmer'], bass: ['sub-bass', 'synth-bass', 'reese'], drone: ['void', 'deep-drone', 'tape-loop'],
+      pad: ['analog-pad', 'glass-pad', 'synth-strings', 'choir-oo', 'shimmer', 'bowed-vibes', 'vox-pad'], bass: ['sub-bass', 'synth-bass', 'reese'], drone: ['void', 'deep-drone', 'tape-loop'],
     },
     textures: ['hum'], kits: ['machine', 'club-kit'], drums: [0.15, 0.8],
     fx: { wobble: 0.1 },
@@ -1666,9 +1668,9 @@ const MOODS = {
     methods: { bank: 5, markov: 1, vamp: 2 },
     richness: [0.1, 0.45], energy: 0.65, space: 0.6, bright: 0.45, dark: 0.6, edge: 0.85, surprise: 0, ornate: 0.8,
     palette: {
-      melody: ['horn', 'synth-brass', 'violin', 'trombone', 'clarinet', 'oboe'], counter: ['trombone', 'horn', 'pizzicato', 'bassoon', 'clarinet'],
+      melody: ['horn', 'synth-brass', 'violin', 'trombone', 'clarinet', 'oboe'], counter: ['trombone', 'horn', 'pizzicato', 'bassoon', 'clarinet', 'cello'],
       keys: ['pizzicato', 'marimba', 'harpsichord', 'piano'], arp: ['pizzicato', 'marimba', 'pluck-lead', 'harpsichord'], bells: ['glock', 'metal-ping', 'bell'],
-      pad: ['strings', 'choir-ah', 'brass-section', 'dark-pad', 'synth-strings'], bass: ['synth-bass', 'upright', 'tuba', 'round-bass', 'bassoon'], drone: ['deep-drone', 'cello-drone', 'organ-drone'],
+      pad: ['strings', 'choir-ah', 'brass-section', 'dark-pad', 'synth-strings', 'tremolo-strings'], bass: ['synth-bass', 'upright', 'tuba', 'round-bass', 'bassoon'], drone: ['deep-drone', 'cello-drone', 'organ-drone'],
     },
     textures: ['factory', 'steam', 'clanks', 'rain'], kits: ['machine', 'orchestra-kit', 'tight-kit', 'junk-kit'], drums: [0.35, 0.9],
     layers: { arp: 0.6, pad: 0.85 },
@@ -1892,6 +1894,34 @@ const FLAVOURS = {
           [['Dark', 'C', 8, 0.3], ['Arps', 'A', 8, 0.55], ['Build', 'A', 8, 0.75], ['Drive', 'B', 8, 0.95], ['Peak', 'B', 8, 1], ['Fall', 'C', 8, 0.4], ['Drive', 'B', 8, 0.95], ['Away', 'A', 8, 0.3]],
           [['Dark', 'A', 8, 0.3], ['Arps', 'A', 16, 0.6], ['Drive', 'B', 16, 0.95], ['Fall', 'C', 8, 0.45], ['Peak', 'B', 16, 1], ['Away', 'C', 8, 0.3]],
         ],
+      },
+      // subwoofer lullaby, mice on venus and living mice: a rhodes rocking between two chords over a deep
+      // moog bass, a piano tune drifting over it, the odd soft tick of a drum machine
+      lullaby: {
+        name: 'Lullaby', tip: 'Lullaby: a warm electric piano rocking between two chords over a deep round bass, a soft piano tune drifting over it, like falling asleep in a quiet room',
+        scales: { major: 3, lydian: 2, mixolydian: 1 }, tempo: [54, 68], tuneTempo: [66, 84], meters: { '4/4': 4, '3/4': 2 },
+        chords: ['Imaj7 IVmaj7', 'I - IV -', 'Imaj7 iii7', 'IV I', 'I vi IV -', 'IVmaj7 Imaj7 iii7 vi'],
+        palette: { melody: ['piano', 'felt-keys', 'humming', 'music-box'], keys: ['e-piano', 'wurlitzer', 'felt-keys'], pad: ['vox-pad', 'warm-pad', 'bowed-vibes'], bass: ['moog-bass', 'sub-bass'], bells: ['sine-bell', 'glass-bell'] },
+        kits: ['machine', 'soft-kit'], drums: [0.15, 0.4], layers: { keys: 0.95, bass: 0.9 },
+        patterns: { keys: ['block', 'broken', 'block'], melody: ['fragments', 'phrases', 'long'], bass: ['held', 'held', 'rootfifth'], drums: ['sparse', 'pulse'] },
+      },
+      // wet hands, dry hands and clark: a piano on its own, rolling up and down its chords with the pedal
+      // down, a simple tune on top, and the room
+      rolling: {
+        name: 'Rolling keys', tip: 'Rolling keys: a piano rolling gently up and down its chords, a simple tune on top, and nothing else but the room it was played in',
+        scales: { major: 3, lydian: 1, mixolydian: 1, dorian: 0.5 }, tempo: [62, 80], tuneTempo: [72, 92],
+        palette: { melody: ['piano', 'felt-keys'], arp: ['piano', 'felt-keys'], keys: ['felt-keys', 'piano'], pad: ['strings', 'warm-pad', 'bowed-vibes'], bass: ['sub-bass', 'round-bass'] },
+        kits: [], drums: [0, 0], layers: { arp: 0.95, keys: 0.3, pad: 0.4, bass: 0.5, texture: 0.3 },
+        patterns: { arp: ['updown', 'up', 'updown'], melody: ['phrases', 'fragments', 'long'], pad: ['swell', 'sustain'] },
+      },
+      // the second album's synth side, moog city 2, biome fest and haggstrom: a round moog lead sliding
+      // between notes over bubbling arps and a gentle drum machine, curious and cheerful
+      moogcity: {
+        name: 'Circuits', tip: 'Circuits: a round, buttery synth lead sliding between its notes over bubbling arps and a gentle drum machine, cheerful and curious',
+        style: 'tune', scales: { major: 2, mixolydian: 2, lydian: 1, dorian: 1 }, tuneTempo: [92, 118], energy: 0.6, bright: 0.55, edge: 0.8,
+        palette: { melody: ['moog-lead', 'soft-lead', 'pluck-lead'], arp: ['pluck-lead', 'sine-bell', 'e-piano', 'kalimba'], counter: ['soft-lead', 'pluck-lead', 'e-piano'], pad: ['analog-pad', 'vox-pad', 'warm-pad'], bass: ['moog-bass', 'synth-bass', 'sub-bass'], keys: ['e-piano', 'piano'] },
+        kits: ['machine', 'lofi-kit'], drums: [0.3, 0.85], layers: { arp: 0.8 },
+        patterns: { drums: ['groove', 'halftime'], arp: ['up', 'updown', 'random'], bass: ['octave', 'synco', 'rootfifth'], melody: ['phrases', 'long', 'calls'] },
       },
     },
   },
@@ -3326,6 +3356,8 @@ function generateSong(moodId, style, seed, mods = [], flavour) {
   pickArrangement(song, makeRng(seed, mood, song.style, 'arrangement'));
   pickOrchestra(song, makeRng(seed, mood, song.style, 'orchestra'));
   pickScenery(song, makeRng(seed, mood, song.style, 'scenery'));
+  pickDoubles(song, makeRng(seed, mood, song.style, 'doubles'));
+  pickRecordings(song);
   pickSpace(song, makeRng(seed, mood, 'space'));
   return cleanSong(song);
 }
@@ -3354,6 +3386,8 @@ const REROLLS = {
     for (const layer of song.layers) layer.instrument = '';
     for (const layer of dressOrder(song.layers)) dressLayer(song, layer, rng, false);
     fitBand(song);
+    pickDoubles(song, rng);
+    pickRecordings(song);
   },
   arrangement: (song, mood, rng) => pickArrangement(song, rng),
   // the tune handed round a new way: whoever carried it goes, and it's picked again, more likely than
@@ -3545,11 +3579,12 @@ const APART = { chip: 'acoustic', acoustic: 'chip' };
 const paletteOf = (mood) => [...Object.values(mood.palette).flat(), ...(mood.quiet || [])];
 const kindred = (mood) => new Set([...paletteOf(mood), ...Object.values(MOODS).filter((other) => other.surprise !== 0 && Math.abs(other.dark - mood.dark) <= 0.25).flatMap(paletteOf)]);
 // recordings of real instruments sound more alive than the synthesised versions, so a mood's palette
-// leans towards the ones that have them (samples in synth.js), three to one. the synthesised ones are
+// leans towards the ones that have them (samples in synth.js), five to one (it was three, and songs
+// still had too much of the computer in them). the synthesised ones are
 // still picked, just less often, and a mood whose palette is all synths (neon, synthwave, the chip
 // sounds) is as it was. it's on what an instrument has, not on whether the files loaded, so the same
 // seed always picks the same band
-const preferRecorded = (id) => [id, INSTRUMENTS[id].samples ? 3 : 1];
+const preferRecorded = (id) => [id, INSTRUMENTS[id].samples ? 5 : 1];
 function pickInstrument(song, layer, rng) {
   const mood = songMood(song);
   const { role } = layer;
@@ -3605,10 +3640,11 @@ function pickInstrument(song, layer, rng) {
 function dressLayer(song, layer, rng, fresh) {
   const mood = songMood(song);
   const { role } = layer;
+  const before = INSTRUMENTS[layer.instrument];
   layer.instrument = pickInstrument(song, layer, rng);
-  // a new instrument plays its usual recording (layer.recording is one of its others, picked on the page)
-  delete layer.recording;
   const instrument = INSTRUMENTS[layer.instrument];
+  // doublers were picked for the old instrument (a choir's voices on a flute would be odd)
+  if (before !== instrument) delete layer.with;
   const edge = instrument.edge || 0;
   // struck and plucked things (keys, bells, basses) get no vibrato and hardly any detune: a wobbling
   // piano under a steady pad sounds out of tune rather than warm, and a strummed harp chord in a dark
@@ -3624,6 +3660,10 @@ function dressLayer(song, layer, rng, fresh) {
   // a singer (an instrument with a home) sings where they sing: an octave down, a throat singer was a
   // recording stretched a whole octave
   if (instrument.home) layer.octave = 0;
+  // an instrument that plays its part in another octave (a cello an octave under the violin, a low
+  // voice two): and when it's swapped for one that doesn't, the part comes back to its usual place
+  else if (instrument.octave !== undefined) layer.octave = instrument.octave;
+  else if (before?.octave !== undefined) layer.octave = 0;
   const busy = song.style !== 'ambient' ? 0.35 + mood.energy * 0.5 : 0.3 + mood.energy * 0.5;
   // (a modifier can make every part busier or sparser: mood.busy)
   layer.density = clamp01(busy + (mood.busy || 0) + rng.range(-0.15, 0.2));
@@ -3667,7 +3707,32 @@ function dressLayer(song, layer, rng, fresh) {
     detune: struck ? mood.dark * rng.range(0, 4) + rng.range(0, 1.5) : mood.dark * rng.range(0, 20) + rng.range(0, 4),
     vibrato: !struck && rng.chance(0.35) ? rng.range(2, 10) : 0,
   };
+  pickRecording(song, layer);
 }
+
+// which of its instrument's recordings a layer plays. a lot of instruments were recorded more than
+// once (more in synth.js), and always playing the first made every song's piano or bass the same
+// piano or bass, and two guitar parts in one song the same guitar. so each layer picks one, with its
+// own random numbers (from its seed and instrument, so nothing else in the song moves), never one
+// another layer or doubler in the song is already playing, and the weaker recordings (a general midi
+// one where there's a real one) less often (weight)
+const folderOf = (id, choice) => {
+  const inst = INSTRUMENTS[id];
+  return inst?.samples && (inst.more?.[choice] ? choice : inst.samples);
+};
+function pickRecording(song, layer) {
+  const inst = INSTRUMENTS[layer.instrument];
+  delete layer.recording;
+  if (!inst?.more) return;
+  const taken = new Set(song.layers.filter((other) => other !== layer).flatMap((other) => [folderOf(other.instrument, other.recording), ...(other.with || []).map((one) => folderOf(one.instrument, one.recording))]));
+  const all = [[inst.samples, inst.sampled?.weight ?? 1], ...Object.entries(inst.more).map(([folder, settings]) => [folder, settings.weight ?? 1])];
+  const free = all.filter(([folder]) => !taken.has(folder));
+  const folder = makeRng(layer.seed, layer.instrument, 'recording').weighted(free.length ? free : all);
+  if (folder !== inst.samples) layer.recording = folder;
+}
+// once the whole band's chosen, everyone picks again knowing what the rest play: a pad dressed first
+// took the pipe organ before the drone, whose only recording it is, came along
+const pickRecordings = (song) => song.layers.forEach((layer) => pickRecording(song, layer));
 
 // rules for parts that belong together, run after the band's picked (or picked again, or mutated).
 // each fixes something that sounded wrong:
@@ -3936,6 +4001,123 @@ function pickOrchestra(song, rng, chances = songMood(song).orchestra) {
   passTune(song);
 }
 
+// ---------- doubling ----------
+//
+// a tune on one instrument is one player, and a choir singing it from one recording sounded thin and
+// fake: one sample, however many singers were in it. orchestras and arrangers double a tune instead,
+// two instruments in unison or an octave apart, and it's the commonest trick there is: a flute with
+// the violins, the oboe with the clarinet, a horn with the cellos, a piano's tune with itself an
+// octave up (c418's), and a choir's tune sung by its sopranos and altos together, with the basses an
+// octave under. a layer's with is the instruments doubling it (synth.js plays them with it, in its
+// channel, a few cents and milliseconds apart). a choir singing the tune always gets two more voices
+// and sings every note together, a section rather than a sample; anything else gets a partner now and
+// then (DOUBLE_CHANCE), and only where the song is loud (DOUBLE_ENERGY), the way an orchestra thickens
+// the tune for its climax. only recorded instruments double: a doubled synth was the problem
+// [instrument, octaves from the tune]
+const DOUBLES = {
+  'choir-oo': [['choir-ah', 0], ['chant-voice', -1], ['soprano', 0], ['strings', 0]],
+  'choir-ah': [['choir-oo', 0], ['chant-voice', -1], ['soprano', 0], ['strings', 0]],
+  'dream-voice': [['choir-oo', 0], ['vox-pad', 0]],
+  soprano: [['choir-oo', 0], ['choir-ah', 0], ['strings', 0]],
+  'chant-voice': [['choir-ah', 1], ['cello', 0], ['organ', 0]],
+  humming: [['choir-oo', 0], ['cello', 0]],
+  flute: [['violin', 0], ['clarinet', -1], ['oboe', 0], ['glock', 1]],
+  violin: [['flute', 0], ['cello', -1], ['oboe', 0], ['strings', 0]],
+  cello: [['violin', 1], ['horn', 0], ['bassoon', 0]],
+  horn: [['cello', 0], ['trombone', 0], ['strings', 0]],
+  trumpet: [['alto-sax', 0], ['trombone', -1], ['horn', 0]],
+  trombone: [['horn', 0], ['tenor-sax', 0]],
+  'alto-sax': [['trumpet', 0], ['tenor-sax', -1], ['mute-trumpet', 0]],
+  'tenor-sax': [['trombone', 0], ['alto-sax', 1]],
+  clarinet: [['flute', 1], ['oboe', 0], ['bassoon', -1]],
+  oboe: [['flute', 0], ['clarinet', 0]],
+  whistle: [['flute', 0], ['violin', 0]],
+  'pan-flute': [['flute', 0], ['ocarina', 0]],
+  ocarina: [['flute', 0], ['pan-flute', 0]],
+  accordion: [['violin', 0], ['clarinet', 0]],
+  piano: [['piano', 1], ['celesta', 1], ['strings', 0], ['vibes', 0]],
+  'felt-keys': [['felt-keys', 1], ['bowed-vibes', 0], ['strings', 0]],
+  'e-piano': [['vibes', 0], ['glock', 1]],
+  'music-box': [['celesta', 0], ['harp', 0]],
+  celesta: [['glock', 0], ['harp', 0]],
+  marimba: [['xylophone', 1], ['vibes', 0]],
+  vibes: [['e-piano', 0], ['glock', 1]],
+  nylon: [['harp', 0], ['flute', 0]],
+  erhu: [['violin', 0]],
+  shakuhachi: [['flute', 0]],
+};
+const CHOIRS = { 'choir-oo': true, 'choir-ah': true, soprano: true, 'chant-voice': true, 'dream-voice': true };
+const DOUBLE_CHANCE = { ambient: 0.25, tune: 0.4, loop: 0.3, mini: 0.35, boss: 0.45 };
+const DOUBLE_ENERGY = 0.7;
+// its own random numbers, so everything picked before stays as it was
+function pickDoubles(song, rng) {
+  const mood = songMood(song);
+  for (const layer of song.layers) {
+    if (layer.role !== 'melody' || layer.hand) continue;
+    const choir = !!CHOIRS[layer.instrument];
+    const others = new Set(song.layers.filter((other) => other !== layer).map((other) => other.instrument));
+    const worlds = new Set(song.layers.map((other) => INSTRUMENTS[other.instrument]?.world));
+    const partners = (DOUBLES[layer.instrument] || []).filter(([id]) => {
+      const inst = INSTRUMENTS[id];
+      return inst?.samples && !others.has(id) && inst.edge <= maxEdge(mood, 'melody') + 1e-9 && !(APART[inst.world] && worlds.has(APART[inst.world]));
+    });
+    if (!partners.length || !rng.chance(choir ? 0.9 : mood.double ?? DOUBLE_CHANCE[song.style])) continue;
+    const picked = [];
+    for (let n = choir ? 2 : 1; n > 0 && partners.length; n--) picked.push(...partners.splice(Math.floor(rng.next() * partners.length), 1));
+    layer.with = picked.map(([instrument, octave]) => ({ instrument, ...(octave ? { octave } : {}) }));
+  }
+}
+// where a layer's doublers play with it (note.double, for synth.js): a choir's everywhere, anything
+// else in the loud sections only, unless the page said otherwise (layer.doubleAll)
+function markDoubles(layer, notes, sections) {
+  if (!layer.with) return;
+  const everywhere = layer.doubleAll ?? !!CHOIRS[layer.instrument];
+  for (const note of notes) {
+    const section = sections.find((one) => note.t >= one.start - 1e-6 && note.t < one.end - 1e-6);
+    if (everywhere || (section?.energy ?? 0.75) >= DOUBLE_ENERGY) note.double = true;
+  }
+}
+
+// ---------- the sustain pedal ----------
+//
+// c418's piano (and every pianist's) plays with the sustain pedal down: a note isn't let go of when
+// the finger lifts, it rings on into the next ones until the pedal's lifted for the new chord, and the
+// notes ringing together are a lot of that soft, blurred, nostalgic sound. without it a piano part was
+// a run of separate notes, each stopped as it ended, which is a keyboard player's sound, not a
+// pianist's. so in a mood with pedal, a piano note (pedal on the instrument) rings until its chord
+// changes, a bar (or two seconds) at most. a note struck again on the same key still stops the last one (restrikes in
+// synth.js), as a damper does. notes added by hand are left as drawn. and a ringing note stops where
+// the tune (or its own line, or for the tune any part) moves a semitone away from it: listening kept every part off the tune's
+// semitones as written, and a pedal mustn't ring one back in
+function pedal(song, sections, parts) {
+  if (!songMood(song).pedal) return;
+  const bar = METERS[song.meter].beats;
+  const melody = song.layers.find((layer) => layer.role === 'melody');
+  const tune = melody ? parts[melody.id] || [] : [];
+  for (const layer of song.layers) {
+    if (!INSTRUMENTS[layer.instrument]?.pedal) continue;
+    // (the tune's own ringing notes stop for any part, since everyone else listened to them as written)
+    const against = layer === melody ? song.layers.flatMap((other) => (roleFamily(other.role) === 'tonal' ? parts[other.id] || [] : [])) : [...tune, ...(parts[layer.id] || [])];
+    for (const note of parts[layer.id] || []) {
+      if (note.added) continue;
+      const section = sections.find((one) => note.t >= one.start - 1e-6 && note.t < one.end - 1e-6);
+      const chord = section?.chords.find((one) => note.t >= one.t - 1e-6 && note.t < one.t + one.dur - 1e-6);
+      if (!chord) continue;
+      // (and two seconds at most: by then a piano note is 20 db down and blurs nothing, and a fast arp
+      // ringing a whole slow bar was dozens of voices at once)
+      let until = Math.min(chord.t + chord.dur, note.t + bar, note.t + (2 * song.tempo) / 60, section.end);
+      // (a note already sounding against a semitone neighbour as written, a short one that listening let
+      // pass, isn't held at all: held, it's a clash)
+      for (const other of against) {
+        if (other === note || !rubs(other.midi, note.midi) || other.t >= until || other.t + other.dur <= note.t + 1e-6) continue;
+        until = Math.min(until, other.t > note.t + note.dur - 1e-6 ? other.t : note.t + note.dur);
+      }
+      // (lifted: the length it was written, where the finger lifts, which the checks judge it by)
+      if (until > note.t + note.dur) Object.assign(note, { lifted: note.dur, dur: until - note.t });
+    }
+  }
+}
+
 // ---------- a fuller ambient song ----------
 //
 // ambient songs were thin: about half had no tune at all, and in a fifth to a third of their beats
@@ -4066,6 +4248,17 @@ function cleanSong(data) {
     // which of the instrument's recordings it plays, only kept if it's one of its others (more in
     // synth.js), so a song that plays the usual one saves as it always did
     if (INSTRUMENTS[layer.instrument].more?.[raw.recording]) layer.recording = raw.recording;
+    // the instruments doubling it (doubling): recorded tonal ones, three at most, only kept when there
+    // are some, so a song without saves as it always did
+    const doubles = (Array.isArray(raw.with) ? raw.with : []).filter((one) => INSTRUMENTS[one?.instrument]?.samples && roleFamily(layer.role) === 'tonal' && !['kit', 'texture'].includes(INSTRUMENTS[one.instrument].family)).slice(0, 3);
+    if (doubles.length) {
+      layer.with = doubles.map((one) => ({
+        instrument: one.instrument,
+        ...(Math.round(num(one.octave, -2, 2, 0)) ? { octave: Math.round(num(one.octave, -2, 2, 0)) } : {}),
+        ...(INSTRUMENTS[one.instrument].more?.[one.recording] ? { recording: one.recording } : {}),
+      }));
+      if (typeof raw.doubleAll === 'boolean') layer.doubleAll = raw.doubleAll;
+    }
     layer.pattern = PATTERNS[raw.role][raw.pattern] ? raw.pattern : Object.keys(PATTERNS[raw.role])[0];
     // a layer that plays only the notes added by hand (composeSong), so nothing's written for it. kept
     // out of songs that don't have one, so they save as they always did. a texture has no notes to draw
@@ -4230,6 +4423,20 @@ function composeSong(song) {
         while (note.midi < home - 9) note.midi += 12;
       }
     }
+    // a voice with a range (the soprano, the low voice) sings within what it was recorded singing: an
+    // octave further and it's a cartoon. the whole section's part moves by octaves into the voice first,
+    // the way a singer takes a tune in their own key, so its shape stays; only a stray note left
+    // outside is then sung an octave nearer
+    const range = INSTRUMENTS[layer.instrument]?.range;
+    if (range && made.length) {
+      const middle = made.reduce((sum, note) => sum + note.midi, 0) / made.length;
+      const shift = 12 * Math.round(((range[0] + range[1]) / 2 - middle) / 12);
+      for (const note of made) note.midi += shift;
+      for (const note of made) {
+        while (note.midi > range[1]) note.midi -= 12;
+        while (note.midi < range[0]) note.midi += 12;
+      }
+    }
     if (!leading) made = applyEdits(made, layer.edits[section.part], section);
     return made;
   };
@@ -4251,11 +4458,14 @@ function composeSong(song) {
   listen(song, sections, parts);
   // then each player adds what they'd add to the written notes: slides, bends, graces (ornament)
   ornament(song, sections, parts);
+  // the pianos hold the sustain pedal down, in the moods that want it
+  pedal(song, sections, parts);
   const notes = [];
   for (const layer of layers) {
     let out = parts[layer.id];
     if (layer.role === 'drone' || layer.role === 'texture') out = joinHeld(out);
     feel(out, song, layer, sections);
+    markDoubles(layer, out, sections);
     for (const note of out) note.layer = layer.id;
     notes.push(...out);
   }

@@ -1,0 +1,306 @@
+{
+ "source": "University of Iowa Electronic Music Studios, Musical Instrument Samples (a Raimundo 118 classical guitar)",
+ "link": "https://theremin.music.uiowa.edu/sound%20files/MIS/Piano_Other/guitar/",
+ "licence": "Free for any use, without restrictions",
+ "notes": [
+  {
+   "file": "bb2-3.mp3",
+   "midi": 46,
+   "vel": 0.3,
+   "tune": 34
+  },
+  {
+   "file": "bb3-3.mp3",
+   "midi": 58,
+   "vel": 0.3,
+   "tune": 16
+  },
+  {
+   "file": "c4-3.mp3",
+   "midi": 60,
+   "vel": 0.3,
+   "tune": 12
+  },
+  {
+   "file": "d4-3.mp3",
+   "midi": 62,
+   "vel": 0.3,
+   "tune": 8
+  },
+  {
+   "file": "e4-3.mp3",
+   "midi": 64,
+   "vel": 0.3,
+   "tune": 15
+  },
+  {
+   "file": "gb4-3.mp3",
+   "midi": 66,
+   "vel": 0.3,
+   "tune": 5
+  },
+  {
+   "file": "bb4-3.mp3",
+   "midi": 70,
+   "vel": 0.3
+  },
+  {
+   "file": "c5-3.mp3",
+   "midi": 72,
+   "vel": 0.3,
+   "tune": 8
+  },
+  {
+   "file": "d5-3.mp3",
+   "midi": 74,
+   "vel": 0.3,
+   "tune": 18
+  },
+  {
+   "file": "e5-3.mp3",
+   "midi": 76,
+   "vel": 0.3,
+   "tune": 13
+  },
+  {
+   "file": "gb5-3.mp3",
+   "midi": 78,
+   "vel": 0.3,
+   "tune": 18
+  },
+  {
+   "file": "ab5-3.mp3",
+   "midi": 80,
+   "vel": 0.3,
+   "tune": 7
+  },
+  {
+   "file": "bb5-3.mp3",
+   "midi": 82,
+   "vel": 0.3,
+   "tune": 18
+  },
+  {
+   "file": "gb2-6.mp3",
+   "midi": 42,
+   "vel": 0.6,
+   "tune": 33
+  },
+  {
+   "file": "ab2-6.mp3",
+   "midi": 44,
+   "vel": 0.6,
+   "tune": 33
+  },
+  {
+   "file": "d3-6.mp3",
+   "midi": 50,
+   "vel": 0.6,
+   "tune": 22
+  },
+  {
+   "file": "ab3-6.mp3",
+   "midi": 56,
+   "vel": 0.6,
+   "tune": 35
+  },
+  {
+   "file": "bb3-6.mp3",
+   "midi": 58,
+   "vel": 0.6,
+   "tune": 20
+  },
+  {
+   "file": "c4-6.mp3",
+   "midi": 60,
+   "vel": 0.6,
+   "tune": 16
+  },
+  {
+   "file": "d4-6.mp3",
+   "midi": 62,
+   "vel": 0.6,
+   "tune": 1
+  },
+  {
+   "file": "e4-6.mp3",
+   "midi": 64,
+   "vel": 0.6,
+   "tune": 11
+  },
+  {
+   "file": "gb4-6.mp3",
+   "midi": 66,
+   "vel": 0.6,
+   "tune": 12
+  },
+  {
+   "file": "ab4-6.mp3",
+   "midi": 68,
+   "vel": 0.6,
+   "tune": 19
+  },
+  {
+   "file": "bb4-6.mp3",
+   "midi": 70,
+   "vel": 0.6,
+   "tune": -15
+  },
+  {
+   "file": "c5-6.mp3",
+   "midi": 72,
+   "vel": 0.6,
+   "tune": 13
+  },
+  {
+   "file": "d5-6.mp3",
+   "midi": 74,
+   "vel": 0.6,
+   "tune": 22
+  },
+  {
+   "file": "e5-6.mp3",
+   "midi": 76,
+   "vel": 0.6,
+   "tune": 19
+  },
+  {
+   "file": "gb5-6.mp3",
+   "midi": 78,
+   "vel": 0.6,
+   "tune": 21
+  },
+  {
+   "file": "ab5-6.mp3",
+   "midi": 80,
+   "vel": 0.6,
+   "tune": 21
+  },
+  {
+   "file": "bb5-6.mp3",
+   "midi": 82,
+   "vel": 0.6,
+   "tune": 23
+  },
+  {
+   "file": "e2-9.mp3",
+   "midi": 40,
+   "vel": 0.9,
+   "tune": 34
+  },
+  {
+   "file": "gb2-9.mp3",
+   "midi": 42,
+   "vel": 0.9,
+   "tune": 32
+  },
+  {
+   "file": "ab2-9.mp3",
+   "midi": 44,
+   "vel": 0.9,
+   "tune": 27
+  },
+  {
+   "file": "bb2-9.mp3",
+   "midi": 46,
+   "vel": 0.9,
+   "tune": 29
+  },
+  {
+   "file": "e3-9.mp3",
+   "midi": 52,
+   "vel": 0.9,
+   "tune": 13
+  },
+  {
+   "file": "gb3-9.mp3",
+   "midi": 54,
+   "vel": 0.9,
+   "tune": 29
+  },
+  {
+   "file": "ab3-9.mp3",
+   "midi": 56,
+   "vel": 0.9,
+   "tune": 28
+  },
+  {
+   "file": "bb3-9.mp3",
+   "midi": 58,
+   "vel": 0.9,
+   "tune": 25
+  },
+  {
+   "file": "c4-9.mp3",
+   "midi": 60,
+   "vel": 0.9,
+   "tune": 14
+  },
+  {
+   "file": "d4-9.mp3",
+   "midi": 62,
+   "vel": 0.9,
+   "tune": 7
+  },
+  {
+   "file": "e4-9.mp3",
+   "midi": 64,
+   "vel": 0.9,
+   "tune": 27
+  },
+  {
+   "file": "gb4-9.mp3",
+   "midi": 66,
+   "vel": 0.9,
+   "tune": 13
+  },
+  {
+   "file": "ab4-9.mp3",
+   "midi": 68,
+   "vel": 0.9,
+   "tune": 10
+  },
+  {
+   "file": "bb4-9.mp3",
+   "midi": 70,
+   "vel": 0.9,
+   "tune": 24
+  },
+  {
+   "file": "c5-9.mp3",
+   "midi": 72,
+   "vel": 0.9,
+   "tune": 17
+  },
+  {
+   "file": "d5-9.mp3",
+   "midi": 74,
+   "vel": 0.9,
+   "tune": 19
+  },
+  {
+   "file": "e5-9.mp3",
+   "midi": 76,
+   "vel": 0.9,
+   "tune": 18
+  },
+  {
+   "file": "gb5-9.mp3",
+   "midi": 78,
+   "vel": 0.9,
+   "tune": 24
+  },
+  {
+   "file": "ab5-9.mp3",
+   "midi": 80,
+   "vel": 0.9,
+   "tune": 28
+  },
+  {
+   "file": "bb5-9.mp3",
+   "midi": 82,
+   "vel": 0.9,
+   "tune": 28
+  }
+ ]
+}

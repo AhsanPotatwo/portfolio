@@ -1,0 +1,327 @@
+{
+ "source": "Black and Green Guitars (Karoryfer Samples)",
+ "link": "https://github.com/sfzinstruments/karoryfer.black-and-green-guitars",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "e2-9.mp3",
+   "midi": 40,
+   "vel": 0.9
+  },
+  {
+   "file": "e2-9-2.mp3",
+   "midi": 40,
+   "vel": 0.9
+  },
+  {
+   "file": "e2-4.mp3",
+   "midi": 40,
+   "vel": 0.35
+  },
+  {
+   "file": "e2-4-2.mp3",
+   "midi": 40,
+   "vel": 0.35
+  },
+  {
+   "file": "g2-9.mp3",
+   "midi": 43,
+   "vel": 0.9
+  },
+  {
+   "file": "g2-9-2.mp3",
+   "midi": 43,
+   "vel": 0.9
+  },
+  {
+   "file": "g2-4.mp3",
+   "midi": 43,
+   "vel": 0.35
+  },
+  {
+   "file": "g2-4-2.mp3",
+   "midi": 43,
+   "vel": 0.35
+  },
+  {
+   "file": "bb2-9.mp3",
+   "midi": 46,
+   "vel": 0.9
+  },
+  {
+   "file": "bb2-9-2.mp3",
+   "midi": 46,
+   "vel": 0.9
+  },
+  {
+   "file": "bb2-4.mp3",
+   "midi": 46,
+   "vel": 0.35
+  },
+  {
+   "file": "bb2-4-2.mp3",
+   "midi": 46,
+   "vel": 0.35
+  },
+  {
+   "file": "db3-9.mp3",
+   "midi": 49,
+   "vel": 0.9
+  },
+  {
+   "file": "db3-9-2.mp3",
+   "midi": 49,
+   "vel": 0.9
+  },
+  {
+   "file": "db3-4.mp3",
+   "midi": 49,
+   "vel": 0.35
+  },
+  {
+   "file": "db3-4-2.mp3",
+   "midi": 49,
+   "vel": 0.35
+  },
+  {
+   "file": "e3-9.mp3",
+   "midi": 52,
+   "vel": 0.9
+  },
+  {
+   "file": "e3-9-2.mp3",
+   "midi": 52,
+   "vel": 0.9
+  },
+  {
+   "file": "e3-4.mp3",
+   "midi": 52,
+   "vel": 0.35
+  },
+  {
+   "file": "e3-4-2.mp3",
+   "midi": 52,
+   "vel": 0.35
+  },
+  {
+   "file": "g3-9.mp3",
+   "midi": 55,
+   "vel": 0.9
+  },
+  {
+   "file": "g3-9-2.mp3",
+   "midi": 55,
+   "vel": 0.9
+  },
+  {
+   "file": "g3-4.mp3",
+   "midi": 55,
+   "vel": 0.35
+  },
+  {
+   "file": "g3-4-2.mp3",
+   "midi": 55,
+   "vel": 0.35
+  },
+  {
+   "file": "bb3-9.mp3",
+   "midi": 58,
+   "vel": 0.9
+  },
+  {
+   "file": "bb3-9-2.mp3",
+   "midi": 58,
+   "vel": 0.9
+  },
+  {
+   "file": "bb3-4.mp3",
+   "midi": 58,
+   "vel": 0.35
+  },
+  {
+   "file": "bb3-4-2.mp3",
+   "midi": 58,
+   "vel": 0.35
+  },
+  {
+   "file": "db4-9.mp3",
+   "midi": 61,
+   "vel": 0.9
+  },
+  {
+   "file": "db4-9-2.mp3",
+   "midi": 61,
+   "vel": 0.9
+  },
+  {
+   "file": "db4-4.mp3",
+   "midi": 61,
+   "vel": 0.35
+  },
+  {
+   "file": "db4-4-2.mp3",
+   "midi": 61,
+   "vel": 0.35
+  },
+  {
+   "file": "e4-9.mp3",
+   "midi": 64,
+   "vel": 0.9
+  },
+  {
+   "file": "e4-9-2.mp3",
+   "midi": 64,
+   "vel": 0.9
+  },
+  {
+   "file": "e4-4.mp3",
+   "midi": 64,
+   "vel": 0.35
+  },
+  {
+   "file": "e4-4-2.mp3",
+   "midi": 64,
+   "vel": 0.35
+  },
+  {
+   "file": "g4-9.mp3",
+   "midi": 67,
+   "vel": 0.9
+  },
+  {
+   "file": "g4-9-2.mp3",
+   "midi": 67,
+   "vel": 0.9
+  },
+  {
+   "file": "g4-4.mp3",
+   "midi": 67,
+   "vel": 0.35
+  },
+  {
+   "file": "g4-4-2.mp3",
+   "midi": 67,
+   "vel": 0.35
+  },
+  {
+   "file": "bb4-9.mp3",
+   "midi": 70,
+   "vel": 0.9
+  },
+  {
+   "file": "bb4-9-2.mp3",
+   "midi": 70,
+   "vel": 0.9
+  },
+  {
+   "file": "bb4-4.mp3",
+   "midi": 70,
+   "vel": 0.35
+  },
+  {
+   "file": "bb4-4-2.mp3",
+   "midi": 70,
+   "vel": 0.35
+  },
+  {
+   "file": "db5-9.mp3",
+   "midi": 73,
+   "vel": 0.9
+  },
+  {
+   "file": "db5-9-2.mp3",
+   "midi": 73,
+   "vel": 0.9
+  },
+  {
+   "file": "db5-4.mp3",
+   "midi": 73,
+   "vel": 0.35
+  },
+  {
+   "file": "db5-4-2.mp3",
+   "midi": 73,
+   "vel": 0.35
+  },
+  {
+   "file": "e5-9.mp3",
+   "midi": 76,
+   "vel": 0.9
+  },
+  {
+   "file": "e5-9-2.mp3",
+   "midi": 76,
+   "vel": 0.9
+  },
+  {
+   "file": "e5-4.mp3",
+   "midi": 76,
+   "vel": 0.35
+  },
+  {
+   "file": "e5-4-2.mp3",
+   "midi": 76,
+   "vel": 0.35
+  },
+  {
+   "file": "g5-9.mp3",
+   "midi": 79,
+   "vel": 0.9
+  },
+  {
+   "file": "g5-9-2.mp3",
+   "midi": 79,
+   "vel": 0.9
+  },
+  {
+   "file": "g5-4.mp3",
+   "midi": 79,
+   "vel": 0.35
+  },
+  {
+   "file": "g5-4-2.mp3",
+   "midi": 79,
+   "vel": 0.35
+  },
+  {
+   "file": "bb5-9.mp3",
+   "midi": 82,
+   "vel": 0.9
+  },
+  {
+   "file": "bb5-9-2.mp3",
+   "midi": 82,
+   "vel": 0.9
+  },
+  {
+   "file": "bb5-4.mp3",
+   "midi": 82,
+   "vel": 0.35
+  },
+  {
+   "file": "bb5-4-2.mp3",
+   "midi": 82,
+   "vel": 0.35
+  },
+  {
+   "file": "d6-9.mp3",
+   "midi": 86,
+   "vel": 0.9
+  },
+  {
+   "file": "d6-9-2.mp3",
+   "midi": 86,
+   "vel": 0.9
+  },
+  {
+   "file": "d6-4.mp3",
+   "midi": 86,
+   "vel": 0.35
+  },
+  {
+   "file": "d6-4-2.mp3",
+   "midi": 86,
+   "vel": 0.35
+  }
+ ]
+}

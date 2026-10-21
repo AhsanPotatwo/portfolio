@@ -875,6 +875,46 @@
     return select;
   }
 
+  // the instruments doubling a layer (layer.with, doubling in music.js and synth.js): one key each,
+  // which takes it off, then a menu to add another (recorded instruments only, three at most) and
+  // where they play with it. a choir's doublers sing everywhere unless you say, anything else's only
+  // in the loud sections
+  const OCTAVE_WORDS = { '-2': ', two octaves down', '-1': ', an octave down', 1: ', an octave up', 2: ', two octaves up' };
+  function doublesEditor(layer) {
+    const box = make('div', 'mm-doubles');
+    for (const one of layer.with || []) {
+      const name = `${INSTRUMENTS[one.instrument].name}${OCTAVE_WORDS[one.octave || 0] || ''}`;
+      box.append(key(`${name} ×`, `Stop the ${INSTRUMENTS[one.instrument].name.toLowerCase()} doubling this part`, edit(() => {
+        layer.with = layer.with.filter((other) => other !== one);
+        if (!layer.with.length) {
+          delete layer.with;
+          delete layer.doubleAll;
+        }
+      }), 'mm-key-small'));
+    }
+    if ((layer.with || []).length < 3) {
+      const pick = make('select', 'mm-select');
+      pick.setAttribute('aria-label', 'Double it with');
+      pick.append(new Option('Add an instrument...', ''));
+      for (const [id, instrument] of Object.entries(INSTRUMENTS)) {
+        if (!instrument.samples || ['kit', 'texture'].includes(instrument.family)) continue;
+        pick.append(new Option(instrument.name, id));
+      }
+      const octave = make('select', 'mm-select');
+      octave.setAttribute('aria-label', 'In which octave');
+      for (const [value, words] of [[0, 'Same octave'], [1, 'Octave up'], [-1, 'Octave down']]) octave.append(new Option(words, value));
+      pick.addEventListener('change', () => {
+        if (!pick.value) return;
+        const added = { instrument: pick.value, ...(+octave.value ? { octave: +octave.value } : {}) };
+        edit(() => { layer.with = [...(layer.with || []), added]; })();
+        // the new doubler's recordings load as the song's do (songSamples), then it joins in
+        player.audition(song, { ...layer, instrument: added.instrument, with: undefined }, [ROLES[layer.role].center + (layer.octave + (added.octave || 0)) * 12], 1.5);
+      });
+      box.append(pick, octave);
+    }
+    return box;
+  }
+
   function bandPanel() {
     const list = make('ul', 'mm-layers');
     for (const layer of song.layers) {
@@ -986,6 +1026,13 @@
     const sound = section('Sound', field('Instrument', instrumentSelect(layer), 'Instrument: what plays this layer. Any instrument can play any part'));
     if (recordingsOf(INSTRUMENTS[layer.instrument]).length > 1) {
       sound.append(field('Recording', recordingSelect(layer), 'Recording: this instrument was recorded more than once, by different people on different instruments. Try each, they all have their own character'));
+    }
+    if (family === 'tonal') {
+      sound.append(field('Doubled by', doublesEditor(layer), 'Doubled by: other instruments playing this part with it, the way an orchestra puts a flute with the violins, or a choir sings the tune in sections. Only recorded instruments double'));
+      if (layer.with) {
+        const everywhere = layer.doubleAll ?? !!CHOIRS[layer.instrument];
+        sound.append(field('Doubled', choices([['loud', 'Loud parts', 'Doubled only in the loud sections, so the tune grows as the song does'], ['all', 'Everywhere', 'Doubled the whole way through']], () => (everywhere ? 'all' : 'loud'), (value) => edit(() => { layer.doubleAll = value === 'all'; })(), 'Where it is doubled'), 'Where the doubling plays'));
+      }
     }
     // what it plays: only your notes (layer.hand), or one of the role's patterns written for it. notes
     // you've added stay either way, on top of a pattern

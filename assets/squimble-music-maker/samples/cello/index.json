@@ -1,0 +1,299 @@
+{
+ "source": "Karoryfer x Bigcat cello (Karoryfer Samples and Bigcat Instruments)",
+ "link": "https://github.com/sfzinstruments/karoryfer-bigcat.cello",
+ "licence": "CC0 1.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "c2-9.mp3",
+   "midi": 36,
+   "vel": 0.9,
+   "tune": -4
+  },
+  {
+   "file": "c2-6.mp3",
+   "midi": 36,
+   "vel": 0.6,
+   "tune": -4
+  },
+  {
+   "file": "eb2-9.mp3",
+   "midi": 39,
+   "vel": 0.9,
+   "tune": -4
+  },
+  {
+   "file": "eb2-6.mp3",
+   "midi": 39,
+   "vel": 0.6,
+   "tune": 1
+  },
+  {
+   "file": "eb2-4.mp3",
+   "midi": 39,
+   "vel": 0.35,
+   "tune": -3
+  },
+  {
+   "file": "gb2-9.mp3",
+   "midi": 42,
+   "vel": 0.9,
+   "tune": 11
+  },
+  {
+   "file": "gb2-6.mp3",
+   "midi": 42,
+   "vel": 0.6,
+   "tune": 3
+  },
+  {
+   "file": "gb2-4.mp3",
+   "midi": 42,
+   "vel": 0.35,
+   "tune": 2
+  },
+  {
+   "file": "a2-9.mp3",
+   "midi": 45,
+   "vel": 0.9,
+   "tune": 8
+  },
+  {
+   "file": "a2-6.mp3",
+   "midi": 45,
+   "vel": 0.6,
+   "tune": -1
+  },
+  {
+   "file": "a2-4.mp3",
+   "midi": 45,
+   "vel": 0.35,
+   "tune": 13
+  },
+  {
+   "file": "c3-9.mp3",
+   "midi": 48,
+   "vel": 0.9,
+   "tune": 2
+  },
+  {
+   "file": "c3-6.mp3",
+   "midi": 48,
+   "vel": 0.6,
+   "tune": 2
+  },
+  {
+   "file": "eb3-9.mp3",
+   "midi": 51,
+   "vel": 0.9,
+   "tune": -4
+  },
+  {
+   "file": "eb3-6.mp3",
+   "midi": 51,
+   "vel": 0.6,
+   "tune": -2
+  },
+  {
+   "file": "eb3-4.mp3",
+   "midi": 51,
+   "vel": 0.35,
+   "tune": -1
+  },
+  {
+   "file": "gb3-9.mp3",
+   "midi": 54,
+   "vel": 0.9,
+   "tune": -3
+  },
+  {
+   "file": "gb3-6.mp3",
+   "midi": 54,
+   "vel": 0.6,
+   "tune": -4
+  },
+  {
+   "file": "gb3-4.mp3",
+   "midi": 54,
+   "vel": 0.35,
+   "tune": -1
+  },
+  {
+   "file": "a3-9.mp3",
+   "midi": 57,
+   "vel": 0.9,
+   "tune": -1
+  },
+  {
+   "file": "a3-6.mp3",
+   "midi": 57,
+   "vel": 0.6,
+   "tune": -1
+  },
+  {
+   "file": "a3-4.mp3",
+   "midi": 57,
+   "vel": 0.35,
+   "tune": -2
+  },
+  {
+   "file": "c4-9.mp3",
+   "midi": 60,
+   "vel": 0.9,
+   "tune": 1
+  },
+  {
+   "file": "c4-6.mp3",
+   "midi": 60,
+   "vel": 0.6,
+   "tune": 2
+  },
+  {
+   "file": "c4-4.mp3",
+   "midi": 60,
+   "vel": 0.35,
+   "tune": -1
+  },
+  {
+   "file": "eb4-9.mp3",
+   "midi": 63,
+   "vel": 0.9,
+   "tune": -7
+  },
+  {
+   "file": "eb4-6.mp3",
+   "midi": 63,
+   "vel": 0.6,
+   "tune": -1
+  },
+  {
+   "file": "eb4-4.mp3",
+   "midi": 63,
+   "vel": 0.35,
+   "tune": -5
+  },
+  {
+   "file": "gb4-9.mp3",
+   "midi": 66,
+   "vel": 0.9,
+   "tune": 1
+  },
+  {
+   "file": "gb4-6.mp3",
+   "midi": 66,
+   "vel": 0.6,
+   "tune": 1
+  },
+  {
+   "file": "gb4-4.mp3",
+   "midi": 66,
+   "vel": 0.35,
+   "tune": -4
+  },
+  {
+   "file": "a4-9.mp3",
+   "midi": 69,
+   "vel": 0.9,
+   "tune": 2
+  },
+  {
+   "file": "a4-6.mp3",
+   "midi": 69,
+   "vel": 0.6,
+   "tune": -1
+  },
+  {
+   "file": "a4-4.mp3",
+   "midi": 69,
+   "vel": 0.35,
+   "tune": 2
+  },
+  {
+   "file": "c5-9.mp3",
+   "midi": 72,
+   "vel": 0.9,
+   "tune": 6
+  },
+  {
+   "file": "c5-6.mp3",
+   "midi": 72,
+   "vel": 0.6
+  },
+  {
+   "file": "c5-4.mp3",
+   "midi": 72,
+   "vel": 0.35,
+   "tune": 5
+  },
+  {
+   "file": "eb5-9.mp3",
+   "midi": 75,
+   "vel": 0.9,
+   "tune": -5
+  },
+  {
+   "file": "eb5-6.mp3",
+   "midi": 75,
+   "vel": 0.6,
+   "tune": -1
+  },
+  {
+   "file": "eb5-4.mp3",
+   "midi": 75,
+   "vel": 0.35,
+   "tune": 3
+  },
+  {
+   "file": "gb5-9.mp3",
+   "midi": 78,
+   "vel": 0.9,
+   "tune": -4
+  },
+  {
+   "file": "gb5-6.mp3",
+   "midi": 78,
+   "vel": 0.6,
+   "tune": -4
+  },
+  {
+   "file": "gb5-4.mp3",
+   "midi": 78,
+   "vel": 0.35
+  },
+  {
+   "file": "a5-9.mp3",
+   "midi": 81,
+   "vel": 0.9,
+   "tune": 2
+  },
+  {
+   "file": "a5-6.mp3",
+   "midi": 81,
+   "vel": 0.6,
+   "tune": -3
+  },
+  {
+   "file": "a5-4.mp3",
+   "midi": 81,
+   "vel": 0.35
+  },
+  {
+   "file": "c6-9.mp3",
+   "midi": 84,
+   "vel": 0.9,
+   "tune": 4
+  },
+  {
+   "file": "c6-6.mp3",
+   "midi": 84,
+   "vel": 0.6,
+   "tune": -7
+  },
+  {
+   "file": "c6-4.mp3",
+   "midi": 84,
+   "vel": 0.35,
+   "tune": 9
+  }
+ ]
+}

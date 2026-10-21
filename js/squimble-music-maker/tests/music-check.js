@@ -184,7 +184,8 @@ for (const [mood, kind] of VARIANTS) {
         const allowed = { calls: comp.bpb / 2 + 0.05, fragments: comp.bpb * 2 + 0.05 }[melody.pattern] || 1;
         // one note at a time: a note left ringing ran over the next section's first
         const all = comp.notes.filter((note) => note.layer === 'melody' && !note.stop).sort((a, b) => a.gt - b.gt);
-        for (let i = 1; i < all.length; i++) assert(all[i - 1].gt + all[i - 1].dur <= all[i].gt + 1e-6, `${where}: melody notes overlap at beat ${all[i].gt}`);
+        // (a piano with the pedal down rings on into its next notes on purpose: lifted is where the finger lifts)
+        for (let i = 1; i < all.length; i++) assert(all[i - 1].gt + (all[i - 1].lifted ?? all[i - 1].dur) <= all[i].gt + 1e-6, `${where}: melody notes overlap at beat ${all[i].gt}`);
         for (const section of comp.sections) {
           const notes = comp.notes.filter((note) => note.layer === 'melody' && !note.stop && note.gt >= section.start && note.gt < section.end).sort((a, b) => a.gt - b.gt);
           // and one note at a time: two starting together was a stray blip clashing with the tune
@@ -246,7 +247,8 @@ for (const [mood, kind] of VARIANTS) {
         for (const layer of song.layers.filter((l) => ['keys', 'pad', 'arp', 'bells', 'counter'].includes(l.role))) {
           const floor = { keys: 62, arp: 60, counter: 62 }[layer.role] + layer.octave * 12 - 12;
           for (const note of comp.notes.filter((n) => n.layer === layer.id)) {
-            const lead = tune.find((m) => m.gt <= note.gt + 1e-6 && note.gt < m.gt + m.dur - 1e-6);
+            // (the tune as written: a pedalled piano tune rings on under what follows, lifted)
+            const lead = tune.find((m) => m.gt <= note.gt + 1e-6 && note.gt < m.gt + (m.lifted ?? m.dur) - 1e-6);
             if (lead && floor) assert(note.midi <= lead.midi || note.midi - 12 < floor, `${where}: the ${layer.role} climbs over the tune at beat ${note.gt}`);
             if (layer.role !== 'pad' && layer.role !== 'keys') lines++;
             const heard = tune.filter((m) => m.dur >= 0.5 && m.gt < note.gt + note.dur - 1e-6 && m.gt + m.dur > note.gt + 1e-6);
@@ -610,7 +612,72 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
   assert.strictEqual(cleanSong(JSON.parse(JSON.stringify(song))).layers.find((l) => l.id === keys.id).recording, 'pianet', 'a chosen recording saves');
   keys.recording = 'not-a-folder';
   assert(!('recording' in cleanSong(JSON.parse(JSON.stringify(song))).layers.find((l) => l.id === keys.id)), 'an unknown recording is dropped');
-  assert(generateSong('jazz', 'tune', 'rec-1').layers.every((l) => !('recording' in l)), 'a new song plays the usual recordings');
+}
+
+// the fifth round. a layer picks one of its instrument's recordings (pickRecording), so over many songs
+// the others get played, and two layers (or a layer and a doubler) never share one when they needn't.
+// a melody is sometimes doubled (pickDoubles), only ever by recorded instruments, a choir's always and
+// everywhere, anything else's only in the loud sections; doubling saves and loads. a mood with pedal
+// lets its piano notes ring to the chord's end, and a voice with a range sings inside it
+{
+  const { INSTRUMENTS: all, CHOIRS } = vm.runInContext('({ INSTRUMENTS, CHOIRS })', page);
+  const folder = (id, choice) => (all[id].more?.[choice] ? choice : all[id].samples);
+  let others = 0;
+  let doubled = 0;
+  let choirs = 0;
+  for (const mood of Object.keys(MOODS)) {
+    for (let n = 0; n < 4; n++) {
+      const song = generateSong(mood, n % 2 ? 'tune' : 'ambient', `fifth-${n}`);
+      const folders = song.layers.flatMap((l) => [folder(l.instrument, l.recording), ...(l.with || []).map((one) => folder(one.instrument, one.recording))]).filter(Boolean);
+      if (song.layers.some((l) => l.recording)) others++;
+      // (two recordings the same only when an instrument has no other: the bass guitars share theirs)
+      const counts = {};
+      for (const one of folders) counts[one] = (counts[one] || 0) + 1;
+      for (const layer of song.layers.filter((l) => all[l.instrument].more)) {
+        const mine = folder(layer.instrument, layer.recording);
+        const free = [all[layer.instrument].samples, ...Object.keys(all[layer.instrument].more)].some((one) => !counts[one]);
+        assert(counts[mine] === 1 || !free, `${mood} fifth-${n}: the ${layer.role} shares its recording (${mine}) when it needn't`);
+      }
+      const comp = composeSong(song);
+      for (const layer of song.layers.filter((l) => l.with)) {
+        doubled++;
+        assert(layer.role === 'melody' && layer.with.every((one) => all[one.instrument].samples), `${mood} fifth-${n}: only a melody is doubled, and only by recordings`);
+        const notes = comp.notes.filter((note) => note.layer === layer.id && !note.added);
+        if (CHOIRS[layer.instrument]) {
+          choirs++;
+          assert(layer.with.length >= 1 && notes.every((note) => note.double), `${mood} fifth-${n}: a choir sings the tune in sections, every note`);
+        } else {
+          const quiet = comp.sections.filter((section) => (section.energy ?? 0.75) < 0.7);
+          assert(!notes.some((note) => note.double && quiet.some((section) => note.t >= section.start && note.t < section.end)), `${mood} fifth-${n}: a doubled tune is doubled only where it's loud`);
+        }
+        same(cleanSong(JSON.parse(JSON.stringify(song))).layers.find((l) => l.id === layer.id).with, layer.with, `${mood} fifth-${n}: doubling saves`);
+      }
+      for (const layer of song.layers.filter((l) => all[l.instrument].range)) {
+        const [low, high] = all[layer.instrument].range;
+        for (const note of comp.notes.filter((one) => one.layer === layer.id)) assert(note.midi >= low && note.midi <= high, `${mood} fifth-${n}: the ${layer.instrument} sings inside what it recorded (${note.midi})`);
+      }
+    }
+  }
+  assert(others > 40, `layers play their instruments' other recordings too (${others} songs)`);
+  assert(doubled > 30 && choirs >= 1, `melodies are doubled now and then, choirs too (${doubled}, ${choirs} choirs)`);
+  // the pedal: in nostalgic songs, a piano note rings on to its chord's end (a bar at most), so most are
+  // longer than written, and nothing rings past its section
+  let pedalled = 0;
+  for (let n = 0; n < 8; n++) {
+    const song = generateSong('nostalgic', n % 2 ? 'tune' : 'ambient', `pedal-${n}`);
+    const comp = composeSong(song);
+    for (const layer of song.layers.filter((l) => all[l.instrument].pedal)) {
+      // (only the notes the pedal held: a note can be written to ring over)
+      for (const note of comp.notes.filter((one) => one.layer === layer.id && one.lifted !== undefined)) {
+        const section = comp.sections.find((one) => note.gt >= one.start - 1e-6 && note.gt < one.end - 1e-6);
+        assert(note.gt + note.dur <= section.end + 1e-6, `nostalgic pedal-${n}: a pedalled note stays in its section`);
+        if (note.dur >= 1) pedalled++;
+      }
+    }
+  }
+  assert(pedalled > 100, `nostalgic pianos ring on with the pedal (${pedalled} long notes)`);
+  const plain = generateSong('jazz', 'tune', 'pedal-jazz');
+  assert(!MOODS.jazz.pedal && composeSong(plain).notes.length, 'a mood without pedal plays its piano as written');
 }
 
 // recordings are preferred: over many songs, in moods whose palettes have both, most pitched parts are
@@ -754,7 +821,10 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
           assert(sung.some((s) => s.play.includes(taker.id) && !s.play.includes(melody.id)), `${where}: the tune is handed over at least once`);
           for (const section of sung.filter((s) => s.play.includes(taker.id) && s.play.includes(melody.id))) {
             // (ornaments are bends, so the written pitches are the same)
-            assert.strictEqual(shape(notesIn(comp, taker.id, section), taker.octave * 12), shape(notesIn(comp, melody.id, section)), `${where}: the ${taker.instrument} plays the melody's line in ${section.name}`);
+            // (a voice with a range sings it in its own octave: the same notes, moved by octaves)
+            const pcs = (notes) => notes.map((note) => `${note.gt.toFixed(3)}:${((note.midi % 12) + 12) % 12}`).sort().join();
+            if (INSTRUMENTS[taker.instrument].range) assert.strictEqual(pcs(notesIn(comp, taker.id, section)), pcs(notesIn(comp, melody.id, section)), `${where}: the ${taker.instrument} sings the melody's line in ${section.name}`);
+            else assert.strictEqual(shape(notesIn(comp, taker.id, section), taker.octave * 12), shape(notesIn(comp, melody.id, section)), `${where}: the ${taker.instrument} plays the melody's line in ${section.name}`);
           }
         }
         if (doubler && melody) {

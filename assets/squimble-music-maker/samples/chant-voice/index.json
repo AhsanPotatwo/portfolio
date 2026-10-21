@@ -1,0 +1,54 @@
+{
+ "source": "Hadzi-Fia's sung a vowel (Karoryfer Samples), via sfzinstruments' legato vocal",
+ "link": "https://github.com/sfzinstruments/legato_vocal_tutorial",
+ "licence": "CC0 1.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "d2.mp3",
+   "midi": 38,
+   "tune": -3
+  },
+  {
+   "file": "e2.mp3",
+   "midi": 40,
+   "tune": 8
+  },
+  {
+   "file": "gb2.mp3",
+   "midi": 42,
+   "tune": -5
+  },
+  {
+   "file": "ab2.mp3",
+   "midi": 44
+  },
+  {
+   "file": "bb2.mp3",
+   "midi": 46
+  },
+  {
+   "file": "c3.mp3",
+   "midi": 48,
+   "tune": 6
+  },
+  {
+   "file": "d3.mp3",
+   "midi": 50
+  },
+  {
+   "file": "gb3.mp3",
+   "midi": 54,
+   "tune": 20
+  },
+  {
+   "file": "ab3.mp3",
+   "midi": 56,
+   "tune": 8
+  },
+  {
+   "file": "bb3.mp3",
+   "midi": 58
+  }
+ ]
+}

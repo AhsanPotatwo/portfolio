@@ -1,0 +1,111 @@
+{
+ "source": "Sneakybass (Karoryfer Samples)",
+ "link": "https://github.com/sfzinstruments/karoryfer.sneakybass",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "c1.mp3",
+   "midi": 24
+  },
+  {
+   "file": "c1-2.mp3",
+   "midi": 24
+  },
+  {
+   "file": "eb1.mp3",
+   "midi": 27
+  },
+  {
+   "file": "eb1-2.mp3",
+   "midi": 27
+  },
+  {
+   "file": "gb1.mp3",
+   "midi": 30
+  },
+  {
+   "file": "gb1-2.mp3",
+   "midi": 30
+  },
+  {
+   "file": "a1.mp3",
+   "midi": 33
+  },
+  {
+   "file": "a1-2.mp3",
+   "midi": 33
+  },
+  {
+   "file": "c2.mp3",
+   "midi": 36
+  },
+  {
+   "file": "c2-2.mp3",
+   "midi": 36
+  },
+  {
+   "file": "eb2.mp3",
+   "midi": 39
+  },
+  {
+   "file": "eb2-2.mp3",
+   "midi": 39
+  },
+  {
+   "file": "gb2.mp3",
+   "midi": 42
+  },
+  {
+   "file": "gb2-2.mp3",
+   "midi": 42
+  },
+  {
+   "file": "a2.mp3",
+   "midi": 45
+  },
+  {
+   "file": "a2-2.mp3",
+   "midi": 45
+  },
+  {
+   "file": "c3.mp3",
+   "midi": 48
+  },
+  {
+   "file": "c3-2.mp3",
+   "midi": 48
+  },
+  {
+   "file": "eb3.mp3",
+   "midi": 51
+  },
+  {
+   "file": "eb3-2.mp3",
+   "midi": 51
+  },
+  {
+   "file": "gb3.mp3",
+   "midi": 54
+  },
+  {
+   "file": "gb3-2.mp3",
+   "midi": 54
+  },
+  {
+   "file": "a3.mp3",
+   "midi": 57
+  },
+  {
+   "file": "a3-2.mp3",
+   "midi": 57
+  },
+  {
+   "file": "c4.mp3",
+   "midi": 60
+  },
+  {
+   "file": "c4-2.mp3",
+   "midi": 60
+  }
+ ]
+}

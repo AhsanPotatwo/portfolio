@@ -1,0 +1,111 @@
+{
+ "source": "Ganjo, a guitar banjo (sfzinstruments)",
+ "link": "https://github.com/sfzinstruments/ganjo",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "eb2.mp3",
+   "midi": 39,
+   "tune": -33
+  },
+  {
+   "file": "f2.mp3",
+   "midi": 41,
+   "tune": -48
+  },
+  {
+   "file": "g2.mp3",
+   "midi": 43
+  },
+  {
+   "file": "a2.mp3",
+   "midi": 45,
+   "tune": -33
+  },
+  {
+   "file": "a2-2.mp3",
+   "midi": 45,
+   "tune": -51
+  },
+  {
+   "file": "b2.mp3",
+   "midi": 47,
+   "tune": -45
+  },
+  {
+   "file": "db3.mp3",
+   "midi": 49,
+   "tune": -43
+  },
+  {
+   "file": "db3-2.mp3",
+   "midi": 49,
+   "tune": -43
+  },
+  {
+   "file": "eb3.mp3",
+   "midi": 51,
+   "tune": -49
+  },
+  {
+   "file": "f3.mp3",
+   "midi": 53,
+   "tune": -42
+  },
+  {
+   "file": "g3.mp3",
+   "midi": 55,
+   "tune": -22
+  },
+  {
+   "file": "g3-2.mp3",
+   "midi": 55,
+   "tune": -57
+  },
+  {
+   "file": "a3.mp3",
+   "midi": 57,
+   "tune": -48
+  },
+  {
+   "file": "a3-2.mp3",
+   "midi": 57,
+   "tune": -44
+  },
+  {
+   "file": "b3.mp3",
+   "midi": 59,
+   "tune": 25
+  },
+  {
+   "file": "b3-2.mp3",
+   "midi": 59,
+   "tune": -47
+  },
+  {
+   "file": "db4.mp3",
+   "midi": 61,
+   "tune": -41
+  },
+  {
+   "file": "eb4.mp3",
+   "midi": 63,
+   "tune": -17
+  },
+  {
+   "file": "eb4-2.mp3",
+   "midi": 63,
+   "tune": -55
+  },
+  {
+   "file": "g4.mp3",
+   "midi": 67,
+   "tune": -12
+  },
+  {
+   "file": "b4.mp3",
+   "midi": 71,
+   "tune": -3
+  }
+ ]
+}

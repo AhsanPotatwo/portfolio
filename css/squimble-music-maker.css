@@ -313,6 +313,8 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-slider label{ font-size:14px; font-weight:600; color:#ddd5c6; }
 .mm-field + .mm-field, .mm-slider + .mm-field, .mm-field + .mm-slider{ margin-top:4px; }
 .mm-choices{ display:flex; flex-wrap:wrap; gap:8px 5px; padding:3px 0 5px; }
+.mm-doubles{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 5px; padding:3px 0 5px; }
+.mm-doubles .mm-select{ flex:1 1 9em; min-width:0; }
 .mm-slider output{
   font:500 12px var(--mm-mono);
   font-variant-numeric:tabular-nums;
