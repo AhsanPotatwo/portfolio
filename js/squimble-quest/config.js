@@ -14,6 +14,11 @@ const TILE = 32;
 
 // the most seconds one frame can count as. without this the player would jump forward after the tab
 // was in the background for a while
+//
+// multiplayer: this means a computer running under 20 fps plays in slow motion, and a hidden tab
+// doesn't run at all (the browser stops drawing it), so each computer's game runs at its own speed.
+// fine alone, but players would drift apart. the server would run the rules at a steady tick, and
+// this cap would only be for drawing
 const MAX_DT = 0.05;
 
 // ---------- camera ----------

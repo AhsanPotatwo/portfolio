@@ -217,6 +217,11 @@ function drawChargeLine(owner, weapon, seconds) {
 // it kills respawns without the knockback (Player.placeAt()). then the bits that are just for show:
 // the squash, the target's hitInvincible blink (PLAYER in config.js), a damage number, the sound, and a
 // bigger shake for a kill
+//
+// multiplayer: this does the rules (knockback, stagger, the hit stop, damage) and the show (particles,
+// numbers, shake, sounds) together. with a server, it would decide the hit and do the rules, and send
+// "x hit y" to everyone, whose computers would do only the show. so a split into two functions here,
+// with the show half reading target.camera like it already does to tell if the hit was on you
 function hitWith(attacker, target, weapon, angle) {
   target.burstParticles(target.hitParticles, angle); // particles.js
   // an enemy can take more or less of these (knockbackTaken and staggerTaken, enemies.js). the dummy
@@ -255,6 +260,8 @@ function weaponSound(who, name, weapon = null, rate = 1, minVolume = 0) {
   if (!name || (who.inPreview && !who.audible)) return null;
   const wobble = weapon?.soundWobble ?? 0;
   // worldMap is the game's (sketch.js)
+  // multiplayer: assumes whoever made the sound is on this computer's map. with rooms, characters would
+  // need to know their own map (who.map) for this
   return playSound(name, who.inPreview ? null : { x: who.x, y: who.y, map: worldMap }, null, { // sound.js
     rate: rate * (weapon?.soundPitch ?? 1) * randomBetween(1 - wobble, 1 + wobble),
     volume: weapon?.soundVolume ?? 1,
@@ -374,6 +381,9 @@ class MeleeSwing {
   // hits one target, knocking it towards angle (radians). the swinger stops for the hit too, which is
   // what makes it feel like it connected (longer for a kill, COMBAT.killHitStop), and bounces back off
   // the first thing it hits
+  //
+  // multiplayer: the swinger's freeze here is the hit stop you feel when you hit an enemy, see
+  // Character.freeze() (character.js) for why it's awkward with lag
   strike(target, angle) {
     this.hit.add(target);
     hitWith(this.owner, target, this.weapon, angle);

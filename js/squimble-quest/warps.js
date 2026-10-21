@@ -46,6 +46,10 @@ const Warps = {
   reachable: null,
   // enemies following you to another map that are on their way. they aren't on either map until they
   // come out (sendFollowers())
+  //
+  // multiplayer: this, sendFollowers() and comeOut() all use the game's enemies and worldMap
+  // (sketch.js), so they assume the one player is on one of the two maps. with rooms, a follower would
+  // leave its room's enemies and join the other room's when it comes out, whoever's there
   followers: [],
 
   // loadMap() (sketch.js) and Player.respawn() call this after placing the player. their tile counts
@@ -73,6 +77,9 @@ const Warps = {
   },
 
   // `player` goes through. if where it goes is broken they stay put and a message says why
+  //
+  // multiplayer: it takes a player, but loadMap() moves the game's own player and the whole world with
+  // them (sketch.js). the message is only for whoever used it
   use(warp, player) {
     if (!warp.to) return;
     const problem = warpProblem(warp);

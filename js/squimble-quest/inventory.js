@@ -170,6 +170,9 @@ const Hotbar = {
   },
 
   // every frame while playing: the number keys and the wheel
+  //
+  // multiplayer: picking a slot changes which weapon you attack with, so it's part of the game, not
+  // just the ui. it'd be sent along with the controls (sketch.js)
   update() {
     for (let i = 0; i < HOTBAR_SIZE; i++) {
       if (Input.wasPressed(`slot${i + 1}`)) this.inventory.select(i);
@@ -582,6 +585,11 @@ const THROW_HEIGHT = 24;
 // "inventory full" only shows once each time you walk up to it, not every frame. from is where the
 // throw started (under the player) and how high. flight goes from 0 to 1 while it's in the air
 // (THROW_TIME), and it can't be picked up until it's landed
+//
+// multiplayer: ready is one flag for everyone, so another player walking away readies it for the one
+// stood on it (who'd then pick their own drop straight back up). it'd need to be per player, or to
+// remember who dropped it. two players reaching one drop in the same frame is fine if one place
+// decides who got it (whoever's updated first)
 const Drops = {
   // takes the item out of the slot (of your inventory, or another like a chest's) and throws it roughly
   // where you're aiming. it tries a few random
@@ -728,6 +736,10 @@ const StorageObjects = {
   },
 
   // a sound or the lid opening would start here (and closing in InventoryScreen.show())
+  //
+  // multiplayer: two players can have the same chest open, and dragging moves items between the real
+  // inventories straight away (InventoryScreen.update()). with a server, each drag would be a "swap
+  // these two slots" asked for and checked there, since the other player might have just taken it
   open(obj) {
     InventoryScreen.show(true, obj);
   },

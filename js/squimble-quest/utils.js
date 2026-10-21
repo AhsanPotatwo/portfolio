@@ -30,6 +30,11 @@ function approach(current, target, speed, dt) {
 
 // a random number from min up to (but not including) max. all the game's randomness goes through
 // here, so in multiplayer it could be swapped for a seeded random that every player shares (README.md)
+//
+// multiplayer: most callers are only for show (particles, lightning in atmosphere.js, sound wobble,
+// damage numbers), and they'd use up a shared seeded random differently on each computer, since each
+// one draws different things on screen. so it'd split in two first: this for the rules (drop spots in
+// inventory.js, replan timing in pathfinding.js) and a plain Math.random() one for everything for show
 function randomBetween(min, max) {
   return min + Math.random() * (max - min);
 }

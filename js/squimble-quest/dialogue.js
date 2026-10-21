@@ -77,6 +77,9 @@ const Dialogue = {
     this.startLine();
     this.box.visible = true;
     // they turn to face you
+    // multiplayer: the npc is shared, so this turns it for everyone, and to whoever spoke to it last.
+    // the rest of talking is this computer's own. npc.canTalk (sketch.js) is the same: it's set on
+    // the shared npc for this computer's player, so it'd want to be worked out when drawing instead
     npc.aimAt({ x: player.x, y: player.y });
     // the box goes where the hotbar is (inventory.js)
     Hotbar.show(false);

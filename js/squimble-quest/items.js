@@ -119,6 +119,8 @@ function createItem(name) {
     console.warn(`There's no item called "${name}", add its file to ${DATA_FOLDER}${DATA_KINDS.item}`);
     return null;
   }
+  // multiplayer: an item is only told apart from another sword by being a different object. sending
+  // "pick up that one" or "swap these" between computers would need each to have an id
   return { type: ITEM_TYPES[name] };
 }
 

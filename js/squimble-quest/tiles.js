@@ -143,6 +143,10 @@ const TILE_TYPES = {};
 // adds a tile, or changes one, from its file's settings plus its name. its texture loads from its folder unless
 // you pass in `picture` (a p5 image, like one just chosen in the tile editor). gives back a promise
 // that finishes when the texture has loaded or failed, so the game can wait for it
+//
+// multiplayer: this calls p5 (color(), loadImage()), so a server without p5 couldn't load tiles. the
+// rules only need the settings, so the colour and pictures would go in a drawing-only step after.
+// prepareArt() (utils.js) does the same for the other catalogues
 function setTile(settings, picture = null) {
   // a tile that's being changed keeps its place, a new one goes on the end (after the last one, since
   // deleting tiles leaves gaps)

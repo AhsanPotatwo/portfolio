@@ -535,6 +535,14 @@ class Character {
   }
 
   // the hit stop: stands still for `seconds` after hitting or being hit (a weapon's hitStop, weapons.js)
+  //
+  // multiplayer: this is the pause you feel when you hit something. it only freezes the two characters
+  // involved, never the world, so it's fine for everyone else. the trouble is lag: whoever runs the
+  // rules decides the hit, so by the time your computer hears about it you've already walked on, and
+  // the freeze would snap you back. the usual fix is to guess the hit on your own computer straight
+  // away (and freeze there), then correct if the server disagrees. getting hit by an enemy is the same
+  // the other way round. either way, keep the freezes short (COMBAT.killHitStop, config.js, is the
+  // longest)
   freeze(seconds) {
     this.frozen = Math.max(this.frozen, seconds);
   }

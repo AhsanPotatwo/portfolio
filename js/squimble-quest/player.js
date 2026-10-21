@@ -58,6 +58,8 @@ class Player extends Character {
   respawn() {
     this.health = this.maxHealth;
     // worldMap is the game's (sketch.js)
+    // multiplayer: that's this computer's map, not necessarily the one this player died on. it'd want
+    // the player's own room's spawn (and respawning on another map moves just them, see loadMap())
     this.placeAt(worldMap.spawn.x, worldMap.spawn.y);
     Warps.arrived(this, worldMap);
   }

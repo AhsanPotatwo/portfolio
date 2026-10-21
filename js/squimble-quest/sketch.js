@@ -54,7 +54,14 @@
 //   access.js     accessibility settings that draw: sound captions (after sound.js)
 //   pausemenu.js  the pause menu: sound, screen, accessibility and assist settings, and keys (after formbox.js)
 //   debug.js      dev mode (` or Ctrl + D)
+//
+// every spot that'd get in the way of multiplayer is marked with a "multiplayer:" comment, so search
+// for that to find them all (README.md, "Multiplayer, maybe")
 
+// multiplayer: one player and one running map. these globals are this computer's player and the map
+// it's on, and lots of files read them directly (worldMap in weapons.js, player.js, warps.js...). with
+// players on different maps, each occupied map would be a "room" holding its own enemies, npcs, arrows
+// and players, and these would just point at this computer's player and its room
 let player;
 // not called "camera" because p5 already has camera() for 3D
 let gameCamera;
@@ -212,6 +219,10 @@ function toggleFullscreen() {
 // and the characters, which get stored on the map when you leave and put back when you return
 // (defeated ones stay gone, hurt ones stay hurt). going to the same map (a warp somewhere else on it)
 // keeps the same characters, so it's just a teleport
+//
+// multiplayer: this swaps the whole world (everyone's enemies, npcs, arrows, particles) over to the new
+// map, because it assumes the one player is the only one there. with more players a warp would move
+// just that player from one room to another, and the old map keeps running if anyone's still on it
 function loadMap(name, warpName = '') {
   if (Dialogue.active) Dialogue.close();
   // worldMap is undefined the very first time
@@ -254,6 +265,9 @@ function loadMap(name, warpName = '') {
 // makes every enemy and npc again from the spawn lists, at full health, including defeated ones. runs
 // the first time you visit a map, and when the editor opens, closes or changes them (so it's a quick
 // way to reset enemies)
+//
+// multiplayer: opening the editor resets the map's enemies and npcs for everyone on it, mid fight. fine
+// while the editor's dev only, but it'd want to be off (or only on an empty map) once others can join
 function spawnCharacters() {
   // the npc you're talking to is about to be replaced
   if (Dialogue.active) Dialogue.close();
@@ -298,6 +312,11 @@ function draw() {
   Debug.update(player, gameCamera, worldMap, aim, dt);
   // in the editor WASD moves the camera and everyone stands still. the pause menu stops everything
   // (pausemenu.js)
+  //
+  // multiplayer: both of these stop the whole world: enemies, arrows, warps, particles. one player
+  // can't pause everyone else's game, so the pause menu (and Auto pause when the window loses focus)
+  // would become just a menu over a world that keeps going, with your player standing still like the
+  // inventory does. the editor opening would need the same, or to only work alone
   const paused = !Editor.active && PauseMenu.active;
   if (Editor.active) {
     Editor.update(worldMap, gameCamera, aim, dt);
@@ -313,10 +332,18 @@ function draw() {
     }
     // what characters know about the world (top of character.js). characters is made once here
     // instead of once per character
+    //
+    // multiplayer: players is a list already, so everything that reads it works with more. the other
+    // players would go in here (and in characters), each updated with the controls their computer sent
     const world = { map: worldMap, players: [player], enemies, npcs, characters: [player, ...enemies, ...npcs], arrows };
 
     // the number keys and wheel pick the held item, Q drops it, and the open inventory drags items
     // around (inventory.js). not while talking though, since the dialogue box hides the hotbar
+    //
+    // multiplayer: these change the game straight from the keyboard and mouse (which item's held, what's
+    // in which slot, dropping things), round the side of the controls. picking a slot, swapping slots and
+    // dropping would each want to be an action sent like { move, aim, attack }, so whoever runs the rules
+    // can apply them for any player (Hotbar and InventoryScreen in inventory.js)
     if (!Dialogue.active) {
       Hotbar.update();
       if (Input.wasPressed('drop')) Drops.drop(worldMap, player, player.inventory.selected);
@@ -324,7 +351,10 @@ function draw() {
     if (InventoryScreen.active) InventoryScreen.update(worldMap, player);
 
     // mousePressed() ignores clicks on the ui. with the inventory open you stand still and the mouse
-    // moves items. while talking you can't attack, but walking away ends the conversation (dialogue.js)
+    // moves items. while talking you can't attack, but walking away ends the conversation (dialogue.js).
+    // both put a drawn bow down instead of shooting it, since not holding charge would let it go
+    // (Character.updateCharge())
+    if (InventoryScreen.active || Dialogue.active) player.stopDrawing();
     player.update(InventoryScreen.active ? STAND_STILL : {
       move: Input.direction(),
       aim,
@@ -335,6 +365,9 @@ function draw() {
       roll: !Dialogue.active && Input.wasPressed('roll'),
     }, dt, world);
     // picks up items that are close enough (inventory.js)
+    //
+    // multiplayer: only this computer's player picks things up, and it also moves drops through the air.
+    // it'd go once per player, with the throw moving once per frame on its own (Drops in inventory.js)
     Drops.update(worldMap, player, dt);
 
     for (const enemy of enemies) enemy.update(dt, world);
@@ -358,7 +391,12 @@ function draw() {
     // or if there isn't one plays an E sound block in reach (soundblocks.js), or if there's none of
     // those either opens or closes the inventory (I always does, and closes a chest too). nothing's in
     // reach while the inventory is open
-    const talkTo = InventoryScreen.active || Dialogue.active ? null : Dialogue.npcInRange(player, npcs, worldMap);
+    //
+    // multiplayer: E is only ever this computer's player's, and what it does (using a warp, opening a
+    // chest, playing a sound block) happens straight away here. those would be actions sent like the
+    // controls, and Warps.use() would move only that player (see loadMap()). talking stays local, since
+    // npcs only say the same lines
+    const talkTo =InventoryScreen.active || Dialogue.active ? null : Dialogue.npcInRange(player, npcs, worldMap);
     for (const npc of npcs) npc.canTalk = npc === talkTo;
     Warps.reachable = talkTo || InventoryScreen.active || Dialogue.active ? null : Warps.inReach(player, worldMap);
     StorageObjects.reachable = talkTo || Warps.reachable || InventoryScreen.active || Dialogue.active ? null : StorageObjects.inReach(player, worldMap);

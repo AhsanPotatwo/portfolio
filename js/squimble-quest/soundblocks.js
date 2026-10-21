@@ -230,6 +230,8 @@ const SoundBlocks = {
   // to look first). plays a step block if the player just stepped onto one.
   // careful: it only reads player.stepTile and never changes it. if Warps.checkStep() ever stops
   // being called (or gets called first) step blocks would play every frame or never
+  // multiplayer: only this computer's player sets them off, so you'd never hear another player
+  // stepping on one. it'd run for every player on the map, and play wherever the block is
   checkStep(player, map) {
     const [col, row] = feetTile(player, map); // warps.js
     const [lastCol, lastRow] = player.stepTile ?? [];

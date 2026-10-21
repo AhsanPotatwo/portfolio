@@ -14,6 +14,9 @@
 // only settings, not saving the game. Resume, Escape or the × carry on. while it's open nothing in the
 // game moves (sketch.js)
 //
+// multiplayer: one player can't stop the game for everyone, so pausing and Auto pause (away below)
+// would just open the menu while the world carries on (see where sketch.js works out paused)
+//
 // the settings on Sound, Screen and Assist are GAME_SETTINGS (config.js, which says where each is
 // used), laid out by SETTING_ROWS. so a new one, like another accessibility option, is a line in each
 // plus whatever reads it, and it gets a field, loading, saving and right click to reset for free
