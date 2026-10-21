@@ -23,7 +23,13 @@ This README and the code comments are the only notes. When you change something:
 
 **Running:** maps load with `fetch`, so serve it locally (see "Running the game locally" in the maps README), e.g. `py -m http.server 8765` from the portfolio root, then `http://localhost:8765/squimble-quest.html`. From `file://` it falls back to a blank stand-in map.
 
-**Pause:** **Esc** in the game opens the pause menu (`pausemenu.js`): volumes, screen shake, damage numbers and changing keys, kept in the browser (`sq-settings`). Not a save: game progress still resets on reload.
+**Pause:** **Esc** in the game opens the pause menu (`pausemenu.js`): volumes, then the Sound, Screen and Assist settings below, and changing keys, kept in the browser (`sq-settings`). Not a save: game progress still resets on reload.
+
+**Accessibility:** every setting is a `GAME_SETTINGS` line (config.js, saying where it's read) plus a `SETTING_ROWS` row (pausemenu.js: tab, label, tip, and tick, % slider or picker), which gives it a field, loading (type and range checked), saving and right click to reset. A new one is those two lines and the code that reads it.
+  - Seeing: screen shake, damage numbers, a colour blind filter (`colourblind.js`: a daltonizing SVG colour matrix as the canvas's CSS filter, so it sits over every shader and the UI), Flashes (dims lightning and the hurt glow, for photosensitivity) and Crosshair size.
+  - Hearing: Captions (`Captions`, access.js) get every sound through `Sound.onPlay` and show its words with an arrow to it, merging repeats (footsteps), skipping your own, npc speech (already on screen), previews and anything too far to hear. Words come from `SOUND_CAPTIONS`, else the sound's name. Mono (`Sound.mono`) centres every pan. `tests/access-check.js` checks the captions.
+  - Assist: Auto pause opens the menu when the window blurs or the tab hides (`PauseMenu.away`). Nothing here changes how the game plays (speed, damage), since that would fight the balance and multiplayer.
+  - Not built yet, in rough order: text size (dialogue, messages, captions), a hold-free roll and interact, off-screen enemy arrows, and shapes or patterns next to colours (rarity) for players who see no colour.
 
 **Dev mode:** **`** or **Ctrl + D**. Then **H** opens the dev menu (pick what the info panel and map show, click tools, see every key), **B** map editor, **M** next map, **T** teleport to mouse, **- = 0** zoom out/in/reset, **G** toggle tile grid, **P** toggle enemy AI routes, **[ ]** previous/next shader.
 

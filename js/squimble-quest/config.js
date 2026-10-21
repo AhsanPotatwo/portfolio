@@ -284,11 +284,30 @@ const KEYS = {
 // the pause menu's settings (pausemenu.js, which keeps them in localStorage). they're here so the files
 // that use them (camera.js, weapons.js) work without the menu, like in the tests. sound volumes are in
 // Sound.volumes (sound.js) for the same reason
+// the pause menu's settings (pausemenu.js, whose SETTING_ROWS puts each on a tab), kept in the browser.
+// a new one is a line here, a row there, and whatever reads it. fractions show as % on the menu
 const GAME_SETTINGS = {
+  // ---------- seeing ----------
   // the camera shakes on big hits (Camera.shake())
   screenShake: true,
   // numbers pop out of whatever gets hit (DamageNumbers in weapons.js)
   damageNumbers: true,
+  // a COLOUR_BLIND_TYPES name and how strong, 0 to 1 (colourblind.js)
+  colourBlind: 'off',
+  colourBlindStrength: 1,
+  // how bright lightning and the red hurt glow get, 0 to 1 (drawAtmosphereScreen() in atmosphere.js,
+  // drawHurtFlash() in hud.js). 0 is none, for players that flashing light bothers
+  flashes: 1,
+  // how big the crosshair is, 1 to 3 (drawCrosshair() in hud.js)
+  crosshairSize: 1,
+  // ---------- hearing ----------
+  // words in the corner for sounds, with an arrow to where they are (Captions in access.js)
+  captions: false,
+  // the same sound in both ears, for one sided hearing or one earphone (Sound.panAt() in sound.js)
+  monoSound: false,
+  // ---------- assist ----------
+  // pauses when you switch window or tab, so nothing gets you while you're away (pausemenu.js)
+  pauseWhenAway: true,
 };
 
 // browser mouse button numbers to names. I left middle click out because on windows it starts auto

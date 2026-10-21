@@ -50,7 +50,9 @@
 //   atmosphere.js a map's fog, colour, weather and background sound, and its editor box (after particleeditor.js)
 //   weaponeditor.js the weapon editor tabs, enemy weapons in the palette, and the combo preview (after editor.js)
 //   shaders.js    WebGL effects over the world (lighting, shadows, screen effects), dev mode only for now
-//   pausemenu.js  the pause menu: volumes, screen shake, damage numbers and keys (after formbox.js)
+//   colourblind.js colour blind filters over the whole canvas, picked in the pause menu
+//   access.js     accessibility settings that draw: sound captions (after sound.js)
+//   pausemenu.js  the pause menu: sound, screen, accessibility and assist settings, and keys (after formbox.js)
 //   debug.js      dev mode (` or Ctrl + D)
 
 let player;
@@ -302,8 +304,10 @@ function draw() {
   } else if (paused) {
     FormBox.update();
   } else {
-    // Escape closes the inventory, otherwise it pauses
-    if (Input.wasPressed('escape')) {
+    // switching window or tab pauses (pausemenu.js). otherwise Escape closes the inventory, or pauses
+    if (PauseMenu.away) {
+      PauseMenu.open();
+    } else if (Input.wasPressed('escape')) {
       if (InventoryScreen.active) InventoryScreen.show(false);
       else PauseMenu.open();
     }
@@ -456,6 +460,8 @@ function draw() {
   InventoryScreen.drawDragged();
   pop();
   drawMessage();
+  // words for sounds, if they're on (access.js)
+  Captions.draw();
   if (worldMap.name === FALLBACK_MAP) drawNoMapsMessage();
   if (Input.focused) {
     drawCrosshair(Input.mouse, Input.mouseHeld('left'), UI.hovered !== null);

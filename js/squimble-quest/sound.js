@@ -1290,6 +1290,11 @@ const Sound = {
   // (npcs talking), world (loops: sound blocks, tiles, atmospheres, things characters carry) and
   // effects (everything else: hits, steps, one-off blocks). the editors' previews only go by all
   volumes: { all: 1, voices: 1, world: 1, effects: 1 },
+  // true puts everything in the middle, so both ears hear the same (the pause menu's Mono)
+  mono: false,
+  // optional (sound, voice) => { ... }, told about every sound that plays (the game's captions,
+  // access.js)
+  onPlay: null,
 
   // the audio, or null if the browser doesn't have it. made on first use, since browsers don't let
   // pages make sound before you've clicked on them. if it gets made before a click anyway (a loop
@@ -1359,6 +1364,7 @@ const Sound = {
     // be worked out from its length
     source.onended = () => { voice.ended = true; };
     this.voices.push(voice);
+    if (this.onPlay) this.onPlay(sound, voice);
     return voice;
   },
 
@@ -1407,7 +1413,7 @@ const Sound = {
   // -1 (all left) to 1 (all right), from which side of the listener the sound is on. never fully to
   // one side, since that sounds odd in headphones
   panAt(at, range) {
-    if (!at || !this.listener) return 0;
+    if (!at || !this.listener || this.mono) return 0;
     return constrain((at.x - this.listener.x) / (range * TILE), -1, 1) * 0.7;
   },
 

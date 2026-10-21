@@ -35,7 +35,8 @@ function drawHurtFlash(player) {
   if (left <= 0) return;
   const glow = drawingContext.createRadialGradient(GAME_W / 2, GAME_H / 2, GAME_H * 0.3, GAME_W / 2, GAME_H / 2, GAME_W * 0.6);
   glow.addColorStop(0, 'rgba(200, 20, 20, 0)');
-  glow.addColorStop(1, `rgba(200, 20, 20, ${0.45 * left ** 3})`);
+  // dimmer or none with the pause menu's Flashes turned down
+  glow.addColorStop(1, `rgba(200, 20, 20, ${0.45 * left ** 3 * GAME_SETTINGS.flashes})`);
   drawingContext.fillStyle = glow;
   drawingContext.fillRect(0, 0, GAME_W, GAME_H);
 }
@@ -83,22 +84,25 @@ function drawCrosshair(mouse, held, overUI) {
 
   const x = Math.round(mouse.x);
   const y = Math.round(mouse.y);
+  // bigger with the pause menu's Crosshair turned up
+  const scale = GAME_SETTINGS.crosshairSize;
+  const size = CROSSHAIR.size * scale;
 
   if (overUI) {
     // a thin white ring on a thicker dark one, so it shows up on any button
     noFill();
     stroke(CROSSHAIR.colour);
-    strokeWeight(4);
-    circle(x, y, CROSSHAIR.size + 6);
+    strokeWeight(4 * scale);
+    circle(x, y, size + 6 * scale);
     stroke(CROSSHAIR.outline);
-    strokeWeight(2);
-    circle(x, y, CROSSHAIR.size + 6);
+    strokeWeight(2 * scale);
+    circle(x, y, size + 6 * scale);
     return;
   }
 
   // a dot with an outline
   stroke(CROSSHAIR.outline);
-  strokeWeight(1.5);
+  strokeWeight(1.5 * scale);
   fill(held ? CROSSHAIR.heldColour : CROSSHAIR.colour);
-  circle(x, y, CROSSHAIR.size);
+  circle(x, y, size);
 }

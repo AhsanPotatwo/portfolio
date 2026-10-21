@@ -2,7 +2,10 @@
 // box (formbox.js) with tabs:
 //   Sound     how loud all of it is, and voices (npcs talking), the world (loops: sound blocks,
 //             tiles, atmospheres) and effects (hits, steps...) on their own (Sound.volumes, sound.js)
-//   Screen    screen shake and damage numbers on or off (GAME_SETTINGS in config.js)
+//             then captions and mono sound
+//   Screen    screen shake, damage numbers, a colour blind filter (colourblind.js), how bright flashes
+//             get and the crosshair's size
+//   Assist    pausing when you switch window
 //   Moving, Actions, Hotbar
 //             a button for each key you can change (PAUSE_KEYS). click it, then press the new key
 //             (Escape keeps the old one). a key that something else uses too says so under it. Reset
@@ -10,8 +13,35 @@
 // changes happen straight away and are kept in this browser (localStorage), like dev mode's ticks. it's
 // only settings, not saving the game. Resume, Escape or the × carry on. while it's open nothing in the
 // game moves (sketch.js)
+//
+// the settings on Sound, Screen and Assist are GAME_SETTINGS (config.js, which says where each is
+// used), laid out by SETTING_ROWS. so a new one, like another accessibility option, is a line in each
+// plus whatever reads it, and it gets a field, loading, saving and right click to reset for free
 
 const PAUSE_STORAGE_KEY = 'sq-settings';
+
+// the GAME_SETTINGS on each tab, as [key, label, tip, field]. field is 'tick', a slider's
+// [min, max, step] in % (the setting is that / 100), or a picker's choices as { value: words }
+const SETTING_ROWS = {
+  Sound: [
+    ['captions', 'Captions', 'Words in the corner for sounds near you, with an arrow to where each one is', 'tick'],
+    ['monoSound', 'Mono', 'Both ears hear the same, for hearing on one side or with one earphone', 'tick'],
+  ],
+  Screen: [
+    ['screenShake', 'Shake', 'The screen shakes on big hits', 'tick'],
+    ['damageNumbers', 'Damage', 'Numbers pop out of whatever gets hit', 'tick'],
+    ['colourBlind', 'Colour blind', 'Protanopia: reds look dark. Deuteranopia: reds and greens mix up. Tritanopia: blues and yellows mix up', Object.fromEntries(Object.entries(COLOUR_BLIND_TYPES).map(([type, { label }]) => [type, label]))],
+    ['colourBlindStrength', 'Strength', 'How much the colour blind filter changes colours', [0, 100, 1]],
+    ['flashes', 'Flashes', "How bright lightning and the red glow when you're hurt get. 0% for none", [0, 100, 5]],
+    ['crosshairSize', 'Crosshair', 'How big the dot you aim with is', [100, 300, 25]],
+  ],
+  Assist: [
+    ['pauseWhenAway', 'Auto pause', 'Pauses when you switch to another window or tab', 'tick'],
+  ],
+};
+
+// the settings as they start, for right click on a slider and checking saved ones' types
+const DEFAULT_SETTINGS = { ...GAME_SETTINGS };
 
 // the actions whose first key can be changed, by tab, with what to call them. their other keys (the
 // arrows next to WASD, the numpad's numbers) stay as they are. E is both Talk and Inventory on purpose:
@@ -29,17 +59,38 @@ const PauseMenu = {
   active: false,
   // the action waiting for a key to be pressed, or null
   waitingFor: null,
+  // set when you switch window or tab with pauseWhenAway on, and sketch.js opens the menu
+  away: false,
 
   // puts the saved settings in place. runs at the start of setup(), before the keys are listened for
   load() {
+    // not in the editor, or with the menu already open (resuming would open it again)
+    const leave = () => { if (GAME_SETTINGS.pauseWhenAway && !this.active && !Editor.active) this.away = true; };
+    window.addEventListener('blur', leave);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) leave(); });
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem(PAUSE_STORAGE_KEY)); } catch (e) {}
-    if (!saved || typeof saved !== 'object') return;
+    if (saved && typeof saved === 'object') this.use(saved);
+    this.apply();
+  },
+
+  // the settings that something else has to be told about
+  apply() {
+    ColourBlind.apply();
+    Sound.mono = GAME_SETTINGS.monoSound;
+  },
+
+  // puts in the saved settings that make sense: the right type, sliders inside their range, pickers
+  // one of their choices
+  use(saved) {
     for (const key of Object.keys(Sound.volumes)) {
       if (typeof saved.volumes?.[key] === 'number') Sound.volumes[key] = constrain(saved.volumes[key], 0, 1);
     }
-    for (const key of Object.keys(GAME_SETTINGS)) {
-      if (typeof saved[key] === 'boolean') GAME_SETTINGS[key] = saved[key];
+    for (const [key, , , field] of Object.values(SETTING_ROWS).flat()) {
+      const value = saved[key];
+      if (typeof value !== typeof DEFAULT_SETTINGS[key]) continue;
+      if (Array.isArray(field)) GAME_SETTINGS[key] = constrain(value, field[0] / 100, field[1] / 100);
+      else if (field === 'tick' || field[value] !== undefined) GAME_SETTINGS[key] = value;
     }
     for (const [action, code] of Object.entries(saved.keys ?? {})) {
       if (DEFAULT_KEYS[action] && typeof code === 'string' && code !== 'Escape') KEYS[action][0] = code;
@@ -50,6 +101,13 @@ const PauseMenu = {
     // only keys that aren't their normal one
     const keys = Object.fromEntries(Object.keys(DEFAULT_KEYS).filter((action) => KEYS[action][0] !== DEFAULT_KEYS[action][0]).map((action) => [action, KEYS[action][0]]));
     try { localStorage.setItem(PAUSE_STORAGE_KEY, JSON.stringify({ volumes: Sound.volumes, ...GAME_SETTINGS, keys })); } catch (e) {}
+  },
+
+  // changes a GAME_SETTINGS one, straight away
+  change(key, value) {
+    GAME_SETTINGS[key] = value;
+    this.apply();
+    this.save();
   },
 
   // changes an action's first key, and listens for it straight away (input.js)
@@ -70,6 +128,7 @@ const PauseMenu = {
 
   open() {
     this.active = true;
+    this.away = false;
     this.waitingFor = null;
     const slider = (key) => new Slider({
       w: 180, labelWidth: 0, label: '', min: 0, max: 100, unit: '%', value: Math.round(Sound.volumes[key] * 100), normal: 100,
@@ -78,7 +137,24 @@ const PauseMenu = {
         this.save();
       },
     });
-    const ticks = Object.fromEntries(Object.keys(GAME_SETTINGS).map((key) => [key, new Checkbox({ w: 180, value: GAME_SETTINGS[key], label: 'on' })]));
+    // a field for each SETTING_ROWS row. ticks are checked in onUpdate (a Checkbox has no onChange)
+    const ticks = [];
+    const settingRows = (tab) => SETTING_ROWS[tab].map(([key, label, tip, kind]) => {
+      let field;
+      if (kind === 'tick') {
+        field = new Checkbox({ w: 180, value: GAME_SETTINGS[key], label: 'on' });
+        ticks.push([key, field]);
+      } else if (Array.isArray(kind)) {
+        const [min, max, step] = kind;
+        field = new Slider({
+          w: 180, labelWidth: 0, label: '', min, max, step, unit: '%', value: Math.round(GAME_SETTINGS[key] * 100), normal: Math.round(DEFAULT_SETTINGS[key] * 100),
+          onChange: (value) => this.change(key, value / 100),
+        });
+      } else {
+        field = new Picker({ w: 180, choices: Object.keys(kind), value: GAME_SETTINGS[key], label: (choice) => kind[choice], onChange: (choice) => this.change(key, choice) });
+      }
+      return { label, field, tip };
+    });
     // a button showing the key, which waits for a new one when clicked
     const keyButton = (action) => {
       const button = new Button({
@@ -135,27 +211,19 @@ const PauseMenu = {
             { label: 'Voices', field: slider('voices'), tip: 'People talking' },
             { label: 'World', field: slider('world'), tip: 'Sounds that keep going: places, machines, lava, wind' },
             { label: 'Effects', field: slider('effects'), tip: 'Hits, footsteps and everything else' },
+            ...settingRows('Sound'),
           ],
         },
-        {
-          label: 'Screen',
-          rows: [
-            { label: 'Shake', field: ticks.screenShake, tip: 'The screen shakes on big hits' },
-            { label: 'Damage', field: ticks.damageNumbers, tip: 'Numbers pop out of whatever gets hit' },
-          ],
-        },
+        { label: 'Screen', rows: settingRows('Screen') },
+        { label: 'Assist', rows: settingRows('Assist') },
         ...keyTabs,
       ],
       // the buttons show their key as it is now, and ticking a box takes effect straight away
       onUpdate: () => {
         for (const button of keyButtons) button.label = this.waitingFor === button.action ? 'press a key…' : keyName(KEYS[button.action][0]);
-        let changed = false;
-        for (const [key, tick] of Object.entries(ticks)) {
-          if (GAME_SETTINGS[key] === tick.value) continue;
-          GAME_SETTINGS[key] = tick.value;
-          changed = true;
+        for (const [key, tick] of ticks) {
+          if (GAME_SETTINGS[key] !== tick.value) this.change(key, tick.value);
         }
-        if (changed) this.save();
       },
       onConfirm: () => this.resume(),
       onCancel: () => this.resume(),

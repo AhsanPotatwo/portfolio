@@ -410,7 +410,8 @@ function drawAtmosphere(a, x, y, w, h, view, flash = 0, area = null) {
 function drawAtmosphereScreen(a, x, y, w, h, strength, flash) {
   const edges = (a.edgeAmount / 100) * strength;
   // a quick dip near the start makes a flash a double strike, like lightning
-  const bright = ATMOSPHERE_FLASH.bright * (flash > 0.8 && flash < 0.88 ? 0.3 : flash);
+  // dimmer or none with the pause menu's Flashes turned down (config.js)
+  const bright = ATMOSPHERE_FLASH.bright * (flash > 0.8 && flash < 0.88 ? 0.3 : flash) * GAME_SETTINGS.flashes;
   if (edges <= 0 && bright <= 0) return;
   const ctx = drawingContext;
   ctx.save();
