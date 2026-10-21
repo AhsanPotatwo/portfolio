@@ -150,6 +150,7 @@ const FormBox = {
   // onCancel runs unless it was confirmed
   close(confirmed = false) {
     ChoiceList.close();
+    ColourPicker.close();
     this.active = false;
     Input.typing = false;
     UI.removeGroup('form-box');
@@ -190,9 +191,10 @@ const FormBox = {
     }
     for (const key of Input.typed) {
       if (key === 'Enter') return this.confirm();
-      // Escape closes a drop down list first, then the box
-      if (key === 'Escape' && ChoiceList.current) {
+      // Escape closes a drop down list or the colour picker (textfield.js) first, then the box
+      if (key === 'Escape' && (ChoiceList.current || ColourPicker.current)) {
         ChoiceList.close();
+        ColourPicker.close();
         continue;
       }
       if (key === 'Escape') return this.close();
