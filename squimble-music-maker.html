@@ -75,6 +75,7 @@
           <button type="button" class="mm-key mm-key-line" id="mmUndo" data-tip="Undo: back to before the last change (Ctrl + Z)">Undo</button>
           <button type="button" class="mm-key mm-key-line" id="mmRedo" data-tip="Redo: forward again (Ctrl + Y)">Redo</button>
           <button type="button" class="mm-key mm-key-go" id="mmSave" data-tip="Save it to your library below, kept in this browser">Save</button>
+          <button type="button" class="mm-key mm-key-line" id="mmSaveCopy" hidden data-tip="Save a copy: a new song in your library, leaving the one you opened as it was">Save copy</button>
         </div>
       </div>
 
@@ -151,9 +152,21 @@
     <div class="mm-lower">
       <section class="mm-shelf" aria-labelledby="mmLibraryTitle">
         <h2 class="mm-shelf-title" id="mmLibraryTitle">Your library</h2>
-        <p class="mm-shelf-note">Songs you save are kept in this browser.</p>
+        <p class="mm-shelf-note">Songs you save are kept in this browser, notes and all, with every earlier save of each in its history.</p>
         <!-- filled in -->
         <ul class="mm-library" id="mmLibrary"></ul>
+        <div class="mm-bin" id="mmBin" hidden>
+          <button type="button" class="mm-library-forget" id="mmBinKey" aria-expanded="false" aria-controls="mmBinList" data-tip="Songs you've put in the bin. They stay until you delete them for good">Bin</button>
+          <ul class="mm-library" id="mmBinList" hidden></ul>
+        </div>
+        <div class="mm-backup">
+          <h3>Backups</h3>
+          <p class="mm-shelf-note" id="mmBackupNote"></p>
+          <div class="mm-export-keys">
+            <button type="button" class="mm-key mm-key-go" id="mmBackup" data-tip="Download every song in your library as one file, history, bin and all">Back up library</button>
+            <label class="mm-key mm-key-line mm-open" data-tip="Add a backup or song files to your library. Nothing in it is taken away or saved over">Restore<input type="file" id="mmRestore" accept=".json,application/json" multiple></label>
+          </div>
+        </div>
       </section>
 
       <section class="mm-shelf mm-export" aria-labelledby="mmExportTitle">
@@ -214,7 +227,7 @@
             <li><b>Or make your own.</b> New track is an empty song with a melody, a bass and drums that play nothing until you give them notes. Open a layer, then draw, or turn on Record, press Play and play it on your keyboard (A to L are the white keys, W E T Y U O P the black ones, Z and X change octave). Click turns on a metronome. Any layer's Plays can be My notes or a pattern it writes for you, so you can write the tune and let it fill in a bass line that follows your chords. Make it mine (next to Remix) takes over a written song, turning every part into notes you can change.</li>
             <li><b>Arrange tab</b> is the song from start to end: which parts play in each section, how long each is, and how loud. <b>Room</b> is the space it's played in: reverb, echo, tape wobble.</li>
             <li><b>Learn it.</b> The Learn tab shows any part the way you'd play it: notes falling onto a piano's keys, the tune in your right hand and the bass in your left, or a guitar's or a bass's neck with a dot for each finger over the tab, with a box for every chord shape the part uses. Sheet music works for anything. It follows the song as it plays, Speed slows it down to half while you get the hang of it, and while it's stopped, ← and → step through it one chord at a time.</li>
-            <li><b>Keep it.</b> Save puts it in your library in this browser, and you can download a WAV, a small song file, or copy a short link to send to someone.</li>
+            <li><b>Keep it.</b> Save puts it in your library in this browser, notes and all, so it always plays the way it did when you saved it. Open a saved song and Save changes saves over it, with the save before kept in its history, or Save copy keeps both. Forgotten songs wait in the bin. Back up library downloads every song as one file, which Restore opens in any browser. You can also download a WAV, a small song file, or copy a short link to send to someone.</li>
           </ol>
         </section>
 
@@ -322,6 +335,7 @@
   <script src="js/squimble-music-maker/kept/composer-1.js"></script>
   <script src="js/squimble-music-maker/music.js"></script>
   <script src="js/squimble-music-maker/learn.js"></script>
+  <script src="js/squimble-music-maker/library.js"></script>
   <script src="js/squimble-music-maker/maker.js"></script>
 </body>
 

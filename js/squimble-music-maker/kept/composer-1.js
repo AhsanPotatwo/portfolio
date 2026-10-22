@@ -5,7 +5,9 @@
 // changing the composer changed every saved song with it. a song keeps the composer it was made with
 // (song.composer, none is this one) and composeSong in music.js hands it here, so it plays as it did.
 // it's wrapped in a closure so none of its names clash with music.js. don't change anything in it:
-// the point is it never changes. it's only here for the page, music.js works without it
+// the point is it never changes. only the page and the checks load it, music.js works without it.
+// (generateSong and the lists are for tests/saved-songs-check.js, which makes songs the way this
+// composer made them)
 //
 // (when the composer next changes how old songs sound, music.js as it is then becomes composer 2, in
 // this folder the same way, and COMPOSER in music.js goes up one. see README.md, "Saved songs")
@@ -6301,5 +6303,5 @@ const COMPOSERS = {
   },
 };
 
-return { composeSong };
+return { composeSong, generateSong, MOODS, FLAVOURS, STYLES };
 })();

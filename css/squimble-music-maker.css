@@ -578,6 +578,21 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   cursor:pointer;
 }
 .mm-library-forget:hover{ color:var(--mm-warn); }
+.mm-library-forget:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:2px; border-radius:3px; }
+.mm-library-keys{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:2px 4px; }
+/* a song's earlier saves, under it */
+.mm-library .mm-library-history{ display:block; padding:0 4px 8px 26px; }
+.mm-library-history ol{ list-style:none; margin:0; padding:0 0 0 12px; border-left:2px solid var(--mm-line); }
+.mm-library-history li{ display:block; padding:4px 0; border:0; }
+.mm-library-history .mm-library-name span{ font-size:14px; }
+.mm-bin{ margin-top:10px; }
+.mm-bin .mm-library{ margin-top:6px; opacity:.85; }
+.mm-bin div.mm-library-name{ cursor:default; }
+.mm-backup{ margin-top:18px; padding-top:16px; border-top:2px solid var(--mm-line); }
+.mm-backup h3{ margin:0; font:700 16px var(--mm-ui); }
+.mm-backup .mm-shelf-note{ line-height:1.55; }
+.mm-backup .mm-shelf-note.is-warn{ color:var(--mm-text); }
+.mm-backup .mm-export-keys{ justify-content:flex-start; }
 
 .mm-export .mm-shelf-title{ margin-bottom:8px; }
 .mm-export-row{

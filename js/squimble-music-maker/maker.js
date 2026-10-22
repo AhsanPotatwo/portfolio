@@ -57,6 +57,12 @@
   const player = new MusicPlayer();
   let song;
   let comp;
+  // the library song being worked on: its id, and the song as it was saved, to tell if it's changed
+  // since (null for a song that isn't in the library). frozen is that save's notes, played instead of
+  // what the composer writes if the two ever come out different (library.js), until anything changes
+  let working = null;
+  let frozen = null;
+  let asSaved = false;
   let selected = null;
   let editPart = 'A';
   let tab = 'song';
@@ -91,6 +97,15 @@
   // after a change to the notes. panels: rebuild the open tab (not while a slider's being dragged)
   function changed(panels = true) {
     comp = composeSong(song);
+    // a save opened as it was saved: if the composer no longer writes the notes it saved, it plays those
+    // (they never should differ, kept/ is there so they don't, but if they do the song isn't lost)
+    asSaved = false;
+    if (frozen && JSON.stringify(song) !== frozen.json) frozen = null;
+    if (frozen && notesPrint(comp.notes) === frozen.print) frozen = null;
+    if (frozen) {
+      comp.notes = JSON.parse(frozen.text);
+      asSaved = true;
+    }
     if (startBeat >= comp.beats) startBeat = 0;
     load();
     scoreDirty = true;
@@ -167,25 +182,18 @@
 
   // ---------- browser storage ----------
 
+  // the song as it is, kept after every change so closing the tab loses nothing, and which save it's
+  // from. saved songs are in library.js
   const DRAFT_KEY = 'squimble-music-draft';
-  const LIBRARY_KEY = 'squimble-music-library';
-  const keepDraft = () => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(song)); } catch { /* storage off, that's fine */ } };
-  const readLibrary = () => {
+  const WORKING_KEY = 'squimble-music-working';
+  const BACKED_UP_KEY = 'squimble-music-backed-up';
+  const keepDraft = () => {
     try {
-      const data = JSON.parse(localStorage.getItem(LIBRARY_KEY) || '{}');
-      return data && typeof data === 'object' && !Array.isArray(data) ? data : {};
-    } catch {
-      return {};
-    }
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(song));
+      localStorage.setItem(WORKING_KEY, working ? working.id : '');
+    } catch { /* storage off, that's fine */ }
   };
-  const writeLibrary = (library) => {
-    try {
-      localStorage.setItem(LIBRARY_KEY, JSON.stringify(library));
-      return true;
-    } catch {
-      return false;
-    }
-  };
+  const library = new SongLibrary();
 
   // ---------- the tip line ----------
 
@@ -224,11 +232,16 @@
   nameField.addEventListener('input', () => {
     song.name = nameField.value.trim() || 'Untitled';
     keepDraft();
+    renderSaveState();
   });
+  // a new seed, a new song, a blank track, a file or a link is a new song, not the save that was open,
+  // so Save makes a new one rather than saving over it
+  const detach = () => { working = null; frozen = null; };
   const useSeed = () => {
     const seed = seedField.value.trim().slice(0, 60);
     if (!seed || seed === song.seed) return;
     remember();
+    detach();
     open(generateSong(song.mood, song.style, seed, song.mods, song.flavour));
     say(`"${seed}" in ${MOODS[song.mood].name.toLowerCase()}.`);
   };
@@ -237,22 +250,66 @@
 
   $('#mmNew').addEventListener('click', () => {
     remember();
+    detach();
     open(generateSong(song.mood, song.style, newSeed(randomRng()), song.mods, song.flavour));
   });
   $('#mmBlank').addEventListener('click', () => {
     remember();
+    detach();
     open(blankSong());
     setTab('layers');
     say('A blank track. Draw notes for the melody below, or turn on Record and play them in on your keyboard.');
   });
   $('#mmUndo').addEventListener('click', () => step(undo, redo));
   $('#mmRedo').addEventListener('click', () => step(redo, undo));
-  $('#mmSave').addEventListener('click', () => {
-    const library = readLibrary();
-    library[song.name] = { song, saved: Date.now() };
-    say(writeLibrary(library) ? `Saved "${song.name}" to your library.` : "Couldn't save: this browser isn't letting the page keep anything. Download the song file instead.");
+  // Save: over the save that's open (the one before goes in its history), or a new one. Save copy: always
+  // a new one, leaving the open save as it was. a name another song has gets a number
+  let saving = false;
+  async function saveSong(copy) {
+    if (saving) return;
+    if (needCompose) changed(false);
+    if (working && !copy && JSON.stringify(song) === working.json) {
+      say(`"${song.name}" is saved. Nothing's changed since.`);
+      return;
+    }
+    saving = true;
+    const entry = await library.save(song, comp.notes, copy ? null : working?.id);
+    saving = false;
+    if (!entry) {
+      say("Couldn't save: this browser isn't letting the page keep anything. Download a backup or the song file instead.");
+      return;
+    }
+    const renamed = entry.name !== song.name;
+    const over = !copy && working?.id === entry.id;
+    song.name = entry.name;
+    working = { id: entry.id, json: JSON.stringify(song) };
+    frozen = null;
+    keepDraft();
+    renderTop();
     renderLibrary();
-  });
+    if (copy) say(`Saved a copy as "${entry.name}". The song you opened is as it was.`);
+    else if (renamed) say(`Saved as "${entry.name}", since another song in your library has that name.`);
+    else say(over ? `Saved "${entry.name}". The save before is in its history.` : `Saved "${entry.name}" to your library.`);
+  }
+  $('#mmSave').addEventListener('click', () => saveSong(false));
+  $('#mmSaveCopy').addEventListener('click', () => saveSong(true));
+  // what Save will do, on the key: save a new song, save changes over the open one, or nothing to save
+  function renderSaveState() {
+    const entry = working && library.get(working.id);
+    if (working && library.ready && (!entry || entry.binned)) working = null;
+    const saveKey = $('#mmSave');
+    const name = entry?.name || song.name;
+    saveKey.textContent = !working ? 'Save' : JSON.stringify(song) === working.json ? 'Saved' : 'Save changes';
+    saveKey.dataset.tip = working
+      ? `Save over "${name}" in your library. The save before is kept in its history, so you can always go back`
+      : 'Save it to your library below, kept in this browser. Back the library up to keep a copy as a file';
+    $('#mmSaveCopy').hidden = !working;
+    // (the library says which song's open and whether it's changed: drawn again when that does)
+    if (saveKey.dataset.state !== `${working?.id}:${saveKey.textContent}`) {
+      saveKey.dataset.state = `${working?.id}:${saveKey.textContent}`;
+      if (library.ready) renderLibrary();
+    }
+  }
 
   // the moods, one row at a time (MOOD_GROUPS): a key per row shows its moods, so thirty odd moods
   // fit on a phone. the row opens on the song's mood whenever the song changes mood
@@ -467,6 +524,7 @@
         button.dataset.tip = own ? `${name}: how any parts written for you play, and the colours. Your own notes stay as they are` : `${name}: ${FLAVOURS[button.dataset.mood].about}`;
       }
     }
+    renderSaveState();
     const colour = MOODS[song.mood].colour;
     document.body.style.setProperty('--mm-mood', colour);
     document.body.style.setProperty('--mm-mood-ink', inkOn(colour));
@@ -2423,41 +2481,181 @@
     g.fillText(unit, tsX, staffTop + gap * 3);
   }
 
-  // ---------- library and export ----------
-
   const status = $('#mmStatus');
+
+  // ---------- library and backups ----------
+  //
+  // the shelf of saved songs (library.js keeps them): open one, its history (every save before the
+  // latest), the bin, and backups of the lot as one file
+
+  const when = (time) => new Date(time).toLocaleString(undefined, { day: 'numeric', month: 'short', year: new Date(time).getFullYear() === new Date().getFullYear() ? undefined : 'numeric', hour: '2-digit', minute: '2-digit' });
+  const ago = (time) => {
+    const days = Math.floor((Date.now() - time) / 86400000);
+    return days < 1 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`;
+  };
+  const about = (saved) => `${saved.own ? 'Your own track' : `${MOODS[saved.mood].name}${saved.flavour ? `: ${FLAVOURS[saved.mood].kinds[saved.flavour].name.toLowerCase()}` : ''}${saved.mods ? ` (${saved.mods.map(modName).join(', ')})` : ''} ${STYLES[saved.style].toLowerCase()}`} · ${NOTE_NAMES[saved.key]} ${SCALES[saved.scale].name.toLowerCase()} · ${saved.tempo} bpm`;
+  const smallKey = (text, tip, action) => {
+    const button = make('button', 'mm-library-forget', text);
+    button.type = 'button';
+    if (tip) button.dataset.tip = tip;
+    button.addEventListener('click', action);
+    return button;
+  };
+  // a save opened: the latest as it was saved, notes and all, or an older one from its history, which
+  // Save changes makes the latest again
+  async function openSaved(entry, version) {
+    const notes = version ? null : await library.notes(entry);
+    remember();
+    working = { id: entry.id, json: JSON.stringify(cleanSong(entry.song)) };
+    frozen = notes ? { json: working.json, print: entry.print, text: JSON.stringify(notes) } : null;
+    open(version ? version.song : entry.song);
+    if (version) say(`Opened "${entry.name}" as it was on ${when(version.saved)}. Save changes makes this the latest again, and the latest goes in its history.`);
+    else if (asSaved) {
+      say(`Opened "${entry.name}". It's playing the notes it was saved with, since the composer now writes it a little differently. Change anything and it's written again.`);
+      console.warn(`"${entry.name}" plays its saved notes: composeSong no longer writes them. A composer change needs keeping (README, Saved songs).`);
+    } else say(`Opened "${entry.name}".`);
+    renderLibrary();
+  }
+  let historyOf = null;
+  let binOpen = false;
   function renderLibrary() {
     const list = $('#mmLibrary');
-    const entries = Object.entries(readLibrary()).filter(([, entry]) => entry && entry.song).sort((a, b) => (b[1].saved || 0) - (a[1].saved || 0));
-    if (!entries.length) {
-      list.replaceChildren(make('li', 'mm-library-empty', 'Nothing saved yet. Press Save on a song you like.'));
-      return;
+    const entries = library.list();
+    if (!library.ready) list.replaceChildren(make('li', 'mm-library-empty', 'Opening your library...'));
+    else if (!entries.length) list.replaceChildren(make('li', 'mm-library-empty', 'Nothing saved yet. Press Save on a song you like.'));
+    else {
+      list.replaceChildren(...entries.flatMap((entry) => {
+        const saved = cleanSong(entry.song);
+        const isOpen = working?.id === entry.id;
+        const item = make('li', isOpen ? 'is-open' : '');
+        const chip = make('i', 'mm-library-chip');
+        chip.style.background = MOODS[saved.mood].colour;
+        const openKey = make('button', 'mm-library-name');
+        openKey.type = 'button';
+        const state = isOpen ? (JSON.stringify(song) === working.json ? ' · open' : ' · open, changed since saving') : '';
+        openKey.append(make('span', '', entry.name), make('small', '', `${about(saved)} · saved ${when(entry.saved)}${state}`));
+        openKey.addEventListener('click', () => openSaved(entry));
+        const keys = make('div', 'mm-library-keys');
+        if (entry.versions.length) {
+          keys.append(smallKey(historyOf === entry.id ? 'Hide history' : `History (${entry.versions.length})`, 'Every earlier save of this song. Open one to hear it or carry on from it', () => {
+            historyOf = historyOf === entry.id ? null : entry.id;
+            renderLibrary();
+          }));
+        }
+        keys.append(smallKey('Bin', 'Put it in the bin. It stays there until you delete it for good, so you can bring it back', async () => {
+          await library.bin(entry.id);
+          if (historyOf === entry.id) historyOf = null;
+          renderLibrary();
+          renderSaveState();
+          say(`"${entry.name}" is in the bin, under your library. Restore brings it back.`);
+        }));
+        item.append(chip, openKey, keys);
+        if (historyOf !== entry.id) return [item];
+        const older = make('li', 'mm-library-history');
+        const versions = make('ol');
+        for (const version of entry.versions) {
+          const row = make('li');
+          const back = make('button', 'mm-library-name');
+          back.type = 'button';
+          back.append(make('span', '', when(version.saved)), make('small', '', `${version.name !== entry.name ? `${version.name} · ` : ''}${about(cleanSong(version.song))}`));
+          back.addEventListener('click', () => openSaved(entry, version));
+          row.append(back);
+          versions.append(row);
+        }
+        older.append(versions);
+        return [item, older];
+      }));
     }
-    list.replaceChildren(...entries.map(([name, entry]) => {
-      const saved = cleanSong(entry.song);
-      const item = make('li', name === song.name ? 'is-open' : '');
+    // the bin: songs put there, until they're deleted for good
+    const binned = library.list(true);
+    const bin = $('#mmBin');
+    bin.hidden = !binned.length;
+    const binKey = $('#mmBinKey');
+    binKey.textContent = binOpen ? `Hide the bin (${binned.length})` : `Bin (${binned.length})`;
+    binKey.setAttribute('aria-expanded', binOpen);
+    const binList = $('#mmBinList');
+    binList.hidden = !binOpen;
+    binList.replaceChildren(...binned.map((entry) => {
+      const item = make('li');
       const chip = make('i', 'mm-library-chip');
-      chip.style.background = MOODS[saved.mood].colour;
-      const openKey = make('button', 'mm-library-name');
-      openKey.type = 'button';
-      openKey.append(make('span', '', name), make('small', '', `${saved.own ? 'Your own track' : `${MOODS[saved.mood].name}${saved.flavour ? `: ${FLAVOURS[saved.mood].kinds[saved.flavour].name.toLowerCase()}` : ''}${saved.mods ? ` (${saved.mods.map(modName).join(', ')})` : ''} ${STYLES[saved.style].toLowerCase()}`} ·${NOTE_NAMES[saved.key]} ${SCALES[saved.scale].name.toLowerCase()} · ${saved.tempo} bpm`));
-      openKey.addEventListener('click', () => {
-        remember();
-        open(saved);
-        say(`Opened "${name}".`);
-      });
-      const forget = make('button', 'mm-library-forget', 'Forget');
-      forget.type = 'button';
-      forget.addEventListener('click', () => {
-        const library = readLibrary();
-        delete library[name];
-        writeLibrary(library);
-        renderLibrary();
-      });
-      item.append(chip, openKey, forget);
+      chip.style.background = MOODS[cleanSong(entry.song).mood].colour;
+      const name = make('div', 'mm-library-name');
+      name.append(make('span', '', entry.name), make('small', '', `binned ${when(entry.binned)}`));
+      const keys = make('div', 'mm-library-keys');
+      keys.append(
+        smallKey('Restore', 'Back into your library, history and all', async () => {
+          await library.unbin(entry.id);
+          renderLibrary();
+          say(`"${library.get(entry.id).name}" is back in your library.`);
+        }),
+        smallKey('Delete', 'Gone for good, history and all, unless a backup has it', async () => {
+          if (!confirm(`Delete "${entry.name}" for good? It can't be brought back, unless it's in a backup.`)) return;
+          await library.destroy(entry.id);
+          renderLibrary();
+          say(`Deleted "${entry.name}".`);
+        }),
+      );
+      item.append(chip, name, keys);
       return item;
     }));
+    // when it was last backed up, and how many songs have been saved since
+    let backedUp = 0;
+    try { backedUp = +localStorage.getItem(BACKED_UP_KEY) || 0; } catch { /* never */ }
+    const all = [...library.songs.values()];
+    const since = all.filter((entry) => entry.saved > backedUp).length;
+    $('#mmBackupNote').textContent = !all.length ? 'A backup is every song in your library as one file, history and all, to keep somewhere safe or open in another browser.'
+      : !backedUp ? "Your songs are only in this browser. Clearing its data would lose them, and Safari clears a site's data when it hasn't been visited for a few weeks. Back up to keep them as a file."
+      : `Last backed up ${ago(backedUp)}.${since ? ` ${since} ${since === 1 ? 'song has' : 'songs have'} been saved since.` : ' Nothing new since.'}`;
+    $('#mmBackupNote').classList.toggle('is-warn', !!all.length && (!backedUp || since > 0));
   }
+  $('#mmBinKey').addEventListener('click', () => {
+    binOpen = !binOpen;
+    renderLibrary();
+  });
+  $('#mmBackup').addEventListener('click', () => {
+    const day = new Date().toISOString().slice(0, 10);
+    download(new Blob([JSON.stringify(library.backup())], { type: 'application/json' }), `squimble-songs-${day}.json`);
+    try { localStorage.setItem(BACKED_UP_KEY, String(Date.now())); } catch { /* the note just won't know */ }
+    renderLibrary();
+    say(`Downloaded squimble-songs-${day}.json: every song in your library, history and all. Restore opens it in any browser.`);
+  });
+  // a backup (or song files) into the library. it only ever adds: a song already here gets any saves the
+  // backup has that it doesn't
+  $('#mmRestore').addEventListener('change', async (event) => {
+    const files = [...event.target.files];
+    event.target.value = '';
+    const total = { added: 0, merged: 0, same: 0 };
+    const bad = [];
+    for (const file of files) {
+      try {
+        const counts = await library.restore(JSON.parse(await file.text()));
+        for (const key of Object.keys(total)) total[key] += counts[key];
+      } catch {
+        bad.push(file.name);
+      }
+    }
+    renderLibrary();
+    renderSaveState();
+    const parts = [total.added && `${total.added} new`, total.merged && `${total.merged} given earlier saves they were missing`, total.same && `${total.same} already here`].filter(Boolean);
+    say(`${parts.length ? `Restored: ${parts.join(', ')}.` : ''}${bad.length ? ` ${bad.join(', ')} ${bad.length === 1 ? "isn't" : "aren't"} a backup or a song file.` : ''}`.trim());
+  });
+  // notes for songs saved before the library kept them, from the composer each was made with, one at a
+  // time and never while one's playing (it takes a moment)
+  const noNotes = new Set();
+  function fillNotes() {
+    const entry = [...library.songs.values()].find((one) => !one.notes && !noNotes.has(one.id));
+    if (!entry) return;
+    if (player.playing) {
+      setTimeout(fillNotes, 4000);
+      return;
+    }
+    noNotes.add(entry.id);
+    let notes = null;
+    try { notes = composeSong(cleanSong(entry.song)).notes; } catch { /* it plays as it can */ }
+    (notes ? library.addNotes(entry.id, notes) : Promise.resolve()).then(() => setTimeout(fillNotes, 300));
+  }
+
+  // ---------- exports ----------
 
   function download(blob, name) {
     const link = make('a');
@@ -2496,6 +2694,7 @@
     try {
       const data = JSON.parse(await file.text());
       remember();
+      detach();
       open(data);
       status.textContent = `Opened ${file.name}.`;
     } catch {
@@ -2672,7 +2871,7 @@
     try {
       const [linked, tail] = readLink(location.hash);
       history.replaceState(null, '', location.pathname);
-      if (tail) unpack(tail).then((changes) => open(withChanges(linked, changes))).catch(() => say("Couldn't read the changes in that link, so this is the song its seed makes."));
+      if (tail) unpack(tail).then((changes) => { detach(); open(withChanges(linked, changes)); }).catch(() => say("Couldn't read the changes in that link, so this is the song its seed makes."));
       return linked;
     } catch {
       return null;
@@ -2683,10 +2882,13 @@
     const linked = fromAddress();
     if (!linked) return;
     remember();
+    detach();
     open(linked);
   });
+  let fromLink = false;
   function firstSong() {
     const linked = fromAddress();
+    fromLink = !!linked;
     if (linked) return linked;
     try {
       const draft = JSON.parse(localStorage.getItem(DRAFT_KEY));
@@ -2694,8 +2896,30 @@
     } catch { /* nothing kept */ }
     return generateSong('calm', 'ambient', newSeed(randomRng()));
   }
+  // (which save was open last time, read before opening the song keeps the draft and writes over it)
+  let wasOpen = '';
+  try { wasOpen = localStorage.getItem(WORKING_KEY) || ''; } catch { /* none */ }
   open(firstSong());
   renderLibrary();
+  // the library opens a moment later. the song left open last time, if it was a save, is still that
+  // save, and plays the notes it saved if it hasn't changed since
+  library.start().then(async () => {
+    const id = wasOpen;
+    const entry = !fromLink && id && library.get(id);
+    if (entry && !entry.binned) {
+      working = { id, json: JSON.stringify(cleanSong(entry.song)) };
+      const notes = JSON.stringify(song) === working.json && await library.notes(entry);
+      if (notes && JSON.stringify(song) === working.json) {
+        frozen = { json: working.json, print: entry.print, text: JSON.stringify(notes) };
+        changed();
+      }
+      keepDraft();
+    }
+    library.onchange = () => { renderLibrary(); renderSaveState(); };
+    renderLibrary();
+    renderTop();
+    setTimeout(fillNotes, 1500);
+  });
   showTip();
   requestAnimationFrame(frame);
 })();

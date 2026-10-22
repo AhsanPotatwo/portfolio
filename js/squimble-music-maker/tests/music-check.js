@@ -32,6 +32,9 @@ const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
 
+// first: songs already saved still play the notes they were saved with (saved-songs-check.js)
+require('./saved-songs-check.js');
+
 const page = {};
 vm.createContext(page);
 for (const file of ['synth.js', 'music.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), page);
