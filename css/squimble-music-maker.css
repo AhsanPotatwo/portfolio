@@ -467,6 +467,30 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-editor-scroll{ flex:1; min-width:0; overflow-x:auto; scrollbar-color:#a89b82 var(--mm-paper-2); }
 .mm-editor-grid{ display:block; cursor:crosshair; touch-action:none; }
 
+/* learn: the part on a piano, a guitar's neck and tab, or a staff, on the same paper as the score,
+   and the chord shapes it uses as a row of songbook boxes */
+.mm-learn-controls{ display:grid; gap:4px; }
+.mm-learn{ margin-top:12px; background:var(--mm-paper); border:4px solid var(--mm-edge); border-radius:4px; overflow:hidden; }
+.mm-learn canvas{ display:block; width:100%; height:260px; cursor:pointer; touch-action:manipulation; }
+.mm-shapes{ margin-top:18px; }
+.mm-shapes:empty{ display:none; }
+.mm-shape-row{ display:flex; flex-wrap:wrap; gap:8px; }
+.mm-shape{
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  padding:6px 6px 7px;
+  font:700 12px var(--mm-ui);
+  color:var(--mm-paper-ink);
+  background:var(--mm-paper);
+  border:0;
+  border-radius:4px;
+  box-shadow:0 3px 0 var(--mm-edge);
+  cursor:pointer;
+}
+.mm-shape:hover{ background:var(--mm-paper-2); }
+.mm-shape:active{ transform:translateY(2px); box-shadow:0 1px 0 var(--mm-edge); }
+.mm-shape:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:3px; }
+.mm-shape canvas{ display:block; }
+
 /* arrange */
 .mm-arrange-wrap{ overflow-x:auto; padding-bottom:6px; }
 .mm-arrange{ border-collapse:separate; border-spacing:6px; margin:-6px; }

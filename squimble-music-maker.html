@@ -13,6 +13,8 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Recursive:wght,CASL,MONO@300..1000,0..1,0..1&display=swap"
     rel="stylesheet">
+  <!-- only the clefs, rests and accidentals the learn tab's sheet music draws -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Music&text=%F0%9D%84%9E%F0%9D%84%A2%F0%9D%84%BB%F0%9D%84%BC%F0%9D%84%BD%F0%9D%84%BE%F0%9D%84%BF%E2%99%AF%E2%99%AD%E2%99%AE&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/squimble-music-maker.css">
 </head>
@@ -134,6 +136,7 @@
         <button type="button" class="mm-tab" role="tab" data-tab="layers" aria-selected="false" aria-controls="mmPanel">Band</button>
         <button type="button" class="mm-tab" role="tab" data-tab="arrange" aria-selected="false" aria-controls="mmPanel">Arrange</button>
         <button type="button" class="mm-tab" role="tab" data-tab="space" aria-selected="false" aria-controls="mmPanel">Room</button>
+        <button type="button" class="mm-tab" role="tab" data-tab="learn" aria-selected="false" aria-controls="mmPanel">Learn</button>
       </div>
       <!-- filled in: the open tab's settings -->
       <div class="mm-panel" id="mmPanel" role="tabpanel"></div>
@@ -208,6 +211,7 @@
             <li><b>Draw your own notes</b> in the note editor under each part. Click to add, drag to make longer, click a note to take it out. The other tools add slides, vibrato and swells, and Chords puts down the whole chord playing there in one click.</li>
             <li><b>Or make your own.</b> New track is an empty song with a melody, a bass and drums that play nothing until you give them notes. Open a layer, then draw, or turn on Record, press Play and play it on your keyboard (A to L are the white keys, W E T Y U O P the black ones, Z and X change octave). Click turns on a metronome. Any layer's Plays can be My notes or a pattern it writes for you, so you can write the tune and let it fill in a bass line that follows your chords. Make it mine (next to Remix) takes over a written song, turning every part into notes you can change.</li>
             <li><b>Arrange tab</b> is the song from start to end: which parts play in each section, how long each is, and how loud. <b>Room</b> is the space it's played in: reverb, echo, tape wobble.</li>
+            <li><b>Learn it.</b> The Learn tab shows any part the way you'd play it: notes falling onto a piano's keys, the tune in your right hand and the bass in your left, or a guitar's or a bass's neck with a dot for each finger over the tab, with a box for every chord shape the part uses. Sheet music works for anything. It follows the song as it plays, Speed slows it down to half while you get the hang of it, and while it's stopped, ← and → step through it one chord at a time.</li>
             <li><b>Keep it.</b> Save puts it in your library in this browser, and you can download a WAV, a small song file, or copy a short link to send to someone.</li>
           </ol>
         </section>
@@ -279,6 +283,11 @@
         </details>
 
         <details class="mm-shelf">
+          <summary><b>Reading it like a player</b></summary>
+          <p>The Learn tab turns a part back into what hands do. The same note on a guitar can be played in up to five places, so for each chord it finds every way of holding it (one note a string, within a hand's reach), scores each for how far it stretches, then picks the cheapest path through the whole part at once with the Viterbi algorithm, so your hand stays where it is unless it has to move. Fingers come from a simple rule players use, a fret a finger from the lowest, with a barre when there aren't enough fingers to go round, and a check script makes sure it fingers the usual open and barre chords the way chord books do. Sheet music needed the key signature worked out from the scale (D dorian has no sharps, because it's C major's notes), every note spelled in that key, and each note cut at the bar lines into values that add up. The check script asserts every bar of every part of every mood adds up exactly.</p>
+        </details>
+
+        <details class="mm-shelf">
           <summary><b>Playing in time</b></summary>
           <p>JavaScript timers aren't accurate enough for music, so the player runs a lookahead scheduler. Every 25 milliseconds it hands the browser every note due in the next 0.3 seconds, and the browser plays them on its own audio clock, which is sample accurate. That's also why you can change anything while it plays: notes already handed over finish as they were, and everything after uses the new version. WAV downloads render the same notes through an OfflineAudioContext, faster than real time.</p>
         </details>
@@ -309,6 +318,7 @@
   <!-- synth.js first: music.js picks instruments from its INSTRUMENTS -->
   <script src="js/squimble-music-maker/synth.js"></script>
   <script src="js/squimble-music-maker/music.js"></script>
+  <script src="js/squimble-music-maker/learn.js"></script>
   <script src="js/squimble-music-maker/maker.js"></script>
 </body>
 

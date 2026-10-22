@@ -79,7 +79,7 @@
   function changed(panels = true) {
     comp = composeSong(song);
     if (startBeat >= comp.beats) startBeat = 0;
-    player.load(song, comp);
+    load();
     scoreDirty = true;
     needCompose = false;
     if (panels) renderPanel();
@@ -393,7 +393,7 @@
   recordedKey.addEventListener('click', () => {
     RECORDINGS.on = !RECORDINGS.on;
     recordedKey.setAttribute('aria-pressed', RECORDINGS.on);
-    player.load(song, comp);
+    load();
     player.mix();
   });
   const clickKey = $('#mmClick');
@@ -452,12 +452,12 @@
 
   let lastReadout = '';
   function renderReadout() {
-    const secondsPerBeat = 60 / song.tempo;
+    const secondsPerBeat = 60 / (song.tempo * practice);
     const at = player.playing ? player.position() : startBeat;
     const section = comp.sections.find((one) => at >= one.start && at < one.end) || comp.sections[0];
     const bar = Math.floor(at / comp.bpb) + 1;
     const where = `${section.name} · bar ${bar}`;
-    const text = `${where} · ${clock(at * secondsPerBeat)} / ${clock(comp.beats * secondsPerBeat)} · ${NOTE_NAMES[song.key]} ${SCALES[song.scale].name.toLowerCase()} · ${song.tempo} bpm · ${song.meter}`;
+    const text = `${where} · ${clock(at * secondsPerBeat)} / ${clock(comp.beats * secondsPerBeat)} · ${NOTE_NAMES[song.key]} ${SCALES[song.scale].name.toLowerCase()} · ${song.tempo} bpm${practice < 1 ? ` (practising at ${percent(practice)})` : ''} · ${song.meter}`;
     if (text !== lastReadout) $('#mmReadout').textContent = lastReadout = text;
   }
 
@@ -646,6 +646,9 @@
     const layer = song.layers[Math.floor((py - HEAD - CHORDS) / LANE)];
     if (!layer) return;
     selected = layer.id;
+    scoreDirty = true;
+    // (while learning, it's the part to learn)
+    if (tab === 'learn') return renderPanel();
     if (px > layout.gutter) editPart = (comp.sections.find((one) => beat >= one.start && beat < one.end) || comp.sections[0]).part;
     setTab('layers');
     scoreDirty = true;
@@ -730,7 +733,8 @@
 
   function renderPanel() {
     editor = null;
-    const build = { song: songPanel, layers: bandPanel, arrange: arrangePanel, space: roomPanel }[tab];
+    learn = null;
+    const build = { song: songPanel, layers: bandPanel, arrange: arrangePanel, space: roomPanel, learn: learnPanel }[tab];
     panel.replaceChildren(...build());
   }
 
@@ -1602,6 +1606,785 @@
     return [columns];
   }
 
+  // ---------- the learn tab ----------
+  //
+  // one layer's part the way a player reads it, so it can be learned on a real instrument: notes
+  // falling onto a piano's keys, a guitar's or a bass's neck with the fingers on it over a scrolling
+  // tab, or sheet music. learn.js works out the hands (strings and frets, fingers, spelling) and this
+  // draws them, following the playhead, or the marker while it's stopped (← and → step through the
+  // part a chord at a time and play it). the practice speed slows the player down, not the song
+
+  // the instruments a guitarist or a bass player would play: a guitar opens on a guitar's neck, a bass
+  // guitar (or an upright, tuned the same) on a bass's, and anything else on the piano
+  const GUITARS = new Set(['nylon', 'steel-guitar', 'lead-guitar', 'fuzz-lead', 'swell-guitar', 'reverse-guitar']);
+  const BASS_GUITARS = new Set(['pluck-bass', 'pick-bass', 'fuzz-bass', 'slap-bass', 'fretless', 'chorus-bass', 'upright']);
+  const ownView = (layer) => (INSTRUMENTS[layer.instrument].family === 'guitar' || GUITARS.has(layer.instrument) ? 'guitar' : BASS_GUITARS.has(layer.instrument) ? 'bass' : 'piano');
+  const VIEWS = [
+    ['piano', 'Piano', "Piano: the notes fall onto the keys they're played on, like a piano cover video"],
+    ['guitar', 'Guitar', 'Guitar: where your fingers go on the neck, and the tab'],
+    ['bass', 'Bass guitar', "Bass guitar: where your fingers go on a four string bass's neck, and the tab"],
+    ['sheet', 'Sheet music', 'Sheet music: the part written out on a staff'],
+  ];
+  const LEARN_HINTS = {
+    piano: 'The notes fall onto the keys: press each key as its bar reaches it and hold it until the bar has gone. Green is your right hand and blue your left (give it a part under Left hand). While it\'s stopped, ← and → step through the part a chord at a time, and the keys show the one at the marker.',
+    guitar: "The neck shows where your fingers go for what's playing now, and faintly, the next shape. 1 is your first finger and 4 your little finger, a long bar is one finger laid flat across the strings (a barre), O is an open string and × one you don't play. The tab underneath scrolls past the line: each line is a string, the thinnest at the top, and the numbers are frets. ↓ and ↑ are strums down and up, PM is palm muted, / and \\ slide up and down, b bends up to the note and ~ is vibrato. While it's stopped, ← and → step through it.",
+    bass: "The neck shows where your fingers go for the note playing now (1 is your first finger and 4 your little finger, O an open string), and faintly the next one. The tab underneath scrolls past the line: each line is a string, the thinnest at the top, and the numbers are frets. While it's stopped, ← and → step through it.",
+    sheet: "The part as sheet music, scrolling past the line. It's kept simple: one line of notes, each rounded to the nearest sixteenth and held until the next one. Guitar and bass parts are written an octave above where they sound, the way their music always is. While it's stopped, ← and → step through it.",
+  };
+  // synthesia's colours, which most falling note videos keep: green for the right hand, blue the left
+  const HANDS = { right: ['#3f9a52', '#2c7a3d'], left: ['#3b74c4', '#28579b'] };
+  const BLACK_KEYS = new Set([1, 3, 6, 8, 10]);
+  // clefs, rests and accidentals, from noto music (loaded with just these characters)
+  const MUSIC_FONT = '"Noto Music", "Segoe UI Symbol", serif';
+  const GLYPHS = { treble: '\u{1D11E}', bass: '\u{1D122}', 4: '\u{1D13B}', 2: '\u{1D13C}', 1: '\u{1D13D}', 0.5: '\u{1D13E}', 0.25: '\u{1D13F}', '1': '♯', '-1': '♭', '0': '♮' };
+  document.fonts?.load(`20px ${MUSIC_FONT}`, GLYPHS.treble).then(() => { if (learn) learn.dirty = true; });
+  const views = {};
+  const leftHands = {};
+  let practice = 1;
+  let learn = null;
+  const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
+
+  // the player's copy of the song: at a practice speed, the same song slower. the song itself, its
+  // file and its downloads keep their tempo
+  const load = () => player.load(practice === 1 ? song : { ...song, tempo: song.tempo * practice }, comp);
+
+  function learnPanel() {
+    const tonal = song.layers.filter((layer) => roleFamily(layer.role) === 'tonal');
+    if (!tonal.length) return [make('p', 'mm-hint', "No part plays notes yet, so there's nothing to learn. Add one in the Band tab.")];
+    let layer = layerById(selected);
+    if (!layer || roleFamily(layer.role) !== 'tonal') {
+      layer = tonal.find((one) => one.role === 'melody') || tonal[0];
+      selected = layer.id;
+      scoreDirty = true;
+    }
+    // (two layers in the same role are told apart by number)
+    const partName = (one) => {
+      const same = tonal.filter((other) => other.role === one.role);
+      return `${ROLES[one.role].name}${same.length > 1 ? ` ${same.indexOf(one) + 1}` : ''}`;
+    };
+    const view = views[layer.id] || ownView(layer);
+    const pickPart = (id) => {
+      selected = id;
+      scoreDirty = true;
+      renderPanel();
+    };
+    const controls = make('div', 'mm-learn-controls');
+    controls.append(
+      field('Learn', choices(tonal.map((one) => [one.id, partName(one), `${partName(one)}, played on the ${INSTRUMENTS[one.instrument].name.toLowerCase()}`]), () => layer.id, pickPart, 'Part to learn'), 'Which part to learn. Clicking a layer in the score picks it too'),
+      field('Show it on', choices(VIEWS, () => view, (value) => { views[layer.id] = value; renderPanel(); }, 'Show it on'), 'What to show it on. It starts on the instrument the part is played on, or the piano'),
+    );
+    // a piano cover plays the tune in the right hand over the bass in the left, so that's where a tune
+    // starts. any other part can take the left hand instead, or none
+    let left = '';
+    if (view === 'piano') {
+      const others = tonal.filter((one) => one !== layer);
+      const usual = ['melody', 'counter', 'bells', 'arp'].includes(layer.role) ? others.find((one) => one.role === 'bass')?.id ?? '' : '';
+      left = leftHands[layer.id] ?? usual;
+      if (!others.some((one) => one.id === left)) left = '';
+      if (others.length) {
+        controls.append(field('Left hand', choices([['', 'Nothing', 'Just the one part, in your right hand'], ...others.map((one) => [one.id, partName(one), `The ${partName(one).toLowerCase()} in your left hand, in blue`])], () => left, (id) => { leftHands[layer.id] = id; renderPanel(); }, 'Left hand'), 'Left hand: a second part to play with your left hand'));
+      }
+    }
+    controls.append(field('Speed', choices([[1, 'Full', 'Full speed'], [0.75, '¾', 'Three quarters speed'], [0.5, 'Half', 'Half speed, for working out the hard bits']], () => practice, (value) => {
+      practice = value;
+      load();
+      renderPanel();
+    }, 'Practice speed'), "Practice speed: the song plays slower while you learn it. It doesn't change the song, its tempo or its downloads"));
+    const canvas = make('canvas');
+    canvas.setAttribute('role', 'img');
+    canvas.setAttribute('aria-label', `The ${partName(layer).toLowerCase()} shown as ${view === 'sheet' ? 'sheet music' : `it's played on a ${VIEWS.find(([id]) => id === view)[1].toLowerCase()}`}, following the playhead`);
+    const wrap = make('div', 'mm-learn');
+    wrap.append(canvas);
+    learn = { id: layer.id, view, left, canvas, comp: null, dirty: true };
+    // clicking it moves the marker to the nearest chord or note
+    canvas.addEventListener('pointerdown', (event) => {
+      if (!learn?.beatAt || !learn.data.events.length) return;
+      const rect = canvas.getBoundingClientRect();
+      const beat = learn.beatAt(event.clientX - rect.left, event.clientY - rect.top);
+      moveMarker(learn.data.events.reduce((best, one) => (Math.abs(one.t - beat) < Math.abs(best.t - beat) ? one : best)));
+    });
+    // (and under it, a word on anything that can't be shown exactly as it sounds)
+    learn.note = make('p', 'mm-hint');
+    const out = [controls, make('p', 'mm-hint', LEARN_HINTS[view]), wrap, learn.note];
+    if (view === 'guitar' || view === 'bass') {
+      learn.shapes = make('div', 'mm-shapes');
+      out.push(learn.shapes);
+    }
+    return out;
+  }
+
+  // the marker to a chord or note: the player jumps there, or if it's stopped, plays it
+  function moveMarker(event) {
+    startBeat = clamp(event.t, 0, comp.beats - 1e-6);
+    if (player.playing) player.play(startBeat);
+    else player.audition(song, learn.data.layer, event.notes.map((note) => note.midi), clamp(event.end - event.t, 0.5, 3));
+    learn.dirty = true;
+  }
+
+  // ← and →, while it's stopped: the chord or note after or before the marker
+  function stepMarker(by) {
+    const { events } = learn.data;
+    const next = by > 0 ? events.find((one) => one.t > startBeat + 1e-6) || events[0] : events.findLast((one) => one.t < startBeat - 1e-6) || events[events.length - 1];
+    if (next) moveMarker(next);
+  }
+
+  // what the view needs from the notes, worked out again whenever they change
+  function learnData() {
+    const layer = layerById(learn.id);
+    const partOf = (id) => playedTogether(comp.notes.filter((note) => note.layer === id), comp.step);
+    const events = partOf(learn.id);
+    // the closest two things are decides how wide a beat's drawn, so nothing's written over anything
+    let gap = comp.bpb;
+    for (let i = 1; i < events.length; i++) if (events[i].t - events[i - 1].t > 1e-6) gap = Math.min(gap, events[i].t - events[i - 1].t);
+    const data = { layer, events, gap };
+    if (learn.view === 'piano') data.left = learn.left ? partOf(learn.left) : [];
+    if (learn.view === 'guitar' || learn.view === 'bass') {
+      Object.assign(data, events.length ? frettings(events, learn.view) : { placed: [], tuning: STRINGS[learn.view].standard });
+      // the shape the hand's holding at each event: an upstroke only catches the top strings of the
+      // chord before it, and anything else that's part of it at the same frets is the same shape still
+      // held, not a new one to learn
+      data.held = [];
+      data.placed.forEach((one, i) => {
+        const before = i ? data.held[i - 1] : -1;
+        const chord = before >= 0 && data.placed[before];
+        data.held.push(chord && one.strings.every((s) => chord.strings.some((c) => c.string === s.string && c.fret === s.fret)) ? before : i);
+      });
+    }
+    if (learn.view === 'sheet') {
+      const quarters = song.meter === '6/8' ? 1.5 : 1;
+      const signature = keySignature(song.key, SCALES[song.scale].steps);
+      const pieces = sheetPieces(events, { beats: comp.beats, bpb: comp.bpb, step: comp.step, quarters }, signature, ownView(layer) === 'piano' ? 0 : 12);
+      const steps = pieces.flatMap((piece) => (piece.heads || []).map((head) => head.step)).sort((a, b) => a - b);
+      // treble clef when most of it's from middle c up
+      const treble = !steps.length || steps[steps.length >> 1] >= 28;
+      Object.assign(data, { quarters, signature, pieces, treble, shift: ownView(layer) !== 'piano', low: steps[0], high: steps[steps.length - 1] });
+      data.layout = sheetLayout(data);
+    }
+    learn.data = data;
+    learn.comp = comp;
+    learn.dirty = true;
+    if (learn.shapes) renderShapes(data);
+    const caveats = [];
+    if (data.folded) caveats.push(`Some notes are out of a ${learn.view === 'bass' ? "bass's" : "guitar's"} range, so they're shown an octave nearer.`);
+    const short = [...new Set(events.filter((_, i) => data.placed?.[i].left).map(eventName))];
+    if (short.length) caveats.push(`${short.slice(0, 3).join(', ')}${short.length > 3 ? ' and others' : ''} ${short.length > 1 ? 'are' : 'is'} played without a note the hand can't hold with the rest of the chord.`);
+    learn.note.textContent = caveats.join(' ');
+    learn.note.hidden = !caveats.length;
+  }
+
+  // every frame the tab's open: drawn again while it plays, or when the marker or the notes move
+  function drawLearn() {
+    if (!learn.canvas.isConnected) {
+      learn = null;
+      return;
+    }
+    if (learn.comp !== comp) {
+      if (!layerById(learn.id)) return renderPanel();
+      learnData();
+    }
+    const { canvas, data } = learn;
+    const width = canvas.clientWidth;
+    const at = player.playing ? player.position() : startBeat;
+    if (!width || (!player.playing && !learn.dirty && learn.width === width && learn.at === at)) return;
+    Object.assign(learn, { dirty: false, width, at });
+    const height = { piano: 300, guitar: 256, bass: 214, sheet: data.layout?.height }[learn.view];
+    const dpr = window.devicePixelRatio || 1;
+    if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) {
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      canvas.style.height = `${height}px`;
+    }
+    const g = canvas.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.fillStyle = PAPER;
+    g.fillRect(0, 0, width, height);
+    g.textBaseline = 'middle';
+    g.textAlign = 'left';
+    if (!data.events.length) {
+      learn.beatAt = null;
+      g.fillStyle = INK_SOFT;
+      g.font = '500 13px Recursive, sans-serif';
+      g.fillText("This part doesn't play any notes yet.", 16, 24);
+      return;
+    }
+    ({ piano: drawPiano, guitar: drawNeck, bass: drawNeck, sheet: drawSheet })[learn.view](g, width, height, at);
+  }
+
+  // the events in a stretch of beats, each with where it falls in it: when the song loops, the start
+  // comes round again after the end
+  function eventsIn(events, from, to) {
+    const found = [];
+    for (const shift of player.loop ? [-comp.beats, 0, comp.beats] : [0]) {
+      events.forEach((event, i) => {
+        const t = event.t + shift;
+        if (t <= to && event.end + shift >= from) found.push({ event, i, t });
+      });
+    }
+    return found;
+  }
+  // the chords from the song in a stretch of beats, the same way
+  function chordsIn(from, to) {
+    const found = [];
+    for (const shift of player.loop ? [-comp.beats, 0, comp.beats] : [0]) {
+      for (const sec of comp.sections) for (const chord of sec.chords) if (chord.t + shift >= from && chord.t + shift <= to) found.push({ chord, t: chord.t + shift });
+    }
+    return found;
+  }
+  // the event sounding at a beat (-1 for none) and the next to start after it
+  const soundingAt = (events, at) => events.findLastIndex((one) => one.t <= at + 1e-6 && one.end > at);
+  const nextAfter = (events, at) => {
+    const i = events.findIndex((one) => one.t > at + 1e-6);
+    return i < 0 && player.loop ? 0 : i;
+  };
+  // what to call an event: its chord's name if it's a chord (a root and fifth is a power chord, C5),
+  // otherwise its notes
+  function eventName(event) {
+    if (event.notes.length < 3) return event.notes.map((note) => noteName(note.midi)).join(' ');
+    const sec = comp.sections.find((one) => event.t >= one.start - 1e-6 && event.t < one.end - 1e-6);
+    const chord = sec?.chords.find((one) => event.t < one.t + one.dur - 1e-6);
+    if (!chord) return '';
+    const power = event.notes.every((note) => [0, 7].includes(mod12(note.midi - chord.root)));
+    return power ? `${NOTE_NAMES[chord.root]}5` : chord.name;
+  }
+  // the bar a beat's in, counting from 1, round again when it loops
+  const barNumber = (beat) => (Math.round(beat / comp.bpb) % Math.round(comp.beats / comp.bpb) + Math.round(comp.beats / comp.bpb)) % Math.round(comp.beats / comp.bpb) + 1;
+
+  // the piano: the keys along the bottom, covering the part's notes in whole octaves (two at least),
+  // and the notes falling onto them, as long as they're held, landing as they're played
+  function drawPiano(g, w, h, at) {
+    const { events, left } = learn.data;
+    const hands = [[left, HANDS.left], [events, HANDS.right]];
+    const pitches = [...events, ...left].flatMap((event) => event.notes.map((note) => note.midi));
+    let low = Math.min(...pitches);
+    let high = Math.max(...pitches);
+    low -= mod12(low);
+    high += 11 - mod12(high);
+    while (high - low < 23) {
+      if (low >= 33) low -= 12;
+      else high += 12;
+    }
+    low = Math.max(21, low);
+    high = Math.min(108, high);
+    const whites = [];
+    for (let midi = low; midi <= high; midi++) if (!BLACK_KEYS.has(midi % 12)) whites.push(midi);
+    const ww = w / whites.length;
+    const keyX = {};
+    whites.forEach((midi, i) => { keyX[midi] = i * ww; });
+    for (let midi = low; midi <= high; midi++) if (BLACK_KEYS.has(midi % 12)) keyX[midi] = keyX[midi + 1] - ww * 0.3;
+    const keyW = (midi) => (BLACK_KEYS.has(midi % 12) ? ww * 0.6 : ww);
+    const keysH = clamp(ww * 4.6, 54, 100);
+    const top = h - keysH;
+    // about two and a half seconds of falling, two bars at least
+    const ahead = Math.max(comp.bpb * 2, Math.round((song.tempo / 60) * 2.5));
+    const ppb = top / ahead;
+    const y = (t) => top - (t - at) * ppb;
+    learn.beatAt = (_, py) => at + (top - Math.min(py, top)) / ppb;
+    g.fillStyle = 'rgba(44, 39, 33, 0.06)';
+    for (const midi of whites) if (midi % 12 === 0) g.fillRect(Math.round(keyX[midi]), 0, 1, top);
+    g.font = '500 10px Recursive, sans-serif';
+    g.textBaseline = 'bottom';
+    for (let bar = Math.ceil(at / comp.bpb); bar * comp.bpb <= at + ahead; bar++) {
+      const by = Math.round(y(bar * comp.bpb));
+      g.fillStyle = 'rgba(44, 39, 33, 0.18)';
+      g.fillRect(0, by, w, 1);
+      g.fillStyle = INK_SOFT;
+      g.fillText(`${barNumber(bar * comp.bpb)}`, 4, by - 2);
+    }
+    const lit = {};
+    g.save();
+    g.beginPath();
+    g.rect(0, 0, w, top);
+    g.clip();
+    g.textAlign = 'center';
+    g.font = '700 10px Recursive, sans-serif';
+    for (const [list, [colour, dark]] of hands) {
+      for (const { event, t } of eventsIn(list, at - comp.bpb, at + ahead)) {
+        for (const note of event.notes) {
+          if (note.midi < low || note.midi > high) continue;
+          const black = BLACK_KEYS.has(note.midi % 12);
+          if (t <= at + 1e-6 && at < t + note.dur) lit[note.midi] = black ? dark : colour;
+          const x = keyX[note.midi] + 1;
+          const nw = keyW(note.midi) - 2;
+          const y1 = y(t);
+          const y0 = y(t + note.dur);
+          if (y1 < 0) continue;
+          g.fillStyle = black ? dark : colour;
+          g.beginPath();
+          g.roundRect(x, y0, nw, Math.max(4, y1 - y0 - 1), 3);
+          g.fill();
+          if (nw >= 13 && y1 - y0 >= 16) {
+            g.fillStyle = '#fbf6ec';
+            g.fillText(NOTE_NAMES[note.midi % 12], x + nw / 2, y1 - 3);
+          }
+        }
+      }
+    }
+    g.restore();
+    for (const midi of whites) {
+      g.fillStyle = lit[midi] || '#fbf7ee';
+      g.fillRect(keyX[midi], top, ww, keysH);
+      g.fillStyle = RULE;
+      g.fillRect(Math.round(keyX[midi]), top, 1, keysH);
+      if (midi % 12 === 0 && ww >= 13) {
+        g.fillStyle = lit[midi] ? '#fbf6ec' : midi === 60 ? INK : INK_SOFT;
+        g.font = `${midi === 60 ? 700 : 500} 10px Recursive, sans-serif`;
+        g.fillText(noteName(midi), keyX[midi] + ww / 2, h - 3);
+      }
+    }
+    for (let midi = low; midi <= high; midi++) {
+      if (!BLACK_KEYS.has(midi % 12)) continue;
+      g.fillStyle = lit[midi] || INK;
+      g.fillRect(keyX[midi], top, ww * 0.6, keysH * 0.62);
+    }
+    g.fillStyle = INK;
+    g.fillRect(0, top - 2, w, 3);
+  }
+
+  // a guitar's or a bass's neck along the top, with the fingers for what's sounding now (and the
+  // next shape faintly), and the tab scrolling under it
+  function drawNeck(g, w, _, at) {
+    const { events, placed, tuning, dropped, layer } = learn.data;
+    const strings = tuning.length;
+    const colour = ROLES[layer.role].colour;
+    const now = soundingAt(events, at);
+    const next = nextAfter(events, at);
+    const gap = strings === 6 ? 15 : 18;
+    const boardTop = 34;
+    const boardBottom = boardTop + gap * (strings - 1);
+    const x0 = 44;
+    const right = w - 12;
+    const highest = Math.max(0, ...placed.flatMap((one) => one.strings.map((s) => s.fret)));
+    const frets = Math.min(STRINGS[learn.view].frets, Math.max(12, highest + 1));
+    // frets narrow up the neck, as on a real one, but less, so the high ones still have room
+    const fx = (fret) => x0 + ((right - x0) * (1 - 2 ** (-fret / 24))) / (1 - 2 ** (-frets / 24));
+    const sy = (string) => boardTop + (strings - 1 - string) * gap;
+    const mid = (fret) => (fx(fret - 1) + fx(fret)) / 2;
+    g.fillStyle = '#e6d6b6';
+    g.fillRect(x0, boardTop - 7, right - x0, boardBottom - boardTop + 14);
+    g.fillStyle = RULE;
+    for (const fret of [3, 5, 7, 9, 15, 17, 19, 21]) {
+      if (fret > frets) continue;
+      g.beginPath();
+      g.arc(mid(fret), (boardTop + boardBottom) / 2, 3.5, 0, Math.PI * 2);
+      g.fill();
+    }
+    if (frets >= 12) {
+      for (const y of [boardTop + (boardBottom - boardTop) * 0.25, boardTop + (boardBottom - boardTop) * 0.75]) {
+        g.beginPath();
+        g.arc(mid(12), y, 3.5, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+    g.fillStyle = '#b5a483';
+    for (let fret = 1; fret <= frets; fret++) g.fillRect(Math.round(fx(fret)), boardTop - 7, 1.5, boardBottom - boardTop + 14);
+    g.fillStyle = INK;
+    g.fillRect(x0 - 3, boardTop - 7, 4, boardBottom - boardTop + 14);
+    g.textAlign = 'center';
+    g.fillStyle = INK_SOFT;
+    g.font = '500 10px Recursive, sans-serif';
+    for (const fret of [3, 5, 7, 9, 12, 15, 17, 19, 21]) if (fret <= frets) g.fillText(`${fret}`, mid(fret), boardBottom + 17);
+    for (let string = 0; string < strings; string++) {
+      g.fillStyle = '#8c7b62';
+      const thick = 0.7 + (strings - 1 - string) * 0.3;
+      g.fillRect(x0 - 4, sy(string) - thick / 2, right - x0 + 4, thick);
+      g.fillStyle = INK_SOFT;
+      g.font = '600 11px Recursive, sans-serif';
+      g.fillText(NOTE_NAMES[tuning[string] % 12], 12, sy(string));
+    }
+    const shown = now >= 0 ? now : next;
+    g.textAlign = 'left';
+    if (shown >= 0) {
+      g.fillStyle = now >= 0 ? INK : INK_SOFT;
+      g.font = '700 14px Recursive, sans-serif';
+      g.fillText(`${now >= 0 ? '' : 'Next: '}${eventName(events[shown])}`, x0, 13);
+    }
+    g.textAlign = 'right';
+    g.fillStyle = INK_SOFT;
+    g.font = '500 11px Recursive, sans-serif';
+    g.fillText(dropped ? 'Drop D: the low string tuned down to D' : 'Standard tuning', right, 13);
+
+    // a shape on the neck: barres, then a dot a fretted string with its finger in it, O on an open
+    // string and, for a chord, × on a string that isn't played. faint: the next shape, outlined
+    const dot = Math.min(7.5, gap * 0.46);
+    const drawHold = (one, faint) => {
+      const { fingers, barres } = fingersFor(one.strings, one.hand);
+      g.globalAlpha = faint ? 0.42 : 1;
+      g.lineWidth = 1.6;
+      g.strokeStyle = colour;
+      g.fillStyle = colour;
+      g.textAlign = 'center';
+      g.font = '800 10px Recursive, sans-serif';
+      const mark = (x, y, finger, shape) => {
+        shape();
+        if (faint) g.stroke();
+        else {
+          g.fill();
+          g.fillStyle = '#fbf6ec';
+          g.fillText(`${finger}`, x, y + 0.5);
+          g.fillStyle = colour;
+        }
+      };
+      for (const barre of barres) {
+        const x = mid(barre.fret);
+        const y1 = sy(barre.to);
+        const y2 = sy(barre.from);
+        mark(x, (y1 + y2) / 2, barre.finger, () => {
+          g.beginPath();
+          g.roundRect(x - dot, y1 - dot, dot * 2, y2 - y1 + dot * 2, dot);
+        });
+      }
+      for (const s of one.strings) {
+        if (s.fret === 0) {
+          g.beginPath();
+          g.arc(x0 - 14, sy(s.string), dot * 0.62, 0, Math.PI * 2);
+          g.stroke();
+          continue;
+        }
+        if (barres.some((barre) => barre.fret === s.fret && s.string >= barre.from && s.string <= barre.to)) continue;
+        mark(mid(s.fret), sy(s.string), fingers[s.string], () => {
+          g.beginPath();
+          g.arc(mid(s.fret), sy(s.string), dot, 0, Math.PI * 2);
+        });
+      }
+      if (!faint && one.strings.length >= 3) {
+        g.fillStyle = INK_SOFT;
+        g.font = '700 12px Recursive, sans-serif';
+        for (let string = 0; string < strings; string++) if (!one.strings.some((s) => s.string === string)) g.fillText('×', x0 - 14, sy(string) + 0.5);
+      }
+      g.globalAlpha = 1;
+    };
+    const { held } = learn.data;
+    if (next >= 0 && (now < 0 || held[next] !== held[now])) drawHold(placed[held[next]], true);
+    if (now >= 0) drawHold(placed[held[now]], false);
+
+    // the tab: a line a string, thinnest on top, a fret number where each note's played and a line
+    // as long as it's held. chords along the top, palm muting over the notes, strums under them
+    const line = strings === 6 ? 12 : 14;
+    const tabTop = boardBottom + 62;
+    const ty = (string) => tabTop + (strings - 1 - string) * line;
+    const tabBottom = ty(0);
+    const labelW = 26;
+    const nowX = labelW + (w - labelW) * 0.22;
+    const ppb = clamp(26 / learn.data.gap, 36, 150);
+    const tx = (t) => nowX + (t - at) * ppb;
+    learn.beatAt = (px) => at + (px - nowX) / ppb;
+    const from = at - (nowX - labelW) / ppb;
+    const to = at + (w - nowX) / ppb;
+    g.fillStyle = 'rgba(44, 39, 33, 0.35)';
+    for (let string = 0; string < strings; string++) g.fillRect(labelW, ty(string), w - labelW, 1);
+    g.textAlign = 'left';
+    g.font = '500 9.5px Recursive, sans-serif';
+    for (let bar = Math.ceil(from / comp.bpb); bar * comp.bpb <= to; bar++) {
+      const x = Math.round(tx(bar * comp.bpb));
+      g.fillStyle = 'rgba(44, 39, 33, 0.55)';
+      g.fillRect(x, ty(strings - 1), 1, tabBottom - ty(strings - 1) + 1);
+      g.fillStyle = INK_SOFT;
+      g.fillText(`${barNumber(bar * comp.bpb)}`, x + 3, ty(strings - 1) - 8);
+    }
+    g.fillStyle = INK;
+    g.font = '700 11px Recursive, sans-serif';
+    for (const { chord, t } of chordsIn(from, to)) g.fillText(chord.name, tx(t), tabTop - 30);
+    const visible = eventsIn(events, from - learn.data.gap, to);
+    g.globalAlpha = 0.3;
+    g.fillStyle = colour;
+    for (const { event, i, t } of visible) {
+      for (const s of placed[i].strings) {
+        const note = event.notes.find((one) => one.midi === s.midi) || event.notes[0];
+        g.fillRect(tx(t), ty(s.string) - 1.5, Math.max(0, (note.dur - 0.05) * ppb), 3);
+      }
+    }
+    g.globalAlpha = 1;
+    g.textAlign = 'center';
+    for (const { event, i, t } of visible) {
+      const x = tx(t);
+      const sounding = t <= at + 1e-6 && at < t + event.end - event.t;
+      g.font = '700 11px Recursive, ui-monospace, monospace';
+      for (const s of placed[i].strings) {
+        const note = event.notes.find((one) => one.midi === s.midi) || event.notes[0];
+        const text = `${s.fret}${tabMark(note)}`;
+        const tw = g.measureText(text).width;
+        g.fillStyle = PAPER;
+        g.fillRect(x - tw / 2 - 2, ty(s.string) - 6, tw + 4, 12);
+        g.fillStyle = sounding ? colour : t > at ? INK : INK_SOFT;
+        g.fillText(text, x, ty(s.string) + 0.5);
+      }
+      g.font = '700 9px Recursive, sans-serif';
+      g.fillStyle = INK_SOFT;
+      if (event.notes.some((note) => note.mute)) g.fillText('PM', x, tabTop - 14);
+      if (event.notes.length >= 3) {
+        g.font = '700 12px Recursive, sans-serif';
+        g.fillText(event.up ? '↑' : '↓', x, tabBottom + 13);
+      }
+    }
+    g.fillStyle = colour;
+    g.fillRect(Math.round(nowX) - 1, ty(strings - 1) - 10, 2, tabBottom - ty(strings - 1) + 20);
+    g.fillStyle = PAPER;
+    g.fillRect(0, tabTop - 40, labelW, tabBottom - tabTop + 60);
+    g.fillStyle = INK_SOFT;
+    g.font = '600 10px Recursive, sans-serif';
+    // (tab writes the thin e string small, to tell it from the thick one)
+    for (let string = 0; string < strings; string++) {
+      const name = NOTE_NAMES[tuning[string] % 12];
+      g.fillText(string === strings - 1 && name === 'E' ? 'e' : name, 12, ty(string) + 0.5);
+    }
+  }
+
+  // tab's marks for what a note does (note.bend and note.shake, ornament() in music.js): / and \ a
+  // slide up or down, b a bend up to it, ~ vibrato
+  function tabMark(note) {
+    let mark = '';
+    if (note.bend) {
+      const first = note.bend[0][1];
+      const last = note.bend[note.bend.length - 1][1];
+      if (note.bend.length === 2 && first === 0 && last) mark = last > 0 ? '/' : '\\';
+      else if (note.bend.length <= 3 && last - first >= 1) mark = 'b';
+    }
+    return note.shake ? `${mark}~` : mark;
+  }
+
+  // a box of each chord shape the part uses, the way a songbook shows them before the song: the
+  // strings down, the nut along the top, and the fret it starts on if it's up the neck. clicking one
+  // plays it and puts the marker where it first comes in
+  function renderShapes(data) {
+    // (one box a chord, its fullest shape, in the order the chords first come in)
+    const first = new Map();
+    data.placed.forEach((one, i) => {
+      if (one.strings.length < 3 || data.held[i] !== i) return;
+      const name = eventName(data.events[i]);
+      if (!first.has(name) || one.strings.length > data.placed[first.get(name)].strings.length) first.set(name, i);
+    });
+    learn.shapes.replaceChildren();
+    if (!first.size) return;
+    learn.shapes.append(make('h3', 'mm-section-title', 'Chord shapes in this part'));
+    const row = make('div', 'mm-shape-row');
+    for (const i of [...first.values()].slice(0, 16)) {
+      const event = data.events[i];
+      const name = eventName(event);
+      const button = make('button', 'mm-shape');
+      button.type = 'button';
+      button.dataset.tip = `${name}: click to hear it and put the marker where it first comes in`;
+      const canvas = make('canvas');
+      canvas.setAttribute('aria-hidden', 'true');
+      drawShape(canvas, data.placed[i], data.tuning.length);
+      button.append(canvas, make('span', '', name));
+      button.addEventListener('click', () => moveMarker(event));
+      row.append(button);
+    }
+    learn.shapes.append(row);
+  }
+
+  function drawShape(canvas, one, strings) {
+    const W = 70;
+    const H = 86;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = `${W}px`;
+    canvas.style.height = `${H}px`;
+    const g = canvas.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const fretted = one.strings.filter((s) => s.fret > 0).map((s) => s.fret);
+    const highest = Math.max(0, ...fretted);
+    const base = highest <= 4 ? 1 : Math.min(...fretted);
+    const rows = Math.max(4, highest - base + 1);
+    const left = 17;
+    const top = 16;
+    const sx = (string) => left + (string * (W - left - 9)) / (strings - 1);
+    const fh = (H - top - 6) / rows;
+    const fy = (fret) => top + (fret - base + 0.5) * fh;
+    g.fillStyle = INK_SOFT;
+    for (let string = 0; string < strings; string++) g.fillRect(sx(string), top, 1, rows * fh);
+    for (let fret = 0; fret <= rows; fret++) g.fillRect(sx(0), top + fret * fh, sx(strings - 1) - sx(0) + 1, fret === 0 && base === 1 ? 3 : 1);
+    g.fillStyle = INK;
+    g.textBaseline = 'middle';
+    g.textAlign = 'center';
+    g.font = '600 10px Recursive, sans-serif';
+    if (base > 1) g.fillText(`${base}`, 7, fy(base));
+    const { fingers, barres } = fingersFor(one.strings, one.hand);
+    const r = Math.min(5.5, fh * 0.4);
+    for (const barre of barres) {
+      g.beginPath();
+      g.roundRect(sx(barre.from) - r, fy(barre.fret) - r, sx(barre.to) - sx(barre.from) + r * 2, r * 2, r);
+      g.fill();
+    }
+    g.font = '800 8.5px Recursive, sans-serif';
+    for (let string = 0; string < strings; string++) {
+      const s = one.strings.find((x) => x.string === string);
+      if (!s || s.fret === 0) {
+        g.fillStyle = INK;
+        g.font = '700 10px Recursive, sans-serif';
+        g.fillText(s ? 'o' : '×', sx(string), top - 7);
+        continue;
+      }
+      g.fillStyle = INK;
+      if (!barres.some((barre) => barre.fret === s.fret && string >= barre.from && string <= barre.to)) {
+        g.beginPath();
+        g.arc(sx(string), fy(s.fret), r, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.fillStyle = '#fbf6ec';
+      g.font = '800 8.5px Recursive, sans-serif';
+      g.fillText(`${fingers[string]}`, sx(string), fy(s.fret) + 0.5);
+    }
+  }
+
+  // sheet music: where the staff goes, with room above and below for the part's highest and lowest
+  // notes on ledger lines. step: lines and spaces up from c-1 (spellPitch in learn.js)
+  function sheetLayout({ treble, low, high }) {
+    const gap = 9;
+    const bottomStep = treble ? 30 : 18;
+    const above = Math.max(0, (high ?? 0) - (bottomStep + 8)) * (gap / 2);
+    const below = Math.max(0, bottomStep - (low ?? bottomStep)) * (gap / 2);
+    const staffTop = 30 + gap * 3 + above;
+    return { gap, bottomStep, staffTop, bottomY: staffTop + gap * 4, height: Math.round(staffTop + gap * 4 + below + gap * 3.5 + 12) };
+  }
+
+  // the staff scrolling past the line, with the clef, the key signature and the time signature kept
+  // at the left, the way sheet music apps keep them. notes are spaced by time, so they line up with
+  // the playhead
+  function drawSheet(g, w, h, at) {
+    const { pieces, signature, treble, shift, quarters, layout, layer, gap: closest } = learn.data;
+    const { gap, bottomStep, staffTop, bottomY } = layout;
+    const ys = (step) => bottomY - ((step - bottomStep) * gap) / 2;
+    const colour = ROLES[layer.role].colour;
+    const pinned = 70 + Math.abs(signature) * 8;
+    const nowX = pinned + (w - pinned) * 0.2;
+    const ppb = clamp(26 / Math.min(closest, comp.step * 2), 40, 200);
+    const tx = (t) => nowX + (t - at) * ppb;
+    learn.beatAt = (px) => at + (px - nowX) / ppb;
+    const from = at - (nowX - pinned) / ppb;
+    const to = at + (w - nowX) / ppb;
+    const staffLines = (x0, x1) => {
+      g.fillStyle = 'rgba(44, 39, 33, 0.6)';
+      for (let i = 0; i < 5; i++) g.fillRect(x0, staffTop + i * gap, x1 - x0, 1);
+    };
+    staffLines(0, w);
+    g.textAlign = 'left';
+    for (let bar = Math.ceil(from / comp.bpb); bar * comp.bpb <= to; bar++) {
+      const x = Math.round(tx(bar * comp.bpb) - ppb * comp.step * 0.35);
+      g.fillStyle = 'rgba(44, 39, 33, 0.75)';
+      g.fillRect(x, staffTop, 1, gap * 4 + 1);
+      g.fillStyle = INK_SOFT;
+      g.font = '500 9.5px Recursive, sans-serif';
+      g.fillText(`${barNumber(bar * comp.bpb)}`, x + 3, 30);
+    }
+    g.fillStyle = INK;
+    g.font = '700 11px Recursive, sans-serif';
+    for (const { chord, t } of chordsIn(from, to)) g.fillText(chord.name, tx(t) - 4, 14);
+    const rx = gap * 0.62;
+    const ry = gap * 0.43;
+    for (const offset of player.loop ? [-comp.beats, 0, comp.beats] : [0]) {
+      pieces.forEach((piece, i) => {
+        const t = piece.t + offset;
+        const length = piece.value / quarters;
+        if (t + length < from - 1 || t > to) return;
+        const x = tx(t);
+        const sounding = t <= at + 1e-6 && at < t + length;
+        const ink = sounding ? colour : INK;
+        g.fillStyle = ink;
+        g.strokeStyle = ink;
+        const base = piece.dot ? piece.value / 1.5 : piece.value;
+        const dotAt = (y) => {
+          if (!piece.dot) return;
+          g.beginPath();
+          g.arc(x + rx + 5, y, 1.7, 0, Math.PI * 2);
+          g.fill();
+        };
+        if (piece.rest) {
+          g.font = `${gap * 3.6}px ${MUSIC_FONT}`;
+          g.textAlign = 'center';
+          g.textBaseline = 'middle';
+          g.fillText(GLYPHS[base], x, ys(bottomStep + (base === 4 ? 5 : 4)));
+          dotAt(ys(bottomStep + 5));
+          return;
+        }
+        const heads = [...piece.heads].sort((a, b) => a.step - b.step);
+        const mean = heads.reduce((sum, head) => sum + head.step, 0) / heads.length;
+        const up = mean < bottomStep + 4;
+        // ledger lines, short lines for notes above or below the staff
+        g.fillStyle = 'rgba(44, 39, 33, 0.8)';
+        const lowStep = heads[0].step;
+        const highStep = heads[heads.length - 1].step;
+        for (let step = bottomStep - 2; step >= lowStep; step -= 2) g.fillRect(x - rx - 4, ys(step), rx * 2 + 8, 1);
+        for (let step = bottomStep + 10; step <= highStep; step += 2) g.fillRect(x - rx - 4, ys(step), rx * 2 + 8, 1);
+        g.fillStyle = ink;
+        // a second (two notes a step apart) puts one head on the other side of the stem
+        let side = 0;
+        heads.forEach((head, j) => {
+          side = j && head.step - heads[j - 1].step === 1 && !side ? (up ? 1 : -1) : 0;
+          const hx = x + side * rx * 1.9;
+          const y = ys(head.step);
+          g.beginPath();
+          g.ellipse(hx, y, rx, ry, -0.35, 0, Math.PI * 2);
+          if (base < 2) g.fill();
+          else {
+            g.lineWidth = base === 4 ? 2 : 1.5;
+            g.stroke();
+          }
+          if (head.show) {
+            g.font = `${gap * 2}px ${MUSIC_FONT}`;
+            g.textAlign = 'center';
+            g.textBaseline = 'middle';
+            g.fillText(GLYPHS[head.acc], x - rx - 7 - (j % 2) * 7, y);
+          }
+          dotAt(y - ((head.step - bottomStep) % 2 === 0 ? gap / 2 : 0));
+          // a tie: a curve to the next piece, the same note held on
+          const after = pieces[i + 1];
+          if (piece.tie && after) {
+            const x2 = tx(after.t + offset);
+            const curve = up ? gap * 0.9 : -gap * 0.9;
+            g.lineWidth = 1.2;
+            g.beginPath();
+            g.moveTo(hx + rx * 0.8, y + curve * 0.45);
+            g.quadraticCurveTo((hx + x2) / 2, y + curve * 1.3, x2 - rx * 0.8, y + curve * 0.45);
+            g.stroke();
+          }
+        });
+        if (base >= 4) return;
+        const stemX = up ? x + rx - 0.7 : x - rx + 0.7;
+        const stemFrom = ys(up ? lowStep : highStep);
+        const stemTo = up ? ys(highStep) - gap * 3.3 : ys(lowStep) + gap * 3.3;
+        g.fillRect(stemX - 0.6, Math.min(stemFrom, stemTo), 1.3, Math.abs(stemTo - stemFrom));
+        // flags: one for an eighth, two for a sixteenth
+        const flags = base === 0.5 ? 1 : base === 0.25 ? 2 : 0;
+        g.lineWidth = 1.6;
+        for (let k = 0; k < flags; k++) {
+          const y0 = stemTo + (up ? 1 : -1) * k * gap * 0.85;
+          const dir = up ? 1 : -1;
+          g.beginPath();
+          g.moveTo(stemX, y0);
+          g.bezierCurveTo(stemX + gap * 0.2, y0 + dir * gap * 0.9, stemX + gap * 1.2, y0 + dir * gap * 1.1, stemX + gap * 0.8, y0 + dir * gap * 2.2);
+          g.stroke();
+        }
+      });
+    }
+    g.fillStyle = colour;
+    g.fillRect(Math.round(nowX) - 1, staffTop - gap * 1.5, 2, gap * 7);
+    // what stays at the left: the clef (with an 8 under it for a guitar's or a bass's part, written an
+    // octave up), the key signature and the time signature
+    g.fillStyle = PAPER;
+    g.fillRect(0, 0, pinned, h);
+    staffLines(0, pinned);
+    g.fillStyle = INK;
+    g.textAlign = 'center';
+    g.textBaseline = 'alphabetic';
+    g.font = `${gap * 4.1}px ${MUSIC_FONT}`;
+    g.fillText(GLYPHS[treble ? 'treble' : 'bass'], 20, treble ? ys(bottomStep) + gap * 1.05 : ys(bottomStep + 6) + gap * 1.45);
+    if (shift) {
+      g.font = '700 10px Recursive, sans-serif';
+      g.fillText('8', 20, treble ? ys(bottomStep) + gap * 2.7 : ys(bottomStep) + gap * 1.2);
+    }
+    const marks = signature > 0 ? [38, 35, 39, 36, 33, 37, 34] : [34, 37, 33, 36, 32, 35, 31];
+    g.font = `${gap * 2}px ${MUSIC_FONT}`;
+    g.textBaseline = 'middle';
+    for (let i = 0; i < Math.abs(signature); i++) g.fillText(GLYPHS[Math.sign(signature)], 40 + i * 8, ys(marks[i] - (treble ? 0 : 14)));
+    const [count, unit] = song.meter.split('/');
+    g.font = `900 ${gap * 2.1}px Recursive, sans-serif`;
+    const tsX = 44 + Math.abs(signature) * 8 + 6;
+    g.fillText(count, tsX, staffTop + gap);
+    g.fillText(unit, tsX, staffTop + gap * 3);
+  }
+
   // ---------- library and export ----------
 
   const status = $('#mmStatus');
@@ -1802,6 +2585,10 @@
   document.addEventListener('keydown', (event) => {
     const typing = event.target.closest?.('input, select, textarea');
     if (!typing && !event.ctrlKey && !event.metaKey && !event.altKey && event.key.length === 1 && event.key !== ' ') pressKey(event);
+    if (learn?.data?.events.length && !typing && !player.playing && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+      event.preventDefault();
+      stepMarker(event.key === 'ArrowRight' ? 1 : -1);
+    }
     if (event.key === ' ' && !typing && !event.target.closest?.('button')) {
       event.preventDefault();
       togglePlay();
@@ -1821,7 +2608,7 @@
     if (needCompose) changed(false);
     if (needMix) {
       needMix = false;
-      player.load(song, comp);
+      load();
       scoreDirty = true;
       keepDraft();
     }
@@ -1829,6 +2616,7 @@
     drawScore();
     renderReadout();
     if (editor && player.playing) editor.draw();
+    if (learn) drawLearn();
     requestAnimationFrame(frame);
   }
 
