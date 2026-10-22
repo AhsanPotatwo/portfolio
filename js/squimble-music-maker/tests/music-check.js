@@ -111,7 +111,7 @@ for (const seed of ['mossy-lantern', 'quiet-tide', 'rusty-tower', 'x']) {
 }
 
 // a band that fits (fitBand, pickInstrument and the moods in music.js, and the README's rules)
-const { INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries } = vm.runInContext('({ INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries })', page);
+const { INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries, builds } = vm.runInContext('({ INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries, builds })', page);
 // every tonal instrument has an edge: the organ had none, so it never fitted under any cap
 for (const [id, inst] of Object.entries(INSTRUMENTS)) if (inst.family !== 'kit' && inst.family !== 'texture') assert(Number.isFinite(inst.edge), `${id} has an edge`);
 // every instrument a mood names is real, and every drum pattern has a groove in every time signature
@@ -148,8 +148,9 @@ for (const [mood, kind] of VARIANTS) {
       // not crowded: two parts at most moving round the middle, ambient songs six layers at most, and
       // running notes no faster than six a second
       assert(parts.filter((l) => MIDDLE.includes(l.role)).length <= 2, `${where}: two middle parts at most`);
-      // (the scenery doesn't count: an ambient song's lone tune can join six others, pickScenery)
-      if (style === 'ambient') assert(song.layers.filter((l) => l.role !== 'texture').length <= 6, `${where}: ambient songs have room`);
+      // (the scenery doesn't count: an ambient song's lone tune can join six others, pickScenery. a song
+      // that builds has room for one more by its climax)
+      if (style === 'ambient') assert(song.layers.filter((l) => l.role !== 'texture').length <= (builds(song) ? 7 : 6), `${where}: ambient songs have room`);
       for (const layer of song.layers.filter(usesRate)) assert(layer.rate === 'slow' || song.tempo / 60 / rateStep(layer.rate, METERS[song.meter].sub) <= MAX_RATE, `${where}: the ${layer.role} runs too fast`);
       // one band: chip and acoustic sounds never together, and surprises only from moods near this one
       const worlds = new Set(song.layers.map((l) => INSTRUMENTS[l.instrument].world));
@@ -162,7 +163,8 @@ for (const [mood, kind] of VARIANTS) {
       // (apart from a mood's prelude, which is scenery alone on purpose: warmth's embers before the music)
       const prelude = sm.prelude && song.sections[0].name === sm.prelude ? 1 : 0;
       for (const section of song.sections.slice(prelude)) assert(section.play.some((id) => song.layers.find((l) => l.id === id).role !== 'texture'), `${where}: ${section.name} is only the texture`);
-      assert(song.sections[prelude].play.filter((id) => players.includes(id)).length >= Math.min(players.length, OPENING[style]), `${where}: the intro is too thin`);
+      // (a song that builds opens on one player on purpose)
+      assert(song.sections[prelude].play.filter((id) => players.includes(id)).length >= Math.min(players.length, builds(song) ? 1 : OPENING[style]), `${where}: the intro is too thin`);
       // two textures are two different ones, and not two steady beds
       const textures = song.layers.filter((l) => l.role === 'texture').map((l) => INSTRUMENTS[l.instrument]);
       if (textures.length > 1) assert(textures[0] !== textures[1] && !(textures[0].bed && textures[1].bed), `${where}: two textures that don't go together`);
@@ -913,8 +915,15 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
 // never leaves a role with nothing gentle enough for the mood's cap. a flavour saves and loads, one the
 // mood doesn't have is dropped, modifiers work on it, and a style it brings is a real one
 {
-  const { PATTERNS, INSTRUMENTS, maxEdge, instrumentFits, parseProgression, MODIFIERS } = vm.runInContext('({ PATTERNS, INSTRUMENTS, maxEdge, instrumentFits, parseProgression, MODIFIERS })', page);
+  const { PATTERNS, INSTRUMENTS, maxEdge, instrumentFits, parseProgression, MODIFIERS, CONTOURS, RHYTHMS } = vm.runInContext('({ PATTERNS, INSTRUMENTS, maxEdge, instrumentFits, parseProgression, MODIFIERS, CONTOURS, RHYTHMS })', page);
   const mods = Object.keys(MODIFIERS);
+  // every rhythm family's notes sit on the meter's finest grid, as CELLS' do, and it has all three speeds
+  for (const [name, family] of Object.entries(RHYTHMS)) {
+    for (const [sub, speeds] of Object.entries(family)) {
+      same(Object.keys(speeds).sort(), ['fast', 'mid', 'slow'], `${name} ${sub}: three speeds`);
+      for (const cell of Object.values(speeds).flat()) assert(cell.every((n) => n > 0 && Math.abs(n * sub * 2 - Math.round(n * sub * 2)) < 1e-9), `${name} ${sub}: ${cell} is on the grid`);
+    }
+  }
   for (const id of Object.keys(MOODS)) assert(FLAVOURS[id]?.about && Object.keys(FLAVOURS[id].kinds).length >= 2, `${id} says what it is and has flavours`);
   for (const [id, { kinds }] of Object.entries(FLAVOURS)) {
     assert(MOODS[id], `${id} has flavours but isn't a mood`);
@@ -932,6 +941,10 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
       for (const kit of settings.kits || []) assert.strictEqual(INSTRUMENTS[kit]?.family, 'kit', `${where}: ${kit} isn't a kit`);
       for (const texture of settings.textures || []) assert.strictEqual(INSTRUMENTS[texture]?.family, 'texture', `${where}: ${texture} isn't scenery`);
       for (const chords of settings.chords || []) same(parseProgression(chords).bad, [], `${where}: ${chords} are chords`);
+      // every kind but the plain one sings its own way (phrasing), with real shapes and rhythms
+      assert(settings.phrasing, `${where}: has its own phrasing`);
+      for (const shape of Object.keys(settings.phrasing.shapes || {})) assert(CONTOURS[shape], `${where}: no shape ${shape}`);
+      assert(!settings.phrasing.rhythm || RHYTHMS[settings.phrasing.rhythm], `${where}: no rhythm ${settings.phrasing.rhythm}`);
       for (const style of STYLES) {
         const song = generateSong(id, style, 'kind', [], kind);
         assert.strictEqual(song.flavour, kind, `${where} ${style}: the flavour is kept`);
@@ -949,4 +962,87 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
   assert(!('flavour' in cleanSong({ mood: 'underwater', flavour: 'nonsense' })), 'an unknown flavour is dropped');
   assert(!('flavour' in cleanSong({ mood: 'calm', flavour: 'reef' })), "another mood's flavour is dropped");
   assert(!('flavour' in cleanSong({ mood: 'underwater', flavour: 'deep' })), 'the plain flavour is never saved');
+}
+
+// songs that build (BUILDS, builds() in music.js): with the rising modifier every tune and ambient song
+// builds and loops and fights never do. a build's sections climb to the top without falling back, the
+// band only grows on the way up, nobody solos, the last section at the top has the whole band (but a
+// second guitar, which only plays its own sections), the drummer rolls through the bar before the top
+// and the tune's doubled only there. a mood without build never builds, and one that can doesn't always
+{
+  const { builds, BUILD_DOUBLE_ENERGY } = vm.runInContext('({ builds, BUILD_DOUBLE_ENERGY })', page);
+  const energy = (section) => section.energy ?? 0.75;
+  for (const mood of Object.keys(MOODS)) {
+    for (const style of STYLES) {
+      const song = generateSong(mood, style, 'rising-tide', ['rising']);
+      const where = `${mood} ${style} rising`;
+      assert.strictEqual(builds(song), style === 'tune' || style === 'ambient', `${where}: builds in a tune or ambient song only`);
+      if (!builds(song)) continue;
+      const sections = song.sections.filter((section) => section.play.some((id) => song.layers.find((layer) => layer.id === id).role !== 'texture'));
+      const top = Math.max(...sections.map(energy));
+      const first = sections.findIndex((section) => energy(section) >= top - 0.01);
+      for (let i = 1; i <= first; i++) {
+        assert(energy(sections[i]) >= energy(sections[i - 1]), `${where}: climbs to the top without falling back`);
+        assert(sections[i].play.length >= sections[i - 1].play.length - (song.layers.filter((l) => l.role === 'guitar').length > 1 ? 1 : 0), `${where}: the band only grows on the way up`);
+      }
+      assert(sections[0].play.length < sections[first].play.length, `${where}: starts smaller than its climax`);
+      assert(!song.sections.some((section) => section.lead), `${where}: no solo`);
+      const last = [...sections].reverse().find((section) => energy(section) >= top - 0.01);
+      const missing = song.layers.filter((layer) => !last.play.includes(layer.id));
+      assert(missing.length <= 1 && missing.every((layer) => layer.role === 'guitar' || layer.role === 'texture'), `${where}: everyone at the climax (missing ${missing.map((l) => l.id)})`);
+      const comp = composeSong(song);
+      const drums = song.layers.find((layer) => layer.role === 'drums');
+      const at = comp.sections.find((section) => section.index === song.sections.indexOf(sections[first]));
+      const before = comp.sections[at.index - 1];
+      if (drums && before?.play.includes(drums.id)) {
+        const roll = comp.notes.filter((note) => note.layer === drums.id && note.midi === 1 && note.t >= at.start - comp.bpb - 0.1 && note.t < at.start - 0.1);
+        assert(roll.length >= comp.bpb * 2, `${where}: the drummer rolls into the climax (${roll.length} hits)`);
+      }
+      for (const note of comp.notes.filter((n) => n.double)) {
+        const section = comp.sections.find((one) => note.t >= one.start - 1e-6 && note.t < one.end - 1e-6);
+        const layer = song.layers.find((one) => one.id === note.layer);
+        assert(energy(section) >= BUILD_DOUBLE_ENERGY || layer.doubleAll || ['choir-oo', 'choir-ah', 'soprano', 'chant-voice', 'dream-voice'].includes(layer.instrument), `${where}: doubled only at the top`);
+      }
+    }
+  }
+  let built = 0;
+  for (let n = 0; n < 40; n++) built += builds(generateSong('heroic', 'tune', `climb-${n}`)) ? 1 : 0;
+  assert(built > 4 && built < 36, `heroic tunes build some of the time (${built} of 40)`);
+  for (let n = 0; n < 20; n++) assert(!builds(generateSong('cozy', 'tune', `climb-${n}`)), 'a mood without build never builds');
+}
+
+// short links (songChanges and withChanges in music.js): a song is its seed's song with only what
+// changed on top, so an untouched song has no changes, and any song, remixed, edited by hand or made
+// from a blank track, comes back exactly from its changes
+{
+  const { songChanges, withChanges, blankSong, packEdit, rerollSong } = vm.runInContext('({ songChanges, withChanges, blankSong, packEdit, rerollSong })', page);
+  const back = (from, to, where) => same(cleanSong(withChanges(from, songChanges(from, to))), to, `${where}: comes back from its changes`);
+  for (const [mood, style, mods, kind] of [['calm', 'ambient', []], ['heroic', 'tune', ['rising']], ['metal', 'boss', ['dark']], ['underwater', 'tune', [], 'reef']]) {
+    const song = generateSong(mood, style, 'linked', mods, kind);
+    const where = `${mood} ${style}`;
+    assert.strictEqual(songChanges(song, generateSong(mood, style, 'linked', mods, kind)), undefined, `${where}: an untouched song has no changes`);
+    back(song, song, where);
+    const edited = JSON.parse(JSON.stringify(song));
+    edited.name = 'Mine';
+    edited.layers[0].volume = 0.31;
+    edited.layers.pop();
+    edited.sections[0].bars = 3;
+    edited.layers[0].edits.B = { add: [packEdit({ t: 1, midi: 64, dur: 0.5 })], remove: ['0:60'] };
+    back(song, cleanSong(edited), `${where} edited`);
+    for (const what of ['band', 'chords', 'arrangement', 'orchestra', 'mutate']) back(song, rerollSong(song, what, 0.5), `${where} ${what} remixed`);
+  }
+  const own = blankSong();
+  own.layers[0].edits.A = { add: [packEdit({ t: 0, midi: 67, dur: 1 })], remove: [] };
+  back(blankSong(), cleanSong(own), 'a blank track with a note');
+}
+
+// seeds: two words, each list with no repeats, and plenty of them
+{
+  const { SEED_WORDS, newSeed, makeRng } = vm.runInContext('({ SEED_WORDS, newSeed, makeRng })', page);
+  for (const row of SEED_WORDS) {
+    assert.strictEqual(new Set(row).size, row.length, 'no seed word twice in a list');
+    assert(row.every((word) => /^[a-z]+$/.test(word)), 'seed words are plain lowercase words');
+  }
+  assert(SEED_WORDS[0].length * SEED_WORDS[1].length > 500000, 'over half a million seeds');
+  assert(/^[a-z]+-[a-z]+$/.test(newSeed(makeRng('seed'))), 'a seed is two words');
 }

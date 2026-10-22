@@ -1682,16 +1682,51 @@
     }
   });
 
-  // links carry the song as base64 json after #song=
-  const toLink = (text) => btoa(String.fromCharCode(...new TextEncoder().encode(text))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const fromLink = (text) => new TextDecoder().decode(Uint8Array.from(atob(text.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)));
+  // ---------- links ----------
+  //
+  // links used to carry the whole song (base64 json after #song=), thousands of characters, too long
+  // to paste into most chats. now a link is the seed and the settings that make the song from it,
+  // #seed/mood/style/modifiers/flavour, so an untouched song's link is a few words. anything changed
+  // since rides on the end: only the changes (songChanges in music.js), squeezed with the browser's own
+  // deflate and written in url safe base64. a track made by hand has no seed to start from, so its
+  // link is its changes from a blank track, #/changes. the old #song= links still open
+  const toBase64 = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const fromBase64 = (text) => Uint8Array.from(atob(text.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+  const squeeze = async (bytes, way) => new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(way)).arrayBuffer());
+  // (numbers to four places: a remixed band's volumes and pans were sixteen digits each, which nearly
+  // doubled its link, and a ten thousandth of a volume is nothing anyone can hear)
+  const pack = async (thing) => toBase64(await squeeze(new TextEncoder().encode(JSON.stringify(thing, (key, value) => (typeof value === 'number' ? +value.toFixed(4) : value))), new CompressionStream('deflate-raw')));
+  const unpack = async (text) => JSON.parse(new TextDecoder().decode(await squeeze(fromBase64(text), new DecompressionStream('deflate-raw'))));
+  const fromOldLink = (text) => JSON.parse(new TextDecoder().decode(fromBase64(text)));
+  // the song a link starts from: the seed's, or a blank track
+  const linkBase = (one) => (one.own ? blankSong() : generateSong(one.mood, one.style, one.seed, one.mods, one.flavour));
+  async function songLink(one) {
+    const changes = songChanges(linkBase(one), cleanSong(one));
+    const tail = changes ? await pack(changes) : '';
+    let fields = [one.seed, one.mood, one.style, (one.mods || []).join('+'), one.flavour || '', tail];
+    // (the modifiers, flavour and changes are left off when there are none)
+    while (fields.length > 3 && !fields[fields.length - 1]) fields.pop();
+    if (one.own) fields = ['', tail];
+    return `${location.origin}${location.pathname}#${fields.map(encodeURIComponent).join('/')}`;
+  }
+  const isLink = (hash) => hash.startsWith('#song=') || hash.includes('/');
+  // a link's song and its changes, still packed. the song is ready straight away, so the page opens on
+  // it while the changes unpack
+  function readLink(hash) {
+    if (hash.startsWith('#song=')) return [cleanSong(fromOldLink(hash.slice(6))), ''];
+    const fields = hash.slice(1).split('/').map(decodeURIComponent);
+    if (!fields[0]) return [blankSong(), fields[1] || ''];
+    const [seed, mood, style, mods, flavour, tail] = fields;
+    return [generateSong(mood, style, seed, mods ? mods.split('+') : [], flavour || undefined), tail || ''];
+  }
   $('#mmLink').addEventListener('click', async () => {
-    const url = `${location.origin}${location.pathname}#song=${toLink(JSON.stringify(song))}`;
+    let url = '';
     try {
+      url = await songLink(song);
       await navigator.clipboard.writeText(url);
-      status.textContent = 'Link copied. Anyone who opens it hears this song.';
+      status.textContent = `Link copied (${url.length} characters). Anyone who opens it hears this song.`;
     } catch {
-      status.textContent = url;
+      status.textContent = url || "Couldn't make a link in this browser. Download the song file instead.";
     }
   });
 
@@ -1799,14 +1834,29 @@
 
   // ---------- start ----------
 
-  function firstSong() {
-    if (location.hash.startsWith('#song=')) {
-      try {
-        const linked = cleanSong(JSON.parse(fromLink(location.hash.slice(6))));
-        history.replaceState(null, '', location.pathname);
-        return linked;
-      } catch { /* a broken link: start fresh instead */ }
+  // the song in the address bar's link, if it has one. what was changed by hand comes in once it's
+  // unpacked
+  function fromAddress() {
+    if (!isLink(location.hash)) return null;
+    try {
+      const [linked, tail] = readLink(location.hash);
+      history.replaceState(null, '', location.pathname);
+      if (tail) unpack(tail).then((changes) => open(withChanges(linked, changes))).catch(() => say("Couldn't read the changes in that link, so this is the song its seed makes."));
+      return linked;
+    } catch {
+      return null;
     }
+  }
+  // (a link pasted into a tab that already has the page open only changes the hash, it doesn't reload)
+  window.addEventListener('hashchange', () => {
+    const linked = fromAddress();
+    if (!linked) return;
+    remember();
+    open(linked);
+  });
+  function firstSong() {
+    const linked = fromAddress();
+    if (linked) return linked;
     try {
       const draft = JSON.parse(localStorage.getItem(DRAFT_KEY));
       if (draft) return cleanSong(draft);

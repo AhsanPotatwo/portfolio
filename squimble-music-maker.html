@@ -179,7 +179,7 @@
         <div class="mm-export-row">
           <div>
             <h3>As a link</h3>
-            <p>The whole song, changes and all, fits in a link.</p>
+            <p>A short link to paste anywhere: the song's seed, plus anything you've changed.</p>
           </div>
           <div class="mm-export-keys">
             <button type="button" class="mm-key mm-key-line" id="mmLink">Copy link</button>
@@ -200,15 +200,15 @@
           <ol class="mm-steps">
             <li><b>Pick a mood and press Play.</b> That's honestly it for a first go. The mood picks the key, the tempo, the chords, the band and how they play. The rows above the moods (Gentle, Bright, Magic...) just show different groups of them. Magic is the one I'd try first: a small orchestra playing enchanted places, the tune passed round from instrument to instrument.</li>
             <li><b>Pick a style.</b> Ambient is slow and drifty, for exploring. Tune has a melody you could hum and an ending. Loop is what a game actually plays in a town or a shop: no intro, no outro, round and round. Mini boss and Boss turn whatever mood you're on into a fight that loops.</li>
-            <li><b>Pick a flavour.</b> Most moods hold more than one kind of music, so under the moods are the song's mood's flavours. Underwater is the slow, dreamy deep or a calypso party on the reef, Wintry is a quiet snowfall, a cosy snowed-in town or Christmas, and Pirates is a shanty below decks or a swashbuckling film score. The line above them says what the mood's for, and the one under them what the flavour sounds like. Ethereal (in the Loud row) is a voice soaring over guitars lost in their own echoes: try Dancing.</li>
+            <li><b>Pick a flavour.</b> Most moods hold more than one kind of music, so under the moods are the song's mood's flavours. Underwater is the slow, dreamy deep or a calypso party on the reef, Wintry is a quiet snowfall, a cosy snowed-in town or Christmas, and Pirates is a shanty below decks or a swashbuckling film score. The line above them says what the mood's for, and the one under them what the flavour sounds like. Each flavour writes its tunes its own way too (a march is dotted, a lullaby rocks, a lament sighs), so the same seed in another flavour is a new tune. Ethereal (in the Loud row) is a voice soaring over guitars lost in their own echoes: try Dancing.</li>
             <li><b>Press New song</b> for another song in the same mood, or type any words into Seed and press Enter. The same words always make the same song, so if you find one you like, the seed is all you need to get it back.</li>
-            <li><b>Add modifiers.</b> They're words in front of the mood: calm folk, angry folk, fast jazzy folk. The band stays the same and plays differently. You can have up to four.</li>
+            <li><b>Add modifiers.</b> They're words in front of the mood: calm folk, angry folk, fast jazzy folk. The band stays the same and plays differently. You can have up to four. Rising is the big one: the song starts with a single player and builds, section by section, everyone joining in, to a climax with the whole band on the tune. Some moods build like that on their own now and then, Heroic, Dragon and Tragic most of all.</li>
             <li><b>Remix one thing at a time.</b> The Remix keys pick just the chords, or just the melodies, or just the band again, and leave everything else alone. Orchestra hands the tune round a new way: another instrument taking turns with the melody, or bells doubling it.</li>
             <li><b>Open the Band tab</b> to change a part's instrument, what it plays and how busy it is. Anything marked recorded plays real recordings, and some have a Recording menu with a few to choose from (a Wurlitzer or a Pianet, two different electric guitars, a grand or an electric grand).</li>
             <li><b>Draw your own notes</b> in the note editor under each part. Click to add, drag to make longer, click a note to take it out. The other tools add slides, vibrato and swells, and Chords puts down the whole chord playing there in one click.</li>
             <li><b>Or make your own.</b> New track is an empty song with a melody, a bass and drums that play nothing until you give them notes. Open a layer, then draw, or turn on Record, press Play and play it on your keyboard (A to L are the white keys, W E T Y U O P the black ones, Z and X change octave). Click turns on a metronome. Any layer's Plays can be My notes or a pattern it writes for you, so you can write the tune and let it fill in a bass line that follows your chords. Make it mine (next to Remix) takes over a written song, turning every part into notes you can change.</li>
             <li><b>Arrange tab</b> is the song from start to end: which parts play in each section, how long each is, and how loud. <b>Room</b> is the space it's played in: reverb, echo, tape wobble.</li>
-            <li><b>Keep it.</b> Save puts it in your library in this browser, and you can download a WAV, a small song file, or copy a link with the whole song in it.</li>
+            <li><b>Keep it.</b> Save puts it in your library in this browser, and you can download a WAV, a small song file, or copy a short link to send to someone.</li>
           </ol>
         </section>
 
@@ -241,7 +241,7 @@
       <div class="mm-hood">
         <details class="mm-shelf">
           <summary><b>A song is a seed, not a file</b></summary>
-          <p>Every random choice comes from a seeded random number generator (mulberry32, with the seed words hashed by FNV-1a). The same seed and settings give exactly the same notes every time, so a whole song saves as a few kilobytes of settings and even fits in a link. That's also how the game will store its music.</p>
+          <p>Every random choice comes from a seeded random number generator (mulberry32, with the seed words hashed by FNV-1a). The same seed and settings give exactly the same notes every time, so a whole song saves as a few kilobytes of settings. A link doesn't even need those: it's the seed and the settings that made the song, and only what you've changed since, squeezed small, so an untouched song's link is a few words long. That's also how the game will store its music.</p>
           <p>The thing I'm most pleased with is that each decision gets its own random stream: the key and tempo, the chords, the band, the arrangement and the room are all seeded separately. So "remix the chords" really does change only the chords, and adding a modifier like fast gives you the same song, faster, instead of a completely different one. I learned that the hard way. When I added guitars, one extra random number at the start of the band step shifted every choice after it, and every old seed in every mood turned into a different song.</p>
         </details>
 
