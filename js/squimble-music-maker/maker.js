@@ -856,7 +856,22 @@
       field('Each chord', choices(chordBars, () => song.chordBars, (value) => edit(() => { song.chordBars = value; })(), 'Chord length'), 'How long each chord lasts'),
     );
     const chords = section('Chords', top, ...PARTS.map(chordRow), make('p', 'mm-hint', 'Chords are roman numerals counting up the scale from the key: I is home, IV and V are the strong ones. Capitals are major (bright), lower case minor (sad). b and # move one a semitone (bVII), ° is diminished and + augmented. Add 7, maj7, 6, sus2, sus4 or add9 for colour (Imaj7). A - holds the last chord for another turn. Click a chord to hear it.'));
-    return [columns, chords];
+    // which composer writes the notes (COMPOSERS in music.js). a song keeps the one it was made with, but
+    // songs saved before that was written down open as the first, and the ones saved on the morning of
+    // 22 october were the second's
+    const composers = [
+      [1, 'Up to 21 Oct', 'The composer up to 21 October. Songs saved before the 22nd'],
+      [1.5, '22 Oct, morning', 'The composer of the morning of 22 October, when each flavour got its own way of writing tunes. Songs saved then open as the one before: pick this if one sounds different from how you saved it'],
+      [COMPOSER, "Today's", "Today's composer, with key changes and longer songs. Every new song is written by it"],
+    ];
+    const composer = section('Composer',
+      field('Written by', choices(composers, () => song.composer || 1, (value) => edit(() => {
+        if (value === 1) delete song.composer;
+        else song.composer = value;
+      })(), 'Composer'), 'Which version of the composer writes the notes. A song keeps the one it was saved with, so it always sounds the same'),
+      make('p', 'mm-hint', "The composer gets better over time, and a song keeps the version it was made with so it never changes. Songs saved before 22 October afternoon don't say which version made them and open as the oldest: if one sounds different from how you saved it, try 22 Oct, morning, then save it."),
+    );
+    return [columns, chords, composer];
   }
 
   // one part's chords: a box to type them in, the chords they make (click to hear one), and a key for new ones
@@ -2896,6 +2911,29 @@
     } catch { /* nothing kept */ }
     return generateSong('calm', 'ambient', newSeed(randomRng()));
   }
+  // songs saved without saying which composer made them, but after composer 1.5 was committed (the
+  // morning of 22 october), can only be its: marked as such, once. the notes kept for them were written
+  // by composer 1 in the background, so they're written again. the draft too, if it's one of them as
+  // saved. one saved before then could be either, and the Song tab's Composer picks
+  const MORNING = Date.UTC(2026, 9, 22, 7, 18, 33);
+  async function markMorningSongs() {
+    try {
+      if (localStorage.getItem('squimble-music-marked-1.5')) return;
+    } catch { return; }
+    const draft = JSON.stringify(song);
+    const mark = (one) => (!one.song.composer && one.saved >= MORNING ? { ...one, song: { ...one.song, composer: 1.5 } } : one);
+    for (const entry of [...library.songs.values()]) {
+      const { notes, print, ...rest } = entry;
+      const marked = { ...mark(rest), versions: rest.versions.map(mark) };
+      if (JSON.stringify(marked) === JSON.stringify(rest)) continue;
+      await library.put(marked.song === rest.song ? { ...marked, ...(notes ? { notes, print } : {}) } : marked);
+      if (marked.song !== rest.song && draft === JSON.stringify(cleanSong(rest.song))) {
+        song = cleanSong({ ...song, composer: 1.5 });
+        changed();
+      }
+    }
+    try { localStorage.setItem('squimble-music-marked-1.5', '1'); } catch { /* it'll look again */ }
+  }
   // (which save was open last time, read before opening the song keeps the draft and writes over it)
   let wasOpen = '';
   try { wasOpen = localStorage.getItem(WORKING_KEY) || ''; } catch { /* none */ }
@@ -2904,6 +2942,7 @@
   // the library opens a moment later. the song left open last time, if it was a save, is still that
   // save, and plays the notes it saved if it hasn't changed since
   library.start().then(async () => {
+    await markMorningSongs();
     const id = wasOpen;
     const entry = !fromLink && id && library.get(id);
     if (entry && !entry.binned) {

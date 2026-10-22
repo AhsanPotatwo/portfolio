@@ -4636,9 +4636,17 @@ function mutateSong(song, rng) {
 // this file writes notes changed every song anyone had saved, and a post-rock song someone loved came
 // back with a different tune. a song now remembers which composer made it (song.composer, none is the
 // first), and composeSong hands an older one to that composer, kept as it was in kept/ (KEPT_COMPOSERS,
-// loaded by the page). COMPOSER goes up one, and music.js as it was is kept, whenever a change makes
-// songs already saved sound different (README.md, "Saved songs")
-const COMPOSER = 2;
+// loaded by the page). whenever a change makes songs already saved sound different, music.js as it was
+// is kept and a new composer goes on the end of COMPOSER_VERSIONS (README.md, "Adding things")
+//
+// the stamp came after two composers, so a song saved without one could be either: composer 1 (the
+// live site's, up to 21 october) or 1.5 (the morning of 22 october, when the flavours got their own
+// phrasing). unstamped plays as 1, the one most songs were saved with. the page marks songs saved
+// after 1.5 was committed as its, once (maker.js markMorningSongs), and the Song tab's Composer picks
+// another for one that came back sounding wrong (a whistling-crab pharaoh song, saved that morning).
+// every composer there's been, oldest first: the last is today's
+const COMPOSER_VERSIONS = [1, 1.5, 2];
+const COMPOSER = COMPOSER_VERSIONS[COMPOSER_VERSIONS.length - 1];
 
 // ---------- cleaning ----------
 
@@ -4657,9 +4665,9 @@ function cleanSong(data) {
     seed,
     // a track made by hand (blankSong), not written from the seed: only there when it is
     ...(d.own === true ? { own: true } : {}),
-    // the composer it was made with (COMPOSER), only there when it isn't the first, so a song saved
-    // before this plays as it did
-    ...(Number.isInteger(d.composer) && d.composer > 1 && d.composer <= COMPOSER ? { composer: d.composer } : {}),
+    // the composer it was made with (COMPOSER_VERSIONS), only there when it isn't the first, so a song
+    // saved before this plays as it did
+    ...(COMPOSER_VERSIONS.includes(d.composer) && d.composer !== 1 ? { composer: d.composer } : {}),
     mood: MOODS[moodId] ? moodId : 'calm',
     // one of the mood's flavours (FLAVOURS), only there when it isn't the mood as it is, so a song
     // without one saves as it always did

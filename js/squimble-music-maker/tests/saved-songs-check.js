@@ -7,8 +7,9 @@
 // one must still play those notes, through the page's own scripts (synth.js, kept/, music.js)
 //
 // when it fails: the change writes different notes for songs already saved. keep music.js as it was
-// before the change as kept/composer-n.js (n is COMPOSER), add its script to the page, put COMPOSER up
-// one, then run this with --add to keep the new composer's songs too (README.md, "Adding things")
+// before the change as kept/composer-n.js (n is COMPOSER), add its script to the page, add the next
+// composer to COMPOSER_VERSIONS in music.js, then run this with --add to keep its songs too (README.md,
+// "Adding things")
 //
 // node js/squimble-music-maker/tests/saved-songs-check.js (no output means it all passed), about a
 // minute. music-check.js runs it first
@@ -20,13 +21,13 @@ const assert = require('assert');
 const dir = `${__dirname}/..`;
 const page = {};
 vm.createContext(page);
-const kept = fs.readdirSync(`${dir}/kept`).filter((file) => /^composer-\d+\.js$/.test(file)).sort((a, b) => parseInt(a.slice(9), 10) - parseInt(b.slice(9), 10));
+const kept = fs.readdirSync(`${dir}/kept`).filter((file) => /^composer-[\d.]+\.js$/.test(file)).sort((a, b) => parseFloat(a.slice(9)) - parseFloat(b.slice(9)));
 for (const file of ['synth.js', ...kept.map((one) => `kept/${one}`), 'music.js', 'library.js']) vm.runInContext(fs.readFileSync(`${dir}/${file}`, 'utf8'), page);
 const run = (expr) => vm.runInContext(expr, page);
-const { COMPOSER, composeSong, cleanSong, notesPrint } = run('({ COMPOSER, composeSong, cleanSong, notesPrint })');
+const { COMPOSER, COMPOSER_VERSIONS, composeSong, cleanSong, notesPrint } = run('({ COMPOSER, COMPOSER_VERSIONS, composeSong, cleanSong, notesPrint })');
 const html = fs.readFileSync(`${dir}/../../squimble-music-maker.html`, 'utf8');
 for (const one of kept) assert(html.includes(`js/squimble-music-maker/kept/${one}`), `the page loads kept/${one}`);
-for (let n = 1; n < COMPOSER; n++) assert(run(`KEPT_COMPOSERS[${n}]`), `composer ${n} is kept (kept/composer-${n}.js), since COMPOSER is ${COMPOSER}`);
+for (const n of COMPOSER_VERSIONS) if (n !== COMPOSER) assert(run(`KEPT_COMPOSERS[${n}]`), `composer ${n} is kept (kept/composer-${n}.js), since COMPOSER is ${COMPOSER}`);
 
 const file = (n) => `${__dirname}/saved-songs/composer-${n}.json.gz`;
 const played = (song) => notesPrint(composeSong(cleanSong(JSON.parse(JSON.stringify(song)))).notes);
@@ -50,13 +51,14 @@ function makeSongs(n) {
     own.layers[0].edits.A = { add: [[0, 60, 1], [1, 64, 1], [2, 67, 2]], remove: [] };
     songs.push(own);
   }
-  // as they'd be saved: what the page keeps is the song after a trip through json
-  return songs.map((song) => JSON.parse(JSON.stringify(song)));
+  // as they'd be saved: what the page keeps is the song after a trip through json, saying which composer
+  // made it (none for the first; 1.5 made songs without saying, and it's picked in the Song tab)
+  return songs.map((song) => ({ ...JSON.parse(JSON.stringify(song)), ...(n === 1 ? {} : { composer: n }) }));
 }
 
 if (process.argv.includes('--add')) {
   // only for a composer with no songs kept yet: the ones there are what saved songs must stay
-  for (let n = 1; n <= COMPOSER; n++) {
+  for (const n of COMPOSER_VERSIONS) {
     if (fs.existsSync(file(n))) continue;
     const songs = makeSongs(n).map((song) => ({ song, print: played(song) }));
     fs.mkdirSync(`${__dirname}/saved-songs`, { recursive: true });
@@ -65,9 +67,9 @@ if (process.argv.includes('--add')) {
   }
 }
 
-for (let n = 1; n <= COMPOSER; n++) {
+for (const n of COMPOSER_VERSIONS) {
   assert(fs.existsSync(file(n)), `composer ${n} has songs kept to check (run this with --add once it's finished)`);
   const songs = JSON.parse(zlib.gunzipSync(fs.readFileSync(file(n))));
   const changed = songs.filter(({ song, print }) => played(song) !== print);
-  assert(!changed.length, `${changed.length} of ${songs.length} songs made by composer ${n} no longer play the notes they were saved with (${changed.slice(0, 5).map(({ song }) => `${song.seed} ${song.mood}/${song.flavour || ''} ${song.style}`).join(', ')}). Keep music.js as it was before this change as kept/composer-${COMPOSER}.js and put COMPOSER up one: see the top of this file`);
+  assert(!changed.length, `${changed.length} of ${songs.length} songs made by composer ${n} no longer play the notes they were saved with (${changed.slice(0, 5).map(({ song }) => `${song.seed} ${song.mood}/${song.flavour || ''} ${song.style}`).join(', ')}). Keep music.js as it was before this change as kept/composer-${COMPOSER}.js and add the next composer to COMPOSER_VERSIONS: see the top of this file`);
 }
