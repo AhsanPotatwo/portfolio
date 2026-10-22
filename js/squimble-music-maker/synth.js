@@ -94,6 +94,12 @@
 
 const mtof = (midi) => 440 * 2 ** ((midi - 69) / 12);
 
+// a phone or a tablet, whose audio has a lot less time to work each note out than a computer's: it
+// gets a bigger audio buffer, notes sent further ahead (MusicPlayer) and a shorter reverb tail
+// (impulse), so it keeps up instead of crackling. (an ipad says it's a mac, but a mac has no touch
+// screen.) false outside a browser, where the checks load this file
+const LIGHT = typeof navigator !== 'undefined' && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform)));
+
 // waves made from harmonics: how strong the 1st, 2nd, 3rd... harmonics are
 const WAVES = {
   glass: [1, 0, 0.35, 0, 0.18, 0, 0.1, 0, 0.05],
@@ -1164,6 +1170,21 @@ function shapeCurve(kind, amount) {
   return curves.get(key);
 }
 
+// a plucked note's string (ksBuffer), as the pluck engine plays it. its own function so the player can
+// work it out ahead of time (warmNote)
+function pluckString(rate, inst, tone, midi, vel, muted) {
+  // high strings ring for less time than low ones, as on a real harp. every note ringing just as long
+  // left the top notes hanging on, thin and glassy. a string through a sustaining rig (amp.sustain)
+  // hardly loses any: a distorted guitar's top string rings as long as its bottom one
+  const tilt = inst.amp?.sustain ? 0.2 : 0.5;
+  const decay = muted ? 0.2 : inst.decay * Math.min(2, tone.release) * Math.min(1, (330 / mtof(midi)) ** tilt);
+  // brightness rounded to tenths, so the strings kept per note stay few (ksBuffer's cache)
+  const bright = Math.round(Math.min(0.95, inst.bright * tone.bright * hardness(vel) * (muted ? 0.6 : 1)) * 10) / 10;
+  return ksBuffer(rate, midi, Math.max(0.1, bright), decay, inst.soft || 0, inst.ring ?? 0.5, inst.buzz || 0, !!inst.amp);
+}
+// how hard a struck note's hit (0 to 3), picking which of modalBuffer's brightnesses it plays
+const modalLevel = (vel, tone) => Math.max(0, Math.min(3, Math.round(vel * hardness(vel) * 3 * Math.min(1.4, tone.bright))));
+
 // each engine makes one note's sound into voice.input (voiceChain), and bends every oscillator it
 // makes with voice.pitch (pitchMods: vibrato, drift, slides, shakes), so any instrument can slide
 const ENGINES = {
@@ -1276,14 +1297,7 @@ const ENGINES = {
     // a palm mute (a metal chug): the picking hand resting on the strings by the bridge, so the string
     // dies in a moment and loses its top. through a high gain amp that's the "chug"
     const muted = !!note.mute;
-    // high strings ring for less time than low ones, as on a real harp. every note ringing just as long
-    // left the top notes hanging on, thin and glassy. a string through a sustaining rig (amp.sustain)
-    // hardly loses any: a distorted guitar's top string rings as long as its bottom one
-    const tilt = inst.amp?.sustain ? 0.2 : 0.5;
-    const decay = muted ? 0.2 : inst.decay * Math.min(2, tone.release) * Math.min(1, (330 / f) ** tilt);
-    // brightness rounded to tenths, so the strings kept per note stay few (ksBuffer's cache)
-    const bright = Math.round(Math.min(0.95, inst.bright * tone.bright * hardness(voice.vel) * (muted ? 0.6 : 1)) * 10) / 10;
-    source.buffer = ksBuffer(ctx.sampleRate, midi, Math.max(0.1, bright), decay, inst.soft || 0, inst.ring ?? 0.5, inst.buzz || 0, !!inst.amp);
+    source.buffer = pluckString(ctx.sampleRate, inst, tone, midi, voice.vel, muted);
     let into = voice.input;
     if (muted) {
       into = ctx.createBiquadFilter();
@@ -1326,8 +1340,7 @@ const ENGINES = {
   // picking from four levels of brightness
   modal(ctx, voice, inst, tone, f, midi) {
     const source = ctx.createBufferSource();
-    const level = Math.max(0, Math.min(3, Math.round(voice.vel * hardness(voice.vel) * 3 * Math.min(1.4, tone.bright))));
-    source.buffer = modalBuffer(ctx.sampleRate, midi, inst, level);
+    source.buffer = modalBuffer(ctx.sampleRate, midi, inst, modalLevel(voice.vel, tone));
     source.detune.value = scatter(tone) * 0.5;
     bendWith(voice.pitch, source.detune);
     source.connect(voice.input);
@@ -2569,6 +2582,18 @@ function playNote(ctx, channel, layer, note, when, secondsPerBeat) {
   if (note.double && layer.with) channel.doubles?.forEach((double, i) => playDouble(ctx, double, i, layer, note, when, secondsPerBeat));
 }
 
+// works out a note's plucked string or struck modes (ksBuffer, modalBuffer) before it's due, so the
+// first time a chord comes round the browser isn't busy working out several seconds of string per note
+// while the next notes wait to be sent: on a slow phone that was a stumble at the first bar of a piano
+// or harp song (MusicPlayer.warm). anything else has nothing to work out
+function warmNote(rate, layer, note) {
+  const inst = INSTRUMENTS[layer.instrument];
+  if (!inst || inst.kind === 'drums' || inst.kind === 'texture') return;
+  const played = recorded(inst, inst.sung ? undefined : note.midi, layer.recording) || inst;
+  if (played.kind === 'pluck') pluckString(rate, played, layer.tone, note.midi, note.vel, !!note.mute);
+  else if (played.kind === 'modal') modalBuffer(rate, note.midi, played, modalLevel(note.vel, layer.tone));
+}
+
 // one tonal note on an instrument (or its recording, played), into a channel or a doubler's chain
 function playTone(ctx, target, inst, played, layer, note, when, secondsPerBeat) {
   const dur = note.dur * secondsPerBeat;
@@ -2918,19 +2943,31 @@ function instrumentChain(ctx, inst) {
 
 // a room's echo, made up: noise dying away over a second or so to several seconds, getting darker as
 // it goes, like a real room where the walls soak up the high end first. the convolver normalises it,
-// so a big room isn't louder than a small one
+// so a big room isn't louder than a small one.
+// the reverb was the most expensive thing in the whole band to play, by far (measured: a big room's
+// alone took a tenth of a computer's time, more than seven parts' channels), and its cost is its
+// length. so it dies at the same rate as before but stops 45 db down, fading out over its last
+// stretch, instead of running on to 60 db down: the last quarter of a tail that quiet is lost under any
+// music. on a phone (LIGHT) it stops at three seconds, which a phone's speaker can't tell apart.
+// kept, since a new song builds a new desk (restart) and the noise needn't be made again
+const impulses = new Map();
 function impulse(ctx, size, tone) {
   const rate = ctx.sampleRate;
-  const seconds = 0.6 + size * 6;
+  const key = `${rate}|${size}|${tone}`;
+  if (impulses.has(key)) return impulses.get(key);
+  const decays = 0.6 + size * 6;
+  const seconds = Math.min(LIGHT ? 3 : Infinity, decays * 0.75);
   const length = Math.floor(rate * seconds);
   const buffer = ctx.createBuffer(2, length, rate);
   const gap = Math.floor(rate * (0.005 + size * 0.03));
+  const full = Math.floor(rate * decays);
+  const tail = Math.floor(length * 0.85);
   for (let channel = 0; channel < 2; channel++) {
     const data = buffer.getChannelData(channel);
     let low = 0;
     for (let i = gap; i < length; i++) {
-      const fade = Math.exp((-6.9 * (i - gap)) / (length - gap));
-      low += (Math.random() * 2 - 1 - low) * (0.06 + tone * 0.85 * (1 - (i / length) * 0.8));
+      const fade = Math.exp((-6.9 * (i - gap)) / (full - gap)) * (i < tail ? 1 : (length - i) / (length - tail));
+      low += (Math.random() * 2 - 1 - low) * (0.06 + tone * 0.85 * (1 - (i / full) * 0.8));
       data[i] = low * fade;
     }
     // early reflections: the first few bounces off the nearest walls, heard as separate taps before
@@ -2947,6 +2984,8 @@ function impulse(ctx, size, tone) {
       for (let j = 0; j < 12 && at + j < length; j++) data[at + j] += sign * level * (1 - k * 0.08) * Math.exp(-j / 3);
     }
   }
+  if (impulses.size > 8) impulses.clear();
+  impulses.set(key, buffer);
   return buffer;
 }
 
@@ -3215,13 +3254,46 @@ class MusicPlayer {
     this.channels = {};
   }
 
+  // called from a click or a key (browsers only let sound start from one). the audio buffer is bigger
+  // than the browser's smallest (latencyHint): a few hundredths of a second before a note's heard,
+  // which only matters when playing live on the keyboard, and far fewer crackles when a busy moment
+  // (a strum of new notes, a chord change in a big band) takes the audio longer than usual to work out.
+  // a phone gets a bigger one still
   wake() {
     if (!this.ctx) {
-      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const Context = window.AudioContext || window.webkitAudioContext;
+      try {
+        this.ctx = new Context({ latencyHint: LIGHT ? 'playback' : 'balanced' });
+      } catch {
+        this.ctx = new Context();
+      }
       this.graph = buildGraph(this.ctx);
+      // an iphone stops the audio when the phone rings or the screen locks ('interrupted', which only
+      // safari has), and it doesn't come back by itself
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && this.playing && this.ctx.state !== 'running') this.ctx.resume();
+      });
     }
-    if (this.ctx.state === 'suspended') this.ctx.resume();
+    if (this.ctx.state !== 'running') this.ctx.resume();
+    this.unmute();
     if (this.song) applySpace(this.graph, this.song.fx, this.song.tempo);
+  }
+
+  // an iphone or ipad plays web audio as a game's sound effects, which the ring/silent switch mutes, so
+  // with the switch on silent the page played nothing at all. saying it's media (audioSession, safari
+  // 17) fixes that. older ones only switch over while an <audio> element is playing, so a second of
+  // silence loops alongside (paused again when the song stops)
+  unmute() {
+    if (navigator.audioSession) {
+      navigator.audioSession.type = 'playback';
+      return;
+    }
+    if (!LIGHT || !/iPhone|iPad|iPod|Mac/.test(navigator.userAgent)) return;
+    if (!this.silence) {
+      this.silence = new Audio(URL.createObjectURL(wavFile([new Float32Array(4410), new Float32Array(4410)], 4410, 44100)));
+      this.silence.loop = true;
+    }
+    this.silence.play().catch(() => { /* not from a click: the next one will */ });
   }
 
   beatAt(time) { return this.anchorBeat + (time - this.anchorTime) / this.secondsPerBeat; }
@@ -3253,7 +3325,7 @@ class MusicPlayer {
     this.mix();
     // a shorter song that's now behind the playhead starts again from the top
     if (this.scheduledTo - this.loopOffset > comp.beats) this.loopOffset = this.scheduledTo;
-    this.index = this.firstFrom(this.scheduledTo - this.loopOffset);
+    this.index = this.warmed = this.firstFrom(this.scheduledTo - this.loopOffset);
   }
 
   // starts loading the song's recordings. its synthesised instruments play until they're in, then
@@ -3286,16 +3358,20 @@ class MusicPlayer {
   }
 
   play(from = 0) {
-    this.wake();
     this.stop();
+    this.wake();
     this.playing = true;
-    this.anchorTime = this.ctx.currentTime + 0.06;
-    this.anchorBeat = from;
     this.loopOffset = 0;
     this.scheduledTo = from;
     this.channels = {};
     this.mix();
-    this.index = this.firstFrom(from);
+    this.index = this.warmed = this.firstFrom(from);
+    // the first second's strings and struck notes are worked out now, and the clock starts after the
+    // channels and those are ready. it used to start before, so on a slow phone the first notes were
+    // already late by the time they were sent, and the song stumbled in
+    this.warm(from + 1 / this.secondsPerBeat, Infinity);
+    this.anchorTime = this.ctx.currentTime + (LIGHT ? 0.12 : 0.06);
+    this.anchorBeat = from;
     // anything already sounding at the start (a pad held over it) plays its remaining part
     for (const note of this.comp.notes) {
       if (note.t < from && note.t + note.dur > from + 0.1) this.send({ ...note, dur: note.t + note.dur - from }, this.anchorTime);
@@ -3326,11 +3402,12 @@ class MusicPlayer {
     if (layer) playNote(this.ctx, this.channels[note.layer], layer, note, Math.max(when, this.ctx.currentTime), this.secondsPerBeat);
   }
 
-  // every 25 ms: send the browser every note due in the next 0.3 seconds. it plays them on its own
-  // clock, so the timing is exact even when this timer runs late
+  // every 25 ms: send the browser every note due in the next 0.3 seconds (half a second on a phone). it
+  // plays them on its own clock, so the timing is exact even when this timer runs late. in a tab that's
+  // hidden, the browser only runs the timer about once a second, so it sends a second and a half's worth
   tick() {
     if (!this.playing) return;
-    const ahead = this.beatAt(this.ctx.currentTime + 0.3);
+    const ahead = this.beatAt(this.ctx.currentTime + (document.hidden ? 1.5 : LIGHT ? 0.5 : 0.3));
     const { notes } = this.comp;
     while (this.scheduledTo < ahead) {
       const songEnd = this.loopOffset + this.comp.beats;
@@ -3345,10 +3422,25 @@ class MusicPlayer {
       this.scheduledTo = until;
       if (until < songEnd || !this.loop) break;
       this.loopOffset = songEnd;
-      this.index = 0;
+      this.index = this.warmed = 0;
     }
+    // and the next two seconds' strings and struck notes, a few milliseconds' worth at a time (warm)
+    this.warm(this.beatAt(this.ctx.currentTime + 2.5), 4);
     // not looping: stop once the end's been reached, leaving the last notes to ring out
     if (!this.loop && this.beatAt(this.ctx.currentTime) - this.loopOffset >= this.comp.beats) this.stop(false);
+  }
+
+  // works out the strings and struck notes (warmNote) of the notes not sent yet, up to beat until (from
+  // play()'s start, like scheduledTo), for at most budget milliseconds
+  warm(until, budget) {
+    const { notes } = this.comp;
+    const started = performance.now();
+    this.warmed = Math.max(this.warmed, this.index);
+    while (this.warmed < notes.length && notes[this.warmed].t + this.loopOffset < until && performance.now() - started < budget) {
+      const note = notes[this.warmed++];
+      const layer = this.song.layers.find((one) => one.id === note.layer);
+      if (layer) warmNote(this.ctx.sampleRate, layer, note);
+    }
   }
 
   // the metronome's tick: a short high blip, higher on the first beat of a bar. straight out, past the
@@ -3391,6 +3483,7 @@ class MusicPlayer {
       else setTimeout(close, 8000);
     }
     this.playing = false;
+    this.silence?.pause();
   }
 }
 

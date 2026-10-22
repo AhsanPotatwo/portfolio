@@ -1,4 +1,4 @@
-// checks the composer (music.js): every mood makes a song in every style (ambient, tune, mini boss, boss), the same seed always makes
+// checks the composer (music.js): every mood makes a song in every style (ambient to final boss), the same seed always makes
 // the same song, songs save and load back the same, junk files get cleaned up, chords parse,
 // melodies land on chord notes on strong beats, the band shares one groove, and the rules for a band
 // that fits (README.md) hold: harshness caps, no doubled instruments, no holes in melodies, no
@@ -37,6 +37,8 @@ vm.createContext(page);
 for (const file of ['synth.js', 'music.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), page);
 const { generateSong, composeSong, cleanSong, rerollSong, parseChord, MOODS } = vm.runInContext('({ generateSong, composeSong, cleanSong, rerollSong, parseChord, MOODS })', page);
 const same = (a, b, message) => assert.strictEqual(JSON.stringify(a), JSON.stringify(b), message);
+// how far a note's section is lifted by a key change (section.lift): a voice goes up with everyone
+const liftAt = (comp, note) => comp.sections.find((s) => note.gt >= s.start - 1e-6 && note.gt < s.end - 1e-6)?.lift || 0;
 
 same(parseChord('bVII'), { root: 10, tones: [0, 4, 7], fixed: false }, 'bVII');
 same(parseChord('ii°').tones, [0, 3, 6], 'ii°');
@@ -46,7 +48,7 @@ assert.strictEqual(parseChord('hello'), null);
 
 let strong = 0;
 let onChord = 0;
-const STYLES = ['ambient', 'tune', 'mini', 'boss', 'loop'];
+const STYLES = ['ambient', 'tune', 'mini', 'boss', 'loop', 'final', 'cutscene'];
 // every mood plain, then every other flavour of it (FLAVOURS), which get fewer seeds
 const { FLAVOURS } = vm.runInContext('({ FLAVOURS })', page);
 const VARIANTS = [...Object.keys(MOODS).map((mood) => [mood]), ...Object.entries(FLAVOURS).flatMap(([mood, { kinds }]) => Object.keys(kinds).slice(1).map((kind) => [mood, kind]))];
@@ -227,11 +229,12 @@ for (const [mood, kind] of VARIANTS) {
       if (bells) for (const note of comp.notes.filter((n) => n.layer === bells.id)) assert(Math.abs(note.gt - Math.round(note.gt)) < 1e-6, `${where}: drifting bells land on the beat`);
 
       // the drums: a kit only plays patterns it suits, and its pitched drums are on the key's home
-      // note or fifth
+      // note or fifth (the new key's, after a key change)
       if (drums) {
         assert(INSTRUMENTS[drums.instrument].suits.includes(drums.pattern), `${where}: ${drums.instrument} suits ${drums.pattern}`);
         for (const note of comp.notes.filter((n) => n.layer === 'drums' && n.tune)) {
-          const pc = ((Math.round(69 + 12 * Math.log2(note.tune / 440)) - song.key) % 12 + 12) % 12;
+          const lift = comp.sections.find((s) => note.gt >= s.start - 1e-6 && note.gt < s.end - 1e-6)?.lift || 0;
+          const pc = ((Math.round(69 + 12 * Math.log2(note.tune / 440)) - song.key - lift) % 12 + 12) % 12;
           assert(pc === 0 || pc === 7, `${where}: a drum tuned off the key`);
         }
       }
@@ -239,7 +242,7 @@ for (const [mood, kind] of VARIANTS) {
       const texture = song.layers.find((l) => l.role === 'texture');
       if (texture) {
         if (melody) assert(texture.volume <= melody.volume * 0.55 + 1e-9, `${where}: the texture sits under the melody`);
-        for (const note of comp.notes.filter((n) => n.layer === texture.id)) assert.strictEqual(note.midi % 12, song.key, `${where}: the texture's in the key`);
+        for (const note of comp.notes.filter((n) => n.layer === texture.id)) assert.strictEqual(note.midi % 12, (song.key + (comp.sections.find((one) => note.gt >= one.start - 1e-6 && note.gt < one.end - 1e-6)?.lift || 0)) % 12, `${where}: the texture's in the key`);
       }
       // the band listens (listen in music.js): keys, arps and counter melodies stay under the tune,
       // and nothing rubs a semitone against a longer melody note it's heard with
@@ -251,7 +254,9 @@ for (const [mood, kind] of VARIANTS) {
           for (const note of comp.notes.filter((n) => n.layer === layer.id)) {
             // (the tune as written: a pedalled piano tune rings on under what follows, lifted)
             const lead = tune.find((m) => m.gt <= note.gt + 1e-6 && note.gt < m.gt + (m.lifted ?? m.dur) - 1e-6);
-            if (lead && floor) assert(note.midi <= lead.midi || note.midi - 12 < floor, `${where}: the ${layer.role} climbs over the tune at beat ${note.gt}`);
+            // (its range is the song's own key's: a key change lifts the part, range and all)
+            const lift = comp.sections.find((s) => note.gt >= s.start - 1e-6 && note.gt < s.end - 1e-6)?.lift || 0;
+            if (lead && floor) assert(note.midi <= lead.midi || note.midi - lift - 12 < floor, `${where}: the ${layer.role} climbs over the tune at beat ${note.gt}`);
             if (layer.role !== 'pad' && layer.role !== 'keys') lines++;
             const heard = tune.filter((m) => m.dur >= 0.5 && m.gt < note.gt + note.dur - 1e-6 && m.gt + m.dur > note.gt + 1e-6);
             if (!heard.some((m) => rubs(m.midi, note.midi))) continue;
@@ -325,7 +330,7 @@ assert(soloBars > 200 && soloNew / soloBars > 0.9, `solos are new all the way th
               const rhythm = (id, k) => [...new Set(bar(id, k).map((note) => (note.gt - section.start - k * comp.bpb).toFixed(3)))].join();
               if (section.chords.every((ch) => ch.dur >= comp.bpb * 3 - 1e-6) || section.chords.length === 1) assert.strictEqual(rhythm(guitar.id, 1), rhythm(guitar.id, 2), `${where}: the riff repeats`);
               riffs++;
-              const scale = new Set(vm.runInContext('SCALES', page)[song.scale].steps.map((step) => (song.key + step) % 12));
+              const scale = new Set(vm.runInContext('SCALES', page)[song.scale].steps.map((step) => (song.key + (section.lift || 0) + step) % 12));
               // (a power chord's fifth is always a true fifth, on the scale or not, as on a guitar)
               for (const note of notes) {
                 const chord = section.chords.find((ch) => note.gt < ch.t + ch.dur - 1e-6);
@@ -362,7 +367,7 @@ assert(soloBars > 200 && soloNew / soloBars > 0.9, `solos are new all the way th
   const ids = Object.keys(MOODS);
   const mods = Object.keys(MODIFIERS);
   for (const [i, mood] of ids.entries()) {
-    for (const style of ['mini', 'boss']) {
+    for (const style of ['mini', 'boss', 'final']) {
       for (let n = 0; n < 4; n++) {
         // every mood as a fight, plain and with a modifier
         const mod = n % 2 ? [mods[(i * 7 + n) % mods.length]] : [];
@@ -385,7 +390,7 @@ assert(soloBars > 200 && soloNew / soloBars > 0.9, `solos are new all the way th
       }
     }
   }
-  for (const style of ['mini', 'boss']) for (const form of FORMS[style]) assert(form.every(([, , bars]) => bars >= 2), `${style} forms are whole sections`);
+  for (const style of ['mini', 'boss', 'final']) for (const form of FORMS[style]) assert(form.every(([, , bars]) => bars >= 2), `${style} forms are whole sections`);
 
   // every modifier on every mood, in every style: a good song, the band still fitting together
   for (const mood of ids) {
@@ -563,6 +568,24 @@ for (const junk of [null, 'hello', 42, {}, { layers: [{ role: 'nope' }, { role: 
 const cleaned = cleanSong({ layers: [{ role: 'bass', instrument: 'wind' }] });
 assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be played by a texture");
 
+// a saved song keeps the composer it was made with (COMPOSER): one from before the stamp plays with the
+// kept one (kept/composer-1.js), as the page loads it, and a new one with today's. the post-rock song
+// that came back with a different tune once the flavours got their own phrasing
+{
+  const kept = {};
+  vm.createContext(kept);
+  for (const file of ['synth.js', 'kept/composer-1.js', 'music.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), kept);
+  const run = (expr) => vm.runInContext(expr, kept);
+  const song = run("generateSong('bleak', 'tune', 'frosted-waffle', [], 'postrock')");
+  assert.strictEqual(song.composer, 2, 'a new song is stamped with the composer that made it');
+  same(run('composeSong')(song).notes, composeSong(song).notes, "a new song plays with today's composer");
+  const saved = JSON.parse(JSON.stringify(song));
+  delete saved.composer;
+  assert(!('composer' in cleanSong(saved)) && !('composer' in cleanSong({ ...saved, composer: 9 })), 'no stamp, or junk, is the first composer');
+  same(run('composeSong')(run('cleanSong')(saved)).notes, run('KEPT_COMPOSERS[1].composeSong')(cleanSong(saved)).notes, 'a song from before the stamp plays with the kept composer');
+  assert.notStrictEqual(JSON.stringify(run('composeSong')(saved).notes), JSON.stringify(composeSong(song).notes), 'the kept composer is the old one');
+}
+
 // recordings (RECORDINGS in synth.js): every folder an instrument or a kit's slot names is there, with
 // an index.json whose files are all there too and which says its licence. a kit's hit is one the
 // folder has
@@ -656,7 +679,7 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
       }
       for (const layer of song.layers.filter((l) => all[l.instrument].range)) {
         const [low, high] = all[layer.instrument].range;
-        for (const note of comp.notes.filter((one) => one.layer === layer.id)) assert(note.midi >= low && note.midi <= high, `${mood} fifth-${n}: the ${layer.instrument} sings inside what it recorded (${note.midi})`);
+        for (const note of comp.notes.filter((one) => one.layer === layer.id)) assert(note.midi >= low && note.midi <= high + liftAt(comp, note), `${mood} fifth-${n}: the ${layer.instrument} sings inside what it recorded (${note.midi})`);
       }
     }
   }
@@ -725,7 +748,7 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
       }
       const last = comp.sections[comp.sections.length - 1];
       const chord = last.chords[last.chords.length - 1];
-      assert.strictEqual(chord.root, (song.key + vm.runInContext(`diatonicChord(harmonySteps('${song.scale}'), 0).root`, page)) % 12, `${mood} slur-${n}: the song ends on its home chord`);
+      assert.strictEqual(chord.root, (song.key + (last.lift || 0) + vm.runInContext(`diatonicChord(harmonySteps('${song.scale}'), 0).root`, page)) % 12, `${mood} slur-${n}: the song ends on its home chord`);
     }
   }
   assert(slurred > 200, `blown and bowed lines slur (${slurred})`);
@@ -762,7 +785,7 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
       const notes = comp.notes.filter((note) => note.layer === layer.id);
       const home = INSTRUMENTS[layer.instrument].home;
       for (const note of notes) {
-        assert(Math.abs(note.midi - home) <= (layer.role === 'drone' ? 6 : 9), `steppe sing-${n}: the ${layer.instrument} sings near its own note (${note.midi})`);
+        assert(Math.abs(note.midi - home) <= (layer.role === 'drone' ? 6 : 9) + liftAt(comp, note), `steppe sing-${n}: the ${layer.instrument} sings near its own note (${note.midi})`);
         // (humanising can overlap two joined notes by a few milliseconds, which the voice glides over)
         assert(!notes.some((other) => other !== note && other.t < note.t + note.dur - 0.05 && note.t < other.t + other.dur - 0.05), `steppe sing-${n}: one note at a time`);
       }
@@ -847,7 +870,7 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
               const chord = section.chords.find((ch) => note.gt < ch.t + ch.dur - 1e-6);
               if (Math.abs(note.gt - chord.t) < 1e-6) assert.strictEqual(((note.midi % 12) + 12) % 12, chord.root, `${where}: a new chord starts on its root`);
               hookNotes++;
-              if (scale.has(note.midi % 12) || chord.pcs.has(note.midi % 12)) inKey++;
+              if (scale.has((note.midi - (section.lift || 0)) % 12) || chord.pcs.has(note.midi % 12)) inKey++;
             }
           }
         }
@@ -885,14 +908,30 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
     const loop = generateSong(mood, 'loop', 'ember', [], kind);
     assert(roles(loop, loop.sections[0]).some((role) => role !== 'texture'), `${mood}/${kind}: a loop has no prelude`);
   }
-  for (const mood of ['calm', 'happy', 'heroic', 'sad']) {
-    for (const seed of ['drama-1', 'drama-2']) {
+  // (the dramatic modifier also gives a tune longer shapes, DRAMA_FORMS, unless its mood has its own,
+  // and builds more often, so drama on its own is checked on the loud moods' own shapes, in songs that
+  // don't build)
+  let stretched = 0;
+  for (const mood of ['grunge', 'hardcore', 'metal', 'shoegaze']) {
+    for (const seed of ['drama-1', 'drama-2', 'drama-3', 'drama-4']) {
       const plain = generateSong(mood, 'tune', seed);
       const big = generateSong(mood, 'tune', seed, ['dramatic']);
+      // (nor a song with nothing quiet to pull down: a hardcore song can be loud all the way through)
+      if (builds(plain) || builds(big) || Math.min(...plain.sections.map((section) => section.energy)) >= 0.65) continue;
+      stretched++;
       const energies = (song) => song.sections.map((section) => section.energy);
-      same(big.sections.map((section) => section.name), plain.sections.map((section) => section.name), `${mood} ${seed}: drama keeps the song's shape`);
+      // (a solo goes where the melody's playing, which drama can move)
+      const shape = (song) => song.sections.filter((section) => !section.lead).map((section) => section.name);
+      same(shape(big), shape(plain), `${mood} ${seed}: drama keeps the song's shape`);
       assert(Math.min(...energies(big)) < Math.min(...energies(plain)) && Math.max(...energies(big)) >= Math.max(...energies(plain)), `${mood} ${seed}: drama makes the quiet quieter and the loud no quieter`);
     }
+  }
+  assert(stretched >= 6, `enough songs to check drama on (${stretched})`);
+  // and a dramatic tune is longer than the same tune without it
+  for (const mood of ['calm', 'happy', 'heroic', 'sad']) {
+    const plain = composeSong(generateSong(mood, 'tune', 'drama-1'));
+    const big = composeSong(generateSong(mood, 'tune', 'drama-1', ['dramatic']));
+    assert(big.beats > plain.beats, `${mood}: a dramatic tune is longer`);
   }
   let tunes = 0;
   let scenery = 0;
@@ -976,7 +1015,7 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
     for (const style of STYLES) {
       const song = generateSong(mood, style, 'rising-tide', ['rising']);
       const where = `${mood} ${style} rising`;
-      assert.strictEqual(builds(song), style === 'tune' || style === 'ambient', `${where}: builds in a tune or ambient song only`);
+      assert.strictEqual(builds(song), style === 'tune' || style === 'ambient' || style === 'cutscene', `${where}: builds in a tune, an ambient song or a cutscene only`);
       if (!builds(song)) continue;
       const sections = song.sections.filter((section) => section.play.some((id) => song.layers.find((layer) => layer.id === id).role !== 'texture'));
       const top = Math.max(...sections.map(energy));
@@ -1009,6 +1048,7 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
   for (let n = 0; n < 40; n++) built += builds(generateSong('heroic', 'tune', `climb-${n}`)) ? 1 : 0;
   assert(built > 4 && built < 36, `heroic tunes build some of the time (${built} of 40)`);
   for (let n = 0; n < 20; n++) assert(!builds(generateSong('cozy', 'tune', `climb-${n}`)), 'a mood without build never builds');
+  for (let n = 0; n < 20; n++) assert(builds(generateSong('cozy', 'cutscene', `climb-${n}`)), 'a cutscene always builds');
 }
 
 // short links (songChanges and withChanges in music.js): a song is its seed's song with only what
@@ -1034,6 +1074,57 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
   const own = blankSong();
   own.layers[0].edits.A = { add: [packEdit({ t: 0, midi: 67, dur: 1 })], remove: [] };
   back(blankSong(), cleanSong(own), 'a blank track with a note');
+}
+
+// key changes (section.lift, liftKey in music.js) and longer songs. a key change never drops back
+// down within a song (once it's lifted it stays lifted to the end), every note in a lifted section is
+// the note it'd be without the lift, moved up by it (the drone and scenery aside, which are joined up
+// differently, and the drums, which roll and crash into it), the chords move with it, and the drummer crashes into a loud one. boss fights go round
+// for longer than they did, a final boss and a cutscene always change key and are long, and a final boss
+// outlasts a boss fight
+{
+  const lengths = { boss: [], final: [], cutscene: [] };
+  for (const mood of Object.keys(MOODS)) {
+    for (const style of ['boss', 'final', 'cutscene']) {
+      const song = generateSong(mood, style, 'lifting');
+      const where = `${mood} ${style} lifting`;
+      const up = song.sections.map((section) => section.lift || 0);
+      const first = up.findIndex((n) => n > 0);
+      if (style !== 'boss') assert(first >= 0, `${where}: changes key`);
+      if (first >= 0) assert(up.slice(first).every((n) => n === up[first]), `${where}: a key change stays up to the end`);
+      const comp = composeSong(song);
+      lengths[style].push((comp.beats * 60) / song.tempo);
+      if (first < 0) continue;
+      const flat = JSON.parse(JSON.stringify(song));
+      for (const section of flat.sections) delete section.lift;
+      const plain = composeSong(cleanSong(flat));
+      const held = new Set(song.layers.filter((l) => ['drone', 'texture', 'drums'].includes(l.role)).map((l) => l.id));
+      const mine = comp.notes.filter((n) => !held.has(n.layer));
+      const theirs = plain.notes.filter((n) => !held.has(n.layer));
+      assert.strictEqual(mine.length, theirs.length, `${where}: a key change keeps every note`);
+      mine.forEach((note, i) => {
+        const section = comp.sections.find((one) => note.gt >= one.start - 1e-6 && note.gt < one.end - 1e-6);
+        assert(note.layer === theirs[i].layer && Math.abs(note.t - theirs[i].t) < 1e-9, `${where}: a key change keeps the rhythm`);
+        assert.strictEqual(note.midi, theirs[i].midi + (section.lift || 0), `${where}: ${note.layer} at ${note.gt} moves with the key`);
+      });
+      for (const section of comp.sections.filter((one) => one.lift)) {
+        const was = plain.sections[section.index].chords;
+        section.chords.forEach((chord, i) => assert.strictEqual(chord.root, (was[i].root + section.lift) % 12, `${where}: the chords move with the key`));
+      }
+      const drums = song.layers.find((l) => l.role === 'drums');
+      const loud = comp.sections.find((one, i) => one.lift && (one.energy ?? 0.75) >= 0.9 && !(i && comp.sections[i - 1].lift && (comp.sections[i - 1].energy ?? 0.75) >= 0.9));
+      if (drums && loud?.play.includes(drums.id)) {
+        assert(comp.notes.some((n) => n.layer === drums.id && Math.abs(n.gt - loud.start) < 1e-6 && (n.midi === 6 || n.midi === 3)), `${where}: the drummer crashes into the key change`);
+      }
+    }
+  }
+  const mean = (list) => list.reduce((a, b) => a + b, 0) / list.length;
+  assert(Math.min(...lengths.boss) >= 90, `boss fights go round for a minute and a half at least (${Math.min(...lengths.boss).toFixed(0)} s)`);
+  assert(Math.min(...lengths.final) >= 150 && mean(lengths.final) > mean(lengths.boss) * 1.2, `a final boss is long, and longer than a boss fight (${Math.min(...lengths.final).toFixed(0)} s, ${mean(lengths.final).toFixed(0)} s against ${mean(lengths.boss).toFixed(0)} s)`);
+  assert(Math.min(...lengths.cutscene) >= 100 && mean(lengths.cutscene) >= 200, `cutscenes take their time (${Math.min(...lengths.cutscene).toFixed(0)} s, ${mean(lengths.cutscene).toFixed(0)} s on average)`);
+  // a hand drawn key change saves, and junk doesn't
+  same(cleanSong({ sections: [{ name: 'Up', part: 'A', bars: 8, play: [], lift: 2 }] }).sections[0].lift, 2, 'a key change saves');
+  for (const junk of [0, -1, 9, 1.5, '2']) assert(!('lift' in cleanSong({ sections: [{ name: 'Up', part: 'A', bars: 8, play: [], lift: junk }] }).sections[0]), `a key change of ${junk} is dropped`);
 }
 
 // seeds: two words, each list with no repeats, and plenty of them

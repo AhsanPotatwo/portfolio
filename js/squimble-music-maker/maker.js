@@ -19,6 +19,19 @@
 // parts play, and Make it mine turns a written song into one of your own.
 
 (() => {
+  // an iphone on ios 15 (safari before 16) has no roundRect on a canvas, and the learn tab's drawing
+  // stopped at the first one. only ever called with one radius here
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+      const k = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+      this.moveTo(x + k, y);
+      this.arcTo(x + w, y, x + w, y + h, k);
+      this.arcTo(x + w, y + h, x, y + h, k);
+      this.arcTo(x, y + h, x, y, k);
+      this.arcTo(x, y, x + w, y, k);
+      this.closePath();
+    };
+  }
   const $ = (selector) => document.querySelector(selector);
   const make = (tag, className = '', text = '') => {
     const element = document.createElement(tag);
@@ -134,13 +147,16 @@
     if (layer.hand || roleFamily(layer.role) === 'texture') return;
     layer.edits = {};
     for (const part of PARTS) {
-      const sec = comp.sections.find((one) => one.part === part && one.play.includes(layer.id) && one.lead !== layer.id);
+      // (a section in the song's own key where there is one: after a key change, the notes are taken back
+      // down to it, since they'll be lifted again where they play)
+      const playing = comp.sections.filter((one) => one.part === part && one.play.includes(layer.id) && one.lead !== layer.id);
+      const sec = playing.find((one) => !one.lift) || playing[0];
       if (!sec) continue;
       const add = comp.notes.filter((note) => note.layer === layer.id && note.gt >= sec.start - 1e-6 && note.gt < sec.end - 1e-6).map((note) => {
         const slide = note.bend?.length === 2 && note.bend[0][0] === 0 && note.bend[0][1] === 0 ? note.bend[1] : null;
         return packEdit({
-          t: +(note.gt - sec.start).toFixed(3), midi: note.midi, dur: +note.dur.toFixed(3),
-          ...(slide ? { to: note.midi + slide[1], glide: +slide[0].toFixed(3), curve: slide[2] || 0 } : {}),
+          t: +(note.gt - sec.start).toFixed(3), midi: note.midi - (sec.lift || 0), dur: +note.dur.toFixed(3),
+          ...(slide ? { to: note.midi - (sec.lift || 0) + slide[1], glide: +slide[0].toFixed(3), curve: slide[2] || 0 } : {}),
           shake: Math.round(note.shake || 0), swell: note.swell || 0, vel: Math.round(note.vel * 100) / 100, mute: note.mute ? 1 : 0,
         });
       });
@@ -254,10 +270,11 @@
     button.dataset.group = group;
     groupKeys.append(button);
   }
-  // a fight stays a fight, a loop a loop, and the modifiers stay, when the mood changes. otherwise a
-  // mood brings its own style, the one it was made for. on a track of your own, a mood only changes how
+  // a fight stays a fight, a loop a loop, a cutscene a cutscene, and the modifiers stay, when the mood
+  // changes. otherwise a mood brings its own style, the one it was made for. on a track of your own, a mood only changes how
   // its written parts play (and the colours): it never writes a new song over yours. the same goes for the style
   // and the modifiers
+  const keeps = (style) => LOOPS[style] || style === 'cutscene';
   const retune = (change) => {
     remember();
     change();
@@ -268,7 +285,7 @@
     const button = key(mood.name, '', () => {
       if (song.own) return retune(() => { song.mood = id; delete song.flavour; });
       remember();
-      open(generateSong(id, LOOPS[song.style] ? song.style : mood.style, song.seed, song.mods));
+      open(generateSong(id, keeps(song.style) ? song.style : mood.style, song.seed, song.mods));
     }, 'mm-mood');
     button.dataset.mood = id;
     button.style.setProperty('--c', mood.colour);
@@ -303,7 +320,7 @@
   }
   // the song's mood said in a sentence, and its flavours (FLAVOURS in music.js): the kinds of music it
   // holds, a key each, the first being the mood as it is. like a mood, a flavour brings the style it
-  // was made for (underwater's reef party is a tune), unless the song's a loop or a fight, and is
+  // was made for (underwater's reef party is a tune), unless the song's a loop, a fight or a cutscene, and is
   // written from the same seed. the line under the keys says what the one that's on sounds like
   const kindKeys = $('#mmKinds');
   let shownKinds = '';
@@ -328,7 +345,7 @@
           });
         } else {
           remember();
-          open(generateSong(song.mood, LOOPS[song.style] ? song.style : kind.style || mood.style, song.seed, song.mods, flavour));
+          open(generateSong(song.mood, keeps(song.style) ? song.style : kind.style || mood.style, song.seed, song.mods, flavour));
         }
         say(`${mood.name}: ${kind.name.toLowerCase()}.`);
       }, 'mm-key-small mm-kind');
@@ -379,8 +396,13 @@
   const playKey = $('#mmPlay');
   const loopKey = $('#mmLoop');
   const togglePlay = () => {
-    if (player.playing) player.stop();
-    else player.play(startBeat);
+    try {
+      if (player.playing) player.stop();
+      else player.play(startBeat);
+    } catch {
+      // (no web audio at all: an iphone in lockdown mode turns it off, for one)
+      say("This browser won't make sound from a web page (its Web Audio is turned off), so the song can't play here.");
+    }
     renderTransport();
   };
   playKey.addEventListener('click', togglePlay);
@@ -1186,7 +1208,9 @@
     };
     box.append(head, tools, make('p', 'mm-hint', HINTS[drums ? 'note' : tool]));
 
-    const sec = comp.sections.find((one) => one.part === editPart && one.play.includes(layer.id));
+    // (edits are in the song's own key, so a section in it is shown rather than one after a key change)
+    const playing = comp.sections.filter((one) => one.part === editPart && one.play.includes(layer.id));
+    const sec = playing.find((one) => !one.lift) || playing[0];
     const grid = comp.step;
     const steps = Math.round(sec.beats / grid);
     const STEP = 15;
@@ -1486,6 +1510,20 @@
         one.lead = lead.value;
         if (!one.play.includes(lead.value)) one.play.push(lead.value);
       }));
+      // a key change (section.lift, liftKey in music.js): this section played that many semitones higher
+      const lift = make('select', 'mm-select mm-select-small');
+      lift.setAttribute('aria-label', `Section ${index + 1}'s key`);
+      lift.dataset.tip = 'Key change: this section played higher than the rest, the trick for a last chorus or a climax. Usually the sections after it go up too';
+      for (const n of [0, 1, 2, 3]) lift.append(new Option(n ? `Key up ${n}` : 'Home key', n, false, (one.lift || 0) === n));
+      // a song saved before key changes plays with the composer it was made with (COMPOSER), which has none
+      if ((song.composer || 1) < 2) {
+        lift.disabled = true;
+        lift.dataset.tip = 'Key changes came after this song was saved, and it plays as it did then. Make it again from its seed to use them';
+      }
+      lift.addEventListener('change', edit(() => {
+        if (+lift.value) one.lift = +lift.value;
+        else delete one.lift;
+      }));
       const bars = make('div', 'mm-bars');
       bars.dataset.tip = 'How many bars long it is';
       bars.append(
@@ -1535,7 +1573,7 @@
         tool('→', 'Move it later', move(1), index === song.sections.length - 1),
         tool('×', 'Remove it', edit(() => song.sections.splice(index, 1)), song.sections.length === 1),
       );
-      cell.append(name, part, lead, bars, loudness, tools);
+      cell.append(name, part, lead, lift, bars, loudness, tools);
       headRow.append(cell);
     });
     const thead = make('thead');
@@ -2562,7 +2600,7 @@
   // a note played in while recording, written into the part of the section it was played in, lined up
   // on the grid. a note already there at the same time and pitch is replaced, so going round the loop
   // playing the same beat doesn't pile up copies
-  function recordNote(layer, midi, from, to) {
+  function recordNote(layer, played, from, to) {
     if (!layerById(layer.id)) return;
     const grid = comp.step;
     const at = (Math.round(from / grid) * grid) % comp.beats;
@@ -2570,6 +2608,9 @@
     if (!sec.play.includes(layer.id)) return say(`The ${ROLES[layer.role].name.toLowerCase()} isn't playing in ${sec.name}, so that wasn't kept. Turn it on there in Arrange.`);
     // (a note held over the end of the loop finishes at the start)
     const length = to >= from ? to - from : to + comp.beats - from;
+    // (played along to a section after a key change, it's kept in the song's own key, since it'll be
+    // lifted again there. a drum is a drum, not a pitch)
+    const midi = layer.role === 'drums' ? played : played - (sec.lift || 0);
     const t = +(at - sec.start).toFixed(3);
     const dur = layer.role === 'drums' ? grid : Math.min(sec.beats - t, Math.max(grid, Math.round(length / grid) * grid));
     remember();
@@ -2605,6 +2646,9 @@
   });
 
   function frame() {
+    // asked for first, so one frame going wrong can't stop the score, the readout and the learn tab for
+    // good (on safari before 16 a missing canvas feature did exactly that)
+    requestAnimationFrame(frame);
     if (needCompose) changed(false);
     if (needMix) {
       needMix = false;
@@ -2617,7 +2661,6 @@
     renderReadout();
     if (editor && player.playing) editor.draw();
     if (learn) drawLearn();
-    requestAnimationFrame(frame);
   }
 
   // ---------- start ----------

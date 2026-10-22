@@ -24,8 +24,8 @@
 //   fx         the room it's played in (reverb, echo, tape wobble...), synth.js
 //
 // generateSong(mood, style, seed, mods) makes a whole song from a mood, in one of the STYLES (ambient,
-// tune, loop, mini boss or boss), changed by any modifiers (songMood() is the mood with them worked in).
-// composeSong(song) turns any song into notes. remixing is re-running one of generateSong's pick steps
+// tune, loop, cutscene, mini boss, boss or final boss), changed by any modifiers (songMood() is the
+// mood with them worked in). composeSong(song) turns any song into notes. remixing is re-running one of generateSong's pick steps
 // with a fresh seed (rerollSong()), and editing is changing the settings by hand. blankSong() is the
 // other way in: an empty track whose layers play only what's drawn or played in by hand.
 //
@@ -607,6 +607,11 @@ const carries = (layer) => (layer.role === 'counter' && layer.pattern === 'tune'
 //   bury        0 to 1, how far the tune sinks into the band: shoegaze buries its singer in the guitars
 //   surprise    chance of an instrument from outside the palette (12% unless it says). a kalimba tune
 //               in a grunge song is a mistake, not a surprise, so the loud moods have none
+// a section marked LIFTED in a song shape (FORMS, BUILDS, a mood's forms: [name, part, about how many
+// bars, energy, LIFTED]) is a key change: it, and everything after it marked the same, is played a step
+// or a half step higher (section.lift, pickArrangement). the oldest trick there is for making the last
+// chorus or the climax bigger than everything before it: the tune you know, suddenly brighter and higher
+const LIFTED = true;
 // song shapes for the loud and hazy moods (MOODS forms), in FORMS' terms: [name, part, about how many
 // bars, energy]. verses and choruses, with the chorus (B) as the loud part
 const LOUD_FORMS = [
@@ -630,6 +635,13 @@ const GAZE_FORMS = [
   [['Intro', 'A', 8, 0.5], ['Verse', 'A', 8, 0.75], ['Chorus', 'B', 8, 1], ['Verse', 'A', 8, 0.75], ['Chorus', 'B', 8, 1], ['Haze', 'C', 8, 0.65], ['Chorus', 'B', 8, 1], ['Outro', 'B', 8, 0.85]],
   [['Intro', 'C', 4, 0.5], ['A', 'A', 8, 0.8], ['B', 'B', 8, 1], ['A', 'A', 8, 0.8], ['B', 'B', 8, 1], ['Haze', 'C', 8, 0.6], ['B', 'B', 16, 1]],
   [['Swell', 'B', 8, 0.6], ['Verse', 'A', 8, 0.75], ['Chorus', 'B', 8, 1], ['Verse', 'A', 8, 0.75], ['Chorus', 'B', 8, 1], ['Wash', 'B', 8, 0.9]],
+];
+// a dramatic tune (the dramatic modifier, on a mood without shapes of its own): longer than a tune's
+// usual shapes, round twice, a fall to almost nothing, then the last choruses a key higher, like a power
+// ballad's or a film theme's ending
+const DRAMA_FORMS = [
+  [['Intro', 'C', 4, 0.3], ['Verse', 'A', 8, 0.6], ['Chorus', 'B', 8, 0.9], ['Verse', 'A', 8, 0.7], ['Chorus', 'B', 8, 1], ['Bridge', 'C', 8, 0.4], ['Lift', 'C', 4, 0.8], ['Chorus', 'B', 8, 1, LIFTED], ['Chorus', 'B', 8, 1, LIFTED], ['Outro', 'A', 4, 0.3, LIFTED]],
+  [['Intro', 'A', 4, 0.3], ['Theme', 'A', 8, 0.65], ['Theme', 'A', 8, 0.8], ['Climb', 'B', 8, 0.95], ['Fall', 'C', 8, 0.4], ['Theme', 'A', 8, 0.85], ['Climb', 'B', 8, 1], ['Theme', 'A', 8, 1, LIFTED], ['Climb', 'B', 8, 1, LIFTED], ['Outro', 'A', 4, 0.3, LIFTED]],
 ];
 
 // (pedal: the pianos in this mood play with the sustain pedal down, ringing on into each other until
@@ -809,7 +821,7 @@ const MOODS = {
   // seventh pulls it home, and its sections swing a long way between quiet and loud (drama)
   tragic: {
     group: 'Dark', opens: ['keys', 'drone', 'pad'],
-    build: 0.4, name: 'Tragic', colour: '#94455a', style: 'tune',
+    build: 0.55, name: 'Tragic', colour: '#94455a', style: 'tune',
     scales: { minor: 3, harmonicMinor: 2.5, dorian: 0.5 }, tempo: [52, 68], tuneTempo: [66, 90],
     meters: { '4/4': 5, '3/4': 1.5, '6/8': 1.5 },
     chords: ['i bVI bIII bVII', 'i iv bVI V', 'bVI bVII i -', 'i v bVI bIII iv i iv V', 'i bVII bVI V', 'iv bVI bVII i', 'i bIII bVII iv', 'i - bVI V'],
@@ -823,10 +835,13 @@ const MOODS = {
     textures: ['wind', 'rain', 'rumble'], kits: ['orchestra-kit', 'taiko'], drums: [0.2, 0.75],
     layers: { pad: 1, keys: 0.85, counter: 0.55 },
     patterns: { drums: ['halftime', 'march', 'tribal'], keys: ['broken', 'broken', 'block'], pad: ['swell', 'sustain', 'pulse'], melody: ['phrases', 'long', 'phrases'], bass: ['held', 'octave', 'pulse'], counter: ['counterpoint', 'harmony'], drone: ['tonic', 'fifths'] },
-    // a prologue on the piano, the theme growing each time round, and a climax before it falls away
+    // a prologue on the piano, the theme growing each time round, and a climax before it falls away.
+    // you said these were too short for how much they have to say (about three minutes), so the theme
+    // goes round again after the first climax: it falls back to almost nothing, then rises a key higher
+    // (LIFTED) to a second, bigger climax, and ends there, as the title theme does
     forms: [
-      [['Prologue', 'C', 8, 0.3], ['Theme', 'A', 8, 0.55], ['Theme', 'A', 8, 0.7], ['Rise', 'B', 8, 0.85], ['Theme', 'A', 8, 0.95], ['Climax', 'B', 8, 1], ['Epilogue', 'A', 4, 0.3]],
-      [['Prologue', 'A', 4, 0.3], ['Theme', 'A', 8, 0.6], ['Rise', 'B', 8, 0.8], ['Fall', 'C', 8, 0.45], ['Theme', 'A', 8, 0.9], ['Climax', 'B', 8, 1], ['Climax', 'B', 8, 1], ['Epilogue', 'C', 4, 0.3]],
+      [['Prologue', 'C', 8, 0.3], ['Theme', 'A', 8, 0.55], ['Theme', 'A', 8, 0.7], ['Rise', 'B', 8, 0.85], ['Theme', 'A', 8, 0.95], ['Climax', 'B', 8, 1], ['Fall', 'C', 8, 0.4], ['Theme', 'A', 8, 0.8], ['Climax', 'B', 8, 1, LIFTED], ['Climax', 'B', 8, 1, LIFTED], ['Epilogue', 'A', 4, 0.3, LIFTED]],
+      [['Prologue', 'A', 4, 0.3], ['Theme', 'A', 8, 0.6], ['Rise', 'B', 8, 0.8], ['Fall', 'C', 8, 0.45], ['Theme', 'A', 8, 0.9], ['Climax', 'B', 8, 1], ['Climax', 'B', 8, 1], ['Requiem', 'C', 8, 0.35], ['Theme', 'A', 8, 0.85, LIFTED], ['Climax', 'B', 8, 1, LIFTED], ['Epilogue', 'C', 4, 0.3, LIFTED]],
     ],
     orchestra: { pass: 0.5, double: 0.3 },
   },
@@ -3168,8 +3183,10 @@ const STYLE_PATTERNS = {
   },
 };
 STYLE_PATTERNS.mini = STYLE_PATTERNS.boss;
-// a loop is a tune that never ends, so it plays like one
+STYLE_PATTERNS.final = STYLE_PATTERNS.boss;
+// a loop is a tune that never ends, so it plays like one, and a cutscene is a tune that builds
 STYLE_PATTERNS.loop = STYLE_PATTERNS.tune;
+STYLE_PATTERNS.cutscene = STYLE_PATTERNS.tune;
 // newer beats that drive too, so a mood whose own beat is one of them keeps it in a fight (a funk boss
 // keeps its funk, a raga boss its tala). they're kept out of the fight's own list above, which every
 // older mood's fights pick from, so those fights stayed as they were
@@ -3180,13 +3197,21 @@ const drives = (role, pattern) => STYLE_PATTERNS.boss[role].includes(pattern) ||
 // a loop is what a game plays while you walk round a town or a shop: a tune with no intro and no
 // outro that runs straight back into its start, in 30 seconds to a minute and a half (toby fox's hip
 // shop goes round every 39 seconds, wizard101's world themes in a minute or two). a tune is a song
-// that starts and ends, which is what this made for years, and not what most game music is
-const STYLES = { ambient: 'Ambient', tune: 'Tune', mini: 'Mini boss', boss: 'Boss', loop: 'Loop' };
-const FIGHTS = { boss: true, mini: true };
+// that starts and ends, which is what this made for years, and not what most game music is.
+// a final boss is the longest fight: a theme, a breather, then a second phase a key higher, building
+// to its last stand (calamity's and terraria's last bosses go on for four or five minutes and change
+// gear halfway). a cutscene is a song that always builds (builds()), slowly, from one player to the
+// whole band, falls back for a breath, then lifts into its finale a key higher and settles: the long,
+// emotional piece a story stops for.
+// the ids are what songs save and links carry, so they stay as they were when the page's names
+// changed to sound more like a game's (Explore was Ambient, Theme was Tune, Town was Loop, Skirmish was
+// Mini boss)
+const STYLES = { ambient: 'Explore', tune: 'Theme', loop: 'Town', cutscene: 'Cutscene', mini: 'Skirmish', boss: 'Boss fight', final: 'Final boss' };
+const FIGHTS = { boss: true, mini: true, final: true };
 // the styles that go round and round, so they never come home at the end (cadence)
-const LOOPS = { boss: true, mini: true, loop: true };
+const LOOPS = { boss: true, mini: true, loop: true, final: true };
 // how hard each fight drives at least, whatever its mood (a calm boss is still a fight)
-const FIGHT_ENERGY = { boss: 0.9, mini: 0.8 };
+const FIGHT_ENERGY = { boss: 0.9, mini: 0.8, final: 0.9 };
 // drum kits for a fight in a mood whose own don't play a fight's beats (calm's soft kit, or none)
 const FIGHT_KITS = ['tight-kit', 'orchestra-kit', 'rock-kit'];
 
@@ -3399,9 +3424,9 @@ const MODIFIERS = {
     },
   },
   epic: {
-    name: 'Epic', tip: 'Epic: huge. Strings and a choir, big drums, long notes, a bigger room, and often a slow build to a climax',
+    name: 'Epic', tip: 'Epic: huge. Strings and a choir, big drums, long notes, a bigger room, and often a slow build to a climax that lifts into a new key',
     apply(mood) {
-      mood.build = Math.max(mood.build || 0, 0.5);
+      mood.build = Math.max(mood.build || 0, 0.6);
       mood.space = Math.min(1, mood.space + 0.2);
       mood.energy = Math.min(1, mood.energy + 0.15);
       mood.palette = { ...mood.palette, pad: ['strings', 'choir-ah', ...mood.palette.pad] };
@@ -3475,9 +3500,13 @@ const MODIFIERS = {
   // and thinner and the loud ones bigger (drama), strings swell under the tune, a minor key leans on
   // harmonic minor's raised seventh to pull home, and the room grows
   dramatic: {
-    name: 'Dramatic', tip: 'Dramatic: bigger swings between quiet and loud, strings swelling under the tune, a minor key pulling hard for home, and a bigger room',
+    name: 'Dramatic', tip: 'Dramatic: bigger swings between quiet and loud, strings swelling under the tune, a minor key pulling hard for home, a bigger room, and longer songs that often build and end a key higher',
     apply(mood) {
       mood.drama = Math.max(mood.drama || 1, 1.5);
+      // dramatic songs build more often, and a tune that doesn't goes round twice and ends on its chorus
+      // a key higher (DRAMA_FORMS). a mood with song shapes of its own (rock's verses and choruses) keeps them
+      mood.build = Math.max(mood.build || 0, 0.45);
+      if (!mood.forms) mood.forms = DRAMA_FORMS;
       mood.space = Math.min(1, mood.space + 0.15);
       if (mood.scales.minor) mood.scales = { ...mood.scales, harmonicMinor: (mood.scales.harmonicMinor || 0) + mood.scales.minor * 0.5 };
       mood.palette = { ...mood.palette, pad: [...new Set(['strings', ...mood.palette.pad])] };
@@ -3517,9 +3546,14 @@ function cleanMods(mods) {
 // flavour (kind, FLAVOURS) comes first, so a modifier or a fight works on it as on any mood
 const moodEdge = (mood) => mood.edge ?? 0.3 + mood.energy * 0.6 + mood.dark * 0.2;
 function mixMood(base, mods, style, kind) {
-  if (!mods.length && !FIGHTS[style] && !kind) return base;
+  if (!mods.length && !FIGHTS[style] && !kind && style !== 'cutscene') return base;
   const mood = kind ? flavourMood(base, kind) : { ...base, palette: { ...base.palette } };
   for (const id of mods) MODIFIERS[id].apply(mood, style);
+  // a final boss's breather and a cutscene's quiet start are quieter, and their peaks bigger (drama).
+  // a cutscene takes its time, a little slower than the mood's tunes, so a fast mood's build isn't over
+  // in two minutes
+  if (style === 'final' || style === 'cutscene') mood.drama = Math.max(mood.drama || 1, 1.25);
+  if (style === 'cutscene') scaleTempo(mood, 0.85);
   if (FIGHTS[style]) {
     mood.energy = Math.max(mood.energy, FIGHT_ENERGY[style]);
     mood.space *= 0.75;
@@ -3560,13 +3594,17 @@ const LAYER_CHANCE = {
   // a fight is the tune, the bass and the beat, with an ostinato (an arp or pulsing pad) under them
   boss:    { melody: 1, counter: 0.5, arp: 0.55, bells: 0.1, keys: 0.4, guitar: 0, pad: 0.8, drone: 0.1, bass: 1, drums: 1, texture: 0.1 },
   mini:    { melody: 1, counter: 0.3, arp: 0.45, bells: 0.05, keys: 0.35, guitar: 0, pad: 0.6, drone: 0.05, bass: 1, drums: 1, texture: 0.05 },
+  // a final boss is the biggest band a fight gets: a second melody, pads and something ringing on top
+  final:   { melody: 1, counter: 0.6, arp: 0.5, bells: 0.2, keys: 0.4, guitar: 0, pad: 0.9, drone: 0.2, bass: 1, drums: 1, texture: 0.1 },
   // a loop is a smaller band than a tune: hip shop is a bass, a beat, chords and a tune, and a loop
   // heard for an hour in a town wants room more than it wants parts
   loop:    { melody: 1, counter: 0.35, arp: 0.4, bells: 0.2, keys: 0.65, guitar: 0, pad: 0.55, drone: 0.1, bass: 1, drums: 0.8, texture: 0.2 },
+  // a cutscene builds to everyone (BUILD_BAND tops these up), so these are who's likeliest along the way
+  cutscene: { melody: 1, counter: 0.5, arp: 0.4, bells: 0.3, keys: 0.6, guitar: 0, pad: 0.9, drone: 0.25, bass: 1, drums: 0.75, texture: 0.25 },
 };
 // the most layers a song has, and how many of its parts play from the first bar (pickArrangement)
-const MOST_LAYERS = { ambient: 6, tune: 7, boss: 7, mini: 6, loop: 6 };
-const OPENING = { ambient: 1, tune: 2, boss: 3, mini: 3, loop: 3 };
+const MOST_LAYERS = { ambient: 6, tune: 7, boss: 7, mini: 6, loop: 6, final: 7, cutscene: 7 };
+const OPENING = { ambient: 1, tune: 2, boss: 3, mini: 3, loop: 3, final: 2, cutscene: 1 };
 // the parts that move around the middle of the band, under the tune. two of them is a band; three or
 // four (an arp, oom-pah keys and chimes over a walking bass) was the "bunch of noises" in happy and
 // playful songs, so a song keeps two at most, losing them in this order
@@ -3586,7 +3624,8 @@ const ROLE_ENTRY = {
 // melody's lines and the scenery
 const OPENERS = ['pad', 'keys', 'guitar', 'arp', 'drone', 'bass', 'drums'];
 
-// the shapes songs take: [name, part, about how many bars, energy]
+// the shapes songs take: [name, part, about how many bars, energy, and LIFTED for a key change (above
+// MOODS)]
 const FORMS = {
   ambient: [
     [['Rise', 'A', 8, 0.3], ['Drift', 'A', 16, 0.65], ['Turn', 'B', 16, 0.85], ['Drift', 'A', 16, 0.7], ['Fade', 'A', 8, 0.3]],
@@ -3602,11 +3641,24 @@ const FORMS = {
   ],
   // fights loop under the battle, so they never wind down: no outro, the end runs back into the start.
   // a short intro on the beat and bass, the theme, a higher second theme, and a break (calamity's
-  // "moments of calm", or a breakdown in the loud moods) before the climax
+  // "moments of calm", or a breakdown in the loud moods) before the climax. you said boss fights were
+  // too short, and at a fight's tempo the old shapes went round in about a minute and a quarter: a boss
+  // you're fighting for three minutes heard its theme three times over. they're half as long again
+  // now (two minutes or so at 160, more with a solo), with the theme and the second theme coming round
+  // twice before the break
   boss: [
-    [['Intro', 'C', 4, 0.45], ['Theme', 'A', 8, 0.9], ['Theme', 'A', 8, 0.95], ['Rise', 'B', 8, 1], ['Break', 'C', 8, 0.55], ['Climax', 'B', 8, 1], ['Theme', 'A', 8, 0.95]],
-    [['Intro', 'A', 4, 0.45], ['A', 'A', 8, 0.9], ['B', 'B', 8, 1], ['A', 'A', 8, 0.95], ['Break', 'C', 8, 0.55], ['Build', 'C', 4, 0.8], ['B', 'B', 8, 1], ['B', 'B', 8, 1]],
-    [['Intro', 'B', 4, 0.5], ['A', 'A', 16, 0.92], ['B', 'B', 8, 1], ['Break', 'C', 8, 0.55], ['A', 'A', 8, 0.95], ['B', 'B', 16, 1]],
+    [['Intro', 'C', 4, 0.45], ['Theme', 'A', 8, 0.9], ['Theme', 'A', 8, 0.95], ['Rise', 'B', 8, 1], ['Theme', 'A', 8, 0.95], ['Rise', 'B', 8, 1], ['Break', 'C', 8, 0.55], ['Build', 'C', 4, 0.8], ['Climax', 'B', 8, 1], ['Climax', 'B', 8, 1], ['Theme', 'A', 8, 0.95]],
+    [['Intro', 'A', 4, 0.45], ['A', 'A', 8, 0.9], ['B', 'B', 8, 1], ['A', 'A', 8, 0.95], ['B', 'B', 8, 1], ['Break', 'C', 8, 0.55], ['Build', 'C', 4, 0.8], ['A', 'A', 8, 0.95], ['B', 'B', 8, 1], ['B', 'B', 8, 1]],
+    [['Intro', 'B', 4, 0.5], ['A', 'A', 16, 0.92], ['B', 'B', 8, 1], ['Break', 'C', 8, 0.55], ['A', 'A', 8, 0.95], ['B', 'B', 16, 1], ['C', 'C', 8, 0.75], ['A', 'A', 8, 0.95], ['B', 'B', 8, 1]],
+  ],
+  // a final boss changes gear halfway, like the last bosses of terraria and calamity: a dark omen, the
+  // first phase (the theme and the second theme), a breather where everything drops away, then the
+  // second phase a key higher (LIFTED), harder, and its last stand. three to five minutes, then round again
+  // from the omen, back in the first key
+  final: [
+    [['Omen', 'C', 4, 0.3], ['Theme', 'A', 8, 0.85], ['Theme', 'A', 8, 0.9], ['Clash', 'B', 8, 1], ['Theme', 'A', 8, 0.95], ['Clash', 'B', 8, 1], ['Break', 'C', 8, 0.5], ['Clash', 'B', 8, 1], ['Calm', 'C', 8, 0.35], ['Awaken', 'C', 4, 0.75], ['Fury', 'A', 8, 0.95, LIFTED], ['Fury', 'A', 8, 1, LIFTED], ['Clash', 'B', 8, 1, LIFTED], ['Last stand', 'B', 8, 1, LIFTED], ['Last stand', 'A', 8, 1, LIFTED]],
+    [['Omen', 'A', 4, 0.3], ['Phase one', 'A', 8, 0.85], ['Clash', 'B', 8, 0.95], ['Phase one', 'A', 8, 0.95], ['Clash', 'B', 8, 1], ['Turn', 'C', 8, 0.7], ['Clash', 'B', 8, 1], ['Respite', 'C', 8, 0.35], ['Rising', 'C', 4, 0.75], ['Phase two', 'A', 8, 0.95, LIFTED], ['Phase two', 'B', 8, 1, LIFTED], ['Phase two', 'A', 8, 1, LIFTED], ['Desperation', 'C', 8, 0.6, LIFTED], ['Final phase', 'A', 8, 1, LIFTED], ['Final phase', 'B', 8, 1, LIFTED], ['Final phase', 'B', 8, 1, LIFTED]],
+    [['Omen', 'C', 8, 0.35], ['Theme', 'A', 16, 0.9], ['Clash', 'B', 8, 1], ['Theme', 'A', 8, 0.95], ['Clash', 'B', 8, 1], ['Calm', 'C', 8, 0.3], ['Awaken', 'B', 4, 0.8], ['Fury', 'A', 16, 0.95, LIFTED], ['Clash', 'B', 8, 1, LIFTED], ['Break', 'C', 8, 0.6, LIFTED], ['Last stand', 'B', 16, 1, LIFTED]],
   ],
   // a mini boss is over quicker: a loop of two or three parts
   mini: [
@@ -3637,28 +3689,43 @@ const FORMS = {
 // into the climax and crashes on it (COMPOSERS.drums), and there's no solo to break the climb (addSolo).
 // a mood says how often its songs build (build), and the rising modifier makes every song build. the
 // roll has its own random numbers and happens only in a mood that can build, so every other song
-// stayed exactly as it was. only tunes and ambient songs build: loops and fights go round on purpose
+// stayed exactly as it was. only tunes, ambient songs and cutscenes build: loops and fights go round
+// on purpose (a cutscene always builds: it's what it's for).
+// you then said the builds should take longer and their peak should be bigger, more extravagant. so
+// they climb through more sections, and most don't stop at the first climax: everything drops away to a
+// few players for a breath (the calm before it, which is what makes the next bit hit), the drummer
+// rolls, and the whole band comes back a key higher (LIFTED) for the finale, crashing every bar. that
+// last lift, out of a moment of quiet, is the trick film scores, power ballads and last levels all use
 const BUILDS = {
   tune: [
-    [['Spark', 'A', 8, 0.2], ['Gather', 'A', 8, 0.4], ['Rise', 'B', 8, 0.6], ['Swell', 'A', 8, 0.75], ['Surge', 'B', 8, 0.88], ['Climax', 'A', 8, 1], ['Climax', 'B', 8, 1], ['Afterglow', 'A', 4, 0.3]],
-    [['Spark', 'C', 4, 0.15], ['Gather', 'A', 8, 0.35], ['Rise', 'A', 8, 0.55], ['Swell', 'B', 8, 0.7], ['Surge', 'A', 8, 0.85], ['Brink', 'C', 4, 0.92], ['Climax', 'B', 8, 1], ['Climax', 'A', 8, 1]],
-    [['Spark', 'A', 8, 0.2], ['Gather', 'A', 8, 0.45], ['Rise', 'B', 8, 0.65], ['Surge', 'A', 8, 0.82], ['Brink', 'C', 4, 0.92], ['Climax', 'B', 16, 1], ['Afterglow', 'C', 4, 0.25]],
+    [['Spark', 'A', 8, 0.2], ['Gather', 'A', 8, 0.4], ['Rise', 'B', 8, 0.6], ['Swell', 'A', 8, 0.75], ['Surge', 'B', 8, 0.88], ['Climax', 'A', 8, 1], ['Climax', 'B', 8, 1], ['Breath', 'C', 4, 0.4], ['Finale', 'B', 16, 1, LIFTED], ['Afterglow', 'A', 4, 0.3, LIFTED]],
+    [['Spark', 'C', 8, 0.15], ['Gather', 'A', 8, 0.35], ['Rise', 'A', 8, 0.55], ['Swell', 'B', 8, 0.7], ['Surge', 'A', 8, 0.85], ['Brink', 'C', 4, 0.92], ['Climax', 'B', 8, 1], ['Climax', 'A', 8, 1, LIFTED], ['Finale', 'B', 16, 1, LIFTED]],
+    [['Spark', 'A', 8, 0.2], ['Gather', 'A', 8, 0.45], ['Rise', 'B', 8, 0.65], ['Surge', 'A', 8, 0.82], ['Brink', 'C', 4, 0.92], ['Climax', 'B', 16, 1], ['Breath', 'C', 4, 0.35], ['Finale', 'B', 16, 1, LIFTED], ['Afterglow', 'C', 4, 0.25, LIFTED]],
   ],
   ambient: [
-    [['Dawn', 'A', 8, 0.15], ['Bloom', 'A', 16, 0.35], ['Rise', 'B', 16, 0.55], ['Swell', 'A', 16, 0.75], ['Blaze', 'B', 16, 1], ['Dusk', 'A', 8, 0.3]],
-    [['Hush', 'C', 8, 0.15], ['Glow', 'A', 16, 0.4], ['Rise', 'B', 16, 0.62], ['Surge', 'A', 16, 0.82], ['Blaze', 'B', 16, 1], ['Blaze', 'A', 8, 1]],
+    [['Dawn', 'A', 8, 0.15], ['Bloom', 'A', 16, 0.35], ['Rise', 'B', 16, 0.55], ['Swell', 'A', 16, 0.75], ['Blaze', 'B', 16, 1], ['Blaze', 'A', 8, 1, LIFTED], ['Dusk', 'A', 8, 0.3, LIFTED]],
+    [['Hush', 'C', 8, 0.15], ['Glow', 'A', 16, 0.4], ['Rise', 'B', 16, 0.62], ['Surge', 'A', 16, 0.82], ['Blaze', 'B', 16, 1], ['Still', 'C', 8, 0.35], ['Blaze', 'A', 16, 1, LIFTED]],
+  ],
+  // the longest: five minutes or so at a ballad's tempo. a prologue, a long climb, a first climax, a
+  // breath, then the finale a key higher, and an epilogue that settles in the new key
+  cutscene: [
+    [['Prologue', 'C', 8, 0.15], ['Gather', 'A', 8, 0.3], ['Rise', 'A', 8, 0.45], ['Swell', 'B', 8, 0.6], ['Surge', 'A', 8, 0.75], ['Brink', 'C', 4, 0.9], ['Climax', 'B', 8, 1], ['Climax', 'A', 8, 1], ['Breath', 'C', 8, 0.35], ['Ascent', 'A', 4, 0.75], ['Finale', 'B', 8, 1, LIFTED], ['Finale', 'A', 8, 1, LIFTED], ['Epilogue', 'A', 4, 0.25, LIFTED]],
+    [['Prologue', 'A', 8, 0.15], ['Gather', 'A', 8, 0.35], ['Rise', 'B', 8, 0.5], ['Surge', 'A', 8, 0.7], ['Brink', 'C', 4, 0.88], ['Climax', 'B', 16, 1], ['Breath', 'C', 8, 0.3], ['Ascent', 'C', 4, 0.7], ['Finale', 'B', 16, 1, LIFTED], ['Epilogue', 'C', 4, 0.2, LIFTED]],
+    [['Prologue', 'C', 4, 0.15], ['Gather', 'A', 8, 0.3], ['Gather', 'A', 8, 0.4], ['Rise', 'B', 8, 0.55], ['Swell', 'A', 8, 0.7], ['Surge', 'B', 8, 0.85], ['Brink', 'C', 4, 0.92], ['Climax', 'A', 8, 1], ['Climax', 'B', 8, 1, LIFTED], ['Finale', 'A', 8, 1, LIFTED], ['Epilogue', 'A', 4, 0.25, LIFTED]],
   ],
 };
+// (a cutscene of your own doesn't build, blankSong, so it takes its shapes from here)
+FORMS.cutscene = BUILDS.cutscene;
 // the band a song that builds wants by its climax, as the least chance of each role (pickLayers): pads
 // and a bass under everything, a second melody, bells, a drone, and drums wherever the mood has any
 const BUILD_BAND = { melody: 0.9, pad: 0.95, bass: 0.9, counter: 0.6, bells: 0.45, drone: 0.4, drums: 0.9 };
 // a layer's entry point in a build is spread from the start to here, so the last one in still makes it
 // before the climax
 const BUILD_TOP = 0.93;
-// whether a song builds: its mood's chance (build), rolled with its own random numbers. a song made
-// by hand never does
+// whether a song builds: its mood's chance (build), rolled with its own random numbers, and always in
+// a cutscene. a song made by hand never does
 const builds = (song) => {
-  const chance = songMood(song).build || 0;
+  const chance = song.style === 'cutscene' ? 1 : songMood(song).build || 0;
   return chance > 0 && !song.own && !!BUILDS[song.style] && makeRng(song.seed, song.mood, song.style, 'build').chance(chance);
 };
 
@@ -3684,7 +3751,7 @@ function generateSong(moodId, style, seed, mods = [], flavour) {
   const mood = MOODS[moodId] ? moodId : 'calm';
   const picked = cleanMods(mods);
   const kind = flavour !== plainFlavour(mood) && FLAVOURS[mood]?.kinds[flavour] ? { flavour } : {};
-  const song = { name: seedTitle(seed), seed, mood, ...kind, ...(picked.length ? { mods: picked } : {}), style: STYLES[style] ? style : 'ambient', parts: {}, layers: [], sections: [], fx: {} };
+  const song = { name: seedTitle(seed), seed, composer: COMPOSER, mood, ...kind, ...(picked.length ? { mods: picked } : {}), style: STYLES[style] ? style : 'ambient', parts: {}, layers: [], sections: [], fx: {} };
   pickTonality(song, makeRng(seed, mood, 'tonality'));
   pickChords(song, makeRng(seed, mood, 'chords'));
   pickLayers(song, makeRng(seed, mood, song.style, 'layers'));
@@ -3707,7 +3774,7 @@ function generateSong(moodId, style, seed, mods = [], flavour) {
 function blankSong() {
   const layer = (role, instrument, volume, reverb) => ({ id: role, role, instrument, hand: true, volume, reverb, echo: 0 });
   return cleanSong({
-    name: 'New track', seed: 'new-track', own: true, mood: 'calm', style: 'tune',
+    name: 'New track', seed: 'new-track', own: true, composer: COMPOSER, mood: 'calm', style: 'tune',
     key: 0, scale: 'major', tempo: 100, meter: '4/4', swing: 0, humanise: 0.2, colour: 0, chordBars: 1,
     layers: [layer('melody', 'piano', 0.68, 0.35), layer('bass', 'pluck-bass', 0.66, 0.1), layer('drums', 'tight-kit', 0.55, 0.1)],
     sections: [{ name: 'Verse', part: 'A', bars: 4, play: ['melody', 'bass', 'drums'], energy: 0.75 }],
@@ -4165,7 +4232,10 @@ const stretch = (energy, drama) => Math.round(Math.min(1, Math.max(0.1, 0.65 + (
 function pickArrangement(song, rng) {
   const mood = songMood(song);
   const build = builds(song);
-  const form = rng.pick((build && BUILDS[song.style]) || (song.style === 'tune' && mood.forms) || FORMS[song.style]).map(([name, part, bars, energy]) => [name, part, bars, mood.drama ? stretch(energy, mood.drama) : energy]);
+  const form = rng.pick((build && BUILDS[song.style]) || (song.style === 'tune' && mood.forms) || FORMS[song.style]).map(([name, part, bars, energy, lifted]) => [name, part, bars, mood.drama ? stretch(energy, mood.drama) : energy, lifted]);
+  // a key change (LIFTED) goes up a whole step most of the time, a half step (the bigger jolt) otherwise.
+  // its own random numbers, so a song without one is as it was
+  const lift = form.some(([, , , , lifted]) => lifted) ? (makeRng(song.seed, song.mood, song.style, 'lift').chance(0.65) ? 2 : 1) : 0;
   const entry = {};
   for (const layer of song.layers) entry[layer.id] = rng.range(...ROLE_ENTRY[layer.role]);
   // the song opens on its mood's opening parts (MOODS opens), two in a tune and one in an ambient
@@ -4189,7 +4259,7 @@ function pickArrangement(song, rng) {
     for (const layer of band) if (layer.role === 'melody') entry[layer.id] = Math.min(entry[layer.id], 0.55);
   }
   let before = [];
-  song.sections = form.map(([name, part, fourFourBars, energy]) => {
+  song.sections = form.map(([name, part, fourFourBars, energy, lifted]) => {
     // the forms are in 4/4 bars, so shorter bars (6/8 is two beats) get more of them
     const target = Math.max(2, Math.round((fourFourBars * 4) / METERS[song.meter].beats));
     // sections are whole turns of their part's progression, close to the bars the form asks for. a
@@ -4205,7 +4275,7 @@ function pickArrangement(song, rng) {
     if (!play.length) play = [song.layers.find((layer) => layer.role === 'pad' || layer.role === 'keys' || layer.role === 'drone')?.id || song.layers[0]?.id].filter(Boolean);
     before = play;
     // energy: how hard the section's played (feel), so a quiet intro is softer than the chorus
-    return { name, part, bars, play, energy };
+    return { name, part, bars, play, energy, ...(lifted ? { lift } : {}) };
   });
   const guitars = song.layers.filter((layer) => layer.role === 'guitar');
   if (guitars.length === 2) {
@@ -4233,7 +4303,7 @@ function pickArrangement(song, rng) {
 // new voice gets the spotlight. the other line (bells, a counter melody) sits it out, so the solo
 // isn't fighting anyone. section.lead is which layer solos; any section can have one, on the page.
 // a rock mood says how often (MOODS solo) and solos over its chorus (soloOver), before the last one
-const SOLO_CHANCE = { tune: 0.6, ambient: 0.35, boss: 0.75, mini: 0.25, loop: 0.15 };
+const SOLO_CHANCE = { tune: 0.6, ambient: 0.35, boss: 0.75, mini: 0.25, loop: 0.15, final: 0.85, cutscene: 0 };
 function addSolo(song, rng, form) {
   const mood = songMood(song);
   const melody = song.layers.find((layer) => layer.role === 'melody');
@@ -4250,7 +4320,8 @@ function addSolo(song, rng, form) {
   const lead = counter && rng.chance(0.4) ? counter : melody;
   const theme = song.sections[at];
   const play = theme.play.filter((id) => id !== melody.id && !['bells', 'counter'].includes(song.layers.find((layer) => layer.id === id).role));
-  song.sections.splice(at, 0, { name: song.style !== 'ambient' ? 'Solo' : 'Wander', part: theme.part, bars: theme.bars, play: [...play, lead.id], lead: lead.id, energy: theme.energy });
+  // (in the key of the section it's before: a final boss's solo in its second phase stays up there)
+  song.sections.splice(at, 0, { name: song.style !== 'ambient' ? 'Solo' : 'Wander', part: theme.part, bars: theme.bars, play: [...play, lead.id], lead: lead.id, energy: theme.energy, ...(theme.lift ? { lift: theme.lift } : {}) });
 }
 
 // ---------- orchestration: the tune handed round ----------
@@ -4404,7 +4475,7 @@ const DOUBLES = {
   shakuhachi: [['flute', 0]],
 };
 const CHOIRS = { 'choir-oo': true, 'choir-ah': true, soprano: true, 'chant-voice': true, 'dream-voice': true };
-const DOUBLE_CHANCE = { ambient: 0.25, tune: 0.4, loop: 0.3, mini: 0.35, boss: 0.45 };
+const DOUBLE_CHANCE = { ambient: 0.25, tune: 0.4, loop: 0.3, mini: 0.35, boss: 0.45, final: 0.6, cutscene: 0.6 };
 const DOUBLE_ENERGY = 0.7;
 // a song that builds doubles its tune more often, and only at the very top, so the climax is the one
 // place it's thickened (builds)
@@ -4559,6 +4630,16 @@ function mutateSong(song, rng) {
   fitBand(song);
 }
 
+// ---------- saved songs keep their composer ----------
+//
+// a song saves its settings, not its notes: they're written again every time it plays. so changing how
+// this file writes notes changed every song anyone had saved, and a post-rock song someone loved came
+// back with a different tune. a song now remembers which composer made it (song.composer, none is the
+// first), and composeSong hands an older one to that composer, kept as it was in kept/ (KEPT_COMPOSERS,
+// loaded by the page). COMPOSER goes up one, and music.js as it was is kept, whenever a change makes
+// songs already saved sound different (README.md, "Saved songs")
+const COMPOSER = 2;
+
 // ---------- cleaning ----------
 
 // every song, whether made here, loaded from a file or opened from a link, goes through this. it
@@ -4576,6 +4657,9 @@ function cleanSong(data) {
     seed,
     // a track made by hand (blankSong), not written from the seed: only there when it is
     ...(d.own === true ? { own: true } : {}),
+    // the composer it was made with (COMPOSER), only there when it isn't the first, so a song saved
+    // before this plays as it did
+    ...(Number.isInteger(d.composer) && d.composer > 1 && d.composer <= COMPOSER ? { composer: d.composer } : {}),
     mood: MOODS[moodId] ? moodId : 'calm',
     // one of the mood's flavours (FLAVOURS), only there when it isn't the mood as it is, so a song
     // without one saves as it always did
@@ -4677,6 +4761,8 @@ function cleanSong(data) {
       ...(ids.has(raw.lead) && SOLOISTS[song.layers.find((layer) => layer.id === raw.lead).role] ? { lead: raw.lead } : {}),
       // how hard it's played, 0 to 1 (feel). songs from before this had none, and play as they did
       ...(typeof raw.energy === 'number' && Number.isFinite(raw.energy) ? { energy: num(raw.energy, 0, 1, 0.75) } : {}),
+      // a key change: semitones up (section.lift, LIFTED), only there when there is one
+      ...(Number.isInteger(raw.lift) && raw.lift >= 1 && raw.lift <= 5 ? { lift: raw.lift } : {}),
     });
   }
   if (!song.sections.length) song.sections.push({ name: 'A', part: 'A', bars: 8, play: [...ids] });
@@ -4765,6 +4851,9 @@ function cadence(song, last) {
 }
 
 function composeSong(song) {
+  // an older song plays with the composer it was made with, when the page has it
+  const kept = (song.composer || 1) !== COMPOSER && typeof KEPT_COMPOSERS !== 'undefined' && KEPT_COMPOSERS[song.composer || 1];
+  if (kept) return kept.composeSong(song);
   const meter = METERS[song.meter];
   // (for the composers that sing as the flavour does: phrasing)
   const mood = songMood(song);
@@ -4864,6 +4953,7 @@ function composeSong(song) {
   ornament(song, sections, parts);
   // the pianos hold the sustain pedal down, in the moods that want it
   pedal(song, sections, parts);
+  liftKey(song, sections, parts);
   const notes = [];
   for (const layer of layers) {
     let out = parts[layer.id];
@@ -4875,6 +4965,48 @@ function composeSong(song) {
   }
   notes.sort((a, b) => a.t - b.t);
   return { beats: start, bpb: meter.beats, sub: meter.sub, step: gridStep(song.meter), sections, notes };
+}
+
+// a key change (section.lift, LIFTED in the song shapes): every note in a lifted section moves up that
+// many semitones once the band's written, listened and ornamented, so everything they worked out
+// together (what fits the chord, what rubs) moves with it, and so do its chords for the score. the
+// drums' tuned kicks and toms move too (their tune is in hz), and the scenery's home note. done before
+// held drones are joined up (joinHeld), so a drone can't hold the old key on into the new one. a note
+// keeps the pitch it was written at (written), which is how the note editor knows it. a voice
+// (range, home) goes up with everyone, a semitone or two past where it was recorded at most, which a
+// recording takes without sounding stretched: folding its notes an octave nearer, as composeSong does
+// for strays, broke the tune's shape at the climax and dropped it under the band
+// a note from before a key change that would ring on into it is let go as it comes: still sounding in the
+// old key, it rubbed against the new one's tune
+function liftKey(song, sections, parts) {
+  for (const section of sections) {
+    if (!section.lift) continue;
+    const inside = (note) => note.t >= section.start - 1e-6 && note.t < section.end - 1e-6;
+    const before = sections[section.index - 1];
+    for (const layer of song.layers) {
+      if (before && (before.lift || 0) !== section.lift && layer.role !== 'drums') {
+        for (const note of parts[layer.id] || []) {
+          if (note.t < section.start - 1e-6 && note.t + note.dur > section.start + 1e-6) {
+            note.dur = Math.max(0.05, section.start - note.t);
+            if (note.lifted > note.dur) note.lifted = note.dur;
+          }
+        }
+      }
+      for (const note of (parts[layer.id] || []).filter(inside)) {
+        if (layer.role === 'drums') {
+          if (note.tune) note.tune *= 2 ** (section.lift / 12);
+          continue;
+        }
+        note.written ??= note.midi;
+        note.midi += section.lift;
+      }
+    }
+    for (const chord of section.chords) {
+      chord.root = mod12(chord.root + section.lift);
+      chord.pcs = new Set(chord.tones.map((tone) => mod12(chord.root + tone)));
+      chord.name = chordName(chord.root, chord.tones);
+    }
+  }
 }
 
 // ---------- listening ----------
@@ -5172,8 +5304,11 @@ function loudness(sections, t, bpb) {
   const at = sections.find((section) => t < section.end - 1e-6) || sections[sections.length - 1];
   const energy = at.energy ?? 0.75;
   let k = 0.8 + 0.27 * energy;
+  // a loud key change is the peak, played harder than anything before it
+  if (at.lift && energy >= 0.9) k *= 1.06;
   const next = sections[at.index + 1];
-  if (next && (next.energy ?? 0.75) > energy + 0.15 && t >= at.end - bpb) k *= 1 + (0.12 * (t - (at.end - bpb))) / bpb;
+  // (and the last bar before a loud key change swells up into it, however loud it already was)
+  if (next && ((next.energy ?? 0.75) > energy + 0.15 || (next.lift && !at.lift && (next.energy ?? 0.75) >= 0.9)) && t >= at.end - bpb) k *= 1 + (0.12 * (t - (at.end - bpb))) / bpb;
   return k;
 }
 
@@ -6708,18 +6843,24 @@ const COMPOSERS = {
     // (into the first section at the song's top, once)
     const energy = (section) => section?.energy ?? 0.75;
     const top = builds(c.song) ? Math.max(...c.song.sections.map(energy)) - 0.01 : Infinity;
-    const surge = c.next && energy(c.next) >= top && energy(c.section) < top;
-    const peak = c.prev && energy(c.section) >= top && energy(c.prev) < top;
+    // and the same into a key change that's loud (a finale, a final boss's second phase): a roll, a crash.
+    // (a quiet lifted section, an epilogue settling in the new key, just plays)
+    const lifted = (section) => !!section?.lift && energy(section) >= 0.9;
+    const surge = c.next && ((energy(c.next) >= top && energy(c.section) < top) || (lifted(c.next) && !lifted(c.section)));
+    const peak = c.prev && ((energy(c.section) >= top && energy(c.prev) < top) || (lifted(c.section) && !lifted(c.prev)));
     const crashed = ((LIFTS[pattern] || ROCK[pattern]) && c.prev && c.prev.part !== c.section.part && c.prev.play.includes(c.layer.id)) || peak;
     if (crashed) hit(c.start, crash, 0.8);
-    // in a loud part (a chorus, a solo), a crash at the top of every four bars, marking the phrase
-    const phrases = ROCK[pattern] && kit[6] && (c.section.part === 'B' || c.section.lead);
+    // in a loud part (a chorus, a solo), a crash at the top of every four bars, marking the phrase. in a
+    // loud lifted section it's every other bar, the way a drummer leans on the crash through the last
+    // chorus (not the quiet beats, which never fill or crash)
+    const phrases = (ROCK[pattern] && kit[6] && (c.section.part === 'B' || c.section.lead)) || (lifted(c.section) && (LIFTS[pattern] || ROCK[pattern] || FILLS[pattern]));
+    const every = lifted(c.section) ? 2 : 4;
     // a gamelan's big gong comes round every cycle (gong: bars a cycle, on the kit), struck on the
     // cycle's first beat, the way the gong ageng marks where everything comes round
     const gong = INSTRUMENTS[c.layer.instrument]?.gong;
     for (let n = 0; n < c.bars; n++) {
       const bar = c.start + n * c.bpb;
-      if (phrases && n % 4 === 0 && !(n === 0 && crashed)) hit(bar, 6, 0.72);
+      if (phrases && n % every === 0 && !(n === 0 && crashed)) hit(bar, crash, 0.72);
       if (gong && kit[6] && n % gong === 0) hit(bar, 6, 0.75);
       const last = n === c.bars - 1;
       const fillFrom = surge && last ? 0 : fill && last ? steps - perBeat : steps;
