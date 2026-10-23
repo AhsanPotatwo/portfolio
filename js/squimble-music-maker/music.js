@@ -1,83 +1,58 @@
-/// ================================== squimble music maker: the composer ==================================
+// ================================== squimble music maker: the composer ==================================
 //
-// this file writes the music. it's plain maths and plain objects, no page and no audio, so node can
-// run it (tests/music-check.js) and squimble quest can load it as it is later. synth.js plays what it
-// writes (and holds INSTRUMENTS, which the band is picked from), maker.js is the page.
+// writes the music: plain maths and objects, no page and no audio, so node can run it (tests/) and
+// squimble quest can load it as it is. synth.js plays it (and holds INSTRUMENTS, which the band is
+// picked from), maker.js is the page.
 //
 // ---------- how a song works ----------
 //
-// a song is plain settings, the json that gets saved and shared (cleanSong() has every key):
-//   mood, mods, style   what it's written as (MOODS, MODIFIERS, STYLES). mods is only there if it has
-//              any: words like calm, fast or jazzy that change how the mood plays (see "modifiers")
-//   flavour    which kind of the mood it is (FLAVOURS: underwater's reef party, wintry's christmas),
-//              only there when it isn't the mood as it is (see "flavours")
-//   seed      a word or two. every random choice comes from it, so the same settings always give
-//              the same notes and a song file stays tiny
+// a song is plain settings, the json that's saved and shared (cleanSong() has every key):
+//   mood, mods, style   what it's written as (MOODS, MODIFIERS, STYLES). mods: words like calm or fast
+//              that change how the mood plays, only there when it has some
+//   flavour    which kind of the mood it is (FLAVOURS), only there when it isn't the plain mood
+//   seed       a word or two every random choice comes from, so the same settings give the same notes
 //   key, scale, tempo, meter, swing, humanise, colour (how rich the chords are), chordBars
-//   parts      the chords for parts A, B and C, written as roman numerals ("i bVI bIII bVII"), so
-//              they work in any key and you can type your own
-//   layers     the band. each has a role (pad, bass, melody...), an instrument, a pattern (how the
-//              role plays, e.g. a bass walking or holding its roots), its own seed, its mix, and any
-//              notes changed by hand (edits). a layer marked hand plays only the notes added by hand
-//   own        there on a track made by hand (blankSong()) rather than written from the seed
+//   parts      chords for parts A, B and C as roman numerals ("i bVI bIII bVII"), so they work in any key
+//   layers     the band: each has a role (pad, bass, melody...), an instrument, a pattern (how the role
+//              plays), its own seed, its mix, and notes changed by hand (edits). hand: plays only those
+//   own        a track made by hand (blankSong()) rather than written from the seed
+//   composer   the composer that made it (COMPOSER_VERSIONS), when it isn't the first
 //   sections   the song from start to end: which part's chords, how many bars, which layers play
-//   fx         the room it's played in (reverb, echo, tape wobble...), synth.js
+//   fx         the room it's played in (reverb, echo, tape wobble...)
 //
-// generateSong(mood, style, seed, mods) makes a whole song from a mood, in one of the STYLES (ambient,
-// tune, loop, cutscene, mini boss, boss or final boss), changed by any modifiers (songMood() is the
-// mood with them worked in). composeSong(song) turns any song into notes. remixing is re-running one of generateSong's pick steps
-// with a fresh seed (rerollSong()), and editing is changing the settings by hand. blankSong() is the
-// other way in: an empty track whose layers play only what's drawn or played in by hand.
+// generateSong(mood, style, seed, mods, flavour) makes a song, composeSong(song) turns any song into
+// notes, rerollSong() remixes by running one pick again with a fresh seed, and blankSong() is an empty
+// track to fill by hand. songMood() is the mood with its flavour, modifiers and style worked in.
 //
 // ---------- the music theory ----------
 //
-// nothing here is ai. it's the rules of thumb composers and older generative music use:
-//   - scales and modes (SCALES). chords are built by stacking every other note of the scale, so a
-//     dorian song gets dorian chords by itself
-//   - chord progressions: known ones that suit each mood (MOODS chords), a markov chain of how chords
-//     usually lead to each other (CHORD_MOVES: ii goes to V, V goes home to I...), two chord vamps
-//     (modal music), and roots wandering by odd intervals for horror
-//   - voice leading: each chord's notes go as close as they can to the last chord's, so pads glide
-//     instead of jumping (voiceChord)
-//   - melodies are built from one motif (a short rhythm and shape) the way game composers write
-//     themes: repeated, sequenced, answered, paired into question and answer phrases, and brought
-//     back changed in other parts, landing on chord notes on strong beats (see "melodies", tune())
-//   - one groove for the whole band: drum patterns written out by hand like old drum machine charts,
-//     with the bass and chord stabs playing the same rhythm, so the parts lock together (GROOVES)
-//   - brian eno's tape loops (music for airports): the bells repeat on loops of different lengths, so
-//     they drift in and out of line and never line up the same way twice (the "phasing" pattern)
-//   - swing and humanising: notes nudged off the grid and played at uneven strengths, which is most
-//     of what stops it sounding like a computer (feel)
-//   - counterpoint: a second melody written against the first, note by note, in the intervals that
-//     blend (thirds and sixths), moving when the tune holds and holding when it moves, the way toby
-//     fox stacks two tunes in snowdin or death by glamour (counterpoint())
-//   - ornaments: what players do to a note that isn't on the page. slides between notes, a guitarist
-//     bending up onto one, a sax falling off the end of a phrase, a fiddler's grace notes, a shake on
-//     a long note (ornament()). each instrument says which ones a player of it would use
-//   - dynamics: quiet sections played softer and loud ones harder, with a swell into a louder
-//     section, the way a band breathes together (feel)
-//   - orchestration: the tune handed round the band, a flute, then the strings, then everyone with a
-//     glockenspiel on top, the way wizard101's and toby fox's themes come back in a new colour each
-//     time round (pickOrchestra, passTune)
-//   - a bass that's a hook: a riff of its own on the drums' rhythm, leading into each chord (toby
-//     fox's hip shop, and funk and motown before it: bassHook)
+// no ai, just the rules of thumb composers use:
+//   - scales and modes (SCALES). chords stack every other scale note, so a dorian song gets dorian chords
+//   - progressions: ones that suit each mood, a markov chain of which chord leads where (CHORD_MOVES),
+//     two chord vamps, and roots wandering by odd intervals for horror
+//   - voice leading: each chord's notes move as little as they can from the last's (voiceChord)
+//   - melodies grow from one motif: repeated, sequenced, answered in question and answer phrases and
+//     brought back changed in other parts, on chord notes on strong beats ("melodies", tune())
+//   - one groove for the band: drum charts written by hand, the bass and stabs on the same rhythm (GROOVES)
+//   - eno's tape loops: bells on loops of different lengths, drifting in and out of line ("phasing")
+//   - swing, humanising and dynamics: quiet sections softer, a swell into a louder one (feel)
+//   - counterpoint: a second melody in thirds and sixths, moving when the tune holds (counterpoint())
+//   - ornaments: slides, bends, graces, falls and shakes, per instrument (ornament())
+//   - orchestration: the tune handed round the band and doubled at its biggest (pickOrchestra, passTune)
+//   - a bass that's a hook: a riff of its own on the drums' rhythm (bassHook)
 //
 // ---------- a band that fits ----------
 //
-// each part can sound fine alone and wrong together, so a lot of this file is rules for what goes
-// with what: one groove for the drums, bass and stabs (GROOVES), harshness caps per mood and lower
-// for backing (maxEdge, edge in synth.js), no two layers on one instrument (pickInstrument), no
-// vibrato on struck things (dressLayer), no arp and counter melody together (pickLayers, fitBand),
-// layers that stay in once they're in (pickArrangement), melodies without holes (makeBar, tune), and
-// moods that say how much drums they want (MOODS drums). once every part is written, the band listens
-// to each other (listen): the tune stays on top and nothing rubs against it. the drummer listens as it
-// plays: in key, and softer when few others are in (COMPOSERS.drums). README.md lists them all with
-// what sounded wrong before each one. read it before changing any of them.
+// parts can sound fine alone and wrong together, so a lot of this file is rules for what goes with
+// what: one groove (GROOVES), harshness caps (maxEdge), no two layers on one instrument, no arp with a
+// counter melody (fitBand), layers that stay in once in (pickArrangement), melodies without holes, and a
+// band that listens once it's written (listen): the tune on top and nothing rubbing against it.
+// README.md lists every rule with what sounded wrong before it. read it before changing one.
 //
 // ---------- times ----------
 //
-// every time here is in beats from the start of the song (what the tempo counts), so changing the
-// tempo never changes the notes. synth.js turns beats into seconds.
+// every time is in beats from the song's start, so the tempo never changes the notes. synth.js turns
+// beats into seconds.
 
 // ---------- random numbers ----------
 
@@ -121,10 +96,9 @@ const clamp01 = (n) => Math.min(1, Math.max(0, n));
 const mod12 = (n) => ((n % 12) + 12) % 12;
 const clone = (thing) => JSON.parse(JSON.stringify(thing));
 
-// seeds are two words, which also make the song's first name. squimble quest is a child's dream,
-// so the words come from every world it could wander into. one row per world, so a new world is a new row.
-// about 680 words to go first and 780 to go second, so over half a million seeds (there were 44,000
-// before the second wave). a new word never changes an old seed's song: the seed is the words, hashed
+// seeds are two words, which also name the song. squimble quest is a child's dream, so the words come
+// from every world it could wander into, a row each: about 680 first words and 780 second, over half a
+// million seeds. a new word never changes an old seed's song: the seed is the words, hashed
 const SEED_WORDS = [
   [
     'mossy', 'amber', 'quiet', 'hollow', 'silver', 'drowsy', 'copper', 'misty', 'wandering', 'paper',
@@ -529,8 +503,6 @@ const instrumentFits = (id, role) => {
 };
 
 // how each role can play. the first is its default
-// (the newer ones are added at the end of each list, apart from the counter melody's, whose first is
-// its default: a second melody is what a counter melody should be, most of the time)
 const PATTERNS = {
   melody:  { phrases: 'Phrases', calls: 'Calls and gaps', long: 'Long notes', riff: 'Riff', fragments: 'Fragments' },
   counter: { counterpoint: 'Second melody', answer: 'Answers', harmony: 'Harmony', free: 'Its own tune', tune: 'Takes the tune' },
@@ -558,59 +530,38 @@ const carries = (layer) => (layer.role === 'counter' && layer.pattern === 'tune'
 // ---------- moods ----------
 
 // each mood is the ranges its songs are picked from:
-//   scales      weights, tempo / tuneTempo  bpm ranges for ambient and tune, meters  weights
-//   chords      progressions that suit it, methods  how often each way of making chords is used
+//   scales, meters   weights. tempo, tuneTempo   bpm ranges for ambient songs and for the rest
+//   chords      progressions that suit it. methods   how often each way of making chords is used
 //   richness    range for the song's chord colour
-//   energy, space, bright, dark   0 to 1, how busy, roomy, bright and unsettling it is. they steer
-//               density, reverb, filters, detuning and which layers turn up
-//   palette     instruments for each role (with a small chance of anything else, to keep it fresh)
-//   textures, kits   background sounds and drum kits it uses. no kits means no drums at all
-//   drums       [chance of drums in an ambient song, chance in a tune]. gentle moods keep them rare
-//               or out: a beat under a dreamy or heavenly song just sounds like a mistake
-//   edge        the harshest instrument it allows (edge in synth.js). left out, it comes from energy
-//               and dark (see maxEdge), so calm moods never get a buzzy lead
-//   patterns    role patterns it prefers, over STYLE_PATTERNS. 'ambient.guitar' is for ambient songs
-//               only, where they'd want something different (a metal song's riff, a drone metal one's
-//               ringing chords)
-//   swing       chance of swing (none unless it's here: a swung battle theme sounds like a joke)
-//   fx          extra wobble or drive
-//   opens       the parts that open its songs, most wanted first (pickArrangement): the guitar in a
-//               stardew style happy song, the beat in an upbeat one, a drone in an eerie one
-//   group       which row of moods it's in on the page (MOOD_GROUPS)
-//   ornate      how much its players ornament their notes (slides, bends, graces: ornament()), 1
-//               unless it says. a raga or the blues is full of them, a calm ambient song has few
-//   swingAmount how far the swing goes when it swings, [low, high], 0.15 to 0.5 unless it says. jazz
-//               and the blues swing hard (near 0.67, a triplet feel); lo-fi a little
+//   energy, space, bright, dark   0 to 1: how busy, roomy, bright and unsettling. they steer density,
+//               reverb, filters, detuning and which layers turn up
+//   palette     instruments for each role (now and then something else, surprise)
+//   textures, kits   scenery and drum kits. no kits, no drums
+//   drums       [chance in an ambient song, chance in the rest]. a beat under a dreamy song sounds wrong
+//   edge        the harshest instrument it allows (edge in synth.js), from energy and dark if left out
+//   patterns    role patterns it prefers over STYLE_PATTERNS ('ambient.guitar': ambient songs only)
+//   swing       chance of swing (none unless it says). swingAmount   its range, 0.15 to 0.5 unless it says
+//   fx          extra wobble, drive or echo
+//   opens       the parts that open its songs, most wanted first (pickArrangement)
+//   group       its row on the page (MOOD_GROUPS)
+//   ornate      how much its players ornament their notes (ornament()), 1 unless it says
 //   chordBars   how long its chords last, to pick from (a twelve bar blues is a bar a chord)
-//   orchestra   { pass, double }: the chance its tune is handed between two instruments section by
-//               section, and the chance bells double it an octave up when it comes round big
-//               (pickOrchestra). left out, neither: a mood plays its tune on one instrument
-//   prelude     the name of a section of scenery alone that opens its songs, before the music swells
-//               in (pickArrangement): warmth's embers and lava, silent hill's static. left out, none
-//   drama       how far its sections' energies are stretched apart, 1 unless it says: the quiet ones
-//               quieter and thinner, the loud ones bigger (pickArrangement). calamity's music swings a
-//               long way, and the dramatic modifier sets it
-//   build       the chance its tunes and ambient songs build from one player to everyone at a climax,
-//               instead of going round (BUILDS, builds()). left out, they never do. the rising
-//               modifier sets it to 1
-// and some that only modifiers set (MODIFIERS): most (more or fewer layers than the style's most),
-// busy (busier or sparser parts), soft (slower attacks) and reharm (the mood's progressions are
-// moved into whatever scale the song picks, see reharmonise())
-// and, for the loud and hazy moods (rock, metal, shoegaze), which work differently from the rest:
-//   layers      how likely each role is, over LAYER_CHANCE (a rock band has a guitar, and no keys)
-//   forms       its song shapes for tunes, over FORMS (verses and choruses)
-//   solo        chance of a solo in a tune, over SOLO_CHANCE, and soloOver, the part it solos over
-//               (rock solos over the chorus before its last time round, not the verse)
-//   quiet, loudQuiet   instruments for a second, cleaner guitar, and the chance of having one: the
-//               clean one plays the quiet sections and the loud one stamps in for the loud ones
+//   orchestra   { pass, double }: chances its tune is handed round and doubled (pickOrchestra)
+//   prelude     the name of a section of scenery alone that opens its songs (pickArrangement)
+//   drama       how far its sections' energies are stretched apart, 1 unless it says (stretch)
+//   build       chance its tunes and ambient songs build to a climax (builds()), never if left out
+//   pedal       its pianos hold the sustain pedal down (pedal())
+// modifiers also set most (more or fewer layers), busy (busier parts), soft (slower attacks) and reharm
+// (its progressions moved into the song's scale, reharmonise()). the loud and hazy moods also have:
+//   layers      chance of each role, over LAYER_CHANCE (a rock band has a guitar and no keys)
+//   forms       song shapes for tunes, over FORMS
+//   solo, soloOver   chance of a solo in a tune, and the part it's over (rock's is the chorus)
+//   quiet, loudQuiet   cleaner guitars, and the chance a second one plays the quiet sections
 //   breakdown   part C is a half time breakdown, not a quiet drop (grooveFor)
-//   bury        0 to 1, how far the tune sinks into the band: shoegaze buries its singer in the guitars
-//   surprise    chance of an instrument from outside the palette (12% unless it says). a kalimba tune
-//               in a grunge song is a mistake, not a surprise, so the loud moods have none
-// a section marked LIFTED in a song shape (FORMS, BUILDS, a mood's forms: [name, part, about how many
-// bars, energy, LIFTED]) is a key change: it, and everything after it marked the same, is played a step
-// or a half step higher (section.lift, pickArrangement). the oldest trick there is for making the last
-// chorus or the climax bigger than everything before it: the tune you know, suddenly brighter and higher
+//   bury        0 to 1, how far the tune sinks into the band (shoegaze's singer)
+//   surprise    chance of an instrument from outside the palette, 0.12 unless it says
+// a section marked LIFTED in a song shape ([name, part, bars, energy, LIFTED]) is a key change: it and
+// everything after it play a step or a half step higher (section.lift). defined before MOODS uses it
 const LIFTED = true;
 // song shapes for the loud and hazy moods (MOODS forms), in FORMS' terms: [name, part, about how many
 // bars, energy]. verses and choruses, with the chorus (B) as the loud part
@@ -644,8 +595,6 @@ const DRAMA_FORMS = [
   [['Intro', 'A', 4, 0.3], ['Theme', 'A', 8, 0.65], ['Theme', 'A', 8, 0.8], ['Climb', 'B', 8, 0.95], ['Fall', 'C', 8, 0.4], ['Theme', 'A', 8, 0.85], ['Climb', 'B', 8, 1], ['Theme', 'A', 8, 1, LIFTED], ['Climb', 'B', 8, 1, LIFTED], ['Outro', 'A', 4, 0.3, LIFTED]],
 ];
 
-// (pedal: the pianos in this mood play with the sustain pedal down, ringing on into each other until
-// the chord changes, the way c418's felt piano does. see pedal())
 const MOODS = {
   calm: {
     group: 'Gentle',
@@ -777,12 +726,9 @@ const MOODS = {
     textures: ['vinyl', 'rain', 'birds', 'leaves', 'chimes'], kits: ['brushes'], drums: [0.05, 0.45],
     patterns: { drums: ['brush', 'sparse'], melody: ['fragments', 'phrases', 'long'] }, fx: { wobble: 0.45 }, ornate: 0.8,
   },
-  // c418's minecraft, volume alpha and volume beta: not happy and not sad, somewhere in between, and
-  // nostalgic. a felt piano or a rhodes playing a few notes with a lot of room round them (sweden, wet
-  // hands, dry hands), over a warm analog pad and a sub bass (subwoofer lullaby), in a major key that
-  // keeps leaning on its ii, iii and borrowed iv, worn like an old tape. the tune wanders off and stops,
-  // and the quiet is part of it. its flavours are the albums' other sides: the nether's warmth, the
-  // jolly creative tracks and the long synth builds
+  // c418's minecraft volumes alpha and beta: neither happy nor sad. a felt piano or a rhodes playing a
+  // few notes with room round them over a warm pad and a sub bass, a major key leaning on its ii, iii and
+  // borrowed iv, worn like an old tape. its flavours are the albums' other sides
   nostalgic: {
     group: 'Gentle', opens: ['keys', 'pad', 'drone'],
     pedal: true, build: 0.15, name: 'Nostalgic', colour: '#86a98f', style: 'ambient',
@@ -835,10 +781,8 @@ const MOODS = {
     textures: ['wind', 'rain', 'rumble'], kits: ['orchestra-kit', 'taiko'], drums: [0.2, 0.75],
     layers: { pad: 1, keys: 0.85, counter: 0.55 },
     patterns: { drums: ['halftime', 'march', 'tribal'], keys: ['broken', 'broken', 'block'], pad: ['swell', 'sustain', 'pulse'], melody: ['phrases', 'long', 'phrases'], bass: ['held', 'octave', 'pulse'], counter: ['counterpoint', 'harmony'], drone: ['tonic', 'fifths'] },
-    // a prologue on the piano, the theme growing each time round, and a climax before it falls away.
-    // you said these were too short for how much they have to say (about three minutes), so the theme
-    // goes round again after the first climax: it falls back to almost nothing, then rises a key higher
-    // (LIFTED) to a second, bigger climax, and ends there, as the title theme does
+    // a prologue on the piano, the theme growing each time round to a climax, a fall to almost nothing,
+    // then a second, bigger climax a key higher to end on, as the title theme does (about four minutes)
     forms: [
       [['Prologue', 'C', 8, 0.3], ['Theme', 'A', 8, 0.55], ['Theme', 'A', 8, 0.7], ['Rise', 'B', 8, 0.85], ['Theme', 'A', 8, 0.95], ['Climax', 'B', 8, 1], ['Fall', 'C', 8, 0.4], ['Theme', 'A', 8, 0.8], ['Climax', 'B', 8, 1, LIFTED], ['Climax', 'B', 8, 1, LIFTED], ['Epilogue', 'A', 4, 0.3, LIFTED]],
       [['Prologue', 'A', 4, 0.3], ['Theme', 'A', 8, 0.6], ['Rise', 'B', 8, 0.8], ['Fall', 'C', 8, 0.45], ['Theme', 'A', 8, 0.9], ['Climax', 'B', 8, 1], ['Climax', 'B', 8, 1], ['Requiem', 'C', 8, 0.35], ['Theme', 'A', 8, 0.85, LIFTED], ['Climax', 'B', 8, 1, LIFTED], ['Epilogue', 'C', 4, 0.3, LIFTED]],
@@ -1176,10 +1120,9 @@ const MOODS = {
     solo: 0.2, bury: 0.15, fx: { wobble: 0.25, echo: 0.3 },
   },
 
-  // ---------- world, electronic and epic ----------
-  // places and genres, for any song and as a blend (song.blend, mixMood): the desert's scale and oud
-  // over a metal band is calamity's desert scourge. they keep to themselves (surprise: 0), so adding
-  // them left every older mood's surprises, and so its songs, as they were
+  // ---------- world and electronic ----------
+  // places and genres. they keep to themselves (surprise: 0), so adding them left older moods' songs as
+  // they were. a world mood as a boss (desert, angry) is calamity's desert scourge
 
   // arabian nights, a bazaar, the sands: the phrygian dominant scale (its flat second over a major
   // chord), an oud and a shawm (a zurna) over a drone and hand drums, and the andalusian cadence
@@ -1238,7 +1181,7 @@ const MOODS = {
     orchestra: { pass: 0.4, double: 0.15 },
   },
   // snow, ice and christmas: celesta and glass bells, a shimmering pad, a waltz now and then, the wind
-  // and a fire. as a blend over breakbeat it's calamity's cryogen, chimes over fast drum and bass
+  // and a fire
   wintry: {
     group: 'World', opens: ['pad', 'keys', 'arp'],
     build: 0.15, name: 'Wintry', colour: '#a9d6e5', style: 'ambient',
@@ -1295,8 +1238,7 @@ const MOODS = {
   },
 
   // ---------- easy: jazz, lounge, soul and showtime ----------
-  // the casual moods, for shops, cafes, towns and anywhere a character's just hanging about. they keep
-  // to themselves (surprise: 0), so adding them left every older mood's songs as they were
+  // for shops, cafes, towns and anywhere a character's hanging about. they keep to themselves (surprise: 0)
 
   // a small jazz combo, bebop and cool jazz: a sax or trumpet over piano comping in rootless voicings
   // (comp), a walking bass and a ride cymbal swinging hard. ii V I everywhere, every chord a seventh,
@@ -1510,9 +1452,8 @@ const MOODS = {
   },
 
 
-  // ---------- the third round: the ancient world, more of the world, pop and places ----------
-  // like the world moods before them they keep to themselves (surprise: 0), and their most local
-  // instruments, kits and scenery are own, so every older mood's songs stayed exactly as they were
+  // ---------- the ancient world, more of the world, pop and places ----------
+  // they keep to themselves (surprise: 0), and their most local instruments, kits and scenery are own
 
   // the aztecs and the maya: clay flutes and ocarinas over slit drums (the teponaztli), the big hand
   // drum (huehuetl), rattles and a bone scraper. a death whistle screams far off and a conch calls.
@@ -1838,14 +1779,11 @@ const MOODS = {
   },
 };
 // the rows of moods on the page, in order
-// (twelve rows went down to ten when the roots moods joined easy, electronic and pop became beats, and
-// hazy joined loud: two or three moods a row was a lot of clicking for little)
 const MOOD_GROUPS = ['Gentle', 'Bright', 'Magic', 'Easy', 'Dark', 'Beats', 'World', 'Ancient', 'Places', 'Loud'];
 
-// moods that were taken out because a mood and a modifier already made them (sludge was metal made
-// slow and dark, nugaze shoegaze made dark, dreamy calm made dreamy...), or a new mood does it better
-// (epic is dragon now). a song saved in one opens as the mood and modifiers that replaced it: it keeps
-// its own band, chords and sections, so it still sounds like itself (cleanSong)
+// moods a mood and modifiers already make (sludge is metal, slow and dark), or a newer mood does better
+// (epic is dragon). a song saved in one opens as its replacement, keeping its own band, chords and
+// sections (cleanSong)
 const RETIRED = {
   dreamy: ['calm', ['dreamy']], deep: ['underwater', []], angry: ['tense', ['angry']], showdown: ['spirited', ['dark', 'fast']],
   sludge: ['metal', ['slow', 'dark']], nugaze: ['shoegaze', ['dark', 'slow']], altrock: ['grunge', ['bright']], disco: ['showtime', []], epic: ['dragon', []],
@@ -1853,34 +1791,22 @@ const RETIRED = {
 
 // ---------- flavours ----------
 //
-// a mood is a big place, and most hold more than one kind of music. underwater is the slow, dreamy
-// deep and also a calypso party on a reef (the little mermaid); pirates is a shanty below decks and
-// also a swashbuckling film score; wintry is snowdin and also christmas. none of those wants a mood of
-// its own (that's how the list got too long to find anything in before, see RETIRED), so each is a
-// flavour of its mood: a kind of the same place, with its own band, tempo, scales and patterns where it
-// needs them, and the mood's for everything it doesn't say.
-//
-// about: what the mood sounds like and what it's for, for the page. kinds: its flavours, as { name,
-// tip, style (the style it's made for, when it isn't the mood's), and any mood settings it changes }.
-// palette, patterns and layers change a role at a time; anything else replaces the mood's. the first
-// kind is the mood as it is, changing nothing, and a song in it has no flavour key, so every song made
-// before flavours makes exactly the same notes. a modifier works on a flavour like on any mood (calm
-// christmas), and the random numbers don't depend on the flavour, so the same seed in another flavour
-// is as near the same song as two kinds of music can be (flavourMood, mixMood)
-//
-// you said the kinds only changed a song ever so slightly, and they did: most changed the instruments
-// and little else, so the same seed sang the same tune on a new instrument. so every kind (but the
-// mood as it is) has its own phrasing too, how its tunes are written:
-//   shapes   the shapes its motifs take (CONTOURS, over CONTOUR_WEIGHTS): a fanfare's bugle calls up
-//            the chord (triad), a lament's sighs (sigh), a shanty's call and a swell (call, wave),
-//            a chant on one note, a villain's dive, a fiddler's zigzag
-//   rhythm   the kind of rhythm its tunes are made of (RHYTHMS): dotted for marches and jigs, even for
-//            lullabies, long for hymns, syncopated for calypso, running for reels, snap for hip hop
-//   hook     how often its motif is a short hook played twice, and pickup, how often a phrase leads
-//            in with a note or two
-// and a few say how busy every part is (busy, as the modifiers do) and how often they build (build).
-// a different shape or rhythm takes the motif's random numbers a different way, so the same seed in
-// another kind is a new tune, written the way that kind of music writes them
+// most moods hold more than one kind of music (underwater is the dreamy deep and a calypso party on a
+// reef), and each kind is a flavour of its mood rather than a mood of its own (see RETIRED for how the
+// list grew too long before).
+//   about     what the mood sounds like and what it's for, for the page
+//   kinds     its flavours: { name, tip, style (the one it's made for, if not the mood's), and any mood
+//             settings it changes }. palette, patterns and layers change a role at a time; anything else
+//             replaces the mood's (flavourMood). the first kind is the plain mood: it changes nothing and
+//             a song in it has no flavour key
+//   phrasing  how a kind's tunes are written (every kind but the plain one has one):
+//             shapes   the shapes its motifs take (CONTOURS, over CONTOUR_WEIGHTS)
+//             rhythm   the kind of rhythm they're made of (RHYTHMS: dotted, even, long, syncopated...)
+//             hook     how often its motif is a short hook played twice
+//             pickup   how often a phrase leads in with a note or two
+// a few say how busy every part is (busy) and how often they build (build). the random numbers don't
+// depend on the flavour, but a new shape or rhythm takes them another way, so the same seed in another
+// flavour is a new tune written that kind of music's way
 const FLAVOURS = {
   calm: {
     about: 'Soft, unhurried and safe, like lying in long grass with nowhere to be: gentle pads, a felt piano or a flute, birdsong and running water. For menus, safe places and quiet wandering.',
@@ -3146,7 +3072,7 @@ const FLAVOURS = {
     },
   },
 };
-// the mood's kinds, plain mood first. a song names its flavour only when it's one of the others
+// a song's flavour (none for the plain mood), and a mood's plain flavour
 const flavourOf = (song) => FLAVOURS[song.mood]?.kinds[song.flavour];
 const plainFlavour = (moodId) => Object.keys(FLAVOURS[moodId]?.kinds || {})[0];
 // a mood in one of its flavours: the flavour's settings over the mood's, a role at a time for its
@@ -3167,14 +3093,12 @@ const STYLE_PATTERNS = {
   tune: {
     melody: ['phrases', 'phrases', 'calls', 'riff'], counter: ['counterpoint', 'answer', 'counterpoint', 'harmony'], arp: ['up', 'down', 'updown', 'converge', 'random'],
     bells: ['sparkle', 'phasing'], keys: ['broken', 'block', 'strum', 'waltz'], pad: ['sustain', 'swell', 'pulse', 'stabs'],
-    // no walking bass unless the mood asks for it: a jazz walk under a happy pop tune was one of the
-    // things that made a band sound like it was playing two songs
+    // no walking bass unless the mood asks: a jazz walk under a pop tune sounded like two songs
     drone: ['tonic', 'fifths'], bass: ['rootfifth', 'pulse', 'octave', 'synco', 'held'],
     drums: ['groove', 'groove', 'halftime'], texture: ['steady'], guitar: ['power', 'eighths', 'ring'],
   },
-  // a fight: a beat that drives (rock, double kick, a march, taiko, breaks), a bass that pushes, chords
-  // pulsing as an ostinato under a tune you can hum, and a counter melody that often harmonises it,
-  // twin leads in thirds, or plays a second tune against it
+  // a fight: a driving beat, a bass that pushes, chords pulsing under a tune you can hum, and a counter
+  // melody harmonising it or playing a second tune against it
   boss: {
     melody: ['phrases', 'phrases', 'riff', 'long'], counter: ['harmony', 'counterpoint', 'harmony', 'answer'], arp: ['up', 'updown', 'down', 'converge'],
     bells: ['sparkle'], keys: ['block', 'broken', 'strum'], pad: ['pulse', 'stabs', 'sustain', 'pump', 'swell'],
@@ -3184,28 +3108,18 @@ const STYLE_PATTERNS = {
 };
 STYLE_PATTERNS.mini = STYLE_PATTERNS.boss;
 STYLE_PATTERNS.final = STYLE_PATTERNS.boss;
-// a loop is a tune that never ends, so it plays like one, and a cutscene is a tune that builds
+// a loop is a tune that never ends, and a cutscene a tune that builds
 STYLE_PATTERNS.loop = STYLE_PATTERNS.tune;
 STYLE_PATTERNS.cutscene = STYLE_PATTERNS.tune;
-// newer beats that drive too, so a mood whose own beat is one of them keeps it in a fight (a funk boss
-// keeps its funk, a raga boss its tala). they're kept out of the fight's own list above, which every
-// older mood's fights pick from, so those fights stayed as they were
+// newer beats that drive too, so a mood whose own beat is one keeps it in a fight (a funk boss keeps its
+// funk). kept out of the list above, which older moods' fights pick from, so those stayed as they were
 const ALSO_DRIVING = ['funk', 'tala', 'shuffle', 'onedrop', 'train', 'trap', 'maqsum', 'gallop'];
 const drives = (role, pattern) => STYLE_PATTERNS.boss[role].includes(pattern) || (role === 'drums' && ALSO_DRIVING.includes(pattern));
 
-// the styles, as the page names them. a mini boss is a boss fight in a shorter loop with a smaller band.
-// a loop is what a game plays while you walk round a town or a shop: a tune with no intro and no
-// outro that runs straight back into its start, in 30 seconds to a minute and a half (toby fox's hip
-// shop goes round every 39 seconds, wizard101's world themes in a minute or two). a tune is a song
-// that starts and ends, which is what this made for years, and not what most game music is.
-// a final boss is the longest fight: a theme, a breather, then a second phase a key higher, building
-// to its last stand (calamity's and terraria's last bosses go on for four or five minutes and change
-// gear halfway). a cutscene is a song that always builds (builds()), slowly, from one player to the
-// whole band, falls back for a breath, then lifts into its finale a key higher and settles: the long,
-// emotional piece a story stops for.
-// the ids are what songs save and links carry, so they stay as they were when the page's names
-// changed to sound more like a game's (Explore was Ambient, Theme was Tune, Town was Loop, Skirmish was
-// Mini boss)
+// the styles, as the page names them. the ids are what songs and links save, so they stayed when the
+// names changed. ambient wanders, a tune starts and ends, a loop (a town or a shop) runs straight back
+// into its start, a cutscene always builds (builds()) to a finale a key higher, and the fights loop:
+// a mini boss short with a smaller band, a final boss long, its second phase a key higher
 const STYLES = { ambient: 'Explore', tune: 'Theme', loop: 'Town', cutscene: 'Cutscene', mini: 'Skirmish', boss: 'Boss fight', final: 'Final boss' };
 const FIGHTS = { boss: true, mini: true, final: true };
 // the styles that go round and round, so they never come home at the end (cadence)
@@ -3215,9 +3129,8 @@ const FIGHT_ENERGY = { boss: 0.9, mini: 0.8, final: 0.9 };
 // drum kits for a fight in a mood whose own don't play a fight's beats (calm's soft kit, or none)
 const FIGHT_KITS = ['tight-kit', 'orchestra-kit', 'rock-kit'];
 
-// the patterns a role picks from in a song: the mood's for its style, the mood's, or the style's.
-// a fight keeps the mood's own where they drive (metal's double kick) and drops the gentle ones: a
-// calm mood's brushes under a boss would be a joke
+// the patterns a role picks from: the mood's for its style, the mood's, or the style's. a fight keeps
+// the mood's driving ones (metal's double kick) and drops the gentle ones (brushes under a boss)
 const moodPatterns = (song, role) => {
   const mood = songMood(song);
   const own = mood.patterns?.[`${song.style}.${role}`] || mood.patterns?.[role];
@@ -3228,23 +3141,12 @@ const moodPatterns = (song, role) => {
 
 // ---------- modifiers ----------
 //
-// a mood is a kind of music (folk, jazz, metal) and a modifier is a word you'd put in front of it:
-// calm folk, angry folk, fast folk, jazzy folk. a modifier changes how the mood's own band plays (its
-// tempo, its energy, how dark its scale is, how busy it is, how hard its drummer hits) instead of
-// bringing in a second band.
-//
-// this replaced blends (song.blend), which mixed a second mood in: its scales, chords, tune
-// instruments and scenery. folk blended with angry was a pile of both bands' instruments, chords and
-// scales at once, and it didn't sound like either of them. angry folk should be the same folk band
-// playing harder, faster and in a darker key, and that's what the angry modifier does.
-//
-// a few modifiers do bring in sounds, because the word means them: lo-fi means vinyl and a dusty kit,
-// retro means chip sounds, acoustic means unplugged, epic means a choir and big drums. they swap
-// sounds in for the mood's own rather than adding a second band.
-//
-// each is { name, tip, against (the one it can't go with), apply(mood, style) }. apply changes a copy
-// of the mood. they're applied in MODIFIERS' order whatever order they were picked in, so "fast and
-// calm" and "calm and fast" are the same song. songs can have up to MOST_MODS of them
+// a modifier is a word in front of a mood: calm folk, angry folk, jazzy folk. it changes how the mood's
+// own band plays (tempo, energy, how dark its scale is, how busy, how hard the drummer hits) rather than
+// bringing in a second band (the old blends did that, and mashed two bands together). a few bring
+// sounds in because the word means them (lo-fi's vinyl, retro's chips, acoustic, epic's choir).
+// each is { name, tip, against (its opposite), apply(mood, style) }, and apply changes a copy of the
+// mood. they apply in MODIFIERS' order whatever order they were picked in, up to MOST_MODS of them
 const MOST_MODS = 4;
 // the beats that suit each word, used to keep a mood's own where they fit
 const GENTLE_BEATS = ['pulse', 'sparse', 'brush', 'halftime', 'swing', 'bossa', 'wash', 'train', 'boombap'];
@@ -3261,8 +3163,7 @@ const scaleTempo = (mood, k) => {
   mood.tuneTempo = mood.tuneTempo.map((bpm) => Math.round(Math.min(200, bpm * k)));
 };
 // the modes from brightest to darkest. shading a mood darker moves each of its scales one along (major
-// becomes mixolydian, dorian becomes minor), so it keeps its own character, just in a darker light.
-// never as far as locrian, whose home chord is diminished and won't settle
+// to mixolydian), so it keeps its character. never as far as locrian, whose home chord won't settle
 const SHADES = ['lydian', 'major', 'mixolydian', 'dorian', 'minor', 'phrygian'];
 // the scales that aren't modes, as [what it becomes brighter, what it becomes darker]
 const OTHER_SHADES = { majorPentatonic: ['majorPentatonic', 'minorPentatonic'], minorPentatonic: ['majorPentatonic', 'blues'], blues: ['minorPentatonic', 'blues'], harmonicMinor: ['melodicMinor', 'phrygianDominant'], melodicMinor: ['dorian', 'harmonicMinor'], phrygianDominant: ['harmonicMinor', 'hungarianMinor'] };
@@ -3277,8 +3178,7 @@ function shade(mood, way) {
   // the mood's progressions were written for its own scales, so they're moved into the new one
   mood.reharm = true;
 }
-// a few roles' palettes swapped out (retro, acoustic): the role's instruments mapped one by one,
-// keeping the mood's order, with duplicates dropped
+// a mood's instruments mapped one by one (retro, acoustic), in its order, duplicates dropped
 const mapPalette = (mood, map) => {
   const palette = {};
   for (const [role, list] of Object.entries(mood.palette)) palette[role] = [...new Set(list.map((id) => (typeof map === 'function' ? map(id, role) : map[id]) || id))];
@@ -3496,15 +3396,14 @@ const MODIFIERS = {
       setPatterns(mood, { melody: ['long', 'phrases', 'fragments'], pad: ['swell', 'sustain'] });
     },
   },
-  // calamity's music, and film scores: everything bigger at both ends. the quiet sections get quieter
-  // and thinner and the loud ones bigger (drama), strings swell under the tune, a minor key leans on
-  // harmonic minor's raised seventh to pull home, and the room grows
+  // calamity's music and film scores: quiet sections quieter and loud ones bigger (drama), strings
+  // swelling under the tune, harmonic minor pulling home, and a bigger room
   dramatic: {
     name: 'Dramatic', tip: 'Dramatic: bigger swings between quiet and loud, strings swelling under the tune, a minor key pulling hard for home, a bigger room, and longer songs that often build and end a key higher',
     apply(mood) {
       mood.drama = Math.max(mood.drama || 1, 1.5);
-      // dramatic songs build more often, and a tune that doesn't goes round twice and ends on its chorus
-      // a key higher (DRAMA_FORMS). a mood with song shapes of its own (rock's verses and choruses) keeps them
+      // it builds more often, and a tune that doesn't goes round twice and ends a key higher
+      // (DRAMA_FORMS), unless the mood has song shapes of its own
       mood.build = Math.max(mood.build || 0, 0.45);
       if (!mood.forms) mood.forms = DRAMA_FORMS;
       mood.space = Math.min(1, mood.space + 0.15);
@@ -3514,8 +3413,7 @@ const MODIFIERS = {
       setPatterns(mood, { pad: ['swell', 'sustain', 'swell'], melody: keepOr(mood, 'melody', ['long', 'phrases'], ['phrases', 'long']) });
     },
   },
-  // a film cue, a post-rock song, bolero: one player, then another, until everyone's playing the tune
-  // together at the climax (builds). in a tune or an ambient song; loops and fights go round
+  // a film cue, a post-rock song, bolero: one player, then everyone, to a climax (builds)
   rising: {
     name: 'Rising', tip: 'Rising: starts with one player and builds section by section, everyone joining in, to a huge climax with the whole band on the tune',
     apply(mood) {
@@ -3536,22 +3434,16 @@ function cleanMods(mods) {
   return out;
 }
 
-// the mood a song is really written in (songMood): its mood with its modifiers worked in, made into a
-// fight for the boss styles. a fight drives: at least FIGHT_ENERGY, quicker than the mood's tune, no
-// swing, a drier room, and drums always, on a kit that can play a fight's beats. it opens on the drums
-// and bass. (terraria's and calamity's boss themes, which this was made for, are mostly a genre and a
-// place. the place used to be a blend; now a world mood with angry or fast does that job, or the
-// genre's own mood as a boss)
-// a song with neither gets the mood itself, untouched, so every song made before plays the same. a
-// flavour (kind, FLAVOURS) comes first, so a modifier or a fight works on it as on any mood
+// the mood a song is really written in (songMood): its flavour, then its modifiers, then its style. a
+// fight drives: at least FIGHT_ENERGY, quicker, no swing, a drier room, and drums on a kit that can play
+// a fight's beats, opening on the drums and bass. a song with none of these gets the mood untouched
 const moodEdge = (mood) => mood.edge ?? 0.3 + mood.energy * 0.6 + mood.dark * 0.2;
 function mixMood(base, mods, style, kind) {
   if (!mods.length && !FIGHTS[style] && !kind && style !== 'cutscene') return base;
   const mood = kind ? flavourMood(base, kind) : { ...base, palette: { ...base.palette } };
   for (const id of mods) MODIFIERS[id].apply(mood, style);
-  // a final boss's breather and a cutscene's quiet start are quieter, and their peaks bigger (drama).
-  // a cutscene takes its time, a little slower than the mood's tunes, so a fast mood's build isn't over
-  // in two minutes
+  // a final boss and a cutscene have more drama, and a cutscene is a little slower so its build takes
+  // its time
   if (style === 'final' || style === 'cutscene') mood.drama = Math.max(mood.drama || 1, 1.25);
   if (style === 'cutscene') scaleTempo(mood, 0.85);
   if (FIGHTS[style]) {
@@ -3561,8 +3453,7 @@ function mixMood(base, mods, style, kind) {
     // quicker, unless it's already quick (drum and bass at 170 needs no push)
     mood.tuneTempo = mood.tuneTempo.map((bpm, i) => (bpm >= 150 ? bpm : Math.round(Math.min(165, bpm * (i ? 1.15 : 1.2)))));
     mood.meters = { '4/4': 10, '6/8': 1, '5/4': 0.5 };
-    // a kit that plays a fight's beats, or one of the newer driving beats the mood itself plays (a
-    // soft kit's train beat drives a country boss, but it doesn't make a calm boss's soft kit a fight's)
+    // a kit that plays a fight's beats, or a newer driving beat the mood itself plays (country's train)
     const own = mood.patterns?.drums || [];
     const kits = mood.kits.filter((id) => INSTRUMENTS[id].suits.some((pattern) => STYLE_PATTERNS.boss.drums.includes(pattern) || (ALSO_DRIVING.includes(pattern) && own.includes(pattern))));
     mood.kits = kits.length ? kits : FIGHT_KITS;
@@ -3580,8 +3471,7 @@ function songMood(song) {
   return moodCache.get(key);
 }
 
-// the families a layer's surprise instrument (the odd one from outside the mood) comes from, so a
-// drone doesn't end up on a plucked lead. the page still offers any instrument for any layer
+// the families a layer's surprise instrument can come from, so a drone isn't a plucked lead
 const WILDCARDS = {
   melody: ['lead', 'keys', 'bell'], counter: ['lead', 'keys'], arp: ['keys', 'lead', 'bell'], bells: ['bell', 'keys'],
   keys: ['keys'], pad: ['pad', 'drone'], drone: ['drone', 'pad'], bass: ['bass'], guitar: ['guitar'],
@@ -3596,36 +3486,30 @@ const LAYER_CHANCE = {
   mini:    { melody: 1, counter: 0.3, arp: 0.45, bells: 0.05, keys: 0.35, guitar: 0, pad: 0.6, drone: 0.05, bass: 1, drums: 1, texture: 0.05 },
   // a final boss is the biggest band a fight gets: a second melody, pads and something ringing on top
   final:   { melody: 1, counter: 0.6, arp: 0.5, bells: 0.2, keys: 0.4, guitar: 0, pad: 0.9, drone: 0.2, bass: 1, drums: 1, texture: 0.1 },
-  // a loop is a smaller band than a tune: hip shop is a bass, a beat, chords and a tune, and a loop
-  // heard for an hour in a town wants room more than it wants parts
+  // a loop is a smaller band than a tune: heard for an hour, it wants room more than parts
   loop:    { melody: 1, counter: 0.35, arp: 0.4, bells: 0.2, keys: 0.65, guitar: 0, pad: 0.55, drone: 0.1, bass: 1, drums: 0.8, texture: 0.2 },
-  // a cutscene builds to everyone (BUILD_BAND tops these up), so these are who's likeliest along the way
+  // a cutscene builds to everyone (BUILD_BAND tops these up)
   cutscene: { melody: 1, counter: 0.5, arp: 0.4, bells: 0.3, keys: 0.6, guitar: 0, pad: 0.9, drone: 0.25, bass: 1, drums: 0.75, texture: 0.25 },
 };
 // the most layers a song has, and how many of its parts play from the first bar (pickArrangement)
 const MOST_LAYERS = { ambient: 6, tune: 7, boss: 7, mini: 6, loop: 6, final: 7, cutscene: 7 };
 const OPENING = { ambient: 1, tune: 2, boss: 3, mini: 3, loop: 3, final: 2, cutscene: 1 };
-// the parts that move around the middle of the band, under the tune. two of them is a band; three or
-// four (an arp, oom-pah keys and chimes over a walking bass) was the "bunch of noises" in happy and
-// playful songs, so a song keeps two at most, losing them in this order
+// the parts that move round the middle of the band. three or four at once were a pile of noises, so a
+// song keeps two at most, losing them in this order
 const MIDDLE = ['bells', 'counter', 'arp', 'keys'];
-// a second texture in an ambient song, for more of a place: birds over a stream, an owl over rain.
-// only in moods with something that happens now and then, since two steady beds are one too many
+// chance of a second texture in an ambient song (birds over a stream), never two steady beds
 const SECOND_TEXTURE = 0.5;
 
-// when each role joins in: a layer plays in a section once the section's energy reaches a number
-// picked from its range, so quiet sections get the pads and background, and busy ones everything
+// when each role joins in: once a section's energy reaches a number picked from its range
 const ROLE_ENTRY = {
   texture: [0, 0.25], drone: [0, 0.3], pad: [0, 0.35], bells: [0.2, 0.6], keys: [0.25, 0.6], guitar: [0.2, 0.5], bass: [0.3, 0.6],
   arp: [0.45, 0.85], melody: [0.5, 0.65], counter: [0.6, 0.95], drums: [0.4, 0.75],
 };
 
-// the parts that can open a song when none of the mood's openers are in it: anything but the
-// melody's lines and the scenery
+// the parts that can open a song when none of the mood's openers are in it
 const OPENERS = ['pad', 'keys', 'guitar', 'arp', 'drone', 'bass', 'drums'];
 
-// the shapes songs take: [name, part, about how many bars, energy, and LIFTED for a key change (above
-// MOODS)]
+// the shapes songs take: [name, part, about how many 4/4 bars, energy, LIFTED for a key change]
 const FORMS = {
   ambient: [
     [['Rise', 'A', 8, 0.3], ['Drift', 'A', 16, 0.65], ['Turn', 'B', 16, 0.85], ['Drift', 'A', 16, 0.7], ['Fade', 'A', 8, 0.3]],
@@ -3639,22 +3523,15 @@ const FORMS = {
     [['Intro', 'C', 4, 0.3], ['Theme', 'A', 8, 0.75], ['Theme', 'A', 8, 0.85], ['Break', 'C', 8, 0.5], ['Climb', 'B', 8, 0.95], ['Theme', 'A', 8, 0.85]],
     [['A', 'A', 8, 0.7], ['B', 'B', 8, 0.9], ['A', 'A', 8, 0.8], ['C', 'C', 8, 0.55]],
   ],
-  // fights loop under the battle, so they never wind down: no outro, the end runs back into the start.
-  // a short intro on the beat and bass, the theme, a higher second theme, and a break (calamity's
-  // "moments of calm", or a breakdown in the loud moods) before the climax. you said boss fights were
-  // too short, and at a fight's tempo the old shapes went round in about a minute and a quarter: a boss
-  // you're fighting for three minutes heard its theme three times over. they're half as long again
-  // now (two minutes or so at 160, more with a solo), with the theme and the second theme coming round
-  // twice before the break
+  // fights loop, so no outro: a short intro on the beat and bass, the theme, a higher second theme
+  // (each twice), a break (a calm moment or a breakdown), then the climax. about two minutes at 160
   boss: [
     [['Intro', 'C', 4, 0.45], ['Theme', 'A', 8, 0.9], ['Theme', 'A', 8, 0.95], ['Rise', 'B', 8, 1], ['Theme', 'A', 8, 0.95], ['Rise', 'B', 8, 1], ['Break', 'C', 8, 0.55], ['Build', 'C', 4, 0.8], ['Climax', 'B', 8, 1], ['Climax', 'B', 8, 1], ['Theme', 'A', 8, 0.95]],
     [['Intro', 'A', 4, 0.45], ['A', 'A', 8, 0.9], ['B', 'B', 8, 1], ['A', 'A', 8, 0.95], ['B', 'B', 8, 1], ['Break', 'C', 8, 0.55], ['Build', 'C', 4, 0.8], ['A', 'A', 8, 0.95], ['B', 'B', 8, 1], ['B', 'B', 8, 1]],
     [['Intro', 'B', 4, 0.5], ['A', 'A', 16, 0.92], ['B', 'B', 8, 1], ['Break', 'C', 8, 0.55], ['A', 'A', 8, 0.95], ['B', 'B', 16, 1], ['C', 'C', 8, 0.75], ['A', 'A', 8, 0.95], ['B', 'B', 8, 1]],
   ],
-  // a final boss changes gear halfway, like the last bosses of terraria and calamity: a dark omen, the
-  // first phase (the theme and the second theme), a breather where everything drops away, then the
-  // second phase a key higher (LIFTED), harder, and its last stand. three to five minutes, then round again
-  // from the omen, back in the first key
+  // a final boss changes gear halfway: an omen, the first phase, a breather, then the second phase a key
+  // higher and its last stand. three to five minutes, then round again from the omen in the first key
   final: [
     [['Omen', 'C', 4, 0.3], ['Theme', 'A', 8, 0.85], ['Theme', 'A', 8, 0.9], ['Clash', 'B', 8, 1], ['Theme', 'A', 8, 0.95], ['Clash', 'B', 8, 1], ['Break', 'C', 8, 0.5], ['Clash', 'B', 8, 1], ['Calm', 'C', 8, 0.35], ['Awaken', 'C', 4, 0.75], ['Fury', 'A', 8, 0.95, LIFTED], ['Fury', 'A', 8, 1, LIFTED], ['Clash', 'B', 8, 1, LIFTED], ['Last stand', 'B', 8, 1, LIFTED], ['Last stand', 'A', 8, 1, LIFTED]],
     [['Omen', 'A', 4, 0.3], ['Phase one', 'A', 8, 0.85], ['Clash', 'B', 8, 0.95], ['Phase one', 'A', 8, 0.95], ['Clash', 'B', 8, 1], ['Turn', 'C', 8, 0.7], ['Clash', 'B', 8, 1], ['Respite', 'C', 8, 0.35], ['Rising', 'C', 4, 0.75], ['Phase two', 'A', 8, 0.95, LIFTED], ['Phase two', 'B', 8, 1, LIFTED], ['Phase two', 'A', 8, 1, LIFTED], ['Desperation', 'C', 8, 0.6, LIFTED], ['Final phase', 'A', 8, 1, LIFTED], ['Final phase', 'B', 8, 1, LIFTED], ['Final phase', 'B', 8, 1, LIFTED]],
@@ -3666,9 +3543,8 @@ const FORMS = {
     [['A', 'A', 8, 0.9], ['B', 'B', 8, 1]],
     [['Intro', 'C', 2, 0.5], ['A', 'A', 8, 0.9], ['C', 'C', 4, 0.7], ['B', 'B', 8, 1]],
   ],
-  // a loop starts on its theme (you walked into the town halfway through it, as far as the music
-  // knows) and ends on whatever leads back into it. the theme comes round more than once, so the tune
-  // can be handed round (pickOrchestra), and the B part is the lift before it comes round again
+  // a loop starts on its theme and ends on whatever leads back into it. the theme comes round more than
+  // once, so it can be handed round (pickOrchestra)
   loop: [
     [['A', 'A', 8, 0.75], ['A', 'A', 8, 0.85], ['B', 'B', 8, 0.95], ['A', 'A', 8, 0.85]],
     [['A', 'A', 8, 0.8], ['B', 'B', 8, 0.9], ['A', 'A', 8, 0.85], ['C', 'C', 8, 0.6]],
@@ -3679,23 +3555,13 @@ const FORMS = {
 
 // ---------- songs that build ----------
 //
-// most songs go round: a verse and a chorus, quiet then loud then quiet. you said too many sounded
-// the same the whole way through, and a lot of the music worth copying doesn't go round at all: a film
-// cue, a post-rock song, the last level's theme, ravel's bolero. it starts with one player and builds,
-// section after section, everyone joining in one at a time, until the whole band is playing the tune
-// together at the climax. so a song can build (builds()): its sections climb (BUILDS), its players come
-// in one by one in the order they climb (pickArrangement), its band is bigger by the end (pickLayers),
-// the tune's handed round and doubled only at the top (pickOrchestra, markDoubles), the drummer rolls
-// into the climax and crashes on it (COMPOSERS.drums), and there's no solo to break the climb (addSolo).
-// a mood says how often its songs build (build), and the rising modifier makes every song build. the
-// roll has its own random numbers and happens only in a mood that can build, so every other song
-// stayed exactly as it was. only tunes, ambient songs and cutscenes build: loops and fights go round
-// on purpose (a cutscene always builds: it's what it's for).
-// you then said the builds should take longer and their peak should be bigger, more extravagant. so
-// they climb through more sections, and most don't stop at the first climax: everything drops away to a
-// few players for a breath (the calm before it, which is what makes the next bit hit), the drummer
-// rolls, and the whole band comes back a key higher (LIFTED) for the finale, crashing every bar. that
-// last lift, out of a moment of quiet, is the trick film scores, power ballads and last levels all use
+// most songs go round, verse and chorus. a song that builds (builds()) starts with one player and adds
+// one a section (pickArrangement), its band bigger by the end (pickLayers), up to everyone on the tune
+// at the climax: the tune doubled only at the top (pickOrchestra, markDoubles), the drummer rolling into
+// it (COMPOSERS.drums), no solo (addSolo). most then drop to a few players for a breath and come back a
+// key higher (LIFTED) for the finale. a mood says how often its tunes and ambient songs build (build);
+// the roll has its own random numbers, so songs that don't build are as they were. loops and fights
+// never build, and a cutscene always does
 const BUILDS = {
   tune: [
     [['Spark', 'A', 8, 0.2], ['Gather', 'A', 8, 0.4], ['Rise', 'B', 8, 0.6], ['Swell', 'A', 8, 0.75], ['Surge', 'B', 8, 0.88], ['Climax', 'A', 8, 1], ['Climax', 'B', 8, 1], ['Breath', 'C', 4, 0.4], ['Finale', 'B', 16, 1, LIFTED], ['Afterglow', 'A', 4, 0.3, LIFTED]],
@@ -3706,8 +3572,7 @@ const BUILDS = {
     [['Dawn', 'A', 8, 0.15], ['Bloom', 'A', 16, 0.35], ['Rise', 'B', 16, 0.55], ['Swell', 'A', 16, 0.75], ['Blaze', 'B', 16, 1], ['Blaze', 'A', 8, 1, LIFTED], ['Dusk', 'A', 8, 0.3, LIFTED]],
     [['Hush', 'C', 8, 0.15], ['Glow', 'A', 16, 0.4], ['Rise', 'B', 16, 0.62], ['Surge', 'A', 16, 0.82], ['Blaze', 'B', 16, 1], ['Still', 'C', 8, 0.35], ['Blaze', 'A', 16, 1, LIFTED]],
   ],
-  // the longest: five minutes or so at a ballad's tempo. a prologue, a long climb, a first climax, a
-  // breath, then the finale a key higher, and an epilogue that settles in the new key
+  // five minutes or so at a ballad's tempo: a long climb, a climax, a breath, a finale a key higher
   cutscene: [
     [['Prologue', 'C', 8, 0.15], ['Gather', 'A', 8, 0.3], ['Rise', 'A', 8, 0.45], ['Swell', 'B', 8, 0.6], ['Surge', 'A', 8, 0.75], ['Brink', 'C', 4, 0.9], ['Climax', 'B', 8, 1], ['Climax', 'A', 8, 1], ['Breath', 'C', 8, 0.35], ['Ascent', 'A', 4, 0.75], ['Finale', 'B', 8, 1, LIFTED], ['Finale', 'A', 8, 1, LIFTED], ['Epilogue', 'A', 4, 0.25, LIFTED]],
     [['Prologue', 'A', 8, 0.15], ['Gather', 'A', 8, 0.35], ['Rise', 'B', 8, 0.5], ['Surge', 'A', 8, 0.7], ['Brink', 'C', 4, 0.88], ['Climax', 'B', 16, 1], ['Breath', 'C', 8, 0.3], ['Ascent', 'C', 4, 0.7], ['Finale', 'B', 16, 1, LIFTED], ['Epilogue', 'C', 4, 0.2, LIFTED]],
@@ -3716,14 +3581,11 @@ const BUILDS = {
 };
 // (a cutscene of your own doesn't build, blankSong, so it takes its shapes from here)
 FORMS.cutscene = BUILDS.cutscene;
-// the band a song that builds wants by its climax, as the least chance of each role (pickLayers): pads
-// and a bass under everything, a second melody, bells, a drone, and drums wherever the mood has any
+// the band a song that builds wants by its climax, as the least chance of each role (pickLayers)
 const BUILD_BAND = { melody: 0.9, pad: 0.95, bass: 0.9, counter: 0.6, bells: 0.45, drone: 0.4, drums: 0.9 };
-// a layer's entry point in a build is spread from the start to here, so the last one in still makes it
-// before the climax
+// the players' entry points in a build are spread up to here, so the last one's in before the climax
 const BUILD_TOP = 0.93;
-// whether a song builds: its mood's chance (build), rolled with its own random numbers, and always in
-// a cutscene. a song made by hand never does
+// whether a song builds: its mood's chance, on its own random numbers. always in a cutscene, never by hand
 const builds = (song) => {
   const chance = song.style === 'cutscene' ? 1 : songMood(song).build || 0;
   return chance > 0 && !song.own && !!BUILDS[song.style] && makeRng(song.seed, song.mood, song.style, 'build').chance(chance);
@@ -3734,8 +3596,7 @@ const builds = (song) => {
 const LAYER_DEFAULTS = {
   id: '', role: 'pad', instrument: '', pattern: '', seed: '0', volume: 0.6, pan: 0, octave: 0, density: 0.5,
   rate: 'medium', span: 2, reverb: 0.4, echo: 0.1, mute: false, solo: false,
-  // attack and release multiply the instrument's, bright multiplies its filters, detune and vibrato
-  // add cents of wobble
+  // attack, release and bright multiply the instrument's; detune and vibrato add cents of wobble
   tone: { attack: 1, release: 1, bright: 1, detune: 0, vibrato: 0 },
   // notes changed by hand, per part: add [[beat in the section, midi, length]], remove ["beat:midi"]
   edits: {},
@@ -3743,10 +3604,8 @@ const LAYER_DEFAULTS = {
 const FX_DEFAULTS = { reverb: 0.4, size: 0.6, tone: 0.5, echo: 0.2, echoTime: 0.75, echoRepeats: 0.35, warmth: 0.2, wobble: 0, drive: 0, volume: 0.8 };
 const ECHO_TIMES = [0.5, 0.75, 1, 1.5, 2];
 
-// mods: the song's modifiers (MODIFIERS), any order. the random numbers don't depend on them, so
-// adding "fast" to a song gives the same song, faster, as near as it can
-// flavour: one of the mood's kinds (FLAVOURS), or none for the mood as it is. the random numbers don't
-// depend on it either
+// mods (MODIFIERS, any order) and flavour (FLAVOURS) don't change the random numbers, so adding "fast"
+// gives the same song, faster, as near as it can. each pick has its own random numbers
 function generateSong(moodId, style, seed, mods = [], flavour) {
   const mood = MOODS[moodId] ? moodId : 'calm';
   const picked = cleanMods(mods);
@@ -3756,9 +3615,8 @@ function generateSong(moodId, style, seed, mods = [], flavour) {
   pickChords(song, makeRng(seed, mood, 'chords'));
   pickLayers(song, makeRng(seed, mood, song.style, 'layers'));
   pickArrangement(song, makeRng(seed, mood, song.style, 'arrangement'));
-  // (a song that builds hands its tune round and doubles it at the top more often than its mood does,
-  // in a mood that orchestrates at all. one that doesn't, a shoegaze band, had a new counter melody
-  // join with nothing of the mood's left to play it on, and drew a pan flute)
+  // (a song that builds orchestrates more, but only in a mood that orchestrates at all: a shoegaze band
+  // had a counter melody join with nothing left to play it on, and drew a pan flute)
   const orchestra = songMood(song).orchestra;
   pickOrchestra(song, makeRng(seed, mood, song.style, 'orchestra'), orchestra && builds(song) ? { pass: Math.max(orchestra.pass || 0, 0.5), double: Math.max(orchestra.double || 0, 0.6) } : undefined);
   pickScenery(song, makeRng(seed, mood, song.style, 'scenery'));
@@ -3768,9 +3626,8 @@ function generateSong(moodId, style, seed, mods = [], flavour) {
   return cleanSong(song);
 }
 
-// a blank track to make by hand (the page's New track): one short section, and a melody, a bass and
-// drums with no notes in them yet. own marks it as made by hand, so picking a mood doesn't write a
-// new song over it. the mood, style and modifiers still decide how any part you let it write plays
+// a blank track to make by hand (New track): one short section and an empty melody, bass and drums.
+// own means picking a mood doesn't write a new song over it, only how any written parts play
 function blankSong() {
   const layer = (role, instrument, volume, reverb) => ({ id: role, role, instrument, hand: true, volume, reverb, echo: 0 });
   return cleanSong({
@@ -3782,8 +3639,7 @@ function blankSong() {
   });
 }
 
-// remixing: one part of the song picked again. nonce makes it new each time (the page passes a
-// random one); everything else stays as it was
+// remixing: one pick made again. nonce makes it new each time; everything else stays as it was
 const REROLLS = {
   chords: (song, mood, rng) => pickChords(song, rng),
   melodies: (song, mood, rng) => { for (const layer of song.layers) layer.seed = newToken(rng); },
@@ -3796,8 +3652,8 @@ const REROLLS = {
     pickRecordings(song);
   },
   arrangement: (song, mood, rng) => pickArrangement(song, rng),
-  // the tune handed round a new way: whoever carried it goes, and it's picked again, more likely than
-  // the mood's own chances (pressing it asks for some orchestration, in any mood)
+  // the tune handed round a new way: whoever carried it goes, and it's picked again with better than
+  // the mood's own chances (pressing it asks for orchestration)
   orchestra: (song, mood, rng) => {
     const gone = new Set(song.layers.filter(carries).map((layer) => layer.id));
     const takers = new Set(song.layers.filter((layer) => layer.role === 'counter' && carries(layer)).map((layer) => layer.id));
@@ -3855,11 +3711,9 @@ function pickChords(song, rng) {
   }
 }
 
-// a progression moved into another scale: each chord on one of the major scale's degrees becomes the
-// chord the new scale builds on that degree, so I V vi IV in a minor scale is i v bVI iv, the way a
-// songwriter borrows a progression into a darker key. a seventh or a sus stays on (a seventh on a
-// diminished chord doesn't, the chord parser can't read "vii°7"), and chords off the major scale's
-// degrees (bVII, #iv°) and holds (-) stay as they were
+// a progression moved into another scale by degree: I V vi IV in minor is i v bVI iv. a seventh or sus
+// stays on (not on a diminished chord: the parser can't read "vii°7"), and chords off the major
+// scale's degrees (bVII) and holds (-) stay as they were
 function reharmonise(text, steps) {
   return String(text).trim().split(/\s+/).map((token) => {
     const chord = parseChord(token);
@@ -3880,9 +3734,8 @@ function makeProgression(song, rng, method) {
   const steps = harmonySteps(song.scale);
   const token = (degree) => { const chord = diatonicChord(steps, degree); return chordToken(chord.root, chord.tones); };
   if (method === 'bank') {
-    // the mood's progressions, favouring ones with few notes outside the scale, so the chords and the
-    // tunes over them agree (a sad song in dorian shouldn't get one written for natural minor). a
-    // modifier that changed the scale (angry, dark...) moves them into the song's scale first
+    // the mood's progressions, favouring ones with few notes outside the scale, so the chords and tunes
+    // agree. a modifier that changed the scale moves them into it first
     const inScale = new Set(steps);
     const outside = (text) => parseProgression(text).slots.reduce((n, { chord }) => n + chord.tones.filter((tone) => !inScale.has(mod12(chord.root + tone))).length, 0);
     const bank = mood.reharm ? mood.chords.map((text) => reharmonise(text, steps)) : mood.chords;
@@ -3930,21 +3783,18 @@ function pickLayers(song, rng) {
     if (role === 'texture' && !mood.textures.length) chance = 0;
     if (role === 'drone') chance += mood.dark * 0.3;
     if (role === 'drums') chance = mood.kits.length ? Math.max(mood.drums[song.style === 'ambient' ? 0 : 1], build ? BUILD_BAND.drums : 0) : 0;
-    // no roll for a guitar in a mood without one, so adding guitars left every other mood's seeds
-    // making the songs they made before
+    // no roll for a guitar in a mood without one, so other moods' seeds kept their songs
     if (role === 'guitar' && !chance) return false;
     return rng.chance(chance);
   });
   // something has to play the chords
   if (!roles.some((role) => role === 'pad' || role === 'keys' || role === 'guitar')) roles.push(rng.pick(['pad', 'keys']));
-  // an arp and a counter melody both weave round the melody, and together they turned into clutter,
-  // so a song gets one or the other
+  // an arp and a counter melody both weave round the melody: together they're clutter
   if (roles.includes('arp') && roles.includes('counter')) roles.splice(roles.indexOf(rng.pick(['arp', 'counter'])), 1);
   for (const role of MIDDLE) if (roles.filter((one) => MIDDLE.includes(one)).length > 2 && roles.includes(role)) roles.splice(roles.indexOf(role), 1);
   // loud, quiet, loud: a second, cleaner guitar for the quiet sections (pickArrangement)
   const twoGuitars = roles.includes('guitar') && !!mood.quiet && rng.chance(mood.loudQuiet || 0);
-  // seven at most (six in ambient songs, which want room), losing the least needed first
-  // (a sparse or lush modifier takes some off or adds one, mood.most, but never past seven)
+  // seven at most (six in ambient songs), losing the least needed first. sparse and lush move it (mood.most)
   const most = Math.max(2, Math.min(7, MOST_LAYERS[song.style] + (mood.most || 0) + (build ? 1 : 0))) - (twoGuitars ? 1 : 0);
   // a fight keeps its bass and beat, losing the scenery and the pad first
   const spare = FIGHTS[song.style] ? ['counter', 'arp', 'drone', 'bells', 'keys', 'texture', 'pad'] : ['counter', 'arp', 'drone', 'bells', 'keys', 'bass'];
@@ -3958,41 +3808,27 @@ function pickLayers(song, rng) {
   fitBand(song);
 }
 
-// the order a band is dressed in: the score's, except that in a band with a guitar the melody and the
-// guitars choose first. a dream pop song's two clean guitars went to its tune and counter melody,
-// which left the guitar to draw an overdrive from a nearby mood
+// the order a band is dressed in: the score's, but with a guitar the melody and guitars choose first
+// (a dream pop song's clean guitars went to its tune and counter melody, leaving the guitar an overdrive)
 const dressRank = (layer) => (layer.role === 'melody' ? 0 : layer.role === 'guitar' ? 1 : 2);
 const dressOrder = (layers) => (layers.some((layer) => layer.role === 'guitar') ? [...layers].sort((a, b) => dressRank(a) - dressRank(b)) : layers);
 
-// layers that play behind the melody. they get a lower harshness cap, and are darker and quieter,
-// so the tune is always the thing you hear
+// layers behind the melody: a lower harshness cap, darker and quieter, so the tune is what you hear
 const BACKING = { counter: true, arp: true, keys: true, guitar: true, pad: true, drone: true, bass: true };
 // the harshest instrument a mood allows (edge in synth.js), less for backing layers
 const maxEdge = (mood, role) => moodEdge(mood) * (BACKING[role] ? 0.75 : 1);
 
-// an instrument for a layer: from the mood's palette, now and then (12%) something from outside it so
-// songs in a mood don't all sound alike, but only from families that suit the role (WILDCARDS), never
-// harsher than the mood allows, and never one another layer is already playing. two layers on the
-// same instrument blur into each other, and a harsh lead over gentle backing was the commonest clash
-//
-// the band also has to sound like one band. chip sounds (world: 'chip' in synth.js) and acoustic ones
-// ('acoustic') never share a song: a chip kit under a harp and a music box, or a triangle bass under a
-// nylon guitar and a choir, sounded like two songs at once. whichever is picked first (the melody,
-// usually) sets the world, and the rest keep to it or to sounds that go with anything. and the
-// surprise instrument only comes from moods about as dark as this one (kindred), so a playful song
-// can't draw the haunted pad
+// an instrument for a layer: from the mood's palette, now and then (surprise, 12%) one from outside it
+// in a family that suits the role (WILDCARDS) and from a mood about as dark (kindred), never harsher
+// than the mood allows and never one another layer plays. chip and acoustic sounds (world in synth.js)
+// never share a song: whichever comes first, usually the melody, sets it
 const APART = { chip: 'acoustic', acoustic: 'chip' };
-// a mood with no surprises (the loud and hazy ones) keeps to itself the other way too: its
-// instruments aren't other moods' surprises
-// (the mood's own palette always counts, which matters for a blended or fight mood: it isn't in MOODS)
+// a mood with no surprises keeps to itself the other way too: its instruments aren't other moods'
+// surprises. (its own palette always counts, for a flavoured or fight mood that isn't in MOODS)
 const paletteOf = (mood) => [...Object.values(mood.palette).flat(), ...(mood.quiet || [])];
 const kindred = (mood) => new Set([...paletteOf(mood), ...Object.values(MOODS).filter((other) => other.surprise !== 0 && Math.abs(other.dark - mood.dark) <= 0.25).flatMap(paletteOf)]);
-// recordings of real instruments sound more alive than the synthesised versions, so a mood's palette
-// leans towards the ones that have them (samples in synth.js), five to one (it was three, and songs
-// still had too much of the computer in them). the synthesised ones are
-// still picked, just less often, and a mood whose palette is all synths (neon, synthwave, the chip
-// sounds) is as it was. it's on what an instrument has, not on whether the files loaded, so the same
-// seed always picks the same band
+// recorded instruments sound more alive, so they're picked five to one. it's on what an instrument has,
+// not whether its files loaded, so a seed always picks the same band
 const preferRecorded = (id) => [id, INSTRUMENTS[id].samples ? 5 : 1];
 function pickInstrument(song, layer, rng) {
   const mood = songMood(song);
@@ -4003,17 +3839,15 @@ function pickInstrument(song, layer, rng) {
   const worlds = new Set(others.map((other) => INSTRUMENTS[other.instrument].world));
   const belongs = (id) => !APART[INSTRUMENTS[id].world] || !worlds.has(APART[INSTRUMENTS[id].world]);
   if (family !== 'tonal') {
-    // (a kit or texture that's a place's own, the death whistle or the bobobo drums, is only ever where
-    // a mood names it, never a stand in for a mood with none)
+    // (a place's own kit or texture, the death whistle, is only ever where a mood names it)
     const free = anything.filter((id) => !INSTRUMENTS[id].own);
     let pool = family === 'kit' ? mood.kits : mood.textures;
     if (!pool.length) pool = free;
     // a second texture is a different one, and two steady beds (rain and a stream) are one too many
     const textures = others.filter((other) => other.role === 'texture').map((other) => other.instrument);
     let wanted = pool.filter((id) => belongs(id) && !textures.includes(id) && !(INSTRUMENTS[id].bed && textures.some((other) => INSTRUMENTS[other].bed)));
-    // a band none of the mood's kits belong with (a chip tune made jazzy, whose kits are all brushes)
-    // borrows a kit that does, one that plays the mood's beats if it can. it used to take an acoustic
-    // kit anyway, and a chip lead over brushes sounded like two songs
+    // a band none of the mood's kits belong with (a chip tune made jazzy) borrows one that does,
+    // playing the mood's beats if it can
     if (!wanted.length && family === 'kit') {
       const beats = moodPatterns(song, 'drums');
       const fitting = free.filter(belongs);
@@ -4024,10 +3858,8 @@ function pickInstrument(song, layer, rng) {
   }
   const cap = maxEdge(mood, role);
   const taken = new Set(others.filter((other) => roleFamily(other.role) === 'tonal').map((other) => other.instrument));
-  // a reversed sound swells over its whole note, and a drone's note is a whole section: minutes of
-  // swelling, then a sudden stop
-  // (a hair over the cap still fits: 0.6 x 0.75 is 0.4499... in floating point, which kept an instrument
-  // rated 0.45 out of a mood capped at exactly that. metal's edge was 1.25 to get round this once before)
+  // no reversed sound on a drone (minutes of swelling, then a sudden stop). a hair over the cap fits:
+  // 0.6 x 0.75 is 0.4499... in floating point
   const fits = (id) => INSTRUMENTS[id].edge <= cap + 1e-9 && !taken.has(id) && !(role === 'drone' && INSTRUMENTS[id].reverse) && belongs(id);
   // the second guitar of a loud, quiet, loud song is one of the mood's cleaner ones (quiet)
   const list = (layer.id === 'guitar-2' && mood.quiet) || mood.palette[role] || [];
@@ -4037,9 +3869,7 @@ function pickInstrument(song, layer, rng) {
   const wild = anything.filter((id) => WILDCARDS[role].includes(INSTRUMENTS[id].family) && fits(id) && kin.has(id) && !INSTRUMENTS[id].own);
   if (palette.length && !(wild.length && rng.chance(mood.surprise ?? 0.12))) return rng.weighted(palette.map(preferRecorded));
   if (wild.length) return rng.weighted(wild.map(preferRecorded));
-  // nothing fits: the gentlest in the mood's list that belongs with the band, or failing that the
-  // gentlest, or for a role the mood never has (a guitar added by hand to a calm song) the gentlest
-  // of the role's own kind of instrument
+  // nothing fits: the gentlest that belongs, from the mood's list or else the role's kind of instrument
   const gentlest = (ids) => [...ids].sort((a, b) => INSTRUMENTS[a].edge - INSTRUMENTS[b].edge)[0];
   return gentlest(list.filter((id) => belongs(id) && !taken.has(id))) || gentlest(list)
     || gentlest(anything.filter((id) => WILDCARDS[role].includes(INSTRUMENTS[id].family) && !taken.has(id))) || gentlest(anything);
@@ -4055,9 +3885,7 @@ function dressLayer(song, layer, rng, fresh) {
   // doublers were picked for the old instrument (a choir's voices on a flute would be odd)
   if (before !== instrument) delete layer.with;
   const edge = instrument.edge || 0;
-  // struck and plucked things (keys, bells, basses) get no vibrato and hardly any detune: a wobbling
-  // piano under a steady pad sounds out of tune rather than warm, and a strummed harp chord in a dark
-  // mood had its strings beating against each other
+  // struck and plucked things get no vibrato and hardly any detune: they just sound out of tune
   const struck = instrument.family === 'keys' || instrument.family === 'guitar' || instrument.family === 'bell' || instrument.family === 'bass';
   if (fresh) {
     layer.seed = newToken(rng);
@@ -4066,47 +3894,35 @@ function dressLayer(song, layer, rng, fresh) {
     layer.span = rng.pick([1, 2, 2]);
     layer.octave = role === 'bells' ? rng.weighted([[0, 5], [1, 1], [-1, 1]]) : role === 'melody' ? rng.weighted([[0, 6], [-1, 1]]) : 0;
   }
-  // a singer (an instrument with a home) sings where they sing: an octave down, a throat singer was a
-  // recording stretched a whole octave
+  // a singer (home) sings where they sang, and an instrument with its own octave (a cello) plays there.
+  // swapped for one without, the part comes back to its usual place
   if (instrument.home) layer.octave = 0;
-  // an instrument that plays its part in another octave (a cello an octave under the violin, a low
-  // voice two): and when it's swapped for one that doesn't, the part comes back to its usual place
   else if (instrument.octave !== undefined) layer.octave = instrument.octave;
   else if (before?.octave !== undefined) layer.octave = 0;
   const busy = song.style !== 'ambient' ? 0.35 + mood.energy * 0.5 : 0.3 + mood.energy * 0.5;
   // (a modifier can make every part busier or sparser: mood.busy)
   layer.density = clamp01(busy + (mood.busy || 0) + rng.range(-0.15, 0.2));
-  // drums follow the mood's energy: as loud under a calm song as under an angry one, they were the
-  // first thing you heard
-  // a buried tune (shoegaze's singer) sits lower, in among the guitars
+  // drums follow the mood's energy, and a buried tune (shoegaze's singer) sits lower
   const volumes = { melody: 0.68 * (1 - (mood.bury || 0) * 0.2), counter: 0.5, arp: 0.42, bells: 0.45, keys: 0.52, guitar: 0.62, pad: 0.55, drone: 0.48, bass: 0.68, drums: 0.42 + mood.energy * 0.24, texture: 0.5 };
-  // harsher backing sits lower in the mix. not a guitar: its speaker cabinet has already taken the
-  // harshness off, and rock guitars sit up with the tune
+  // harsher backing sits lower, but not a guitar: its cabinet already took the harshness off
   layer.volume = clamp01((volumes[role] + rng.range(-0.06, 0.06)) * (BACKING[role] && role !== 'guitar' ? 1 - edge * 0.25 : 1));
-  // a guitar's rig already spreads it left and right (double tracked, or a chorus), so it stays near
-  // the middle
+  // a guitar's rig already spreads it, so it stays near the middle
   const centred = role === 'bass' || role === 'drums' || role === 'drone';
   layer.pan = centred ? 0 : Math.round(rng.range(-0.45, 0.45) * (role === 'guitar' ? 0.4 : 1) * 100) / 100;
-  // drums and bass stay fairly dry: a big room smears the beat, and the echo (often a dotted beat)
-  // adds hits that aren't on the groove, which made the drums sound out of time
+  // drums and bass stay dry: a big room smears the beat, and an echo adds hits off the groove
   const wet = { melody: 0.65, counter: 0.7, arp: 0.7, bells: 1.1, keys: 0.75, guitar: 0.45, pad: 1, drone: 0.9, bass: 0.15, drums: 0.15, texture: 0.6 };
   layer.reverb = clamp01(mood.space * wet[role] * rng.range(0.75, 1.15));
   const echoes = { melody: 0.4, counter: 0.3, arp: 0.5, bells: 0.6, keys: 0.25, guitar: 0.15 };
   layer.echo = clamp01((echoes[role] || 0) * mood.space * rng.range(0.4, 1.3));
-  // in a tune, chords have to arrive on the beat with the drums, so pads swell in and let go quicker.
-  // not plucked strings: they already start at once, and cutting their ring short is what made the
-  // harp's notes end harshly
+  // in a tune, chords arrive on the beat, so pads swell in and let go quicker (not plucked strings,
+  // whose ring cut short ended harshly)
   const chordy = song.style !== 'ambient' && (role === 'pad' || role === 'keys' || role === 'drone') && instrument.kind !== 'pluck';
-  // brightness: near the mood's, a touch darker for backing, and never pushing a harsh instrument
-  // brighter than it was made (edge 1 stays at 1x at most, a soft one can go to 1.6x). it used to swing
-  // anywhere from 0.4x to 2.2x on anything, and doubled saw leads and bells were painful. drums and
-  // textures have no edge, so the mood's energy caps them instead: hi hats at 1.5x in a calm song
-  // hissed over everything, and so did bright rain
+  // brightness near the mood's, darker for backing, and a harsh instrument never brighter than made
+  // (edge 1 stays at 1x, a soft one can go to 1.6x). drums and textures are capped by energy instead
   const bright = 2 ** (rng.range(-0.35, 0.35) + (mood.bright - 0.5) * 0.8) * (BACKING[role] ? 0.85 : 1);
   const ceiling = role === 'drums' ? 0.75 + mood.energy * 0.35 : role === 'texture' ? 0.9 : 1 + (1 - edge) * 0.6;
-  // drums ring the length their kit gives them, not longer in a big room: that made every kick boom.
-  // chords in tunes let go a little quicker, but not much: at 0.55 they stopped dead like a keyboard
-  // let go of, which is half of what sounded "midi"
+  // drums ring as long as their kit says, whatever the room. chords in tunes let go a little quicker
+  // (at 0.55 they stopped dead, which sounded like midi)
   const release = rng.range(0.7, 1.6) * (0.7 + mood.space * 0.5) * (chordy ? 0.8 : 1);
   layer.tone = {
     // (calm, slow and dreamy soften every attack: mood.soft)
@@ -4119,12 +3935,9 @@ function dressLayer(song, layer, rng, fresh) {
   pickRecording(song, layer);
 }
 
-// which of its instrument's recordings a layer plays. a lot of instruments were recorded more than
-// once (more in synth.js), and always playing the first made every song's piano or bass the same
-// piano or bass, and two guitar parts in one song the same guitar. so each layer picks one, with its
-// own random numbers (from its seed and instrument, so nothing else in the song moves), never one
-// another layer or doubler in the song is already playing, and the weaker recordings (a general midi
-// one where there's a real one) less often (weight)
+// which of its instrument's recordings a layer plays (more in synth.js), so two parts aren't the same
+// guitar: its own random numbers (seed and instrument), never one another layer or doubler plays, and
+// the weaker recordings less often (weight)
 const folderOf = (id, choice) => {
   const inst = INSTRUMENTS[id];
   return inst?.samples && (inst.more?.[choice] ? choice : inst.samples);
@@ -4139,28 +3952,15 @@ function pickRecording(song, layer) {
   const folder = makeRng(layer.seed, layer.instrument, 'recording').weighted(free.length ? free : all);
   if (folder !== inst.samples) layer.recording = folder;
 }
-// once the whole band's chosen, everyone picks again knowing what the rest play: a pad dressed first
-// took the pipe organ before the drone, whose only recording it is, came along
+// picked again once the whole band's chosen, so a pad dressed first can't take the drone's only organ
 const pickRecordings = (song) => song.layers.forEach((layer) => pickRecording(song, layer));
 
-// rules for parts that belong together, run after the band's picked (or picked again, or mutated).
-// each fixes something that sounded wrong:
-//   - keys breaking chords into running notes under an arp: two layers doing the same job tangle,
-//     so with an arp the keys hold their chords instead
-//   - a pad pulsing under an arp: the same tangle
-//   - a counter melody "in harmony" with no melody to harmonise: it answers instead
-//   - backing louder than the melody: the tune got lost, so backing sits at least 0.1 under it
-//   - a kit playing a pattern it doesn't suit (suits in synth.js): heartbeat's lub-dub on a busy
-//     groove was a pile of thumps, and clockwork ticks on tribal toms a toy piano. the pattern
-//     changes to one the kit suits, from the mood's list where it can
-//   - a texture as loud as the band: it's scenery, so it sits well under the tune, and a little
-//     under everything when there's no tune. wind and rain used to bury the melody. two textures sit
-//     a little lower each, so together they're no louder than one
-//   - with an arp, keys strum (a chord a bar) rather than breaking chords, comping on the groove or
-//     playing oom-pah: any of those and an arp both chopping up the middle was clutter. and with anything moving in the middle (an arp,
-//     broken or oom-pah keys), a pad holds its chords rather than pulsing or stabbing
-//   - running notes no faster than six a second (MAX_RATE). a 16th note arp at 130 bpm under a tune
-//     was a blur that fought it for your ear
+// rules for parts that belong together, run whenever the band's picked (README, "Parts"):
+//   - with an arp, keys strum and pads hold: two layers doing one job tangle
+//   - a counter melody "in harmony" with no melody answers instead
+//   - backing sits at least 0.1 under the melody's volume, and textures well under it
+//   - a kit plays only patterns it suits (suits in synth.js)
+//   - running notes no faster than six a second (MAX_RATE)
 const MAX_RATE = 6;
 function fitBand(song) {
   const find = (role) => song.layers.find((layer) => layer.role === role);
@@ -4171,11 +3971,9 @@ function fitBand(song) {
   // how far under the tune backing sits: 0.1, less for a mood that buries its tune (shoegaze)
   const gap = 0.1 * (1 - (songMood(song).bury || 0));
   for (const layer of song.layers) {
-    // (jazz comping, a bossa rhythm and a reggae skank are a few chords a bar, not running notes, so
-    // they can stay)
+    // (comping, bossa and a skank are a few chords a bar, not running notes, so they stay)
     if (arp && layer.role === 'keys' && !['comp', 'bossa', 'skank'].includes(layer.pattern)) layer.pattern = 'strum';
-    // a plucked drone (the tanpura) can't hold a note for a whole section, its string dies, so it's
-    // plucked round and round
+    // a plucked drone (the tanpura) can't hold a section, so it's plucked round and round
     if (layer.role === 'drone' && INSTRUMENTS[layer.instrument]?.kind === 'pluck') layer.pattern = 'cycle';
     if ((arp || busyKeys) && layer.role === 'pad' && (layer.pattern === 'pulse' || layer.pattern === 'stabs')) layer.pattern = 'sustain';
     while (usesRate(layer) && layer.rate !== 'slow' && song.tempo / 60 / rateStep(layer.rate, METERS[song.meter].sub) > MAX_RATE) layer.rate = layer.rate === 'fast' ? 'medium' : 'slow';
@@ -4193,13 +3991,9 @@ function fitBand(song) {
   spread(song);
 }
 
-// where the band stands. a mixing engineer puts the tune, the bass and the kick in the middle and the
-// parts that fill in either side of it, opposite each other, so each has its own place: keys on the left
-// answered by the arp or counter melody on the right. every part used to be put anywhere from left to
-// right at random, so the keys, the arp and the counter melody could all end up on one side, on top of
-// each other, which is a lot of why a full band sounded crowded. the side each starts on comes from the
-// seed, and how far out from each layer's own pan, so songs still differ
-// (not pads, which are already spread wide, or textures, which place each sound left or right)
+// where the band stands: the tune in the middle and the parts that fill in on opposite sides of it,
+// starting on a side from the seed. at random they could all end up on one side, on top of each other.
+// (not pads, already wide, or textures, which place each sound themselves)
 const SIDES = ['keys', 'counter', 'arp', 'guitar', 'bells'];
 function spread(song) {
   let side = hashText(song.seed) % 2 ? 1 : -1;
@@ -4221,37 +4015,28 @@ function partBars(song, part) {
   return turns * song.chordBars;
 }
 
-// loud, quiet, loud (the pixies, nirvana, and the grunge bands after them): with two guitars, the
-// cleaner one plays the quiet sections and the dirtier one stamps in for the loud ones (energy LOUD
-// or more, or the song's loudest if none reach it), the way a guitarist stamps on a distortion pedal
-// for the chorus
+// loud, quiet, loud: with two guitars, the cleaner plays the quiet sections and the dirtier the loud
+// ones (energy LOUD or more, or the song's loudest)
 const LOUD = 0.85;
-// how far a mood's drama (or the dramatic modifier) stretches a section's energy, round 0.65: 0.3 to
-// 0.13 and 0.85 to 0.95 at 1.5, so the quiet sections have fewer players and are played softer
+// a mood's drama stretches a section's energy away from 0.65 (at 1.5: 0.3 to 0.13, 0.85 to 0.95)
 const stretch = (energy, drama) => Math.round(Math.min(1, Math.max(0.1, 0.65 + (energy - 0.65) * drama)) * 100) / 100;
 function pickArrangement(song, rng) {
   const mood = songMood(song);
   const build = builds(song);
   const form = rng.pick((build && BUILDS[song.style]) || (song.style === 'tune' && mood.forms) || FORMS[song.style]).map(([name, part, bars, energy, lifted]) => [name, part, bars, mood.drama ? stretch(energy, mood.drama) : energy, lifted]);
-  // a key change (LIFTED) goes up a whole step most of the time, a half step (the bigger jolt) otherwise.
-  // its own random numbers, so a song without one is as it was
+  // a key change (LIFTED) is a whole step, or a half step a third of the time, on its own random numbers
   const lift = form.some(([, , , , lifted]) => lifted) ? (makeRng(song.seed, song.mood, song.style, 'lift').chance(0.65) ? 2 : 1) : 0;
   const entry = {};
   for (const layer of song.layers) entry[layer.id] = rng.range(...ROLE_ENTRY[layer.role]);
-  // the song opens on its mood's opening parts (MOODS opens), two in a tune and one in an ambient
-  // song, and they play the whole way through, so the intro already sounds like the song. layers came
-  // in by energy alone, so an intro was often a lone pad or nothing but the texture: a happy song
-  // started out ambient, and the band arriving with the melody sounded like a different song.
-  // a song that builds opens on one
+  // the song opens on its mood's openers (OPENING of them, one in a build) and they play all the way,
+  // so the intro already sounds like the song
   const lowest = Math.min(...form.map(([, , , energy]) => energy));
   const wanted = mood.opens.map((role) => song.layers.find((layer) => layer.role === role)).filter(Boolean);
   const anyone = song.layers.filter((layer) => OPENERS.includes(layer.role));
   const openers = [...new Set([...wanted, ...anyone])].slice(0, build ? 1 : OPENING[song.style]);
   for (const layer of openers) entry[layer.id] = Math.min(entry[layer.id], lowest);
-  // in a build the players come in one at a time, in the order their entries fell, spread evenly from
-  // the opener up to BUILD_TOP, so every section has someone new and the climax has everyone. the
-  // tune's in by the middle of the climb, so you know it before everyone plays it. scenery's there
-  // from the start, as in any song
+  // in a build the players come in one at a time, spread evenly up to BUILD_TOP, the tune by the middle
+  // of the climb. scenery's there from the start
   if (build) {
     const band = song.layers.filter((layer) => layer.role !== 'texture' && !openers.includes(layer)).sort((a, b) => entry[a.id] - entry[b.id]);
     const from = lowest + 0.05;
@@ -4262,15 +4047,11 @@ function pickArrangement(song, rng) {
   song.sections = form.map(([name, part, fourFourBars, energy, lifted]) => {
     // the forms are in 4/4 bars, so shorter bars (6/8 is two beats) get more of them
     const target = Math.max(2, Math.round((fourFourBars * 4) / METERS[song.meter].beats));
-    // sections are whole turns of their part's progression, close to the bars the form asks for. a
-    // progression much longer than that (an intro over 16 bars of chords) gets cut short instead
+    // whole turns of the part's progression, near the bars asked for (a much longer one is cut short)
     const turn = partBars(song, part);
     const bars = Math.max(1, Math.min(32, Math.round(turn > target * 1.5 ? target : Math.max(1, Math.round(target / turn)) * turn)));
-    // a layer plays once the section's energy reaches its entry point. one that's already playing
-    // stays through small dips (an A a little quieter than the last) and only drops out for a real
-    // change of gear, like a break or the outro. I used to add a random wobble to each section's
-    // energy instead, and layers blinked in and out at random: the melody would stop for a section
-    // and come back for no reason you could hear
+    // a layer plays once the energy reaches its entry point, and stays through small dips: it only drops
+    // out for a real change of gear, like a break or the outro
     let play = song.layers.filter((layer) => entry[layer.id] <= energy || (before.includes(layer.id) && entry[layer.id] <= energy + 0.2)).map((layer) => layer.id);
     if (!play.length) play = [song.layers.find((layer) => layer.role === 'pad' || layer.role === 'keys' || layer.role === 'drone')?.id || song.layers[0]?.id].filter(Boolean);
     before = play;
@@ -4289,20 +4070,16 @@ function pickArrangement(song, rng) {
   addSolo(song, rng, form);
   // (and if someone takes or doubles the tune, it's handed round again for the new sections)
   passTune(song);
-  // a mood that starts on its scenery alone (prelude): warmth's embers crackling and lava bubbling with
-  // no music at all, then the pads swelling in. never in a loop, which has no start to speak of
+  // a mood with a prelude opens on its scenery alone, then the music swells in. never in a loop
   const scenery = song.layers.filter((layer) => layer.role === 'texture').map((layer) => layer.id);
   if (mood.prelude && !LOOPS[song.style] && scenery.length) {
     song.sections.unshift({ name: mood.prelude, part: song.sections[0].part, bars: Math.max(2, Math.round(24 / METERS[song.meter].beats)), play: scenery, energy: 0.2 });
   }
 }
 
-// a solo: the tune stretches out into a long line that doesn't repeat (solo() below), over the
-// theme's chords, just before the theme comes back for the last time, the way a song's middle
-// eight or a guitar break does. sometimes the counter melody takes it and the melody rests, so a
-// new voice gets the spotlight. the other line (bells, a counter melody) sits it out, so the solo
-// isn't fighting anyone. section.lead is which layer solos; any section can have one, on the page.
-// a rock mood says how often (MOODS solo) and solos over its chorus (soloOver), before the last one
+// a solo (solo(), section.lead): a long line that doesn't repeat, over the theme's chords just before
+// its last return. sometimes the counter melody takes it while the melody rests, and the bells and
+// counter melody sit it out. a rock mood says how often (solo) and solos over its chorus (soloOver)
 const SOLO_CHANCE = { tune: 0.6, ambient: 0.35, boss: 0.75, mini: 0.25, loop: 0.15, final: 0.85, cutscene: 0 };
 function addSolo(song, rng, form) {
   const mood = songMood(song);
@@ -4310,8 +4087,7 @@ function addSolo(song, rng, form) {
   const chance = song.style === 'tune' && mood.solo !== undefined ? mood.solo : SOLO_CHANCE[song.style];
   // (a song that builds has no solo: it'd stop the climb for a section)
   if (!melody || song.sections.length < 4 || builds(song) || !rng.chance(chance)) return;
-  // the theme's (part A's, or the chorus's) last full time round, as long as it isn't the very start.
-  // a fight solos over its second theme, the climax
+  // the theme's last full time round (a fight's: its second theme), never the very start
   const part = (song.style !== 'ambient' && mood.soloOver) || 'A';
   let at = -1;
   for (let i = 2; i < song.sections.length; i++) if (song.sections[i].part === part && form[i][2] >= 8 && song.sections[i].play.includes(melody.id)) at = i;
@@ -4326,27 +4102,17 @@ function addSolo(song, rng, form) {
 
 // ---------- orchestration: the tune handed round ----------
 //
-// for years this wrote every part on one instrument from the first bar to the last: the flute had the
-// tune, the harp had the chords, and the only change was who was in. game music doesn't work like
-// that. wizard101's themes (nelson everhart's), zelda's and toby fox's are written for a small band or
-// orchestra that passes the tune round: a flute plays it, then the strings take it while the flute
-// rests, then everyone plays it together the last time, with a glockenspiel doubling it an octave up.
-// the tune you know comes back in a new colour, which is how a loop stays listenable for an hour.
-// so a layer can play the melody's own line instead of a part of its own (carries):
-//   - takes the tune (a counter melody's pattern): the melody's line as it's written for that
-//     section, on its instrument, an octave down if it's set lower (a bassoon or the cellos taking
-//     the theme). the melody and it take turns, and play it together the last time round (passTune)
-//   - doubles the tune (a bells pattern): the line an octave up, on a glockenspiel, a celesta or a
-//     music box, in the sections where the tune comes round biggest and the last
-// it's its own pick (pickOrchestra, with its own random numbers), so a mood without orchestra chances
-// writes exactly the songs it did before
+// game themes (wizard101's, zelda's, toby fox's) pass the tune round a band, so it comes back in a new
+// colour each time, which is how a loop stays listenable for an hour. so a layer can play the melody's
+// own line instead of a part of its own (carries):
+//   - takes the tune (a counter melody's pattern): the melody's line for that section on its own
+//     instrument, an octave down if it's set lower. it and the melody take turns (passTune)
+//   - doubles the tune (a bells pattern): the line an octave up, where the tune comes round biggest
+// it's its own pick (pickOrchestra, own random numbers), so a mood without orchestra chances is as it was
 
-// who carries the tune in each section, for a song with a layer taking it or doubling it. the
-// sections with the tune in them (not a solo, which is its own line) go: the melody, the other
-// player, the melody... and both together the last time the theme comes round (the last that isn't a
-// part C break: everyone playing the tune together in the quietest section was backwards). the
-// doubling comes in where the tune's biggest (the loudest sections), and that last time. it's worked
-// out from the sections, not dice, so picking a new arrangement hands the tune round the same way
+// who carries the tune in each section: the melody, the other player, the melody... and both the last
+// time the theme comes round (never a part C break). the doubling plays in the loudest sections and
+// that last time. worked out from the sections, not dice, so a new arrangement hands it round the same way
 function passTune(song) {
   const melody = song.layers.find((layer) => layer.role === 'melody');
   const taker = song.layers.find((layer) => layer.role === 'counter' && carries(layer));
@@ -4363,8 +4129,7 @@ function passTune(song) {
   const themes = sung.filter((section) => section.part !== 'C');
   const big = sung.indexOf(themes[themes.length - 1] || sung[sung.length - 1]);
   sung.forEach((section, i) => {
-    // (a loop of two sections hands it over and back: playing it together the second time would
-    // mean it was never handed over at all. a song that builds always ends on everyone together)
+    // (a two section loop hands it over and back. a song that builds always ends on everyone together)
     const together = i === big && (sung.length >= 3 || build);
     if (taker) {
       set(section, melody, together || i % 2 === 0);
@@ -4380,11 +4145,9 @@ function passTune(song) {
   }
 }
 
-// whether this song's tune is handed round (pass) and doubled (double), from the mood's chances
-// (MOODS orchestra) or ones passed in (the Orchestra remix). a counter melody or bells already in the
-// band take the job (bells were only ever decoration, and a counter melody that only answered or
-// harmonised was doing a smaller version of it), keeping a real second melody where there's room
-// for another player; otherwise a new layer joins, if the style has room for one
+// whether the tune's handed round (pass) and doubled (double), from the mood's chances or the Orchestra
+// remix's. a counter melody or bells already in the band take the job (keeping a real second melody if
+// there's room for another player), or a new layer joins if the style has room
 function pickOrchestra(song, rng, chances = songMood(song).orchestra) {
   const melody = song.layers.find((layer) => layer.role === 'melody');
   if (!chances || !melody) return;
@@ -4414,8 +4177,8 @@ function pickOrchestra(song, rng, chances = songMood(song).orchestra) {
   if (passing && sung >= 2) {
     const taker = join('counter', 'tune', ['counterpoint']);
     if (taker) {
-      // it carries the tune on its own in half its sections, so it's nearly as loud as the melody. a
-      // bass instrument (a bassoon) always takes it an octave down, and anything else now and then
+      // it carries the tune alone half the time, so it's nearly as loud as the melody. a bass instrument
+      // (a bassoon) takes it an octave down, anything else now and then
       taker.volume = Math.max(0.2, melody.volume - 0.03);
       taker.octave = INSTRUMENTS[taker.instrument].family === 'bass' || rng.chance(0.25) ? -1 : 0;
     }
@@ -4431,16 +4194,12 @@ function pickOrchestra(song, rng, chances = songMood(song).orchestra) {
 
 // ---------- doubling ----------
 //
-// a tune on one instrument is one player, and a choir singing it from one recording sounded thin and
-// fake: one sample, however many singers were in it. orchestras and arrangers double a tune instead,
-// two instruments in unison or an octave apart, and it's the commonest trick there is: a flute with
-// the violins, the oboe with the clarinet, a horn with the cellos, a piano's tune with itself an
-// octave up (c418's), and a choir's tune sung by its sopranos and altos together, with the basses an
-// octave under. a layer's with is the instruments doubling it (synth.js plays them with it, in its
-// channel, a few cents and milliseconds apart). a choir singing the tune always gets two more voices
-// and sings every note together, a section rather than a sample; anything else gets a partner now and
-// then (DOUBLE_CHANCE), and only where the song is loud (DOUBLE_ENERGY), the way an orchestra thickens
-// the tune for its climax. only recorded instruments double: a doubled synth was the problem
+// a tune on one recording is one player, and a choir singing it sounded thin and fake. arrangers double
+// a tune instead (a flute with the violins, a piano with itself an octave up, a choir in sections), so a
+// layer's with is the instruments doubling it (synth.js plays them in its channel, a few cents and
+// milliseconds apart). a choir on the tune always gets two more voices on every note; anything else
+// gets a partner now and then (DOUBLE_CHANCE), only where the song is loud (DOUBLE_ENERGY). only
+// recorded instruments double: a doubled synth was the problem.
 // [instrument, octaves from the tune]
 const DOUBLES = {
   'choir-oo': [['choir-ah', 0], ['chant-voice', -1], ['soprano', 0], ['strings', 0]],
@@ -4477,11 +4236,10 @@ const DOUBLES = {
 const CHOIRS = { 'choir-oo': true, 'choir-ah': true, soprano: true, 'chant-voice': true, 'dream-voice': true };
 const DOUBLE_CHANCE = { ambient: 0.25, tune: 0.4, loop: 0.3, mini: 0.35, boss: 0.45, final: 0.6, cutscene: 0.6 };
 const DOUBLE_ENERGY = 0.7;
-// a song that builds doubles its tune more often, and only at the very top, so the climax is the one
-// place it's thickened (builds)
+// a song that builds doubles more often, and only at the very top (builds)
 const BUILD_DOUBLE_CHANCE = 0.8;
 const BUILD_DOUBLE_ENERGY = 0.95;
-// its own random numbers, so everything picked before stays as it was
+// on its own random numbers, so everything picked before stays as it was
 function pickDoubles(song, rng) {
   const mood = songMood(song);
   const build = builds(song);
@@ -4500,8 +4258,8 @@ function pickDoubles(song, rng) {
     layer.with = picked.map(([instrument, octave]) => ({ instrument, ...(octave ? { octave } : {}) }));
   }
 }
-// where a layer's doublers play with it (note.double, for synth.js): a choir's everywhere, anything
-// else in the loud sections only, unless the page said otherwise (layer.doubleAll)
+// where a layer's doublers play (note.double): a choir's everywhere, anything else in the loud
+// sections, unless the page says otherwise (layer.doubleAll)
 function markDoubles(layer, notes, sections, from = DOUBLE_ENERGY) {
   if (!layer.with) return;
   const everywhere = layer.doubleAll ?? !!CHOIRS[layer.instrument];
@@ -4513,15 +4271,11 @@ function markDoubles(layer, notes, sections, from = DOUBLE_ENERGY) {
 
 // ---------- the sustain pedal ----------
 //
-// c418's piano (and every pianist's) plays with the sustain pedal down: a note isn't let go of when
-// the finger lifts, it rings on into the next ones until the pedal's lifted for the new chord, and the
-// notes ringing together are a lot of that soft, blurred, nostalgic sound. without it a piano part was
-// a run of separate notes, each stopped as it ended, which is a keyboard player's sound, not a
-// pianist's. so in a mood with pedal, a piano note (pedal on the instrument) rings until its chord
-// changes, a bar (or two seconds) at most. a note struck again on the same key still stops the last one (restrikes in
-// synth.js), as a damper does. notes added by hand are left as drawn. and a ringing note stops where
-// the tune (or its own line, or for the tune any part) moves a semitone away from it: listening kept every part off the tune's
-// semitones as written, and a pedal mustn't ring one back in
+// a pianist plays with the sustain pedal down, notes ringing into each other until the chord changes:
+// a lot of c418's soft, blurred sound. so in a mood with pedal, a piano note (pedal on the instrument)
+// rings until its chord changes, a bar or two seconds at most. a note struck again still stops the last
+// (restrikes in synth.js), hand drawn notes are left as drawn, and a ringing note stops where a part
+// moves a semitone from it: listening kept parts off the tune's semitones, and a pedal mustn't undo that
 function pedal(song, sections, parts) {
   if (!songMood(song).pedal) return;
   const bar = METERS[song.meter].beats;
@@ -4536,11 +4290,10 @@ function pedal(song, sections, parts) {
       const section = sections.find((one) => note.t >= one.start - 1e-6 && note.t < one.end - 1e-6);
       const chord = section?.chords.find((one) => note.t >= one.t - 1e-6 && note.t < one.t + one.dur - 1e-6);
       if (!chord) continue;
-      // (and two seconds at most: by then a piano note is 20 db down and blurs nothing, and a fast arp
-      // ringing a whole slow bar was dozens of voices at once)
+      // (two seconds at most: by then a note is 20 db down, and a fast arp ringing a slow bar was
+      // dozens of voices)
       let until = Math.min(chord.t + chord.dur, note.t + bar, note.t + (2 * song.tempo) / 60, section.end);
-      // (a note already sounding against a semitone neighbour as written, a short one that listening let
-      // pass, isn't held at all: held, it's a clash)
+      // (a short note listening let rub isn't held at all: held, it's a clash)
       for (const other of against) {
         if (other === note || !rubs(other.midi, note.midi) || other.t >= until || other.t + other.dur <= note.t + 1e-6) continue;
         until = Math.min(until, other.t > note.t + note.dur - 1e-6 ? other.t : note.t + note.dur);
@@ -4553,25 +4306,22 @@ function pedal(song, sections, parts) {
 
 // ---------- a fuller ambient song ----------
 //
-// ambient songs were thin: about half had no tune at all, and in a fifth to a third of their beats
-// nothing moved, only a pad, a drone and now and then a bird. so once the band and its arrangement are
-// picked, an ambient song with no tune gets one most of the time, a lone line that comes and goes the
-// way c418's and aphex twin's ambient pieces have a few notes drifting over the pads, and one with no
-// scenery gets some if its place has any. it's its own pick with its own random numbers, so everything
-// picked before stays as it was, and a song that already had a tune and scenery is untouched
+// ambient songs were thin (half had no tune), so once the band's picked, an ambient song with no tune
+// usually gets a lone line that comes and goes, the way c418's and aphex twin's have a few notes
+// drifting over the pads, and one with no scenery gets some. its own random numbers, so everything
+// picked before stays as it was
 const LONE_TUNE = 0.7;
 const MORE_SCENERY = 0.8;
 function pickScenery(song, rng) {
   if (song.style !== 'ambient') return;
   const mood = songMood(song);
-  // (the scenery doesn't count here: the six layers at most are there to keep the band from crowding)
+  // (scenery doesn't count towards the most layers: that's to keep the band from crowding)
   const room = () => song.layers.filter((layer) => layer.role !== 'texture').length < Math.max(2, Math.min(7, MOST_LAYERS.ambient + (mood.most || 0)));
   // (both rolled first, so whether it gets scenery never depends on whether it got a tune)
   const tune = rng.chance(LONE_TUNE);
   const scenery = rng.chance(MORE_SCENERY);
   const has = (role) => song.layers.some((layer) => layer.role === role);
-  // a new player comes in once the song's past its quiet start (from energy), and stays in, the way
-  // pickArrangement's layers do
+  // a new player comes in once the song's past its quiet start (from energy), and stays in
   const join = (role, from) => {
     const layer = { ...clone(LAYER_DEFAULTS), id: role, role };
     const at = song.layers.findIndex((one) => ROLE_ORDER.indexOf(one.role) > ROLE_ORDER.indexOf(role));
@@ -4583,7 +4333,7 @@ function pickScenery(song, rng) {
       before = section.play.length > 0 && (energy >= from || (before && energy >= from - 0.2));
       if (before) section.play.push(role);
     }
-    // a quiet song still hears it somewhere: in its loudest section
+    // a quiet song still hears it in its loudest section
     if (!song.sections.some((section) => section.play.includes(role))) [...song.sections].sort((a, b) => (b.energy ?? 0.75) - (a.energy ?? 0.75))[0].play.push(role);
   };
   if (tune && room() && !has('melody') && mood.palette.melody?.length && mood.layers?.melody !== 0) join('melody', 0.5);
@@ -4617,8 +4367,7 @@ function mutateSong(song, rng) {
   song.humanise = nudge(song.humanise, 0.1);
   for (const layer of song.layers) {
     if (rng.chance(0.3)) layer.seed = newToken(rng);
-    // only patterns that suit the mood and style, so a mutated cozy song doesn't grow a tribal beat.
-    // not a layer carrying the tune: the melody's resting in its sections, so the tune would go missing
+    // only the mood's patterns (no tribal beat in a cozy song), and never a layer carrying the tune
     if (rng.chance(0.2) && !carries(layer)) layer.pattern = rng.pick(moodPatterns(song, layer.role));
     layer.density = nudge(layer.density, 0.15);
     layer.volume = nudge(layer.volume, 0.06);
@@ -4632,27 +4381,21 @@ function mutateSong(song, rng) {
 
 // ---------- saved songs keep their composer ----------
 //
-// a song saves its settings, not its notes: they're written again every time it plays. so changing how
-// this file writes notes changed every song anyone had saved, and a post-rock song someone loved came
-// back with a different tune. a song now remembers which composer made it (song.composer, none is the
-// first), and composeSong hands an older one to that composer, kept as it was in kept/ (KEPT_COMPOSERS,
-// loaded by the page). whenever a change makes songs already saved sound different, music.js as it was
-// is kept and a new composer goes on the end of COMPOSER_VERSIONS (README.md, "Adding things")
-//
-// the stamp came after two composers, so a song saved without one could be either: composer 1 (the
-// live site's, up to 21 october) or 1.5 (the morning of 22 october, when the flavours got their own
-// phrasing). unstamped plays as 1, the one most songs were saved with. the page marks songs saved
-// after 1.5 was committed as its, once (maker.js markMorningSongs), and the Song tab's Composer picks
-// another for one that came back sounding wrong (a whistling-crab pharaoh song, saved that morning).
+// notes are written from the settings every time a song plays, so changing how this file writes them
+// would change every saved song. a song remembers the composer that made it (song.composer, none being
+// the first), and composeSong hands an older one to it, kept unchanged in kept/ (KEPT_COMPOSERS, loaded
+// by the page). a change that makes saved songs sound different keeps music.js as it was first (README,
+// "Adding things"). unstamped songs could be 1 or 1.5 (the morning of 22 october): they play as 1, the
+// page marks ones saved after 1.5 as its (markMorningSongs), and the Song tab picks by hand.
 // every composer there's been, oldest first: the last is today's
 const COMPOSER_VERSIONS = [1, 1.5, 2];
 const COMPOSER = COMPOSER_VERSIONS[COMPOSER_VERSIONS.length - 1];
 
 // ---------- cleaning ----------
 
-// every song, whether made here, loaded from a file or opened from a link, goes through this. it
-// fills in anything missing and throws out anything that isn't a setting, so a broken or hand edited
-// file can't break the page
+// every song, made here or from a file or link, goes through this: anything missing is filled in and
+// anything that isn't a setting thrown out, so a broken file can't break the page. keys that only some
+// songs have are only there when they're set, so older songs save as they always did
 function cleanSong(data) {
   const d = data && typeof data === 'object' ? data : {};
   const num = (value, low, high, fallback) => (Number.isFinite(+value) && value !== null && value !== '' ? Math.min(high, Math.max(low, +value)) : fallback);
@@ -4663,17 +4406,11 @@ function cleanSong(data) {
   const song = {
     name: text(d.name, seedTitle(seed), 40),
     seed,
-    // a track made by hand (blankSong), not written from the seed: only there when it is
     ...(d.own === true ? { own: true } : {}),
-    // the composer it was made with (COMPOSER_VERSIONS), only there when it isn't the first, so a song
-    // saved before this plays as it did
     ...(COMPOSER_VERSIONS.includes(d.composer) && d.composer !== 1 ? { composer: d.composer } : {}),
     mood: MOODS[moodId] ? moodId : 'calm',
-    // one of the mood's flavours (FLAVOURS), only there when it isn't the mood as it is, so a song
-    // without one saves as it always did
     ...(MOODS[moodId] && d.flavour !== plainFlavour(moodId) && FLAVOURS[moodId]?.kinds[d.flavour] ? { flavour: d.flavour } : {}),
-    // only there when there are some, so a song without modifiers saves as it always did. a song saved
-    // with a blend (before modifiers replaced them) loses it, but keeps everything the blend picked
+    // (an old song's blend is dropped, but it keeps everything the blend picked)
     ...(cleanMods(oldMods).length ? { mods: cleanMods(oldMods) } : {}),
     style: STYLES[d.style] ? d.style : 'ambient',
     key: Math.round(num(d.key, 0, 11, 0)),
@@ -4699,11 +4436,9 @@ function cleanSong(data) {
     ids.add(id);
     layer.id = id;
     layer.instrument = instrumentFits(raw.instrument, raw.role) ? raw.instrument : Object.keys(INSTRUMENTS).find((key) => instrumentFits(key, raw.role));
-    // which of the instrument's recordings it plays, only kept if it's one of its others (more in
-    // synth.js), so a song that plays the usual one saves as it always did
+    // which recording it plays, only when it isn't the instrument's usual one
     if (INSTRUMENTS[layer.instrument].more?.[raw.recording]) layer.recording = raw.recording;
-    // the instruments doubling it (doubling): recorded tonal ones, three at most, only kept when there
-    // are some, so a song without saves as it always did
+    // the instruments doubling it: recorded tonal ones, three at most
     const doubles = (Array.isArray(raw.with) ? raw.with : []).filter((one) => INSTRUMENTS[one?.instrument]?.samples && roleFamily(layer.role) === 'tonal' && !['kit', 'texture'].includes(INSTRUMENTS[one.instrument].family)).slice(0, 3);
     if (doubles.length) {
       layer.with = doubles.map((one) => ({
@@ -4714,8 +4449,7 @@ function cleanSong(data) {
       if (typeof raw.doubleAll === 'boolean') layer.doubleAll = raw.doubleAll;
     }
     layer.pattern = PATTERNS[raw.role][raw.pattern] ? raw.pattern : Object.keys(PATTERNS[raw.role])[0];
-    // a layer that plays only the notes added by hand (composeSong), so nothing's written for it. kept
-    // out of songs that don't have one, so they save as they always did. a texture has no notes to draw
+    // a layer that plays only notes added by hand (a texture has none to draw)
     if (raw.hand === true && roleFamily(raw.role) !== 'texture') layer.hand = true;
     layer.seed = text(String(raw.seed ?? ''), '0', 24);
     layer.volume = num(raw.volume, 0, 1, layer.volume);
@@ -4736,10 +4470,7 @@ function cleanSong(data) {
     for (const part of PARTS) {
       const edit = raw.edits?.[part];
       if (!edit) continue;
-      // a note is [beat, midi, length], and then, for the note editor's tools, as many of these as it
-      // needs: the midi it slides to, the beats the slide takes, cents of vibrato, the slide's shape
-      // (CURVES in synth.js), a swell (1 growing, -1 dying away) and how hard it's played (0 for the
-      // usual 0.75) and a palm mute. see packEdit
+      // a note is [beat, midi, length, ...the note editor's extras], see packEdit
       const pitch = (midi) => Math.round(Math.min(127, Math.max(0, midi)));
       const add = (Array.isArray(edit.add) ? edit.add.slice(0, 2000) : [])
         .filter((note) => Array.isArray(note) && note.length >= 3 && note.every((n) => Number.isFinite(n)))
@@ -4767,9 +4498,9 @@ function cleanSong(data) {
       play: [...new Set(Array.isArray(raw.play) ? raw.play.filter((id) => ids.has(id)) : [])],
       // the layer playing a solo here (addSolo), only kept if it's one that can
       ...(ids.has(raw.lead) && SOLOISTS[song.layers.find((layer) => layer.id === raw.lead).role] ? { lead: raw.lead } : {}),
-      // how hard it's played, 0 to 1 (feel). songs from before this had none, and play as they did
+      // how hard it's played, 0 to 1 (feel)
       ...(typeof raw.energy === 'number' && Number.isFinite(raw.energy) ? { energy: num(raw.energy, 0, 1, 0.75) } : {}),
-      // a key change: semitones up (section.lift, LIFTED), only there when there is one
+      // a key change: semitones up (LIFTED)
       ...(Number.isInteger(raw.lift) && raw.lift >= 1 && raw.lift <= 5 ? { lift: raw.lift } : {}),
     });
   }
@@ -4781,13 +4512,9 @@ function cleanSong(data) {
 
 // ---------- what's changed: short links ----------
 //
-// a whole song is a few kilobytes of settings, and a link carrying all of them was thousands of
-// characters, too long for most chats. but a song made from a seed is mostly what that seed makes, so
-// a link only needs the seed and its settings, and whatever's been changed by hand since. songChanges
-// is that difference: only the keys that differ from the song the seed makes, nested, with lists
-// patched place by place (and their new length, if it changed), so turning one layer down is a few
-// characters. a key that's gone is null. withChanges puts them back. the page packs the changes
-// smaller still for its links (maker.js)
+// a song from a seed is mostly what the seed makes, so a link is the seed and only what's changed since
+// (maker.js packs it). songChanges is that difference: the keys that differ, nested, lists patched place
+// by place (with their new length if it changed), a key that's gone as null. withChanges puts them back
 function songChanges(from, to) {
   if (JSON.stringify(from) === JSON.stringify(to)) return undefined;
   const nested = (thing) => thing && typeof thing === 'object';
@@ -4820,8 +4547,7 @@ function withChanges(base, changes) {
 
 // ---------- composing: settings to notes ----------
 
-// a section's chords, laid out from its start. the part's progression goes round as many times as
-// fits
+// a section's chords from its start, the part's progression going round as many times as fits
 function sectionChords(song, section, start) {
   const bpb = METERS[song.meter].beats;
   let { slots } = parseProgression(song.parts[section.part]);
@@ -4843,10 +4569,8 @@ function sectionChords(song, section, start) {
   return chords;
 }
 
-// a song that ends comes home: the last chord of an ambient song or a tune is the home chord. the end
-// of a part's progression is often the chord that leads back round (a IV or a V), which is right for
-// going round again and wrong for stopping: the outro just stopped, mid thought. a fight or a loop goes
-// round forever under the game, so it's left leading back into its start
+// a song that ends comes home: its last chord is the home chord, not the IV or V that leads back round
+// (the outro stopped mid thought). a loop or fight is left leading back into its start
 function cadence(song, last) {
   if (!last || LOOPS[song.style]) return;
   const chord = last.chords[last.chords.length - 1];
@@ -4863,7 +4587,6 @@ function composeSong(song) {
   const kept = (song.composer || 1) !== COMPOSER && typeof KEPT_COMPOSERS !== 'undefined' && KEPT_COMPOSERS[song.composer || 1];
   if (kept) return kept.composeSong(song);
   const meter = METERS[song.meter];
-  // (for the composers that sing as the flavour does: phrasing)
   const mood = songMood(song);
   const build = builds(song);
   const sections = [];
@@ -4877,16 +4600,16 @@ function composeSong(song) {
   }
   cadence(song, sections[sections.length - 1]);
   const scalePcs = new Set(SCALES[song.scale].steps.map((step) => mod12(song.key + step)));
-  // melodies first, so counter melodies can answer them, then a layer taking the tune, which is the
-  // tune the others answer where the melody's resting (orchestration)
+  // melodies first, so counter melodies can answer them, then a layer taking the tune (the tune where
+  // the melody rests)
   const order = (layer) => (layer.role === 'melody' ? 0 : layer.role === 'counter' && carries(layer) ? 1 : 2);
   const layers = [...song.layers].sort((a, b) => order(a) - order(b));
   const melodyLayer = song.layers.find((layer) => layer.role === 'melody');
   const melodyBySection = {};
   const grooves = {};
   for (const part of PARTS) grooves[part] = grooveFor(song, part);
-  // one layer's notes for one section: its composer's (or its solo, or nothing for a layer played by
-  // hand), then its hand edits
+  // one layer's notes for one section: its composer's (or its solo, or none if it's played by hand),
+  // then its hand edits
   const write = (layer, section) => {
     const c = {
       song, layer, section, meter, scalePcs, mood,
@@ -4898,25 +4621,19 @@ function composeSong(song) {
       chords: section.chords,
       rng: makeRng(song.seed, layer.seed, layer.role, section.part),
       vary: makeRng(song.seed, layer.seed, section.part, 'take', section.take),
-      // (an instrument with a home, a throat singer or a didgeridoo, sits around its own note: moved
-      // more than a few semitones from where it was recorded, it sounds like someone else)
+      // (a singer or didgeridoo sits round its own note, home: moved far, it sounds like someone else)
       center: (INSTRUMENTS[layer.instrument]?.home ?? ROLES[layer.role].center) + layer.octave * 12,
       steps: SCALES[song.scale].steps,
       melody: melodyBySection[section.index] || null,
-      // the melody's line as it's written for this section, whether or not the melody's playing it:
-      // what a layer taking or doubling the tune plays (orchestration). written afresh each time,
-      // since the notes are changed as they go on (listen, ornament, feel)
+      // the melody's line for this section, playing or not: what a layer taking or doubling the tune
+      // plays. written afresh each time, since listen, ornament and feel change notes in place
       line: () => (melodyLayer && melodyLayer !== layer ? write(melodyLayer, { ...section, lead: null }) : []),
     };
     c.tonic = near(song.key, c.center);
-    // a solo is its own line, so the part's hand edits (made on its usual tune) don't apply to it
+    // a solo is its own line, so the part's hand edits don't apply to it
     const leading = section.lead === layer.id;
-    // (a layer played by hand has nothing written for it, just its edits)
     let made = (leading ? solo(c) : layer.hand ? [] : COMPOSERS[layer.role](c)).filter((note) => note.t >= section.start - 1e-6 && note.t < section.end - 1e-6);
-    // a singer (home) sings every note within about three quarters of an octave of their own: a tune's
-    // range is only a guide (a part B sung higher, a note snapping up to a chord), and a throat
-    // singer's recording moved further sounds like someone else. a note that wanders off is sung an
-    // octave nearer. (notes added by hand are left where they were put)
+    // a singer (home) sings every note within nine semitones of their own, a stray an octave nearer
     const home = INSTRUMENTS[layer.instrument]?.home;
     if (home) {
       for (const note of made) {
@@ -4924,10 +4641,8 @@ function composeSong(song) {
         while (note.midi < home - 9) note.midi += 12;
       }
     }
-    // a voice with a range (the soprano, the low voice) sings within what it was recorded singing: an
-    // octave further and it's a cartoon. the whole section's part moves by octaves into the voice first,
-    // the way a singer takes a tune in their own key, so its shape stays; only a stray note left
-    // outside is then sung an octave nearer
+    // a voice with a range sings inside it (an octave further is a cartoon): the section's part moves by
+    // whole octaves first, so its shape stays, then any stray note
     const range = INSTRUMENTS[layer.instrument]?.range;
     if (range && made.length) {
       const middle = made.reduce((sum, note) => sum + note.midi, 0) / made.length;
@@ -4941,25 +4656,21 @@ function composeSong(song) {
     if (!leading) made = applyEdits(made, layer.edits[section.part], section);
     return made;
   };
-  // everyone writes their part, then the band listens to each other (listen), then it's played with
-  // feel. listening comes before feel, so it compares the notes where they sit on the grid
+  // everyone writes their part, then the band listens (listen, on the grid), then plays it with feel
   const parts = {};
   for (const layer of layers) {
     const out = [];
     for (const section of sections) {
       if (!section.play.includes(layer.id)) continue;
       const made = write(layer, section);
-      // the tune the band answers in this section: the melody's, or where it's resting, the layer that
-      // took it over
+      // the tune the band answers here: the melody's, or the layer that took it over
       if ((layer.role === 'melody' || order(layer) === 1) && !melodyBySection[section.index]) melodyBySection[section.index] = made;
       out.push(...made);
     }
     parts[layer.id] = out;
   }
   listen(song, sections, parts);
-  // then each player adds what they'd add to the written notes: slides, bends, graces (ornament)
   ornament(song, sections, parts);
-  // the pianos hold the sustain pedal down, in the moods that want it
   pedal(song, sections, parts);
   liftKey(song, sections, parts);
   const notes = [];
@@ -4975,17 +4686,12 @@ function composeSong(song) {
   return { beats: start, bpb: meter.beats, sub: meter.sub, step: gridStep(song.meter), sections, notes };
 }
 
-// a key change (section.lift, LIFTED in the song shapes): every note in a lifted section moves up that
-// many semitones once the band's written, listened and ornamented, so everything they worked out
-// together (what fits the chord, what rubs) moves with it, and so do its chords for the score. the
-// drums' tuned kicks and toms move too (their tune is in hz), and the scenery's home note. done before
-// held drones are joined up (joinHeld), so a drone can't hold the old key on into the new one. a note
-// keeps the pitch it was written at (written), which is how the note editor knows it. a voice
-// (range, home) goes up with everyone, a semitone or two past where it was recorded at most, which a
-// recording takes without sounding stretched: folding its notes an octave nearer, as composeSong does
-// for strays, broke the tune's shape at the climax and dropped it under the band
-// a note from before a key change that would ring on into it is let go as it comes: still sounding in the
-// old key, it rubbed against the new one's tune
+// a key change (section.lift): every note in a lifted section moves up once the band's written,
+// listened and ornamented it, so everything that fitted still fits, and its chords move too. tuned
+// drums and the scenery's home note move with it, and a voice goes up with everyone (folding it an
+// octave nearer broke the tune's shape at the climax). done before held drones join up (joinHeld). a
+// note keeps the pitch it was written at (written) for the note editor, and a note from before that
+// would ring on into the change is let go there
 function liftKey(song, sections, parts) {
   for (const section of sections) {
     if (!section.lift) continue;
@@ -5019,27 +4725,19 @@ function liftKey(song, sections, parts) {
 
 // ---------- listening ----------
 //
-// each composer writes its own part. then the band listens to each other and gives way where two
-// parts would sound wrong together, the way players in a real band do without being told. the drums
-// listen as they play instead (COMPOSERS.drums). notes added by hand are left alone: they're yours.
-//   - the tune stays on top: keys, an arp or a counter melody that would sound above the melody note
-//     playing as they start drop an octave, unless that takes them out of their range. an arp
-//     running up over the tune fought it for your ear. pads are a wash behind everything and bells
-//     ring above on purpose, so they stay where they are
-//   - nobody rubs against the tune: a minor second (or ninth) between a note and a longer melody note
-//     it's heard against is the harshest clash there is. pads and keys drop the chord's added note
-//     (a seventh, a ninth) when that's what rubs, and still have the chord without it. single lines
-//     (an arp, bells, a counter melody) move to the nearest chord note that doesn't rub instead
+// once every part's written, the band gives way where two parts would sound wrong together. the drums
+// listen as they play instead (COMPOSERS.drums), and notes added by hand are left alone:
+//   - the tune stays on top: keys, an arp or a counter melody that would start above the melody note
+//     drop an octave, if that keeps them in range (pads and bells stay where they are)
+//   - nobody rubs against the tune: a minor second (or ninth) against a melody note half a beat or
+//     longer. pads and keys drop the chord's added note when that's what rubs; lines (an arp, bells, a
+//     counter melody, a riff's line) move to the nearest chord note that doesn't
+//   - in a solo the soloist is the tune, and where the melody's handed the tune over, the layer that
+//     took it is. layers carrying the tune play its own notes, so they never give way to it
 const ON_TOP = { keys: true, arp: true, counter: true };
 const GIVE_WAY = { keys: 'drop', guitar: 'drop', pad: 'drop', arp: 'move', bells: 'move', counter: 'move' };
-// the upper of two notes a minor second (or a minor ninth, or more octaves) above the lower
+// two notes a minor second (or ninth, or more octaves) apart
 const rubs = (a, b) => mod12(Math.max(a, b) - Math.min(a, b)) === 1;
-
-//   - in a solo section, the soloist is the tune (section.lead), and it doesn't give way to itself
-//   - a riff's line moves too (riff()), on the guitar and on a bass doubling it alike, so the two
-//     never rub against each other either. dropping a riff note that rubbed left a hole in the riff
-//   - where the melody's handed the tune over (orchestration), the layer that took it is the tune.
-//     layers carrying the tune play the tune's own notes, so they never give way to it
 function listen(song, sections, parts) {
   const melody = song.layers.find((layer) => layer.role === 'melody');
   const taker = song.layers.find((layer) => layer.role === 'counter' && carries(layer));
@@ -5067,7 +4765,7 @@ function listen(song, sections, parts) {
     if (carries(layer) || (!GIVE_WAY[layer.role] && !parts[layer.id].some((note) => note.line))) continue;
     const floor = ROLES[layer.role].center + layer.octave * 12 - 12;
     parts[layer.id] = parts[layer.id].filter((note) => {
-      // a riff's line (note.line, on the guitar and a bass doubling it) moves like any other line
+      // a riff's line (note.line) moves like any other line, so the guitar and bass never rub
       const rule = note.line ? 'move' : GIVE_WAY[layer.role];
       if (!rule || note.added || soloing(layer, note)) return true;
       const at = lastBefore(note.t);
@@ -5078,8 +4776,7 @@ function listen(song, sections, parts) {
         note.written ??= note.midi;
         note.midi -= 12;
       }
-      // the melody notes it's heard against: the one playing as it starts and any that start while
-      // it sounds, leaving out quick passing notes
+      // the melody notes it's heard against, leaving out quick passing notes
       const heard = [];
       for (let i = Math.max(0, at); i < tune.length && tune[i].t < note.t + note.dur - 1e-6; i++) {
         if (tune[i].dur >= 0.5 && tune[i].t + tune[i].dur > note.t + 1e-6) heard.push(tune[i].midi);
@@ -5090,7 +4787,7 @@ function listen(song, sections, parts) {
       if (rule === 'drop') return chord.tones.slice(0, 3).some((tone) => mod12(chord.root + tone) === mod12(note.midi));
       for (const step of [1, -1, 2, -2, 3, -3, 4, -4]) {
         const midi = note.midi + step;
-        // under the tune, or for a note that couldn't drop under it (a low tune), no further over it
+        // under the tune, or for a note stuck over a low tune, no further over it
         if (chord.pcs.has(mod12(midi)) && !clashes(midi) && (midi <= ceiling || midi < note.midi)) {
           note.written ??= note.midi;
           note.midi = midi;
@@ -5104,41 +4801,22 @@ function listen(song, sections, parts) {
 
 // ---------- ornaments ----------
 //
-// what a player adds to the written notes without thinking about it: the things that make a fiddle
-// tune sound like a fiddler and not a music box. this is most of the gap between real music and midi,
-// where every note starts dead on its pitch and stays there. each instrument says which ornaments a
-// player of it uses and how often (ornaments in synth.js), the mood says how much it likes them
-// (ornate), and they're added here, after the band's listened and before feel. they're bends on the
-// notes themselves (note.bend, pins in beats, which synth.js plays with pitchMods), so nothing's added
-// or taken away: the tune, its rhythm and every rule above stay as they were. only the playing changes:
-//   slide   portamento: the note starts on the last note's pitch and slides onto its own, when the two
-//           are joined up (legato) and no more than a fifth apart. glide is how long, in seconds
-//   bend    a guitarist or harmonica player bending up onto the note from bendBy semitones under
-//   grace   a quick flick from the scale note above, before the note (a fiddler's cut)
-//   trill   a mordent on a long note: the note, the one above, and back, quickly
-//   fall    the end of a phrase falling away (a sax or trumpet player's "fall off")
-//   shake   a wide vibrato on a long note (note.shake, cents): a guitarist shaking a held note
-//   stop    a double stop, a second note a third under a long, strong one (fiddles, pedal steel). the
-//           only one that adds a note, which is marked stop
-//   release the other way round from a bend: the string's already bent up when it's picked, then let
-//           down onto the note (a guitarist's "pre-bend and release", a pedal steel's pedal let off, a
-//           koto player lifting their hand off the string)
-//   doit    the end of a note flicking up and away, the jazz trumpeter's or sax player's opposite of a
-//           fall (said "doyt")
-//   swell   a long note shaped instead of held flat (note.swell): growing through the middle of a
-//           phrase, the way a violinist or a horn player leans into a long note, and dying away at the
-//           end of one
-// and one that isn't dice: a slur (note.slur). a wind or bow player only starts the breath or the bow
-// on a phrase's first note, and the notes after it come straight out of the one before. so the joined
-// notes of a blown, bowed or sung line (or a synth lead, which played legato doesn't start its envelope
-// again) are slurred: no puff, no scoop, no fade in, just the new pitch. a repeated note is tongued
-// again, as players do. without it every note of a flute tune started like a new phrase, which was a
-// lot of what still sounded like a keyboard playing a flute
-// slides and bends are curved (the third number of a pin, CURVES in synth.js): a slide is quick and
-// settles onto its note, a bend is smooth, a fall speeds up as it drops
-// the dice for each come from the note's place: its section's part, its bar in a four bar phrase, its
-// beat in the bar and its length. so a motif that comes back is ornamented the same way, the way a
-// player has their own way of playing a phrase. hand drawn notes are left as they were drawn
+// what a player adds to the written notes without thinking: most of the gap between real music and
+// midi. each instrument says which ornaments its players use and how often (ornaments in synth.js), and
+// the mood how much it likes them (ornate). they're bends on the written notes (note.bend, pins in
+// beats, played by pitchMods in synth.js), so the tune and every rule above stay true:
+//   slide    the note starts on the last one's pitch and slides on (joined notes, a fifth apart at most)
+//   bend     bending up onto the note from bendBy semitones under (a guitar, a harmonica)
+//   release  the other way: picked already bent, then let down onto the note
+//   grace    a quick flick from the scale note above (a fiddler's cut)
+//   trill    a mordent on a long note: the note, the one above, and back
+//   fall, doit   the end of a phrase falling away, or flicking up (a sax or trumpet)
+//   shake    a wide vibrato on a long note (note.shake, cents)
+//   swell    a long note growing through a phrase, or dying at its end (note.swell)
+//   stop     a double stop, a second note a third under (the only one that adds a note, marked stop)
+// and slurs (slurs(), not dice): joined notes of a blown, bowed or sung line come straight out of the
+// last without a fresh attack. the dice come from the note's place (part, bar in its phrase, beat,
+// length), so a motif that comes back is ornamented the same way. hand drawn notes are left as drawn
 const ORNAMENTED = { melody: true, counter: true, bass: true, guitar: true };
 function ornament(song, sections, parts) {
   const amount = (songMood(song).ornate ?? 1) * (song.style === 'ambient' ? 0.6 : 1);
@@ -5167,8 +4845,7 @@ function ornament(song, sections, parts) {
     const glide = beats(can.glide ?? 0.1);
     const notes = parts[layer.id].filter((note) => !note.added && !note.bend && !note.mute).sort((a, b) => a.t - b.t || a.midi - b.midi);
     if (layer.role === 'guitar') {
-      // sliding into a chord from the last one, all its strings together (smells like teen spirit's
-      // slides between power chords). only between chords that are joined up and close by
+      // sliding a whole chord in from the last (power chord slides), when they're joined and close
       const chords = [];
       for (const note of notes) {
         if (chords.length && Math.abs(chords[chords.length - 1][0].t - note.t) < 0.05) chords[chords.length - 1].push(note);
@@ -5193,8 +4870,7 @@ function ornament(song, sections, parts) {
       const ending = !after || after.t - (note.t + note.dur) >= 0.5;
       // one change of pitch a note: the first of these that comes up
       if (joined && move && Math.abs(move) <= 7 && note.dur >= 0.4 && roll(`slide${Math.sign(move)}`, note, can.slide)) {
-        // (a trombone's slide, a singer's or a fretless's glide is smooth all the way; anything faster
-        // gets there quickly and settles)
+        // (a slow glide, a trombone's or a singer's, is smooth; a quick one settles)
         note.bend = [[0, move], [Math.min(glide, note.dur * 0.5), 0, can.glide >= 0.15 ? 1 : 2]];
       } else if (layer.role === 'bass') {
         continue;
@@ -5229,10 +4905,8 @@ function ornament(song, sections, parts) {
   }
 }
 
-// slurs (see ornament): every joined note of a blown, bowed or sung line after the first, unless it's
-// the same pitch again. a struck or plucked instrument can't slur, and nor can a synth that's meant to
-// pluck (its sound dies away, env's sustain), so it's the instruments that hold a note: the ones that
-// scoop onto it, the voices, and the held synth leads
+// slurs (see ornament): every joined note of a held line after the first, unless it's the same pitch
+// again. only instruments that hold a note (scooped, sung, held synth leads) can slur
 const legato = (inst) => (inst.kind === 'sub' || inst.kind === 'choir') && inst.env[2] >= 0.6 && (inst.scoop || inst.kind === 'choir' || inst.family === 'lead');
 function slurs(inst, notes) {
   if (!legato(inst)) return;
@@ -5246,11 +4920,9 @@ function slurs(inst, notes) {
 // a note's key for edits: where it starts in its section, and its pitch
 const editKey = (relative, midi) => `${+relative.toFixed(3)}:${midi}`;
 
-// a hand drawn note (layer.edits' add) from its numbers to named parts and back. the numbers are
-// [beat, midi, length, to, glide, shake, curve, swell, vel, mute], with as many left off the end as are their
-// defaults, so a plain note is three numbers and a song from before slides were drawn reads the same.
-// vel 0 means the usual strength (0.75), and mute 1 a palm muted note: they're only kept by notes
-// taken over from a written part
+// a hand drawn note (layer.edits' add) as numbers and back: [beat, midi, length, to (midi it slides
+// to), glide (beats), shake (cents), curve (CURVES in synth.js), swell (1 or -1), vel (0: the usual
+// 0.75), mute (palm muted)], with defaults left off the end so a plain note is three numbers
 const EDIT_FIELDS = ['t', 'midi', 'dur', 'to', 'glide', 'shake', 'curve', 'swell', 'vel', 'mute'];
 function unpackEdit([t, midi, dur, to = midi, glide = 0, shake = 0, curve = 0, swell = 0, vel = 0, mute = 0]) {
   return { t, midi, dur, to, glide, shake, curve, swell, vel, mute };
@@ -5270,8 +4942,7 @@ function applyEdits(notes, edit, section) {
     const { t, midi, dur, to, glide, shake, curve, swell, vel, mute } = unpackEdit(raw);
     if (t >= section.beats) continue;
     const length = Math.min(dur, section.beats - t);
-    // a slide drawn with the note editor's slide tool: from midi to to, over glide beats in its shape,
-    // then held
+    // a slide drawn by hand: from midi to to over glide beats, then held
     const slide = to !== midi ? { bend: [[0, 0], [Math.min(glide, length), to - midi, ...(curve ? [curve] : [])]] } : {};
     kept.push({ t: section.start + t, dur: length, midi, vel: vel || 0.75, added: true, ...slide, ...(shake ? { shake } : {}), ...(swell ? { swell } : {}), ...(mute ? { mute: true } : {}) });
   }
@@ -5294,20 +4965,14 @@ function joinHeld(notes) {
   return out;
 }
 
-// swing and humanising. gt keeps the note's place on the grid, which edits and the note editor use;
-// t is when it really plays.
-//
-// humanising nudges the band together, the way players who know each other lock in: every note on
-// the same spot in the song moves by the same amount (the pocket), and each layer only adds a little
-// of its own on top (LOOSE). I first gave every layer its own random nudges, and the kick, bass and
-// chords smeared apart into flams. drums and bass add almost nothing, so the beat stays solid
+// swing and humanising. gt keeps the note's place on the grid (for edits and the editor), t is when it
+// plays. every note on the same spot moves by the same amount (the pocket) so the band locks together,
+// and each layer adds a little of its own (LOOSE): separate nudges smeared the kick, bass and chords
+// into flams
 const LOOSE = { melody: 1, counter: 1, bells: 1, arp: 0.5, keys: 0.6, guitar: 0.3, pad: 0.4, bass: 0.15, drums: 0.1, drone: 0, texture: 0 };
 const pocket = (song, t) => makeRng(song.seed, 'pocket', Math.round(t * 12)).range(-1, 1) * song.humanise * 0.012;
-// dynamics: a section is played as hard as its energy (pickArrangement), so an intro is softer than
-// the chorus, and the last bar before a louder section swells up into it, the way a band lifts into a
-// chorus together. every note used to be played as hard in a quiet intro as in the last chorus, and
-// that flatness was a lot of the midi feel. an energy of 0.75 (or none, in songs from before this) is
-// played as written. the drums already play to the room (COMPOSERS.drums), so they're left alone
+// dynamics: a section is played as hard as its energy (0.75 as written), and the last bar before a
+// louder one swells into it. the drums already play to the room (COMPOSERS.drums), so they're left alone
 function loudness(sections, t, bpb) {
   const at = sections.find((section) => t < section.end - 1e-6) || sections[sections.length - 1];
   const energy = at.energy ?? 0.75;
@@ -5322,8 +4987,7 @@ function loudness(sections, t, bpb) {
 
 function feel(notes, song, layer, sections = null) {
   const rng = makeRng(song.seed, layer.seed, 'feel');
-  // swing pushes every off beat later: a beat's second half starts at 0.5 + swing / 4 instead of 0.5.
-  // 6/8 already lilts in threes, and swinging its thirds just knocked them out of line, so it doesn't
+  // swing pushes every off beat later (to 0.5 + swing / 4). never in 6/8, which already lilts
   const swing = METERS[song.meter].sub === 2 ? song.swing : 0;
   const middle = 0.5 + swing * 0.25;
   const own = LOOSE[layer.role] * song.humanise;
@@ -5336,23 +5000,20 @@ function feel(notes, song, layer, sections = null) {
     let t = beat + (u < 0.5 ? (u / 0.5) * middle : middle + ((u - 0.5) / 0.5) * (1 - middle));
     t += pocket(song, note.gt) + rng.range(-1, 1) * own * 0.012;
     note.t = Math.max(0, t);
-    // strengths still vary for everyone, drums most of all: an even hi hat is what sounds like a machine
+    // strengths vary for everyone, drums most: an even hi hat sounds like a machine
     note.vel = clamp01(note.vel * (1 + rng.range(-1, 1) * Math.max(own, song.humanise * 0.6) * 0.16));
   }
 }
 
 // ---------- the groove ----------
 //
-// the drums, a syncopated bass and the chord stabs all play from one groove, so the kick and bass
-// land together and the stabs fit round them, like a band that's played together for years. before
-// this, each made up its own rhythm (and the drums rolled dice every bar), which is why they never
-// sat together. a groove is a bar written out by hand, like an old drum machine's pattern chart:
-//   k kick, s snare, h hat, o open hat, p perc (rim, shaker or tick, or a rock kit's ride), l low perc
-//   (toms or taiko), y crash (the open hat on a kit without one), c comping: where chord stabs, the
-//   syncopated bass and power chords go
-// x is a hit, - a soft (ghost) one, . nothing, one character a step: 16ths in 4/4, 3/4 and 5/4, 8ths
-// in 6/8. lines a groove leaves out are silent. the drum layer's pattern picks the list, and its seed
-// picks one from it. part A plays it as written, B a lifted version and C a dropped one (grooveFor)
+// the drums, a syncopated bass and the chord stabs all play one groove, so the kick and bass land
+// together. a groove is a bar written out by hand like a drum machine chart:
+//   k kick, s snare, h hat, o open hat, p perc (rim, shaker, tick, or a rock kit's ride), l low perc
+//   (toms, taiko), y crash, c comping: where stabs, a syncopated bass and power chords go
+// x a hit, - a soft (ghost) one, . nothing, a character a step (16ths, or 8ths in 6/8). lines left out
+// are silent. the drum layer's pattern picks the list and its seed one from it. part A plays it as
+// written, B lifted and C dropped (grooveFor)
 const GROOVES = {
   '4/4': {
     groove: [
@@ -5607,22 +5268,20 @@ const FILLS = { brush: true, tribal: true, swing: true, tala: true, bossa: true,
 const ROCK = { rock: true, punk: true, double: true, breakdown: true, wash: true };
 const RIDES = { rock: true, punk: true };
 
-// a pitched drum (a kick, a tom, a tick, a rim, the body of a snare) moved to the nearest home note
-// or fifth of the song's key, in hz. where the kits had them they were out of key with everything
-// else: a kick a semitone off the bass, a woodblock ticking a wrong note on every beat
+// a pitched drum (kick, tom, tick, rim, snare body) moved to the nearest home note or fifth, in hz, so
+// it isn't a semitone off the bass
 function tuneDrum(hz, key) {
   const midi = 69 + 12 * Math.log2(hz / 440);
   const [best] = [key, key + 7].map((pc) => near(pc, Math.round(midi))).sort((a, b) => Math.abs(a - midi) - Math.abs(b - midi));
   return 440 * 2 ** ((best - 69) / 12);
 }
 
-// a part's groove, as numbers: 1 a hit, 0.5 a soft one, 0 nothing. songs without drums still get one
-// (the style's usual), so their bass and stabs keep to a steady rhythm
+// a part's groove as numbers (1 a hit, 0.5 a soft one). songs without drums still get one for their
+// bass and stabs
 function grooveFor(song, part) {
   const drums = song.layers.find((layer) => layer.role === 'drums');
   const kind = drums ? drums.pattern : song.style !== 'ambient' ? 'groove' : 'pulse';
-  // a breakdown (metal, hardcore): part C goes half time and heavy, the guitar chugging on the kick,
-  // instead of dropping quiet
+  // a breakdown (metal, hardcore): part C goes half time and heavy instead of dropping quiet
   const breakdown = part === 'C' && song.style !== 'ambient' && !!songMood(song).breakdown;
   const written = makeRng(song.seed, drums ? drums.seed : '', 'groove').pick(GROOVES[song.meter][breakdown ? 'breakdown' : kind]);
   const steps = written.k.length;
@@ -5631,9 +5290,8 @@ function grooveFor(song, part) {
   for (const name of [...Object.keys(GROOVE_SLOTS), 'c']) lines[name] = [...(written[name] || '.'.repeat(steps))].map((char) => (char === 'x' ? 1 : char === '-' ? 0.5 : 0));
   if (!written.c) lines.c = lines.k.slice();
   if (part === 'B' && LIFTS[kind]) {
-    // lifted: soft hats in between, and an open hat on the last off beat pushing into the next bar.
-    // only for the pop grooves: it put busy 16th hats into quiet sparse beats and jazz brushes. a rock
-    // drummer moves the hats over to the ride instead (perc, on a rock kit)
+    // lifted (pop grooves only): soft hats in between and an open hat pushing into the next bar. a rock
+    // drummer moves to the ride instead (perc, on a rock kit)
     if (RIDES[kind] && lines.h.some(Boolean)) {
       lines.p = lines.p.map((v, i) => Math.max(v, lines.h[i]));
       lines.h = lines.h.map(() => 0);
@@ -5674,8 +5332,7 @@ function chordDegree(c, degree, chord) {
   return degree;
 }
 
-// a borrowed chord (bVII in a major key, say) has notes outside the scale. a scale note a semitone
-// from one of those would clash, so it moves onto the chord's note instead
+// a scale note a semitone from a borrowed chord's note outside the scale moves onto the chord's note
 function fitToChord(midi, chord, scalePcs) {
   for (const pc of chord.pcs) {
     if (scalePcs.has(pc)) continue;
@@ -5709,11 +5366,9 @@ const CELLS = {
   },
 };
 
-// a bar's rhythm: cells end to end until it's full. busier layers pick faster cells, quieter ones
-// slower (longer notes). there are no rests inside a bar: I used to turn random notes into gaps, and
-// because the motif repeats, the same holes came back every bar and the tune sounded like it kept
-// cutting out. a sparse melody is long notes instead, and it breathes at the ends of phrases (tune()).
-// length: beats to fill, a bar unless it's half of one (a hook, makeMotif)
+// a bar's rhythm: cells end to end until it's full, faster ones for busier layers. no rests inside a
+// bar: the motif repeats, so random gaps came back every bar and the tune kept cutting out. a sparse
+// tune is long notes, breathing at the ends of phrases. length: beats to fill (half a bar for a hook)
 function makeBar(rng, c, density, length = c.bpb) {
   // (a flavour's rhythm, phrasing, where it has one for this meter)
   const cells = RHYTHMS[c.mood.phrasing?.rhythm]?.[c.sub] || CELLS[c.sub];
@@ -5739,9 +5394,8 @@ function gapAfter(hits, i) {
   return gap;
 }
 
-// the groove's comping hits inside a chord: [time, length until the next hit, strength]. counted from
-// the bar, not the chord, so half bar chords still land on the groove. sparse layers keep only the
-// hits on the beat
+// the groove's comping hits in a chord: [time, length to the next hit, strength], counted from the bar
+// so half bar chords still land on the groove. sparse layers keep only the hits on the beat
 function compHits(c, chord, density) {
   const { lines, perBeat, grid } = c.groove;
   const hits = lines.c.map((v, i) => v > 0 && (density >= 0.35 || i % perBeat === 0));
@@ -5757,33 +5411,20 @@ function compHits(c, chord, density) {
 
 // ---------- melodies ----------
 //
-// a tune people remember is mostly one idea coming back. game composers (koji kondo, toby fox, c418,
-// concernedape) build whole themes from one short motif: played again, moved up or down a step (a
-// sequence), turned upside down, answered, and brought back changed in other parts (a leitmotif). so
-// every melody here grows from one motif. it used to be a random walk of steps, a new one every part,
-// and nothing in it came back for you to remember
-//   - the motif is a rhythm and a shape (CONTOURS): the shapes memorable tunes take, like a leap up and
-//     steps back down, an arch, or a note repeated then left
-//   - it's made from the layer's own seed, so it's the same tune in every part. part B either sings it
-//     higher or has its own, answering one, and part C slows it down or has its own (tune())
-//   - a short motif is played twice in its bar, the second time a step away: a hook
-//   - a theme is longer than its motif. it has a second idea too, with its own rhythm (slower if the
-//     motif's busy, busier if it's slow), and its four bar phrases pair up as a question and an answer:
-//     both start with the motif, the first stops on a note that wants to go on and the second comes
-//     home. a long section is a whole tune, a a b a: question, answer, a middle phrase that starts
-//     somewhere new, then the answer again. stardew valley's themes run sixteen bars like this before
-//     they come round. it used to be one four bar plan over and over, built from the motif alone, so a
-//     whole song's melody had as few as one bar rhythm and it sounded like a short loop
-//   - later times round a part, the tune is a little changed: its last phrase can go another way, and
-//     now and then a long note gets a passing note, the way a player decorates a tune they've played
-//   - a phrase can start with a pickup, a note or two leading into its first beat
-//   - strong beats still land on the chord's notes, so it fits whatever chords are under it
-//   - it's played like a person would: a little louder towards the middle of a phrase and on higher
-//     notes, and softer as it comes to rest
-//   - a solo (solo()) is made the same way, from new ideas instead of the theme
+// a tune people remember is one idea coming back, so every melody grows from one motif, the way game
+// composers (koji kondo, toby fox, c418) write themes:
+//   - the motif is a rhythm and a shape (CONTOURS: a leap and steps back, an arch, a repeated note...),
+//     made from the layer's seed, so it's the same tune in every part. part B sings it higher or has its
+//     own, part C slows it or has its own. a short motif played twice in a bar is a hook
+//   - a theme has a second idea with its own rhythm, and its four bar phrases pair up as question (ends
+//     open) and answer (comes home). a long section is a whole a a b a tune
+//   - later times round, its last phrase can go another way and a long note can get a passing note
+//   - phrases can start with a pickup, strong beats land on chord notes, and it swells to the middle of
+//     a phrase like a player
+//   - a solo (solo()) is made the same way, from new ideas
 
-// how far each note of a motif sits from its first, in scale steps. each is set up with the motif's
-// random numbers, then gives the step for note i of n
+// how far each note of a motif sits from its first, in scale steps: set up with the motif's random
+// numbers, then the step for note i of n
 const CONTOURS = {
   // a leap up, then steps back down into the gap it left
   leap: (rng) => { const up = rng.int(3, 5); return (i) => (i ? up - (i - 1) : 0); },
@@ -5798,7 +5439,7 @@ const CONTOURS = {
   repeat: (rng) => { const move = rng.pick([1, 2, 3, -1, -2]); const hold = rng.int(2, 3); return (i, n) => (i < Math.min(hold, n - 1) || (i - Math.min(hold, n - 1)) % 2 ? 0 : move); },
   // rocking between two notes, like a call
   pendulum: (rng) => { const gap = rng.pick([2, 3, 4, -2, -3]); return (i) => (i % 2 ? gap : 0); },
-  // the rest are only used where a flavour's phrasing asks for them, so no older song changed
+  // the rest only where a flavour's phrasing asks, so no older song changed
   // up and down the chord, a bugle call: fanfares, marches, a royal court
   triad: (rng) => { const call = rng.pick([[0, 2, 4, 7, 4], [0, 4, 7, 4, 2], [4, 2, 0, 2, 4], [0, 2, 4, 2, 0]]); return (i) => call[i % call.length]; },
   // falling in pairs, each a step down from the last, a sigh: laments, requiems, regret
@@ -5814,16 +5455,14 @@ const CONTOURS = {
   // one note recited, moving only at the end: a chant, a hymn, a voice from the dark
   chant: (rng) => { const move = rng.pick([1, -1, 2]); return (i, n) => (i === n - 1 && n > 2 ? move : 0); },
 };
-// ambient tunes drift and circle more, tunes leap and repeat more. a flavour's phrasing can give its
-// own (shapes)
+// ambient tunes drift and circle more, tunes leap and repeat more (a flavour can say, shapes)
 const CONTOUR_WEIGHTS = {
   ambient: { arch: 3, turn: 2, pendulum: 2, fall: 2, leap: 1.5, climb: 1, repeat: 0.5 },
   tune: { leap: 2.5, arch: 2, repeat: 2, climb: 1.5, turn: 1.5, pendulum: 1, fall: 1.5 },
 };
 
-// a flavour's rhythm (phrasing rhythm), used for its tunes in place of CELLS: the same slow, mid and
-// fast cells, but all of one kind, so a march's tune is dotted and a lullaby's even. per beat
-// division (2: 4/4 and 3/4, 3: 6/8); one a family doesn't have uses CELLS
+// a flavour's rhythm (phrasing.rhythm), in place of CELLS: slow, mid and fast cells all of one kind, so
+// a march is dotted and a lullaby even. by beat division (2, or 3 in 6/8); a missing one uses CELLS
 const RHYTHMS = {
   // long short, long short: marches, fanfares, jigs, a sleigh ride
   dotted: {
@@ -5856,10 +5495,9 @@ const RHYTHMS = {
   },
 };
 
-// a motif: one bar of notes, { t, dur, step }. hook: half a bar played twice, the second time the
-// same or a step away. contour and rhythm can be passed in, to keep one of them from another motif.
-// it tries a few times for a rhythm with at least two lengths of note (or one long one, in a slow
-// tune): notes all the same length are what make a tune sound like a scale exercise
+// a motif: a bar of { t, dur, step }. hook: half a bar played twice, the second time maybe a step away.
+// contour and rhythm can be passed in to keep one from another motif. it wants two lengths of note (or
+// one long one in a slow tune): all the same sounds like a scale exercise
 function makeMotif(rng, c, density, hook, contour = null, rhythm = null) {
   const shape = contour || CONTOURS[rng.weighted(c.mood.phrasing?.shapes || CONTOUR_WEIGHTS[c.song.style === 'ambient' ? 'ambient' : 'tune'])](rng);
   if (!rhythm) {
@@ -5876,8 +5514,7 @@ function makeMotif(rng, c, density, hook, contour = null, rhythm = null) {
   return { notes, rhythm, contour: shape };
 }
 
-// where a phrase comes to rest: an answer on the chord's root, a question on its third or fifth,
-// which leave it hanging
+// where a phrase comes to rest: an answer on the chord's root, a question on its third or fifth
 function landing(c, degree, chord, closed) {
   for (let k = 0; k <= 4; k++) {
     for (const d of [degree - k, degree + k]) {
@@ -5888,11 +5525,9 @@ function landing(c, degree, chord, closed) {
   return chordDegree(c, degree, chord);
 }
 
-// how a phrase is built, bar by bar: m the motif, s the motif a step up or down (each s further
-// along), v the motif's rhythm with new notes, i the motif upside down, b the second idea, e the ending
-// (the first half of an idea, then a long note to rest on). questions end open and answers come home.
-// a long tune's middle phrase starts somewhere new. riffs repeat their hook bar after bar, with no
-// ending until the section's last bar, and get a turn of their own in the middle of a long section
+// how a phrase is built, bar by bar: m the motif, s the motif a step on (each s further), v its rhythm
+// with new notes, i it upside down, b the second idea, e the ending (half an idea, then a long note).
+// riffs repeat their hook with no ending until the section's last bar
 const QUESTION_PLANS = [['m', 'm', 'v', 'e'], ['m', 's', 'b', 'e'], ['m', 'b', 'm', 'e'], ['m', 'v', 'b', 'e'], ['m', 's', 's', 'e'], ['m', 'i', 'b', 'e']];
 const ANSWER_PLANS = [['m', 'm', 'b', 'e'], ['m', 's', 'v', 'e'], ['m', 'b', 's', 'e'], ['m', 'v', 'm', 'e'], ['m', 'i', 'm', 'e'], ['m', 's', 'm', 'e']];
 const MIDDLE_PLANS = [['b', 'b', 's', 'e'], ['b', 's', 'b', 'e'], ['v', 'b', 'b', 'e'], ['i', 'i', 'b', 'e'], ['b', 'v', 'b', 'e']];
@@ -5909,10 +5544,9 @@ function themeMotif(c, density, riff) {
   return { theme, hook, motif: makeMotif(theme, c, density, hook) };
 }
 
-// cells ({ t in the bar, dur, degree }, and settled, soft or breath) to notes. strong beats and long
-// notes go onto a chord note, the nearest one the way the shape was heading: plain nearest pulled a
-// step up straight back onto the note before, and long, slow tunes flattened into one note over and
-// over. swell and the note's height above anchor shape how loud it is, like a player's phrasing
+// cells ({ t in the bar, dur, degree, settled, soft, breath }) to notes. strong beats and long notes go
+// onto the nearest chord note the way the shape was heading (plain nearest flattened slow tunes into one
+// note). swell and the height above anchor shape how loud it is
 function sing(c, cells, barStart, low, high, swell = 0, anchor = 0) {
   const out = [];
   let raw = null;
@@ -5933,8 +5567,7 @@ function sing(c, cells, barStart, low, high, swell = 0, anchor = 0) {
     const gap = cell.breath ? Math.min(0.5, cell.dur * 0.25) : 0;
     const strength = (cell.soft ? 0.62 : isStrong(c, t) ? 0.85 : 0.68) + swell + Math.max(-0.04, Math.min(0.05, (degree - anchor) * 0.01));
     out.push({
-      // nearly legato, so the line sings rather than ticks. never longer than its cell: 6/8's sixth
-      // of a beat notes were stretched to a whole step, so two melody notes sounded at once
+      // nearly legato, but never longer than its cell (or two notes sound at once)
       t, dur: Math.max(Math.min(c.step, cell.dur * 0.97), (cell.dur - gap) * 0.97),
       midi: fitToChord(degreeMidi(c, degree), chord, c.scalePcs),
       vel: Math.min(0.95, strength + c.rng.range(-0.05, 0.05)),
@@ -5955,10 +5588,8 @@ function decorate(cells, rng, unit) {
 const SWELL = [0, 0.03, 0.05, -0.03];
 
 // a melody (or a counter melody's own tune). riff: a hook over and over. rests: every other two bar
-// phrase is left empty and the last note rings into it, for the sparse piano of c418 and aphex twin
-// a singer's tune keeps near their own note (home): a few scale steps down and about an octave up at
-// most. throat sung tunes are narrow anyway, and a voice moved far from where it was recorded stops
-// sounding like that singer
+// phrase empty, the last note ringing into it (c418's sparse piano). a singer's tune keeps near their
+// own note (home)
 const singerSpan = (c, low, high) => (INSTRUMENTS[c.layer.instrument]?.home ? [Math.max(low, -3), Math.min(high, 4)] : [low, high]);
 function tune(c, { density, low: wide, high: tall, plan4, riff, rests }) {
   const [low, high] = singerSpan(c, wide, tall);
@@ -5969,7 +5600,7 @@ function tune(c, { density, low: wide, high: tall, plan4, riff, rests }) {
   const seq = theme.pick([1, -1, -1, 2]);
   let base = theme.int(0, 2);
   const pickup = !rests && density >= 0.4 && theme.chance(c.mood.phrasing?.pickup ?? (song.style !== 'ambient' ? 0.5 : 0.25));
-  // the second idea: a rhythm of its own, slower when the motif's busy and busier when it's slow
+  // the second idea: its own rhythm, slower than a busy motif and busier than a slow one
   const contrast = density > 0.55 ? density * 0.55 : Math.min(0.95, density + 0.3);
   let second = makeMotif(theme, c, contrast, false);
   // what this part does with it. A plays it as it is
@@ -6021,9 +5652,8 @@ function tune(c, { density, low: wide, high: tall, plan4, riff, rests }) {
     const climbs = plan.slice(0, place + 1).filter((k) => k === 's').length;
     let cells;
     if (kind === 'e') {
-      // the first half of the phrase's idea (the second idea's, in a phrase without the motif), then
-      // one long note. only notes that finish by half way: a motif of one whole bar note used to be
-      // kept whole, and the long note then spilled into the next bar as a stray blip on top of its first
+      // the first half of the phrase's idea, then one long note. only notes that finish by half way,
+      // or a whole bar note spills into the next bar
       const idea = plan.includes('m') ? motif : second;
       const head = idea.notes.filter((n) => n.t + n.dur <= c.bpb / 2 + 1e-6);
       cells = head.map((n) => ({ t: n.t, dur: n.dur, degree: anchor + n.step }));
@@ -6034,8 +5664,7 @@ function tune(c, { density, low: wide, high: tall, plan4, riff, rests }) {
       // a pickup: the long note stops short, and a note or two step into the next phrase's first
       const into = bar + 1 < c.bars && pickup ? anchorAt(bar + 1) : null;
       const lead = into === null ? 0 : c.bpb - from >= 1 + 2 * unit && theme.chance(0.5) ? 2 : c.bpb - from >= 1 + unit ? 1 : 0;
-      // with rests it rings on into the empty bars, but not past the section's end, where it ran over
-      // the next section's first note
+      // with rests it rings into the empty bars, but not past the section's end
       const ring = rests && bar + 1 < c.bars;
       const until = ring ? c.bpb * 1.5 : c.bpb - lead * unit;
       cells.push({ t: from, dur: until - from, degree: target, settled: true, breath: !lead && !ring });
@@ -6044,8 +5673,7 @@ function tune(c, { density, low: wide, high: tall, plan4, riff, rests }) {
     } else {
       const source = kind === 'v' ? variant : kind === 'b' ? second : motif;
       cells = source.notes.map((n) => ({ t: n.t, dur: n.dur, degree: anchor + (kind === 'i' ? -n.step : n.step) + (kind === 's' ? climbs * seq : 0) }));
-      // a passing note now and then, later times round. never in a phrase's first bar, so the motif
-      // always comes back the way you know it
+      // a passing note now and then, later times round, never in a phrase's first bar
       if (c.section.take > 0 && place > 0 && c.vary.chance(0.3)) cells = decorate(cells, c.vary, unit);
     }
     notes.push(...sing(c, cells, barStart, low, high, phraseBars === 4 ? SWELL[place] : 0, anchor));
@@ -6055,18 +5683,15 @@ function tune(c, { density, low: wide, high: tall, plan4, riff, rests }) {
 
 // ---------- solos ----------
 //
-// a solo is a long line that doesn't repeat, the way a player stretches out over the chords before
-// the tune comes back (addSolo, section.lead). it's built four bars at a time, each from ideas of its
-// own, new motifs from the solo's own random numbers: an idea, then the idea again a step away or with
-// new notes (players develop a lick like this, so it sounds like a thought rather than a scale), then
-// a new idea, often a run, then a long note to breathe on. over the section it climbs and gets busier
-// towards a peak about two thirds of the way in, then comes back down, and its last note is the home
-// note. half the time one of its phrases starts by quoting the layer's own motif, a nod to the theme
+// a solo is a long line that doesn't repeat (addSolo, section.lead), built four bars at a time from
+// its own new motifs: an idea, the idea again a step away or with new notes, a new idea (often a run),
+// then a long note to breathe on. it climbs to a peak two thirds in, comes down to land home, and half
+// the time quotes the theme once
 function solo(c) {
   const { song, layer } = c;
   const own = tuneDensity(layer);
   const density = song.style === 'ambient' ? Math.min(own, layer.density * 0.55) : Math.max(0.45, own);
-  // a little higher than the tune goes: the peak is meant to stand out (not for a singer, singerSpan)
+  // a little higher than the tune goes, so the peak stands out (not for a singer, singerSpan)
   const [low, high] = singerSpan(c, -4, 9);
   const phrases = Math.ceil(c.bars / 4);
   const picks = makeRng(song.seed, layer.seed, 'solo', c.section.index);
@@ -6102,16 +5727,15 @@ function solo(c) {
       notes.push(...sing(c, cells, barStart, low, high, SWELL[place] + lift * 0.04, anchor));
     }
   }
-  // a chord with none of its notes in the scale (an eerie chromatic chord under a pentatonic tune) can't
-  // be reached in scale steps, so the last note goes straight to the chord's root
+  // a chord with no notes in the scale can't be reached in scale steps, so the last note goes to its root
   const last = notes[notes.length - 1];
   const chord = last && chordAt(c, last.t);
   if (chord && !chord.pcs.has(mod12(last.midi))) last.midi = near(chord.root, last.midi);
   return notes;
 }
 
-// a counter melody in harmony: the melody a third (two scale steps) or a sixth below, on its longer
-// notes. thirds and sixths are the intervals that blend; anything else fights the tune
+// a counter melody in harmony: the melody a third or a sixth below (the intervals that blend), on its
+// longer notes
 function harmonise(c, density) {
   const below = c.rng.chance(0.65) ? 2 : 5;
   return c.melody.filter((note) => note.dur >= c.step * 2 && c.rng.chance(0.4 + density * 0.6)).map((note) => {
@@ -6127,24 +5751,13 @@ function harmonise(c, density) {
 
 // ---------- counterpoint: a second melody ----------
 //
-// a counter melody that's a tune of its own but still fits the first note for note, the way toby fox
-// stacks two melodies (snowdin town, death by glamour, the second lead in a battle theme). the old
-// counter melodies either copied the tune a third down (harmony), filled its gaps (answers), or
-// played their own tune without listening to it at all (free), and none of those sounded like two
-// people playing two lines that belong together. so:
-//   - its rhythm is its own motif's (themeMotif), so it has a shape you can follow and it comes back
-//     each time the tune does. where the tune's busy (lots of notes in a bar) it holds long notes
-//     instead, and where the tune holds or rests it moves: the two take turns being interesting
-//   - each note is picked from the chord and scale notes in its range by the old rules of
-//     counterpoint, as costs: thirds and sixths under the tune blend best (CONSONANCE), it never goes
-//     over the tune, it moves by step more than by leap, it moves the other way to the tune where it
-//     can (contrary motion), and it never moves into a fifth or an octave the tune's also moving into
-//     (parallel fifths, which make two lines sound like one thick one). strong beats are chord notes
-//   - ties are broken by the note's pitch and place, not by chance, so the same bar of tune gets the
-//     same second melody every time
-// how badly each interval under the tune clashes, in semitones (0 the unison or octave). thirds and
-// sixths blend best, a fifth or an octave is fine but hollow, a fourth a little open, seconds and
-// sevenths fight, and a tritone's restless
+// a second melody that fits the first note for note, the way toby fox stacks two tunes:
+//   - its rhythm is its own motif's, so it comes back when the tune does, but it holds where the tune's
+//     busy and moves where the tune holds
+//   - each note is the cheapest by the old rules of counterpoint: thirds and sixths under the tune
+//     (CONSONANCE), never over it, steps over leaps, contrary motion, no parallel fifths or octaves,
+//     chord notes on strong beats. ties go by pitch and place, so the same bar gets the same line
+// how badly each interval under the tune clashes, in semitones (0 the unison or octave)
 const CONSONANCE = [1.2, 7, 3, 0, 0, 2, 4.5, 0.8, 0, 0, 3, 6];
 function counterpoint(c, density) {
   const melody = [...c.melody].sort((a, b) => a.t - b.t);
@@ -6168,8 +5781,7 @@ function counterpoint(c, density) {
       const tuneMove = tune && last?.tune ? Math.sign(tune.midi - last.tune.midi) : 0;
       let best = null;
       let bestCost = Infinity;
-      // under a low tune (a melody an octave down) its usual range would all be over the tune, so
-      // there's always at least an octave of room under the tune's note to pick from
+      // always at least an octave of room under the tune, even a low one
       const from = tune ? Math.min(low, tune.midi - 12) : low;
       const to = tune ? Math.min(high, tune.midi) : high;
       for (let midi = from; midi <= to; midi++) {
@@ -6228,12 +5840,10 @@ const BELL_FIGURES = [
 
 // ---------- guitars ----------
 //
-// a guitar plays chords in a guitar's shapes: low, and slid up and down the neck as one shape, so its
-// chords move in parallel rather than voice led like a pianist's. a power chord is the root, fifth and
-// octave: with no third in it, distortion makes it growl rather than mush (a clipped third grinds
-// against everything else), so it's what the loud patterns play. ringing, strummed and tremolo picked
-// chords are the whole shape (an e shaped barre chord, with the chord's colour note on top), for
-// cleaner or hazier guitars
+// a guitar plays chords in a guitar's shapes, low and slid along the neck as one shape (parallel, not
+// voice led). a power chord is the root, fifth and octave: with no third, distortion growls rather
+// than mushes, so the loud patterns play it. ringing, strummed and tremolo chords are the whole shape
+// (an e shaped barre chord, with the chord's colour note on top)
 function guitarShape(c, chord, full) {
   const root = near(chord.root, c.center);
   // the chord's own fifth (a diminished chord's is flat), or a plain fifth (a sus chord's)
@@ -6252,15 +5862,12 @@ function strum(notes, shape, t, dur, vel, { up = false, mute = false, spread = 0
   strings.forEach((midi, i) => notes.push({ t: t + i * spread, dur: Math.max(0.05, dur - i * spread), midi, vel: vel - i * 0.02, ...(mute ? { mute } : {}) }));
 }
 
-// how a strummed guitar's hand goes, an eighth (a third of a beat in 6/8) a character: D down, U up, .
-// a miss. 4/4 is "old faithful", down, down up, up down up
+// a strumming hand, an eighth (a third of a beat in 6/8) a character: D down, U up, . a miss
 const STRUMS = { '4/4': 'D.DU.UDU', '3/4': 'D.DUDU', '6/8': 'D.UD.U', '5/4': 'D.DU.UDUDU' };
 
-// riffs, written out like grooves, one character a 16th of 4/4: m a palm muted chug on the low root,
-// x an open power chord, n the next note of the riff's line, . nothing. doom's "at doom's gate" (and
-// metallica's riffs before it) is a muted low string chugging twice under a line walking down the
-// scale every third eighth. fast ones (16ths) aren't used above 150 bpm, where they'd blur, and slow
-// ones (sabbath's: a chord left to ring, then the line) are for slow songs
+// riffs, written like grooves, a character a 16th of 4/4: m a palm muted chug on the low root, x an
+// open power chord, n the next note of the riff's line. fast ones blur above 150 bpm, and slow ones
+// (sabbath's) are for slow songs
 const RIFFS = [
   { cells: 'm.m.n.m.m.n.m.m.' },
   { cells: 'x.m.m.n.x.m.n.n.' },
@@ -6275,8 +5882,7 @@ const RIFFS = [
   { cells: 'x.....n.....x...', slow: true },
   { cells: 'x.......x...n.m.', slow: true },
 ];
-// a riff's cells for the song's bar: 6/8 counts in eighths, so it takes every other character, and
-// other bars repeat or cut the 4/4 bar to fit
+// a riff's cells for the song's bar (6/8 takes every other character, other bars repeat or cut it)
 function riffCells(cells, c) {
   let line = c.sub === 3 ? [...cells].filter((_, i) => i % 2 === 0).join('') : cells;
   const steps = Math.round(c.bpb / c.step);
@@ -6284,12 +5890,10 @@ function riffCells(cells, c) {
   return line.slice(0, steps);
 }
 
-// the song's riff (the chug pattern), the same every part and following the chords: the line's notes
-// are the song's scale counted up from each chord's root, starting at the octave or under it and
-// walking one note at a time (the other way in the fourth bar of each four, a turnaround), bouncing
-// back at the ends. its notes are marked line, so the band's listening moves them off the tune like
-// any other line's (listen). from layer's seed, so a bass doubling the riff (bass: true, an octave
-// down and never a chord) plays exactly the guitar's. in a breakdown it chugs along with the kick
+// the song's riff (the chug pattern), the same every part and following the chords: its line walks the
+// scale up from each chord's root, turning round in every fourth bar, and is marked line so listening
+// moves it like any line. from the layer's seed, so a bass doubling it (bass: an octave down, never a
+// chord) plays exactly the guitar's. in a breakdown it chugs on the kick
 function riff(c, layer, bass) {
   const { song } = c;
   const r = makeRng(song.seed, layer.seed, 'riff');
@@ -6334,26 +5938,20 @@ function riff(c, layer, bass) {
 
 // ---------- the bass hook ----------
 //
-// a bass line that's a tune of its own (toby fox's hip shop and his battle themes, and the funk and
-// motown players before him): not the chord's root marking time, but a short line bouncing round the
-// chord's notes on a rhythm you'd hum, the same every bar so it's a hook, walking into each new chord
-// from a semitone away, and running up the scale into every fourth bar. the old patterns only ever
-// told you what the chord was, which is why the bass under a busy tune never sounded like a player.
-// a lick is chord notes by name, in the order the hook's hits play them: r the root, o its octave, f
-// the fifth, t the third, s the seventh (the chord's own, or a sixth on a plain major chord, where a
-// flat seventh would fight a major tune), l the fifth underneath
+// a bass line that's a tune of its own (toby fox's hip shop, funk, motown): a short lick round the
+// chord's notes on the drums' rhythm, the same every bar so it's a hook, leading into each new chord
+// from a semitone away and running up into every fourth bar. a lick is chord notes in hit order: r root,
+// o octave, f fifth, t third, s seventh (a sixth on a plain major chord), l the fifth underneath
 const LICKS = ['r r o s', 'r o f s', 'r f o f', 'r o r f', 'r t f o', 'r l r o', 'r r f t', 'r o s f', 'r f s o'];
 function bassHook(c) {
   const { lines, grid, perBeat, steps } = c.groove;
-  // the lick, the way into each chord and whether it fills are picked once a part, so the hook comes
-  // back every time the part does
+  // the lick, the way in and the fill are picked once a part, so the hook comes back with it
   const r = makeRng(c.song.seed, c.layer.seed, 'hook', c.section.part);
   const lick = r.pick(LICKS).split(' ');
   const below = r.chance(0.6);
   const fills = c.bars >= 4 && r.chance(0.7);
-  // its rhythm is the groove's kick and comping hits, so it locks with the drums (only the kick when
-  // it's quiet), and always the bar's first beat. a hook needs a few notes to be one, so a beat with
-  // the kick on one and three gets the off beat before three too
+  // the groove's kick and comping hits (only the kick when it's quiet) and always the first beat, with
+  // at least three notes a bar
   const hits = lines.k.map((v, i) => i === 0 || v > 0 || (c.layer.density >= 0.4 && lines.c[i] > 0));
   if (hits.filter(Boolean).length < 3) hits[Math.max(1, Math.round(steps / 2) - Math.ceil(perBeat / 2))] = true;
   const interval = (name, chord) => {
@@ -6407,9 +6005,7 @@ const COMPOSERS = {
     if (pattern === 'fragments') return tune(c, { density, low: -3, high: 7, rests: true });
     const notes = tune(c, { density, low: -4, high: 7 });
     if (pattern !== 'calls') return notes;
-    // calls: a bar of tune, its last note held on through half the next bar, then quiet for the other
-    // half, leaving room for an answer (a counter melody on "answers" fills it). I first just emptied
-    // every other bar, and the tune seemed to stop mid thought
+    // calls: a bar of tune, its last note held through half the next bar, then room for an answer
     const barOf = (note) => Math.floor((note.t - c.start) / c.bpb + 1e-9);
     const kept = notes.filter((note) => barOf(note) % 2 === 0);
     for (let i = 0; i < kept.length; i++) {
@@ -6423,10 +6019,8 @@ const COMPOSERS = {
 
   counter(c) {
     const { pattern, density } = c.layer;
-    // takes the tune (orchestration): the melody's line, as it's written for this section, on this
-    // instrument and an octave lower if it's set lower. the player's own: ornamented and slurred the
-    // way its instrument's players do, not marked as notes added by hand. with no melody to take it
-    // from, it plays a tune of its own
+    // takes the tune (orchestration): the melody's line on this instrument, ornamented as its own
+    // (not marked as added by hand). with no melody, a tune of its own
     if (pattern === 'tune') {
       const line = c.line();
       if (line.length) return line.map(({ added, ...note }) => ({ ...note, midi: note.midi + c.layer.octave * 12 }));
@@ -6437,9 +6031,7 @@ const COMPOSERS = {
     if (pattern === 'counterpoint' && c.melody?.length) return counterpoint(c, tuneDensity(c.layer));
     const notes = tune(c, { density: tuneDensity(c.layer), low: -4, high: 6 });
     if (pattern === 'free' || !c.melody) return notes;
-    // answers: whole bars, where the melody rests or holds one note, like two people talking. it
-    // used to drop single notes wherever the melody played, which left stray two note fragments. with
-    // a busy melody there's nowhere to answer, so it harmonises instead
+    // answers: whole bars where the melody rests or holds a note. with nowhere to answer, it harmonises
     const starts = {};
     for (const note of c.melody) {
       const bar = Math.floor((note.t - c.start) / c.bpb + 1e-9);
@@ -6456,8 +6048,7 @@ const COMPOSERS = {
     const notes = [];
     let previous = null;
     let index = 0;
-    // which steps of the bar rest, and the order random arps go in, are picked once for the part
-    // and kept, so the arp repeats a shape you can follow instead of new holes every bar
+    // its rests and random order are picked once a part, so it repeats a shape you can follow
     const shape = makeRng(c.song.seed, c.layer.seed, 'shape', c.section.part);
     const rests = Array.from({ length: Math.round(c.bpb / step) }, (_, i) => i > 0 && shape.chance((1 - density) * 0.45));
     const order = Array.from({ length: 16 }, () => shape.int(0, 63));
@@ -6469,11 +6060,9 @@ const COMPOSERS = {
       if (pattern === 'down') pool.reverse();
       if (pattern === 'updown') pool = [...pool, ...pool.slice(1, -1).reverse()];
       if (pattern === 'converge') pool = pool.map((_, i) => (i % 2 ? pool[pool.length - 1 - (i >> 1)] : pool[i >> 1]));
-      // twinkle: one high note left ringing between the others, coming back every other note, the
-      // fingerpicked clean guitar of emo (american football, tigers jaw)
+      // twinkle: a high note ringing between the others, emo's fingerpicked clean guitar
       if (pattern === 'twinkle' && pool.length > 1) pool = pool.slice(0, -1).flatMap((midi) => [midi, pool[pool.length - 1]]);
-      // roll: a banjo's forward roll, thumb, index, middle over three strings, round and round in eights
-      // (t i m t i m t m), so the pattern turns over against the beat
+      // roll: a banjo's forward roll (t i m t i m t m), turning over against the beat
       if (pattern === 'roll' && pool.length > 2) {
         const [low, mid, top] = [pool[0], pool[Math.floor(pool.length / 2)], pool[pool.length - 1]];
         pool = [low, mid, top, low, mid, top, low, top];
@@ -6493,20 +6082,15 @@ const COMPOSERS = {
   bells(c) {
     const { pattern, density } = c.layer;
     if (pattern === 'double') {
-      // doubles the tune (orchestration): the melody's line an octave up, a glockenspiel or celesta over
-      // the flute, the way a game's theme sparkles when it comes round big. at a quick tempo only its
-      // notes of half a beat or more: a glockenspiel player doubles the tune's shape, not every run, and
-      // a bell left ringing for two beats is plenty
+      // doubles the tune (orchestration): the melody's line an octave up. at a quick tempo only notes
+      // of half a beat or more (the shape, not every run), none ringing over two beats
       const line = c.line();
       const quick = c.song.tempo >= 130;
       return line.filter((note) => !quick || note.dur >= 0.5 - 1e-6).map((note) => ({ t: note.t, dur: Math.min(note.dur, 2), midi: note.midi + 12 + c.layer.octave * 12, vel: note.vel * 0.75 }));
     }
     if (pattern === 'phasing') {
-      // a few notes from the home chord and its neighbours, each on its own loop length (eno's tape
-      // loops). they count from the song's start, not the section's, so they carry on drifting
-      // across sections. lengths are two to four bars, give or take a beat or two, and everything's
-      // on a whole beat: I first used any half beat length from 5 to 15 beats, and the bells landed
-      // off the beat at times that sounded random rather than drifting
+      // a few notes, each on its own loop length (eno's tape loops), counted from the song's start so
+      // they drift across sections. two to four bars give or take a beat, always on a whole beat
       const rng = makeRng(c.song.seed, c.layer.seed, 'loops');
       const count = 2 + Math.round(density * 2);
       const pool = [0, 4, 2, 7, 5, 9];
@@ -6523,10 +6107,8 @@ const COMPOSERS = {
       }
       return notes;
     }
-    // chimes (saved as "sparkle"): a short figure of the chord's own notes, rung as the chord changes
-    // (and every two bars through long chords). the figure stays the same all part long, so it's a
-    // little hook you can listen out for. busy rings it every time, quieter every other time. this
-    // used to be random high notes on any step, which sounded pretty but arrived at random
+    // chimes (saved as "sparkle"): one short figure of the chord's notes, rung as the chord changes (and
+    // every two bars through long chords), every time when busy, every other time when not
     const shape = makeRng(c.song.seed, c.layer.seed, 'chimes', c.section.part);
     const figure = shape.pick(BELL_FIGURES);
     const every = density > 0.55 ? 1 : 2;
@@ -6576,9 +6158,8 @@ const COMPOSERS = {
           else for (const midi of voiced) notes.push({ t, dur: 0.45, midi, vel: 0.5 });
         }
       } else if (pattern === 'comp') {
-        // jazz comping: rootless voicings (the third, the seventh and the ninth, leaving the root to
-        // the bass, the way bill evans did), jabbed in short, syncopated rhythms that change from bar to
-        // bar and come round every four (COMP_RHYTHMS)
+        // jazz comping: rootless voicings (third, seventh, ninth: the root's the bass's), in rhythms
+        // that change bar to bar and come round every four (COMP_RHYTHMS)
         const third = chord.tones.find((tone) => tone === 3 || tone === 4) ?? chord.tones[1];
         const seventh = chord.tones.find((tone) => tone >= 9 && tone <= 11) ?? (third === 4 ? 9 : 10);
         const rootless = voiceChord(chord.root, [third, seventh, 14], c.center, previous);
@@ -6592,8 +6173,7 @@ const COMPOSERS = {
           }
         }
       } else if (pattern === 'skank') {
-        // a reggae skank: the chord chopped short on every off beat (the "and"), never on the beat,
-        // which is left to the bass and the one drop
+        // a reggae skank: the chord chopped short on every off beat, never on the beat
         for (let t = chord.t; t < end - 1e-6; t += 1) {
           for (let k = 1; k < c.sub; k++) {
             const at = t + k / c.sub;
@@ -6601,8 +6181,7 @@ const COMPOSERS = {
           }
         }
       } else if (pattern === 'bossa') {
-        // bossa nova guitar (joão gilberto's): the thumb on the root and fifth on the beats, the fingers
-        // plucking the chord on the off beats in between, a rhythm that doesn't land where you expect
+        // bossa nova guitar: the thumb on the root and fifth, the fingers plucking the chord between
         const root = near(chord.root, c.center - 12);
         for (let bar = Math.floor((chord.t - c.start) / c.bpb); c.start + bar * c.bpb < end - 1e-6; bar++) {
           const barStart = c.start + bar * c.bpb;
@@ -6616,8 +6195,7 @@ const COMPOSERS = {
           }
         }
       } else {
-        // block: the chord on the groove's comping rhythm, so it fits round the drums and bass.
-        // sparse layers keep only the hits on the beat
+        // block: the chord on the groove's comping rhythm
         for (const [t, dur, vel] of compHits(c, chord, density)) for (const midi of voiced) notes.push({ t, dur: dur * 0.8, midi, vel });
       }
     }
@@ -6633,8 +6211,8 @@ const COMPOSERS = {
     // (funk and boom chick play the whole chord too: a clean or acoustic guitar has no growl to avoid)
     const full = pattern === 'ring' || pattern === 'tremolo' || pattern === 'strum' || pattern === 'funk' || pattern === 'boomchick';
     const onBeat = (t) => Math.abs((t - c.start) % 1) < 1e-6;
-    // eighths chug palm muted through the verse (part A) and ring open in the chorus, the way pop punk
-    // and weezer play them, with the chord changes and the groove's comping hits left open as accents
+    // eighths chug palm muted in the verse (part A) and ring in the chorus, the chord changes and
+    // comping hits left open as accents
     const muted = c.section.part === 'A' && !c.section.lead;
     const comps = new Set();
     for (const chord of c.chords) for (const [t] of compHits(c, chord, 1)) comps.add(t.toFixed(3));
@@ -6647,19 +6225,16 @@ const COMPOSERS = {
           strum(notes, shape, t, Math.min(unit, end - t) * (open ? 0.95 : 0.6), onBeat(t) ? 0.8 : 0.7, { mute: !open });
         }
       } else if (pattern === 'ring') {
-        // struck once a bar and left to ring into the next: a wall rather than a rhythm (shoegaze, and
-        // a grunge chorus)
+        // struck once a bar and left to ring: a wall rather than a rhythm
         for (let t = chord.t; t < end - 1e-6; t += c.bpb) strum(notes, shape, t, Math.min(c.bpb, end - t), 0.75, { spread: 0.02 });
       } else if (pattern === 'tremolo') {
-        // picked as fast as a hand goes (sixteenths, slowed to ten a second at most), the chord a
-        // shimmer rather than strokes: shoegaze and post rock. not running notes, so MAX_RATE doesn't
-        // apply. its lowest four strings, so it doesn't pile up
+        // picked as fast as a hand goes (ten a second at most) on the lowest four strings: a shimmer,
+        // not running notes, so MAX_RATE doesn't apply
         let step = 1 / (c.sub * 2);
         while (c.song.tempo / 60 / step > 10) step *= 2;
         for (let t = chord.t; t < end - 1e-6; t += step) for (const midi of shape.slice(0, 4)) notes.push({ t, dur: Math.min(step * 1.1, end - t), midi, vel: onBeat(t) ? 0.6 : 0.5 });
       } else if (pattern === 'strum') {
-        // the strumming hand (STRUMS): down on the beats, up between, a stroke ringing until the next.
-        // a quiet guitar only strums down on the beat
+        // the strumming hand (STRUMS), each stroke ringing to the next. quiet: down on the beat only
         const hand = [...(STRUMS[c.song.meter] || 'D.')].map((stroke, i) => (density < 0.35 && i % c.sub ? '.' : stroke));
         const strokes = hand.map((stroke) => stroke !== '.');
         for (let t = chord.t; t < end - 1e-6; t += unit) {
@@ -6668,9 +6243,7 @@ const COMPOSERS = {
           strum(notes, shape, t, Math.min(gapAfter(strokes, i) * unit, end - t) * 0.95, hand[i] === 'D' ? 0.7 : 0.56, { up: hand[i] === 'U' });
         }
       } else if (pattern === 'funk') {
-        // funk scratching (nile rodgers, the clean guitar in death by glamour): the hand never stops
-        // going up and down in sixteenths, muted to a percussive "chk" most of the time, and the chord's
-        // top strings let ring short on the groove's comping hits. little high chords, not big ones
+        // funk scratching: sixteenths muted to a "chk", the top strings ringing short on the comping hits
         const top = shape.slice(-3);
         const { lines, grid } = c.groove;
         for (let t = chord.t; t < end - 1e-6; t += grid) {
@@ -6679,8 +6252,7 @@ const COMPOSERS = {
           else if (density >= 0.3 || i % 2 === 0) strum(notes, top, t, grid * 0.5, 0.32, { up: i % 2 === 1, mute: true, spread: 0.004 });
         }
       } else if (pattern === 'boomchick') {
-        // country's boom chick (johnny cash): a bass note on the beat (the root, then the fifth), the
-        // top strings strummed on the beat after
+        // country's boom chick: a bass note (root, then fifth), then the top strings
         for (let t = chord.t; t < end - 1e-6; t += 1) {
           const beat = Math.round((t - c.start) % c.bpb);
           const dur = Math.min(1, end - t) * 0.9;
@@ -6706,14 +6278,13 @@ const COMPOSERS = {
       const hits = [];
       if (pattern === 'swell') for (let t = chord.t; t < end - 1e-6; t += c.bpb) hits.push([t, Math.min(c.bpb, end - t), 0.6]);
       else if (pattern === 'pulse') {
-        // the chord over and over, like a steady heartbeat under everything (think steve reich)
+        // the chord over and over, a steady pulse under everything
         const step = rateStep(c.layer.rate, c.sub);
         for (let t = chord.t; t < end - 1e-6; t += step) hits.push([t, step * 0.55, Math.abs((t - c.start) % 1) < 1e-6 ? 0.62 : 0.48]);
       } else if (pattern === 'stabs') {
         for (const [t, dur, vel] of compHits(c, chord, density)) hits.push([t, Math.min(dur * 0.6, 0.75), vel]);
       } else if (pattern === 'pump') {
-        // the chord again every beat, ducking out on the beat and swelling back between (pump in
-        // synth.js), the way a club mix squashes the pads under every kick (crystal castles)
+        // the chord every beat, ducking under the kick and swelling back (pump in synth.js)
         for (let t = chord.t; t < end - 1e-6; t += 1) hits.push([t, Math.min(1, end - t), 0.62, true]);
       } else hits.push([chord.t, chord.dur, 0.6]);
       for (const [t, dur, vel, pump] of hits) for (const midi of voiced) notes.push({ t, dur, midi, vel, ...(pump ? { pump } : {}) });
@@ -6724,15 +6295,14 @@ const COMPOSERS = {
   drone(c) {
     const { pattern } = c.layer;
     const whole = (intervals, from = c.tonic) => intervals.map((interval) => ({ t: c.start, dur: c.end - c.start, midi: from + interval, vel: 0.7 }));
-    // one singer (or one didgeridoo) holds the home note: they can't hold a fifth as well
+    // a singer or a didgeridoo holds the home note alone
     if (INSTRUMENTS[c.layer.instrument]?.home) return whole([0]);
     if (pattern === 'fifths') return whole([0, 7, 12, 19]);
     if (pattern === 'cluster') return whole(c.rng.pick([[0, 1, 7], [0, 6, 7], [0, 1, 5], [0, 3, 6], [0, 11, 13]]));
     if (pattern === 'follow') return c.chords.flatMap((chord) => [0, 7].map((interval) => ({ t: chord.t, dur: chord.dur, midi: near(chord.root, c.center) + interval, vel: 0.7 })));
     if (pattern === 'cycle') {
-      // a tanpura's four strings plucked one after another, round and round, never in time with the
-      // tune: the fifth, the home note twice an octave up, then the low home note. each rings on until
-      // it's plucked again (a touch less, so the same string twice isn't joined into one note)
+      // a tanpura's four strings plucked round and round (fifth, home twice an octave up, low home),
+      // each ringing until it's plucked again
       const strings = [-5, 12, 12, 0];
       const step = c.song.tempo > 100 ? 2 : 1;
       const notes = [];
@@ -6745,8 +6315,7 @@ const COMPOSERS = {
   bass(c) {
     const { pattern, density } = c.layer;
     if (pattern === 'hook') return bassHook(c);
-    // doubling the riff: the chugging guitar's (or a riff of its own, with no guitar riffing), an
-    // octave under the guitar, as metal's bass players do
+    // doubling the chugging guitar's riff an octave down (or a riff of its own)
     if (pattern === 'riff') {
       const guitar = c.song.layers.find((layer) => layer.role === 'guitar' && layer.pattern === 'chug');
       return riff({ ...c, center: ROLES.guitar.center - 12 }, guitar || c.layer, true);
@@ -6776,16 +6345,14 @@ const COMPOSERS = {
           }
         }
       } else if (pattern === 'boogie') {
-        // the boogie woogie bass of the blues: up the chord and its sixth and seventh and back down, an
-        // eighth a note (root, third, fifth, sixth, flat seventh, sixth, fifth, third)
+        // the blues' boogie: root, third, fifth, sixth, flat seventh and back down, an eighth a note
         const third = chord.tones.includes(3) && !chord.tones.includes(4) ? 3 : 4;
         const walk = [0, third, 7, 9, 10, 9, 7, third];
         const step = 1 / c.sub;
         let i = 0;
         for (let t = chord.t; t < end - 1e-6; t += step, i++) add(t, step * 0.85, root + walk[i % walk.length], i % 2 ? 0.62 : 0.8);
       } else if (pattern === 'walking') {
-        // a note a beat, wandering up the scale and arriving on the next chord's root from a
-        // semitone away
+        // a note a beat, arriving on the next chord's root from a semitone away
         const target = near(nextChord(c, chord).root, c.center);
         let midi = root;
         for (let t = chord.t; t < end - 1e-6; t += 1) {
@@ -6801,8 +6368,7 @@ const COMPOSERS = {
           add(t, 0.92, midi, t === chord.t ? 0.82 : 0.66);
         }
       } else {
-        // synco: on the groove's kick, so the bass and kick land together (and on its comping hits too
-        // when it's busy). which hits go up an octave or to the fifth is picked once for the part
+        // synco: on the groove's kick (and comping hits when busy). which hits leap is picked once a part
         const { lines, steps, grid } = c.groove;
         const hits = lines.k.map((v, i) => i === 0 || v === 1 || (density > 0.6 && lines.c[i] > 0));
         const leaps = makeRng(c.song.seed, c.layer.seed, 'leaps', c.section.part);
@@ -6818,14 +6384,9 @@ const COMPOSERS = {
     return notes;
   },
 
-  // drums: the note is which drum (KIT_SLOTS in synth.js): 0 kick, 1 snare, 2 hat, 3 open hat,
-  // 4 perc, 5 low perc
-  // the part's groove (grooveFor), the same every bar, so it repeats like a real drummer's would.
-  // busy adds the soft ghost notes (and fills the hats out to 16ths when it's high).
-  // the drummer listens to the band as it plays: its pitched drums are in the song's key (tuneDrum,
-  // carried on each note as tune), and with only a few of the others playing (an intro, a break) it
-  // plays softer and leaves the ghost notes out. it used to hit as hard under a lone pad as under the
-  // whole band
+  // drums: the note is which drum (KIT_SLOTS in synth.js). the part's groove (grooveFor), the same every
+  // bar, busy adding ghost notes. the drummer listens: pitched drums are in key (tuneDrum, note.tune),
+  // and with few others playing (an intro, a break) it plays softer and leaves the ghosts out
   drums(c) {
     const { pattern, density } = c.layer;
     const { lines, steps, perBeat, grid } = c.groove;
@@ -6839,32 +6400,24 @@ const COMPOSERS = {
     const level = 0.7 + 0.3 * fullness;
     const ghosts = density >= 0.35 && fullness >= 0.5;
     const hit = (t, slot, vel) => notes.push({ t, dur: grid, midi: slot, vel: vel * level, ...(tunes[slot] ? { tune: tunes[slot] } : {}) });
-    // a fill when the next section is a different part: the last beat on the snare (toms for the
-    // quieter patterns), getting louder, then an open hat on the next bar's first beat like a crash
-    // the quiet patterns (pulse, sparse) never fill: a drum roll in the middle of a calm song made
-    // it jump. brushes fill on the brush, tribal on the toms
+    // a fill into a different part: the last beat on the snare (or toms), growing. pulse and sparse
+    // never fill: a roll in a calm song made it jump
     const fill = (LIFTS[pattern] || ROCK[pattern] || FILLS[pattern]) && c.next && c.next.part !== c.section.part && c.vary.chance(0.75);
     // a rock drummer fills down the toms: the snare for the first half of the beat, the floor tom after
     const fillDrum = (i) => (pattern === 'tribal' || pattern === 'tala' || (ROCK[pattern] && i - (steps - perBeat) >= perBeat / 2) ? 5 : 1);
-    // in a song that builds, the drummer rolls through the whole last bar before the climax, growing,
-    // whatever the beat, and crashes on the climax's first beat (builds)
-    // (into the first section at the song's top, once)
+    // a song that builds rolls through the last bar before its climax and crashes on it (builds), and
+    // the same into a loud key change. a quiet lifted section (an epilogue) just plays
     const energy = (section) => section?.energy ?? 0.75;
     const top = builds(c.song) ? Math.max(...c.song.sections.map(energy)) - 0.01 : Infinity;
-    // and the same into a key change that's loud (a finale, a final boss's second phase): a roll, a crash.
-    // (a quiet lifted section, an epilogue settling in the new key, just plays)
     const lifted = (section) => !!section?.lift && energy(section) >= 0.9;
     const surge = c.next && ((energy(c.next) >= top && energy(c.section) < top) || (lifted(c.next) && !lifted(c.section)));
     const peak = c.prev && ((energy(c.section) >= top && energy(c.prev) < top) || (lifted(c.section) && !lifted(c.prev)));
     const crashed = ((LIFTS[pattern] || ROCK[pattern]) && c.prev && c.prev.part !== c.section.part && c.prev.play.includes(c.layer.id)) || peak;
     if (crashed) hit(c.start, crash, 0.8);
-    // in a loud part (a chorus, a solo), a crash at the top of every four bars, marking the phrase. in a
-    // loud lifted section it's every other bar, the way a drummer leans on the crash through the last
-    // chorus (not the quiet beats, which never fill or crash)
+    // a crash every four bars in a loud rock part, every other bar in a loud lifted section
     const phrases = (ROCK[pattern] && kit[6] && (c.section.part === 'B' || c.section.lead)) || (lifted(c.section) && (LIFTS[pattern] || ROCK[pattern] || FILLS[pattern]));
     const every = lifted(c.section) ? 2 : 4;
-    // a gamelan's big gong comes round every cycle (gong: bars a cycle, on the kit), struck on the
-    // cycle's first beat, the way the gong ageng marks where everything comes round
+    // a gamelan's big gong closes every cycle (gong: bars a cycle, on the kit)
     const gong = INSTRUMENTS[c.layer.instrument]?.gong;
     for (let n = 0; n < c.bars; n++) {
       const bar = c.start + n * c.bpb;
@@ -6888,7 +6441,7 @@ const COMPOSERS = {
           const loud = name === 'h' ? 0.6 : name === 'p' ? 0.55 : name === 'y' ? 0.7 : 0.88;
           hit(t, slot === 6 ? crash : slot, (v < 1 ? 0.3 : loud) * (onBeat ? 1 : 0.85));
         }
-        // (not in rock, whose drummer keeps to eighths: sixteenths at punk tempos were a hiss)
+        // (not in rock: sixteenth hats at punk tempos were a hiss)
         if (ghosts && density > 0.72 && perBeat === 4 && i % 2 && !lines.h[i] && lines.h.some((v) => v) && !ROCK[pattern]) hit(t, 2, 0.24);
       }
     }

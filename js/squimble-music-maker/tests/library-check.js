@@ -1,7 +1,7 @@
 // checks library.js, where saved songs are kept: notes pack and come back the same, saving over a song
 // keeps the one before in its history, a name is never taken twice, the bin gives songs back, a backup
-// restores everything and restoring only ever adds, and songs saved before the library had ids are
-// moved over once. node has no indexeddb, so this is the library working from local storage alone, as
+// restores everything and restoring only ever adds, a song file carries one song and its notes to
+// another browser, and songs saved before the library had ids are moved over once. node has no indexeddb, so this is the library working from local storage alone, as
 // it does in a browser that won't open one; the database itself was checked in the browser
 // node js/squimble-music-maker/tests/library-check.js (no output means it all passed), a few seconds
 const fs = require('fs');
@@ -22,6 +22,8 @@ const visit = () => {
   return (expr) => vm.runInContext(expr, page);
 };
 const same = (a, b, message) => assert.strictEqual(JSON.stringify(a), JSON.stringify(b), message);
+// restore's counts without the ids it touched
+const counted = ({ added, merged, same: kept }) => ({ added, merged, same: kept });
 
 (async () => {
   let run = visit();
@@ -91,9 +93,9 @@ const same = (a, b, message) => assert.strictEqual(JSON.stringify(a), JSON.strin
   run = visit();
   await run('library = new SongLibrary(); library.start()');
   assert.strictEqual(run('library.songs.size'), 0);
-  same(await run('(data) => library.restore(data)')(backup), { added: 4, merged: 0, same: 0 }, 'a backup restores every song');
+  same(counted(await run('(data) => library.restore(data)')(backup)), { added: 4, merged: 0, same: 0 }, 'a backup restores every song');
   assert.strictEqual(run('library.list(true).length'), 1, 'the bin too');
-  same(await run('(data) => library.restore(data)')(backup), { added: 0, merged: 0, same: 4 }, 'restoring it twice changes nothing');
+  same(counted(await run('(data) => library.restore(data)')(backup)), { added: 0, merged: 0, same: 4 }, 'restoring it twice changes nothing');
   const third = await run('(song, notes, id) => library.save(song, notes, id)')({ ...changedSong, tempo: 99 }, notes, first.id);
   assert.strictEqual(third.versions.length, 2);
   const elsewhere = JSON.parse(JSON.stringify(backup));
@@ -101,21 +103,42 @@ const same = (a, b, message) => assert.strictEqual(JSON.stringify(a), JSON.strin
   theirs.versions.unshift({ name: theirs.name, song: theirs.song, saved: theirs.saved });
   theirs.song = { ...theirs.song, tempo: 140 };
   theirs.saved += 5;
-  same(await run('(data) => library.restore(data)')(elsewhere), { added: 0, merged: 1, same: 3 }, 'a backup that went its own way is merged');
+  same(counted(await run('(data) => library.restore(data)')(elsewhere)), { added: 0, merged: 1, same: 3 }, 'a backup that went its own way is merged');
   const merged = run('(id) => library.get(id)')(first.id);
   assert.strictEqual(merged.song.tempo, 99, 'the newest save is still the latest');
   assert(merged.versions.some((one) => one.song.tempo === 140), "and the other browser's save is in its history");
   assert.strictEqual(new Set([merged.saved, ...merged.versions.map((one) => one.saved)]).size, merged.versions.length + 1, 'each save once');
   assert.strictEqual(notesPrint(await run('(entry) => library.notes(entry)')(merged)), notesPrint(notes), 'with its notes');
 
-  // a song file restores as a new song; junk doesn't
-  same(await run('(data) => library.restore(data)')(JSON.parse(JSON.stringify(song))), { added: 1, merged: 0, same: 0 }, 'a song file is added');
+  // an old song file (just the settings) restores as a new song; junk doesn't
+  same(counted(await run('(data) => library.restore(data)')(JSON.parse(JSON.stringify(song)))), { added: 1, merged: 0, same: 0 }, 'an old song file is added');
   for (const junk of [null, 5, {}, { squimble: 'music library', songs: [null, { id: 3 }, { id: 'x' }] }]) {
     try {
       const counts = await run('(data) => library.restore(data)')(junk);
-      same(counts, { added: 0, merged: 0, same: 0 }, 'junk adds nothing');
+      same(counted(counts), { added: 0, merged: 0, same: 0 }, 'junk adds nothing');
     } catch { /* not a backup: fine */ }
   }
+
+  // a song file: one song and its notes, into another browser's library, as it sounds here. the same
+  // file twice is one song, and a newer file of it is a newer save of it, the older in its history
+  const file = JSON.parse(JSON.stringify(run('(id) => library.songFile(library.get(id))')(first.id)));
+  assert.strictEqual(file.squimble, 'music song');
+  assert(!file.versions && !file.binned, 'a song file has no history or bin');
+  stored.clear();
+  run = visit();
+  await run('library = new SongLibrary(); library.start()');
+  await run('(song) => library.save(song, [])')({ ...song, name: file.name });
+  const counts = await run('(data) => library.restore(data)')(file);
+  same(counted(counts), { added: 1, merged: 0, same: 0 }, 'a song file is added');
+  same(counts.ids, [first.id], 'and says which song it was');
+  const arrived = run('(id) => library.get(id)')(first.id);
+  assert.strictEqual(arrived.name, `${file.name} 2`, "it never takes another song's name");
+  assert.strictEqual(notesPrint(await run('(entry) => library.notes(entry)')(arrived)), notesPrint(notes), 'it plays the notes it was shared with');
+  same(counted(await run('(data) => library.restore(data)')(file)), { added: 0, merged: 0, same: 1 }, 'the same file twice is one song');
+  const newer = { ...file, saved: file.saved + 10, song: { ...file.song, tempo: 77 } };
+  same(counted(await run('(data) => library.restore(data)')(newer)), { added: 0, merged: 1, same: 0 }, 'a newer file of it is merged');
+  const now = run('(id) => library.get(id)')(first.id);
+  assert(now.song.tempo === 77 && now.versions.some((one) => one.saved === file.saved), 'as its latest save, the older in its history');
   console.log('library-check passed');
 })().catch((error) => {
   console.error(error);

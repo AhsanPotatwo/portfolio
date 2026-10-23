@@ -1,36 +1,32 @@
 // ================================== squimble music maker: the library ==================================
 //
 // where saved songs are kept, made so a song is hard to lose:
-//   - every save keeps the song's settings and its notes as they played when it was saved (packed small),
-//     with a fingerprint of them. the composer writes the notes again from the settings anyway, as it
-//     always did (and kept/ holds the composer each song was made with), but if that ever comes out
-//     different, the page plays the notes it saved (maker.js, frozen)
-//   - saving over a song keeps the one before in its history (versions), so nothing is ever saved over
-//     for good
-//   - forgetting a song puts it in the bin, and it's only gone once it's deleted from there
-//   - a backup is one file of everything, history and bin too, and restoring one only adds: a song in
-//     both comes back with the saves of each, nothing lost
-//   - it's kept in the browser's database (indexeddb, which has room for the notes), with every song's
-//     latest settings copied into local storage too, so the page still has them if the database won't
-//     open. songs saved before this (in local storage, by name) are moved over once and left where they
-//     were as well
-// no page in here: the page draws it (maker.js "library and backups"). tests/library-check.js runs it in node
+//   - a save keeps the song's settings and the notes it played (packed, with a fingerprint). the
+//     composer still writes notes from the settings, but if they ever come out different the page
+//     plays the saved ones (maker.js, frozen)
+//   - saving over a song keeps the one before in its history (versions)
+//   - the bin: a binned song is only gone once it's deleted from there
+//   - a backup is one file of everything. restoring only adds: a song in both keeps the saves of each
+//   - a song file is one song and its notes, to send to someone (songFile). restoring it adds it
+//   - kept in indexeddb, with every song's latest settings copied into local storage in case the
+//     database won't open. the old local storage library (by name) is moved over once
+// no page in here: maker.js draws it ("library and backups"). tests/library-check.js runs it in node
 
 const LIBRARY = {
   db: 'squimble-music',
   mirror: 'squimble-music-library-2',
   old: 'squimble-music-library',
   moved: 'squimble-music-library-moved',
-  // how many earlier saves a song keeps. settings are a few kilobytes, so this is plenty and still small
+  // earlier saves kept per song. settings are a few kilobytes, so this is still small
   versions: 40,
 };
 
 // ---------- notes, packed ----------
 
-// numbers to four places (a ten thousandth of a beat is a twentieth of a millisecond), so the same notes
-// always pack and fingerprint the same
-const notesJson = (notes) => JSON.stringify(notes, (key, value) => (typeof value === 'number' ? +value.toFixed(4) : value));
-// a fingerprint (cyrb53): two different sets of notes giving the same one is a one in billions chance
+// json with numbers to four places (a ten thousandth of a beat is nothing), so the same notes always
+// pack and fingerprint the same. the page's links use it too
+const notesJson = (thing) => JSON.stringify(thing, (key, value) => (typeof value === 'number' ? +value.toFixed(4) : value));
+// a fingerprint (cyrb53): two sets of notes sharing one is a one in billions chance
 function notesPrint(notes) {
   const text = notesJson(notes);
   let h1 = 0xdeadbeef;
@@ -45,7 +41,7 @@ function notesPrint(notes) {
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
 }
 const squeezeBytes = async (bytes, way) => new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(way)).arrayBuffer());
-// deflated where the browser can (a few tens of kilobytes a song), the json itself where it can't
+// deflated where the browser can (a few tens of kilobytes a song), plain json where it can't
 async function packNotes(notes) {
   const text = notesJson(notes);
   if (typeof CompressionStream === 'undefined') return text;
@@ -55,8 +51,8 @@ async function packNotes(notes) {
     return text;
   }
 }
-// back to notes, or null if they won't come back as notes the player can play (a broken or hand made
-// backup): the song then plays as the composer writes it
+// back to notes, or null if they aren't notes the player can play (a broken file): the song then plays
+// as the composer writes it
 async function unpackNotes(packed) {
   try {
     const text = typeof packed === 'string' ? packed : new TextDecoder().decode(await squeezeBytes(packed, new DecompressionStream('deflate-raw')));
@@ -67,12 +63,23 @@ async function unpackNotes(packed) {
     return null;
   }
 }
+// bytes to base64 and back (in chunks: spreading a big array into one call overflows the stack)
 const bytesToText = (bytes) => {
   let text = '';
   for (let i = 0; i < bytes.length; i += 0x8000) text += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return btoa(text);
 };
 const textToBytes = (text) => Uint8Array.from(atob(text), (c) => c.charCodeAt(0));
+// an entry as json can carry it: packed notes as 'b64:...' text, and back
+const portable = (entry) => (entry.notes && typeof entry.notes !== 'string' ? { ...entry, notes: `b64:${bytesToText(entry.notes)}` } : entry);
+function fromPortable(raw) {
+  if (!raw || typeof raw.notes !== 'string' || !raw.notes.startsWith('b64:')) return raw;
+  try {
+    return { ...raw, notes: textToBytes(raw.notes.slice(4)) };
+  } catch {
+    return { ...raw, notes: undefined };
+  }
+}
 
 // ---------- merging ----------
 
@@ -99,7 +106,7 @@ function mergeEntries(a, b) {
     ...(top.from.binned ? { binned: top.from.binned } : {}),
   };
 }
-// a song entry from outside (a backup file, local storage), or null if it isn't one
+// a song entry from outside (a file, local storage), or null if it isn't one
 function cleanEntry(raw) {
   if (!raw || typeof raw !== 'object' || !raw.song || typeof raw.song !== 'object' || typeof raw.id !== 'string') return null;
   const time = (value) => (Number.isFinite(value) && value > 0 ? value : Date.now());
@@ -130,8 +137,8 @@ class SongLibrary {
     if (this.channel) this.channel.onmessage = () => this.reload().then(() => this.onchange?.());
   }
 
-  // the database, or null if this browser won't give one (some private windows). an old safari could
-  // leave opening hanging, so it gives up after a few seconds and works from local storage
+  // the database, or null if the browser won't give one (some private windows). an old safari could
+  // leave opening hanging, so it gives up after a few seconds
   openDb() {
     if (typeof indexedDB === 'undefined') return Promise.resolve(null);
     return new Promise((resolve) => {
@@ -150,7 +157,7 @@ class SongLibrary {
   async start() {
     this.db = await this.openDb();
     await this.reload();
-    // anything only the copy in local storage has (the database was cleared, or wouldn't take a write)
+    // anything only the local storage copy has (the database was cleared, or wouldn't take a write)
     const mirror = this.readMirror();
     for (const raw of Object.values(mirror)) {
       const entry = cleanEntry(raw);
@@ -159,8 +166,8 @@ class SongLibrary {
       if (!here) await this.put(entry);
       else if (entry.saved > here.saved) await this.put(mergeEntries(here, entry));
     }
-    // songs saved before the library had ids (one local storage key, by name), moved over once. the id
-    // comes from the name, so two tabs opening at once move each to the same place, not two
+    // the old library (one local storage key, by name), moved over once. the id comes from the name, so
+    // two tabs opening at once move each song to the same place
     try {
       if (!localStorage.getItem(LIBRARY.moved)) {
         const old = JSON.parse(localStorage.getItem(LIBRARY.old) || '{}');
@@ -234,7 +241,7 @@ class SongLibrary {
   get(id) { return this.songs.get(id); }
   // newest first: the shelf, or the bin
   list(binned = false) { return [...this.songs.values()].filter((entry) => !!entry.binned === binned).sort((a, b) => b.saved - a.saved); }
-  // a name no other song in the library has: the name, then "name 2", "name 3"...
+  // a name no other song has: the name, then "name 2", "name 3"...
   freeName(name, id) {
     const taken = (one) => [...this.songs.values()].some((entry) => entry.id !== id && entry.name.toLowerCase() === one.toLowerCase());
     if (!taken(name)) return name;
@@ -243,8 +250,8 @@ class SongLibrary {
     while (taken(`${base} ${n}`)) n++;
     return `${base} ${n}`;
   }
-  // saves a song: over the one with this id (which keeps the save before in its history), or as a new
-  // one. notes are what it plays now. the entry, or null if nothing would keep it
+  // saves a song over the one with this id (its last save goes in the history) or as a new one, with
+  // the notes it plays now. the entry, or null if nothing would keep it
   async save(song, notes, id) {
     const here = id && this.songs.get(id);
     const name = this.freeName(song.name, here ? id : null);
@@ -270,7 +277,7 @@ class SongLibrary {
     if (asked) asked.catch(() => {});
     return entry;
   }
-  // notes for a song saved without them (before this library), from what the composer writes now
+  // notes for a song saved without them (before the library kept them)
   async addNotes(id, notes) {
     const entry = this.songs.get(id);
     if (!entry || entry.notes) return;
@@ -300,26 +307,34 @@ class SongLibrary {
     this.channel?.postMessage('changed');
   }
 
-  // ---------- backups ----------
+  // ---------- backups and song files ----------
 
   // everything, as a file's json: songs, history, bin and notes
   backup() {
-    const songs = [...this.songs.values()].map((entry) => ({ ...entry, ...(entry.notes ? { notes: typeof entry.notes === 'string' ? entry.notes : `b64:${bytesToText(entry.notes)}` } : {}) }));
-    return { squimble: 'music library', made: Date.now(), songs };
+    return { squimble: 'music library', made: Date.now(), songs: [...this.songs.values()].map(portable) };
   }
-  // adds a backup (or one song file) to the library, never taking anything away: { added, merged, same }
+  // one song as a file to share: its latest save and the notes it plays, no history or bin. it keeps the
+  // song's id, so a newer file of the same song restores as a newer save of it, not a second song
+  songFile(entry) {
+    const { id, name, created, saved, song, notes, print } = portable(entry);
+    return { squimble: 'music song', made: Date.now(), id, name, created, saved, song, ...(notes ? { notes, print } : {}) };
+  }
+  // adds a backup, a song file or a bare song's settings (the old song files) to the library, never
+  // taking anything away: { added, merged, same, ids } (ids: every song it added or found)
   async restore(data) {
-    const counts = { added: 0, merged: 0, same: 0 };
+    const counts = { added: 0, merged: 0, same: 0, ids: [] };
     let entries = [];
-    if (data && data.squimble === 'music library' && Array.isArray(data.songs)) entries = data.songs;
+    if (data?.squimble === 'music library' && Array.isArray(data.songs)) entries = data.songs;
+    else if (data?.squimble === 'music song') entries = [data];
     else if (data && typeof data === 'object' && Array.isArray(data.layers) && Array.isArray(data.sections)) {
       const name = typeof data.name === 'string' && data.name.trim() ? data.name.slice(0, 40) : 'Untitled';
       entries = [{ id: newId(), name, saved: Date.now(), song: data }];
     } else throw new Error('not a backup or a song');
     for (const raw of entries) {
-      const entry = cleanEntry(raw && typeof raw.notes === 'string' && raw.notes.startsWith('b64:') ? { ...raw, notes: (() => { try { return textToBytes(raw.notes.slice(4)); } catch { return undefined; } })() } : raw);
+      const entry = cleanEntry(fromPortable(raw));
       if (!entry) continue;
       const here = this.songs.get(entry.id);
+      counts.ids.push(entry.id);
       if (!here) {
         await this.put({ ...entry, name: this.freeName(entry.name, entry.id) });
         counts.added++;

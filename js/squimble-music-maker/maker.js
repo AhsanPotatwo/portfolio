@@ -1,22 +1,17 @@
-// squimble music maker: the page. music.js writes the songs and synth.js plays them, both loaded
-// unchanged, so squimble quest can use them without this file. what this adds is the controls:
+// squimble music maker: the page. music.js writes the songs and synth.js plays them, so squimble quest
+// can use those two without this file. this is the controls:
 //
-//   song        the song being edited (cleanSong()'s shape in music.js). every control reads and
-//               writes it, then changed() composes it again and hands the new notes to the player,
-//               which carries on mid song with them (MusicPlayer.load in synth.js)
+//   song        the song being edited (cleanSong()'s shape). every control changes it, then changed()
+//               composes it again and the player carries on mid song with the new notes
 //   comp        composeSong(song): the notes, sections and chords the score and editor draw
 //   undo, redo  the song as json before each change
 //
-// sliders don't compose on every pixel they move: they ask for it (soon()) and frame() does it at
-// most once a frame. sliders that only change the sound (volume, reverb...) skip composing (mixed()).
+// sliders ask for a compose (soon()) and frame() does it at most once a frame. sliders that only change
+// the sound (volume, reverb...) skip composing (mixed()).
 //
-// a draft of the song is kept in this browser so a reload doesn't lose it, and the library is too.
-// both are only conveniences: the song file and the link are the real ways to keep one.
-//
-// it's a music maker as well as a generator: New track opens a blank song (blankSong in music.js)
-// whose layers play only the notes drawn or played in by hand (layer.hand). on a track of your own
-// (song.own) the moods, style and modifiers stop writing new songs and only change how any written
-// parts play, and Make it mine turns a written song into one of your own.
+// the open song is kept as a draft so a reload doesn't lose it. saved songs are in library.js.
+// New track opens blankSong(), whose layers play only notes drawn or played in (layer.hand). on a track
+// of your own (song.own) moods, styles and modifiers only change how written parts play.
 
 (() => {
   // an iphone on ios 15 (safari before 16) has no roundRect on a canvas, and the learn tab's drawing
@@ -57,9 +52,8 @@
   const player = new MusicPlayer();
   let song;
   let comp;
-  // the library song being worked on: its id, and the song as it was saved, to tell if it's changed
-  // since (null for a song that isn't in the library). frozen is that save's notes, played instead of
-  // what the composer writes if the two ever come out different (library.js), until anything changes
+  // the library song being worked on: its id and the song as saved, to tell if it's changed (null for a
+  // song not in the library). frozen: that save's notes, played if the composer ever writes different ones
   let working = null;
   let frozen = null;
   let asSaved = false;
@@ -74,9 +68,8 @@
   let scoreDirty = true;
   let editorScroll = 0;
   let editor = null;
-  // the note editor's tool (note, slide, shake or swell), how fast a drawn slide goes (quick, half,
-  // whole) and its shape (CURVES in synth.js: 0 straight, 1 smooth, 2 quick then settling), how wide a
-  // vibrato is in cents, and which way a drawn swell goes (1 growing, -1 dying away)
+  // the note editor's tool, a drawn slide's speed and shape (CURVES in synth.js), a vibrato's width in
+  // cents, and which way a drawn swell goes (1 growing, -1 dying away)
   let tool = 'note';
   let slideSpeed = 'quick';
   let slideShape = 1;
@@ -97,8 +90,8 @@
   // after a change to the notes. panels: rebuild the open tab (not while a slider's being dragged)
   function changed(panels = true) {
     comp = composeSong(song);
-    // a save opened as it was saved: if the composer no longer writes the notes it saved, it plays those
-    // (they never should differ, kept/ is there so they don't, but if they do the song isn't lost)
+    // a save opened as saved plays its saved notes if the composer no longer writes them (kept/ is there
+    // so it never should, but if it does the song isn't lost)
     asSaved = false;
     if (frozen && JSON.stringify(song) !== frozen.json) frozen = null;
     if (frozen && notesPrint(comp.notes) === frozen.print) frozen = null;
@@ -140,8 +133,7 @@
     return id;
   };
 
-  // moves the notes added by hand to a layer up or down (a new key, a new octave). a kit's notes are
-  // its drums, not pitches, so they stay
+  // moves a layer's hand added notes up or down (a new key or octave). a kit's notes are drums, so they stay
   function moveNotes(layer, by) {
     if (!by || roleFamily(layer.role) !== 'tonal') return;
     const pitch = (midi) => Math.min(127, Math.max(0, midi + by));
@@ -154,16 +146,14 @@
   }
 
   // a written layer's notes, as they play now, become its own (layer.hand), so they stay put when the
-  // chords or the mood change, and every one can be moved or taken out. each part's notes come from the
-  // first section that plays it (later times round vary a little; now they'll all be the same). the
-  // player's ornaments are left off, apart from plain slides, and each note keeps how hard it's played
-  // and whether it's palm muted
+  // chords or mood change. each part's notes come from the first section that plays it. ornaments are
+  // left off but plain slides, and each note keeps its strength and palm mute
   function takeNotes(layer) {
     if (layer.hand || roleFamily(layer.role) === 'texture') return;
     layer.edits = {};
     for (const part of PARTS) {
-      // (a section in the song's own key where there is one: after a key change, the notes are taken back
-      // down to it, since they'll be lifted again where they play)
+      // (a section in the song's own key if there is one: lifted notes are taken back down, as they'll be
+      // lifted again where they play)
       const playing = comp.sections.filter((one) => one.part === part && one.play.includes(layer.id) && one.lead !== layer.id);
       const sec = playing.find((one) => !one.lift) || playing[0];
       if (!sec) continue;
@@ -182,8 +172,7 @@
 
   // ---------- browser storage ----------
 
-  // the song as it is, kept after every change so closing the tab loses nothing, and which save it's
-  // from. saved songs are in library.js
+  // the song as it is after every change, so closing the tab loses nothing, and which save it's from
   const DRAFT_KEY = 'squimble-music-draft';
   const WORKING_KEY = 'squimble-music-working';
   const BACKED_UP_KEY = 'squimble-music-backed-up';
@@ -234,8 +223,7 @@
     keepDraft();
     renderSaveState();
   });
-  // a new seed, a new song, a blank track, a file or a link is a new song, not the save that was open,
-  // so Save makes a new one rather than saving over it
+  // a new seed, song, blank track or link isn't the save that was open, so Save makes a new one
   const detach = () => { working = null; frozen = null; };
   const useSeed = () => {
     const seed = seedField.value.trim().slice(0, 60);
@@ -262,8 +250,8 @@
   });
   $('#mmUndo').addEventListener('click', () => step(undo, redo));
   $('#mmRedo').addEventListener('click', () => step(redo, undo));
-  // Save: over the save that's open (the one before goes in its history), or a new one. Save copy: always
-  // a new one, leaving the open save as it was. a name another song has gets a number
+  // Save: over the open save (the one before goes in its history), or a new one. Save copy: always a new
+  // one. a name another song has gets a number
   let saving = false;
   async function saveSong(copy) {
     if (saving) return;
@@ -311,8 +299,7 @@
     }
   }
 
-  // the moods, one row at a time (MOOD_GROUPS): a key per row shows its moods, so thirty odd moods
-  // fit on a phone. the row opens on the song's mood whenever the song changes mood
+  // the moods a row at a time (MOOD_GROUPS), so they fit on a phone, opening on the song's mood's row
   const moodKeys = $('#mmMoods');
   const groupKeys = $('#mmMoodGroups');
   let shownMood = '';
@@ -327,17 +314,16 @@
     button.dataset.group = group;
     groupKeys.append(button);
   }
-  // a fight stays a fight, a loop a loop, a cutscene a cutscene, and the modifiers stay, when the mood
-  // changes. otherwise a mood brings its own style, the one it was made for. on a track of your own, a mood only changes how
-  // its written parts play (and the colours): it never writes a new song over yours. the same goes for the style
-  // and the modifiers
+  // a fight, a loop or a cutscene keeps its style (and the modifiers stay) when the mood changes;
+  // otherwise a mood brings the style it was made for. on a track of your own, a mood, style or modifier
+  // only changes how its written parts play (retune), never writing a new song over it
   const keeps = (style) => LOOPS[style] || style === 'cutscene';
   const retune = (change) => {
     remember();
     change();
     changed();
   };
-  // (a mood opens as it is, its first flavour: a flavour belongs to its own mood)
+  // (a mood opens in its plain flavour: a flavour belongs to its own mood)
   for (const [id, mood] of Object.entries(MOODS)) {
     const button = key(mood.name, '', () => {
       if (song.own) return retune(() => { song.mood = id; delete song.flavour; });
@@ -349,10 +335,8 @@
     button.style.setProperty('--c-ink', inkOn(mood.colour));
     moodKeys.append(button);
   }
-  // the modifiers (MODIFIERS in music.js): words that change how the mood plays, a key each, lit while
-  // it's on. turning one on turns its opposite off (calm and angry, fast and slow), and the song is
-  // written again from the same seed with them, so adding fast gives the same song, faster, as near as
-  // it can. they replaced the old blend menu, which mixed a second mood's band in
+  // the modifiers (MODIFIERS in music.js), a key each, lit while on. turning one on turns its opposite
+  // off, and the song's written again from the same seed, so adding fast gives the same song, faster
   const modKeys = $('#mmMods');
   const modName = (id) => MODIFIERS[id].name.toLowerCase();
   for (const [id, mod] of Object.entries(MODIFIERS)) {
@@ -375,10 +359,8 @@
     button.dataset.mod = id;
     modKeys.append(button);
   }
-  // the song's mood said in a sentence, and its flavours (FLAVOURS in music.js): the kinds of music it
-  // holds, a key each, the first being the mood as it is. like a mood, a flavour brings the style it
-  // was made for (underwater's reef party is a tune), unless the song's a loop, a fight or a cutscene, and is
-  // written from the same seed. the line under the keys says what the one that's on sounds like
+  // the song's mood in a sentence, and a key per flavour (FLAVOURS in music.js), the first the plain mood.
+  // a flavour brings the style it was made for, like a mood, and is written from the same seed
   const kindKeys = $('#mmKinds');
   let shownKinds = '';
   const kindNow = () => song.flavour || plainFlavour(song.mood);
@@ -480,8 +462,7 @@
     player.metronome = !player.metronome;
     clickKey.setAttribute('aria-pressed', player.metronome);
   });
-  // record: what's played on the keyboard while the song plays is written into the open layer
-  // (recordNote). turning it on starts the song if it isn't playing
+  // record: what's played on the keyboard is written into the open layer (recordNote). starts the song
   const recKey = $('#mmRec');
   let recording = false;
   recKey.addEventListener('click', () => {
@@ -657,8 +638,7 @@
         for (const note of notes) {
           const nx = x(note.t);
           const nw = Math.max(1.5, x(note.t + note.dur) - nx - 0.5);
-          // a slide or bend is a line following its pitch from the note's start (only where it's wide
-          // enough to see), the rest of the note at the pitch it ends on
+          // a slide or bend is a line following its pitch (where it's wide enough to see)
           if (note.bend && nw > 6) {
             g.strokeStyle = colour;
             g.lineWidth = 2;
@@ -709,8 +689,8 @@
     }
   }
 
-  // clicking the sections or chords moves the marker (and the playhead, if it's playing). clicking a
-  // lane opens that layer in the band tab, on the part that was clicked
+  // clicking the sections or chords moves the marker (and the playhead). clicking a lane opens that layer
+  // in the band tab, on the part clicked
   score.addEventListener('pointerdown', (event) => {
     if (!layout) return;
     const rect = score.getBoundingClientRect();
@@ -739,8 +719,8 @@
   // ---------- controls for the panels ----------
 
   let sliderCount = 0;
-  // a labelled slider. get and set read and write the song. kind: 'notes' if it changes the notes,
-  // 'mix' if it only changes how they sound
+  // a labelled slider. get and set read and write the song. kind: 'notes', or 'mix' if it only changes
+  // the sound
   function slider({ label, tip, min, max, step = 0.01, get, set, format, kind = 'notes' }) {
     const row = make('div', 'mm-slider');
     row.dataset.tip = tip;
@@ -856,9 +836,11 @@
       field('Each chord', choices(chordBars, () => song.chordBars, (value) => edit(() => { song.chordBars = value; })(), 'Chord length'), 'How long each chord lasts'),
     );
     const chords = section('Chords', top, ...PARTS.map(chordRow), make('p', 'mm-hint', 'Chords are roman numerals counting up the scale from the key: I is home, IV and V are the strong ones. Capitals are major (bright), lower case minor (sad). b and # move one a semitone (bVII), ° is diminished and + augmented. Add 7, maj7, 6, sus2, sus4 or add9 for colour (Imaj7). A - holds the last chord for another turn. Click a chord to hear it.'));
-    // which composer writes the notes (COMPOSERS in music.js). a song keeps the one it was made with, but
-    // songs saved before that was written down open as the first, and the ones saved on the morning of
-    // 22 october were the second's
+    // which composer writes the notes (COMPOSER_VERSIONS in music.js). a song keeps the one it was made
+    // with; unstamped ones open as the first. only shown for a song (or the save it came from) made by
+    // an older one, since a new song has nothing to choose
+    const older = (one) => (one?.composer || 1) !== COMPOSER;
+    if (!older(song) && !(working && older(JSON.parse(working.json)))) return [columns, chords];
     const composers = [
       [1, 'Up to 21 Oct', 'The composer up to 21 October. Songs saved before the 22nd'],
       [1.5, '22 Oct, morning', 'The composer of the morning of 22 October, when each flavour got its own way of writing tunes. Songs saved then open as the one before: pick this if one sounds different from how you saved it'],
@@ -869,7 +851,7 @@
         if (value === 1) delete song.composer;
         else song.composer = value;
       })(), 'Composer'), 'Which version of the composer writes the notes. A song keeps the one it was saved with, so it always sounds the same'),
-      make('p', 'mm-hint', "The composer gets better over time, and a song keeps the version it was made with so it never changes. Songs saved before 22 October afternoon don't say which version made them and open as the oldest: if one sounds different from how you saved it, try 22 Oct, morning, then save it."),
+      make('p', 'mm-hint', "A song keeps the version of the composer that made it, so it never changes. Songs saved before the afternoon of 22 October don't say which version made them and open as the oldest: if one sounds different from how you saved it, try 22 Oct, morning, then save it."),
     );
     return [columns, chords, composer];
   }
@@ -956,8 +938,7 @@
     return select;
   }
 
-  // which of an instrument's recordings a layer plays (recordingsOf in synth.js), for the instruments
-  // that have more than one: a wurlitzer or a pianet, karoryfer's black guitar or their shiny one
+  // which of an instrument's recordings a layer plays (recordingsOf in synth.js), when it has several
   function recordingSelect(layer) {
     const select = make('select', 'mm-select');
     select.setAttribute('aria-label', 'Recording');
@@ -974,10 +955,8 @@
     return select;
   }
 
-  // the instruments doubling a layer (layer.with, doubling in music.js and synth.js): one key each,
-  // which takes it off, then a menu to add another (recorded instruments only, three at most) and
-  // where they play with it. a choir's doublers sing everywhere unless you say, anything else's only
-  // in the loud sections
+  // the instruments doubling a layer (layer.with): a key each to take it off, and a menu to add another
+  // (recorded only, three at most)
   const OCTAVE_WORDS = { '-2': ', two octaves down', '-1': ', an octave down', 1: ', an octave up', 2: ', two octaves up' };
   function doublesEditor(layer) {
     const box = make('div', 'mm-doubles');
@@ -1058,8 +1037,8 @@
     for (const role of ROLE_ORDER) roles.append(new Option(ROLES[role].name, role));
     const add = make('div', 'mm-add');
     add.dataset.tip = 'Add a layer. It plays in every section to start with: turn it off where you like in Arrange';
-    // empty: a layer that plays only what you give it (layer.hand). written: one the mood writes a part
-    // for, like the layers a new song comes with. a texture has no notes to give it, so it's written
+    // empty: plays only what you give it (layer.hand). written: the mood writes it a part. a texture has
+    // no notes to give, so it's always written
     const addLayer = (hand) => () => {
       if (song.layers.length >= 16) return say("That's 16 layers, the most a song can have.");
       remember();
@@ -1133,8 +1112,7 @@
         sound.append(field('Doubled', choices([['loud', 'Loud parts', 'Doubled only in the loud sections, so the tune grows as the song does'], ['all', 'Everywhere', 'Doubled the whole way through']], () => (everywhere ? 'all' : 'loud'), (value) => edit(() => { layer.doubleAll = value === 'all'; })(), 'Where it is doubled'), 'Where the doubling plays'));
       }
     }
-    // what it plays: only your notes (layer.hand), or one of the role's patterns written for it. notes
-    // you've added stay either way, on top of a pattern
+    // what it plays: only your notes (layer.hand), or a pattern with your added notes on top
     if (family !== 'texture') {
       const options = [
         ['hand', 'My notes', 'My notes: it plays only the notes you draw or record, nothing written for you'],
@@ -1204,9 +1182,8 @@
 
   // ---------- the note editor ----------
 
-  // one part of one layer as a grid: time across, pitch (or drum) down. the rows that are in the
-  // chord playing at that moment are shaded, so it's easy to see which notes will fit. edits are kept
-  // per part (layer.edits in music.js), so a change plays every time that part comes round
+  // one part of one layer as a grid: time across, pitch (or drum) down, the chord's notes shaded. edits
+  // are per part (layer.edits), so a change plays every time the part comes round
   function noteEditor(layer) {
     const box = make('div', 'mm-editor');
     editor = { layer, box, draw: () => {} };
@@ -1225,8 +1202,7 @@
     }, 'Part'));
     const changes = layer.edits[editPart];
     if (changes && layer.hand) {
-      // a part of your own can be copied to another part (a chorus that starts like the verse), and
-      // cleared. copying replaces whatever that part had
+      // a part of your own can be copied over another part, or cleared
       for (const other of parts.filter((one) => one !== editPart)) {
         head.append(key(`Copy to ${other}`, `Copy part ${editPart}'s notes into part ${other}, in place of what's there`, edit(() => { layer.edits[other] = clone(changes); }), 'mm-key-small mm-key-line'));
       }
@@ -1235,8 +1211,7 @@
       head.append(key('Undo my changes', `Put part ${editPart} back to the notes it was written with`, edit(() => { delete layer.edits[editPart]; }), 'mm-key-small mm-key-line'));
     }
     const drums = layer.role === 'drums';
-    // the tools: plain notes, slides and vibrato (a drum can't slide, so the drums only get notes).
-    // a slide's speed is how much of the note it takes to get there
+    // the tools (drums only get notes). a slide's speed is how much of the note it takes
     const tools = make('div', 'mm-editor-tools');
     if (!drums) {
       tools.append(choices([
@@ -1344,8 +1319,7 @@
     });
 
     const rowOf = (midi) => rows.indexOf(midi);
-    // where a pitch sits down the grid, between two rows if it isn't one of them (a slide passes
-    // through notes that aren't in the scale)
+    // where a pitch sits down the grid, between rows if it isn't one (a slide passes through them)
     const yOf = (pitch) => {
       for (let i = 0; i < rows.length - 1; i++) {
         if (pitch <= rows[i] && pitch >= rows[i + 1]) return (i + (rows[i] - pitch) / (rows[i] - rows[i + 1])) * ROW + ROW / 2;
@@ -1385,8 +1359,7 @@
         g.fillStyle = 'rgba(44, 39, 33, 0.06)';
         g.fillRect(0, i * ROW, width, 1);
       }
-      // a note: its block on its starting pitch, outlined if you added it, then the line its pitch
-      // follows if it slides or bends, and a wiggle along its top if it has vibrato
+      // a note: its block (outlined if you added it), its pitch line if it bends, a wiggle for vibrato
       const block = (note) => {
         const i = rowOf(note.midi);
         if (i < 0) return;
@@ -1437,9 +1410,8 @@
       }
     };
 
-    // what's being drawn, as notes: its start and length from the drag, a slide to where the pointer
-    // is if it's the slide tool (taking as long as the slide speed says), vibrato if it's the vibrato
-    // tool, and with the chord tool, the chord playing there voiced round the row (voiceChord)
+    // what's being drawn, as notes, by the tool: a slide to the pointer's row, vibrato, a swell, or the
+    // chord playing there voiced round the row (voiceChord)
     const dragNotes = (one) => {
       const length = drums ? grid : (one.to - one.from + 1) * grid;
       const at = sec.start + one.from * grid;
@@ -1484,9 +1456,8 @@
         const relative = +(hit.gt - sec.start).toFixed(3);
         const mine = hit.added && changes.add.find(([at, midi]) => Math.abs(at - relative) < 1e-3 && midi === hit.midi);
         if ((tool === 'shake' || tool === 'swell') && !drums) {
-          // vibrato on or off, or the swell going round (growing, dying away, neither). a note you
-          // added just changes; a written one becomes one of yours: it's taken out (by the pitch it was
-          // written at, the same as removing it) and the same note's added back, changed
+          // vibrato on or off, or the swell going round. a note you added just changes; a written one is
+          // taken out (by its written pitch) and added back as yours, changed
           const change = (one) => {
             if (tool === 'shake') one.shake = one.shake ? 0 : shakeWidth;
             else one.swell = one.swell > 0 ? -1 : one.swell < 0 ? 0 : 1;
@@ -1606,8 +1577,7 @@
       );
       bars.firstChild.setAttribute('aria-label', 'One bar shorter');
       bars.lastChild.setAttribute('aria-label', 'One bar longer');
-      // how hard it's played (section.energy, feel() in music.js): the band plays a quiet section softer
-      // and swells up into a louder one
+      // how hard it's played (section.energy, feel() in music.js)
       const loudness = make('div', 'mm-slider mm-section-loud');
       const loud = make('input');
       loudness.append(loud);
@@ -1719,14 +1689,11 @@
 
   // ---------- the learn tab ----------
   //
-  // one layer's part the way a player reads it, so it can be learned on a real instrument: notes
-  // falling onto a piano's keys, a guitar's or a bass's neck with the fingers on it over a scrolling
-  // tab, or sheet music. learn.js works out the hands (strings and frets, fingers, spelling) and this
-  // draws them, following the playhead, or the marker while it's stopped (← and → step through the
-  // part a chord at a time and play it). the practice speed slows the player down, not the song
+  // one layer's part as a player reads it: notes falling onto piano keys, a guitar's or bass's neck over
+  // a scrolling tab, or sheet music. learn.js works out the hands and this draws them, following the
+  // playhead, or the marker while stopped (← and → step through it). practice speed slows the player
 
-  // the instruments a guitarist or a bass player would play: a guitar opens on a guitar's neck, a bass
-  // guitar (or an upright, tuned the same) on a bass's, and anything else on the piano
+  // a guitar opens on a guitar's neck, a bass guitar (or an upright) on a bass's, anything else a piano
   const GUITARS = new Set(['nylon', 'steel-guitar', 'lead-guitar', 'fuzz-lead', 'swell-guitar', 'reverse-guitar']);
   const BASS_GUITARS = new Set(['pluck-bass', 'pick-bass', 'fuzz-bass', 'slap-bass', 'fretless', 'chorus-bass', 'upright']);
   const ownView = (layer) => (INSTRUMENTS[layer.instrument].family === 'guitar' || GUITARS.has(layer.instrument) ? 'guitar' : BASS_GUITARS.has(layer.instrument) ? 'bass' : 'piano');
@@ -1755,8 +1722,7 @@
   let learn = null;
   const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 
-  // the player's copy of the song: at a practice speed, the same song slower. the song itself, its
-  // file and its downloads keep their tempo
+  // the player's copy of the song, slower at a practice speed. the song itself keeps its tempo
   const load = () => player.load(practice === 1 ? song : { ...song, tempo: song.tempo * practice }, comp);
 
   function learnPanel() {
@@ -1784,8 +1750,7 @@
       field('Learn', choices(tonal.map((one) => [one.id, partName(one), `${partName(one)}, played on the ${INSTRUMENTS[one.instrument].name.toLowerCase()}`]), () => layer.id, pickPart, 'Part to learn'), 'Which part to learn. Clicking a layer in the score picks it too'),
       field('Show it on', choices(VIEWS, () => view, (value) => { views[layer.id] = value; renderPanel(); }, 'Show it on'), 'What to show it on. It starts on the instrument the part is played on, or the piano'),
     );
-    // a piano cover plays the tune in the right hand over the bass in the left, so that's where a tune
-    // starts. any other part can take the left hand instead, or none
+    // a tune starts with the bass in the left hand, like a piano cover. any part can take it, or none
     let left = '';
     if (view === 'piano') {
       const others = tonal.filter((one) => one !== layer);
@@ -1851,9 +1816,8 @@
     if (learn.view === 'piano') data.left = learn.left ? partOf(learn.left) : [];
     if (learn.view === 'guitar' || learn.view === 'bass') {
       Object.assign(data, events.length ? frettings(events, learn.view) : { placed: [], tuning: STRINGS[learn.view].standard });
-      // the shape the hand's holding at each event: an upstroke only catches the top strings of the
-      // chord before it, and anything else that's part of it at the same frets is the same shape still
-      // held, not a new one to learn
+      // the shape held at each event: an upstroke (or anything else at the same frets) is the chord
+      // before it still held, not a new shape
       data.held = [];
       data.placed.forEach((one, i) => {
         const before = i ? data.held[i - 1] : -1;
@@ -1921,11 +1885,12 @@
     ({ piano: drawPiano, guitar: drawNeck, bass: drawNeck, sheet: drawSheet })[learn.view](g, width, height, at);
   }
 
-  // the events in a stretch of beats, each with where it falls in it: when the song loops, the start
-  // comes round again after the end
+  // how far each time round is shifted: when the song loops, its start comes round again after the end
+  const laps = () => (player.loop ? [-comp.beats, 0, comp.beats] : [0]);
+  // the events in a stretch of beats, each with where it falls in it
   function eventsIn(events, from, to) {
     const found = [];
-    for (const shift of player.loop ? [-comp.beats, 0, comp.beats] : [0]) {
+    for (const shift of laps()) {
       events.forEach((event, i) => {
         const t = event.t + shift;
         if (t <= to && event.end + shift >= from) found.push({ event, i, t });
@@ -1936,7 +1901,7 @@
   // the chords from the song in a stretch of beats, the same way
   function chordsIn(from, to) {
     const found = [];
-    for (const shift of player.loop ? [-comp.beats, 0, comp.beats] : [0]) {
+    for (const shift of laps()) {
       for (const sec of comp.sections) for (const chord of sec.chords) if (chord.t + shift >= from && chord.t + shift <= to) found.push({ chord, t: chord.t + shift });
     }
     return found;
@@ -2253,9 +2218,8 @@
     return note.shake ? `${mark}~` : mark;
   }
 
-  // a box of each chord shape the part uses, the way a songbook shows them before the song: the
-  // strings down, the nut along the top, and the fret it starts on if it's up the neck. clicking one
-  // plays it and puts the marker where it first comes in
+  // a box for each chord shape the part uses, like a songbook's. clicking one plays it and moves the
+  // marker to where it first comes in
   function renderShapes(data) {
     // (one box a chord, its fullest shape, in the order the chords first come in)
     const first = new Map();
@@ -2350,9 +2314,8 @@
     return { gap, bottomStep, staffTop, bottomY: staffTop + gap * 4, height: Math.round(staffTop + gap * 4 + below + gap * 3.5 + 12) };
   }
 
-  // the staff scrolling past the line, with the clef, the key signature and the time signature kept
-  // at the left, the way sheet music apps keep them. notes are spaced by time, so they line up with
-  // the playhead
+  // the staff scrolling past the line, the clef and signatures kept at the left. notes are spaced by
+  // time, so they line up with the playhead
   function drawSheet(g, w, h, at) {
     const { pieces, signature, treble, shift, quarters, layout, layer, gap: closest } = learn.data;
     const { gap, bottomStep, staffTop, bottomY } = layout;
@@ -2384,7 +2347,7 @@
     for (const { chord, t } of chordsIn(from, to)) g.fillText(chord.name, tx(t) - 4, 14);
     const rx = gap * 0.62;
     const ry = gap * 0.43;
-    for (const offset of player.loop ? [-comp.beats, 0, comp.beats] : [0]) {
+    for (const offset of laps()) {
       pieces.forEach((piece, i) => {
         const t = piece.t + offset;
         const length = piece.value / quarters;
@@ -2500,8 +2463,7 @@
 
   // ---------- library and backups ----------
   //
-  // the shelf of saved songs (library.js keeps them): open one, its history (every save before the
-  // latest), the bin, and backups of the lot as one file
+  // the shelf of saved songs (library.js): open one or its history, the bin, song files and backups
 
   const when = (time) => new Date(time).toLocaleString(undefined, { day: 'numeric', month: 'short', year: new Date(time).getFullYear() === new Date().getFullYear() ? undefined : 'numeric', hour: '2-digit', minute: '2-digit' });
   const ago = (time) => {
@@ -2516,9 +2478,9 @@
     button.addEventListener('click', action);
     return button;
   };
-  // a save opened: the latest as it was saved, notes and all, or an older one from its history, which
-  // Save changes makes the latest again
-  async function openSaved(entry, version) {
+  // a save opened: the latest, notes and all, or an older one from its history (Save changes makes it
+  // the latest again)
+  async function openSaved(entry, version, news = `Opened "${entry.name}".`) {
     const notes = version ? null : await library.notes(entry);
     remember();
     working = { id: entry.id, json: JSON.stringify(cleanSong(entry.song)) };
@@ -2526,9 +2488,9 @@
     open(version ? version.song : entry.song);
     if (version) say(`Opened "${entry.name}" as it was on ${when(version.saved)}. Save changes makes this the latest again, and the latest goes in its history.`);
     else if (asSaved) {
-      say(`Opened "${entry.name}". It's playing the notes it was saved with, since the composer now writes it a little differently. Change anything and it's written again.`);
-      console.warn(`"${entry.name}" plays its saved notes: composeSong no longer writes them. A composer change needs keeping (README, Saved songs).`);
-    } else say(`Opened "${entry.name}".`);
+      say(`${news} It's playing the notes it was saved with, since the composer now writes it a little differently. Change anything and it's written again.`);
+      console.warn(`"${entry.name}" plays its saved notes: composeSong no longer writes them. A composer change needs keeping (README, "Adding things").`);
+    } else say(news);
     renderLibrary();
   }
   let historyOf = null;
@@ -2557,6 +2519,7 @@
             renderLibrary();
           }));
         }
+        keys.append(smallKey('Download', "Download it as a song file, to keep or send to someone. Add song files puts it in any browser's library, sounding just as it does here", () => downloadSong(library.songFile(entry))));
         keys.append(smallKey('Bin', 'Put it in the bin. It stays there until you delete it for good, so you can bring it back', async () => {
           await library.bin(entry.id);
           if (historyOf === entry.id) historyOf = null;
@@ -2634,28 +2597,38 @@
     renderLibrary();
     say(`Downloaded squimble-songs-${day}.json: every song in your library, history and all. Restore opens it in any browser.`);
   });
-  // a backup (or song files) into the library. it only ever adds: a song already here gets any saves the
-  // backup has that it doesn't
-  $('#mmRestore').addEventListener('change', async (event) => {
-    const files = [...event.target.files];
-    event.target.value = '';
+  // backups and song files into the library (Restore, Add song files). it only ever adds: a song already
+  // here gets any saves the file has that it doesn't. a single song file opens as well
+  async function addFiles(input) {
+    const files = [...input.files];
+    input.value = '';
+    await libraryReady;
     const total = { added: 0, merged: 0, same: 0 };
     const bad = [];
+    let only = null;
     for (const file of files) {
       try {
-        const counts = await library.restore(JSON.parse(await file.text()));
+        const data = JSON.parse(await file.text());
+        const counts = await library.restore(data);
         for (const key of Object.keys(total)) total[key] += counts[key];
+        if (files.length === 1 && data.squimble !== 'music library' && counts.ids.length === 1) only = library.get(counts.ids[0]);
       } catch {
         bad.push(file.name);
       }
     }
     renderLibrary();
     renderSaveState();
-    const parts = [total.added && `${total.added} new`, total.merged && `${total.merged} given earlier saves they were missing`, total.same && `${total.same} already here`].filter(Boolean);
-    say(`${parts.length ? `Restored: ${parts.join(', ')}.` : ''}${bad.length ? ` ${bad.join(', ')} ${bad.length === 1 ? "isn't" : "aren't"} a backup or a song file.` : ''}`.trim());
-  });
-  // notes for songs saved before the library kept them, from the composer each was made with, one at a
-  // time and never while one's playing (it takes a moment)
+    if (only) return openSaved(only, null, total.added ? `Added "${only.name}" to your library.` : `"${only.name}" is in your library already, so it's opened that.`);
+    const parts = [total.added && `${total.added} new`, total.merged && `${total.merged} given saves they were missing`, total.same && `${total.same} already here`].filter(Boolean);
+    say(`${parts.length ? `Added: ${parts.join(', ')}.` : ''}${bad.length ? ` ${bad.join(', ')} ${bad.length === 1 ? "isn't" : "aren't"} a backup or a song file.` : ''}`.trim());
+  }
+  $('#mmRestore').addEventListener('change', (event) => addFiles(event.target));
+  $('#mmOpen').addEventListener('change', (event) => addFiles(event.target));
+  const downloadSong = (file) => {
+    download(new Blob([JSON.stringify(file)], { type: 'application/json' }), `${fileName(file.name)}.json`);
+    say(`Downloaded ${fileName(file.name)}.json. Add song files puts it in any browser's library, sounding just like this.`);
+  };
+  // notes for songs saved before the library kept them, one at a time, never while one's playing
   const noNotes = new Set();
   function fillNotes() {
     const entry = [...library.songs.values()].find((one) => !one.notes && !noNotes.has(one.id));
@@ -2698,40 +2671,27 @@
   }
   $('#mmWav').addEventListener('click', () => exportWav(false));
   $('#mmWavLoop').addEventListener('click', () => exportWav(true));
-  $('#mmFile').addEventListener('click', () => {
-    download(new Blob([`${JSON.stringify(song, null, 2)}\n`], { type: 'application/json' }), `${fileName(song.name)}.json`);
-    status.textContent = `Downloaded ${fileName(song.name)}.json.`;
-  });
-  $('#mmOpen').addEventListener('change', async (event) => {
-    const file = event.target.files[0];
-    event.target.value = '';
-    if (!file) return;
-    try {
-      const data = JSON.parse(await file.text());
-      remember();
-      detach();
-      open(data);
-      status.textContent = `Opened ${file.name}.`;
-    } catch {
-      status.textContent = `${file.name} isn't a song file.`;
-    }
+  // the open song as a song file (library.songFile), with the notes it plays now, so it sounds the same
+  // in any browser. an unchanged save goes as that save; anything else as a new save of the open song
+  $('#mmFile').addEventListener('click', async () => {
+    if (needCompose) changed(false);
+    const here = working && JSON.stringify(song) === working.json ? library.get(working.id) : null;
+    const now = Date.now();
+    const notes = comp.notes;
+    downloadSong(library.songFile({ id: working?.id || newId(), name: song.name, created: here?.created || now, saved: here?.saved || now, song: clone(song), notes: await packNotes(notes), print: notesPrint(notes) }));
   });
 
   // ---------- links ----------
   //
-  // links used to carry the whole song (base64 json after #song=), thousands of characters, too long
-  // to paste into most chats. now a link is the seed and the settings that make the song from it,
-  // #seed/mood/style/modifiers/flavour, so an untouched song's link is a few words. anything changed
-  // since rides on the end: only the changes (songChanges in music.js), squeezed with the browser's own
-  // deflate and written in url safe base64. a track made by hand has no seed to start from, so its
-  // link is its changes from a blank track, #/changes. the old #song= links still open
-  const toBase64 = (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  const fromBase64 = (text) => Uint8Array.from(atob(text.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
-  const squeeze = async (bytes, way) => new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(way)).arrayBuffer());
-  // (numbers to four places: a remixed band's volumes and pans were sixteen digits each, which nearly
-  // doubled its link, and a ten thousandth of a volume is nothing anyone can hear)
-  const pack = async (thing) => toBase64(await squeeze(new TextEncoder().encode(JSON.stringify(thing, (key, value) => (typeof value === 'number' ? +value.toFixed(4) : value))), new CompressionStream('deflate-raw')));
-  const unpack = async (text) => JSON.parse(new TextDecoder().decode(await squeeze(fromBase64(text), new DecompressionStream('deflate-raw'))));
+  // a link is the seed and the settings that make the song from it, #seed/mood/style/modifiers/flavour,
+  // then anything changed since (songChanges in music.js), deflated and in url safe base64. a track made
+  // by hand has no seed, so its link is its changes from a blank track, #/changes. old #song= links
+  // (the whole song, thousands of characters) still open. the byte helpers are library.js's
+  const toBase64 = (bytes) => bytesToText(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const fromBase64 = (text) => textToBytes(text.replace(/-/g, '+').replace(/_/g, '/'));
+  // (numbers to four places, notesJson: sixteen digit volumes nearly doubled a remixed band's link)
+  const pack = async (thing) => toBase64(await squeezeBytes(new TextEncoder().encode(notesJson(thing)), new CompressionStream('deflate-raw')));
+  const unpack = async (text) => JSON.parse(new TextDecoder().decode(await squeezeBytes(fromBase64(text), new DecompressionStream('deflate-raw'))));
   const fromOldLink = (text) => JSON.parse(new TextDecoder().decode(fromBase64(text)));
   // the song a link starts from: the seed's, or a blank track
   const linkBase = (one) => (one.own ? blankSong() : generateSong(one.mood, one.style, one.seed, one.mods, one.flavour));
@@ -2745,8 +2705,7 @@
     return `${location.origin}${location.pathname}#${fields.map(encodeURIComponent).join('/')}`;
   }
   const isLink = (hash) => hash.startsWith('#song=') || hash.includes('/');
-  // a link's song and its changes, still packed. the song is ready straight away, so the page opens on
-  // it while the changes unpack
+  // a link's song and its changes, still packed, so the page opens on the song while they unpack
   function readLink(hash) {
     if (hash.startsWith('#song=')) return [cleanSong(fromOldLink(hash.slice(6))), ''];
     const fields = hash.slice(1).split('/').map(decodeURIComponent);
@@ -2767,10 +2726,8 @@
 
   // ---------- playing from the keyboard ----------
 
-  // the computer keyboard as a piano for the open layer, laid out the way most music software does it:
-  // the middle row (a s d f...) is the white keys from a C, the row above the black keys between them,
-  // and z and x move it all down or up an octave. a kit plays its drums on a s d f... in order. with
-  // Record on and the song playing, each note's written into the layer where it was played
+  // the computer keyboard as a piano for the open layer, as music software lays it out: a s d f... the
+  // white keys from a C, the row above the black ones, z and x an octave. a kit's drums are a s d f...
   const PIANO = 'awsedftgyhujkolp;';
   const DRUM_KEYS = 'asdfghjkl';
   let keyOctave = 0;
@@ -2811,9 +2768,8 @@
   document.addEventListener('keyup', (event) => releaseKey(event.key.toLowerCase()));
   window.addEventListener('blur', () => Object.keys(held).forEach(releaseKey));
 
-  // a note played in while recording, written into the part of the section it was played in, lined up
-  // on the grid. a note already there at the same time and pitch is replaced, so going round the loop
-  // playing the same beat doesn't pile up copies
+  // a note played in while recording, on the grid in its section's part. one already at the same time
+  // and pitch is replaced, so playing along round the loop doesn't pile up copies
   function recordNote(layer, played, from, to) {
     if (!layerById(layer.id)) return;
     const grid = comp.step;
@@ -2822,8 +2778,7 @@
     if (!sec.play.includes(layer.id)) return say(`The ${ROLES[layer.role].name.toLowerCase()} isn't playing in ${sec.name}, so that wasn't kept. Turn it on there in Arrange.`);
     // (a note held over the end of the loop finishes at the start)
     const length = to >= from ? to - from : to + comp.beats - from;
-    // (played along to a section after a key change, it's kept in the song's own key, since it'll be
-    // lifted again there. a drum is a drum, not a pitch)
+    // (kept in the song's own key, since it's lifted again where it plays. a drum isn't a pitch)
     const midi = layer.role === 'drums' ? played : played - (sec.lift || 0);
     const t = +(at - sec.start).toFixed(3);
     const dur = layer.role === 'drums' ? grid : Math.min(sec.beats - t, Math.max(grid, Math.round(length / grid) * grid));
@@ -2860,8 +2815,7 @@
   });
 
   function frame() {
-    // asked for first, so one frame going wrong can't stop the score, the readout and the learn tab for
-    // good (on safari before 16 a missing canvas feature did exactly that)
+    // asked for first, so one frame going wrong can't stop drawing for good (old safari did that)
     requestAnimationFrame(frame);
     if (needCompose) changed(false);
     if (needMix) {
@@ -2879,8 +2833,7 @@
 
   // ---------- start ----------
 
-  // the song in the address bar's link, if it has one. what was changed by hand comes in once it's
-  // unpacked
+  // the song in the address bar's link, if there is one. its changes come in once they're unpacked
   function fromAddress() {
     if (!isLink(location.hash)) return null;
     try {
@@ -2911,10 +2864,9 @@
     } catch { /* nothing kept */ }
     return generateSong('calm', 'ambient', newSeed(randomRng()));
   }
-  // songs saved without saying which composer made them, but after composer 1.5 was committed (the
-  // morning of 22 october), can only be its: marked as such, once. the notes kept for them were written
-  // by composer 1 in the background, so they're written again. the draft too, if it's one of them as
-  // saved. one saved before then could be either, and the Song tab's Composer picks
+  // unstamped songs saved after composer 1.5 was committed (the morning of 22 october) can only be its,
+  // so they're marked once (and the draft, if it's one of them), their composer 1 notes dropped. ones
+  // saved before then could be either: the Song tab's Composer picks
   const MORNING = Date.UTC(2026, 9, 22, 7, 18, 33);
   async function markMorningSongs() {
     try {
@@ -2941,7 +2893,7 @@
   renderLibrary();
   // the library opens a moment later. the song left open last time, if it was a save, is still that
   // save, and plays the notes it saved if it hasn't changed since
-  library.start().then(async () => {
+  const libraryReady = library.start().then(async () => {
     await markMorningSongs();
     const id = wasOpen;
     const entry = !fromLink && id && library.get(id);

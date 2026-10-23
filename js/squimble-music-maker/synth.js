@@ -1,103 +1,62 @@
-/// ================================== squimble music maker: the band ==================================
+// ================================== squimble music maker: the band ==================================
 //
-// this file plays composeSong()'s notes (music.js) with the browser's own synthesis (web audio):
-// oscillators, filters and delays wired up fresh for every note, either live through the speakers
-// (MusicPlayer) or offline into a wav (renderSong()). about half the instruments can also play from
-// recordings of real ones (see "recordings" below), with the synthesised version kept as their
-// fallback.
-//
-// squimble quest's sound effects work out every sample in javascript (sound.js). music doesn't,
-// because songs are minutes long and change while they play: working a whole song out first would
-// take seconds every time a slider moved. the plucked strings and struck instruments are the
-// exceptions: one note of each is worked out sample by sample and kept (ksBuffer(), modalBuffer()),
-// because that's the only way to get them sounding real, and one note takes a few milliseconds.
+// plays composeSong()'s notes (music.js) with web audio: oscillators, filters and delays wired up for
+// every note, live (MusicPlayer) or offline into a wav (renderSong()). most instruments can also play
+// recordings of real ones ("recordings"), their synthesised version kept as the fallback. plucked
+// strings and struck things are worked out sample by sample once per note and kept (ksBuffer,
+// modalBuffer), the only way to make them sound real.
 //
 // ---------- instruments ----------
 //
-// INSTRUMENTS is data, one entry per instrument, so a new one is usually a new line. family is what
-// it's listed under (and which roles can use it, roleFamily() in music.js). edge is how harsh or
-// cutting it is, 0 (a sine sub bass) to 1 (a saw lead): moods cap it, and backing layers get a lower
-// cap than the melody, so a buzzy instrument never ends up under a gentle one (fitBand() in music.js).
-// a new instrument needs an edge too, judged by ear. world: 'chip' or 'acoustic' for the sounds that
-// belong to one kind of band, left out for ones that go with anything: chip and acoustic sounds never
-// share a song (pickInstrument() in music.js). a texture that's steady rather than now and then is a
-// bed: a song has one at most. kind is the engine:
-//   sub      subtractive: oscillators (osc: [wave, detune in cents, octave, level]) through a
-//            filter. a wave is one of the browser's four or one of WAVES (built from harmonics)
-//   fm       frequency modulation: one sine wobbling another's pitch, the bells and electric pianos
-//            of the 80s. ratio sets how metallic, index how bright, and indexDecay how fast it mellows.
-//            partials: extra sines [ratio, level, seconds to fade]
-//   pluck    a plucked string (ksBuffer). bright, soft (a finger rather than a pick) and decay
-//            (seconds) shape it, ring is how much the string's top end softens as it rings (0.5 a
-//            nylon string, 0.3 an electric guitar's steel one), buzz is a sitar's buzzing bridge, and
-//            twang is the cents a plucked string starts sharp by before settling. sustain adds a held
-//            tone under the string for notes longer than it rings (an ebow, or an amp feeding back),
-//            and a note marked mute is palm muted (a metal chug)
-//   modal    something struck (a piano, a marimba, a bell), worked out from the pitches it rings at
-//            (modalBuffer): modes, strike, unison, stretch and track, all explained there
-//   choir    buzzy oscillators through three narrow filters at a vowel's formants (VOWELS). singers is
-//            how many (their detunes), breath mixes in air, and rasp clips the buzz so it cracks like a
-//            shouting voice
-//   drums    a kit: six slots (KIT_SLOTS), each one of DRUMS with its own tune, tone, decay and gain.
-//            suits: the patterns (music.js PATTERNS) it sounds right playing. a tune is moved to the
-//            song's key by the composer (tuneDrum() in music.js)
-//   texture  a background like rain or birdsong (TEXTURES), held for whole sections
-//   sample   a recording (ENGINES.sample). no instrument says it: an instrument with samples plays
-//            this way once its recordings have loaded, and its own kind until then
-// tonal instruments have env [attack, decay, sustain level, release] in seconds and gain, and can
-// have filter { freq, q, env (how far it opens at the start), attack, decay, track (how much it
-// follows the note), lfo [rate, depth] (a slow sweep, depth a share of freq) }, vibrato { rate, depth
-// in cents, delay }, tremolo { rate, depth }, breath (noise), fuzz (soft clipping on each note, for a
-// wall of guitars), crush (how many steps of loudness are kept, the gritty 8 bit sound), reverse
-// (the note swells up over its whole length and stops dead, like tape played backwards), scoop
-// (cents a blown or bowed note starts flat by, sliding up onto it the way players do), chiff (the
-// puff of air starting a flute's note, or a hammond's key click), drift (cents a held note wanders by,
-// slowly, because breath and bows are never steady) and ensemble (every oscillator or singer drifts on
-// its own, like a section of players rather than one).
-// a layer's tone (music.js) scales them, so the same instrument sounds different in every song. a
-// harder note is brighter as well as louder (hardness()), and pads and drones spread their
-// oscillators across the stereo field, both of which real instruments do and midi doesn't.
+// INSTRUMENTS is data, a line per instrument:
+//   family    what it's listed under, and which roles can use it (roleFamily() in music.js)
+//   edge      how harsh, 0 (a sine sub) to 1 (a saw lead), judged by ear. moods cap it, lower for
+//             backing (maxEdge in music.js)
+//   world     'chip' or 'acoustic' for sounds of one kind of band: the two never share a song
+//   own       only in moods that name it: never a surprise, and a kit or texture never borrowed
+//   bed       a steady texture rather than one that happens now and then: one a song at most
+//   kind      the engine:
+//     sub      oscillators (osc: [wave, detune cents, octave, level]) through a filter. a wave is the
+//              browser's own or one of WAVES
+//     fm       one sine wobbling another's pitch (80s bells and electric pianos): ratio how metallic,
+//              index how bright, indexDecay how fast it mellows, partials extra sines [ratio, level, fade]
+//     pluck    a plucked string (ksBuffer): bright, soft (a finger rather than a pick), decay, ring (how
+//              fast the top dies), buzz (a sitar's bridge), twang (cents sharp at the pluck), sustain (a
+//              held tone under the string, an ebow). note.mute palm mutes it
+//     modal    something struck, from the pitches it rings at (modalBuffer explains its settings)
+//     choir    buzzy oscillators through a vowel's formants (VOWELS): singers (their detunes), breath, rasp
+//     drums    a kit: slots (KIT_SLOTS) of DRUMS, each with a tune, tone, decay and gain. suits: the
+//              patterns it sounds right playing
+//     texture  scenery (TEXTURES), held for whole sections
+//     sample   a recording (ENGINES.sample), played once the instrument's samples have loaded
+// tonal ones have env [attack, decay, sustain, release] in seconds and gain, and can have filter { freq,
+// q, env, attack, decay, track, lfo [rate, depth] }, vibrato { rate, depth, delay }, tremolo { rate,
+// depth }, breath (noise), fuzz (soft clipping), crush (8 bit steps), reverse (swells up and stops dead),
+// scoop (cents a note starts flat), chiff (a flute's puff, an organ's click), drift (cents a held note
+// wanders) and ensemble (each oscillator or singer drifts on its own, like a section).
+//   ornaments  which ornaments its players use and how often (ornament() in music.js)
+//   body       its body's resonances, and rotary a leslie speaker: built once per layer (instrumentChain)
+//   amp        a rig of pedals, an amp and a cabinet in the layer's channel (ampChain)
+//   home       the note a singer (or a didgeridoo) was recorded near: their part sits round it
+//   sung       a voice gliding through a phrase on one recording (singLine)
+//   octave     where it plays a part, in octaves from the role's place (a cello under a flute)
+//   range      [lowest, highest] a voice sang: its part is folded into it (composeSong)
+//   pedal      a piano whose sustain pedal a mood can hold down (pedal() in music.js)
+// a layer's tone scales these, so an instrument sounds different in every song, a harder note is
+// brighter as well as louder (hardness()), and any note can slide, bend, shake and swell (pitchMods).
 //
-// every instrument can slide and bend (pitchMods): a note can carry a bend (pins of pitch over time,
-// like beepbox's, each move straight or curved), a shake (vibrato of its own) and a swell (growing or
-// dying away), which the composer's ornaments and the note editor's tools write. ornaments says which a
-// player of the instrument uses and how often: { slide, bend, bendBy, release, grace, trill, fall,
-// doit, shake, swell, stop, glide }, see ornament() in music.js. blown, bowed and sung lines are also
-// slurred (note.slur: no fresh attack on joined notes, see voiceChain)
-// body is the resonances of the instrument's body (a violin's box, a trumpet's bell), and rotary a
-// spinning leslie speaker, which are built once per layer with its rig (instrumentChain()).
+// ---------- the mix ----------
 //
-// an instrument with an amp (the guitars, and the basses and leads built like them) is played through
-// a rig of pedals, an amp and a speaker cabinet (ampChain()). the rig sits in the layer's channel, so
-// all of the layer's notes go through it together, the way a guitar's strings all go into one amp.
-// own: an instrument only the moods that name it get, never a surprise pick in another mood (a
-// grunge voice turning up as a happy song's tune). a kit or texture that's own is never borrowed by a
-// mood that has none of its own (the death whistle in a disco song).
-// home: the note a singer (or a didgeridoo) was recorded near. their part sits round it, one note at a
-// time, instead of round their role's usual note (the drone composer in music.js). sung: a voice
-// recording that glides from note to note through a phrase instead of starting again each note
-// (singLine).
-// octave: where the instrument plays a part, in octaves from the role's usual place (a cello's tune an
-// octave under a flute's). range: [lowest, highest], the notes a voice was recorded singing: its part
-// is folded into them by octaves (composeSong), since a voice moved an octave sounds like a cartoon.
-// pedal: a piano's sustain pedal, which moods that want it hold down (pedal in music.js), so its notes
-// ring on into each other until the chord changes
-//
-// ---------- the room ----------
-//
-// each layer has a channel, like a strip on a mixing desk (its instrument's rig if it has one, a low
-// cut, an eq that gives its part a place in the mix, then volume, pan, and sends to the room, the
-// reverb and the echo), and they meet in buildGraph()'s chain: drive -> warmth (a low pass filter) ->
-// tape wobble -> glue compressor -> a little mud taken out -> tape saturation -> volume -> limiter.
-// the reverb plays an impulse made of decaying noise (impulse()), so it needs no recorded room, and the
-// room every part shares is the same idea made small (roomImpulse()). see "the mixing desk" below.
+// each layer has a channel like a mixing desk strip (its rig, a low cut, an eq for its place, volume,
+// pan, and sends to the room, the reverb and the echo). they meet in buildGraph(): drive -> warmth ->
+// tape wobble -> glue -> a little mud out -> tape -> volume -> limiter. the reverb is made of decaying
+// noise (impulse()), so it needs no recorded room. see "the mixing desk"
 
 const mtof = (midi) => 440 * 2 ** ((midi - 69) / 12);
 
-// a phone or a tablet, whose audio has a lot less time to work each note out than a computer's: it
-// gets a bigger audio buffer, notes sent further ahead (MusicPlayer) and a shorter reverb tail
-// (impulse), so it keeps up instead of crackling. (an ipad says it's a mac, but a mac has no touch
-// screen.) false outside a browser, where the checks load this file
+// a phone or tablet has less time to work each note out: it gets a bigger audio buffer, notes sent
+// further ahead and a shorter reverb tail, so it doesn't crackle. (an ipad says it's a mac, but macs
+// have no touch screen.) false outside a browser, where the checks load this file
 const LIGHT = typeof navigator !== 'undefined' && (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform)));
 
 // waves made from harmonics: how strong the 1st, 2nd, 3rd... harmonics are
@@ -106,16 +65,13 @@ const WAVES = {
   organ: [1, 0.6, 0.4, 0.2, 0, 0.15, 0, 0.1],
   hollow: [1, 0, 0.3, 0, 0.12, 0, 0.06],
   soft: [1, 0.25, 0.08, 0.03],
-  // the nes's pulse channels (a square wave that's on for a quarter or an eighth of each cycle), the
-  // sound of undertale and most 8 bit tunes, and its triangle channel, which steps in 16 levels and so
-  // has a faint buzz a pure triangle doesn't
+  // the nes's pulse channels (a square on for a quarter or an eighth of each cycle), undertale's sound,
+  // and its triangle, which steps in 16 levels and so buzzes faintly
   pulse25: Array.from({ length: 32 }, (_, i) => Math.sin(Math.PI * (i + 1) * 0.25) / (i + 1)),
   pulse12: Array.from({ length: 32 }, (_, i) => Math.sin(Math.PI * (i + 1) * 0.125) / (i + 1)),
   chiptri: [1, 0.02, -0.11, 0.015, 0.04, 0.012, -0.02, 0.01, 0.012, 0.008],
-  // the newer acoustic leads. I copied the rough shape of each instrument's spectrum (how strong each
-  // harmonic is) from pictures of real ones, then the body (see instrumentChain) adds the bumps that
-  // stay put whatever note is played. a plain sawtooth was too even, and that evenness is a lot of
-  // what made the old leads sound like a keyboard
+  // the acoustic leads: each the rough shape of a real instrument's spectrum, with its body
+  // (instrumentChain) adding the bumps that stay put. a plain saw was too even, like a keyboard
   // a sax's reed: every harmonic, falling away slowly, so it's thick and a bit honky
   reed: [1, 0.85, 0.72, 0.6, 0.5, 0.42, 0.35, 0.3, 0.25, 0.2, 0.16, 0.13, 0.1, 0.08],
   // brass: the upper harmonics stay strong, which is the "blare" (the filter then decides how much)
@@ -146,24 +102,20 @@ const KIT_SLOTS = ['Kick', 'Snare', 'Hat', 'Open hat', 'Perc', 'Low perc', 'Cras
 
 const INSTRUMENTS = {
   // pads
-  // the analog pads drift a little (drift, in cents), the way an old synth's oscillators never quite
-  // sit still. a pad that's perfectly steady is the first thing that gives a song away as a computer
+  // the analog pads drift a little, like an old synth's oscillators: a perfectly steady pad sounds like
+  // a computer
   'warm-pad':    { name: 'Warm pad', family: 'pad', edge: 0.2, kind: 'sub', osc: [['sawtooth', -9], ['sawtooth', 9], ['triangle', 0, -1, 0.6]], filter: { freq: 850, q: 0.8, env: 1.8, attack: 1.2, decay: 2 }, env: [1.4, 1.5, 0.8, 2.8], drift: 3, gain: 0.05 },
   'glass-pad':   { name: 'Glass pad', family: 'pad', edge: 0.25, kind: 'sub', osc: [['glass', -5], ['glass', 6, 1, 0.3]], filter: { freq: 4200, q: 0.5 }, env: [1.8, 2, 0.75, 3.5], gain: 0.07 },
-  // a choir is lots of people, each a little out of time and tune with the others (ensemble: every
-  // singer drifts on their own), which is why a real one shimmers and a synth "choir" sounds flat
+  // a choir is lots of people a little out of time and tune (ensemble), which is why a real one shimmers
   'choir-ah':    { name: 'Choir, ah', family: 'pad', edge: 0.2, world: 'acoustic', kind: 'choir', vowel: 'ah', env: [1.1, 1, 0.85, 2.4], ensemble: true, drift: 7, gain: 0.22, vibrato: { rate: 4.8, depth: 9, delay: 0.8 }, samples: 'choir-aahs', sampled: { name: 'Choir (FluidR3)', gain: 0.2 }, more: { 'choir-aahs-2': { name: 'Choir (Musyng Kite)', gain: 0.18 } } },
   'choir-oo':    { name: 'Choir, oo', family: 'pad', edge: 0.1, world: 'acoustic', kind: 'choir', vowel: 'oo', env: [1.4, 1, 0.85, 2.8], ensemble: true, drift: 7, gain: 0.3, vibrato: { rate: 4.5, depth: 8, delay: 1 }, samples: 'choir-oohs', sampled: { name: 'Choir (FluidR3)', gain: 0.57 }, more: { 'voice-oohs-2': { name: 'Choir (Musyng Kite)', gain: 0.65 } } },
-  // the sounds a pad can be that are neither synths nor the string section: a synth choir (an "ooh"
-  // from a keyboard, the eighties' and c418's), a vibraphone played with a bow (a glassy tone that swells
-  // in and hangs, aphex twin and c418's ambient pieces), and the strings shivering in tremolo, the
-  // sound of a film's tense scene or a dragon's lair
+  // a synth choir (an eighties keyboard "ooh"), a vibraphone played with a bow (a glassy swell), and
+  // strings shivering in tremolo (a film's tense scene)
   'vox-pad':     { name: 'Synth choir', family: 'pad', edge: 0.15, kind: 'choir', vowel: 'oo', env: [1.3, 1, 0.85, 2.6], ensemble: true, drift: 4, gain: 0.3, samples: 'synth-choir', sampled: { name: 'Synth choir (Musyng Kite)', gain: 0.41 } },
   'bowed-vibes': { name: 'Bowed vibraphone', family: 'pad', edge: 0.1, world: 'acoustic', kind: 'sub', osc: [['sine', 0], ['sine', 2, 1, 0.12], ['sine', -2, 2, 0.04]], env: [1.4, 1, 0.9, 3.5], gain: 0.083, samples: 'bowed-vibes', sampled: { name: 'Bowed vibraphone (VCSL)', gain: 0.93, reach: 12 } },
   'tremolo-strings': { name: 'Tremolo strings', family: 'pad', edge: 0.4, world: 'acoustic', kind: 'sub', osc: [['bowed', -8], ['bowed', 7], ['bowed', 0, 0, 0.8]], breath: 0.05, filter: { freq: 2800, q: 0.5, track: 0.3 }, body: [[280, 4, 2], [460, 3, 2.5], [2800, 4, 0.9]], env: [0.5, 1, 0.9, 1.2], ensemble: true, drift: 5, gain: 0.03, tremolo: { rate: 11, depth: 0.45 }, samples: 'tremolo-strings', sampled: { name: 'Tremolo strings (VSCO)', gain: 0.68 } },
-  // a string section: bowed waves (WAVES.bowed) for several players, each drifting on their own, a
-  // little bow noise (breath), and a violin's wooden body (body) on top, which is most of what made it
-  // sound like strings rather than a synth pad
+  // a string section: bowed waves for several players each drifting on their own, bow noise, and a
+  // violin's wooden body, which is most of what makes it strings rather than a synth pad
   strings:       { name: 'Strings', family: 'pad', edge: 0.35, kind: 'sub', osc: [['bowed', -8], ['bowed', 7], ['bowed', 0, 0, 0.8], ['bowed', 3, 1, 0.12]], breath: 0.04, filter: { freq: 2600, q: 0.5, track: 0.3 }, body: [[280, 4, 2], [460, 3, 2.5], [1500, -3, 1.2], [2800, 4, 0.9]], env: [0.8, 1, 0.9, 1.4], ensemble: true, drift: 5, gain: 0.024, vibrato: { rate: 5.3, depth: 9, delay: 0.5 }, samples: 'strings', sampled: { gain: 0.9 } },
   'dark-pad':    { name: 'Dark pad', family: 'pad', edge: 0.3, kind: 'sub', osc: [['sawtooth', -14], ['square', 12, -1, 0.45]], filter: { freq: 380, q: 3, env: 2.6, attack: 3, decay: 4 }, env: [2.5, 2, 0.8, 4], drift: 3, gain: 0.06 },
   shimmer:       { name: 'Shimmer', family: 'pad', edge: 0.15, kind: 'sub', osc: [['sine', 0], ['sine', 5, 1, 0.5], ['triangle', -4, 2, 0.18]], env: [2, 2, 0.7, 4.5], gain: 0.07, tremolo: { rate: 3.2, depth: 0.3 } },
@@ -199,9 +151,7 @@ const INSTRUMENTS = {
   'orchestra-hit': { name: 'Orchestra hit', family: 'pad', edge: 0.6, own: true, kind: 'sub', osc: [['brass', -8], ['brass', 8], ['sawtooth', 0, -1, 0.5]], filter: { freq: 3000, q: 0.6, env: 2, attack: 0.005, decay: 0.2 }, env: [0.004, 0.35, 0.15, 0.3], gain: 0.23, samples: 'orchestra-hit', sampled: { gain: 0.41 } },
 
   // keys and mallets
-  // the struck ones are modal (see modalBuffer): every overtone a real one rings with, at its own
-  // pitch and dying at its own rate, worked out once per note. they used to be fm, which gets the
-  // brightness right but not the way a struck bar or string sings on its lowest notes as the top dies
+  // the struck ones are modal (modalBuffer): every overtone a real one rings with, dying at its own rate
   // a felt piano: felt laid between the hammers and strings, so the top's soft and the strike's a
   // muffled thump (nils frahm, the quiet minecraft pieces). two strings a note, beating slowly
   'felt-keys':   { name: 'Felt piano', family: 'keys', edge: 0.1, pedal: true, kind: 'modal', modes: [[1, 1, 3.4], [2, 0.42, 1.9, 0.3], [3, 0.16, 1.2, 0.6], [4, 0.07, 0.8, 0.9], [5, 0.03, 0.5, 1.2]], strike: [0.22, 500, 0.025], unison: 0.9, stretch: 0.0003, track: 0.5, env: [0.003, 1, 1, 0.5], gain: 0.47, samples: 'knight-upright', sampled: { name: 'Knight upright, played softly (VCSL)', gain: 0.82, filter: { freq: 2200, q: 0.5 } }, more: { 'upright-piano': { name: 'Upright piano (VSCO)', gain: 0.82, filter: { freq: 2400, q: 0.5 } } } },
@@ -286,11 +236,9 @@ const INSTRUMENTS = {
   // gong's overtones aren't whole multiples, so it shimmers rather than rings
   bonang:        { name: 'Bonang', family: 'keys', edge: 0.35, world: 'acoustic', own: true, kind: 'modal', modes: [[1, 1, 2.5], [2.76, 0.2, 0.7, 0.6], [4.1, 0.08, 0.3, 1], [5.6, 0.03, 0.15, 1.2]], strike: [0.15, 3000, 0.003], unison: 2, track: 0.4, env: [0.002, 1, 1, 1], gain: 0.73, samples: 'bonang', sampled: { name: 'Bonang and bonang panerus', gain: 0.75, reach: 12 } },
 
-  // electric guitars: a picked string through a rig (amp, ampChain()), from clean to as heavy as it
-  // goes. edge rises with the gain. rhythm guitars are double tracked (two takes, left and right).
-  // the dirty ones ring a long time (decay) and lose little brightness as they do (ring), and their
-  // rig squashes the string before it clips (sustain): a distorted chord should ring on for bars, not
-  // die like an acoustic one. ornaments.slide is the rock trick of sliding into a power chord
+  // electric guitars: a picked string through a rig (amp, ampChain()), edge rising with the gain.
+  // rhythm guitars are double tracked. the dirty ones ring long (decay, ring) and their rig squashes
+  // the string before it clips (sustain), so a distorted chord rings on for bars
   // clean, bright and a little squashed: the twinkling guitar of emo (tigers jaw, american football)
   'clean-guitar':  { name: 'Clean guitar', family: 'guitar', edge: 0.2, kind: 'pluck', bright: 0.6, soft: 0.2, decay: 3, env: [0.002, 3, 1, 0.3], gain: 1,
     amp: { tight: 90, curve: 'tube', gain: 1.2, mids: [700, -2], presence: [3200, 3], cab: 7500, level: 0.5, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 0.88 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.2 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 0.69 } } },
@@ -345,9 +293,8 @@ const INSTRUMENTS = {
   glock:         { name: 'Glockenspiel', family: 'bell', edge: 0.4, world: 'acoustic', kind: 'modal', modes: [[1, 1, 2.2], [2.71, 0.2, 0.5, 0.6], [5.15, 0.06, 0.15, 1]], strike: [0.12, 8000, 0.002], track: 0.4, env: [0.002, 1, 1, 0.8], gain: 0.43, samples: 'glockenspiel', sampled: { gain: 1.1 } },
 
   // leads
-  // the blown and bowed leads drift a few cents as they're held (drift: breath is never perfectly
-  // steady), blown ones start with a puff of air (chiff), and each says which ornaments a player of
-  // it would use (ornaments, which the composer adds, see ornament() in music.js)
+  // blown and bowed leads drift as they're held (breath is never steady), blown ones start with a puff
+  // (chiff), and each says what its players' ornaments are
   flute:         { name: 'Flute', family: 'lead', edge: 0.15, world: 'acoustic', kind: 'sub', osc: [['sine', 0], ['triangle', 2, 1, 0.12], ['sine', 0, 2, 0.04]], breath: 0.35, chiff: 0.35, env: [0.09, 0.3, 0.85, 0.5], scoop: 15, drift: 4, gain: 0.19, vibrato: { rate: 5, depth: 12, delay: 0.35 }, ornaments: { grace: 0.2, slide: 0.06, trill: 0.06, swell: 0.15 }, samples: 'flute', sampled: { gain: 2.5 } },
   ocarina:       { name: 'Ocarina', family: 'lead', edge: 0.15, world: 'acoustic', kind: 'sub', osc: [['soft', 0]], breath: 0.15, chiff: 0.2, filter: { freq: 2500, q: 0.4 }, env: [0.05, 0.3, 0.8, 0.45], scoop: 10, drift: 3, gain: 0.21, vibrato: { rate: 5.5, depth: 8, delay: 0.3 }, ornaments: { grace: 0.12, slide: 0.08, swell: 0.15 }, samples: 'ocarina', sampled: { name: 'Ocarina (FluidR3)', gain: 0.39 }, more: { 'clay-ocarina': { name: 'Clay ocarina (VCSL)', gain: 0.71 } } },
   'soft-lead':   { name: 'Soft lead', family: 'lead', edge: 0.2, kind: 'sub', osc: [['triangle', -3], ['triangle', 4]], filter: { freq: 1800, q: 0.6, track: 0.5 }, env: [0.04, 0.4, 0.75, 0.6], scoop: 8, gain: 0.16, vibrato: { rate: 5, depth: 6, delay: 0.4 }, ornaments: { slide: 0.12, glide: 0.08, swell: 0.15 } },
@@ -383,9 +330,7 @@ const INSTRUMENTS = {
   // 80s brass from a synth, the filter opening as each note swells (dying light, deltarune)
   'synth-brass': { name: 'Synth brass', family: 'lead', edge: 0.6, kind: 'sub', osc: [['sawtooth', -7], ['sawtooth', 7], ['pulse25', 0, -1, 0.4]], filter: { freq: 900, q: 1, env: 3, attack: 0.12, decay: 0.6, track: 0.5 }, env: [0.05, 0.4, 0.85, 0.45], scoop: 15, gain: 0.07, vibrato: { rate: 5, depth: 5, delay: 0.5 }, ornaments: { slide: 0.1, fall: 0.08, swell: 0.25 } },
   // lead guitars, standing in for a singer: a held tone under the string so long notes sing on, bends
-  // up onto notes (bendBy: a whole tone), slides, and a wide shake on long notes (shake). the bends
-  // used to be a coin toss in the synth on every play; now the composer writes them, so they're the
-  // same every time and you can see them in the score
+  // (bendBy: a whole tone), slides and a wide shake, all written by the composer
   'lead-guitar': { name: 'Lead guitar', family: 'lead', edge: 0.65, own: true, kind: 'pluck', bright: 0.7, soft: 0.1, decay: 5, ring: 0.35, sustain: 0.35, env: [0.003, 2, 0.9, 0.25], gain: 1, vibrato: { rate: 5.5, depth: 10, delay: 0.3 }, ornaments: { bend: 0.35, bendBy: 2, slide: 0.2, shake: 0.45, stop: 0.06, glide: 0.08, release: 0.15 },
     amp: { tight: 150, boost: [800, 6], curve: 'soft', gain: 25, sustain: 10, presence: [2800, 2], cab: 4800, level: 0.034 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 2.2 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 3 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1.7 } } },
   // shred: more gain, wider vibrato, whole tone bends (kirk hammett, dimebag, the doom solos)
@@ -464,8 +409,7 @@ const INSTRUMENTS = {
   'pluck-bass':  { name: 'Plucked bass', family: 'bass', edge: 0.2, kind: 'pluck', bright: 0.45, soft: 0.3, decay: 2, filter: { freq: 900, q: 0.7 }, env: [0.002, 1.5, 1, 0.15], gain: 1.3, ornaments: { slide: 0.08, glide: 0.06 }, samples: 'bass-guitar', sampled: { name: 'Darkblack bass (Karoryfer)', gain: 0.83 }, more: { 'pasta-bass': { name: 'Pastabass (Karoryfer)', gain: 1.1 }, 'growly-bass': { name: 'Growlybass (Karoryfer)', gain: 1 } } },
   // a double bass, its big wooden body booming under the plucked string
   upright:       { name: 'Upright bass', family: 'bass', edge: 0.1, world: 'acoustic', kind: 'pluck', bright: 0.22, soft: 0.6, decay: 1.4, filter: { freq: 600, q: 0.8 }, body: [[90, 4, 2], [180, 3, 1.5], [1100, 2, 1.2]], env: [0.004, 1, 1, 0.14], gain: 0.6, ornaments: { slide: 0.05, glide: 0.06 }, samples: 'double-bass', sampled: { name: 'Contrabass (VSCO)', gain: 0.72 }, more: { 'meat-bass': { name: 'Meatbass (Karoryfer)', gain: 0.39 }, 'sneaky-bass': { name: 'Double bass played softly (Karoryfer)', gain: 1.5 } } },
-  // (edge 0.7 rather than a lead's 1: it's buzzy, but under the band, and at 1 it never fitted under any
-  // mood's backing cap, so it was never picked)
+  // (edge 0.7: buzzy, but at 1 it never fitted under any mood's backing cap)
   'growl-bass':  { name: 'Growl bass', family: 'bass', edge: 0.7, kind: 'sub', osc: [['sawtooth', -10], ['sawtooth', 10], ['square', 0, -1, 0.6]], filter: { freq: 420, q: 6, env: 3, attack: 0.01, decay: 0.25 }, env: [0.005, 0.3, 0.8, 0.12], gain: 0.11, ornaments: { slide: 0.15, glide: 0.06 } },
   'chip-bass':   { name: 'Triangle bass', family: 'bass', edge: 0.15, world: 'chip', kind: 'sub', osc: [['chiptri', 0]], env: [0.003, 0.2, 0.9, 0.06], gain: 0.42 },
   // two saws a little apart, beating slowly against each other under a moving filter
@@ -507,12 +451,9 @@ const INSTRUMENTS = {
   // a tanpura: four long strings plucked over and over under a raga, never the tune, buzzing like the
   // sitar's (buzz). it's plucked, so it plays the drone's "cycle" pattern (music.js), not a held note
   tanpura:       { name: 'Tanpura', family: 'drone', edge: 0.2, world: 'acoustic', own: true, kind: 'pluck', bright: 0.7, soft: 0.2, decay: 6, ring: 0.35, buzz: 0.1, body: [[200, 3, 1.5], [800, 2, 1.5]], env: [0.003, 6, 1, 2], gain: 0.54, samples: 'sitar', sampled: { gain: 0.28 } },
-  // throat singing from mongolia and tuva: one singer holds a low note while the shape of their mouth
-  // picks out its overtones, so a whistled tune floats above the drone. every overtone is a whole
-  // multiple of the note, so moved to the song's home note it stays in tune whatever the key. a singer
-  // holds one note near their own (home, see the drone composer in music.js), not a chord. the recordings
-  // are a tuvan sygyt (whistling) and a mongolian khoomei; the synthesised version is a voice through a
-  // narrow vowel that whistles one overtone
+  // throat singing (a tuvan sygyt and a mongolian khoomei): a low note with a whistled tune of its
+  // overtones above it, in tune in any key since they're whole multiples. it holds one note near its own
+  // (home). the synthesised version is a voice through a narrow vowel that whistles one overtone
   'throat-singing': { name: 'Throat singing', family: 'drone', edge: 0.3, world: 'acoustic', own: true, kind: 'choir', vowel: 'khoomei', singers: [0], breath: 0.1, home: 56, sung: true, env: [0.8, 1, 0.9, 2], drift: 3, gain: 0.19, samples: 'sygyt', sampled: { name: 'Sygyt (Alfonso Pérez)', gain: 0.22, reach: 12 }, more: { khoomei: { name: 'Khoomei (nemaavla)', gain: 0.35, reach: 12 } } },
   // kargyraa, the low style: the false vocal folds flap at half the voice's speed, so it growls an
   // octave under the note it's singing, with the overtones above it
@@ -623,8 +564,7 @@ const INSTRUMENTS = {
     { voice: 'tick', tune: 700, decay: 0.08, gain: 0.3, hit: 'orchestra-kit/woodblock', level: 1 }, { voice: 'rim', tune: 1000, decay: 0.05, gain: 0.3, hit: 'percussion/claves', level: 0.68 }, { voice: 'taiko', tune: 85, decay: 0.6, gain: 0.75, hit: 'orchestra-kit/taiko', level: 0.71, at: 58 },
     { voice: 'gong', tune: 90, decay: 4, gain: 0.3, hit: 'orchestra-kit/gong', level: 0.15 }] },
 
-  // the third round's kits. they're own: only the moods that name them get them, and they're never
-  // borrowed for a band whose mood has none that fit (pickInstrument), so older songs kept their kits
+  // these kits are own: only the moods that name them get them
   // ghana's bobobo drums: the bass drum, a tenor drum for the low perc, the treble drum slapped for the
   // high one, clapping, and shakers
   'african-drums': { name: 'Bobobo drums', family: 'kit', world: 'acoustic', own: true, kind: 'drums', suits: ['tribal', 'groove', 'march', 'halftime', 'pulse', 'sparse', 'gallop'], slots: [
@@ -678,12 +618,10 @@ const INSTRUMENTS = {
     { voice: 'tick', tune: 2500, decay: 0.4, gain: 0.12, hit: 'world-percussion/hand-bells', level: 2.6 }, { voice: 'rim', tune: 1000, decay: 0.05, gain: 0.25, hit: 'world-percussion/darbuka-2', level: 0.47 }, { voice: 'tom', tune: 120, decay: 0.3, gain: 0.45, hit: 'world-percussion/frame-high', level: 4.9 },
     { voice: 'gong', tune: 90, decay: 4, gain: 0.3, hit: 'orchestra-kit/gong', level: 0.15 }] },
 
-  // textures. they're scenery: most are now things that happen now and then with quiet in between,
-  // like the vinyl's crackle, because a steady wash (the old wind) was loud and rarely added anything.
-  // each gain brings it to about the vinyl's loudness (measured with tests/levels.html)
+  // textures: scenery, mostly things that happen now and then with quiet between (a steady wash was
+  // loud and added little). each gain is set near the vinyl's loudness (tests/levels.html)
   wind:     { name: 'Wind', family: 'texture', kind: 'texture', texture: 'wind', gain: 0.25, samples: 'wind', sampled: { gain: 0.15 }, every: [8, 18] },
-  // rain and crickets sit lower than the rest: they're mostly high frequencies, which the ear hears
-  // as louder and harsher than the same level of wind or ocean
+  // rain and crickets sit lower: the ear hears high frequencies as louder and harsher
   rain:     { name: 'Rain', family: 'texture', kind: 'texture', texture: 'rain', bed: true, gain: 0.12, samples: 'rain', sampled: { gain: 0.45 } },
   ocean:    { name: 'Ocean', family: 'texture', kind: 'texture', texture: 'ocean', bed: true, gain: 0.2, samples: 'ocean', sampled: { gain: 0.21 } },
   vinyl:    { name: 'Vinyl crackle', family: 'texture', kind: 'texture', texture: 'vinyl', bed: true, gain: 0.6 },
@@ -704,10 +642,9 @@ const INSTRUMENTS = {
   chimes:   { name: 'Distant chimes', family: 'texture', kind: 'texture', texture: 'chimes', gain: 0.09 },
   // an amp starting to feed back now and then, for the loud moods
   feedback: { name: 'Feedback', family: 'texture', kind: 'texture', texture: 'feedback', gain: 0.04 },
-  // the third round's scenery, own like its kits (only where a mood names them). most have recordings:
-  // events cut from one long recording (build-samples.js), played now and then (every, in seconds) from
-  // their own spot, the way the synthesised ones are (recordedScenery). a pitched one (the singing bowl)
-  // is moved to the song's home note
+  // scenery that's own (only where a mood names it), mostly recorded: events cut from one long take,
+  // played every few seconds (every) from their own spot (recordedScenery). a pitched one (the singing
+  // bowl) is moved to the home note
   bubbles:  { name: 'Bubbles', family: 'texture', kind: 'texture', own: true, texture: 'bubbles', gain: 0.18 },
   whale:    { name: 'Whale song', family: 'texture', kind: 'texture', own: true, texture: 'whale', gain: 0.062, samples: 'whale', sampled: { gain: 0.15 }, every: [14, 30] },
   'death-whistle': { name: 'Death whistle', family: 'texture', kind: 'texture', own: true, texture: 'deathWhistle', gain: 0.44, samples: 'death-whistle', sampled: { gain: 0.14 }, every: [14, 32] },
@@ -715,10 +652,8 @@ const INSTRUMENTS = {
   rainstick: { name: 'Rainstick', family: 'texture', kind: 'texture', own: true, texture: 'rainstick', gain: 0.25, samples: 'rainstick', sampled: { gain: 0.58 }, every: [10, 24] },
   scratches: { name: 'Record scratches', family: 'texture', kind: 'texture', own: true, texture: 'scratches', gain: 0.63, samples: 'scratches', sampled: { gain: 0.34 }, every: [8, 20] },
   'singing-bowl': { name: 'Singing bowl', family: 'texture', kind: 'texture', own: true, texture: 'bowl', gain: 0.05, samples: 'singing-bowl', sampled: { gain: 0.13 }, every: [16, 34] },
-  // the fourth round's scenery, own too: silent hill's fog (a radio crackling with static, a siren far
-  // off, metal clanging, chains, footsteps of someone you can't see, crows), minecraft's nether (lava
-  // bubbling under the embers) and a city of machines (a factory humming, steam let out of a pipe).
-  // all recorded, with a synthesised version for when the recordings can't load
+  // more own scenery: silent hill's fog (static, a siren, clanging, chains, footsteps, crows), the
+  // nether's lava, and a city of machines (a factory, steam)
   lava:     { name: 'Lava', family: 'texture', kind: 'texture', own: true, texture: 'lava', bed: true, gain: 0.148, samples: 'lava', sampled: { gain: 0.83 } },
   factory:  { name: 'Factory', family: 'texture', kind: 'texture', own: true, texture: 'factory', bed: true, gain: 0.098, samples: 'factory', sampled: { gain: 0.126 } },
   static:   { name: 'Radio static', family: 'texture', kind: 'texture', own: true, texture: 'static', gain: 0.2, samples: 'static', sampled: { gain: 0.34 }, every: [6, 18] },
@@ -734,9 +669,8 @@ const FAMILIES = { pad: 'Pads', keys: 'Keys and mallets', guitar: 'Guitars', bel
 
 // ---------- shared sounds ----------
 
-// noise, crackle and plucked strings are worked out once per sample rate and kept. AudioBuffers
-// aren't tied to a context, so the live player and wav renders share them. periodic waves are tied to
-// their context, so they're kept per context
+// noise, crackle and strings are worked out once per sample rate and kept (AudioBuffers aren't tied to
+// a context, so live play and wav renders share them). periodic waves are kept per context
 const audioCaches = new Map();
 const cacheFor = (rate) => {
   if (!audioCaches.has(rate)) audioCaches.set(rate, { strings: new Map() });
@@ -783,24 +717,13 @@ function crackleBuffer(rate) {
   return cache.crackle;
 }
 
-// a plucked string by the karplus-strong method (1983): a burst of noise goes round a loop one wave
-// of the note long, softened a little each time round, which is very nearly what a real string
-// does. web audio can't loop that tightly, so this is worked out sample by sample, once per note, and kept.
-// soft mixes the noise with the smooth triangle a string takes when a finger pulls it aside: that has
-// hardly any high overtones, so the note starts round instead of with a hard metallic zing. the harp
-// was all noise at first, and it hit too hard and rang like wire
-//
-// three more things a string can do, from the instrument:
-//   ring   how much the string's top end is softened each time round, 0.5 (a lot: the classic sound,
-//          nylon and gut) down to about 0.3 (a little: a steel string on an electric guitar, which
-//          stays bright and rings for ages)
-//   buzz   the sitar's bridge: the string brushes a curved bridge whenever it swings past the buzz
-//          level, which flattens the top of its wave. that makes the bright, evolving buzz, and it
-//          fades as the note dies because a quieter string stops reaching the bridge
-//   the end of the buffer fades out, so a note held longer than the string rings can't click off
-//   (through a high gain amp even a string 60 db down is loud, and its end was a click)
-// the loop can only be a whole number of samples long, which put high notes up to 13 cents out of
-// tune (an e5 at 44.1 khz). buffer.cents is how far off it is, and the pluck engine tunes it back
+// a plucked string by karplus-strong (1983): a burst of noise going round a loop one wave long,
+// softened each time round, worked out once per note. soft mixes in the smooth triangle a finger pulls
+// a string into, so it starts round rather than with a metallic zing. ring is how much the top end
+// softens each time round (0.5 nylon, 0.3 an electric's steel), and buzz flattens the wave past a level,
+// a sitar's bridge, fading as the note dies. the end fades so a long note can't click off. the loop is a
+// whole number of samples, which put high notes up to 13 cents out: buffer.cents says how far, and the
+// pluck engine tunes it back
 function ksBuffer(rate, midi, bright, decay, soft, ring = 0.5, buzz = 0, amped = false) {
   const cache = cacheFor(rate).strings;
   const key = `${midi}|${bright.toFixed(2)}|${decay.toFixed(1)}|${soft}|${ring}|${buzz}`;
@@ -840,22 +763,14 @@ function ksBuffer(rate, midi, bright, decay, soft, ring = 0.5, buzz = 0, amped =
 
 // ---------- struck things: modes ----------
 //
-// a struck bar, tine, bell or piano string rings at a handful of pitches at once (its modes), each
-// dying away at its own rate. a marimba bar's are two octaves and about three octaves and a third up,
-// a bell's include a minor third, a piano string's are nearly whole multiples but a little sharp
-// (stretch). I used fm for these at first, which gets the brightness of the strike right but not the
-// way the top dies first and leaves the low note singing, which is the sound of a real one. so each is
-// worked out sample by sample once per note, like the plucked strings, and kept. an instrument says:
-//   modes    [ratio to the note, level, seconds to fade 60 db, hard], where hard is how much harder
-//            playing brings that mode out (a rhodes' bark, a piano's brightness when hit hard)
-//   strike   [level, hz, seconds]: the mallet or hammer hitting, a short burst of darkened noise
-//   unison   cents apart of a second string a note (a piano's strings, a santoor's courses), which
-//            beat slowly against each other: the shimmer of a real piano
-//   stretch  how much sharper each overtone is than a whole multiple, for stiff strings
-//   track    how much faster high notes die than low ones, the way a short bar or string rings less
-// level (0 to 3) is how hard it's hit, from the note's strength, so loud notes are brighter rather
-// than just louder. each mode is a damped sine made by a two multiply recurrence, cheap enough that a
-// whole chord of new notes takes a few milliseconds
+// a struck bar, tine, bell or piano string rings at a handful of pitches at once (its modes), each dying
+// at its own rate, the top first. worked out once per note and kept. an instrument says:
+//   modes    [ratio to the note, level, seconds to fade 60 db, hard (how much harder playing brings it out)]
+//   strike   [level, hz, seconds]: the mallet or hammer, a short burst of darkened noise
+//   unison   cents apart of a second string (a piano's), beating slowly: its shimmer
+//   stretch  how much sharper each overtone is than a whole multiple (stiff strings)
+//   track    how much faster high notes die than low ones
+// level (0 to 3) is how hard it's hit, so loud notes are brighter rather than just louder
 function modalBuffer(rate, midi, inst, level) {
   const cache = cacheFor(rate);
   if (!cache.modal) cache.modal = new WeakMap();
@@ -914,9 +829,8 @@ function modalBuffer(rate, midi, inst, level) {
   return buffer;
 }
 
-// a slow, smooth wander between -1 and 1, eight seconds of it, for the drift of a held note (a
-// breath, a bow, a voice is never perfectly steady). random points a quarter of a second apart,
-// joined by smooth curves. each note plays it from somewhere different, at a slightly different speed
+// eight seconds of slow, smooth wander between -1 and 1, for a held note's drift: random points a
+// quarter of a second apart joined by curves, each note playing it from its own spot and speed
 function driftBuffer(rate) {
   const cache = cacheFor(rate);
   if (!cache.drift) {
@@ -967,13 +881,11 @@ function lfo(ctx, rate, depth, param, when, end, type = 'sine') {
 function voiceChain(ctx, out, inst, tone, f, when, dur, vel, note = {}, again = Infinity) {
   const { pump, slur, swell } = note;
   const [attackTime, decay, sustain, releaseTime] = inst.env;
-  // never more than half the note, or a short chord would only reach full volume after the beat's gone.
-  // a slurred note (note.slur: a wind or bow player going from one note to the next without stopping
-  // the breath or the bow) arrives at once, the way only a phrase's first note is tongued or bowed
+  // never more than half the note, or a short chord peaks after its beat. a slurred note arrives at once
   let attack = Math.max(0.002, Math.min(attackTime * tone.attack, dur * 0.5, slur ? 0.015 : Infinity));
   let release = Math.max(0.03, releaseTime * tone.release);
-  // a reversed note swells over all of itself, and a pumped one (a club pad ducking under every kick,
-  // pad.pump in music.js) over half. both let go at once, so the next starts clean
+  // a reversed note swells over all of itself, a pumped one (ducking under the kick) over half, and both
+  // let go at once
   if (inst.reverse || pump) {
     attack = dur * (inst.reverse ? 1 : 0.55);
     release = 0.05;
@@ -992,11 +904,8 @@ function voiceChain(ctx, out, inst, tone, f, when, dur, vel, note = {}, again = 
   // a note shorter than its attack is held until the attack's done, so it can't click off mid ramp
   const off = when + Math.max(dur, attack);
   let end = off + release * 1.4 + 0.05;
-  // struck again before it's rung away: a string or key played again stops its last ring, so it fades
-  // out there while the new note fades in (over about the same attack, so a pad's held note doesn't
-  // dip between chords). a pad's fast chord pattern (pulse) used to leave every strike ringing out its
-  // whole release, dozens of copies of each note at once, until the browser couldn't keep up and the
-  // song crackled, slowed and stopped. struck again before it's let go, the release never comes
+  // struck again before it's rung away, it fades out as the new one comes in, as a string or key does.
+  // otherwise a fast pad pattern piled up dozens of copies of each note until the song crackled and stopped
   const cut = when + Math.max(attack, again);
   const fade = Math.max(0.01, attack / 3);
   const restruck = cut + fade * 6 < end;
@@ -1005,8 +914,7 @@ function voiceChain(ctx, out, inst, tone, f, when, dur, vel, note = {}, again = 
     amp.gain.setTargetAtTime(0, cut, fade);
     end = cut + fade * 6;
   }
-  // swell: a held note that grows (a bowed or blown crescendo, 1) or dies away (a diminuendo, -1) over
-  // its length, the way a player shapes a long note instead of holding it flat like a keyboard
+  // swell: a note that grows (1) or dies away (-1) over its length, as a player shapes a long note
   if (swell) {
     const shape = ctx.createGain();
     shape.gain.setValueAtTime(swell > 0 ? 0.3 : 1, when);
@@ -1040,14 +948,10 @@ function voiceChain(ctx, out, inst, tone, f, when, dur, vel, note = {}, again = 
   return { input, when, end, vel, dur, slur: !!slur };
 }
 
-// how much brighter a note is for being played harder, about 1 at a middling 0.75. every real
-// instrument does this (a piano struck hard rings brighter, not just louder), and every note sounding
-// the same colour whatever its strength was a lot of what made the band sound like midi
+// how much brighter a note is for being played harder, 1 at a middling 0.75: every real instrument is
 const hardness = (vel) => 0.6 + 0.55 * vel;
-// the same for a recording, but steeper, the way a sampler's velocity opens its filter: most folders
-// have one loudness of each note, so a soft note was the loud recording turned down, as bright as a
-// hard one, and that's the sampled keyboard sound. 1 at a middling 0.75 (as recorded), a soft 0.4
-// closes it to under half (about 5 khz), and a hard note opens it a little past the recording
+// the same for a recording, steeper, as a sampler's velocity is: most folders have one loudness a note,
+// so a soft note needs darkening (1 as recorded at 0.75, under half at 0.4)
 const recordedHardness = (vel) => Math.min(1.4, Math.max(0.25, (vel / 0.75) ** 1.3));
 
 function vibrato(ctx, inst, tone, when, end) {
@@ -1055,11 +959,9 @@ function vibrato(ctx, inst, tone, when, end) {
   if (depth <= 0) return null;
   return shaking(ctx, depth, inst.vibrato?.rate || 5, inst.vibrato?.delay ?? 0.3, when, end);
 }
-// a vibrato: depth cents either way, rate times a second, starting after delay seconds. every note's
-// runs at a slightly different speed, like real players. a player's vibrato doesn't switch on: the note
-// starts straight, then the vibrato grows over a few tenths of a second and speeds up a little as it
-// settles (a violinist's or a singer's). it used to ramp up from the very start of the note, so even
-// short notes wobbled. a vibrato with no delay is an effect (a tape's warble), so it's there at once
+// a vibrato: depth cents either way, rate a second, after delay seconds, each note's a little different.
+// it grows in over a few tenths and speeds up as it settles, as a player's does, so short notes don't
+// wobble. with no delay it's an effect (a tape's warble), there at once
 function shaking(ctx, depth, rate, delay, when, end) {
   const amount = ctx.createGain();
   const grow = delay > 0 ? 0.4 : 0.01;
@@ -1075,8 +977,7 @@ function shaking(ctx, depth, rate, delay, when, end) {
   return amount;
 }
 
-// drift: the slow wander of a held note, cents either way (driftBuffer). its own spot in the wander
-// for every call, so two notes (or two players in a section) never wander together
+// drift: a held note's slow wander, cents either way (driftBuffer), from its own spot each call
 function drifting(ctx, cents, when, end) {
   const source = ctx.createBufferSource();
   source.buffer = driftBuffer(ctx.sampleRate);
@@ -1090,11 +991,8 @@ function drifting(ctx, cents, when, end) {
   return amount;
 }
 
-// an ensemble's drift (a section of players, a choir): one wander a note, shared out to each player
-// turned a different way and by a different amount, so they drift apart from each other. returns a
-// function giving player i's share, or null for an instrument that isn't an ensemble. I first gave
-// every player a wander of its own, which sounded no different and made a string chord half as
-// expensive again to play (four oscillators, four wanders, a note)
+// an ensemble's drift: one wander a note shared out to each player a different way and amount, so they
+// drift apart (a wander each sounded no different and cost far more). returns player i's share, or null
 function ensembleDrift(ctx, inst, voice) {
   if (!inst.ensemble || !inst.drift) return null;
   const wander = drifting(ctx, inst.drift, voice.when, voice.end);
@@ -1106,22 +1004,14 @@ function ensembleDrift(ctx, inst, voice) {
   };
 }
 
-// everything that moves a note's pitch while it plays, as nodes to plug into each oscillator's detune
-// (in cents): the instrument's vibrato, its drift, and the note's own slide or bend and shake.
-//   note.bend   pins, [beats from the note's start, semitones from its pitch], with the pitch going
-//               in straight lines between them (the way beepbox draws a note's bend). [[0, 0], [0.5,
-//               2]] slides up a whole tone over half a beat and stays there; [[0, -2], [0.1, 0]] is a
-//               guitarist bending up onto the note. the composer writes them (ornament() in
-//               music.js) and so does the note editor's slide tool
-//               a pin can have a third number, the shape of the move from the pin before it (CURVES):
-//               0 straight, 1 smooth (eased in and out: a singer's slide), 2 settling (quick, then
-//               easing onto the note: a fretless or a trombone's portamento), 3 speeding up (slow, then
-//               quick: a fall off the end of a note, a doit, a dive). real slides are almost never
-//               straight lines: a player's finger or lips move fast in the middle and slow down onto
-//               the pitch, which is what the ear hears as smooth
-//   note.shake  a vibrato of its own, cents either way: a guitarist shaking a held note, a singer's
-//               held last note
-// spb is seconds per beat, so the pins land in time whatever the tempo
+// everything that moves a note's pitch while it plays, as nodes for each oscillator's detune (cents):
+// the instrument's vibrato and drift, and the note's own moves:
+//   note.bend   pins [beats from the note's start, semitones, shape], like beepbox's: [[0, 0], [0.5, 2]]
+//               slides up a tone over half a beat; [[0, -2], [0.1, 0]] bends up onto the note. shape is
+//               how it moves from the pin before (CURVES): 0 straight, 1 smooth (a singer), 2 settling
+//               (a fretless), 3 speeding up (a fall). a real slide is fast in the middle, slow onto the pitch
+//   note.shake  a vibrato of its own, cents either way
+// spb is seconds per beat, so the pins land in time at any tempo
 const CURVES = [(x) => x, (x) => x * x * (3 - 2 * x), (x) => 1 - (1 - x) ** 3, (x) => x ** 3];
 function pitchMods(ctx, inst, tone, note, when, end, spb) {
   const mods = [];
@@ -1151,11 +1041,10 @@ function pitchMods(ctx, inst, tone, note, when, end, spb) {
 }
 const bendWith = (mods, param) => { for (const mod of mods) mod.connect(param); };
 
-// a little random tuning per note, more with the layer's detune: real instruments are never exact
+// a little random tuning per note, more with the layer's detune
 const scatter = (tone) => (Math.random() * 2 - 1) * (1.5 + tone.detune * 0.35);
 
-// fuzz (soft clipping, tanh) and crush (rounding to a few steps of loudness) bend a note's wave
-// through a curve. curves aren't tied to a context, so they're made once and kept
+// the curves fuzz (tanh) and crush (a few steps of loudness) bend a note's wave through, made once
 const curves = new Map();
 function shapeCurve(kind, amount) {
   const key = `${kind}|${amount}`;
@@ -1170,28 +1059,24 @@ function shapeCurve(kind, amount) {
   return curves.get(key);
 }
 
-// a plucked note's string (ksBuffer), as the pluck engine plays it. its own function so the player can
-// work it out ahead of time (warmNote)
+// a plucked note's string (ksBuffer), here so the player can work it out ahead of time (warmNote)
 function pluckString(rate, inst, tone, midi, vel, muted) {
-  // high strings ring for less time than low ones, as on a real harp. every note ringing just as long
-  // left the top notes hanging on, thin and glassy. a string through a sustaining rig (amp.sustain)
-  // hardly loses any: a distorted guitar's top string rings as long as its bottom one
+  // high strings ring for less time than low ones, unless a rig sustains them (a distorted guitar)
   const tilt = inst.amp?.sustain ? 0.2 : 0.5;
   const decay = muted ? 0.2 : inst.decay * Math.min(2, tone.release) * Math.min(1, (330 / mtof(midi)) ** tilt);
-  // brightness rounded to tenths, so the strings kept per note stay few (ksBuffer's cache)
+  // (brightness to tenths, so few strings are kept per note)
   const bright = Math.round(Math.min(0.95, inst.bright * tone.bright * hardness(vel) * (muted ? 0.6 : 1)) * 10) / 10;
   return ksBuffer(rate, midi, Math.max(0.1, bright), decay, inst.soft || 0, inst.ring ?? 0.5, inst.buzz || 0, !!inst.amp);
 }
 // how hard a struck note's hit (0 to 3), picking which of modalBuffer's brightnesses it plays
 const modalLevel = (vel, tone) => Math.max(0, Math.min(3, Math.round(vel * hardness(vel) * 3 * Math.min(1.4, tone.bright))));
 
-// each engine makes one note's sound into voice.input (voiceChain), and bends every oscillator it
-// makes with voice.pitch (pitchMods: vibrato, drift, slides, shakes), so any instrument can slide
+// each engine makes one note into voice.input (voiceChain), bending everything with voice.pitch
+// (pitchMods), so any instrument can slide
 const ENGINES = {
   sub(ctx, voice, inst, tone, f) {
     const off = scatter(tone);
-    // fuzz and crush get the oscillators mixed down to the curve's range first, so every instrument
-    // hits it equally hard however many oscillators it stacks
+    // (mixed down first, so it hits the curve as hard however many oscillators it stacks)
     let into = voice.input;
     if (inst.fuzz || inst.crush) {
       const shaper = ctx.createWaveShaper();
@@ -1201,8 +1086,7 @@ const ENGINES = {
       into.gain.value = 1 / inst.osc.reduce((sum, [, , , level = 1]) => sum + level, 0);
       into.connect(shaper);
     }
-    // pads and drones spread their oscillators across the stereo field, like a string section or a
-    // chorus pedal: one mono point in the middle sounded like a keyboard, not a room full of players
+    // pads and drones spread their oscillators left and right: one point sounded like a keyboard
     const wide = (inst.family === 'pad' || inst.family === 'drone') && inst.osc.length > 1;
     const spread = ensembleDrift(ctx, inst, voice);
     inst.osc.forEach(([wave, detune = 0, octave = 0, level = 1], i) => {
@@ -1211,15 +1095,11 @@ const ENGINES = {
       osc.frequency.value = f * 2 ** octave;
       // the layer's detune spreads the oscillators apart, for a wider, more chorused sound
       const cents = detune + off + (i ? (i % 2 ? 1 : -1) * tone.detune : 0);
-      // scoop: a blown or bowed note starts a little flat and slides up onto the note, as players do.
-      // not quick notes, where it would only sound out of tune, and not a slurred one: the player's
-      // already on the breath (or the bow), so it moves straight to the next note
+      // scoop: a blown or bowed note starts flat and slides up, as players do (not quick or slurred notes)
       const scoop = voice.dur > 0.2 && !voice.slur ? inst.scoop || 0 : 0;
       osc.detune.setValueAtTime(cents - scoop, voice.when);
       if (scoop) osc.detune.linearRampToValueAtTime(cents, voice.when + 0.07);
       bendWith(voice.pitch, osc.detune);
-      // an ensemble (a string section, a choir, a horn section) is several players, each drifting on
-      // their own, which is the shimmer a section has and one oscillator doesn't (ensembleDrift)
       if (spread) spread(i).connect(osc.detune);
       const gain = ctx.createGain();
       gain.gain.value = level;
@@ -1243,9 +1123,7 @@ const ENGINES = {
       gain.gain.value = inst.breath;
       noiseSource(ctx, voice.when, voice.end).connect(band).connect(gain).connect(voice.input);
     }
-    // chiff: the puff of air as a flute or whistle note starts (or an organ key's click), a burst of
-    // noise a little above the note that's gone in a few hundredths of a second. without it a flute's
-    // notes faded in like a pad's
+    // chiff: a flute's puff of air (or an organ's key click), noise just above the note, gone at once
     if (inst.chiff && !voice.slur) {
       const band = ctx.createBiquadFilter();
       band.type = 'bandpass';
@@ -1294,8 +1172,7 @@ const ENGINES = {
   pluck(ctx, voice, inst, tone, f, midi, note = {}) {
     const { when, end } = voice;
     const source = ctx.createBufferSource();
-    // a palm mute (a metal chug): the picking hand resting on the strings by the bridge, so the string
-    // dies in a moment and loses its top. through a high gain amp that's the "chug"
+    // a palm mute: the string dies in a moment and loses its top (through high gain, the metal chug)
     const muted = !!note.mute;
     source.buffer = pluckString(ctx.sampleRate, inst, tone, midi, voice.vel, muted);
     let into = voice.input;
@@ -1307,9 +1184,7 @@ const ENGINES = {
     }
     source.connect(into);
     const strings = [source];
-    // sustain: a steady tone under the string, swelling in as the pluck dies, for guitars held longer
-    // than a string rings (an ebow, or an amp feeding back into the strings). a shoegaze chord or a
-    // lead's long note had died away before the bar was out
+    // sustain: a steady tone swelling in under the string as it dies (an ebow, or an amp feeding back)
     if (inst.sustain && !muted) {
       const held = ctx.createOscillator();
       held.type = 'sawtooth';
@@ -1320,10 +1195,8 @@ const ENGINES = {
       held.connect(level).connect(into);
       strings.push(held);
     }
-    // the string is tuned back to true (buffer.cents, see ksBuffer), plus a little random tuning.
-    // twang: a plucked string is stretched by the pluck, so it starts a few cents sharp and settles
-    // within a tenth of a second, strongest on a banjo or a shamisen. the old lead guitar bends (a coin
-    // toss here) are now the composer's (note.bend, pitchMods)
+    // tuned back to true (buffer.cents), plus a little random. twang: a string starts a few cents sharp
+    // from the pluck and settles (a banjo most)
     const off = scatter(tone) - (source.buffer.cents || 0);
     const twang = muted ? 0 : (inst.twang || 0) * hardness(voice.vel);
     for (const string of strings) {
@@ -1336,8 +1209,7 @@ const ENGINES = {
     }
   },
 
-  // struck things (modalBuffer): one buffer per note, worked out from its modes, how hard it's hit
-  // picking from four levels of brightness
+  // struck things (modalBuffer): a buffer per note, how hard it's hit picking one of four brightnesses
   modal(ctx, voice, inst, tone, f, midi) {
     const source = ctx.createBufferSource();
     source.buffer = modalBuffer(ctx.sampleRate, midi, inst, modalLevel(voice.vel, tone));
@@ -1373,7 +1245,7 @@ const ENGINES = {
       air.gain.value = inst.breath;
       noiseSource(ctx, voice.when, voice.end).connect(air).connect(mix);
     }
-    // three singers (unless it says), never quite together, each drifting on their own in a choir
+    // three singers unless it says, never quite together
     const spread = ensembleDrift(ctx, inst, voice);
     for (const [i, detune] of (inst.singers || [-9, 0, 8]).entries()) {
       const osc = ctx.createOscillator();
@@ -1391,24 +1263,17 @@ const ENGINES = {
 
 // ---------- recordings ----------
 //
-// some instruments are recordings of real ones, where synthesis struggles most (bowed strings, brass,
-// saxes, pianos, choirs, drum kits). a recording is the same as a plucked string here: a buffer of
-// one note, played through voiceChain, so slides, vibrato, the room and the rigs all still work.
-//   samples   a folder in assets/squimble-music-maker/samples/ (RECORDINGS.root), holding a few notes
-//             of the instrument and an index.json saying which (tools/build-samples.js makes them).
-//             the nearest note is played, retuned
-//   sampled   settings for the recorded version: gain (set so it's as loud as the synthesised one),
-//             name (what the page calls this recording), env or filter if the instrument's own don't
-//             suit it, and reach (how far past its lowest and highest notes it still plays, 7
-//             semitones unless it says)
-//   more      other recordings of the same instrument to choose between, { folder: settings }: a
-//             wurlitzer and a pianet, karoryfer's black guitar and their shiny one. a layer's
-//             recording says which it plays (layer.recording in music.js), the first unless it says
-// a kit's slot can have hit: 'folder/name' (and level, and at: the tune the recording sounds at, for
-// a drum the composer retunes to the song's key).
-// the synthesised version is still there and plays until the files have loaded, if they can't load
-// (a page opened straight from a file can't fetch them), for a note far outside what was recorded,
-// and with RECORDINGS.on false. so a song never waits or goes silent
+// most instruments can play recordings of real ones. a recording is a buffer of one note played through
+// voiceChain like a plucked string, so slides, vibrato, the room and the rigs all still work.
+//   samples   a folder in assets/squimble-music-maker/samples/ with a few notes and an index.json
+//             (tools/build-samples.js makes them). the nearest note is played, retuned
+//   sampled   the recorded version's settings: gain (matched to the synthesised one), name (for the
+//             page), env or filter if the instrument's don't suit it, reach (semitones past its lowest
+//             and highest notes it still plays, 7 unless it says)
+//   more      other recordings to choose between, { folder: settings } (layer.recording in music.js)
+// a kit's slot can have hit: 'folder/name', level, and at (the pitch it was recorded at, for retuning).
+// the synthesised version plays until the files load, if they can't (a page opened from a file), for a
+// note far outside what was recorded, and with RECORDINGS.on false, so a song never waits or goes silent
 const RECORDINGS = { on: true, root: 'assets/squimble-music-maker/samples/', sets: new Map() };
 
 // starts loading a folder (once) and returns a promise of it. a set is { notes, hits, low, high, loop }
@@ -1459,11 +1324,9 @@ function songSamples(song) {
 }
 const sampleSet = (folder) => (RECORDINGS.on ? RECORDINGS.sets.get(folder)?.ready : null);
 
-// the recorded version of an instrument, or null to play the synthesised one. it keeps the
-// instrument's settings except the ones that would fight the recording: its filter (a recording has
-// its own tone, so it gets an almost open one that still darkens soft notes and dark layers), its
-// vibrato and drift (the player's own are recorded), and its body (the real body's in it). a struck
-// or plucked note dies away on its own, so it isn't faded as well
+// the recorded version of an instrument, or null to play the synthesised one: its settings without the
+// ones that would fight the recording (an almost open filter that still darkens soft notes, no vibrato,
+// drift or body: the real ones are recorded). struck and plucked notes die away on their own
 const recordedViews = new WeakMap();
 function recorded(inst, midi, choice) {
   // (scenery plays its recordings its own way, playTexture)
@@ -1483,10 +1346,9 @@ function recorded(inst, midi, choice) {
   return views.get(folder);
 }
 
-// the steady middle of a held note, which loops for as long as the note's held: [start, end] in
-// seconds, or null for a note too short to have one. the end is crossfaded into what comes just
-// before the start, so going round can't click. worked out once, when the note's loaded, so it
-// doesn't matter how many milliseconds of silence the mp3 put at the front
+// the steady middle of a held note, looped for as long as it's held: [start, end] in seconds, or null
+// for a note too short. the end is crossfaded into just before the start, so it can't click. worked out
+// when the note loads
 function loopNote(buffer) {
   const data = buffer.getChannelData(0);
   const rate = buffer.sampleRate;
@@ -1547,17 +1409,14 @@ ENGINES.sample = (ctx, voice, inst, tone, f, midi, note = {}) => {
     into.connect(stop).connect(voice.input);
   }
   source.connect(into);
-  // legato: a slurred note (note.slur, joined on to the last without a fresh breath or bow) starts in
-  // its recording's steady middle, past the attack, so a flute or violin line goes from note to note
-  // the way the player does instead of every note starting with its own puff or scrape. the last
-  // note's release overlaps it, which is the crossfade a legato sample library makes between notes
+  // legato: a slurred note starts in its recording's steady middle, past the attack, with the last
+  // note's release overlapping it, so a line goes note to note without a puff or scrape on each
   source.start(voice.when, note.slur && take.loop ? take.loop[0] : 0);
   source.stop(voice.end);
 };
 
-// a kit's slot from a recording (slot.hit), or false if it isn't loaded. a drum the composer moved
-// into the song's key is retuned from the pitch it was recorded at (slot.at). the kit's decay still
-// ends a long ring, so a short hat stays short
+// a kit's slot from a recording (slot.hit), or false if it isn't loaded, retuned from slot.at into the
+// song's key. the kit's decay still ends a long ring
 function playHit(ctx, out, when, vel, slot, p) {
   const [folder, name] = slot.hit.split('/');
   const takes = sampleSet(folder)?.hits[name];
@@ -1602,9 +1461,8 @@ function toneHit(ctx, out, when, peak, from, to, sweep, decay, wave = 'sine') {
   osc.stop(when + decay * 1.6 + 0.05);
 }
 
-// a cymbal the way the roland 808 made one: six square waves at clashing pitches, filtered down to
-// just their metallic shimmer, with a little noise for air. plain filtered noise (what I had first)
-// sounds like hiss rather than metal. tone is where the filters sit, so brighter kits ring higher
+// a cymbal the way the 808 made one: six squares at clashing pitches filtered to their shimmer, and a
+// little noise (noise alone is hiss, not metal). tone is where the filters sit
 const METAL = [205.3, 304.4, 369.6, 522.7, 540, 800];
 function metal(ctx, out, when, peak, tone, decay) {
   const end = when + decay * 1.6 + 0.05;
@@ -1752,13 +1610,9 @@ const DRUMS = {
 
 // ---------- textures ----------
 
-// each makes its sound from when to end into out, which fades it in and out. bright is the layer's
-// brightness, and the pitched ones (hum, crickets, drips, birds) take the song's home note from midi
-// and stay on its home note, fifth or fourth, which are in every key's scales. the numbers after the
-// filters bring each up to about the same loudness
-//
-// most happen now and then, with quiet in between, the way the vinyl's crackle does: the wind was a
-// steady roar of noise, and it drowned the tune while rarely adding anything. moments() picks when
+// each makes its sound from when to end into out. bright is the layer's brightness, and the pitched
+// ones (hum, crickets, drips, birds) take the home note from midi and keep to its home note, fifth or
+// fourth, which are in every key. most happen now and then (moments(), swells()), with quiet between
 
 // times for something that happens now and then: the first soon after the start, so trying a texture
 // out on the page is heard, then a gap of low to high seconds after each
@@ -1796,9 +1650,8 @@ function spot(ctx, out) {
   return pan;
 }
 
-// tiny bubbles for the brook: each a short sine whose pitch jumps up as it bursts, scattered over a
-// few seconds that loop. worked out once per sample rate, like the crackle, so a brook minutes long
-// isn't thousands of oscillators
+// tiny bubbles for the brook, short sines jumping up as they burst, worked out once per sample rate so
+// a brook isn't thousands of oscillators
 function bubbleBuffer(rate) {
   const cache = cacheFor(rate);
   if (!cache.bubbles) {
@@ -1890,9 +1743,8 @@ const TEXTURES = {
     lfo(ctx, 0.05, 25 * bright, low.frequency, when, end);
     swells(ctx, out, when, end, low, [2, 4], [4, 7], [5, 15], 5);
   },
-  // two crickets: a high tone chopped up fast (the chirp), switched on and off slowly. they sing the
-  // song's home note and the note above it, high up: at fixed pitches they were a whistle out of key.
-  // the chirp is a triangle, not a square, so each one fades rather than clicking on and off
+  // two crickets: a high tone chopped fast (the chirp, by a triangle so it doesn't click), switched on
+  // and off slowly, on the home note and the note above
   crickets(ctx, out, when, end, bright, midi = 60) {
     const home = 101 + ((((midi - 101) % 12) + 12) % 12);
     for (const [note, chirp, rest] of [[home, 32, 0.9], [home + 2, 27, 0.63]]) {
@@ -1927,9 +1779,8 @@ const TEXTURES = {
       osc.stop(end);
     }
   },
-  // water dripping into a pool in a cave, every few seconds: minecraft's caves, fallout's vaults. each
-  // drop is a little bubble whose pitch jumps up as it bursts, on the home note or fifth, now and then
-  // with a second drop after
+  // water dripping into a cave pool every few seconds: bubbles jumping up as they burst, on the home
+  // note or fifth
   drips(ctx, out, when, end, bright, midi = 60) {
     const home = homeAbove(84, midi);
     const drop = (at, f, level, where = spot(ctx, out)) => {
@@ -1992,9 +1843,7 @@ const TEXTURES = {
       }
     }
   },
-  // metal settling somewhere far off, a slow scraping groan, then a long quiet (fallout, dying light).
-  // the groan is a low buzz through a narrow, sliding resonance, chopped quickly like something
-  // catching and slipping
+  // metal settling far off: a low buzz through a narrow sliding resonance, catching and slipping
   creaks(ctx, out, when, end, bright) {
     for (const at of moments(when, end, 8, 20)) {
       const length = 1.5 + Math.random() * 2.5;
@@ -2021,9 +1870,8 @@ const TEXTURES = {
       osc.stop(stop);
     }
   },
-  // a brook: bubbles babbling past (bubbleBuffer) on two loops at different speeds, so they never line
-  // up the same way, over the faintest low wash of water. it swells and settles slowly, the way a
-  // stream's sound comes and goes on the breeze. it's a steady sound, but only bubbles, never a hiss
+  // a brook: bubbles (bubbleBuffer) on two loops at different speeds over a faint low wash, swelling
+  // and settling slowly. steady, but never a hiss
   stream(ctx, out, when, end, bright) {
     const level = ctx.createGain();
     level.gain.value = 0.7;
@@ -2136,9 +1984,8 @@ const TEXTURES = {
       }
     }
   },
-  // wind chimes somewhere out of sight: now and then the breeze knocks a few together, thin bells on
-  // the home note, fourth or fifth, high up and fading slowly. their overtone is harmonic (3), as the
-  // gentle bells' are, so they never clash with the chords
+  // wind chimes now and then: thin bells on the home note, fourth or fifth, with a harmonic overtone
+  // (3) so they never clash with the chords
   chimes(ctx, out, when, end, bright, midi = 60) {
     const home = homeAbove(84, midi);
     for (const at of moments(when, end, 6, 18)) {
@@ -2162,9 +2009,8 @@ const TEXTURES = {
       }
     }
   },
-  // guitar feedback somewhere in the room: now and then an amp starts to sing on its own, a high note
-  // swelling up out of nothing, wavering as it grows, then let go (nirvana, my bloody valentine). it
-  // sings the home note or fifth, two octaves or so up, through a little fuzz
+  // guitar feedback now and then: an amp singing a high home note or fifth on its own, wavering, then
+  // let go
   feedback(ctx, out, when, end, bright, midi = 60) {
     const home = homeAbove(76, midi);
     const fuzz = ctx.createWaveShaper();
@@ -2481,9 +2327,8 @@ const TEXTURES = {
   },
 };
 
-// recorded scenery: one of the texture's recordings now and then (inst.every seconds apart), each from
-// its own spot. a recording with a pitch (a singing bowl) is moved to the nearest home note, so it's in
-// the song's key like the synthesised ones
+// recorded scenery: one of its recordings every few seconds (inst.every), each from its own spot. a
+// pitched one (a singing bowl) is moved to the nearest home note
 function recordedScenery(ctx, out, inst, set, when, end, midi = 60) {
   const [low, high] = inst.every || [10, 25];
   for (const at of moments(when, end, low, high)) {
@@ -2499,9 +2344,8 @@ function recordedScenery(ctx, out, inst, set, when, end, midi = 60) {
   }
 }
 
-// a recorded bed (rain, a fire, a brook) never stops, so its slices play one after another, crossfaded
-// over a second and a half, never the same slice twice running: one slice looped would be the same
-// few seconds of rain coming round and round
+// a recorded bed (rain, a fire) plays its slices one after another, crossfaded, never the same slice
+// twice running, so it isn't a few seconds of rain going round
 const BED_FADE = 1.5;
 const BED_RISE = Float32Array.from({ length: 32 }, (_, i) => Math.sin((Math.PI / 2) * (i / 31)));
 const BED_FALL = BED_RISE.slice().reverse();
@@ -2540,11 +2384,8 @@ function playTexture(ctx, out, inst, tone, when, dur, vel, midi) {
   else TEXTURES[inst.texture](ctx, gain, when, end + 0.05, Math.min(3, tone.bright), midi);
 }
 
-// one note of a layer. drums use the layer's release for how long they ring, and brightness for
-// their filters. a drum note's tune is its slot's, moved into the song's key by the composer
 // beats until each of a song's notes is struck again on its layer, for cutting its ring off there
-// (voiceChain). worked out when the notes are handed over (MusicPlayer.load, renderSong), not stored on
-// the notes, so the composer's output stays as it was
+// (voiceChain). worked out when notes are handed over, not stored on them
 const restrikes = new WeakMap();
 // how far apart a keyboard's lowest and highest notes are spread (playNote), a share of hard left to
 // hard right two and a half octaves either side of the middle
@@ -2558,14 +2399,14 @@ function findRestrikes(notes) {
   }
 }
 
+// one note of a layer. a drum rings for the layer's release, with its brightness on the filters, and
+// plays at 0.7 so every kick doesn't push the glue down and pump the band
 function playNote(ctx, channel, layer, note, when, secondsPerBeat) {
   const inst = INSTRUMENTS[layer.instrument];
   if (!inst || !channel) return;
   const dur = note.dur * secondsPerBeat;
   if (inst.kind === 'drums') {
     const slot = inst.slots[note.midi];
-    // drums sit a little under everything else: at full level every kick pushed the compressor down,
-    // and the whole band pumped with it
     if (!slot) return;
     const p = { ...slot, tune: note.tune || slot.tune, step: dur, decay: slot.decay * layer.tone.release, tone: (slot.tone || 0) * layer.tone.bright };
     if (!(slot.hit && playHit(ctx, channel.input, when, note.vel, slot, p))) DRUMS[slot.voice](ctx, channel.input, when, note.vel * 0.7, p);
@@ -2582,10 +2423,8 @@ function playNote(ctx, channel, layer, note, when, secondsPerBeat) {
   if (note.double && layer.with) channel.doubles?.forEach((double, i) => playDouble(ctx, double, i, layer, note, when, secondsPerBeat));
 }
 
-// works out a note's plucked string or struck modes (ksBuffer, modalBuffer) before it's due, so the
-// first time a chord comes round the browser isn't busy working out several seconds of string per note
-// while the next notes wait to be sent: on a slow phone that was a stumble at the first bar of a piano
-// or harp song (MusicPlayer.warm). anything else has nothing to work out
+// works out a note's string or struck modes before it's due (MusicPlayer.warm), so a new chord doesn't
+// stall the notes after it (a stumble on a slow phone's first bar of piano)
 function warmNote(rate, layer, note) {
   const inst = INSTRUMENTS[layer.instrument];
   if (!inst || inst.kind === 'drums' || inst.kind === 'texture') return;
@@ -2603,9 +2442,8 @@ function playTone(ctx, target, inst, played, layer, note, when, secondsPerBeat) 
     singLine(ctx, target, played, layer.tone, note, when, dur, secondsPerBeat);
     return;
   }
-  // keys and mallets are spread by pitch, low notes left and high notes right, as a piano or a marimba
-  // is heard from the player's seat and recorded in stereo. the recordings are mono, and every note
-  // from one point is the flat, boxed in sound of a cheap sampler
+  // keys and mallets spread by pitch, low left and high right, as heard from the player's seat (the
+  // recordings are mono, and one point is a cheap sampler's sound)
   let out = target.input;
   if (inst.family === 'keys' || inst.family === 'bell') {
     out = new StereoPannerNode(ctx, { pan: Math.max(-1, Math.min(1, (note.midi - 66) / 30)) * KEY_SPREAD });
@@ -2618,15 +2456,9 @@ function playTone(ctx, target, inst, played, layer, note, when, secondsPerBeat) 
 
 // ---------- doubling ----------
 //
-// a tune played by one instrument is one player, and a choir on one recording is one sound, however
-// many singers were in it, and a choir singing the tune sounded thin and synthetic. orchestras
-// double a tune instead (a flute with the violins, a choir's sopranos with its altos, a horn with the
-// cellos), and that's what layer.with is: other instruments playing the layer's notes with it, in its
-// channel, each a few cents and milliseconds apart and a little to one side, the way two real players
-// are never quite together. a choir singing the tune is two or three recordings of voices at once, a
-// section rather than a sample. doublers only ever play recordings: a doubled synthesised voice is
-// exactly the computer sound this is here to get rid of. the composer says which notes are doubled
-// (note.double, in composeSong): a choir's all of them, anything else only where the song is loud
+// layer.with: other instruments playing the layer's notes in its channel, each a few cents and
+// milliseconds apart and a little to one side, as two players are never quite together (doubling in
+// music.js). doublers only play recordings, and only the notes marked note.double
 const DOUBLE_LEVEL = 0.5;
 const DOUBLE_SPREAD = 0.3;
 function playDouble(ctx, double, i, layer, note, when, secondsPerBeat) {
@@ -2645,9 +2477,8 @@ function playDouble(ctx, double, i, layer, note, when, secondsPerBeat) {
   const doubled = { ...note, midi, vel: note.vel * 0.85, cents: side * (5 + 2 * i), bend: note.bend, slur: note.slur };
   playTone(ctx, double, inst, played, layer, doubled, when + 0.008 * (i + 1), secondsPerBeat);
 }
-// a channel's doublers: for each, an input, its instrument's chain (body, rig) and a pan a little to one
-// side, into the channel's strip after the layer's own chain, so they share its eq, volume and sends.
-// rebuilt when the doublers change or their recordings load (a doubler with none loaded has no input)
+// a channel's doublers: an input each through its instrument's chain and a pan, into the channel's strip
+// so they share its eq, volume and sends. rebuilt when they change or their recordings load
 function wireDoubles(channel, layer) {
   const key = JSON.stringify((layer.with || []).map((one) => [one.instrument, one.recording, !!recorded(INSTRUMENTS[one.instrument], undefined, one.recording)]));
   if (channel.doublesFor === key) return;
@@ -2675,14 +2506,10 @@ function wireDoubles(channel, layer) {
   });
 }
 
-// a sung line (sung on an instrument: the throat singers). a recording of a voice started again on
-// every note is a fresh breath and a fresh attack every note, which sounds like a sampler, not a
-// singer. so a layer's channel keeps one voice going through a phrase: its first note starts the
-// recording, and each note joined on after it (starting within a moment of the last one's end) bends
-// that same recording to the new pitch, gliding there the way a voice does, and carries its loudness
-// across. a note sung again on the same pitch dips a little and comes back, as a singer re-voices it.
-// the notes come one at a time (the live player sends them a moment ahead), so each note plans the
-// voice's ending, and the next one, if it joins on, takes that ending back
+// a sung line (sung): a voice restarted every note sounds like a sampler, so a channel keeps one voice
+// going through a phrase. the first note starts the recording, and each note joined on after it bends
+// the same recording to its pitch, gliding there and carrying the loudness (the same pitch again dips
+// a little). notes arrive one at a time, so each plans the voice's ending and the next takes it back
 const GLIDE = 0.09;
 const JOINED = 0.12;
 function singLine(ctx, channel, inst, tone, note, when, dur, spb) {
@@ -2736,36 +2563,25 @@ function singLine(ctx, channel, inst, tone, note, when, dur, spb) {
 
 // ---------- guitar rigs ----------
 //
-// a rig is pedals, an amp and a speaker cabinet, in a layer's channel so every note on the layer goes
-// through it together. that matters: a guitar's strings all go into one amp, and a chord clipped as
-// one sound growls (its notes making new ones against each other), where notes clipped one by one and
-// added up sound like several small guitars. the growl is also why rock plays power chords, a root and
-// fifth with no third to grind against them. an instrument's amp is:
-//   tight     hz cut below before the clipping (an overdrive's trick: a metal chug stays tight
-//             instead of farting out)
+// a rig is pedals, an amp and a cabinet in a layer's channel, so its notes are clipped together: a chord
+// clipped as one sound growls, where notes clipped apart sound like several small guitars. an amp is:
+//   tight     hz cut before the clipping, so a metal chug stays tight
 //   boost     [hz, db] a mid push before the clipping, so it sings rather than fizzes
-//   sustain   db of squash before the clipping (a compressor, then that much gain back): as the
-//             string dies away the compressor lets go and turns it back up, so it hits the clipping
-//             nearly as hard for seconds. that's why a cranked amp or a big muff makes a chord ring on
-//             and on. without it a distorted chord died like an acoustic one, which was the thing that
-//             sounded least like a real guitar
+//   sustain   db of squash before the clipping: as the string dies the compressor turns it back up, so
+//             a distorted chord rings on and on instead of dying like an acoustic one
 //   curve, gain   how it clips (ampCurve) and how hard it's driven
-//   mids, presence, body   [hz, db] after the clipping: metal and fuzz scoop their mids, and put back
-//             bite (presence) and thump (body, a low shelf)
-//   cab       hz the speaker rolls the top off from, steeply as a real cabinet does: the fizz above it
-//             is what makes cheap distortion harsh
+//   mids, presence, body   [hz, db] after the clipping: scooped mids, bite, and thump (a low shelf)
+//   cab       hz the speaker rolls the top off from, steeply: the fizz above is cheap distortion's
 //   low       hz the speaker rolls the lows off below (70 unless it says; a bass rig keeps 35)
-//   level     its loudness, set with tests/levels.html. dry: clean signal blended back (a bass rig)
-//   double    two takes, one a few ms behind the other with its own slow waver, panned left and right,
-//             the way rock rhythm guitars are recorded twice and spread wide
-//   chorus    [rate, depth in seconds] two wavering copies either side: the chorus pedal
-//   reverse   reverse reverb: an echo that swells up and cuts off (my bloody valentine's yamaha)
+//   level     its loudness (tests/levels.html). dry: clean signal blended back (a bass rig)
+//   double    two takes a few ms apart, each wavering, panned left and right
+//   chorus    [rate, depth in seconds] two wavering copies either side
+//   reverse   reverse reverb: an echo that swells up and cuts off
 
 // how a rig clips, its curve over -1 to 1 with the gain built in:
 //   soft   tanh, rounding off gently: overdrive, and fuzz when driven hard
 //   hard   clean until a sudden knee, then flat: a distortion pedal's diodes
-//   tube   lopsided, one half clipping before the other: a valve amp turned up, whose even harmonics
-//          are why it sounds warm
+//   tube   lopsided, one half clipping first: a valve amp's warm even harmonics
 function ampCurve(kind, gain) {
   const key = `amp|${kind}|${gain}`;
   if (!curves.has(key)) {
@@ -2894,17 +2710,12 @@ function ampChain(ctx, amp) {
 
 // ---------- an instrument's own chain: its body, its rig, its speaker ----------
 //
-// what an instrument's sound goes through that's the same for every note, so it's built once per
-// layer (in the layer's channel, wireRig) instead of once per note:
-//   body     [[hz, db, q], ...]: the resonances of the instrument's body, which stay put whatever note
-//            is played. a violin's wooden box rings at about 280 and 460 hz, a trumpet's bell lifts
-//            about 1.2 khz, a guitar's air rings at about 100 hz. a synth's tone moves with the note
-//            and a real instrument's doesn't, and that was a lot of why the old ones sounded like
-//            synths. it's also how you'd tell a violin from a viola playing the same note
+// what an instrument's sound goes through the same for every note, built once per layer (wireRig):
+//   body     [[hz, db, q], ...]: its body's resonances, which stay put whatever note is played (a
+//            violin's box at about 280 and 460 hz). a synth's tone moves with the note; a real one's doesn't
 //   amp      a guitar rig (ampChain)
-//   rotary   a leslie speaker, its horn spinning this many times a second: the pitch wobbles as the
-//            horn swings towards you and away, and the sound swirls round the room. the drum under
-//            it spins a little slower, so the two never line up (hammond organ)
+//   rotary   a leslie speaker, its horn spinning this many times a second, the drum under it a little
+//            slower (a hammond)
 // returns { input, output, stop() }, or null for an instrument with none of them
 function instrumentChain(ctx, inst) {
   if (!inst || !(inst.body || inst.amp || inst.rotary)) return null;
@@ -2941,15 +2752,10 @@ function instrumentChain(ctx, inst) {
 
 // ---------- the room ----------
 
-// a room's echo, made up: noise dying away over a second or so to several seconds, getting darker as
-// it goes, like a real room where the walls soak up the high end first. the convolver normalises it,
-// so a big room isn't louder than a small one.
-// the reverb was the most expensive thing in the whole band to play, by far (measured: a big room's
-// alone took a tenth of a computer's time, more than seven parts' channels), and its cost is its
-// length. so it dies at the same rate as before but stops 45 db down, fading out over its last
-// stretch, instead of running on to 60 db down: the last quarter of a tail that quiet is lost under any
-// music. on a phone (LIGHT) it stops at three seconds, which a phone's speaker can't tell apart.
-// kept, since a new song builds a new desk (restart) and the noise needn't be made again
+// a room's echo, made up: noise dying away and darkening as it goes, as walls soak up the top first
+// (normalised, so a big room isn't louder). its cost is its length, and it was the band's most
+// expensive part, so it stops 45 db down instead of 60 (under any music), and at three seconds on a
+// phone. kept, so a new song needn't make it again
 const impulses = new Map();
 function impulse(ctx, size, tone) {
   const rate = ctx.sampleRate;
@@ -2970,11 +2776,8 @@ function impulse(ctx, size, tone) {
       low += (Math.random() * 2 - 1 - low) * (0.06 + tone * 0.85 * (1 - (i / full) * 0.8));
       data[i] = low * fade;
     }
-    // early reflections: the first few bounces off the nearest walls, heard as separate taps before
-    // the wash. different on each side, so the room is wide. a wash of noise on its own is the sound
-    // of a cheap reverb, a room with no walls
-    // together they carry about a fifth of the energy of the wash's first 80 ms, and each is smeared
-    // over a few samples, so it's a soft knock rather than a click
+    // early reflections: the first bounces off the walls, different each side so it's wide (a wash
+    // alone is a cheap reverb's room with no walls). soft knocks, about a fifth of the wash's first 80 ms
     let early = 0;
     for (let i = gap; i < Math.min(length, gap + rate * 0.08); i++) early += data[i] * data[i];
     const level = Math.sqrt((early * 0.35) / 7 / 4);
@@ -3000,24 +2803,15 @@ function driveCurve(amount) {
 
 // ---------- the mixing desk ----------
 //
-// the band used to meet in one pile: every part as bright as it was made, all of them dry apart from
-// one big reverb, through a fast compressor that flattened every hit. each part could sound fine on its
-// own and still not sound like one band playing together, which is a lot of what made songs sound like
-// midi rather than a record. a mixing engineer's first jobs fix exactly that, so the desk does them:
-//   - one room for everyone (roomImpulse, PLACES.room): a short, small room, mostly its early
-//     reflections, that every part (the drums too) is sent to a little. it's what makes recordings made
-//     in different places, and synths made in none, sound like they were played in the same place. the
-//     big reverb is still there on top, for distance
-//   - every part has a place (PLACES): the tune gets a little presence (2.5 khz, where the ear is
-//     keenest) and the parts behind it give that range up, and the air on top, so they sit back and the
-//     tune stands in front of them without being turned up. far away things lose their top end
-//   - the reverb and echo lose their low end on the way back (a high pass on their returns): a bass
-//     note's boom ringing round the room for three seconds was mud under every chord
-//   - glue: a gentle compressor that lets each hit's start through (a slow attack) and rides the band
-//     together, rather than a fast one squashing every drum hit flat
-//   - tape: a soft saturation on the whole mix, lopsided like a tape machine's, which rounds the peaks
-//     and adds the even harmonics that make a mix sound warm. too little to hear as distortion
-//   - a limiter last, so a loud chorus with every part in can't clip the speakers
+// what a mixing engineer does first, so the parts sound like one band rather than midi:
+//   - one room for everyone (roomImpulse, PLACES.room): a short room every part is sent to a little, so
+//     recordings from different studios and synths from none sound played in one place
+//   - every part has a place (PLACES): the tune gets presence (2.5 khz) and air, the parts behind it give
+//     them up, so the tune stands in front without being turned up
+//   - the reverb and echo lose their low end on the way back, so a bass note doesn't boom round the room
+//   - glue: a gentle compressor with a slow attack, riding the band rather than squashing every hit
+//   - tape: soft, lopsided saturation on the whole mix, rounding the peaks and adding warmth
+//   - a limiter last, so a loud chorus can't clip
 // what each part gets, by role: presence and air in db, and how much of it goes to the room
 const PLACES = {
   melody: { presence: 1.5, air: 1, room: 0.2 },
@@ -3033,9 +2827,8 @@ const PLACES = {
   texture: { presence: -2, air: -1, room: 0.1 },
 };
 
-// the room everyone shares: a small one with hard walls, a cluster of early reflections in the first
-// 40 ms (each side's different, so it's wide) and a short tail that's gone in about half a second,
-// darker as it dies. kept per context: it never changes
+// the room everyone shares: hard walls, early reflections in the first 40 ms (different each side) and a
+// tail gone in half a second. kept per context
 const roomImpulses = new WeakMap();
 function roomImpulse(ctx) {
   if (!roomImpulses.has(ctx)) {
@@ -3060,9 +2853,8 @@ function roomImpulse(ctx) {
   return roomImpulses.get(ctx);
 }
 
-// tape saturation's curve: tanh, pushed a little off centre so the two halves of the wave clip
-// differently (even harmonics, a tape machine's warmth), and scaled so quiet sound passes at the same
-// level: only the peaks are rounded. a peak at half scale comes out about 1 db lower
+// tape saturation's curve: tanh pushed off centre (even harmonics, warmth), scaled so quiet sound passes
+// at the same level and only the peaks round off
 function tapeCurve() {
   const k = 1.1;
   const bias = 0.1;
@@ -3085,9 +2877,7 @@ function buildGraph(ctx) {
   g.wobble.delayTime.value = 0.015;
   g.wow = lfo(ctx, 0.5, 0, g.wobble.delayTime, 0, 1e6);
   g.flutter = lfo(ctx, 6.5, 0, g.wobble.delayTime, 0, 1e6);
-  // glue (see the mixing desk above). its attack is slow enough to let a drum's hit through before it
-  // turns down, so the beat keeps its punch, and its ratio is low, so it rides the band rather than
-  // pumping it: the old one (3 to 1, 5 ms) flattened every hit and pumped on every kick
+  // glue: a slow attack lets a drum's hit through, and a low ratio rides the band rather than pumping it
   g.comp = new DynamicsCompressorNode(ctx, { threshold: -24, knee: 10, ratio: 2, attack: 0.03, release: 0.25 });
   // a little of the boxy low mids out of the whole mix, where every part's body piles up
   const mud = new BiquadFilterNode(ctx, { type: 'peaking', frequency: 300, Q: 0.8, gain: -1.5 });
@@ -3160,10 +2950,9 @@ function applySpace(g, fx, tempo) {
   g.ready = true;
 }
 
-// a layer's channel: notes go into input, then through its instrument's own chain if it has one (its
-// body, rig or speaker: instrumentChain, plugged in by setChannel), its low cut and its place in the mix
-// (presence and air, PLACES), then volume, pan, and how much goes to the room, the reverb and the echo.
-// the rig comes before the volume, so turning a guitar down doesn't drive its amp any less
+// a layer's channel: input -> its instrument's chain (instrumentChain, plugged in by setChannel) -> low
+// cut -> its place (PLACES) -> volume -> pan, with sends to the room, reverb and echo. the rig is before
+// the volume, so turning a guitar down doesn't drive its amp less
 function makeChannel(g) {
   const { ctx } = g;
   const channel = {
@@ -3196,11 +2985,8 @@ function wireRig(channel, instrument, recording) {
     channel.rig.output.connect(channel.cut);
   } else channel.input.connect(channel.cut);
 }
-// making room in the mix: every part but the bass and drums has its lowest frequencies cut (a high
-// pass), in hz, the first thing a mixing engineer does. a pad's or a piano's low end isn't heard as
-// such, it's heard as mud under the bass, and with five or six parts all adding a little it was a lot
-// of why a full band sounded crowded and boomy. the cut follows the layer's octave, and it's gentler in
-// a song with no bass or drone, where something has to fill the bottom
+// every part but the bass and drums has its lows cut (a high pass, in hz): a pad's low end is mud under
+// the bass. it follows the layer's octave, and is gentler in a song with no bass or drone
 const CUTS = { melody: 130, counter: 120, arp: 160, bells: 240, keys: 100, guitar: 75, pad: 110, drone: 20, bass: 20, drums: 20, texture: 60 };
 const cutFor = (song, layer) => {
   const low = song.layers.some((one) => (one.role === 'bass' || one.role === 'drone') && !one.mute);
@@ -3240,10 +3026,9 @@ function closeChannel(channel, now) {
 
 // ---------- playing ----------
 
-// plays a song live. load() swaps in a new song or new notes while it plays: notes already sent to
-// the browser (the next third of a second) finish as they were, and everything after is the new
-// version, so you can change anything mid song. times are beats counted from when play() started,
-// including every time round the loop (loopOffset is where the current time round began)
+// plays a song live. load() swaps in new notes while it plays: notes already sent finish as they were,
+// and everything after is the new version. times are beats since play() started, every time round the
+// loop included (loopOffset is where this time round began)
 class MusicPlayer {
   constructor() {
     this.ctx = null;
@@ -3255,10 +3040,7 @@ class MusicPlayer {
   }
 
   // called from a click or a key (browsers only let sound start from one). the audio buffer is bigger
-  // than the browser's smallest (latencyHint): a few hundredths of a second before a note's heard,
-  // which only matters when playing live on the keyboard, and far fewer crackles when a busy moment
-  // (a strum of new notes, a chord change in a big band) takes the audio longer than usual to work out.
-  // a phone gets a bigger one still
+  // than the smallest (latencyHint), a little lag on the keyboard for far fewer crackles; bigger on a phone
   wake() {
     if (!this.ctx) {
       const Context = window.AudioContext || window.webkitAudioContext;
@@ -3279,10 +3061,8 @@ class MusicPlayer {
     if (this.song) applySpace(this.graph, this.song.fx, this.song.tempo);
   }
 
-  // an iphone or ipad plays web audio as a game's sound effects, which the ring/silent switch mutes, so
-  // with the switch on silent the page played nothing at all. saying it's media (audioSession, safari
-  // 17) fixes that. older ones only switch over while an <audio> element is playing, so a second of
-  // silence loops alongside (paused again when the song stops)
+  // an iphone's silent switch mutes web audio unless it's media: audioSession says so (safari 17), and
+  // older ones switch over while an <audio> plays, so a second of silence loops alongside
   unmute() {
     if (navigator.audioSession) {
       navigator.audioSession.type = 'playback';
@@ -3366,9 +3146,8 @@ class MusicPlayer {
     this.channels = {};
     this.mix();
     this.index = this.warmed = this.firstFrom(from);
-    // the first second's strings and struck notes are worked out now, and the clock starts after the
-    // channels and those are ready. it used to start before, so on a slow phone the first notes were
-    // already late by the time they were sent, and the song stumbled in
+    // the first second's strings and struck notes are worked out first, then the clock starts, so a
+    // slow phone's first notes aren't late
     this.warm(from + 1 / this.secondsPerBeat, Infinity);
     this.anchorTime = this.ctx.currentTime + (LIGHT ? 0.12 : 0.06);
     this.anchorBeat = from;
@@ -3380,9 +3159,8 @@ class MusicPlayer {
     this.tick();
   }
 
-  // a different song while it plays: the old one fades out on its own graph, taking its notes and its
-  // reverb and echo tails with it, and the new one starts where the playhead is, with anything held
-  // over the playhead (a pad, a drone) sounding straight away rather than from its next note
+  // a different song while it plays: the old one fades out on its own graph, tails and all, and the new
+  // one starts at the playhead, anything held over it sounding at once
   restart() {
     if (!this.playing) return;
     const at = this.position();
@@ -3402,9 +3180,8 @@ class MusicPlayer {
     if (layer) playNote(this.ctx, this.channels[note.layer], layer, note, Math.max(when, this.ctx.currentTime), this.secondsPerBeat);
   }
 
-  // every 25 ms: send the browser every note due in the next 0.3 seconds (half a second on a phone). it
-  // plays them on its own clock, so the timing is exact even when this timer runs late. in a tab that's
-  // hidden, the browser only runs the timer about once a second, so it sends a second and a half's worth
+  // every 25 ms: send every note due in the next 0.3 seconds (0.5 on a phone, 1.5 in a hidden tab, whose
+  // timer runs about once a second). the browser plays them on its own clock, so timing stays exact
   tick() {
     if (!this.playing) return;
     const ahead = this.beatAt(this.ctx.currentTime + (document.hidden ? 1.5 : LIGHT ? 0.5 : 0.3));
@@ -3457,10 +3234,9 @@ class MusicPlayer {
     blip.stop(when + 0.06);
   }
 
-  // plays some notes on a layer's instrument straight away, for hearing a chord or a note while
-  // editing. it has its own channel, so it plays even if the layer's muted. extra goes on every note
-  // (a slide's bend, a shake), so a slide drawn in the note editor is heard as it'll play. it hands
-  // back the channel, so a note held on the keyboard can be let go of early (closeChannel)
+  // plays notes on a layer's instrument at once, for hearing them while editing, on its own channel (so
+  // even a muted layer). extra goes on every note (a drawn slide). returns the channel, so a key held on
+  // the keyboard can be let go of early (closeChannel)
   audition(song, layer, midis, beats = 1.5, extra = {}) {
     this.wake();
     // the first try of a new instrument may be its synthesised self, while its recordings load
@@ -3489,9 +3265,8 @@ class MusicPlayer {
 
 // ---------- wav files ----------
 
-// renders a whole song offline, faster than real time. loop: for a game's background music, so the
-// end runs straight into the start: the reverb and notes still ringing past the end are folded back
-// onto the beginning, so it loops with no gap or click
+// renders a whole song offline, faster than real time. loop: the tails ringing past the end are folded
+// back onto the start, so it loops with no gap or click
 async function renderSong(song, comp, loop) {
   // a render can't swap to a recording halfway through, so it waits for them all first
   await songSamples(song);
