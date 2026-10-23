@@ -1140,3 +1140,34 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
   assert(SEED_WORDS[0].length * SEED_WORDS[1].length > 500000, 'over half a million seeds');
   assert(/^[a-z]+-[a-z]+$/.test(newSeed(makeRng('seed'))), 'a seed is two words');
 }
+
+// new notes for one part (rerollLayerPart): only that layer's notes in that part change (the rest keep
+// their place, pitch and length; only the feel's tiny timing wobble moves), the motif stays, a second
+// press gives another, it saves and links, and a part written from the chords alone gives null
+{
+  const { rerollLayerPart, songChanges, withChanges } = vm.runInContext('({ rerollLayerPart, songChanges, withChanges })', page);
+  const written = (comp, keep) => comp.notes.filter(keep).map((n) => `${n.layer} ${n.gt.toFixed(3)} ${n.midi} ${n.dur.toFixed(3)}`).sort().join();
+  for (const [mood, style, seed] of [['epic', 'final', 'clash'], ['calm', 'tune', 'theme'], ['ethereal', 'ambient', 'drift'], ['metal', 'boss', 'riff']]) {
+    const where = `${mood}/${style}/${seed}`;
+    const song = generateSong(mood, style, seed);
+    const melody = song.layers.find((l) => l.role === 'melody');
+    const before = composeSong(song);
+    if (!melody || !before.sections.some((s) => s.part === 'B' && s.play.includes(melody.id))) continue;
+    const next = rerollLayerPart(song, melody.id, 'B', 1);
+    assert(next, `${where}: the melody's part B can be written again`);
+    const after = composeSong(next);
+    const inB = (n) => before.sections.some((s) => s.part === 'B' && n.gt >= s.start - 1e-6 && n.gt < s.end - 1e-6);
+    same(written(after, (n) => !inB(n)), written(before, (n) => !inB(n)), `${where}: only part B changes`);
+    assert.notStrictEqual(written(after, (n) => inB(n) && n.layer === melody.id), written(before, (n) => inB(n) && n.layer === melody.id), `${where}: part B's melody is new`);
+    same(cleanSong(JSON.parse(JSON.stringify(next))), next, `${where}: a part's own seed saves`);
+    same(cleanSong(withChanges(song, songChanges(song, next))), next, `${where}: and links`);
+    const again = rerollLayerPart(next, melody.id, 'B', 2);
+    assert(again && again.layers.find((l) => l.id === melody.id).partSeeds.B !== next.layers.find((l) => l.id === melody.id).partSeeds.B, `${where}: pressing again gives another`);
+    same(rerollSong(next, 'melodies', 1).layers.map((l) => l.partSeeds), next.layers.map(() => undefined), `${where}: new melodies for everyone clear the parts' own seeds`);
+  }
+  const song = generateSong('calm', 'tune', 'theme');
+  const bass = song.layers.find((l) => l.role === 'bass');
+  bass.pattern = 'held';
+  assert.strictEqual(rerollLayerPart(cleanSong(song), bass.id, 'B', 1), null, 'a held bass has nothing new to write');
+  assert(!('partSeeds' in cleanSong({ layers: [{ role: 'melody', partSeeds: { B: 5, D: 'x' } }] }).layers[0]), 'junk part seeds are dropped');
+}

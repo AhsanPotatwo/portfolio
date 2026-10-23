@@ -14,7 +14,8 @@
 //   key, scale, tempo, meter, swing, humanise, colour (how rich the chords are), chordBars
 //   parts      chords for parts A, B and C as roman numerals ("i bVI bIII bVII"), so they work in any key
 //   layers     the band: each has a role (pad, bass, melody...), an instrument, a pattern (how the role
-//              plays), its own seed, its mix, and notes changed by hand (edits). hand: plays only those
+//              plays), its own seed (and partSeeds, for a part given new notes), its mix, and notes
+//              changed by hand (edits). hand: plays only those
 //   own        a track made by hand (blankSong()) rather than written from the seed
 //   composer   the composer that made it (COMPOSER_VERSIONS), when it isn't the first
 //   sections   the song from start to end: which part's chords, how many bars, which layers play
@@ -3642,7 +3643,12 @@ function blankSong() {
 // remixing: one pick made again. nonce makes it new each time; everything else stays as it was
 const REROLLS = {
   chords: (song, mood, rng) => pickChords(song, rng),
-  melodies: (song, mood, rng) => { for (const layer of song.layers) layer.seed = newToken(rng); },
+  melodies: (song, mood, rng) => {
+    for (const layer of song.layers) {
+      layer.seed = newToken(rng);
+      delete layer.partSeeds;
+    }
+  },
   band: (song, mood, rng) => {
     // cleared first, so the new instruments don't dodge the old ones
     for (const layer of song.layers) layer.instrument = '';
@@ -3674,6 +3680,32 @@ function rerollSong(song, what, nonce) {
   const next = clone(song);
   REROLLS[what](next, songMood(next), makeRng(song.seed, what, nonce));
   return cleanSong(next);
+}
+// the seed a layer writes one part from: its own, or that part's own once it's been given new notes
+// (layer.partSeeds). the motif, riff and feel stay on the layer's seed, so a new clash still grows from
+// the same idea as the theme, and the band answers it as it answers any tune
+const partSeed = (layer, part) => layer.partSeeds?.[part] || layer.seed;
+// new notes for one layer in one part only, everything else as it was. notes changed by hand in that
+// part go, as they were changes to the old notes. a part written from the chords alone (a held bass,
+// strummed keys, counterpoint following the tune) comes out the same whatever the seed, so it tries a
+// few and gives null if none is new
+function rerollLayerPart(song, id, part, nonce) {
+  const written = (one) => {
+    const comp = composeSong(one);
+    const inPart = (note) => comp.sections.some((section) => section.part === part && note.gt >= section.start - 1e-6 && note.gt < section.end - 1e-6);
+    return JSON.stringify(comp.notes.filter((note) => note.layer === id && inPart(note)).map((note) => [note.gt, note.midi, note.dur]));
+  };
+  const before = written(song);
+  const rng = makeRng(song.seed, id, part, nonce);
+  for (let tries = 0; tries < 4; tries++) {
+    const next = clone(song);
+    const layer = next.layers.find((one) => one.id === id);
+    if (!layer) return null;
+    layer.partSeeds = { ...layer.partSeeds, [part]: newToken(rng) };
+    delete layer.edits[part];
+    if (written(next) !== before) return cleanSong(next);
+  }
+  return null;
 }
 // new chords for one part only
 function rerollPart(song, part, nonce) {
@@ -4452,6 +4484,9 @@ function cleanSong(data) {
     // a layer that plays only notes added by hand (a texture has none to draw)
     if (raw.hand === true && roleFamily(raw.role) !== 'texture') layer.hand = true;
     layer.seed = text(String(raw.seed ?? ''), '0', 24);
+    // a part given new notes of its own (partSeed), only when it has one
+    const partSeeds = PARTS.filter((part) => raw.partSeeds?.[part] && typeof raw.partSeeds[part] === 'string');
+    if (partSeeds.length) layer.partSeeds = Object.fromEntries(partSeeds.map((part) => [part, text(raw.partSeeds[part], '0', 24)]));
     layer.volume = num(raw.volume, 0, 1, layer.volume);
     layer.pan = num(raw.pan, -1, 1, 0);
     layer.octave = Math.round(num(raw.octave, -2, 2, 0));
@@ -4619,8 +4654,8 @@ function composeSong(song) {
       bpb: meter.beats, sub: meter.sub, step: gridStep(song.meter),
       start: section.start, end: section.end, bars: section.bars,
       chords: section.chords,
-      rng: makeRng(song.seed, layer.seed, layer.role, section.part),
-      vary: makeRng(song.seed, layer.seed, section.part, 'take', section.take),
+      rng: makeRng(song.seed, partSeed(layer, section.part), layer.role, section.part),
+      vary: makeRng(song.seed, partSeed(layer, section.part), section.part, 'take', section.take),
       // (a singer or didgeridoo sits round its own note, home: moved far, it sounds like someone else)
       center: (INSTRUMENTS[layer.instrument]?.home ?? ROLES[layer.role].center) + layer.octave * 12,
       steps: SCALES[song.scale].steps,
@@ -5604,7 +5639,7 @@ function tune(c, { density, low: wide, high: tall, plan4, riff, rests }) {
   const contrast = density > 0.55 ? density * 0.55 : Math.min(0.95, density + 0.3);
   let second = makeMotif(theme, c, contrast, false);
   // what this part does with it. A plays it as it is
-  const treat = makeRng(song.seed, layer.seed, 'treat', c.section.part);
+  const treat = makeRng(song.seed, partSeed(layer, c.section.part), 'treat', c.section.part);
   const way = c.section.part === 'B' ? treat.weighted({ raise: 2, own: 2 }) : c.section.part === 'C' ? treat.weighted({ slow: 2, own: 1 }) : 'same';
   if (way === 'raise') base += treat.int(2, 3);
   if (way === 'own') motif = makeMotif(treat, c, density, hook);
@@ -5946,7 +5981,7 @@ const LICKS = ['r r o s', 'r o f s', 'r f o f', 'r o r f', 'r t f o', 'r l r o',
 function bassHook(c) {
   const { lines, grid, perBeat, steps } = c.groove;
   // the lick, the way in and the fill are picked once a part, so the hook comes back with it
-  const r = makeRng(c.song.seed, c.layer.seed, 'hook', c.section.part);
+  const r = makeRng(c.song.seed, partSeed(c.layer, c.section.part), 'hook', c.section.part);
   const lick = r.pick(LICKS).split(' ');
   const below = r.chance(0.6);
   const fills = c.bars >= 4 && r.chance(0.7);
@@ -6049,7 +6084,7 @@ const COMPOSERS = {
     let previous = null;
     let index = 0;
     // its rests and random order are picked once a part, so it repeats a shape you can follow
-    const shape = makeRng(c.song.seed, c.layer.seed, 'shape', c.section.part);
+    const shape = makeRng(c.song.seed, partSeed(c.layer, c.section.part), 'shape', c.section.part);
     const rests = Array.from({ length: Math.round(c.bpb / step) }, (_, i) => i > 0 && shape.chance((1 - density) * 0.45));
     const order = Array.from({ length: 16 }, () => shape.int(0, 63));
     for (const chord of c.chords) {
@@ -6109,7 +6144,7 @@ const COMPOSERS = {
     }
     // chimes (saved as "sparkle"): one short figure of the chord's notes, rung as the chord changes (and
     // every two bars through long chords), every time when busy, every other time when not
-    const shape = makeRng(c.song.seed, c.layer.seed, 'chimes', c.section.part);
+    const shape = makeRng(c.song.seed, partSeed(c.layer, c.section.part), 'chimes', c.section.part);
     const figure = shape.pick(BELL_FIGURES);
     const every = density > 0.55 ? 1 : 2;
     const notes = [];
@@ -6165,7 +6200,7 @@ const COMPOSERS = {
         const rootless = voiceChord(chord.root, [third, seventh, 14], c.center, previous);
         for (let bar = Math.floor((chord.t - c.start) / c.bpb); c.start + bar * c.bpb < end - 1e-6; bar++) {
           const rhythms = COMP_RHYTHMS[c.bpb] || [[[0, 0.6], [c.bpb / 2, 0.6]]];
-          const hits = makeRng(c.song.seed, c.layer.seed, 'comp', c.section.part, bar % 4).pick(rhythms);
+          const hits = makeRng(c.song.seed, partSeed(c.layer, c.section.part), 'comp', c.section.part, bar % 4).pick(rhythms);
           for (const [at, dur] of hits) {
             const t = c.start + bar * c.bpb + at;
             if (t < chord.t - 1e-6 || t >= end - 1e-6) continue;
@@ -6371,7 +6406,7 @@ const COMPOSERS = {
         // synco: on the groove's kick (and comping hits when busy). which hits leap is picked once a part
         const { lines, steps, grid } = c.groove;
         const hits = lines.k.map((v, i) => i === 0 || v === 1 || (density > 0.6 && lines.c[i] > 0));
-        const leaps = makeRng(c.song.seed, c.layer.seed, 'leaps', c.section.part);
+        const leaps = makeRng(c.song.seed, partSeed(c.layer, c.section.part), 'leaps', c.section.part);
         const shape = hits.map((_, i) => (i === 0 ? 0 : leaps.weighted([[0, 4], [12, 1.5], [7, 1.5]])));
         for (let t = chord.t; t < end - 1e-6; t += grid) {
           const i = stepInBar(c, t);

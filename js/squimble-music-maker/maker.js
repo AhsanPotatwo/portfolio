@@ -1078,6 +1078,7 @@
     if (family !== 'texture' && !layer.hand) {
       actions.append(key('New notes', `New notes for the ${role.name.toLowerCase()}: a new seed, same instrument and pattern. Clears notes you've changed by hand`, edit(() => {
         layer.seed = newToken(randomRng());
+        delete layer.partSeeds;
         layer.edits = {};
       }), 'mm-key-small'));
       actions.append(key('Keep notes', `Keep the ${role.name.toLowerCase()}'s notes as your own, to change one by one. They stay put when the chords or the mood change`, edit(() => takeNotes(layer)), 'mm-key-small'));
@@ -1195,12 +1196,26 @@
       return box;
     }
     if (!parts.includes(editPart)) editPart = parts[0];
-    head.append(choices(parts.map((part) => [part, `Part ${part}`, `Show part ${part}'s notes`]), () => editPart, (part) => {
+    // the sections a part plays in (Theme, Clash...), each name once
+    const named = (part) => [...new Set(comp.sections.filter((one) => one.part === part && one.play.includes(layer.id)).map((one) => one.name))].join(', ');
+    head.append(choices(parts.map((part) => [part, `Part ${part}`, `Show part ${part}'s notes, played in ${named(part)}`]), () => editPart, (part) => {
       editPart = part;
       editorScroll = 0;
       renderPanel();
     }, 'Part'));
     const changes = layer.edits[editPart];
+    // new notes for this part only (rerollLayerPart). not on a part that plays the melody's line, nor on
+    // an older composer's song, which doesn't know about part seeds
+    if (!layer.hand && !carries(layer) && (song.composer || 1) === COMPOSER) {
+      head.append(key(`New part ${editPart}`, `New notes for part ${editPart} only (${named(editPart)}), grown from the same idea as the rest of the ${ROLES[layer.role].name.toLowerCase()}, so it still sounds like this song. The other parts stay as they are${changes ? ', and notes you changed here go' : ''}. Press again for another`, () => {
+        const next = rerollLayerPart(song, layer.id, editPart, Math.random());
+        if (!next) return say(`This ${ROLES[layer.role].name.toLowerCase()} plays part ${editPart}'s chords as they come, so there's nothing new to write. New chords for part ${editPart} (Song tab) or another pattern will change it.`);
+        // (like any edit, it plays on from where it is, so you hear the new part come round)
+        remember();
+        song = next;
+        changed();
+      }, 'mm-key-small mm-key-line'));
+    }
     if (changes && layer.hand) {
       // a part of your own can be copied over another part, or cleared
       for (const other of parts.filter((one) => one !== editPart)) {
