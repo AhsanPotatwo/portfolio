@@ -51,7 +51,7 @@ Rooms below, left to right:
 
 ## Quick start
 
-1. Open the game, click it, press **`** or **Ctrl + D** (developer mode), then **B** (map editor).
+1. Open the game, click it, then press **B** (map editor). It only works while your role can build (`PLAYER_ROLE` in `config.js`, see [Who can build](#who-can-build)).
 2. Click **File > New map** in the menu bar along the top, type a width and height, and choose what to fill it with. Or just edit the map you're on.
 3. Paint tiles and place objects.
 4. Press **Ctrl + S** (or **File > Save**), type a name, and it downloads as `yourname.json`.
@@ -64,16 +64,23 @@ Rooms below, left to right:
 
 7. Reload the game. Press **M** in developer mode until you reach your map.
 
+## Who can build
+
+The editor and dev mode are locked by role (`ROLES` and `PLAYER_ROLE` in `js/squimble-quest/config.js`): a **developer** gets both, a **builder** just the editor (**B**), and a **player** neither. It's `developer` while the game's being made; set `PLAYER_ROLE` to `player` before shipping and both are gone from the game, keys, menus and all. In a multiplayer game the server would hand out roles, so some people could build.
+
 ## Making a map
 
-Open the editor with **`** (or **Ctrl + D**) then **B** (for build). Everything you do changes the map you're on, so you can close the editor (**B**, or **▶ Play** at the top) and walk around it straight away, or press **Space** to start playing from wherever the mouse is.
+Open the editor with **B** (for build), with or without dev mode. Everything you do changes the map you're on, so you can close the editor (**B**, or **▶ Play** at the top) and walk around it straight away, or press **Space** to start playing from wherever the mouse is.
 
 It's laid out like a game engine:
 
-- a **menu bar** along the top: **File** (new, open, save, recover), **Edit** (undo, redo, cut, copy, paste, select all, search), **View** (grid, atmosphere, AI routes, zoom, hide the editor, dev menu), **Map** (resize, atmosphere, check for problems, art report), **Tools** and **Help** (every key). Each menu line shows its key. **▶ Play** and **Play here** are in the middle, and the map's name and size on the right, with a yellow dot while it has changes that aren't saved
+- a **menu bar** along the top: **File** (new, open, save, recover), **Edit** (undo, redo, cut, copy, paste, select all, search), **View** (grid, atmosphere, AI routes, minimap, zoom, hide the editor, and in dev mode the dev menu and dev info panel), **Map** (resize, atmosphere, world map, find uses, check for problems on this map or every map, art report), **Tools** and **Help** (every key). Each menu line shows its key. **▶ Play** and **Play here** are in the middle, and the map's name and size on the right, with a yellow dot while it has changes that aren't saved
 - a **tool strip** down the left: **Paint**, **Erase**, **Fill**, **Rectangle**, **Select** and **Pick**, the **brush** size, and **undo** and **redo**. Rest the mouse on one to see what it does and its key
 - a **dock** on the right: the **palette** of things to place, with a **search** box and a row of what you picked lately above it, and the **inspector** under it showing what's picked
 - a **status bar** along the bottom: the tile under the mouse, what a click does, the selection's size, the brush and the zoom
+- a **minimap** in the bottom left: the whole map in its tile colours, with warps (purple), the spawn (yellow), enemies (red) and NPCs (green), and a white box round what's on screen. Click or drag on it to move there. **View > Minimap** hides it
+
+Dev mode's info panel doesn't show in the editor, since the bars already say the map, mouse tile and zoom. **View > Dev info panel** brings it back while dev mode is on.
 
 | Control | What it does |
 |---|---|
@@ -108,13 +115,17 @@ It's laid out like a game engine:
 | **Space**, or **Play here** then click the map | Close the editor and start playing on that tile. Opening the editor again goes back to where you were |
 | **Tab** | Hide the editor to see the map on its own. **Tab** again brings it back |
 | **Map > Check for problems** | A list of things that'd go wrong in the game: the spawn or a warp players arrive at on a solid or empty tile, warps that go nowhere real, enemies or NPCs standing in walls, sounds, voices, items, particles and atmospheres that don't exist. Click one to go there (it flashes). It checks again as you fix things. Drag it by its title |
+| **Map > Check every map** | The same list for every map, each line ending with its map. Clicking one goes to that map and flashes the tile |
+| **Map > Find uses of what's picked** | Everywhere the thing picked in the palette is used: tiles counted on each map, every enemy, NPC, object, sound block, warp or area that names it (an enemy holding the sword, an NPC talking with a voice), and other things' settings (the lava tile's particles, an item's hit sound). Click one to go there. With a trigger picked it lists every spawn, warp or area on every map. Check before renaming or deleting something |
+| **Map > World map** | Every map as a box, with arrows for the warps between them, starting from the map you're on. Maps nothing links to sit off to the right. Hover over one to see its spawn, click one to go there. Works like the warp graph (drag, wheel, **Escape**) |
+| Rest the mouse on an **enemy** | Rings round it for how far it attacks, hears you (through walls), alerts allies, sees you and gives up the chase, each labelled in tiles, using its own settings if it has them. The floor it can see is lit and the floor walls hide from it is darkened, so you can see where a player can sneak past |
 | **Map > Art report** | Pictures that didn't load or are the wrong size: tiles that aren't square, variants and frames a different size to their texture, dual grid tilesets that can't be cut up, objects whose picture is a different shape to their tiles. Click one to pick it in the palette. Handy after adding a batch of sprites |
 | **Help > Keys and mouse** | Every key and mouse action in one list |
 | **WASD** | Move around the map. The editor's buttons and panels fade out while you move, so you can see the map, and come back when you stop |
 | **−** **=** or mouse wheel | Zoom out and in (**0** resets) |
-| **M** | Go to the next map |
-| **G** | Show or hide the tile grid |
-| **H** | Open or close the dev menu (**View > Dev menu** does too): tick what the info panel and the map show, and click tools |
+| **G** / **P** | Show or hide the tile grid / the enemy AI routes |
+| **M** | Go to the next map (dev mode) |
+| **H** | Open or close the dev menu (dev mode; **View > Dev menu** does too): tick what the info panel and the map show, and click tools |
 | **B** | Close the editor |
 
 Empty tiles show the dark background and can't be walked on, like the edge of the map.
@@ -161,7 +172,7 @@ In the editor, warps that open with E have an **E** on their marker. A warp show
 
 Arriving on a warp that opens by stepping on it doesn't send you straight back. It only opens when you step onto it from another tile.
 
-**Show links** opens the warp graph. The warp you're editing is at the top with a yellow edge, and under it is every warp linked to it, whichever way round, on any map. Each box shows a warp's name and its map, and the arrows point the way each warp leads, so a door and its way back out have an arrow at both ends. A dashed arrow is a link that loops back to a warp elsewhere in the graph. A warp with lots of links (like a village square that every door leads to) has them in rows of six, one under the other, so it stays readable however many there are. A warp that leads to a spawn point shows that spawn point as a box, and one leading to a warp that doesn't exist shows a red box. Hover over a box to see where that warp is: a window onto its map, with the warp ringed in yellow. Drag to move around it and use the mouse wheel to zoom. **Close** or **Escape** goes back to the warp's settings. It shows the warp as it was last saved, so **Save** changes first to see them in the graph.
+**Show links** opens the warp graph. The warp you're editing is at the top with a yellow edge, and under it is every warp linked to it, whichever way round, on any map. Each box shows a warp's name and its map, and the arrows point the way each warp leads, so a door and its way back out have an arrow at both ends. A dashed arrow is a link that loops back to a warp elsewhere in the graph. A warp with lots of links (like a village square that every door leads to) has them in rows of six, one under the other, so it stays readable however many there are. A warp that leads to a spawn point shows that spawn point as a box, and one leading to a warp that doesn't exist shows a red box. Hover over a box to see where that warp is: a window onto its map, with the warp ringed in yellow. Drag to move around it and use the mouse wheel to zoom. Click a box to go to that warp in the editor (the settings box closes without saving). **Close** or **Escape** goes back to the warp's settings. It shows the warp as it was last saved, so **Save** changes first to see them in the graph.
 
 Warps link by name, so you can move a warp around freely. **Renaming a warp breaks every warp that leads to it**, so change those too. Both maps have to be exported for a link to work after a reload.
 

@@ -1,9 +1,14 @@
-// two lists in the map editor's Map menu, each a window you can drag around (ListWindow in ui.js):
+// lists in the map editor's Map menu, each a window you can drag around (ListWindow in ui.js):
 //   Check for problems  things on the map that would go wrong in the game (mapProblems()): a spawn or
 //                       arrival warp the player would be stuck in, warps that go nowhere real,
 //                       characters standing in walls, sounds, voices, items and atmospheres that don't
 //                       exist. it checks again while it's open, so fixing one takes it off. clicking
 //                       one goes there and flashes the tile
+//   Check every map     the same for every map, each problem with its map's name. clicking one goes to
+//                       that map too
+//   Find uses           everywhere the thing picked in the palette is used (findUses()): on every map,
+//                       and in other things' settings (a tile kind's particles, an item's hit sound).
+//                       handy before renaming or deleting something, or to find that one grunt
 //   Art report          pictures that didn't load (ART_PROBLEMS in utils.js) or are the wrong size for
 //                       what they're on (artSizeProblems()). handy when a batch of sprites goes in.
 //                       clicking one picks that thing in the palette
@@ -12,21 +17,26 @@
 const MapCheck = {
   window: null,
 
-  open() {
-    if (this.window?.isOpen()) return;
+  // every is Check every map, otherwise it's just the map you're on. one list at a time, so opening
+  // either replaces what's open
+  open(every = false) {
+    if (this.window?.isOpen()) this.window.close();
     let problems = [];
     let checked = -Infinity;
     // worked out again twice a second, since it builds the maps warps go to
     const lines = () => {
       if (millis() - checked > 500) {
-        problems = mapProblems(worldMap);
+        const names = every ? Object.keys(MAPS) : [worldMap.name];
+        problems = names.flatMap((map) => mapProblems(getMap(map)).map((problem) => ({ ...problem, map })));
         checked = millis();
-        this.window.title = `Problems on ${worldMap.name} (${problems.length})`;
+        this.window.title = `Problems on ${every ? 'every map' : worldMap.name} (${problems.length})`;
       }
       return problems.map((problem) => ({
         text: problem.text,
+        note: every ? problem.map : null,
         colour: EDITOR_COLOURS.text,
-        onClick: problem.col === null ? null : () => Editor.goTo(problem.col, problem.row),
+        // one for the whole map just goes to that map (if it's another)
+        onClick: problem.col === null && !every ? null : () => Editor.goToMap(problem.map, problem.col, problem.row),
       }));
     };
     this.window = UI.add(new ListWindow({
@@ -35,6 +45,106 @@ const MapCheck = {
     }));
   },
 };
+
+const FindUses = {
+  window: null,
+
+  // thing is { kind, name } (Editor.selected). like the problem list it looks again twice a second
+  // while open, so it keeps up with painting and erasing
+  open(thing) {
+    if (this.window?.isOpen()) this.window.close();
+    let uses = [];
+    let checked = -Infinity;
+    const lines = () => {
+      if (millis() - checked > 500) {
+        uses = findUses(thing);
+        checked = millis();
+        this.window.title = `Uses of ${thing.name} (${uses.length})`;
+      }
+      return uses.map((use) => ({
+        text: use.text,
+        note: use.map ?? '',
+        onClick: use.map ? () => Editor.goToMap(use.map, use.col, use.row) : null,
+      }));
+    };
+    this.window = UI.add(new ListWindow({
+      // lower down than the problem list, so both can be open
+      title: 'Uses', w: 420, h: 260, x: GAME_W - EDITOR_LAYOUT.dockWidth - 430, y: EDITOR_LAYOUT.toolbarHeight + 70, group: 'editor',
+      lines, empty: `Nothing uses ${thing.name}`, footer: () => (uses.some((use) => use.map) ? 'Click one to go there' : ''),
+    }));
+  },
+};
+
+// everywhere a palette thing ({ kind, name }) is used, as [{ text, map, col, row }]: tiles counted per
+// map (going to the first), everything placed on a map whose settings name it (an enemy holding it, a
+// sound block playing it), and every catalogue entry whose settings name it, which have no map. the
+// Triggers tab lists every spawn, warp or area instead
+function findUses({ kind, name }) {
+  const uses = [];
+  const add = (text, map = null, col = null, row = null) => uses.push({ text, map, col, row });
+  // what's on a map, by what it's called in the list and how to say which one it is. a `type` names a
+  // catalogue entry of that kind, so a grunt enemy isn't a use of a grunt object
+  const placed = (map) => [
+    ['enemy', map.enemySpawns, (spawn) => `An enemy (${spawn.type})`],
+    ['npc', map.npcSpawns, (spawn) => `An npc (${spawn.type})`],
+    ['object', map.objects, (obj) => `A ${obj.type}`],
+    ['sound', map.sounds, (block) => `A sound block (${block.sound})`],
+    ['warp', map.warps, (warp) => `Warp ${warp.name}`],
+    ['area', map.areas, (area) => `An area (${area.atmosphere || 'no atmosphere'})`],
+  ];
+  const usesIt = (entry, listKind) => Object.entries(entry).some(([key, value]) =>
+    key === 'type' ? listKind === kind && value === name : key !== 'name' && mentions(value, name));
+
+  for (const mapName of Object.keys(MAPS)) {
+    const map = getMap(mapName); // maps.js
+    if (kind === 'trigger') {
+      if (name === 'spawn') add('The spawn', mapName, map.colAt(map.spawn.x), map.rowAt(map.spawn.y + feetBelowCentre(PLAYER)));
+      for (const warp of name === 'warp' ? map.warps : []) add(`Warp ${warp.name} to ${warp.to || 'nowhere'}`, mapName, warp.col, warp.row);
+      for (const area of name === 'area' ? map.areas : []) add(`An area (${area.atmosphere || 'no atmosphere'})`, mapName, area.col, area.row);
+      continue;
+    }
+    if (kind === 'tile') {
+      let count = 0;
+      let first = null;
+      for (let row = map.top; row < map.top + map.rows; row++) {
+        for (let col = map.left; col < map.left + map.cols; col++) {
+          if (map.tiles[map.index(col, row)] !== name) continue;
+          count++;
+          first ??= { col, row };
+        }
+      }
+      if (count > 0) add(`${count} tile${count === 1 ? '' : 's'}`, mapName, first.col, first.row);
+    }
+    if (map.atmosphere === name) add("The map's atmosphere", mapName);
+    for (const [listKind, list, say] of placed(map)) {
+      for (const entry of list) if (usesIt(entry, listKind)) add(say(entry), mapName, entry.col, entry.row);
+    }
+  }
+
+  // other things' settings, like the lava tile's particles or the sword's hit sound
+  const catalogues = [
+    ['tile', TILE_TYPES], ['object', OBJECT_TYPES], ['enemy', ENEMY_TYPES], ['npc', NPC_TYPES], ['item', ITEM_TYPES],
+    ['sound', SOUNDS], ['voice', VOICES], ['particle effect', PARTICLE_EFFECTS], ['atmosphere', ATMOSPHERES],
+  ];
+  for (const [what, types] of catalogues) {
+    for (const [other, settings] of Object.entries(types)) {
+      if (other === name) continue;
+      if (Object.entries(settings).some(([key, value]) => key !== 'name' && key !== 'label' && mentions(value, name))) add(`The ${what} ${other} names it in its settings`);
+    }
+  }
+  if (mentions(PLAYER, name)) add("The player's settings name it (PLAYER in config.js)");
+  return uses;
+}
+
+// whether value, or anything in its lists and plain objects, is exactly name. other objects (p5
+// colours and pictures, characters) are skipped, and so is anything nested too deep to be a setting
+function mentions(value, name, depth = 0) {
+  if (value === name) return true;
+  if (depth > 4 || !value || typeof value !== 'object') return false;
+  if (Array.isArray(value)) return value.some((inside) => mentions(inside, name, depth + 1));
+  if (Object.getPrototypeOf(value) !== Object.prototype) return false;
+  return Object.values(value).some((inside) => mentions(inside, name, depth + 1));
+}
 
 // what's wrong with a map, as [{ text, col, row }] (col and row are null for the whole map)
 function mapProblems(map) {

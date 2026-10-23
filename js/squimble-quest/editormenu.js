@@ -31,15 +31,21 @@ const EDITOR_COMMANDS = {
   grid: { label: 'Grid', devKey: 'grid', run: () => Debug.flip('grid'), ticked: () => Debug.show.grid },
   atmospherePreview: { label: 'Atmosphere', run: () => Debug.flip('atmosphere'), ticked: () => Debug.show.atmosphere },
   enemyPaths: { label: 'Enemy AI routes', devKey: 'enemyPaths', run: () => Debug.flip('paths'), ticked: () => Debug.show.paths },
+  minimap: { label: 'Minimap', run: () => Debug.flip('minimap'), ticked: () => Debug.show.minimap },
   zoomIn: { label: 'Zoom in', devKey: 'zoomIn', run: () => gameCamera.zoomTo(gameCamera.targetZoom * 1.25) },
   zoomOut: { label: 'Zoom out', devKey: 'zoomOut', run: () => gameCamera.zoomTo(gameCamera.targetZoom / 1.25) },
   zoomReset: { label: 'Normal zoom', devKey: 'zoomReset', run: () => gameCamera.zoomTo(1) },
   hideUI: { label: 'Hide the editor', key: 'editorHideUI', run: () => Editor.toggleUI() },
-  devMenu: { label: 'Dev menu', devKey: 'devMenu', run: () => Debug.toggleMenu(), ticked: () => Debug.menu.visible },
+  // dev mode's (debug.js), so greyed out without it
+  devMenu: { label: 'Dev menu', devKey: 'devMenu', run: () => Debug.toggleMenu(), ticked: () => Debug.menu.visible, enabled: () => Debug.enabled },
+  devPanel: { label: 'Dev info panel', run: () => Debug.flip('editorPanel'), ticked: () => Debug.show.editorPanel, enabled: () => Debug.enabled },
 
   resize: { label: 'Resize…', run: () => Editor.resizeMap() },
   atmosphere: { label: 'Atmosphere…', run: () => AtmosphereEditor.open(worldMap.atmosphere) },
+  worldMap: { label: 'World map', run: () => WarpGraph.openWorld(worldMap.name) },
+  findUses: { label: 'Find uses of what\'s picked', run: () => FindUses.open(Editor.selected) },
   checkMap: { label: 'Check for problems', run: () => MapCheck.open() },
+  checkAll: { label: 'Check every map', run: () => MapCheck.open(true) },
   artReport: { label: 'Art report', run: () => ArtReport.open() },
 
   // one for each tool (edittools.js)
@@ -58,8 +64,8 @@ const EDITOR_COMMANDS = {
 const EDITOR_MENUS = [
   ['File', ['newMap', 'openMap', '-', 'save', 'saveAs', '-', 'recover']],
   ['Edit', ['undo', 'redo', '-', 'cut', 'copy', 'paste', 'delete', '-', 'selectAll', 'deselect', '-', 'search']],
-  ['View', ['grid', 'atmospherePreview', 'enemyPaths', '-', 'zoomIn', 'zoomOut', 'zoomReset', '-', 'hideUI', 'devMenu']],
-  ['Map', ['resize', 'atmosphere', '-', 'checkMap', 'artReport']],
+  ['View', ['grid', 'atmospherePreview', 'enemyPaths', 'minimap', '-', 'zoomIn', 'zoomOut', 'zoomReset', '-', 'hideUI', 'devMenu', 'devPanel']],
+  ['Map', ['resize', 'atmosphere', '-', 'worldMap', 'findUses', '-', 'checkMap', 'checkAll', 'artReport']],
   ['Tools', [...EDITOR_TOOLS.map(({ name }) => `tool-${name}`), '-', 'brushBigger', 'brushSmaller']],
   ['Help', ['shortcuts', '-', 'play', 'playHere']],
 ];

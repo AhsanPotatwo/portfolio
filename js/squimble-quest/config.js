@@ -77,6 +77,25 @@ const ROLL = {
   cooldown: 0.6,
 };
 
+// ---------- who can use the dev tools ----------
+// what each role is allowed to do: 'dev' is dev mode (debug.js) and 'build' is the map editor
+// (editor.js). a player's role is player.role (Player.can() in player.js). a new power is a word here
+// and a player.can('word') check wherever it starts
+const ROLES = {
+  player: [],
+  builder: ['build'],
+  developer: ['dev', 'build'],
+};
+// the role this computer's player gets. 'developer' while making the game. set it to 'player' before
+// shipping and both are gone: their keys do nothing, nothing about them shows, and a dev mode left on
+// in this browser stays off.
+//
+// multiplayer: this only hides them. the code still ships, so anyone could change their role from the
+// browser console. the server would decide each player's role (from their account, or a list of names
+// you trust) and send it, and check it again before it accepts anything only a builder or developer
+// can do, like changing a map
+const PLAYER_ROLE = 'developer';
+
 // ---------- player ----------
 // footsteps (Character.footstep()), for everyone. which sound each step makes is up to the tile it
 // lands on (its stepSounds, tiles.js, or the tile editor's Footsteps tab)
@@ -243,7 +262,8 @@ const KEYS = {
   escape: ['Escape'],
 
   // turns dev mode on and off (debug.js). ` is the key under Esc, and Ctrl + D is for keyboards that
-  // don't have one. everything below this only works in dev mode
+  // don't have one. everything below this only works in dev mode, apart from the editor's keys, which
+  // work for anyone whose role can build (ROLES)
   devMode:   ['Backquote', 'Control+KeyD'],
   // opens and closes the dev menu
   devMenu:   ['KeyH'],
@@ -256,7 +276,7 @@ const KEYS = {
   enemyPaths: ['KeyP'],
   teleport:  ['KeyT'],
   nextMap:   ['KeyM'],
-  // B for build (E is already used for talking)
+  // B for build (E is already used for talking). works without dev mode too, for builders
   editor:    ['KeyB'],
   // the shader before and after this one (shaders.js)
   shaderPrev: ['BracketLeft'],

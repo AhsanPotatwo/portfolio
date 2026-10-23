@@ -11,6 +11,13 @@ class Player extends Character {
     // warps.js), so step warps and step sound blocks only go off when you step onto them. it's on the
     // player so each player's steps are tracked separately
     this.stepTile = null;
+    // what they're allowed to do, a ROLES name (config.js)
+    this.role = PLAYER_ROLE;
+  }
+
+  // whether their role lets them use `power`: 'dev' (dev mode) or 'build' (the map editor)
+  can(power) {
+    return ROLES[this.role]?.includes(power) ?? false;
   }
 
   // gives PLAYER.startingItems, starting from slot 1. runs once the item files have loaded (sketch.js)

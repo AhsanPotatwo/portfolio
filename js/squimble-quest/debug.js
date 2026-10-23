@@ -1,6 +1,9 @@
 // dev mode: hidden tools for testing, turned on and off with ` (under Esc) or Ctrl + D. players never
-// see it unless they press the key, and this browser remembers if it's on. while it's on:
+// see it unless they press the key, and this browser remembers if it's on. only players whose role
+// allows 'dev' can turn it on (ROLES in config.js), so setting PLAYER_ROLE to 'player' takes it out of
+// the game. while it's on:
 //   - the info panel in the top left shows what's going on: the fps, the map, the player, the mouse...
+//     not in the editor, which has its own bars, unless View > Dev info panel is ticked there
 //   - H (or View > Dev menu in the editor) opens the dev menu. it picks what the info panel and the map
 //     show, has buttons for the tools, and lists every dev key (and the editor's while that's open).
 //     what's picked is remembered too
@@ -8,7 +11,9 @@
 //   - - and = zoom, and 0 resets it. in the editor the wheel zooms too, except over the palette, where
 //     it scrolls instead (outside the editor the wheel changes hotbar slot)
 //   - T teleports the player to the mouse (if it's somewhere you can stand)
-//   - M goes to the next map (maps.js), and B opens the map editor (editor.js)
+//   - M goes to the next map (maps.js)
+// B opens the map editor (editor.js) with or without dev mode, for anyone whose role can build. the
+// overlays, their keys and zooming work in the editor without dev mode too, since a builder needs them
 //   - [ and ] go through the shaders (shaders.js), which only show in dev mode for now
 //
 // to add something:
@@ -129,8 +134,10 @@ const DEV_MENU = {
 
 const Debug = {
   enabled: false,
-  // what's showing, by DEV_INFO and DEV_OVERLAYS name. use shows() to check
-  show: {},
+  // what's showing, by DEV_INFO and DEV_OVERLAYS name. use shows() to check. the editor's View menu
+  // keeps its own ticks here too, so they're remembered the same way: editorPanel (this info panel in
+  // the editor) and minimap (editor.js)
+  show: { editorPanel: false, minimap: true },
   // the dev menu (DevMenu below), made in init()
   menu: null,
   // smoothed out so the number doesn't flicker
@@ -140,16 +147,22 @@ const Debug = {
   init() {
     for (const option of [...DEV_INFO, ...DEV_OVERLAYS]) this.show[option.name] = option.on;
     // storage might be blocked, in which case dev mode just starts off with the defaults
+    // player is the game's (sketch.js), made before this
     try {
-      this.enabled = localStorage.getItem(DEV_STORAGE_KEY) === 'on';
+      this.enabled = player.can('dev') && localStorage.getItem(DEV_STORAGE_KEY) === 'on';
       Object.assign(this.show, JSON.parse(localStorage.getItem(DEV_SHOW_STORAGE_KEY)));
     } catch (e) {}
     this.menu = UI.add(new DevMenu({ visible: false }));
   },
 
-  // whether dev mode's on and `name` (DEV_INFO or DEV_OVERLAYS) is ticked. sketch.js reads this
+  // whether the overlays can show: in dev mode, or in the editor (which a builder can open without it)
+  showing() {
+    return this.enabled || Editor.active;
+  },
+
+  // whether `name` (DEV_INFO or DEV_OVERLAYS) is ticked and can show. sketch.js reads this
   shows(name) {
-    return this.enabled && this.show[name];
+    return this.showing() && this.show[name];
   },
 
   flip(name) {
@@ -161,7 +174,9 @@ const Debug = {
     this.menu.visible = !this.menu.visible;
   },
 
+  // on only for roles that allow it (ROLES in config.js), but off always works
   toggle(player, camera) {
+    if (!this.enabled && !player.can('dev')) return;
     this.enabled = !this.enabled;
     try { localStorage.setItem(DEV_STORAGE_KEY, this.enabled ? 'on' : 'off'); } catch (e) {}
     if (!this.enabled) {
@@ -183,25 +198,27 @@ const Debug = {
   // every frame, before the player and camera update. aim is the mouse's world position or null
   update(player, camera, map, aim, dt) {
     if (Input.wasPressed('devMode')) this.toggle(player, camera);
-    if (!this.enabled) return;
-
+    // Editor.open() checks the role
     if (Input.wasPressed('editor')) Editor.toggle(player, camera);
-    if (Input.wasPressed('devMenu')) this.toggleMenu();
+    // the overlays and zoom are the editor's too
+    if (!this.showing()) return;
+
     for (const overlay of DEV_OVERLAYS) if (overlay.key && Input.wasPressed(overlay.key)) this.flip(overlay.name);
-    if (Input.wasPressed('shaderPrev')) Shaders.next(-1);
-    if (Input.wasPressed('shaderNext')) Shaders.next(1);
-
-    this.fps = approach(this.fps, frameRate(), 4, dt);
-
     // multiplies rather than adds, so it feels the same at any zoom
     if (Input.isDown('zoomIn')) camera.zoomTo(camera.targetZoom * Math.exp(DEV_KEY_ZOOM_RATE * dt));
     if (Input.isDown('zoomOut')) camera.zoomTo(camera.targetZoom * Math.exp(-DEV_KEY_ZOOM_RATE * dt));
     // the wheel only zooms in the editor (otherwise the hotbar uses it). down zooms out, like map apps
     // do. not while a box is open, because the warp graph uses the wheel for its own zoom (warpgraph.js)
-    if (Editor.active && !FormBox.active && !SoundEditor.active && Input.wheel !== 0) {
+    if (Editor.active && !FormBox.active && !SoundEditor.active && !WarpGraph.active && Input.wheel !== 0) {
       camera.zoomTo(camera.targetZoom * Math.exp(-Input.wheel * DEV_WHEEL_ZOOM_RATE));
     }
     if (Input.wasPressed('zoomReset')) camera.zoomTo(1);
+
+    if (!this.enabled) return;
+    if (Input.wasPressed('devMenu')) this.toggleMenu();
+    if (Input.wasPressed('shaderPrev')) Shaders.next(-1);
+    if (Input.wasPressed('shaderNext')) Shaders.next(1);
+    this.fps = approach(this.fps, frameRate(), 4, dt);
 
     if (Input.wasPressed('nextMap')) {
       this.nextMap();
@@ -220,7 +237,7 @@ const Debug = {
   // there isn't room). it's as wide as what's in it, so nothing spills out, and values too long for
   // the space get cut short
   draw(player, camera, map, aim) {
-    if (!this.enabled) return;
+    if (!this.enabled || (Editor.active && !this.show.editorPanel)) return;
     const P = DEV_PANEL;
     const C = EDITOR_COLOURS;
     const state = { player, camera, map, aim };

@@ -629,9 +629,10 @@ const Atmosphere = {
     return this.preview?.target === area ? this.preview.settings : ATMOSPHERES[area.atmosphere] ?? null;
   },
 
-  // unticked in the dev menu (debug.js), which hides everything here, weather too
+  // unticked in the dev menu or the editor's View menu (debug.js), which hides everything here, weather
+  // too
   hidden() {
-    return Debug.enabled && !Debug.show.atmosphere;
+    return Debug.showing() && !Debug.show.atmosphere;
   },
 
   // the map's atmosphere, or null while it's hidden. the weather reads this too (particles.js)

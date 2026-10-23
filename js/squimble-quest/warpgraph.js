@@ -16,8 +16,12 @@
 // warp you opened it from.
 //
 // hovering over a box shows a little window onto its map, with the warp ringed in yellow and enemies
-// and npcs at their spawns. drag to move around, wheel to zoom, and Close or Escape goes back to the
-// settings box
+// and npcs at their spawns. clicking one goes there in the editor. drag to move around, wheel to zoom,
+// and Close or Escape goes back to the settings box.
+//
+// the world map (Map > World map, mapFamily()) is the same view with a box for each map instead of
+// each warp, linked by the warps between them, starting from the map you're on. maps nothing links to
+// get trees of their own off to the right, so every map is there
 
 // layout, in px at zoom 1
 const WARP_GRAPH = {
@@ -57,10 +61,8 @@ const WARP_GRAPH = {
 //          parent. x, y is the middle of its box
 //   links  the links that aren't parent ones: { from, to }, as node keys
 function warpFamily(mapName, warpName) {
-  // every warp (and spawn) that any warp mentions, by key, plus their links in both directions, so the
-  // family can be followed from either end
+  // every warp (and spawn) that any warp mentions, by key, plus their links
   const found = {};
-  const linked = {};
   const links = [];
   const add = (map, name) => {
     const key = `${map}/${name}`;
@@ -68,7 +70,6 @@ function warpFamily(mapName, warpName) {
       // getMap() is in maps.js
       const onMap = getMap(map);
       found[key] = { key, map, name, missing: !onMap || (name !== '' && !onMap.warp(name)) };
-      linked[key] = new Set();
     }
     return key;
   };
@@ -79,27 +80,73 @@ function warpFamily(mapName, warpName) {
     for (const warp of getMap(map).warps) {
       const from = add(map, warp.name);
       if (!warp.to) continue;
-      const to = add(warp.to, warp.toWarp);
-      links.push({ from, to });
-      linked[from].add(to);
-      linked[to].add(from);
+      links.push({ from, to: add(warp.to, warp.toWarp) });
     }
+  }
+  return familyTree(found, links, startKey, false);
+}
+
+// every map as a box, linked by the warps between them (one link each way however many doors there
+// are), for the world map. the same shape as warpFamily() gives back, with each node's name '' (so its
+// preview shows the spawn) and a label and note to draw instead (drawWarpNode())
+function mapFamily(mapName) {
+  const found = {};
+  const links = [];
+  const add = (name) => {
+    if (!found[name]) {
+      const map = MAPS[name] ? getMap(name) : null;
+      const note = map ? `${map.cols} × ${map.rows}, ${map.warps.length} warp${map.warps.length === 1 ? '' : 's'}` : 'missing';
+      found[name] = { key: name, map: name, name: '', missing: !map, label: name, note };
+    }
+    return name;
+  };
+  for (const name of Object.keys(MAPS)) add(name);
+  const seen = new Set();
+  for (const name of Object.keys(MAPS)) {
+    for (const warp of getMap(name).warps) {
+      // a teleport on the same map isn't a link between maps
+      if (!warp.to || warp.to === name || seen.has(`${name}>${warp.to}`)) continue;
+      seen.add(`${name}>${warp.to}`);
+      links.push({ from: name, to: add(warp.to) });
+    }
+  }
+  return familyTree(found, links, add(mapName), true);
+}
+
+// lays found (nodes by key) out as a tree from startKey, following links (each { from, to }) both
+// ways, so a family can be followed from either end. with everyone, whatever the start's tree doesn't
+// reach gets trees of its own to its right, otherwise it's left out. gives back { nodes, links } (see
+// warpFamily())
+function familyTree(found, links, startKey, everyone) {
+  const linked = Object.fromEntries(Object.keys(found).map((key) => [key, new Set()]));
+  for (const { from, to } of links) {
+    linked[from].add(to);
+    linked[to].add(from);
   }
 
-  // goes outwards from the start one level at a time (breadth first). a warp's parent is whichever
-  // one found it first
-  const parent = { [startKey]: null };
-  const children = { [startKey]: [] };
-  const family = [startKey];
-  for (const key of family) {
-    for (const next of linked[key]) {
-      if (next in parent) continue;
-      parent[next] = key;
-      children[key].push(next);
-      children[next] = [];
-      family.push(next);
+  // goes outwards from a root one level at a time (breadth first). a node's parent is whichever one
+  // found it first
+  const parent = {};
+  const children = {};
+  const roots = [];
+  const grow = (root) => {
+    parent[root] = null;
+    children[root] = [];
+    roots.push(root);
+    const family = [root];
+    for (const key of family) {
+      for (const next of linked[key]) {
+        if (next in parent) continue;
+        parent[next] = key;
+        children[key].push(next);
+        children[next] = [];
+        family.push(next);
+      }
     }
-  }
+  };
+  grow(startKey);
+  if (everyone) for (const key of Object.keys(found)) if (!(key in parent)) grow(key);
+  const family = Object.keys(parent);
 
   // how much room each branch needs, in spaces across (a box plus a gap) and rows down. children go in
   // rows of up to maxPerRow, and each row goes below everything hanging off the row before. the
@@ -147,8 +194,15 @@ function warpFamily(mapName, warpName) {
       row += band.depth;
     }
   };
-  measure(startKey);
-  place(startKey, 0, 0);
+  // the start's tree in the middle, and any others in a line to its right, half a space apart so they
+  // read as separate
+  let right = null;
+  for (const root of roots) {
+    measure(root);
+    const x = right === null ? 0 : right + 0.5 + size[root].left;
+    place(root, x, 0);
+    right = x + size[root].right;
+  }
 
   const nodes = {};
   for (const key of family) {
@@ -180,12 +234,22 @@ const WarpGraph = {
   // back when this closes
   active: false,
 
+  // the warps linked to one, from its settings box
   open(mapName, warpName) {
+    const family = warpFamily(mapName, warpName);
+    this.show(`Warps linked to ${warpName} (${family.nodes.length - 1})`, family);
+  },
+
+  // every map, from Map > World map, starting from mapName
+  openWorld(mapName) {
+    const family = mapFamily(mapName);
+    this.show(`World map (${family.nodes.length} maps)`, family);
+  },
+
+  show(title, family) {
     this.active = true;
     const add = (element) => UI.add(Object.assign(element, { group: 'warp-graph' }));
-    const family = warpFamily(mapName, warpName);
-    const title = `Warps linked to ${warpName} (${family.nodes.length - 1})`;
-    add(new WarpGraphView({ x: 0, y: 0, w: GAME_W, h: GAME_H, title, family }));
+    add(new WarpGraphView({ x: 0, y: 0, w: GAME_W, h: GAME_H, title, family, onPick: (node) => this.goTo(node) }));
     add(new Button({ x: GAME_W - 88, y: 12, w: 76, h: 24, label: 'Close', style: 'editor', onClick: () => this.close() }));
   },
 
@@ -194,10 +258,19 @@ const WarpGraph = {
     UI.removeGroup('warp-graph');
   },
 
-  // every frame while it's open, from Editor.update(). the settings box underneath has Input.typing
+  // a box was clicked: closes this (and the warp's settings box under it, unsaved) and goes to its warp,
+  // or its map's spawn, in the editor
+  goTo(node) {
+    this.close();
+    if (FormBox.active) FormBox.close();
+    const warp = node.name ? getMap(node.map).warp(node.name) : null;
+    Editor.goToMap(node.map, warp?.col ?? null, warp?.row ?? null);
+  },
+
+  // every frame while it's open, from Editor.update(). opened from a settings box, that has Input.typing
   // on, so Escape comes through as typed
   update() {
-    if (Input.typed.includes('Escape')) this.close();
+    if (Input.typed.includes('Escape') || Input.wasPressed('escape')) this.close();
   },
 };
 
@@ -209,6 +282,8 @@ class WarpGraphView extends UIElement {
     this.family = options.family;
     this.byKey = Object.fromEntries(this.family.nodes.map((node) => [node.key, node]));
     this.title = options.title;
+    // runs with the node that's clicked (WarpGraph.goTo())
+    this.onPick = options.onPick;
     // where the graph's (0, 0) is on screen, and the zoom. it starts in the middle under the title,
     // zoomed out to fit (but never zoomed in, and never out past startZoom). if it still doesn't fit
     // it starts at the top on the warp it was opened from (the graph's (0, 0), warpFamily())
@@ -236,12 +311,20 @@ class WarpGraphView extends UIElement {
     this.hovered = hovered;
     const mouse = Input.mouse;
 
-    // dragging moves it around
-    if (hovered && Input.buttonsPressed.has('left')) this.dragFrom = { x: mouse.x, y: mouse.y };
+    // dragging moves it around. dragged is how far, so a click that wobbles a little is still a click
+    if (hovered && Input.buttonsPressed.has('left')) {
+      this.dragFrom = { x: mouse.x, y: mouse.y };
+      this.dragged = 0;
+    }
+    // a click (let go without dragging) on a box goes there. after the press, since a quick click can
+    // press and let go in the same frame
+    const picked = this.dragFrom && this.dragged < 5 && !Input.buttonsHeld.has('left') && hovered ? this.nodeAt(mouse) : null;
+    if (picked && !picked.missing) return this.onPick(picked);
     if (!Input.buttonsHeld.has('left')) this.dragFrom = null;
     if (this.dragFrom) {
       this.panX += mouse.x - this.dragFrom.x;
       this.panY += mouse.y - this.dragFrom.y;
+      this.dragged += Math.abs(mouse.x - this.dragFrom.x) + Math.abs(mouse.y - this.dragFrom.y);
       this.dragFrom = { x: mouse.x, y: mouse.y };
     }
 
@@ -253,15 +336,16 @@ class WarpGraphView extends UIElement {
       this.zoom = zoom;
     }
 
-    // which box the mouse is over, in graph positions. none while dragging, so the preview doesn't get
-    // in the way
-    this.hoveredNode = null;
-    if (hovered && !this.dragFrom) {
-      const x = (mouse.x - this.panX) / this.zoom;
-      const y = (mouse.y - this.panY) / this.zoom;
-      this.hoveredNode = this.family.nodes.find((node) =>
-        Math.abs(x - node.x) < WARP_GRAPH.nodeWidth / 2 && Math.abs(y - node.y) < WARP_GRAPH.nodeHeight / 2) ?? null;
-    }
+    // which box the mouse is over. none while dragging, so the preview doesn't get in the way
+    this.hoveredNode = hovered && !this.dragFrom ? this.nodeAt(mouse) : null;
+  }
+
+  // the box at a screen position, or null
+  nodeAt({ x, y }) {
+    const graphX = (x - this.panX) / this.zoom;
+    const graphY = (y - this.panY) / this.zoom;
+    return this.family.nodes.find((node) =>
+      Math.abs(graphX - node.x) < WARP_GRAPH.nodeWidth / 2 && Math.abs(graphY - node.y) < WARP_GRAPH.nodeHeight / 2) ?? null;
   }
 
   draw() {
@@ -301,7 +385,7 @@ class WarpGraphView extends UIElement {
     text(this.title, 16, 28);
     fill(255, 255, 255, 150);
     setText(13, NORMAL, LEFT, CENTER);
-    text('Drag to move around, wheel to zoom, hover over a warp to see where it is, Escape to close', 16, 52);
+    text('Drag to move around, wheel to zoom, hover over a box to see it, click to go there, Escape to close', 16, 52);
 
     // missing ones don't have anything to show
     if (this.hoveredNode && !this.hoveredNode.missing) this.drawPreview(this.hoveredNode);
@@ -371,7 +455,8 @@ class WarpGraphView extends UIElement {
 }
 
 // a warp's box centred on x, y: a yellow edge for the start one, red for a missing one, and purple
-// for the rest (warps.js). words says whether to draw its name and map (skipped when it's too small)
+// for the rest (warps.js). words says whether to draw its name and map (skipped when it's too small).
+// the world map's boxes have their own label and note (mapFamily())
 function drawWarpNode(node, words) {
   const { nodeWidth: w, nodeHeight: h } = WARP_GRAPH;
   fill(EDITOR_COLOURS.bar); // editor.js
@@ -382,11 +467,11 @@ function drawWarpNode(node, words) {
   if (!words) return;
   noStroke();
   fill(255);
-  setText(14, node.name ? BOLD : ITALIC, CENTER, CENTER);
-  text(node.name || 'spawn point', node.x, node.y - 8);
+  setText(14, node.name || node.label ? BOLD : ITALIC, CENTER, CENTER);
+  text(fitText(node.label ?? (node.name || 'spawn point'), w - 12), node.x, node.y - 8);
   fill(255, 255, 255, 150);
   setText(11, NORMAL, CENTER, CENTER);
-  text(node.missing ? `${node.map} (missing)` : node.map, node.x, node.y + 10);
+  text(node.note ?? (node.missing ? `${node.map} (missing)` : node.map), node.x, node.y + 10);
 }
 
 // the tree line from a parent to a child: down from the middle of the parent, across just above the

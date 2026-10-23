@@ -1,10 +1,11 @@
 // the map editor: paint tiles and place objects, enemies, npcs, items and triggers on the current map.
-// turn on dev mode (` or Ctrl + D), then press B (for build). the guide for using it is
-// assets/squimble-quest/maps/README.md.
+// press B (for build), which works for anyone whose role can build (ROLES in config.js, with or
+// without dev mode). the guide for using it is assets/squimble-quest/maps/README.md.
 //
 // it's laid out like a game engine:
 //   - the menu bar along the top (editormenu.js): File (new, open, save, recover), Edit (undo, copy and
-//     paste), View, Map (resize, atmosphere, problems, art), Tools and Help, with every command's key.
+//     paste), View, Map (resize, atmosphere, world map, find uses, problems, art), Tools and Help, with
+//     every command's key.
 //     Play and Play here in the middle, and the map's name and size on the right (a yellow dot while
 //     it's unsaved, edithistory.js)
 //   - the tool strip down the left (edittools.js): Paint, Erase, Fill, Rectangle, Select and Pick, the
@@ -14,6 +15,10 @@
 //     one), and the inspector under it showing what's picked
 //   - the status bar along the bottom: the tile under the mouse, what clicking will do, the selection,
 //     the brush and the zoom
+//   - the minimap in the bottom left corner of the view (EditorMinimap): click or drag it to move
+//
+// resting the mouse on an enemy spawn shows the ranges it notices you from and the floor it can see
+// (drawEnemySenses())
 //
 // while it's open:
 //   - everyone stops, and WASD / the arrows move the camera. the ui fades out while you move and comes
@@ -56,7 +61,9 @@
 //     Open (from a file), Save as (to a file), Resize (never smaller than the area with tiles), and
 //     Atmosphere (the map's fog, colour, weather and background sound, atmosphere.js)
 //   - Space closes the editor and plays from the mouse. opening it again goes back to where you were
-//   - dev mode keys still work (zoom, teleport, next map), and H lists them
+//   - zoom, G and P work with or without dev mode. in dev mode its keys work too (teleport, next map),
+//     and View > Dev menu lists them. dev mode's info panel is hidden unless View > Dev info panel is
+//     ticked, since the status bar and menu bar already show the map, mouse and zoom
 //
 // new tiles and catalogue entries show up in the palette by themselves. changes are made to the
 // current map, and pressing M to go away and back keeps them. reloading rebuilds the maps from their
@@ -287,6 +294,8 @@ const Editor = {
     // goes between those and the inspector
     const gridY = dockY + L.tabHeight + L.searchHeight + L.recentHeight;
     this.palette = add(new PaletteGrid({ x: dockX, y: gridY, w: L.dockWidth, h: inspectorY - gridY }));
+    // the whole map, small, in the bottom left (View > Minimap). it places itself each frame
+    add(new EditorMinimap());
     // the menu bar's open menu, which goes on top of everything when it opens (editormenu.js)
     this.menuBar.list = add(new EditorMenuList({ bar: this.menuBar }));
 
@@ -402,6 +411,13 @@ const Editor = {
     this.flash = { col, row, until: millis() + 1600 };
   },
 
+  // the same on any map, going to it first if it's another (the warp graph and world map, Find uses,
+  // Check every map). with no tile it's wherever loadMap() arrives, the map's spawn
+  goToMap(name, col = null, row = null) {
+    if (name !== worldMap.name) loadMap(name); // sketch.js
+    if (col !== null) this.goTo(col, row);
+  },
+
   // Play here (Space, Help > Play here, or the button next to Play): with the mouse on the map it
   // plays from there straight away, otherwise (it's on a menu or button) the next click on the map
   // picks where
@@ -452,7 +468,11 @@ const Editor = {
   },
 
   open(player, camera) {
+    // every way in comes through here, so this is the one check (ROLES in config.js)
+    if (!player.can('build')) return;
     this.active = true;
+    // the editor has its own bars, so the dev menu would only be in the way (View > Dev menu opens it)
+    Debug.menu.visible = false;
     // nothing from the game keeps playing while you edit, except what you press Play on (sound.js)
     Sound.stopAll();
     // the dialogue text box would be in the way (dialogue.js)
@@ -604,8 +624,9 @@ const Editor = {
     // alpha back straight away, otherwise a box opened while faded (like placing a warp just after
     // moving) would be invisible. the warp graph sits on top of a warp's box and takes over until it
     // closes (warpgraph.js)
-    // the sound editor covers everything and takes over until it closes (soundeditor.js)
-    const boxOpen = SoundEditor.active || FormBox.active;
+    // the sound editor covers everything and takes over until it closes (soundeditor.js), and so does
+    // the world map (the warp graph without a box under it)
+    const boxOpen = SoundEditor.active || FormBox.active || WarpGraph.active;
     if (boxOpen) {
       this.uiAlpha = 1;
       this.stillFor = EDITOR_UI_FADE.showDelay;
@@ -1225,6 +1246,9 @@ const Editor = {
     // a sound block under the mouse shows how far away it can be heard
     const sound = map.soundAt(col, row);
     if (sound) drawSoundRange(sound, px);
+    // and an enemy shows where it'd notice you from
+    const enemy = map.spawnsAt('enemy', col, row)[0];
+    if (enemy) drawEnemySenses(map, enemy, px);
 
     // spawn: a preview of its ring, plus the tile outline further down
     if (tool === 'paint' && this.isSelected('trigger', 'spawn')) {
@@ -1365,6 +1389,177 @@ class EditorStatusBar extends UIElement {
     text(fitText(statusHint(), this.w - 190 - textWidth(rightText) - 30), this.x + 190, middleY);
     textAlign(RIGHT, CENTER);
     text(rightText, this.x + this.w - 10, middleY);
+  }
+}
+
+// the rings round an enemy spawn under the mouse in the editor (drawEnemySenses()), each one of its
+// ENEMY_SPAWN_STATS (enemies.js) in px, smallest first
+const ENEMY_SENSE_RINGS = [
+  { key: 'attackRange', label: 'attacks', colour: '#ff6b6b' },
+  { key: 'hearing', label: 'hears you', colour: '#6bb5ff' },
+  { key: 'alertRange', label: 'alerts allies', colour: '#ffb347' },
+  { key: 'sightRange', label: 'sees you', colour: '#ffd23f' },
+  { key: 'chaseRange', label: 'gives up past', colour: '#c9a0ff', dashed: true },
+];
+
+// how an enemy spawn notices you, round its feet where sensePlayer() (enemies.js) measures from: a ring
+// for each ENEMY_SENSE_RINGS stat (its own, or its kind's), labelled at the top, and the floor it can
+// see lit up, since walls block sight (clearLine(), tilemap.js) but not hearing. so you can see where a
+// player would get spotted while placing it
+function drawEnemySenses(map, spawn, px) {
+  const type = ENEMY_TYPES[spawn.type];
+  if (!type) return;
+  const stat = (key) => spawn.stats?.[key] ?? type[key];
+  const centre = standingOnTile(type, spawn.col, spawn.row); // character.js
+  const feet = { x: centre.x, y: centre.y + feetBelowCentre(type) };
+
+  // the floor in its sight range, lit where it can see (from its feet to each tile's middle) and
+  // darkened where a wall hides it, which is where a player can sneak past
+  const sight = stat('sightRange');
+  const reach = Math.ceil(sight / TILE);
+  noStroke();
+  for (let row = spawn.row - reach; row <= spawn.row + reach; row++) {
+    for (let col = spawn.col - reach; col <= spawn.col + reach; col++) {
+      const x = (col + 0.5) * TILE;
+      const y = (row + 0.5) * TILE;
+      if (map.isSolid(col, row) || Math.hypot(x - feet.x, y - feet.y) > sight) continue;
+      if (map.clearLine(feet.x, feet.y, x, y)) fill(255, 210, 63, 40);
+      else fill(0, 0, 40, 110);
+      rect(col * TILE, row * TILE, TILE, TILE);
+    }
+  }
+
+  setText(11 * px, BOLD, CENTER, BOTTOM);
+  // where labels went, so rings the same size (sight and chase range often are) don't write over each
+  // other
+  const labels = [];
+  for (const ring of ENEMY_SENSE_RINGS) {
+    const radius = stat(ring.key);
+    if (!radius) continue;
+    noFill();
+    stroke(ring.colour);
+    strokeWeight(1.5 * px);
+    if (ring.dashed) drawingContext.setLineDash([6 * px, 5 * px]);
+    circle(feet.x, feet.y, radius * 2);
+    drawingContext.setLineDash([]);
+    noStroke();
+    fill(0, 0, 0, 170);
+    const words = `${ring.label} ${Math.round(radius / TILE * 10) / 10} tiles`;
+    let bottom = feet.y - radius - 2 * px;
+    while (labels.some((other) => Math.abs(other - bottom) < 14 * px)) bottom += 14 * px;
+    labels.push(bottom);
+    rect(feet.x - textWidth(words) / 2 - 3 * px, bottom - 12 * px, textWidth(words) + 6 * px, 13 * px, 2 * px);
+    fill(ring.colour);
+    text(words, feet.x, bottom);
+  }
+}
+
+// the minimap's size, in screen px. it keeps the map's shape inside maxWidth x maxHeight, with each
+// tile at most maxTile across so small maps (the hut) stay small
+const MINIMAP = { maxWidth: 180, maxHeight: 120, maxTile: 4, margin: 8, redrawEvery: 0.25 };
+
+// the whole map, small, in the bottom left corner (View > Minimap, ticked in Debug.show): every tile in
+// its colour, then the warps (purple), the spawn (yellow), enemies (red) and npcs (green), and a box round
+// what's on screen. click or drag on it to move the view there. it sizes itself to the map each frame
+class EditorMinimap extends UIElement {
+  constructor(options) {
+    super(options);
+    // one pixel per tile, made again every redrawEvery seconds so painting shows up (redraw())
+    this.canvas = document.createElement('canvas');
+    this.drawnAt = -Infinity;
+    this.dragging = false;
+  }
+
+  contains(px, py) {
+    return Debug.show.minimap && super.contains(px, py);
+  }
+
+  update(hovered) {
+    this.hovered = hovered;
+    const map = worldMap; // sketch.js
+    const M = MINIMAP;
+    this.scale = Math.min(M.maxTile, M.maxWidth / map.cols, M.maxHeight / map.rows);
+    this.w = Math.ceil(map.cols * this.scale);
+    this.h = Math.ceil(map.rows * this.scale);
+    this.x = EDITOR_LAYOUT.toolStripWidth + M.margin;
+    this.y = GAME_H - EDITOR_LAYOUT.statusHeight - M.margin - this.h;
+
+    // moves on the frame it's let go too, so a quick click (or the end of a fast drag) still lands
+    if (hovered && Input.buttonsPressed.has('left')) this.dragging = true;
+    if (this.dragging) {
+      const bounds = map.bounds();
+      Editor.view.x = constrain(this.toWorld(Input.mouse.x - this.x, map.left), bounds.left, bounds.right);
+      Editor.view.y = constrain(this.toWorld(Input.mouse.y - this.y, map.top), bounds.top, bounds.bottom);
+    }
+    if (!Input.buttonsHeld.has('left')) this.dragging = false;
+  }
+
+  // screen px across the minimap to a world position, and back. first is the map's left or top
+  toWorld(px, first) {
+    return (px / this.scale + first) * TILE;
+  }
+
+  toScreen(world, first) {
+    return (world / TILE - first) * this.scale;
+  }
+
+  // ponytail: draws every tile again every redrawEvery seconds instead of noticing changes. a 500 x 500
+  // map is 250,000 tiles, a few ms; EditHistory's designKey() could say when if it ever shows
+  redraw(map) {
+    this.canvas.width = map.cols;
+    this.canvas.height = map.rows;
+    const pen = this.canvas.getContext('2d');
+    const pixels = pen.createImageData(map.cols, map.rows);
+    // each tile kind's colour as [r, g, b, a] once, from its colour setting (tiles.js). empty tiles stay
+    // see-through
+    const colours = {};
+    map.tiles.forEach((name, i) => {
+      if (name === null) return;
+      const fill = TILE_TYPES[name]?.fill;
+      colours[name] ??= fill ? [red(fill), green(fill), blue(fill), 255] : [255, 0, 255, 255];
+      pixels.data.set(colours[name], i * 4);
+    });
+    pen.putImageData(pixels, 0, 0);
+    this.drawnAt = millis();
+    this.drawnMap = map;
+  }
+
+  draw() {
+    if (!Debug.show.minimap) return;
+    const map = worldMap;
+    if (map !== this.drawnMap || millis() - this.drawnAt > MINIMAP.redrawEvery * 1000) this.redraw(map);
+    const C = EDITOR_COLOURS;
+    const { x, y, w, h } = this;
+    noStroke();
+    fill(C.well);
+    rect(x - 3, y - 3, w + 6, h + 6, 3);
+    // pixel sharp when it's bigger than the map, smooth when it's squashing a big map down
+    drawingContext.imageSmoothingEnabled = this.scale < 1;
+    drawingContext.drawImage(this.canvas, x, y, w, h);
+    drawingContext.imageSmoothingEnabled = false;
+
+    // a dot in the middle of a tile
+    const dot = (col, row, colour, size = 3) => {
+      fill(colour);
+      rect(x + (col - map.left + 0.5) * this.scale - size / 2, y + (row - map.top + 0.5) * this.scale - size / 2, size, size);
+    };
+    for (const warp of map.warps) dot(warp.col, warp.row, WARP_COLOURS.edge);
+    for (const spawn of map.enemySpawns) dot(spawn.col, spawn.row, C.erase);
+    for (const spawn of map.npcSpawns) dot(spawn.col, spawn.row, '#7bd88f');
+    dot(map.colAt(map.spawn.x), map.rowAt(map.spawn.y + feetBelowCentre(PLAYER)), C.picked, 4);
+
+    // what's on screen, kept inside the minimap
+    const view = gameCamera.view(); // sketch.js
+    const left = constrain(this.toScreen(view.left, map.left), 0, w);
+    const top = constrain(this.toScreen(view.top, map.top), 0, h);
+    const right = constrain(this.toScreen(view.right, map.left), 0, w);
+    const bottom = constrain(this.toScreen(view.bottom, map.top), 0, h);
+    noFill();
+    stroke(255);
+    strokeWeight(1);
+    rect(x + left + 0.5, y + top + 0.5, Math.max(1, right - left - 1), Math.max(1, bottom - top - 1));
+    stroke(this.hovered || this.dragging ? C.accent : C.edge);
+    rect(x - 2.5, y - 2.5, w + 5, h + 5, 3);
   }
 }
 
