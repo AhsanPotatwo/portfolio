@@ -322,6 +322,9 @@ const FOLDERS = {
   'voice-oohs-2': { gm: 'voice_oohs', font: 'musyng', low: 41, high: 84, loop: true },
   'synth-choir': { gm: 'synth_choir', font: 'musyng', low: 41, high: 84, loop: true },
   rhodes: { gm: 'electric_piano_1', font: 'musyng', low: 33, high: 100 },
+  // ----- the spiral round: a small orchestra's colours -----
+  // vsco's piccolo, the flute an octave up that glitters over an orchestra's loudest bars
+  piccolo: { from: 'vsco', shift: 1, dir: 'Woodwinds/Piccolo/Sus/', match: /^piccolo_([A-G]#?\d)_sustain1\.wav$/, loop: true, seconds: 4 },
 };
 
 // a kit's hits: [file, loudness]. vrr() spells out a set of takes: {v} and {r} in the name are the
@@ -505,6 +508,14 @@ const KITS = {
   crows: { from: 'fs-crows', hits: { event: [['56/56233_91374-hq.mp3', 0.8, { split: { most: 4, longest: 4 } }], ['386/386768_5768130-hq.mp3', 0.8, { split: { most: 4, longest: 4 } }]] } },
   footsteps: { from: 'fs-footsteps', hits: { event: [['415/415783_6702737-hq.mp3', 0.8, { chop: { most: 6, length: 5 } }]] } },
   steam: { from: 'fs-steam', hits: { event: [['457/457294_300738-hq.mp3', 0.8, { split: { most: 2, longest: 7 } }], ['365/365071_6639672-hq.mp3', 0.8, { chop: { most: 1, length: 8 } }]] } },
+  // mark trees (a row of little chimes) brushed downwards: the shimmer an orchestra marks a new section
+  // or a key change with
+  'spell-percussion': {
+    from: 'vcsl',
+    hits: {
+      'mark-tree': [['Idiophones/Struck Idiophones/Mark Trees/Legacy/windchimes_desc1.wav', 0.7], ['Idiophones/Struck Idiophones/Mark Trees/Legacy/windchimes_slowDesc1.wav', 0.8]],
+    },
+  },
 };
 
 // ---------- notes ----------

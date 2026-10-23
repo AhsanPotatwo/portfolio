@@ -650,6 +650,8 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 @media (max-width:600px){
   .mm-bar, .mm-moods-wrap, .mm-transport, .mm-remix{ padding-left:14px; padding-right:14px; }
   .mm-moods{ grid-template-columns:repeat(auto-fill,minmax(98px,1fr)); }
+  /* (the longest names, Underwater and Mysterious, only just fit three to a row) */
+  .mm-mood{ padding:0 6px; gap:5px; }
   .mm-style{ width:100%; }
   .mm-style .mm-key{ flex:1; padding:0 6px; }
   .mm-score-wrap{ margin:0 14px; }

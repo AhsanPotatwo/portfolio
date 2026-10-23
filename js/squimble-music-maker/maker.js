@@ -844,7 +844,8 @@
     const composers = [
       [1, 'Up to 21 Oct', 'The composer up to 21 October. Songs saved before the 22nd'],
       [1.5, '22 Oct, morning', 'The composer of the morning of 22 October, when each flavour got its own way of writing tunes. Songs saved then open as the one before: pick this if one sounds different from how you saved it'],
-      [COMPOSER, "Today's", "Today's composer, with key changes and longer songs. Every new song is written by it"],
+      [2, 'Up to 23 Oct', 'The composer of 22 and 23 October, with key changes and longer songs. Songs saved then are written by it'],
+      [COMPOSER, "Today's", "Today's composer, with the magic worlds' themes coming in one at a time and meeting. Every new song is written by it"],
     ];
     const composer = section('Composer',
       field('Written by', choices(composers, () => song.composer || 1, (value) => edit(() => {

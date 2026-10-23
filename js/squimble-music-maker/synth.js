@@ -296,6 +296,8 @@ const INSTRUMENTS = {
   // blown and bowed leads drift as they're held (breath is never steady), blown ones start with a puff
   // (chiff), and each says what its players' ornaments are
   flute:         { name: 'Flute', family: 'lead', edge: 0.15, world: 'acoustic', kind: 'sub', osc: [['sine', 0], ['triangle', 2, 1, 0.12], ['sine', 0, 2, 0.04]], breath: 0.35, chiff: 0.35, env: [0.09, 0.3, 0.85, 0.5], scoop: 15, drift: 4, gain: 0.19, vibrato: { rate: 5, depth: 12, delay: 0.35 }, ornaments: { grace: 0.2, slide: 0.06, trill: 0.06, swell: 0.15 }, samples: 'flute', sampled: { gain: 2.5 } },
+  // the flute an octave up (octave), glittering over an orchestra. only where a mood names it
+  piccolo:       { name: 'Piccolo', family: 'lead', edge: 0.3, world: 'acoustic', own: true, octave: 1, kind: 'sub', osc: [['sine', 0], ['triangle', 2, 1, 0.08]], breath: 0.3, chiff: 0.4, env: [0.06, 0.25, 0.85, 0.4], scoop: 12, drift: 4, gain: 0.16, vibrato: { rate: 5.5, depth: 10, delay: 0.3 }, ornaments: { grace: 0.25, trill: 0.1, swell: 0.1 }, samples: 'piccolo', sampled: { gain: 0.9 } },
   ocarina:       { name: 'Ocarina', family: 'lead', edge: 0.15, world: 'acoustic', kind: 'sub', osc: [['soft', 0]], breath: 0.15, chiff: 0.2, filter: { freq: 2500, q: 0.4 }, env: [0.05, 0.3, 0.8, 0.45], scoop: 10, drift: 3, gain: 0.21, vibrato: { rate: 5.5, depth: 8, delay: 0.3 }, ornaments: { grace: 0.12, slide: 0.08, swell: 0.15 }, samples: 'ocarina', sampled: { name: 'Ocarina (FluidR3)', gain: 0.39 }, more: { 'clay-ocarina': { name: 'Clay ocarina (VCSL)', gain: 0.71 } } },
   'soft-lead':   { name: 'Soft lead', family: 'lead', edge: 0.2, kind: 'sub', osc: [['triangle', -3], ['triangle', 4]], filter: { freq: 1800, q: 0.6, track: 0.5 }, env: [0.04, 0.4, 0.75, 0.6], scoop: 8, gain: 0.16, vibrato: { rate: 5, depth: 6, delay: 0.4 }, ornaments: { slide: 0.12, glide: 0.08, swell: 0.15 } },
   // a moog's lead, the voyager c418 played: two saws and a square an octave down through its ladder
@@ -616,6 +618,28 @@ const INSTRUMENTS = {
   'gamelan-kit': { name: 'Kendang and gong', family: 'kit', world: 'acoustic', own: true, kind: 'drums', gong: 4, suits: ['tribal', 'march', 'pulse', 'sparse', 'halftime', 'maqsum'], slots: [
     { voice: 'tom', tune: 90, decay: 0.4, gain: 0.7, hit: 'world-percussion/darbuka-1', level: 0.42 }, { voice: 'conga', tune: 300, decay: 0.15, gain: 0.4, hit: 'world-percussion/darbuka-5', level: 5.7 }, { voice: 'tick', tune: 4000, decay: 0.05, gain: 0.12, hit: 'world-percussion/finger-cymbals', level: 7 },
     { voice: 'tick', tune: 2500, decay: 0.4, gain: 0.12, hit: 'world-percussion/hand-bells', level: 2.6 }, { voice: 'rim', tune: 1000, decay: 0.05, gain: 0.25, hit: 'world-percussion/darbuka-2', level: 0.47 }, { voice: 'tom', tune: 120, decay: 0.3, gain: 0.45, hit: 'world-percussion/frame-high', level: 4.9 },
+    { voice: 'gong', tune: 90, decay: 4, gain: 0.3, hit: 'orchestra-kit/gong', level: 0.15 }] },
+
+  // the spiral's kits (the magic moods in music.js), from hits recorded for other kits. levels as those
+  // kits have them, the new ones measured against their neighbours' (the sistrum against the tambourine,
+  // the mark tree against the orchestra's cymbal)
+  // a wizard school's: the orchestra's bass drum, snare and timpani, a triangle for the hat, sleigh
+  // bells, hand bells, and mark trees shimmering down where a cymbal would crash
+  'spell-kit': { name: 'Enchanted percussion', family: 'kit', world: 'acoustic', own: true, kind: 'drums', suits: ['march', 'pulse', 'sparse', 'halftime', 'tribal'], slots: [
+    { voice: 'taiko', tune: 45, decay: 1.1, gain: 0.9, hit: 'orchestra-kit/bass-drum', level: 0.66 }, { voice: 'snare', tune: 200, tone: 2200, decay: 0.2, gain: 0.5, hit: 'orchestra-kit/snare', level: 2 }, { voice: 'hat', tone: 9000, decay: 0.15, gain: 0.13, hit: 'percussion/triangle', level: 0.1 },
+    { voice: 'shaker', tone: 7000, decay: 0.1, gain: 0.14, hit: 'world-percussion/sleigh-bells', level: 1.4 }, { voice: 'tick', tune: 2500, decay: 0.4, gain: 0.12, hit: 'world-percussion/hand-bells', level: 2.6 }, { voice: 'tom', tune: 70, decay: 0.9, gain: 0.6, hit: 'orchestra-kit/timpani', level: 4.1, at: 70 },
+    { voice: 'crash', tone: 9000, decay: 2.5, gain: 0.14, hit: 'spell-percussion/mark-tree', level: 0.2 }] },
+  // a pharaoh's court played by an orchestra: hand drums, a darbuka's tek, a sistrum scraping (the hat),
+  // a tambourine, a triangle, timpani and a tam-tam for the crash
+  'palace-kit': { name: 'Palace percussion', family: 'kit', world: 'acoustic', own: true, kind: 'drums', suits: ['march', 'maqsum', 'tribal', 'sparse', 'pulse', 'halftime', 'groove'], slots: [
+    { voice: 'tom', tune: 75, decay: 0.35, gain: 0.75, hit: 'percussion/tumba', level: 0.48, at: 75 }, { voice: 'rim', tune: 900, decay: 0.06, gain: 0.35, hit: 'world-percussion/darbuka-4', level: 1.5 }, { voice: 'shaker', tone: 6500, decay: 0.12, gain: 0.14, hit: 'world-percussion/sistrum', level: 0.09 },
+    { voice: 'shaker', tone: 5500, decay: 0.22, gain: 0.18, hit: 'percussion/tambourine', level: 0.51 }, { voice: 'tick', tune: 1800, decay: 0.12, gain: 0.2, hit: 'percussion/triangle', level: 1.5 }, { voice: 'tom', tune: 70, decay: 0.9, gain: 0.6, hit: 'orchestra-kit/timpani', level: 4.1, at: 70 },
+    { voice: 'gong', tune: 90, decay: 4, gain: 0.3, hit: 'orchestra-kit/gong', level: 0.15 }] },
+  // the jade palace's: deep taiko, wooden blocks for the snare, finger cymbals for the hat, hand bells,
+  // claves, and a gong for the crash
+  'jade-kit': { name: 'Jade palace drums', family: 'kit', world: 'acoustic', own: true, kind: 'drums', suits: ['tribal', 'march', 'pulse', 'sparse', 'halftime'], slots: [
+    { voice: 'taiko', tune: 58, decay: 0.9, gain: 0.95, hit: 'orchestra-kit/taiko', level: 0.47, at: 58 }, { voice: 'tick', tune: 700, decay: 0.08, gain: 0.3, hit: 'orchestra-kit/woodblock', level: 1 }, { voice: 'tick', tune: 3000, decay: 0.2, gain: 0.15, hit: 'world-percussion/finger-cymbals', level: 13 },
+    { voice: 'tick', tune: 2500, decay: 0.4, gain: 0.12, hit: 'world-percussion/hand-bells', level: 2.6 }, { voice: 'rim', tune: 1000, decay: 0.05, gain: 0.3, hit: 'percussion/claves', level: 0.68 }, { voice: 'taiko', tune: 85, decay: 0.6, gain: 0.75, hit: 'orchestra-kit/taiko', level: 0.71, at: 58 },
     { voice: 'gong', tune: 90, decay: 4, gain: 0.3, hit: 'orchestra-kit/gong', level: 0.15 }] },
 
   // textures: scenery, mostly things that happen now and then with quiet between (a steady wash was

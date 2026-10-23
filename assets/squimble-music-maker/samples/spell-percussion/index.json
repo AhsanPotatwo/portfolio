@@ -1,0 +1,17 @@
+{
+ "source": "Versilian Community Sample Library (Versilian Studios)",
+ "link": "https://github.com/sgossner/VCSL",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "mark-tree-1.mp3",
+   "hit": "mark-tree",
+   "vel": 0.7
+  },
+  {
+   "file": "mark-tree-2.mp3",
+   "hit": "mark-tree",
+   "vel": 0.8
+  }
+ ]
+}

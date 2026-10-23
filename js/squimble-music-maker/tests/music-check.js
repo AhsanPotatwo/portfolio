@@ -116,7 +116,7 @@ for (const seed of ['mossy-lantern', 'quiet-tide', 'rusty-tower', 'x']) {
 }
 
 // a band that fits (fitBand, pickInstrument and the moods in music.js, and the README's rules)
-const { INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries, builds } = vm.runInContext('({ INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries, builds })', page);
+const { INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries, builds, weaves } = vm.runInContext('({ INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries, builds, weaves })', page);
 // every tonal instrument has an edge: the organ had none, so it never fitted under any cap
 for (const [id, inst] of Object.entries(INSTRUMENTS)) if (inst.family !== 'kit' && inst.family !== 'texture') assert(Number.isFinite(inst.edge), `${id} has an edge`);
 // every instrument a mood names is real, and every drum pattern has a groove in every time signature
@@ -183,8 +183,8 @@ for (const [mood, kind] of VARIANTS) {
         // no blinking: the melody doesn't sit out one section between two it plays in, apart from a C break
         // or another layer's solo
         const on = song.sections.map((s) => s.play.includes('melody'));
-        // (or where it's handed the tune to another player, orchestration)
-        const taker = song.layers.find((l) => l.role === 'counter' && carries(l));
+        // (or where it's handed the tune to another player, orchestration, or a weave's second theme has it)
+        const taker = song.layers.find((l) => l.role === 'counter' && (carries(l) || (weaves(song) && l.pattern === 'counterpoint')));
         for (let i = 1; i < on.length - 1; i++) assert(!(on[i - 1] && !on[i] && on[i + 1]) || song.sections[i].part === 'C' || song.sections[i].lead || song.sections[i].play.includes(taker?.id), `${where}: the melody doesn't drop out of section ${i} and back`);
         // no holes mid phrase: phrases are near legato, calls rest for at most half a bar, and
         // fragments leave two bars of space at most
@@ -580,7 +580,7 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
   for (const file of ['synth.js', 'kept/composer-1.js', 'music.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), kept);
   const run = (expr) => vm.runInContext(expr, kept);
   const song = run("generateSong('bleak', 'tune', 'frosted-waffle', [], 'postrock')");
-  assert.strictEqual(song.composer, 2, 'a new song is stamped with the composer that made it');
+  assert.strictEqual(song.composer, run('COMPOSER'), 'a new song is stamped with the composer that made it');
   same(run('composeSong')(song).notes, composeSong(song).notes, "a new song plays with today's composer");
   const saved = JSON.parse(JSON.stringify(song));
   delete saved.composer;
@@ -1170,4 +1170,46 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
   bass.pattern = 'held';
   assert.strictEqual(rerollLayerPart(cleanSong(song), bass.id, 'B', 1), null, 'a held bass has nothing new to write');
   assert(!('partSeeds' in cleanSong({ layers: [{ role: 'melody', partSeeds: { B: 5, D: 'x' } }] }).layers[0]), 'junk part seeds are dropped');
+}
+
+// weaves (wizard101's marleybone): the tune alone, the second theme alone, then both, a trio where the
+// bells carry the tune with no drums, and everyone at the climax. the second theme is the same line
+// alone as when it meets the tune (a few notes may change on a later time round, as any tune's do), and
+// a mood without a weave chance never weaves
+{
+  const { weaves } = vm.runInContext('({ weaves })', page);
+  let woven = 0;
+  for (const mood of Object.keys(MOODS)) {
+    for (const style of ['tune', 'loop']) {
+      for (const seed of ['mossy-lantern', 'quiet-tide', 'x', 'brave-teacup']) {
+        const where = `${mood} ${style} ${seed}`;
+        const song = generateSong(mood, style, seed);
+        if (!MOODS[mood].weave) {
+          assert(!weaves(song), `${where}: only a mood with a weave chance weaves`);
+          continue;
+        }
+        if (!weaves(song)) continue;
+        woven++;
+        assert(song.layers.length <= 7, `${where}: a weave keeps to seven players`);
+        const find = (role) => song.layers.find((l) => l.role === role);
+        const [melody, counter, bells, drums] = [find('melody'), find('counter'), find('bells'), find('drums')];
+        assert(melody && counter?.pattern === 'counterpoint' && bells?.pattern === 'double', `${where}: a weave has its tune, a second theme and bells to carry it`);
+        const comp = composeSong(song);
+        const at = (name) => comp.sections.find((s) => s.name === name);
+        const has = (name, layer) => at(name).play.includes(layer.id);
+        assert(has('Theme', melody) && !has('Theme', counter), `${where}: the tune alone first`);
+        assert(has('Second theme', counter) && !has('Second theme', melody), `${where}: then the second theme alone`);
+        assert(has('Together', melody) && has('Together', counter), `${where}: then both`);
+        assert(has('Trio', bells) && !has('Trio', melody) && !has('Trio', counter) && !(drums && has('Trio', drums)), `${where}: the trio is the bells, with no drums`);
+        assert(song.layers.every((l) => has('Climax', l)), `${where}: everyone at the climax`);
+        const line = (name, layer) => comp.notes.filter((n) => n.layer === layer.id && n.gt >= at(name).start - 1e-6 && n.gt < at(name).end - 1e-6).map((n) => `${+(n.gt - at(name).start).toFixed(2)}:${n.written ?? n.midi}`);
+        const alone = line('Second theme', counter);
+        const together = line('Together', counter);
+        assert(alone.length > 0 && line('Trio', bells).length > 0, `${where}: the second theme and the trio's bells play`);
+        const kept = alone.filter((one, i) => one === together[i]).length;
+        assert(kept >= Math.max(alone.length, together.length) * 0.75, `${where}: the second theme is the same alone as with the tune (${kept} of ${alone.length})`);
+      }
+    }
+  }
+  assert(woven >= 20, `songs weave (${woven})`);
 }

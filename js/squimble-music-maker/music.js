@@ -552,6 +552,8 @@ const carries = (layer) => (layer.role === 'counter' && layer.pattern === 'tune'
 //   drama       how far its sections' energies are stretched apart, 1 unless it says (stretch)
 //   build       chance its tunes and ambient songs build to a climax (builds()), never if left out
 //   pedal       its pianos hold the sustain pedal down (pedal())
+//   weave       chance its tunes and loops bring their themes in one at a time, then together (weaves())
+//   phrasing    how its tunes are written, as a flavour's (FLAVOURS)
 // modifiers also set most (more or fewer layers), busy (busier parts), soft (slower attacks) and reharm
 // (its progressions moved into the song's scale, reharmonise()). the loud and hazy moods also have:
 //   layers      chance of each role, over LAYER_CHANCE (a rock band has a guitar and no keys)
@@ -914,74 +916,170 @@ const MOODS = {
   },
 
   // ---------- magic: wizard101's worlds ----------
-  // nelson everhart's wizard101 scores are a small orchestra playing a place: a tune handed round the
-  // woodwinds, the strings and the horns (orchestration, below), a glockenspiel or celesta doubling it
-  // an octave up when it comes round big, and a bassoon, pizzicato or harp keeping a figure going under
-  // it. they're written to loop while you walk around a world, so they open in the loop style
+  // nelson everhart's wizard101 scores (the spiral's worlds) are a small orchestra playing a place, and
+  // they share their ways of doing it:
+  //   - the tune handed round the woodwinds, strings and horns, call and answer (orchestration)
+  //   - themes brought in one at a time over the same chords, each on its own instrument, then played
+  //     together, then somewhere quieter on other instruments (a celesta over a harp), and the whole
+  //     orchestra to finish (weave)
+  //   - a harp, harpsichord, pizzicato or koto keeping a figure going under it all (an ostinato)
+  //   - a cymbal, a gong or a bell tree marking each new section, timpani at the top
+  //   - major and minor borrowed from each other (a minor iv in a major key, a major chord ending a minor
+  //     tune), harmonic minor's sharp seventh, a lydian lift, a key change at the climax
+  //   - waltzes, everywhere: marleybone, wysteria, darkmoor, celestia
+  //   - each world's colour over the orchestra: krokotopia's lyre and sistrum, mooshu's koto and gong
+  // written to loop while you walk round a world, so they open in the loop style. from listening, the
+  // guided listening write-ups at ravenwood academy (marleybone, wizard city, dragonspyre, krokotopia,
+  // mooshu, celestia, darkmoor, wysteria) and everhart's 2009 interview with todd coleman
 
-  // wizard city (and hogwarts, john williams's hedwig's theme): a waltz, a celesta or flute tune over a
-  // harp and pizzicato oom-pah-pah, clarinets and an oboe answering, a bassoon in the bass, and the
-  // magic chords: a major key that borrows from its minor (the major third chord, the minor four) and
-  // harmonic minor's sharp seventh
+  // wizard city (and hogwarts, john williams's hedwig's theme): the commons' tune falls down the scale
+  // with quick runs and rocks between two notes, on an english horn (the oboe stands in) then a flute,
+  // over bouncing pizzicato. ravenwood's horn climbs a lydian arpeggio, the strings rocking under it.
+  // olde town and unicorn way bring the themes together and change key at the top. a bassoon in the
+  // bass, and the magic chords: a major key borrowing from its minor (the major third chord, the minor
+  // four) and harmonic minor's sharp seventh
   magic: {
-    group: 'Magic', opens: ['keys', 'pad', 'bass'],
-    build: 0.3, name: 'Magic', colour: '#7b68d8', style: 'loop',
-    scales: { major: 2, harmonicMinor: 2, lydian: 1, melodicMinor: 1, dorian: 0.5 }, tempo: [60, 78], tuneTempo: [96, 132],
-    meters: { '3/4': 5, '6/8': 2, '4/4': 2 },
-    chords: ['I III IV iv', 'i iv V i', 'i bVI iv V', 'I bVI IV iv', 'I vi ii V', 'i v bVI V', 'I III vi IV', 'i VI iv V', 'IV iv I -'],
+    group: 'Magic', opens: ['keys', 'arp', 'bass'],
+    build: 0.3, weave: 0.5, name: 'Magic', colour: '#7b68d8', style: 'loop',
+    scales: { major: 3, lydian: 1.5, harmonicMinor: 1.5, melodicMinor: 0.7, dorian: 0.5 }, tempo: [60, 78], tuneTempo: [96, 128],
+    meters: { '4/4': 3, '3/4': 3, '6/8': 2 },
+    chords: ['I III IV iv', 'i iv V i', 'I bVI IV iv', 'I vi ii V', 'I III vi IV', 'IV iv I -', 'I II IV I', 'Imaj7 II IV iv', 'I iii IV V', 'i VI iv V'],
     methods: { bank: 6, markov: 2 },
-    richness: [0.2, 0.6], energy: 0.55, space: 0.7, bright: 0.65, dark: 0.3, edge: 0.6, surprise: 0, ornate: 0.9,
+    richness: [0.2, 0.6], energy: 0.55, space: 0.7, bright: 0.65, dark: 0.25, edge: 0.6, surprise: 0, ornate: 0.9,
+    phrasing: { shapes: { fall: 2, pendulum: 2, zigzag: 1.5, triad: 1.5, leap: 1, climb: 1 }, hook: 0.5 },
     palette: {
-      melody: ['celesta', 'flute', 'clarinet', 'oboe', 'violin', 'music-box'], counter: ['clarinet', 'oboe', 'horn', 'violin', 'flute', 'bassoon', 'cello'],
-      keys: ['harp', 'pizzicato', 'harpsichord', 'celesta'], arp: ['harp', 'celesta', 'pizzicato', 'music-box'], bells: ['glock', 'celesta', 'glass-bell', 'music-box'],
-      pad: ['strings', 'choir-oo', 'shimmer', 'organ'], bass: ['bassoon', 'upright', 'tuba'], drone: ['cello-drone', 'organ-drone'],
+      melody: ['flute', 'clarinet', 'oboe', 'celesta', 'horn', 'violin'], counter: ['clarinet', 'oboe', 'horn', 'cello', 'bassoon', 'flute'],
+      keys: ['pizzicato', 'harp', 'celesta', 'harpsichord'], arp: ['harp', 'pizzicato', 'celesta'], bells: ['celesta', 'glock', 'music-box', 'glass-bell'],
+      pad: ['strings', 'choir-oo', 'tremolo-strings', 'organ', 'shimmer'], bass: ['bassoon', 'upright', 'tuba'], drone: ['cello-drone', 'organ-drone'],
     },
-    textures: ['chimes', 'owl', 'fire', 'birds'], kits: ['orchestra-kit', 'soft-kit'], drums: [0, 0.35],
-    layers: { keys: 0.85, counter: 0.6, bells: 0.5, arp: 0.3 },
-    patterns: { keys: ['waltz', 'broken', 'waltz'], bass: ['rootfifth', 'hook', 'held'], drums: ['sparse', 'march', 'pulse'], melody: ['phrases', 'phrases', 'calls'], counter: ['counterpoint', 'answer'], pad: ['sustain', 'swell'], bells: ['sparkle'] },
+    textures: ['chimes', 'owl', 'birds', 'fire'], kits: ['spell-kit', 'orchestra-kit'], drums: [0, 0.4],
+    layers: { keys: 0.85, counter: 0.6, bells: 0.5, arp: 0.35 },
+    patterns: { keys: ['broken', 'waltz', 'block'], arp: ['up', 'updown'], bass: ['rootfifth', 'hook', 'held'], drums: ['sparse', 'march', 'pulse'], melody: ['phrases', 'phrases', 'calls'], counter: ['counterpoint', 'answer'], pad: ['sustain', 'swell'], bells: ['sparkle'] },
     orchestra: { pass: 0.7, double: 0.6 },
   },
-  // marleybone: a foggy victorian london of dogs in top hats. a detective's tune on a clarinet or oboe
-  // over a sneaking walking bass (a bassoon or tuba), staccato harpsichord and pizzicato, a little march
-  // on the snare, the clocks ticking, and rain on the cobbles. minor, with a music hall's lilt
+  // marleybone: a foggy victorian london of dogs in top hats, and the spiral's grandest waltz. a clarinet
+  // over a fluttering harp and chiming bells, the strings swelling in, then the waltz proper: the tune
+  // passed from the clarinet to the horns with a harpsichord keeping time, a cymbal crash and the clarinet
+  // back, the strings and trumpets carrying it to the top, a hushed celesta passage, then the horns over
+  // everyone. its other themes: a cello's tune over a celesta, a key change into harmonic minor with a
+  // bell tree, a flute and a bassoon in counterpoint over a pizzicato waltz, a tuba's fanfare, and a
+  // march that's dark and joyous at once. (the sneaking detective it used to be is Back alleys)
   gaslamp: {
-    group: 'Magic', opens: ['bass', 'keys', 'drums'],
-    name: 'Gaslamp', colour: '#8a8f6a', style: 'loop',
-    scales: { minor: 2, harmonicMinor: 2, dorian: 1.5, major: 0.7 }, tempo: [64, 82], tuneTempo: [92, 120],
-    meters: { '4/4': 5, '6/8': 2, '3/4': 1 },
-    chords: ['i iv V i', 'i bVI ii° V', 'i - iv V', 'i VI ii° V', 'i iv i V', 'I vi ii V', 'iv i V i', 'i bVII bVI V'],
-    methods: { bank: 6, markov: 2, vamp: 0.5 },
-    richness: [0.2, 0.55], energy: 0.6, space: 0.5, bright: 0.45, dark: 0.45, edge: 0.7, surprise: 0, ornate: 1, swing: 0.35, swingAmount: [0.15, 0.3],
+    group: 'Magic', opens: ['keys', 'arp', 'bass'],
+    weave: 0.65, name: 'Gaslamp', colour: '#8a8f6a', style: 'loop',
+    scales: { harmonicMinor: 2.5, minor: 1.5, major: 1.5, melodicMinor: 1, dorian: 0.5 }, tempo: [64, 82], tuneTempo: [108, 138],
+    meters: { '3/4': 6, '4/4': 2, '6/8': 1 },
+    chords: ['i iv V i', 'i bVI ii° V', 'i - iv V', 'i VI ii° V', 'I vi ii V', 'iv i V i', 'I III IV iv', 'i iv bVII III', 'I iv I V', 'i VI III V'],
+    methods: { bank: 6, markov: 2 },
+    richness: [0.15, 0.5], energy: 0.6, space: 0.55, bright: 0.5, dark: 0.4, edge: 0.7, surprise: 0, ornate: 1,
+    phrasing: { shapes: { arch: 2, turn: 2, leap: 2, sigh: 1, pendulum: 1 }, hook: 0.4 },
     palette: {
-      melody: ['clarinet', 'oboe', 'violin', 'harpsichord', 'accordion', 'mute-trumpet'], counter: ['bassoon', 'clarinet', 'horn', 'oboe', 'trombone', 'cello'],
-      keys: ['harpsichord', 'pizzicato', 'honky-tonk', 'piano'], arp: ['pizzicato', 'harpsichord', 'celesta'], bells: ['glock', 'celesta', 'chime'],
-      pad: ['strings', 'organ', 'brass-section'], bass: ['tuba', 'bassoon', 'upright'], drone: ['cello-drone', 'organ-drone'],
+      melody: ['clarinet', 'oboe', 'violin', 'flute', 'horn'], counter: ['cello', 'bassoon', 'horn', 'flute', 'oboe', 'trombone'],
+      keys: ['harpsichord', 'pizzicato', 'harp', 'celesta'], arp: ['harp', 'harpsichord', 'pizzicato', 'celesta'], bells: ['celesta', 'glock', 'music-box'],
+      pad: ['strings', 'brass-section', 'tremolo-strings', 'organ'], bass: ['tuba', 'bassoon', 'upright'], drone: ['cello-drone', 'organ-drone'],
     },
-    textures: ['rain', 'creaks', 'fire'], kits: ['clockwork', 'orchestra-kit', 'brushes'], drums: [0.2, 0.75],
-    layers: { counter: 0.6, keys: 0.75, pad: 0.6 },
-    patterns: { drums: ['march', 'sparse', 'pulse', 'groove'], bass: ['walking', 'hook', 'rootfifth'], keys: ['broken', 'block', 'waltz'], melody: ['phrases', 'calls', 'phrases'], counter: ['counterpoint', 'answer'], pad: ['sustain', 'stabs'] },
-    orchestra: { pass: 0.6, double: 0.25 },
+    textures: ['rain', 'creaks', 'fire'], kits: ['orchestra-kit', 'clockwork'], drums: [0.2, 0.7],
+    layers: { counter: 0.6, keys: 0.85, pad: 0.65, bells: 0.45 },
+    patterns: { keys: ['waltz', 'waltz', 'broken'], arp: ['up', 'updown', 'converge'], bass: ['rootfifth', 'walking', 'hook'], drums: ['sparse', 'march', 'pulse'], melody: ['phrases', 'phrases', 'calls'], counter: ['counterpoint', 'answer'], pad: ['sustain', 'swell', 'stabs'], bells: ['sparkle'] },
+    orchestra: { pass: 0.6, double: 0.3 },
   },
-  // dragonspyre: a fallen city of fire and ash. a choir and an organ, low brass (horns and trombones)
-  // carrying a slow tune in phrygian or harmonic minor, strings pulsing underneath, timpani and taiko,
-  // and the fire crackling. it took over from epic, which was the same orchestra playing trailers
+  // dragonspyre: a fallen city of fire and ash. a minor chord with its major seventh held over everyone
+  // (imaj7), harps and woodwinds fluttering down, the strings' tune with the brass against it, a lone
+  // trumpet's call answered by low brass and a men's choir, a march on the snare and bass drum, woodwind
+  // arpeggios swooping like wings, chromatic mediants (bIII and bVI, and a minor key's major III and VI)
+  // and a major chord to end a minor phrase on (a picardy third). the fire crackling under it. it took
+  // over from epic, which was the same orchestra playing trailers
   dragon: {
     group: 'Magic', opens: ['drone', 'pad', 'drums'],
-    build: 0.45, name: 'Dragon', colour: '#a33a24', style: 'tune',
+    build: 0.45, weave: 0.35, name: 'Dragon', colour: '#a33a24', style: 'tune',
     scales: { phrygian: 2, harmonicMinor: 2, minor: 2, hungarianMinor: 0.7 }, tempo: [54, 70], tuneTempo: [84, 124],
     meters: { '4/4': 6, '3/4': 1.5, '6/8': 1.5 },
-    chords: ['i bII i bII', 'i bVI bVII i', 'i iv bVI V', 'i - bVI -', 'i bVI bIII bVII', 'i bII bVII i', 'iv i bVI V', 'i bVI iv V'],
+    chords: ['i bII i bII', 'i bVI bVII i', 'i iv bVI V', 'i - bVI -', 'i bVI bIII bVII', 'iv i bVI V', 'i bVI iv V', 'imaj7 iv V I', 'i III bVI V', 'i VI bIII V', 'i bIII VI V'],
     methods: { bank: 6, markov: 1, vamp: 1.5 },
     richness: [0, 0.3], energy: 0.75, space: 0.8, bright: 0.45, dark: 0.75, edge: 0.9, surprise: 0, ornate: 0.8,
     palette: {
-      melody: ['horn', 'choir-oo', 'violin', 'trombone', 'oboe', 'trumpet', 'chant-voice', 'cello'], counter: ['trombone', 'horn', 'strings', 'bassoon', 'chant-voice'],
-      keys: ['pizzicato', 'harp', 'piano', 'harpsichord'], arp: ['pizzicato', 'harp', 'piano'], bells: ['bell', 'glock', 'chime'],
+      melody: ['horn', 'violin', 'trumpet', 'choir-oo', 'trombone', 'oboe', 'chant-voice', 'cello'], counter: ['trombone', 'horn', 'strings', 'bassoon', 'chant-voice', 'cello'],
+      keys: ['pizzicato', 'harp', 'piano', 'harpsichord'], arp: ['harp', 'pizzicato', 'piano'], bells: ['bell', 'glock', 'celesta'],
       pad: ['choir-ah', 'strings', 'organ', 'brass-section', 'dark-pad', 'tremolo-strings'], bass: ['tuba', 'round-bass', 'sub-bass', 'bassoon'], drone: ['organ-drone', 'cello-drone', 'deep-drone'],
     },
     textures: ['fire', 'rumble', 'wind'], kits: ['orchestra-kit', 'taiko'], drums: [0.4, 1],
     layers: { pad: 1, drone: 0.4, counter: 0.6 },
-    patterns: { drums: ['tribal', 'march', 'halftime'], pad: ['sustain', 'pulse', 'stabs', 'swell'], bass: ['octave', 'held', 'pulse'], arp: ['up', 'updown', 'converge'], melody: ['long', 'phrases', 'phrases'], counter: ['counterpoint', 'harmony'], drone: ['tonic', 'fifths'] },
+    patterns: { drums: ['tribal', 'march', 'halftime', 'march'], pad: ['sustain', 'pulse', 'stabs', 'swell'], bass: ['octave', 'held', 'pulse'], arp: ['down', 'updown', 'converge'], melody: ['long', 'phrases', 'phrases'], counter: ['counterpoint', 'harmony'], drone: ['tonic', 'fifths'] },
     orchestra: { pass: 0.55, double: 0.3 },
+  },
+  // krokotopia: a desert empire of crocodile pharaohs, as an orchestra plays it rather than a bazaar
+  // band (that's Desert and Egyptian). a tam-tam strikes to open, a harp keeps time under lyres and reeds,
+  // horns hold a slow tune of long notes, an oboe dances over it, then the strings with the horn against
+  // them. a lyre states a theme twice and a vibraphone takes it. its march: a low flute's dancing tune
+  // over an ostinato, passed to the oboe and the horn, hand drums, a triangle on two and a sistrum
+  // scraping the off beats, and a royal intrada with the loudest tam-tam of all
+  sands: {
+    group: 'Magic', opens: ['keys', 'arp', 'drone'],
+    weave: 0.5, name: 'Sands', colour: '#c9a14a', style: 'loop',
+    scales: { phrygianDominant: 2, harmonicMinor: 2, doubleHarmonic: 1, minor: 1.5, dorian: 0.5 }, tempo: [58, 74], tuneTempo: [88, 118],
+    meters: { '4/4': 5, '3/4': 1.5, '6/8': 1 },
+    chords: ['I bII I -', 'i iv V i', 'I bII bvii I', 'i bVI V i', 'iv V i -', 'I - bII -', 'i bVI bVII i', 'i iv bVI V'],
+    methods: { bank: 5, vamp: 2, markov: 1 },
+    richness: [0, 0.25], energy: 0.6, space: 0.65, bright: 0.55, dark: 0.4, edge: 0.7, surprise: 0, ornate: 1.2,
+    phrasing: { shapes: { chant: 1.5, turn: 2, arch: 2, sigh: 1, zigzag: 1 }, rhythm: 'long', hook: 0.3 },
+    palette: {
+      melody: ['horn', 'oboe', 'flute', 'violin', 'clarinet'], counter: ['horn', 'cello', 'oboe', 'bassoon', 'flute'],
+      keys: ['harp', 'lyre', 'pizzicato'], arp: ['harp', 'lyre', 'pizzicato'], bells: ['vibes', 'celesta', 'glock'],
+      pad: ['strings', 'brass-section', 'choir-ah', 'tremolo-strings'], bass: ['upright', 'bassoon', 'tuba'], drone: ['cello-drone', 'organ-drone'],
+    },
+    textures: ['wind', 'fire', 'stream'], kits: ['palace-kit'], drums: [0.3, 0.8],
+    layers: { keys: 0.8, counter: 0.6, pad: 0.75 },
+    patterns: { drums: ['march', 'maqsum', 'tribal', 'sparse'], keys: ['broken', 'broken', 'strum'], arp: ['up', 'updown', 'converge'], bass: ['rootfifth', 'held', 'hook'], melody: ['long', 'phrases', 'phrases'], counter: ['counterpoint', 'answer'], pad: ['sustain', 'swell'], bells: ['sparkle'], drone: ['tonic', 'fifths'] },
+    orchestra: { pass: 0.6, double: 0.3 },
+  },
+  // mooshu: a high gong, then plucked strings (the koto) playing together, and a flute holding a note
+  // with a grace on it. its first theme is quick, syncopated and fluttering, the flute calling and the
+  // koto answering over finger cymbals. the second is calmer, the bowed strings coming in and the flute
+  // holding it out. then the strings keep a figure going and the flute plays both themes as one. the
+  // erhu sings the second theme when the plague comes, the brass climbing and the harp and high strings
+  // falling. war is dark brass and deep drums in an uneven beat (seven, here five), and its mystic theme
+  // a koto in even eighths that feel syncopated, finger cymbals, blocks, a tam-tam and everyone at the end
+  jade: {
+    group: 'Magic', opens: ['keys', 'arp', 'drone'],
+    weave: 0.6, name: 'Jade', colour: '#3f9e7a', style: 'loop',
+    scales: { majorPentatonic: 3, minorPentatonic: 1.5, hirajoshi: 1, dorian: 0.7 }, tempo: [56, 72], tuneTempo: [84, 116],
+    meters: { '4/4': 6, '3/4': 1, '6/8': 0.5 },
+    chords: ['I - IV I', 'vi IV I V', 'I V vi iii', 'IV V iii vi', 'vi - I -', 'I vi IV V', 'i bVII bVI bVII', 'I II IV I'],
+    methods: { bank: 5, vamp: 2, markov: 1 },
+    richness: [0, 0.3], energy: 0.55, space: 0.7, bright: 0.6, dark: 0.3, edge: 0.7, surprise: 0, ornate: 1.2,
+    phrasing: { shapes: { zigzag: 2, turn: 2, fall: 1.5, pendulum: 1.5, leap: 1 }, rhythm: 'syncopated', hook: 0.5 },
+    palette: {
+      melody: ['flute', 'shakuhachi', 'erhu', 'koto'], counter: ['erhu', 'cello', 'horn', 'flute', 'shakuhachi'],
+      keys: ['koto', 'harp', 'pizzicato', 'zither'], arp: ['koto', 'harp', 'zither', 'pizzicato'], bells: ['glock', 'celesta', 'vibes'],
+      pad: ['strings', 'tremolo-strings', 'choir-oo', 'brass-section'], bass: ['upright', 'bassoon', 'tuba'], drone: ['cello-drone', 'organ-drone'],
+    },
+    textures: ['wind', 'stream', 'chimes', 'birds'], kits: ['jade-kit', 'temple'], drums: [0.3, 0.8],
+    layers: { keys: 0.85, counter: 0.6, pad: 0.7 },
+    patterns: { drums: ['sparse', 'march', 'tribal'], keys: ['broken', 'strum'], arp: ['up', 'updown', 'converge'], bass: ['rootfifth', 'held'], melody: ['phrases', 'phrases', 'calls'], counter: ['counterpoint', 'answer'], pad: ['sustain', 'swell'], bells: ['sparkle'], drone: ['tonic', 'fifths'] },
+    orchestra: { pass: 0.6, double: 0.3 },
+  },
+  // avalon: king arthur's land, green and old, with the fae close by. not written up anywhere I could
+  // find, so this one's from listening and the spiral's habits: noble horns and strings over a harp, a
+  // flute or a whistle with a lilt to it, dorian and mixolydian, a dance in six or three, then everyone at
+  // the end. grizzleheim, the north (Longhouse), is a cousin: a men's choir, horns and drums, fifths
+  greenwood: {
+    group: 'Magic', opens: ['keys', 'arp', 'pad'],
+    weave: 0.5, name: 'Greenwood', colour: '#5c8a3a', style: 'loop',
+    scales: { dorian: 2.5, mixolydian: 2, major: 1.5, minor: 1 }, tempo: [58, 74], tuneTempo: [96, 126],
+    meters: { '6/8': 3, '3/4': 2, '4/4': 3 },
+    chords: ['i bVII i -', 'I bVII IV I', 'i bIII bVII i', 'I IV I V', 'i iv bVII III', 'I vi IV V', 'i bVI bVII i', 'IV I V vi'],
+    methods: { bank: 5, markov: 2 },
+    richness: [0.1, 0.4], energy: 0.55, space: 0.7, bright: 0.6, dark: 0.3, edge: 0.7, surprise: 0, ornate: 1.1,
+    phrasing: { shapes: { arch: 2, leap: 2, wave: 1.5, triad: 1.5, turn: 1 }, rhythm: 'dotted', hook: 0.4 },
+    palette: {
+      melody: ['flute', 'horn', 'violin', 'whistle', 'oboe', 'clarinet'], counter: ['horn', 'cello', 'violin', 'flute', 'bassoon'],
+      keys: ['harp', 'pizzicato', 'harpsichord'], arp: ['harp', 'pizzicato', 'lyre'], bells: ['glock', 'celesta', 'music-box'],
+      pad: ['strings', 'brass-section', 'choir-ah', 'tremolo-strings'], bass: ['upright', 'bassoon', 'tuba'], drone: ['cello-drone', 'organ-drone'],
+    },
+    textures: ['birds', 'leaves', 'stream', 'owl'], kits: ['orchestra-kit', 'hand-drums'], drums: [0.2, 0.7],
+    layers: { keys: 0.8, counter: 0.6, pad: 0.75 },
+    patterns: { drums: ['march', 'sparse', 'pulse', 'tribal'], keys: ['broken', 'waltz', 'strum'], arp: ['up', 'updown'], bass: ['rootfifth', 'held'], melody: ['phrases', 'phrases', 'long'], counter: ['counterpoint', 'answer'], pad: ['sustain', 'swell'], bells: ['sparkle'], drone: ['fifths', 'tonic'] },
+    orchestra: { pass: 0.6, double: 0.3 },
   },
 
   // ---------- loud: rock and metal ----------
@@ -2233,14 +2331,14 @@ const FLAVOURS = {
     },
   },
   magic: {
-    about: 'Wonder and wands: a waltz on a celesta or flute over harp and pizzicato, the tune passed round a small orchestra. For magic schools, spell books and enchanted places.',
+    about: 'Wonder and wands: a flute or an oboe over bouncing pizzicato and a harp, a horn climbing, the tune passed round a small orchestra and its themes coming together at the end. For magic schools, spell books and enchanted places.',
     kinds: {
-      school: { name: 'Wizard school', tip: 'Wizard school: a celesta or flute waltz over harp and pizzicato, the tune passed round' },
+      school: { name: 'Wizard school', tip: 'Wizard school: a flute or oboe over bouncing pizzicato and harp, the tune passed round, its themes meeting at the end' },
       fairy: {
         name: 'Fairy glade', tip: 'Fairy glade: tiny and sparkling: harp, celesta and flutes, bells everywhere, lydian',
         phrasing: { shapes: { wave: 2, climb: 2, zigzag: 1, turn: 1 }, rhythm: 'running', hook: 0.5 }, busy: 0.1,
         scales: { lydian: 3, major: 1 }, energy: 0.45, bright: 0.8, dark: 0.1,
-        palette: { melody: ['flute', 'celesta', 'glass-bell', 'music-box'], bells: ['glock', 'celesta', 'glass-bell', 'chime'] },
+        palette: { melody: ['flute', 'celesta', 'glass-bell', 'music-box', 'piccolo'], bells: ['glock', 'celesta', 'glass-bell', 'chime'] },
         textures: ['chimes', 'birds', 'stream'], layers: { bells: 0.8, arp: 0.5 }, patterns: { arp: ['twinkle', 'up'], bells: ['sparkle', 'phasing'] },
       },
       forbidden: {
@@ -2251,15 +2349,48 @@ const FLAVOURS = {
         palette: { melody: ['music-box', 'oboe', 'violin', 'celesta', 'choir-oo'], counter: ['bassoon', 'clarinet', 'violin'], pad: ['choir-ah', 'strings', 'dark-pad', 'haunted-pad'], drone: ['cello-drone', 'deep-drone'] },
         textures: ['owl', 'creaks', 'drips'],
       },
+      // wysteria: spring at a school for wizards. a drum and cymbal, then horns with a flute and a
+      // glockenspiel answering, a choir and a harp, a clarinet's tune in quick bouncing eighths, reeds
+      // carrying a waltz over the brass, the horns passing the tune to the strings for a bold climax
+      blossom: {
+        name: 'Blossom', tip: 'Blossom: spring in bloom: a clarinet tune that bounces, horns, a glockenspiel and a harp, a waltz that swells to the strings',
+        phrasing: { shapes: { triad: 2, climb: 2, pendulum: 1.5, arch: 1 }, rhythm: 'dotted', hook: 0.55 }, weave: 0.7,
+        scales: { major: 3, lydian: 1, mixolydian: 0.7 }, meters: { '3/4': 4, '4/4': 3, '6/8': 1 }, bright: 0.75, dark: 0.1,
+        chords: ['I IV V I', 'I vi IV V', 'I iii IV iv', 'I V vi IV', 'IV V iii vi', 'I II IV I'],
+        palette: { melody: ['clarinet', 'flute', 'oboe', 'horn'], counter: ['horn', 'flute', 'cello', 'clarinet'], pad: ['strings', 'choir-oo', 'brass-section'], bells: ['glock', 'celesta'] },
+        textures: ['birds', 'leaves', 'stream'], kits: ['spell-kit', 'orchestra-kit'], drums: [0.1, 0.55],
+      },
+      // celestia: a sunken city of the stars. low brass and a flute, a harp and a glockenspiel, horns over
+      // a string ostinato, a turn to minor with strings climbing, dorian chords swaying between home and
+      // a major four, a celesta's waltz, a piccolo cold and high, and a men's choir with hand drums and
+      // a marimba in its old tribe's theme
+      tides: {
+        name: 'Starlit tides', tip: 'Starlit tides: a sunken city under the stars: horns over swaying strings, a harp, a celesta waltz, a piccolo high and cold',
+        phrasing: { shapes: { wave: 2, leap: 2, arch: 1.5, sigh: 1 }, rhythm: 'long', hook: 0.3 },
+        scales: { dorian: 3, lydian: 1.5, minor: 1, major: 1 }, meters: { '3/4': 3, '4/4': 3, '6/8': 1 }, bright: 0.55, dark: 0.35, space: 0.85,
+        chords: ['i IV i IV', 'i - IV -', 'I II I II', 'i bVII IV i', 'i IV bVII i', 'IV I V vi'],
+        palette: { melody: ['horn', 'flute', 'piccolo', 'celesta', 'violin'], counter: ['horn', 'cello', 'flute'], arp: ['harp', 'celesta', 'marimba'], bells: ['glock', 'celesta', 'vibes'], pad: ['strings', 'choir-ah', 'tremolo-strings', 'brass-section'] },
+        textures: ['bubbles', 'chimes'], kits: ['spell-kit', 'hand-drums'],
+      },
     },
   },
   gaslamp: {
-    about: "A foggy Victorian city of cobbles and gaslight: a detective's clarinet over a sneaking bass, harpsichord and pizzicato, clocks ticking and rain. For cities, mysteries and something afoot.",
+    about: "A foggy Victorian city of cobbles, clocks and gaslight, and its grand waltz: a clarinet over a fluttering harp and chiming bells, a harpsichord keeping time, the tune passed to the horns, strings and trumpets, then the whole orchestra. For cities, mysteries and something afoot.",
     kinds: {
-      fog: { name: 'Foggy streets', tip: "Foggy streets: a detective's clarinet over a sneaking bass, harpsichord, pizzicato and rain" },
+      fog: { name: 'City waltz', tip: 'City waltz: a clarinet over harp and chiming bells, a harpsichord keeping time, the tune passed round, its themes meeting at the end' },
+      // the sewers under the city: a deep, quick bassoon, syncopated percussion, a sneaking tune that
+      // won't stay in one key (what this mood used to be: a detective's clarinet over a walking bass)
+      sneak: {
+        name: 'Back alleys', tip: "Back alleys: a detective's clarinet over a sneaking bassoon, pizzicato and the rain, something afoot",
+        phrasing: { shapes: { turn: 2, dive: 2, repeat: 2, zigzag: 1 }, rhythm: 'snap', hook: 0.5 }, weave: 0.2,
+        scales: { minor: 2, harmonicMinor: 2, dorian: 1.5 }, meters: { '4/4': 5, '6/8': 2, '3/4': 1 }, tuneTempo: [92, 120], swing: 0.35, swingAmount: [0.15, 0.3],
+        chords: ['i iv V i', 'i bVI ii° V', 'i - iv V', 'i iv i V', 'i bVII bVI V'],
+        palette: { melody: ['clarinet', 'oboe', 'mute-trumpet', 'harpsichord'], bass: ['bassoon', 'tuba', 'upright'], keys: ['pizzicato', 'harpsichord', 'piano'] },
+        kits: ['clockwork', 'orchestra-kit', 'brushes'], patterns: { bass: ['walking', 'hook'], keys: ['broken', 'block'], drums: ['march', 'sparse', 'groove'], melody: ['calls', 'phrases'] },
+      },
       musichall: {
         name: 'Music hall', tip: 'Music hall: a Victorian music hall: an upright piano, a brass band and a jaunty oom-pah in a major key',
-        phrasing: { shapes: { triad: 2, repeat: 2, call: 2 }, rhythm: 'dotted', hook: 0.6 },
+        phrasing: { shapes: { triad: 2, repeat: 2, call: 2 }, rhythm: 'dotted', hook: 0.6 }, weave: 0,
         scales: { major: 3, mixolydian: 1 }, bright: 0.65, dark: 0.15, swing: 0.5, chords: ['I I7 IV iv', 'I vi ii V', 'I II7 V7 I', 'I IV I V'],
         palette: { melody: ['honky-tonk', 'clarinet', 'trumpet', 'accordion', 'whistle'], keys: ['honky-tonk', 'piano'], bass: ['tuba', 'upright'] },
         kits: ['orchestra-kit', 'tight-kit'], patterns: { keys: ['waltz', 'block'], drums: ['march', 'groove'] },
@@ -2271,10 +2402,21 @@ const FLAVOURS = {
         kits: ['clockwork'], drums: [0.6, 0.9], layers: { arp: 0.8 }, textures: ['creaks', 'fire'],
         patterns: { arp: ['up', 'updown', 'converge'], drums: ['march', 'pulse', 'groove'] },
       },
+      // darkmoor: a vampire's castle. an eerie celesta with a shrill violin, the theme called and
+      // answered round the oboe and harp, the flute and pizzicato, a choir and chimes trading beats as a
+      // minor chord turns major, a waltz, an alto flute doubled by a pipe organ
+      manor: {
+        name: 'Moonlit manor', tip: 'Moonlit manor: a castle at midnight: a celesta and a thin violin, a choir and chimes, a pipe organ and a waltz in harmonic minor',
+        phrasing: { shapes: { sigh: 2, turn: 2, arch: 1, dive: 1 }, rhythm: 'even', hook: 0.3 },
+        scales: { harmonicMinor: 3, minor: 1, hungarianMinor: 0.5 }, meters: { '3/4': 5, '4/4': 1.5 }, dark: 0.6, bright: 0.4, tuneTempo: [96, 126],
+        chords: ['i iv V i', 'i bVI V -', 'i - I -', 'i iv I V', 'i bII V i', 'i VI iv V'],
+        palette: { melody: ['celesta', 'violin', 'oboe', 'flute'], counter: ['violin', 'cello', 'oboe', 'bassoon'], pad: ['choir-ah', 'organ', 'strings', 'tremolo-strings'], keys: ['harp', 'pizzicato', 'harpsichord'], bass: ['bassoon', 'tuba', 'upright'] },
+        textures: ['owl', 'creaks', 'wind'], kits: ['orchestra-kit'], drums: [0.1, 0.5],
+      },
     },
   },
   dragon: {
-    about: 'A fallen city of fire and ash: a choir, an organ and low brass over timpani and the crackle of flames. For dragons, volcanoes and dark citadels.',
+    about: 'A fallen city of fire and ash: a choir, an organ and low brass over timpani and the crackle of flames, a lone trumpet calling out. For dragons, volcanoes and dark citadels.',
     kinds: {
       citadel: { name: 'Burning citadel', tip: 'Burning citadel: a choir, an organ and low brass over timpani and fire' },
       lair: {
@@ -2290,6 +2432,87 @@ const FLAVOURS = {
         tuneTempo: [120, 150], energy: 0.95, meters: { '4/4': 5, '6/8': 2 },
         palette: { melody: ['trumpet', 'horn', 'choir-oo'], counter: ['trombone', 'horn'] },
         patterns: { drums: ['march', 'tribal'], bass: ['octave', 'pulse'], pad: ['pulse', 'stabs'] },
+      },
+    },
+  },
+  sands: {
+    about: 'An empire of sand and gold, played by an orchestra: a tam-tam, a harp keeping time under lyres, horns holding a slow tune, an oboe dancing over it, a triangle and a sistrum. For pyramids, desert palaces and old kings.',
+    kinds: {
+      pyramids: { name: 'Pyramids', tip: 'Pyramids: a tam-tam, a harp and lyre keeping time, horns holding a slow tune, an oboe dancing over it' },
+      // krokotopia's third and fourth themes
+      royal: {
+        name: 'Royal march', tip: 'Royal march: a stately march: a low flute dancing over an ostinato, hand drums, a triangle on two, a sistrum on the off beats and a gong',
+        phrasing: { shapes: { triad: 2, turn: 2, repeat: 1.5, arch: 1 }, rhythm: 'dotted', hook: 0.55 },
+        energy: 0.7, tuneTempo: [96, 120], meters: { '4/4': 6, '3/4': 1 }, drums: [0.5, 0.95],
+        palette: { melody: ['flute', 'oboe', 'horn'], counter: ['horn', 'oboe', 'cello'] },
+        patterns: { drums: ['march', 'march', 'maqsum'], bass: ['rootfifth', 'hook'], keys: ['broken'] },
+      },
+      // zafaria: a savanna kingdom of lions and elephants. little is written about its music, so this is
+      // from listening: hand drums, a marimba and a thumb piano under horns and a choir
+      savanna: {
+        name: 'Golden plains', tip: 'Golden plains: a kingdom on the grasslands: hand drums, a marimba and a thumb piano, horns and a choir',
+        phrasing: { shapes: { call: 2, repeat: 2, triad: 1.5, wave: 1 }, rhythm: 'syncopated', hook: 0.6 },
+        scales: { major: 2, mixolydian: 2, majorPentatonic: 2, dorian: 1 }, bright: 0.65, dark: 0.2,
+        chords: ['I IV I V', 'I - IV -', 'I V vi IV', 'IV I V I', 'I bVII IV I'],
+        palette: { melody: ['horn', 'flute', 'choir-oo', 'kalimba'], keys: ['marimba', 'kalimba', 'mbira', 'harp'], arp: ['marimba', 'kalimba', 'mbira'], bells: ['vibes', 'glock'], pad: ['choir-ah', 'strings', 'brass-section'] },
+        textures: ['birds', 'crickets', 'wind'], kits: ['hand-drums', 'palace-kit'], patterns: { drums: ['tribal', 'groove', 'march'] },
+      },
+    },
+  },
+  jade: {
+    about: 'A land of jade pagodas: a high gong, a koto plucking with the harp, a flute calling and the koto answering, an erhu, finger cymbals and a gong at the top. For eastern palaces, gardens and temples.',
+    kinds: {
+      gardens: { name: 'Jade gardens', tip: 'Jade gardens: a gong, a koto and a flute calling and answering, finger cymbals, then the flute playing both themes at once' },
+      // mooshu's plague theme
+      blight: {
+        name: 'Blight', tip: 'Blight: a land under a sickness: an erhu over plucked strings in a minor key, brass climbing, the harp and high strings falling',
+        phrasing: { shapes: { sigh: 2, fall: 2, arch: 1, turn: 1 }, rhythm: 'long', hook: 0.2 },
+        scales: { minorPentatonic: 2, minor: 2, hirajoshi: 2, dorian: 1 }, dark: 0.55, bright: 0.4, tuneTempo: [76, 100],
+        chords: ['i - bVI -', 'i bVII bVI bVII', 'i iv i -', 'i bVI bIII bVII', 'i v bVI V'],
+        palette: { melody: ['erhu', 'shakuhachi', 'flute'], counter: ['erhu', 'horn', 'cello'], pad: ['strings', 'tremolo-strings', 'brass-section'] },
+        patterns: { melody: ['long', 'phrases'], arp: ['down', 'updown'] },
+      },
+      // mooshu's war theme: seven beats a bar (five here, the nearest uneven beat)
+      war: {
+        name: 'War drums', tip: 'War drums: an army in the mountains: dark brass and deep drums in an uneven beat, strings and a flute, the plucked strings echoing the brass',
+        phrasing: { shapes: { repeat: 2, dive: 2, triad: 1.5, chant: 1 }, rhythm: 'dotted', hook: 0.6 }, weave: 0.3,
+        scales: { minorPentatonic: 2, minor: 2, phrygian: 1, hirajoshi: 1 }, meters: { '5/4': 3, '4/4': 3 }, energy: 0.8, dark: 0.6, bright: 0.4, tuneTempo: [100, 132], drums: [0.6, 1],
+        chords: ['i - bVI -', 'i bVII bVI V', 'i bII i -', 'i iv bVI V'],
+        palette: { melody: ['horn', 'trombone', 'shakuhachi', 'erhu'], counter: ['trombone', 'horn', 'cello'], pad: ['brass-section', 'strings', 'tremolo-strings'], bass: ['tuba', 'upright'] },
+        kits: ['jade-kit', 'taiko'], patterns: { drums: ['tribal', 'march', 'halftime'], pad: ['stabs', 'pulse', 'sustain'], bass: ['octave', 'rootfifth'] },
+      },
+      // the mystical theme from the skyways
+      mists: {
+        name: 'Mists', tip: 'Mists: a mountain shrine in the clouds: a koto in even eighths, finger cymbals and wooden blocks, an erhu holding long notes, a gong',
+        phrasing: { shapes: { pendulum: 2, turn: 2, wave: 1.5, chant: 1 }, rhythm: 'even', hook: 0.4 },
+        energy: 0.45, space: 0.8, tuneTempo: [76, 100],
+        palette: { melody: ['koto', 'flute', 'shakuhachi'], counter: ['erhu', 'flute'], keys: ['koto', 'zither'], arp: ['koto', 'zither', 'harp'] },
+        textures: ['wind', 'chimes', 'stream'], patterns: { keys: ['broken'], arp: ['up', 'converge'], drums: ['sparse', 'pulse'] },
+      },
+    },
+  },
+  greenwood: {
+    about: "A green and ancient land of knights, castles and the fae: noble horns and strings over a harp, a flute with a lilt, a dance in six. For old kingdoms, forests and quests.",
+    kinds: {
+      knights: { name: 'Greenwood', tip: 'Greenwood: noble horns and strings over a harp, a flute with a lilt, a dance in six' },
+      // avalon's wyrd: the fae's side of the wood
+      wyrd: {
+        name: 'Fae wood', tip: 'Fae wood: the wood where the fae live: a harp and celesta, a flute in a minor mode, strings trembling, something watching',
+        phrasing: { shapes: { turn: 2, wave: 2, sigh: 1, zigzag: 1 }, rhythm: 'even', hook: 0.35 },
+        scales: { dorian: 2, minor: 2, harmonicMinor: 1, lydian: 0.5 }, dark: 0.5, bright: 0.5, energy: 0.45,
+        chords: ['i bVII i -', 'i iv i bVII', 'i bVI bVII i', 'i IV i IV', 'i iv V i'],
+        palette: { melody: ['flute', 'celesta', 'violin', 'oboe'], keys: ['harp', 'celesta'], arp: ['harp', 'celesta'], pad: ['tremolo-strings', 'strings', 'choir-oo'] },
+        textures: ['owl', 'leaves', 'chimes'], drums: [0, 0.4],
+      },
+      // grizzleheim: the north of bears and runes. little is written about its music, so from listening:
+      // a men's choir, horns and drums, a fiddle, fifths held under it all
+      longhouse: {
+        name: 'Longhouse', tip: 'Longhouse: a cold northern hall: a low men\'s choir and horns, a fiddle, deep drums and open fifths held underneath',
+        phrasing: { shapes: { chant: 2, triad: 2, leap: 1.5, sigh: 1 }, rhythm: 'long', hook: 0.3 },
+        scales: { dorian: 2, minor: 2, phrygian: 0.7, mixolydian: 1 }, meters: { '4/4': 4, '3/4': 2, '6/8': 1 }, dark: 0.5, bright: 0.45, energy: 0.65,
+        chords: ['i bVII i -', 'i - bVI bVII', 'i bIII bVII i', 'i iv bVII i'],
+        palette: { melody: ['horn', 'violin', 'chant-voice', 'cello'], counter: ['chant-voice', 'horn', 'cello', 'trombone'], pad: ['choir-ah', 'strings', 'brass-section'], drone: ['cello-drone', 'organ-drone'] },
+        layers: { drone: 0.6 }, textures: ['wind', 'fire'], kits: ['taiko', 'orchestra-kit'], drums: [0.4, 0.85], patterns: { drums: ['tribal', 'march', 'halftime'], drone: ['fifths'] },
       },
     },
   },
@@ -3592,6 +3815,45 @@ const builds = (song) => {
   return chance > 0 && !song.own && !!BUILDS[song.style] && makeRng(song.seed, song.mood, song.style, 'build').chance(chance);
 };
 
+// ---------- weaving: themes one at a time, then together ----------
+//
+// wizard101's world themes (marleybone's above all) bring their tunes in one at a time, each on its own
+// instrument over the same chords (the clarinet's, then the cello's), then play them together, go
+// somewhere quieter on other instruments (a celesta over the harp), and end on the whole orchestra. a
+// song that weaves (weaves(): a mood's weave chance, on its own random numbers) is arranged that way
+// (weaveArrangement). its counter melody writes the second theme against the tune whether or not the
+// tune's playing (COMPOSERS.counter), so they fit when they meet, and its bells carry the tune alone in
+// the trio. only tunes and loops weave, never a song that builds (a build's climb is its own shape).
+// [name, part, about how many 4/4 bars, energy, who has the tunes, LIFTED for a key change]
+//   intrada   a loud opening on the chords, the bells hinting at a tune
+//   first     the tune alone
+//   second    the second theme alone
+//   together  both
+//   trio      the bells carry the tune over the quieter players, with no drums
+//   climax    everyone, the tune doubled
+const WEAVES = {
+  tune: [
+    [['Intrada', 'B', 4, 0.85, 'intrada'], ['Theme', 'A', 8, 0.6, 'first'], ['Second theme', 'A', 8, 0.65, 'second'], ['Together', 'A', 8, 0.85, 'together'], ['Bridge', 'B', 8, 0.75, 'first'], ['Trio', 'C', 8, 0.4, 'trio'], ['Climax', 'A', 8, 1, 'climax'], ['Climax', 'B', 8, 1, 'climax'], ['Coda', 'A', 4, 0.35, 'first']],
+    [['Intrada', 'A', 4, 0.85, 'intrada'], ['Theme', 'A', 8, 0.6, 'first'], ['Second theme', 'A', 8, 0.6, 'second'], ['Bridge', 'B', 8, 0.7, 'first'], ['Together', 'A', 8, 0.85, 'together'], ['Trio', 'C', 8, 0.4, 'trio'], ['Climax', 'A', 8, 1, 'climax', LIFTED], ['Climax', 'B', 8, 1, 'climax', LIFTED], ['Coda', 'A', 4, 0.35, 'first', LIFTED]],
+  ],
+  // (a loop's key change goes back down where it starts again)
+  loop: [
+    [['Intrada', 'B', 4, 0.85, 'intrada'], ['Theme', 'A', 8, 0.6, 'first'], ['Second theme', 'A', 8, 0.65, 'second'], ['Together', 'A', 8, 0.85, 'together'], ['Bridge', 'B', 8, 0.75, 'first'], ['Trio', 'C', 8, 0.4, 'trio'], ['Climax', 'A', 8, 1, 'climax']],
+    [['Theme', 'A', 8, 0.6, 'first'], ['Second theme', 'A', 8, 0.65, 'second'], ['Together', 'A', 8, 0.85, 'together'], ['Bridge', 'B', 8, 0.75, 'first'], ['Trio', 'C', 8, 0.4, 'trio'], ['Climax', 'A', 8, 1, 'climax', LIFTED], ['Climax', 'B', 8, 1, 'climax', LIFTED]],
+  ],
+};
+// who has the tunes in each kind of section (the other players come in by energy)
+const WEAVERS = { intrada: ['bells'], first: ['melody'], second: ['counter'], together: ['melody', 'counter'], trio: ['bells'], climax: ['melody', 'counter', 'bells'] };
+// the kinds of section where every player's in, whatever its entry point (the trio has no drums)
+const WEAVE_FULL = { intrada: true, trio: true, climax: true };
+// the most players a weave keeps (as many as any tune), its drone and then its scenery going to make
+// room for its themes
+const WEAVE_BAND = 7;
+const weaves = (song) => {
+  const chance = songMood(song).weave || 0;
+  return chance > 0 && !song.own && !!WEAVES[song.style] && !builds(song) && makeRng(song.seed, song.mood, song.style, 'weave').chance(chance);
+};
+
 // ---------- making a song ----------
 
 const LAYER_DEFAULTS = {
@@ -3615,11 +3877,13 @@ function generateSong(moodId, style, seed, mods = [], flavour) {
   pickTonality(song, makeRng(seed, mood, 'tonality'));
   pickChords(song, makeRng(seed, mood, 'chords'));
   pickLayers(song, makeRng(seed, mood, song.style, 'layers'));
+  pickWeave(song, makeRng(seed, mood, song.style, 'weave', 'band'));
   pickArrangement(song, makeRng(seed, mood, song.style, 'arrangement'));
   // (a song that builds orchestrates more, but only in a mood that orchestrates at all: a shoegaze band
   // had a counter melody join with nothing left to play it on, and drew a pan flute)
   const orchestra = songMood(song).orchestra;
-  pickOrchestra(song, makeRng(seed, mood, song.style, 'orchestra'), orchestra && builds(song) ? { pass: Math.max(orchestra.pass || 0, 0.5), double: Math.max(orchestra.double || 0, 0.6) } : undefined);
+  // (a weave hands its themes round its own way)
+  if (!weaves(song)) pickOrchestra(song, makeRng(seed, mood, song.style, 'orchestra'), orchestra && builds(song) ? { pass: Math.max(orchestra.pass || 0, 0.5), double: Math.max(orchestra.double || 0, 0.6) } : undefined);
   pickScenery(song, makeRng(seed, mood, song.style, 'scenery'));
   pickDoubles(song, makeRng(seed, mood, song.style, 'doubles'));
   pickRecordings(song);
@@ -3661,6 +3925,12 @@ const REROLLS = {
   // the tune handed round a new way: whoever carried it goes, and it's picked again with better than
   // the mood's own chances (pressing it asks for orchestration)
   orchestra: (song, mood, rng) => {
+    // (a weave's themes keep their places and get new instruments)
+    if (weaves(song)) {
+      for (const layer of song.layers) if (layer.role === 'counter' || carries(layer)) dressLayer(song, layer, rng, false);
+      fitBand(song);
+      return;
+    }
     const gone = new Set(song.layers.filter(carries).map((layer) => layer.id));
     const takers = new Set(song.layers.filter((layer) => layer.role === 'counter' && carries(layer)).map((layer) => layer.id));
     const melody = song.layers.find((layer) => layer.role === 'melody');
@@ -4053,6 +4323,7 @@ const LOUD = 0.85;
 // a mood's drama stretches a section's energy away from 0.65 (at 1.5: 0.3 to 0.13, 0.85 to 0.95)
 const stretch = (energy, drama) => Math.round(Math.min(1, Math.max(0.1, 0.65 + (energy - 0.65) * drama)) * 100) / 100;
 function pickArrangement(song, rng) {
+  if (weaves(song)) return weaveArrangement(song, rng);
   const mood = songMood(song);
   const build = builds(song);
   const form = rng.pick((build && BUILDS[song.style]) || (song.style === 'tune' && mood.forms) || FORMS[song.style]).map(([name, part, bars, energy, lifted]) => [name, part, bars, mood.drama ? stretch(energy, mood.drama) : energy, lifted]);
@@ -4077,11 +4348,7 @@ function pickArrangement(song, rng) {
   }
   let before = [];
   song.sections = form.map(([name, part, fourFourBars, energy, lifted]) => {
-    // the forms are in 4/4 bars, so shorter bars (6/8 is two beats) get more of them
-    const target = Math.max(2, Math.round((fourFourBars * 4) / METERS[song.meter].beats));
-    // whole turns of the part's progression, near the bars asked for (a much longer one is cut short)
-    const turn = partBars(song, part);
-    const bars = Math.max(1, Math.min(32, Math.round(turn > target * 1.5 ? target : Math.max(1, Math.round(target / turn)) * turn)));
+    const bars = sectionBars(song, part, fourFourBars);
     // a layer plays once the energy reaches its entry point, and stays through small dips: it only drops
     // out for a real change of gear, like a break or the outro
     let play = song.layers.filter((layer) => entry[layer.id] <= energy || (before.includes(layer.id) && entry[layer.id] <= energy + 0.2)).map((layer) => layer.id);
@@ -4102,11 +4369,67 @@ function pickArrangement(song, rng) {
   addSolo(song, rng, form);
   // (and if someone takes or doubles the tune, it's handed round again for the new sections)
   passTune(song);
-  // a mood with a prelude opens on its scenery alone, then the music swells in. never in a loop
+  addPrelude(song, mood);
+}
+// the forms are in 4/4 bars, so shorter bars (6/8 is two beats) get more of them, in whole turns of the
+// part's progression near the bars asked for (a much longer one is cut short)
+function sectionBars(song, part, fourFourBars) {
+  const target = Math.max(2, Math.round((fourFourBars * 4) / METERS[song.meter].beats));
+  const turn = partBars(song, part);
+  return Math.max(1, Math.min(32, Math.round(turn > target * 1.5 ? target : Math.max(1, Math.round(target / turn)) * turn)));
+}
+// a mood with a prelude opens on its scenery alone, then the music swells in. never in a loop
+function addPrelude(song, mood) {
   const scenery = song.layers.filter((layer) => layer.role === 'texture').map((layer) => layer.id);
   if (mood.prelude && !LOOPS[song.style] && scenery.length) {
     song.sections.unshift({ name: mood.prelude, part: song.sections[0].part, bars: Math.max(2, Math.round(24 / METERS[song.meter].beats)), play: scenery, energy: 0.2 });
   }
+}
+
+// a weave's players (see "weaving"): a counter melody for the second theme and bells to carry the tune
+// in the trio and double it at the climax, joining if the band hasn't got them. an arp goes (with a
+// counter melody it's clutter: the keys keep time instead), and a band that's grown too big lets its
+// drone and scenery go (WEAVE_BAND)
+function pickWeave(song, rng) {
+  if (!weaves(song) || !song.layers.some((layer) => layer.role === 'melody')) return;
+  for (const [role, pattern] of [['counter', 'counterpoint'], ['bells', 'double']]) {
+    const layer = song.layers.find((one) => one.role === role) || addLayer(song, role, rng);
+    layer.pattern = pattern;
+    // (the composer puts doubling bells an octave over the tune whatever their own octave)
+    if (role === 'bells') layer.octave = 0;
+  }
+  song.layers = song.layers.filter((layer) => layer.role !== 'arp');
+  for (const role of ['drone', 'texture']) if (song.layers.length > WEAVE_BAND) song.layers = song.layers.filter((layer) => layer.role !== role);
+  fitBand(song);
+}
+
+// a weave's sections: the form's, with its themes where it says (WEAVERS) and the band in by energy as
+// in any song, the mood's openers from the first bar
+function weaveArrangement(song, rng) {
+  const mood = songMood(song);
+  const form = rng.pick(WEAVES[song.style]).map(([name, part, bars, energy, who, lifted]) => [name, part, bars, mood.drama ? stretch(energy, mood.drama) : energy, who, lifted]);
+  const lift = form.some((section) => section[5]) ? (makeRng(song.seed, song.mood, song.style, 'lift').chance(0.65) ? 2 : 1) : 0;
+  const themes = {
+    melody: song.layers.find((layer) => layer.role === 'melody'),
+    counter: song.layers.find((layer) => layer.role === 'counter'),
+    bells: song.layers.find((layer) => layer.role === 'bells' && carries(layer)),
+  };
+  const band = song.layers.filter((layer) => !Object.values(themes).includes(layer));
+  const entry = {};
+  for (const layer of band) entry[layer.id] = rng.range(...ROLE_ENTRY[layer.role]);
+  const lowest = Math.min(...form.map(([, , , energy]) => energy));
+  // (as many as any song of its style opens on, OPENING, the mood's own openers first)
+  const wanted = mood.opens.map((role) => band.find((layer) => layer.role === role)).filter(Boolean);
+  const openers = [...new Set([...wanted, ...band.filter((layer) => OPENERS.includes(layer.role))])].slice(0, OPENING[song.style]);
+  for (const layer of openers) entry[layer.id] = lowest;
+  let before = [];
+  song.sections = form.map(([name, part, fourFourBars, energy, who, lifted]) => {
+    const backing = band.filter((layer) => (WEAVE_FULL[who] ? !(who === 'trio' && layer.role === 'drums') : entry[layer.id] <= energy || (before.includes(layer.id) && entry[layer.id] <= energy + 0.2)));
+    const play = [...backing, ...WEAVERS[who].map((role) => themes[role]).filter(Boolean)].map((layer) => layer.id);
+    before = play;
+    return { name, part, bars: sectionBars(song, part, fourFourBars), play, energy, ...(lifted ? { lift } : {}) };
+  });
+  addPrelude(song, mood);
 }
 
 // a solo (solo(), section.lead): a long line that doesn't repeat, over the theme's chords just before
@@ -4177,6 +4500,17 @@ function passTune(song) {
   }
 }
 
+// a new player in the band, in its place in the score, dressed
+function addLayer(song, role, rng) {
+  let id = role;
+  for (let n = 2; song.layers.some((one) => one.id === id); n++) id = `${role}-${n}`;
+  const layer = { ...clone(LAYER_DEFAULTS), id, role };
+  const at = song.layers.findIndex((one) => ROLE_ORDER.indexOf(one.role) > ROLE_ORDER.indexOf(role));
+  song.layers.splice(at < 0 ? song.layers.length : at, 0, layer);
+  dressLayer(song, layer, rng, true);
+  return layer;
+}
+
 // whether the tune's handed round (pass) and doubled (double), from the mood's chances or the Orchestra
 // remix's. a counter melody or bells already in the band take the job (keeping a real second melody if
 // there's room for another player), or a new layer joins if the style has room
@@ -4193,14 +4527,9 @@ function pickOrchestra(song, rng, chances = songMood(song).orchestra) {
     let layer = own && !(keep.includes(own.pattern) && room()) ? own : null;
     if (!layer) {
       if (!room()) return null;
-      let id = role;
-      for (let n = 2; song.layers.some((one) => one.id === id); n++) id = `${role}-${n}`;
-      layer = { ...clone(LAYER_DEFAULTS), id, role };
-      const at = song.layers.findIndex((one) => ROLE_ORDER.indexOf(one.role) > ROLE_ORDER.indexOf(role));
-      song.layers.splice(at < 0 ? song.layers.length : at, 0, layer);
-      dressLayer(song, layer, rng, true);
+      layer = addLayer(song, role, rng);
       // a new player comes in where the melody does, and passTune sorts out the rest
-      for (const section of song.sections) if (section.play.includes(melody.id) && !section.lead) section.play.push(id);
+      for (const section of song.sections) if (section.play.includes(melody.id) && !section.lead) section.play.push(layer.id);
     }
     layer.pattern = pattern;
     return layer;
@@ -4264,6 +4593,7 @@ const DOUBLES = {
   nylon: [['harp', 0], ['flute', 0]],
   erhu: [['violin', 0]],
   shakuhachi: [['flute', 0]],
+  piccolo: [['flute', -1], ['violin', -1], ['glock', 0]],
 };
 const CHOIRS = { 'choir-oo': true, 'choir-ah': true, soprano: true, 'chant-voice': true, 'dream-voice': true };
 const DOUBLE_CHANCE = { ambient: 0.25, tune: 0.4, loop: 0.3, mini: 0.35, boss: 0.45, final: 0.6, cutscene: 0.6 };
@@ -4420,7 +4750,7 @@ function mutateSong(song, rng) {
 // "Adding things"). unstamped songs could be 1 or 1.5 (the morning of 22 october): they play as 1, the
 // page marks ones saved after 1.5 as its (markMorningSongs), and the Song tab picks by hand.
 // every composer there's been, oldest first: the last is today's
-const COMPOSER_VERSIONS = [1, 1.5, 2];
+const COMPOSER_VERSIONS = [1, 1.5, 2, 3];
 const COMPOSER = COMPOSER_VERSIONS[COMPOSER_VERSIONS.length - 1];
 
 // ---------- cleaning ----------
@@ -4624,6 +4954,7 @@ function composeSong(song) {
   const meter = METERS[song.meter];
   const mood = songMood(song);
   const build = builds(song);
+  const weave = weaves(song);
   const sections = [];
   const takes = {};
   let start = 0;
@@ -4647,7 +4978,7 @@ function composeSong(song) {
   // then its hand edits
   const write = (layer, section) => {
     const c = {
-      song, layer, section, meter, scalePcs, mood,
+      song, layer, section, meter, scalePcs, mood, weave,
       groove: grooves[section.part],
       prev: sections[section.index - 1] || null,
       next: sections[section.index + 1] || null,
@@ -4661,8 +4992,9 @@ function composeSong(song) {
       steps: SCALES[song.scale].steps,
       melody: melodyBySection[section.index] || null,
       // the melody's line for this section, playing or not: what a layer taking or doubling the tune
-      // plays. written afresh each time, since listen, ornament and feel change notes in place
-      line: () => (melodyLayer && melodyLayer !== layer ? write(melodyLayer, { ...section, lead: null }) : []),
+      // plays. written afresh each time, since listen, ornament and feel change notes in place. take: as
+      // it went some other time round its part (0, the first)
+      line: (take = section.take) => (melodyLayer && melodyLayer !== layer ? write(melodyLayer, { ...section, take, lead: null }) : []),
     };
     c.tonic = near(song.key, c.center);
     // a solo is its own line, so the part's hand edits don't apply to it
@@ -4777,7 +5109,11 @@ function listen(song, sections, parts) {
   const melody = song.layers.find((layer) => layer.role === 'melody');
   const taker = song.layers.find((layer) => layer.role === 'counter' && carries(layer));
   const inside = (section) => (note) => note.t >= section.start - 1e-6 && note.t < section.end - 1e-6;
-  const tuneOf = (section) => section.lead || (taker && melody && !section.play.includes(melody.id) && section.play.includes(taker.id) ? taker.id : melody?.id);
+  // (in a weave, the second theme or the bells where they have it alone)
+  const weave = weaves(song);
+  const alone = weave ? song.layers.filter((layer) => (layer.role === 'counter' && layer.pattern === 'counterpoint') || (layer.role === 'bells' && carries(layer))) : [];
+  const tuneOf = (section) => section.lead || (taker && melody && !section.play.includes(melody.id) && section.play.includes(taker.id) ? taker.id
+    : weave && melody && !section.play.includes(melody.id) ? alone.find((layer) => section.play.includes(layer.id))?.id || melody.id : melody?.id);
   const tune = sections.flatMap((section) => (parts[tuneOf(section)] || []).filter(inside(section))).sort((a, b) => a.t - b.t);
   if (!tune.length) return;
   const soloing = (layer, note) => sections.some((section) => section.lead === layer.id && inside(section)(note));
@@ -6062,6 +6398,14 @@ const COMPOSERS = {
       return tune(c, { density: tuneDensity(c.layer), low: -4, high: 6 });
     }
     if (pattern === 'harmony' && c.melody) return harmonise(c, density);
+    // in a weave the second theme is written against the tune as it goes the first time round its part,
+    // even where the tune rests, so it's the same theme alone as when they meet (counterpoint picks a
+    // note at a time, so a later time round's few new notes in the tune sent it somewhere else). the
+    // band's listening smooths any rub with those new notes
+    if (pattern === 'counterpoint' && c.weave) {
+      const line = c.line(0);
+      if (line.length) return counterpoint({ ...c, melody: line }, tuneDensity(c.layer));
+    }
     // a second melody against the first (counterpoint), when there's a first to play against
     if (pattern === 'counterpoint' && c.melody?.length) return counterpoint(c, tuneDensity(c.layer));
     const notes = tune(c, { density: tuneDensity(c.layer), low: -4, high: 6 });
@@ -6121,7 +6465,9 @@ const COMPOSERS = {
       // of half a beat or more (the shape, not every run), none ringing over two beats
       const line = c.line();
       const quick = c.song.tempo >= 130;
-      return line.filter((note) => !quick || note.dur >= 0.5 - 1e-6).map((note) => ({ t: note.t, dur: Math.min(note.dur, 2), midi: note.midi + 12 + c.layer.octave * 12, vel: note.vel * 0.75 }));
+      // (alone, in a weave's intrada and trio, they're the tune, so they play it full)
+      const level = c.weave && !c.melody ? 0.95 : 0.75;
+      return line.filter((note) => !quick || note.dur >= 0.5 - 1e-6).map((note) => ({ t: note.t, dur: Math.min(note.dur, 2), midi: note.midi + 12 + c.layer.octave * 12, vel: note.vel * level }));
     }
     if (pattern === 'phasing') {
       // a few notes, each on its own loop length (eno's tape loops), counted from the song's start so
@@ -6448,7 +6794,9 @@ const COMPOSERS = {
     const surge = c.next && ((energy(c.next) >= top && energy(c.section) < top) || (lifted(c.next) && !lifted(c.section)));
     const peak = c.prev && ((energy(c.section) >= top && energy(c.prev) < top) || (lifted(c.section) && !lifted(c.prev)));
     const crashed = ((LIFTS[pattern] || ROCK[pattern]) && c.prev && c.prev.part !== c.section.part && c.prev.play.includes(c.layer.id)) || peak;
-    if (crashed) hit(c.start, crash, 0.8);
+    // a weave crashes into each loud section, as an orchestra's cymbal (or gong, or bell tree) marks one
+    const struck = c.weave && energy(c.section) >= 0.85 && (!c.prev || energy(c.prev) < energy(c.section) - 0.1 + 1e-9);
+    if (crashed || struck) hit(c.start, crash, 0.8);
     // a crash every four bars in a loud rock part, every other bar in a loud lifted section
     const phrases = (ROCK[pattern] && kit[6] && (c.section.part === 'B' || c.section.lead)) || (lifted(c.section) && (LIFTS[pattern] || ROCK[pattern] || FILLS[pattern]));
     const every = lifted(c.section) ? 2 : 4;
