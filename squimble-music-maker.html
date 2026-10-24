@@ -99,7 +99,7 @@
         </div>
         <!-- filled in: a key per mood -->
         <div class="mm-moods" id="mmMoods" role="group" aria-label="Mood"></div>
-        <!-- filled in: what the song's mood is, and a key for each of its flavours (FLAVOURS in music.js) -->
+        <!-- filled in: what the song's mood is, and a key for each of its flavours (FLAVOURS in moods.js) -->
         <div class="mm-flavours">
           <p class="mm-about" id="mmAbout"></p>
           <div class="mm-kinds-row">
@@ -255,7 +255,7 @@
     <h2 class="mm-ribbon" id="hood">Under the hood</h2>
 
     <div class="mm-guide">
-      <p class="mm-guide-lede">This bit is for developers, and anyone hiring one. It's all plain JavaScript and the browser's Web Audio API, no libraries and no AI. It's split into three files: <code>music.js</code> writes the music and has no idea a browser exists (so the game can run it), <code>synth.js</code> plays it, and <code>maker.js</code> is this page. Click a heading to read more.</p>
+      <p class="mm-guide-lede">This bit is for developers, and anyone hiring one. It's all plain JavaScript and the browser's Web Audio API, no libraries and no AI. The code is in three files: <code>music.js</code> writes the music and has no idea a browser exists (so the game can run it), <code>synth.js</code> plays it, and <code>maker.js</code> is this page. The moods and instruments are plain data in files of their own (<code>moods.js</code>, <code>instruments.js</code>), so tuning one never touches the code. Click a heading to read more.</p>
 
       <div class="mm-hood">
         <details class="mm-shelf">
@@ -330,12 +330,11 @@
   </footer>
 
   <script src="js/main.js"></script>
-  <!-- synth.js first: music.js picks instruments from its INSTRUMENTS -->
+  <!-- the data first: synth.js and music.js read INSTRUMENTS, music.js reads the moods. older composers
+       (kept/) aren't here: maker.js fetches one only when a song made by it opens -->
+  <script src="js/squimble-music-maker/instruments.js"></script>
   <script src="js/squimble-music-maker/synth.js"></script>
-  <script src="js/squimble-music-maker/kept/composer-1.js"></script>
-  <script src="js/squimble-music-maker/kept/composer-1.5.js"></script>
-  <script src="js/squimble-music-maker/kept/composer-2.js"></script>
-  <script src="js/squimble-music-maker/kept/composer-3.js"></script>
+  <script src="js/squimble-music-maker/moods.js"></script>
   <script src="js/squimble-music-maker/music.js"></script>
   <script src="js/squimble-music-maker/learn.js"></script>
   <script src="js/squimble-music-maker/library.js"></script>

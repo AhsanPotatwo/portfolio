@@ -4,12 +4,12 @@
 // happened once (a post-rock song came back with a different tune), and this check is why it won't
 // again: saved-songs/composer-n.json.gz holds songs as each composer made them, with a fingerprint of
 // the notes each played (notesPrint in library.js, the same one the page keeps with a save). every
-// one must still play those notes, through the page's own scripts (synth.js, kept/, music.js)
+// one must still play those notes, through the page's own scripts (instruments.js, synth.js, kept/,
+// moods.js, music.js)
 //
-// when it fails: the change writes different notes for songs already saved. keep music.js as it was
-// before the change as kept/composer-n.js (n is COMPOSER), add its script to the page, add the next
-// composer to COMPOSER_VERSIONS in music.js, then run this with --add to keep its songs too (README.md,
-// "Adding things")
+// when it fails: the change writes different notes for songs already saved. put the change aside, run
+// tools/keep-composer.js (it keeps today's composer as it is and starts the next), make the change
+// again, then run this with --add to keep the new composer's songs too (README.md, "Adding things")
 //
 // node js/squimble-music-maker/tests/saved-songs-check.js (no output means it all passed), about a
 // minute. music-check.js runs it first
@@ -22,12 +22,17 @@ const dir = `${__dirname}/..`;
 const page = {};
 vm.createContext(page);
 const kept = fs.readdirSync(`${dir}/kept`).filter((file) => /^composer-[\d.]+\.js$/.test(file)).sort((a, b) => parseFloat(a.slice(9)) - parseFloat(b.slice(9)));
-for (const file of ['synth.js', ...kept.map((one) => `kept/${one}`), 'music.js', 'library.js']) vm.runInContext(fs.readFileSync(`${dir}/${file}`, 'utf8'), page);
+for (const file of ['instruments.js', 'synth.js', ...kept.map((one) => `kept/${one}`), 'moods.js', 'music.js', 'library.js']) vm.runInContext(fs.readFileSync(`${dir}/${file}`, 'utf8'), page);
 const run = (expr) => vm.runInContext(expr, page);
 const { COMPOSER, COMPOSER_VERSIONS, composeSong, cleanSong, notesPrint } = run('({ COMPOSER, COMPOSER_VERSIONS, composeSong, cleanSong, notesPrint })');
 const html = fs.readFileSync(`${dir}/../../squimble-music-maker.html`, 'utf8');
-for (const one of kept) assert(html.includes(`js/squimble-music-maker/kept/${one}`), `the page loads kept/${one}`);
-for (const n of COMPOSER_VERSIONS) if (n !== COMPOSER) assert(run(`KEPT_COMPOSERS[${n}]`), `composer ${n} is kept (kept/composer-${n}.js), since COMPOSER is ${COMPOSER}`);
+// (maker.js fetches an older composer by its number when a song needs it: all of them up front were
+// most of what the page loaded)
+assert(!html.includes('squimble-music-maker/kept/'), "the page doesn't load the kept composers up front");
+for (const n of COMPOSER_VERSIONS) {
+  if (n === COMPOSER) continue;
+  assert(fs.existsSync(`${dir}/kept/composer-${n}.js`) && run(`KEPT_COMPOSERS[${n}]`), `composer ${n} is kept as kept/composer-${n}.js, since COMPOSER is ${COMPOSER}`);
+}
 
 const file = (n) => `${__dirname}/saved-songs/composer-${n}.json.gz`;
 const played = (song) => notesPrint(composeSong(cleanSong(JSON.parse(JSON.stringify(song)))).notes);
@@ -71,5 +76,5 @@ for (const n of COMPOSER_VERSIONS) {
   assert(fs.existsSync(file(n)), `composer ${n} has songs kept to check (run this with --add once it's finished)`);
   const songs = JSON.parse(zlib.gunzipSync(fs.readFileSync(file(n))));
   const changed = songs.filter(({ song, print }) => played(song) !== print);
-  assert(!changed.length, `${changed.length} of ${songs.length} songs made by composer ${n} no longer play the notes they were saved with (${changed.slice(0, 5).map(({ song }) => `${song.seed} ${song.mood}/${song.flavour || ''} ${song.style}`).join(', ')}). Keep music.js as it was before this change as kept/composer-${COMPOSER}.js and add the next composer to COMPOSER_VERSIONS: see the top of this file`);
+  assert(!changed.length, `${changed.length} of ${songs.length} songs made by composer ${n} no longer play the notes they were saved with (${changed.slice(0, 5).map(({ song }) => `${song.seed} ${song.mood}/${song.flavour || ''} ${song.style}`).join(', ')}). Put the change aside and run tools/keep-composer.js first: see the top of this file`);
 }

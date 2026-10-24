@@ -87,8 +87,47 @@
     renderTop();
   }
 
+  // ---------- older composers ----------
+  //
+  // a song made by an older composer is written by it, so it sounds as it did (composeSong,
+  // KEPT_COMPOSERS). each is a whole copy of music.js and the moods, too much to send everyone for songs
+  // most people never saved, so the page fetches one the first time a song made by it opens
+  const KEPT_DIR = 'js/squimble-music-maker/kept/';
+  const fetchingComposer = {};
+  const COMPOSER_MISSING = "Couldn't fetch the composer this song was written by, so it can't play as it was saved. Check the connection and open it again.";
+  // the older composer a song needs that hasn't been fetched yet, or null
+  const missingComposer = (one) => {
+    const n = one.composer || 1;
+    return n === COMPOSER || (typeof KEPT_COMPOSERS !== 'undefined' && KEPT_COMPOSERS[n]) ? null : n;
+  };
+  // resolves once the composer a song needs is here (a failed fetch is tried again next time)
+  function fetchComposer(one) {
+    const n = missingComposer(one);
+    if (!n) return Promise.resolve();
+    fetchingComposer[n] ??= new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = `${KEPT_DIR}composer-${n}.js`;
+      script.onload = () => (missingComposer(one) ? reject(new Error(`kept/composer-${n}.js has no composer ${n}`)) : resolve());
+      script.onerror = () => {
+        delete fetchingComposer[n];
+        script.remove();
+        reject(new Error(`kept/composer-${n}.js didn't load`));
+      };
+      document.head.append(script);
+    });
+    return fetchingComposer[n];
+  }
+  let awaitingComposer = false;
+
   // after a change to the notes. panels: rebuild the open tab (not while a slider's being dragged)
   function changed(panels = true) {
+    // (the first song, or one given an older composer in the Song tab, can arrive before its composer:
+    // it's written by today's for now so there's something to show, and again once it's here. Save waits
+    // for it, and a save's own notes play meanwhile, through frozen below)
+    if (missingComposer(song) && !awaitingComposer) {
+      awaitingComposer = true;
+      fetchComposer(song).then(() => { awaitingComposer = false; changed(); }, () => { awaitingComposer = false; say(COMPOSER_MISSING); });
+    }
     comp = composeSong(song);
     // a save opened as saved plays its saved notes if the composer no longer writes them (kept/ is there
     // so it never should, but if it does the song isn't lost)
@@ -111,9 +150,17 @@
   const soon = () => { needCompose = true; };
   const mixed = () => { needMix = true; };
 
-  // a whole new song (new seed, mood, undo, a file...)
+  // a whole new song (new seed, mood, undo, a file...). one made by an older composer opens once that's
+  // fetched, unless something else opened meanwhile
+  let opening = 0;
   function open(next) {
-    song = cleanSong(next);
+    const fresh = cleanSong(next);
+    const ticket = ++opening;
+    if (song && missingComposer(fresh)) {
+      fetchComposer(fresh).then(() => { if (ticket === opening) open(next); }, () => say(COMPOSER_MISSING));
+      return;
+    }
+    song = fresh;
     if (!song.layers.some((layer) => layer.id === selected)) selected = (song.layers.find((layer) => layer.role === 'melody') || song.layers[0])?.id ?? null;
     changed();
     player.restart();
@@ -256,6 +303,11 @@
   async function saveSong(copy) {
     if (saving) return;
     if (needCompose) changed(false);
+    // (the notes it plays now aren't its own until its composer is here)
+    if (missingComposer(song)) {
+      say("The composer this song was written by is still on its way, so it can't be saved yet. Try again in a moment.");
+      return;
+    }
     if (working && !copy && JSON.stringify(song) === working.json) {
       say(`"${song.name}" is saved. Nothing's changed since.`);
       return;
@@ -359,7 +411,7 @@
     button.dataset.mod = id;
     modKeys.append(button);
   }
-  // the song's mood in a sentence, and a key per flavour (FLAVOURS in music.js), the first the plain mood.
+  // the song's mood in a sentence, and a key per flavour (FLAVOURS in moods.js), the first the plain mood.
   // a flavour brings the style it was made for, like a mood, and is written from the same seed
   const kindKeys = $('#mmKinds');
   let shownKinds = '';
@@ -2498,6 +2550,13 @@
   // a save opened: the latest, notes and all, or an older one from its history (Save changes makes it
   // the latest again)
   async function openSaved(entry, version, news = `Opened "${entry.name}".`) {
+    // (its composer first: until it's open, the song on the page isn't this save, so it can't say it is)
+    try {
+      await fetchComposer(cleanSong(version ? version.song : entry.song));
+    } catch {
+      say(COMPOSER_MISSING);
+      return;
+    }
     const notes = version ? null : await library.notes(entry);
     remember();
     working = { id: entry.id, json: JSON.stringify(cleanSong(entry.song)) };
@@ -2647,7 +2706,7 @@
   };
   // notes for songs saved before the library kept them, one at a time, never while one's playing
   const noNotes = new Set();
-  function fillNotes() {
+  async function fillNotes() {
     const entry = [...library.songs.values()].find((one) => !one.notes && !noNotes.has(one.id));
     if (!entry) return;
     if (player.playing) {
@@ -2656,8 +2715,14 @@
     }
     noNotes.add(entry.id);
     let notes = null;
-    try { notes = composeSong(cleanSong(entry.song)).notes; } catch { /* it plays as it can */ }
-    (notes ? library.addNotes(entry.id, notes) : Promise.resolve()).then(() => setTimeout(fillNotes, 300));
+    try {
+      // (by the composer that made it: today's would keep another song's notes as its own)
+      const saved = cleanSong(entry.song);
+      await fetchComposer(saved);
+      notes = composeSong(saved).notes;
+    } catch { /* it plays as it can, and is tried again next visit */ }
+    if (notes) await library.addNotes(entry.id, notes);
+    setTimeout(fillNotes, 300);
   }
 
   // ---------- exports ----------

@@ -32,7 +32,7 @@
 // wrong (the first failure in each block, or in each mood of the big ones), then says how long it took
 // and which blocks were slowest. it exits 1 if anything failed.
 //
-// synth.js is loaded too, for INSTRUMENTS. it doesn't play anything here, nothing in it touches web
+// synth.js is loaded too (after instruments.js, which it plays). it doesn't play anything here, nothing in it touches web
 // audio until a note is played, so the sound itself was checked by listening in the browser
 const fs = require('fs');
 const os = require('os');
@@ -138,7 +138,7 @@ const tally = (name, counts) => {
 
 const page = {};
 vm.createContext(page);
-for (const file of ['synth.js', 'music.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), page);
+for (const file of ['instruments.js', 'synth.js', 'moods.js', 'music.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), page);
 const run = (expr) => vm.runInContext(expr, page);
 const { generateSong, composeSong, cleanSong, rerollSong, parseChord, MOODS, FLAVOURS, GROOVES, METERS, PATTERNS } = run('({ generateSong, composeSong, cleanSong, rerollSong, parseChord, MOODS, FLAVOURS, GROOVES, METERS, PATTERNS })');
 const { INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries, builds, weaves } = run('({ INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries, builds, weaves })');
@@ -718,12 +718,12 @@ block('junk', () => {
 });
 
 // a saved song keeps the composer it was made with (COMPOSER): one from before the stamp plays with the
-// kept one (kept/composer-1.js), as the page loads it, and a new one with today's. the post-rock song
+// kept one (kept/composer-1.js), as the page fetches it, and a new one with today's. the post-rock song
 // that came back with a different tune once the flavours got their own phrasing
 block('kept composers', () => {
   const kept = {};
   vm.createContext(kept);
-  for (const file of ['synth.js', 'kept/composer-1.js', 'music.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), kept);
+  for (const file of ['instruments.js', 'synth.js', 'kept/composer-1.js', 'moods.js', 'music.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), kept);
   const run = (expr) => vm.runInContext(expr, kept);
   const song = run("generateSong('bleak', 'tune', 'frosted-waffle', [], 'postrock')");
   assert.strictEqual(song.composer, run('COMPOSER'), 'a new song is stamped with the composer that made it');
@@ -1183,7 +1183,7 @@ block('preludes, drama and ambient', () => {
   assert(scenery / songs > 0.9, `ambient songs mostly have scenery (${scenery} of ${songs})`);
 });
 
-// flavours (FLAVOURS and flavourMood in music.js): every mood says what it is and has kinds, the first
+// flavours (FLAVOURS in moods.js, flavourMood in music.js): every mood says what it is and has kinds, the first
 // of which is the mood as it is and never saved, so a song from before flavours makes the same notes.
 // a kind only names real instruments that fit their role, real patterns, kits, scenery and chords, and
 // never leaves a role with nothing gentle enough for the mood's cap. a flavour saves and loads, one the

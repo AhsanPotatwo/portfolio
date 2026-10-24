@@ -18,7 +18,7 @@ const localStorage = {
 const visit = () => {
   const page = { localStorage, TextEncoder, TextDecoder, Blob, Response, CompressionStream, DecompressionStream, atob, btoa, setTimeout, clearTimeout, console };
   vm.createContext(page);
-  for (const file of ['synth.js', 'music.js', 'library.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), page);
+  for (const file of ['instruments.js', 'synth.js', 'moods.js', 'music.js', 'library.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), page);
   return (expr) => vm.runInContext(expr, page);
 };
 const same = (a, b, message) => assert.strictEqual(JSON.stringify(a), JSON.stringify(b), message);

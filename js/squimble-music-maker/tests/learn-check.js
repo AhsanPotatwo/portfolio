@@ -11,7 +11,7 @@ const assert = require('assert');
 
 const page = {};
 vm.createContext(page);
-for (const file of ['synth.js', 'kept/composer-3.js', 'music.js', 'learn.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), page);
+for (const file of ['instruments.js', 'synth.js', 'kept/composer-3.js', 'moods.js', 'music.js', 'learn.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), page);
 const { generateSong, composeSong, MOODS, SCALES, playedTogether, frettings, fingersFor, keySignature, spellPitch, sheetPieces, STRINGS } = vm.runInContext('({ generateSong, composeSong, MOODS, SCALES, playedTogether, frettings, fingersFor, keySignature, spellPitch, sheetPieces, STRINGS })', page);
 
 // a shape written the way chord books write it, low e first: x an unplayed string
