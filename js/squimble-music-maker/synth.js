@@ -1329,7 +1329,11 @@ function loadSamples(folder) {
       const hits = {};
       for (const note of notes) if (note.hit) (hits[note.hit] ||= []).push(note);
       const midis = notes.filter((note) => note.midi !== undefined).map((note) => note.midi);
-      set.ready = { notes, hits, loop: !!index.loop, low: Math.min(...midis), high: Math.max(...midis) };
+      // recorded moves from note to note (a singer's legato, singMove), packed several to a file
+      const files = [...new Set((index.moves || []).map((move) => move.file))];
+      const packs = Object.fromEntries(await Promise.all(files.map(async (file) => [file, await decoder.decodeAudioData(await (await get(file)).arrayBuffer())])));
+      const moves = (index.moves || []).map((move) => ({ ...move, buffer: packs[move.file] }));
+      set.ready = { notes, hits, moves, loop: !!index.loop, low: Math.min(...midis), high: Math.max(...midis) };
     })().catch((error) => {
       set.failed = true;
       console.warn(`recordings: ${folder} didn't load, so it stays synthesised (${error.message})`);
@@ -2641,6 +2645,68 @@ function singTake(ctx, voice, take, when, start) {
   return { source, amp, take };
 }
 
+// a recorded move (true legato, buildMoves in tools/build-samples.js): the singer was recorded going from
+// one note into another, so the move is their own voice moving, breath and all, rather than a recording
+// bent. one is sung when there's one of the same leap arriving within STRETCH of this note, quick enough
+// to sit across the two notes' join, with this note long enough to hand over to its held recording
+// after. the middle of its move (leaving to landing) falls on the note's start. its pitch is ramped from
+// where the voice was to this note as it moves, and its loudness from the voice's to this note's, so
+// both ends join up. a doubler never sings one (two voices on one recording of a move would phase).
+// false when none fits
+const HANDOVER = 0.12;
+function singMove(ctx, voice, set, note, nearest, when, dur, pitch, peak) {
+  if (note.singer || !set.moves?.length) return false;
+  const leap = note.midi - voice.midi;
+  let move = null;
+  for (const one of set.moves) {
+    if (one.to - one.from !== leap || Math.abs(note.midi - one.to) > STRETCH) continue;
+    const middle = (one.leave + one.land) / 2;
+    // (it leaves before the last note started, or arrives too late in this one to hand over and be held
+    // a moment)
+    if (when - middle + one.leave - 0.03 < Math.max(ctx.currentTime, voice.at + 0.01, voice.ready || 0) || one.arrive - middle + 0.03 + HANDOVER + 0.1 > dur) continue;
+    if (!move || Math.abs(note.midi - one.to) < Math.abs(note.midi - move.to)) move = one;
+  }
+  if (!move) return false;
+  const zero = when - (move.leave + move.land) / 2;
+  const start = Math.max(zero, ctx.currentTime, voice.at + 0.01, voice.ready || 0);
+  const [leave, land, arrive] = [zero + move.leave, zero + move.land, zero + move.arrive];
+  // the last recording holds its note and fades as the move fades in
+  followPath(voice.source.detune, voice.take, [[start, pathAt(voice.path, start)]], false);
+  voice.amp.gain.cancelScheduledValues(start);
+  voice.amp.gain.setValueAtTime(voice.peak, start);
+  voice.amp.gain.linearRampToValueAtTime(0, start + 0.05);
+  voice.source.stop(start + 0.1);
+  const source = ctx.createBufferSource();
+  source.buffer = move.buffer;
+  const amp = new GainNode(ctx, { gain: 0 });
+  source.connect(amp).connect(voice.out);
+  voice.wander.connect(source.detune);
+  const [before, after] = [voice.pitch - move.from * 100 + move.tune[0], pitch - move.to * 100 + move.tune[1]];
+  source.detune.setValueAtTime(before, start);
+  source.detune.setValueAtTime(before, leave);
+  // (the singer's swing past the note once landed, scaled to 25 cents at most, as singerMove's is)
+  // (null where her pitch wasn't clear)
+  const keep = Math.min(1, 25 / Math.max(1, ...move.bend.map(Math.abs)));
+  move.bend.forEach((cents, k) => cents !== null && source.detune.linearRampToValueAtTime(after + (keep - 1) * cents, land + k * 0.02));
+  source.detune.linearRampToValueAtTime(after, arrive);
+  amp.gain.setValueAtTime(0, start);
+  amp.gain.linearRampToValueAtTime(voice.peak * move.gain[0], Math.min(start + 0.05, leave));
+  amp.gain.setValueAtTime(voice.peak * move.gain[0], leave);
+  amp.gain.linearRampToValueAtTime(peak * move.gain[1], arrive);
+  // then hands over to this note's held recording, an equal power crossfade just after it arrives
+  const over = arrive + 0.03;
+  amp.gain.setValueAtTime(peak * move.gain[1], over);
+  amp.gain.linearRampToValueAtTime(peak * move.gain[1] * 0.71, over + HANDOVER / 2);
+  amp.gain.linearRampToValueAtTime(0, over + HANDOVER);
+  source.start(start, move.at + start - zero, move.length - (start - zero));
+  const held = singTake(ctx, voice, nearest, over, heldPart(nearest));
+  followPath(held.source.detune, nearest, [[over, pitch]], true);
+  held.amp.gain.linearRampToValueAtTime(peak * 0.71, over + HANDOVER / 2);
+  held.amp.gain.linearRampToValueAtTime(peak, over + HANDOVER);
+  Object.assign(voice, held, { path: [[start, voice.pitch], [leave, voice.pitch], [arrive, pitch]], ready: over + HANDOVER });
+  return true;
+}
+
 function singLine(ctx, channel, inst, tone, note, when, dur, spb) {
   const set = sampleSet(inst.samples);
   const last = channel.voice;
@@ -2665,13 +2731,13 @@ function singLine(ctx, channel, inst, tone, note, when, dur, spb) {
     voice.path = [[when, pitch]];
     followPath(voice.source.detune, nearest, voice.path, true);
     voice.amp.gain.linearRampToValueAtTime(peak, when + Math.max(0.01, Math.min(inst.env[0] * tone.attack, dur * 0.5)));
-  } else {
+  } else if (!singMove(ctx, voice, set, note, nearest, when, dur, pitch, peak)) {
     const semitones = (pitch - voice.pitch) / 100;
     const length = moveTime(semitones, when - voice.at, dur);
     const move = when - length * 0.5;
     // the last note's planned ending is taken back from here (no earlier than now, or a ramp under way
-    // would jump)
-    const from = Math.max(ctx.currentTime, voice.at + 0.01, Math.min(voice.off, move - length * 0.6));
+    // would jump, nor before a recorded move has handed over)
+    const from = Math.max(ctx.currentTime, voice.at + 0.01, voice.ready || 0, Math.min(voice.off, move - length * 0.6));
     const path = [[from, pathAt(voice.path, from)], ...singerMove(voice.pitch, pitch, move, length).filter(([t]) => t > from)];
     voice.amp.gain.cancelScheduledValues(from);
     voice.amp.gain.setValueAtTime(voice.peak, from);

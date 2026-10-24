@@ -6,6 +6,7 @@
 //   node js/squimble-music-maker/tools/build-samples.js <work folder> [folders...]
 //   node js/squimble-music-maker/tools/build-samples.js <work folder> --list    what it would take
 //   node js/squimble-music-maker/tools/build-samples.js <work folder> --probe   checks the octaves
+//   node js/squimble-music-maker/tools/build-samples.js <work folder> --moves [folders...]   adds recorded moves (buildMoves)
 //
 // the work folder is where the libraries get downloaded to (only the files picked, not the gigabytes
 // of everything). it needs git, and ffmpeg (on the path, or FFMPEG saying where).
@@ -279,7 +280,8 @@ const FOLDERS = {
   },
   // real voices, sung, so they glide between notes (singLine in synth.js). a man singing ah, low (its
   // names are an octave high: the file called c4 sings 129 hz), for chant and the bottom of a choir
-  'chant-voice': { from: 'hadzi', shift: -1, dir: 'Samples/vowel_sustain/a/', match: /^vowel_a_([a-g]b?\d)\.wav$/, every: 2, loop: true, seconds: 6 },
+  // (and the singer's recorded moves from note to note, buildMoves)
+  'chant-voice': { from: 'hadzi', shift: -1, dir: 'Samples/vowel_sustain/a/', match: /^vowel_a_([a-g]b?\d)\.wav$/, every: 2, loop: true, seconds: 6, moves: { dir: 'Samples/vowel_transition/a/', match: /^vowel_a_([a-g]b?\d)_from([a-g]b?\d)\.wav$/ } },
   // someone humming three long notes, a3, c4 and d4 (cut from one take), for lullabies and memories
   'hum-voice': { from: 'hum', files: [[1.6, 60], [19.5, 62], [40.2, 57]].map(([at, midi]) => ['439/439504_6616150-hq.mp3', midi, undefined, at]), loop: true, seconds: 3.6, measure: true },
   // an operatic soprano's held notes from g4 to c6, with her own vibrato, for the high voice over a choir
@@ -688,46 +690,51 @@ function tidy(data, seconds) {
 // the attack, and the middle one kept
 function pitchOf(data) {
   const size = 2048;
-  const minLag = Math.floor(RATE / 4500);
-  const maxLag = Math.floor(RATE / 25);
   const peak = peakOf(data);
   const attack = Math.max(0, data.findIndex((x) => Math.abs(x) > peak * 0.3));
   const found = [];
   for (const after of [0.08, 0.15, 0.25, 0.35, 0.5]) {
     const at = attack + Math.round(RATE * after);
-    if (at + size + maxLag >= data.length) break;
-    const diff = new Float32Array(maxLag + 1);
-    for (let lag = 1; lag <= maxLag; lag++) {
-      let sum = 0;
-      for (let i = 0; i < size; i++) {
-        const d = data[at + i] - data[at + i + lag];
-        sum += d * d;
-      }
-      diff[lag] = sum;
-    }
-    let running = 0;
-    const norm = new Float32Array(maxLag + 1).fill(1);
-    for (let lag = 1; lag <= maxLag; lag++) {
-      running += diff[lag];
-      norm[lag] = running ? (diff[lag] * lag) / running : 1;
-    }
-    let best = -1;
-    for (let lag = minLag; lag < maxLag; lag++) {
-      if (norm[lag] < 0.15) {
-        while (lag + 1 < maxLag && norm[lag + 1] < norm[lag]) lag++;
-        best = lag;
-        break;
-      }
-    }
-    if (best < 0) continue;
-    // between samples: the bottom of a parabola through the dip
-    const [a, b, c] = [norm[best - 1], norm[best], norm[best + 1]];
-    const shift = (a - c) / (2 * (a - 2 * b + c)) || 0;
-    found.push(RATE / (best + shift));
+    const hz = pitchAt(data, at, size);
+    if (hz) found.push(hz);
   }
   if (!found.length) return null;
   found.sort((x, y) => x - y);
   return found[found.length >> 1];
+}
+// the pitch in hz of size samples from at, or null if there's no clear one
+function pitchAt(data, at, size) {
+  const minLag = Math.floor(RATE / 4500);
+  const maxLag = Math.floor(RATE / 25);
+  if (at + size + maxLag >= data.length) return null;
+  const diff = new Float32Array(maxLag + 1);
+  for (let lag = 1; lag <= maxLag; lag++) {
+    let sum = 0;
+    for (let i = 0; i < size; i++) {
+      const d = data[at + i] - data[at + i + lag];
+      sum += d * d;
+    }
+    diff[lag] = sum;
+  }
+  let running = 0;
+  const norm = new Float32Array(maxLag + 1).fill(1);
+  for (let lag = 1; lag <= maxLag; lag++) {
+    running += diff[lag];
+    norm[lag] = running ? (diff[lag] * lag) / running : 1;
+  }
+  let best = -1;
+  for (let lag = minLag; lag < maxLag; lag++) {
+    if (norm[lag] < 0.15) {
+      while (lag + 1 < maxLag && norm[lag + 1] < norm[lag]) lag++;
+      best = lag;
+      break;
+    }
+  }
+  if (best < 0) return null;
+  // between samples: the bottom of a parabola through the dip
+  const [a, b, c] = [norm[best - 1], norm[best], norm[best + 1]];
+  const shift = (a - c) / (2 * (a - 2 * b + c)) || 0;
+  return RATE / (best + shift);
 }
 const midiOf = (hz) => 69 + 12 * Math.log2(hz / 440);
 
@@ -883,6 +890,125 @@ async function buildTonal(work, folder, spec) {
   writeIndex(folder, spec, sounds.map((one) => one.entry));
 }
 
+// recorded moves between notes (true legato): each file sings one note into another, so a sung line can
+// move the way the singer did instead of a recording being bent. a move is measured every 10 ms: the
+// note it leaves (how long it's held there, how in tune), when it leaves, lands and arrives, and how in
+// tune the note it arrives on is. one that doesn't start on its first note (silence, then straight on to
+// the second) is left out. each is cut to the move with a little of both notes, and packed with the
+// others arriving on the same note into one file. its gain is [start, end]: how much to turn each end
+// up or down to match the folder's held notes, so a move is as loud as the voice either side of it.
+// added to a folder already built, which keeps its notes and their tunes:
+//   node js/squimble-music-maker/tools/build-samples.js <work folder> --moves chant-voice
+function measureMove(data, from, to) {
+  const hop = Math.round(RATE * 0.01);
+  const pitch = [];
+  const level = [];
+  for (let at = 0; at + hop <= data.length; at += hop) {
+    const hz = pitchAt(data, at, 1536);
+    pitch.push(hz && midiOf(hz));
+    level.push(rmsOf(data.subarray(at, at + hop)));
+  }
+  const loud = Math.max(...level);
+  const heard = (k) => pitch[k] && level[k] > loud * 0.12;
+  const median = (list) => [...list].sort((a, b) => a - b)[list.length >> 1];
+  // the first note, from the start until the pitch heads off
+  if (!heard(0) && !heard(1)) return null;
+  const first = heard(0) ? 0 : 1;
+  const was = median(pitch.slice(first, first + 4).filter(Boolean));
+  let leave = first;
+  while (heard(leave + 1) && Math.abs(pitch[leave + 1] - was) < Math.max(0.25, Math.abs(to - from) * 0.2)) leave++;
+  const fromPitch = median(pitch.slice(first, leave + 1));
+  // the second, once it's stayed within a third of a semitone for 80 ms
+  const late = pitch.filter((p, k) => k > pitch.length / 2 && heard(k) && Math.abs(p - to) < 1);
+  if (leave - first < 4 || late.length < 10 || Math.abs(fromPitch - from) > 1) return null;
+  let arrive = leave + 1;
+  while (arrive < pitch.length - 8 && !Array.from({ length: 8 }, (_, j) => heard(arrive + j) && Math.abs(pitch[arrive + j] - median(late)) < 0.33).every(Boolean)) arrive++;
+  if (arrive >= pitch.length - 8 || arrive - leave > 50) return null;
+  // in tune where it's heard, the quarter second after it arrives, and where it lands: the first moment
+  // within a semitone of that. between landing and arriving a singer swings past the note and back (by
+  // as much as 90 cents after a big fall), every 20 ms of which is kept as bend, cents off the note
+  const toPitch = median(pitch.slice(arrive, arrive + 25).filter(Boolean));
+  let land = leave + 1;
+  while (land < arrive && !(heard(land) && Math.abs(pitch[land] - toPitch) < 1)) land++;
+  const bend = [];
+  // (null where it isn't clear)
+  for (let k = land; k < arrive; k += 2) bend.push(heard(k) ? Math.round((pitch[k] - toPitch) * 100) : null);
+  return { leave: leave * hop, land: land * hop, arrive: arrive * hop, start: first * hop, bend, tune: [Math.round((from - fromPitch) * 100), Math.round((to - toPitch) * 100)] };
+}
+
+async function buildMoves(work, folder, spec) {
+  const index = JSON.parse(fs.readFileSync(path.join(OUT, folder, 'index.json'), 'utf8'));
+  // how loud the held notes are where they're held, for each end of a move to match the nearest
+  const held = index.notes.map((note) => {
+    const data = decode(path.join(OUT, folder, note.file));
+    return { midi: note.midi, rms: rmsOf(data.subarray(Math.round(data.length * 0.3), Math.round(data.length * 0.7))) };
+  });
+  const loudness = (midi) => held.reduce((a, b) => (Math.abs(b.midi - midi) < Math.abs(a.midi - midi) ? b : a)).rms;
+  const { dir, match } = spec.moves;
+  const shift = 12 * (spec.shift || 0);
+  const found = TREES[spec.from].filter((file) => file.startsWith(dir) && match.test(file.slice(dir.length)));
+  const files = await downloadAll(work, found.map((file) => [spec.from, file]));
+  const packs = new Map();
+  let left = 0;
+  found.forEach((file, i) => {
+    const [, toName, fromName] = match.exec(file.slice(dir.length));
+    const [from, to] = [parseNote(fromName) + shift, parseNote(toName) + shift];
+    const data = decode(files[i]);
+    const move = measureMove(data, from, to);
+    if (!move) {
+      left++;
+      return;
+    }
+    // from a tenth of a second before it leaves to a quarter after it arrives (time enough to hand over
+    // to the held note, singLine)
+    const start = Math.max(move.start, move.leave - Math.round(RATE * 0.1));
+    const clip = data.slice(start, Math.min(data.length, move.arrive + Math.round(RATE * 0.25)));
+    const fade = Math.round(RATE * 0.01);
+    for (let k = 0; k < fade; k++) {
+      clip[k] *= k / fade;
+      clip[clip.length - 1 - k] *= k / fade;
+    }
+    const ends = [rmsOf(data.subarray(move.start, move.leave)), rmsOf(data.subarray(move.arrive, move.arrive + Math.round(RATE * 0.25)))];
+    // (turned up to match where it arrives, or as far as it goes without clipping)
+    const k = Math.min(loudness(to) / ends[1], 0.95 / peakOf(clip));
+    // (a first note sung so softly it'd need turning up more than two and a half times is mostly breath)
+    // (nor one that goes quiet half way, a breath in the middle of a big fall: a 6 db dip under the voice
+    // either side, as it'll be played, gain and all, was heard as a hiccup)
+    let dip = 1;
+    for (let at = move.leave; at < move.arrive; at += Math.round(RATE * 0.01)) {
+      const u = (at - move.leave) / (move.arrive - move.leave);
+      const heard = rmsOf(data.subarray(at, at + Math.round(RATE * 0.03))) * ((loudness(from) / ends[0]) * (1 - u) + (loudness(to) / ends[1]) * u);
+      dip = Math.min(dip, heard / (loudness(from) * (1 - u) + loudness(to) * u));
+    }
+    if (loudness(from) / ends[0] > 2.5 * k || dip < 0.5) {
+      left++;
+      return;
+    }
+    for (let j = 0; j < clip.length; j++) clip[j] *= k;
+    if (!packs.has(to)) packs.set(to, []);
+    const seconds = (at) => +((at - start) / RATE).toFixed(3);
+    packs.get(to).push({ clip, entry: { from, to, leave: seconds(move.leave), land: seconds(move.land), arrive: seconds(move.arrive), bend: move.bend, tune: move.tune, gain: [+(loudness(from) / (ends[0] * k)).toFixed(2), +(loudness(to) / (ends[1] * k)).toFixed(2)] } });
+  });
+  // packed one after another with a tenth of a second between, at says where each starts
+  index.moves = [];
+  for (const [to, list] of [...packs].sort((a, b) => a[0] - b[0])) {
+    const gap = Math.round(RATE * 0.1);
+    const file = `moves-${fileName(to)}.mp3`;
+    const pack = new Float32Array(list.reduce((sum, one) => sum + one.clip.length + gap, gap));
+    let at = gap;
+    for (const one of list) {
+      pack.set(one.clip, at);
+      index.moves.push({ file, at: +(at / RATE).toFixed(4), length: +(one.clip.length / RATE).toFixed(3), ...one.entry });
+      at += one.clip.length + gap;
+    }
+    encode(pack, path.join(OUT, folder, file));
+  }
+  // (a move to a line, or the index would be thousands of lines long)
+  const moves = index.moves.map((one) => JSON.stringify(one)).join(',\n  ');
+  fs.writeFileSync(path.join(OUT, folder, 'index.json'), `${JSON.stringify({ ...index, moves: 0 }, null, 1).replace('"moves": 0', `"moves": [\n  ${moves}\n ]`)}\n`);
+  console.log(`  ${folder}: ${index.moves.length} moves, ${left} left out`);
+}
+
 // a long, steady recording with no quiet in it (rain, static, a siren's wail) sliced instead: most slices
 // of length seconds spread across it (fewer if it's too short for them all not to overlap), each faded
 // in and out so it can't click
@@ -1017,6 +1143,8 @@ const TREES = {};
           console.log(`${folder.padEnd(15)} ${path.basename(note.file).padEnd(40)} named ${note.midi}, sounds like ${hz ? midiOf(hz).toFixed(2) : '?'}`);
         }
       }
+    } else if (mode === '--moves') {
+      if (spec.moves) await buildMoves(work, folder, spec);
     } else {
       console.log(`building ${folder}`);
       if (spec.hits) await buildKit(work, folder, spec);

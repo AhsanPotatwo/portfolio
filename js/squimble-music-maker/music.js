@@ -4648,6 +4648,11 @@ function pedal(song, sections, parts) {
     if (!INSTRUMENTS[layer.instrument]?.pedal) continue;
     // (the tune's own ringing notes stop for any part, since everyone else listened to them as written)
     const against = layer === melody ? song.layers.flatMap((other) => (roleFamily(other.role) === 'tonal' ? parts[other.id] || [] : [])) : [...tune, ...(parts[layer.id] || [])];
+    // (only a note a semitone away can rub, so they're found by pitch, in the order they came)
+    const byPitch = Array.from({ length: 12 }, () => []);
+    against.forEach((other, i) => byPitch[mod12(other.midi)].push(i));
+    const nearBy = [];
+    const near = (midi) => (nearBy[mod12(midi)] ||= [...byPitch[mod12(midi + 1)], ...byPitch[mod12(midi - 1)]].sort((a, b) => a - b).map((i) => against[i]));
     for (const note of parts[layer.id] || []) {
       if (note.added) continue;
       const section = sections.find((one) => note.t >= one.start - 1e-6 && note.t < one.end - 1e-6);
@@ -4657,7 +4662,7 @@ function pedal(song, sections, parts) {
       // dozens of voices)
       let until = Math.min(chord.t + chord.dur, note.t + bar, note.t + (2 * song.tempo) / 60, section.end);
       // (a short note listening let rub isn't held at all: held, it's a clash)
-      for (const other of against) {
+      for (const other of near(note.midi)) {
         if (other === note || !rubs(other.midi, note.midi) || other.t >= until || other.t + other.dur <= note.t + 1e-6) continue;
         until = Math.min(until, other.t > note.t + note.dur - 1e-6 ? other.t : note.t + note.dur);
       }
@@ -5342,7 +5347,15 @@ function joinHeld(notes) {
 // and each layer adds a little of its own (LOOSE): separate nudges smeared the kick, bass and chords
 // into flams
 const LOOSE = { melody: 1, counter: 1, bells: 1, arp: 0.5, keys: 0.6, guitar: 0.3, pad: 0.4, bass: 0.15, drums: 0.1, drone: 0, texture: 0 };
-const pocket = (song, t) => makeRng(song.seed, 'pocket', Math.round(t * 12)).range(-1, 1) * song.humanise * 0.012;
+// (the same seed and spot always give the same nudge, so the last song's are remembered: seeding a new
+// random number maker for every note was a quarter of the time composing took)
+const pockets = { seed: null, nudges: new Map() };
+function pocket(song, t) {
+  if (pockets.seed !== song.seed) Object.assign(pockets, { seed: song.seed, nudges: new Map() });
+  const spot = Math.round(t * 12);
+  if (!pockets.nudges.has(spot)) pockets.nudges.set(spot, makeRng(song.seed, 'pocket', spot).range(-1, 1));
+  return pockets.nudges.get(spot) * song.humanise * 0.012;
+}
 // dynamics: a section is played as hard as its energy (0.75 as written), and the last bar before a
 // louder one swells into it. the drums already play to the room (COMPOSERS.drums), so they're left alone
 function loudness(sections, t, bpb) {
