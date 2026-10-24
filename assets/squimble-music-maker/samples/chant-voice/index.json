@@ -21,34 +21,38 @@
   },
   {
    "file": "ab2.mp3",
-   "midi": 44
+   "midi": 44,
+   "tune": 17
   },
   {
    "file": "bb2.mp3",
-   "midi": 46
+   "midi": 46,
+   "tune": 40
   },
   {
    "file": "c3.mp3",
    "midi": 48,
-   "tune": 6
+   "tune": 19
   },
   {
    "file": "d3.mp3",
-   "midi": 50
+   "midi": 50,
+   "tune": 33
   },
   {
    "file": "gb3.mp3",
    "midi": 54,
-   "tune": 20
+   "tune": 48
   },
   {
    "file": "ab3.mp3",
    "midi": 56,
-   "tune": 8
+   "tune": 20
   },
   {
    "file": "bb3.mp3",
-   "midi": 58
+   "midi": 58,
+   "tune": 53
   }
  ]
 }

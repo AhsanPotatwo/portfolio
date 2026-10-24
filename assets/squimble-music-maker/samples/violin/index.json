@@ -12,7 +12,7 @@
   {
    "file": "c4.mp3",
    "midi": 60,
-   "tune": 14
+   "tune": -3
   },
   {
    "file": "e4.mp3",
@@ -31,7 +31,8 @@
   },
   {
    "file": "e5.mp3",
-   "midi": 76
+   "midi": 76,
+   "tune": -11
   },
   {
    "file": "g5.mp3",

@@ -7,7 +7,7 @@
   {
    "file": "g3.mp3",
    "midi": 55,
-   "tune": -12
+   "tune": 1
   },
   {
    "file": "bb3.mp3",
@@ -42,7 +42,7 @@
   {
    "file": "e5.mp3",
    "midi": 76,
-   "tune": -10
+   "tune": 2
   },
   {
    "file": "g5.mp3",

@@ -1,0 +1,48 @@
+{
+ "source": "Female Voc Long Notes, female vocal long and vocal C sharp long by owstu (freesound.org)",
+ "link": "https://cdn.freesound.org/previews/",
+ "licence": "CC0 1.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "ab3.mp3",
+   "midi": 56,
+   "tune": 12
+  },
+  {
+   "file": "b3.mp3",
+   "midi": 59,
+   "tune": 10
+  },
+  {
+   "file": "c4.mp3",
+   "midi": 60,
+   "tune": -6
+  },
+  {
+   "file": "d4.mp3",
+   "midi": 62,
+   "tune": -10
+  },
+  {
+   "file": "e4.mp3",
+   "midi": 64,
+   "tune": 8
+  },
+  {
+   "file": "f4.mp3",
+   "midi": 65,
+   "tune": 5
+  },
+  {
+   "file": "g4.mp3",
+   "midi": 67,
+   "tune": -26
+  },
+  {
+   "file": "db5.mp3",
+   "midi": 73,
+   "tune": 10
+  }
+ ]
+}

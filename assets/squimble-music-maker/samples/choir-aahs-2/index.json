@@ -6,7 +6,8 @@
  "notes": [
   {
    "file": "f2.mp3",
-   "midi": 41
+   "midi": 41,
+   "tune": 14
   },
   {
    "file": "ab2.mp3",
@@ -14,12 +15,13 @@
   },
   {
    "file": "b2.mp3",
-   "midi": 47
+   "midi": 47,
+   "tune": 19
   },
   {
    "file": "d3.mp3",
    "midi": 50,
-   "tune": 14
+   "tune": 26
   },
   {
    "file": "f3.mp3",
@@ -69,12 +71,12 @@
   {
    "file": "ab5.mp3",
    "midi": 80,
-   "tune": 33
+   "tune": 17
   },
   {
    "file": "b5.mp3",
    "midi": 83,
-   "tune": 28
+   "tune": 14
   }
  ]
 }

@@ -1,0 +1,73 @@
+<!doctype html>
+<!--
+  whether every held recording is in tune where it's held. a held note plays the steady middle it loops
+  (loopNote in synth.js), and singers drift over a long note, so a note tuned by its start can loop a
+  third of a semitone out: the low voice was 40 to 50 cents flat and the soprano 70 sharp before this was
+  checked. it measures each looped note's pitch over its loop (yin, every 20 ms), counting its tune, and
+  lists any more than 10 cents out, with how much the pitch moves (the middle half of its readings).
+  fix one by taking the cents off its tune in the folder's index.json. open it in a browser and wait a
+  minute, or run it with tests/headless.js and read #out once it doesn't start with "measuring".
+  struck and plucked notes aren't held, and their first moments fool a pitch check, so they're left out
+-->
+<meta charset="utf-8">
+<title>Squimble tuning</title>
+<pre id="out">measuring...</pre>
+<script src="../synth.js"></script>
+<script>
+RECORDINGS.root = '../../../assets/squimble-music-maker/samples/';
+// overtone singing and the didgeridoo: the pitch check hears an overtone, not the note
+const SKIP = new Set(['sygyt', 'khoomei', 'kargyraa', 'didgeridoo']);
+function yin(data, rate, at, size = 2048) {
+  const half = size / 2;
+  const d = new Float32Array(half);
+  for (let tau = 1; tau < half; tau++) {
+    let sum = 0;
+    for (let i = 0; i < half; i++) {
+      const x = data[at + i] - data[at + i + tau];
+      sum += x * x;
+    }
+    d[tau] = sum;
+  }
+  let running = 0;
+  for (let tau = 1; tau < half; tau++) {
+    running += d[tau];
+    d[tau] = d[tau] * tau / (running || 1);
+  }
+  for (let tau = Math.floor(rate / 1500); tau < Math.min(Math.floor(rate / 60), half - 1); tau++) {
+    if (d[tau] < 0.15) {
+      while (tau + 1 < half && d[tau + 1] < d[tau]) tau++;
+      const a = d[tau - 1], b = d[tau], c = d[tau + 1];
+      return rate / (tau + (a - c) / (2 * (a - 2 * b + c) || 1));
+    }
+  }
+  return 0;
+}
+(async () => {
+  const folders = [...new Set(Object.values(INSTRUMENTS).flatMap((inst) => recordingsOf(inst).map(([folder]) => folder)))].filter((folder) => !SKIP.has(folder));
+  const rows = [];
+  let checked = 0;
+  for (const folder of folders.sort()) {
+    await loadSamples(folder);
+    const set = RECORDINGS.sets.get(folder)?.ready;
+    if (!set?.loop) continue;
+    checked++;
+    for (const note of set.notes) {
+      if (!note.loop) continue;
+      const data = note.buffer.getChannelData(0);
+      const rate = note.buffer.sampleRate;
+      const heard = [];
+      for (let t = note.loop[0]; t < note.loop[1] && t * rate + 2048 < data.length; t += 0.02) {
+        const f = yin(data, rate, Math.round(t * rate));
+        const cents = f ? (69 + 12 * Math.log2(f / 440) - note.midi) * 100 + (note.tune || 0) : NaN;
+        if (Math.abs(cents) < 150) heard.push(cents);
+      }
+      if (heard.length < 5) continue;
+      heard.sort((a, b) => a - b);
+      const off = Math.round(heard[heard.length >> 1]);
+      const moves = Math.round(heard[Math.floor(heard.length * 0.75)] - heard[Math.floor(heard.length * 0.25)]);
+      if (Math.abs(off) > 10) rows.push(`${folder}/${note.file}: ${off > 0 ? '+' : ''}${off} cents (moves ${moves})`);
+    }
+  }
+  document.getElementById('out').textContent = `${checked} held folders measured\n${rows.length ? rows.join('\n') : 'every held note is within 10 cents'}`;
+})().catch((error) => { document.getElementById('out').textContent = `ERROR ${error.stack}`; });
+</script>

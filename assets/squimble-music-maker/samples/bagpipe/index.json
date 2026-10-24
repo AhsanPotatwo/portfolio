@@ -7,7 +7,7 @@
   {
    "file": "g3.mp3",
    "midi": 55,
-   "tune": -7
+   "tune": 5
   },
   {
    "file": "bb3.mp3",
@@ -27,7 +27,7 @@
   {
    "file": "g4.mp3",
    "midi": 67,
-   "tune": 16
+   "tune": -2
   },
   {
    "file": "bb4.mp3",
@@ -37,7 +37,7 @@
   {
    "file": "db5.mp3",
    "midi": 73,
-   "tune": 1
+   "tune": -12
   },
   {
    "file": "e5.mp3",
@@ -47,22 +47,22 @@
   {
    "file": "g5.mp3",
    "midi": 79,
-   "tune": 27
+   "tune": 6
   },
   {
    "file": "bb5.mp3",
    "midi": 82,
-   "tune": 30
+   "tune": -4
   },
   {
    "file": "db6.mp3",
    "midi": 85,
-   "tune": 11
+   "tune": -18
   },
   {
    "file": "e6.mp3",
    "midi": 88,
-   "tune": 1
+   "tune": -21
   },
   {
    "file": "g6.mp3",

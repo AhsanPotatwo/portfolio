@@ -622,7 +622,7 @@ const MOODS = {
     chords: ['I V vi iii IV I IV V', 'I IV I V', 'IV I', 'I bVII IV I', 'I V vi IV', 'IV V vi I', 'I iii vi IV'],
     richness: [0.2, 0.6], energy: 0.2, space: 1, bright: 0.75, dark: 0,
     palette: {
-      pad: ['choir-ah', 'organ', 'shimmer', 'strings', 'bowed-vibes', 'vox-pad'], melody: ['choir-oo', 'flute', 'glass-bell', 'violin', 'soprano'],
+      pad: ['choir-ah', 'organ', 'shimmer', 'strings', 'bowed-vibes', 'vox-pad'], melody: ['choir-oo', 'flute', 'glass-bell', 'violin', 'soprano', 'alto-voice'],
       counter: ['harp', 'celesta', 'choir-oo', 'cello'], keys: ['harp', 'celesta', 'organ'], arp: ['harp', 'celesta'],
       bells: ['bell', 'glass-bell', 'celesta', 'chime', 'sine-bell'], bass: ['sub-bass', 'round-bass'], drone: ['organ-drone', 'cello-drone'],
     },
@@ -722,7 +722,7 @@ const MOODS = {
     chords: ['I iii IV iv', 'IV iv I', 'I V vi iii IV I IV V', 'vi IV I V', 'I bVII IV I', 'Imaj7 IVmaj7 iii vi', 'IV I V vi', 'I III IV iv'],
     richness: [0.4, 0.85], energy: 0.35, space: 0.7, bright: 0.45, dark: 0.15,
     palette: {
-      pad: ['strings', 'warm-pad', 'glass-pad', 'choir-oo', 'analog-pad', 'reverse-piano', 'bowed-vibes'], melody: ['music-box', 'e-piano', 'celesta', 'flute', 'violin', 'nylon', 'piano', 'cello', 'humming'],
+      pad: ['strings', 'warm-pad', 'glass-pad', 'choir-oo', 'analog-pad', 'reverse-piano', 'bowed-vibes'], melody: ['music-box', 'e-piano', 'celesta', 'flute', 'violin', 'nylon', 'piano', 'cello', 'humming', 'alto-voice'],
       counter: ['harp', 'felt-keys', 'celesta', 'cello'], keys: ['felt-keys', 'e-piano', 'harp', 'piano', 'wurlitzer'], arp: ['harp', 'music-box', 'celesta'],
       bells: ['music-box', 'celesta', 'glass-bell'], bass: ['round-bass', 'sub-bass', 'upright'], drone: ['cello-drone', 'organ-drone', 'tape-loop'],
     },
@@ -758,7 +758,7 @@ const MOODS = {
     chords: ['i bVI bIII bVII', 'i iv bVI V', 'vi IV I V', 'i bVII bVI bVII', 'i iv i v', 'i - bVI -', 'iv i', 'i bVI iv V', 'i bIII bVII iv'],
     richness: [0.3, 0.8], energy: 0.3, space: 0.7, bright: 0.35, dark: 0.3,
     palette: {
-      pad: ['strings', 'warm-pad', 'choir-oo', 'dark-pad', 'fuzz-wall', 'reverse-piano', 'bowed-vibes'], melody: ['felt-keys', 'violin', 'flute', 'e-piano', 'music-box', 'piano', 'cello', 'humming'],
+      pad: ['strings', 'warm-pad', 'choir-oo', 'dark-pad', 'fuzz-wall', 'reverse-piano', 'bowed-vibes'], melody: ['felt-keys', 'violin', 'flute', 'e-piano', 'music-box', 'piano', 'cello', 'humming', 'alto-voice'],
       counter: ['felt-keys', 'harp', 'violin', 'cello'], keys: ['felt-keys', 'harp', 'e-piano', 'piano'], arp: ['harp', 'felt-keys'],
       bells: ['glass-bell', 'music-box'], bass: ['sub-bass', 'round-bass', 'upright', 'chorus-bass'], drone: ['cello-drone', 'deep-drone'],
     },
@@ -1072,7 +1072,7 @@ const MOODS = {
     richness: [0.1, 0.4], energy: 0.55, space: 0.7, bright: 0.6, dark: 0.3, edge: 0.7, surprise: 0, ornate: 1.1,
     phrasing: { shapes: { arch: 2, leap: 2, wave: 1.5, triad: 1.5, turn: 1 }, rhythm: 'dotted', hook: 0.4 },
     palette: {
-      melody: ['flute', 'horn', 'violin', 'whistle', 'oboe', 'clarinet'], counter: ['horn', 'cello', 'violin', 'flute', 'bassoon'],
+      melody: ['flute', 'horn', 'violin', 'whistle', 'oboe', 'clarinet'], counter: ['horn', 'cello', 'violin', 'flute', 'bassoon', 'tenor-recorder'],
       keys: ['harp', 'pizzicato', 'harpsichord'], arp: ['harp', 'pizzicato', 'lyre'], bells: ['glock', 'celesta', 'music-box'],
       pad: ['strings', 'brass-section', 'choir-ah', 'tremolo-strings'], bass: ['upright', 'bassoon', 'tuba'], drone: ['cello-drone', 'organ-drone'],
     },
@@ -1187,7 +1187,7 @@ const MOODS = {
     chords: ['Imaj7 IVmaj7', 'I vi IV V', 'I iii vi IV', 'IVmaj7 V iii vi', 'I II IV I', 'vi IV I V', 'I V vi iii', 'Imaj7 iii IVmaj7 iv'],
     richness: [0.45, 0.9], energy: 0.5, space: 0.95, bright: 0.55, dark: 0.15, edge: 0.8, surprise: 0,
     palette: {
-      guitar: ['chorus-guitar', 'clean-guitar'], pad: ['swell-guitar', 'analog-pad', 'organ', 'glass-pad', 'choir-oo', 'vox-pad'], melody: ['dream-voice', 'chorus-guitar', 'sine-bell'],
+      guitar: ['chorus-guitar', 'clean-guitar'], pad: ['swell-guitar', 'analog-pad', 'organ', 'glass-pad', 'choir-oo', 'vox-pad'], melody: ['dream-voice', 'chorus-guitar', 'sine-bell', 'alto-voice'],
       counter: ['chorus-guitar', 'clean-guitar', 'glass-bell'], keys: ['e-piano', 'chorus-guitar', 'wurlitzer'], arp: ['chorus-guitar', 'clean-guitar', 'harp'], bells: ['glass-bell', 'sine-bell', 'celesta'],
       bass: ['round-bass', 'chorus-bass', 'pick-bass'], drone: ['organ-drone', 'tape-loop'],
     },
@@ -1209,7 +1209,7 @@ const MOODS = {
     chords: ['Iadd9 IVmaj7', 'I iii IV iv', 'I V vi IV', 'IVmaj7 I V vi', 'I bVII IV I', 'vi IV I V', 'Imaj7 iii7 IVmaj7 V', 'I II IV I'],
     richness: [0.45, 0.85], energy: 0.6, space: 1, bright: 0.65, dark: 0.15, edge: 0.7, surprise: 0, ornate: 1.3,
     palette: {
-      guitar: ['chorus-guitar', 'clean-guitar'], melody: ['dream-voice', 'dream-voice', 'chorus-guitar', 'glass-bell'], counter: ['chorus-guitar', 'clean-guitar', 'glass-bell', 'choir-oo'],
+      guitar: ['chorus-guitar', 'clean-guitar'], melody: ['dream-voice', 'dream-voice', 'chorus-guitar', 'glass-bell', 'alto-voice'], counter: ['chorus-guitar', 'clean-guitar', 'glass-bell', 'choir-oo'],
       keys: ['chorus-guitar', 'e-piano', 'harp'], arp: ['chorus-guitar', 'clean-guitar', 'harp', 'celesta'], bells: ['glass-bell', 'celesta', 'sine-bell', 'glock'],
       pad: ['swell-guitar', 'reverse-guitar', 'glass-pad', 'choir-oo', 'shimmer', 'vox-pad'], bass: ['chorus-bass', 'pick-bass', 'round-bass', 'fretless'], drone: ['tape-loop', 'organ-drone'],
     },
@@ -1271,7 +1271,7 @@ const MOODS = {
     methods: { bank: 5, vamp: 2, markov: 1 },
     richness: [0, 0.3], energy: 0.6, space: 0.5, bright: 0.6, dark: 0.15, surprise: 0,
     palette: {
-      pad: ['strings', 'organ', 'warm-pad'], melody: ['violin', 'whistle', 'pan-flute', 'shawm', 'accordion', 'flute'], counter: ['violin', 'whistle', 'harp', 'clarinet'],
+      pad: ['strings', 'organ', 'warm-pad'], melody: ['violin', 'whistle', 'pan-flute', 'shawm', 'accordion', 'flute'], counter: ['violin', 'whistle', 'harp', 'clarinet', 'tenor-recorder'],
       keys: ['nylon', 'harp', 'steel-guitar', 'zither'], arp: ['harp', 'nylon', 'steel-guitar', 'banjo', 'zither'], bells: ['chime', 'celesta'],
       bass: ['upright', 'round-bass', 'tuba'], drone: ['organ-drone', 'cello-drone'],
     },
@@ -1371,7 +1371,7 @@ const MOODS = {
     methods: { bank: 6, markov: 1 },
     richness: [0.7, 1], energy: 0.45, space: 0.55, bright: 0.6, dark: 0.05, edge: 0.5, surprise: 0, ornate: 0.8,
     palette: {
-      melody: ['flute', 'vibes', 'tenor-sax', 'nylon', 'mute-trumpet', 'soft-lead'], counter: ['vibes', 'flute', 'strings', 'clarinet'],
+      melody: ['flute', 'vibes', 'tenor-sax', 'nylon', 'mute-trumpet', 'soft-lead', 'alto-voice'], counter: ['vibes', 'flute', 'strings', 'clarinet'],
       keys: ['nylon', 'e-piano', 'piano', 'jazz-guitar', 'wurlitzer'], arp: ['vibes', 'nylon', 'e-piano'], bells: ['vibes', 'glass-bell'],
       pad: ['strings', 'warm-pad', 'choir-oo'], bass: ['upright', 'fretless', 'round-bass'], drone: ['organ-drone'],
     },
@@ -1645,7 +1645,7 @@ const MOODS = {
     methods: { bank: 5, vamp: 2, markov: 1 },
     richness: [0, 0.15], energy: 0.6, space: 0.55, bright: 0.6, dark: 0.25, surprise: 0, ornate: 1.2,
     palette: {
-      melody: ['bagpipe', 'whistle', 'shawm', 'violin', 'flute', 'chant-voice'], counter: ['whistle', 'violin', 'bowed-psaltery', 'oboe'],
+      melody: ['bagpipe', 'whistle', 'shawm', 'violin', 'flute', 'chant-voice'], counter: ['whistle', 'violin', 'bowed-psaltery', 'oboe', 'tenor-recorder'],
       keys: ['harpsichord', 'lyre', 'harp', 'oud', 'zither'], arp: ['harpsichord', 'lyre', 'harp', 'oud', 'zither'], bells: ['chime', 'bell'],
       pad: ['organ', 'choir-ah', 'strings'], bass: ['bassoon', 'upright', 'round-bass'], drone: ['organ-drone', 'cello-drone'],
     },
@@ -4569,6 +4569,7 @@ const DOUBLES = {
   soprano: [['choir-oo', 0], ['choir-ah', 0], ['strings', 0]],
   'chant-voice': [['choir-ah', 1], ['cello', 0], ['organ', 0]],
   humming: [['choir-oo', 0], ['cello', 0]],
+  'alto-voice': [['choir-oo', 0], ['strings', 0]],
   flute: [['violin', 0], ['clarinet', -1], ['oboe', 0], ['glock', 1]],
   violin: [['flute', 0], ['cello', -1], ['oboe', 0], ['strings', 0]],
   cello: [['violin', 1], ['horn', 0], ['bassoon', 0]],

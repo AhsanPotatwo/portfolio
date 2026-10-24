@@ -104,6 +104,8 @@ const SOURCES = {
   hum: { url: 'https://cdn.freesound.org/previews/', name: 'Humming C D A by drotzruhn (freesound.org)', licence: 'CC0 1.0' },
   sharon: { url: 'https://cdn.freesound.org/previews/', name: 'Music, Sharon Sings Notes and Shouts by CHallSmith (freesound.org)', licence: 'CC0 1.0' },
   musyng: { url: 'https://gleitz.github.io/midi-js-soundfonts/MusyngKite/', name: 'Musyng Kite soundfont, via midi-js-soundfonts', licence: 'CC BY-SA 3.0' },
+  // the voices round: a woman singing long notes, from her takes on freesound
+  owstu: { url: 'https://cdn.freesound.org/previews/', name: 'Female Voc Long Notes, female vocal long and vocal C sharp long by owstu (freesound.org)', licence: 'CC0 1.0' },
 };
 
 // ---------- what goes in each folder ----------
@@ -325,6 +327,72 @@ const FOLDERS = {
   // ----- the spiral round: a small orchestra's colours -----
   // vsco's piccolo, the flute an octave up that glitters over an orchestra's loudest bars
   piccolo: { from: 'vsco', shift: 1, dir: 'Woodwinds/Piccolo/Sus/', match: /^piccolo_([A-G]#?\d)_sustain1\.wav$/, loop: true, seconds: 4 },
+
+  // ----- the voices round: a second or third recording for most instruments that had one, mood by mood -----
+  // a woman singing long notes, softly, close to the microphone: the recorded voice for the dreamy and
+  // soul voices. her takes sing one note after another, so each note is cut from where it holds steady
+  // (found by measuring the pitch every 20 ms)
+  'female-voice': {
+    from: 'owstu', loop: true, measure: true, seconds: 4,
+    files: [['639/639853_1690102-hq.mp3', 56, 7.2, 3], ['639/639853_1690102-hq.mp3', 59, 0.3, 1.4], ['639/639850_1690102-hq.mp3', 60, 0.1, 1.55], ['628/628817_1690102-hq.mp3', 62, 5, 2.65],
+      ['639/639849_1690102-hq.mp3', 64, 0.55, 1.75], ['639/639849_1690102-hq.mp3', 65, 4, 1.75], ['628/628817_1690102-hq.mp3', 67, 0.55, 2.8], ['555/555984_1690102-hq.mp3', 73, 0.4, 4]]
+      .map(([file, midi, at, length]) => [file, midi, undefined, at, 0, length]),
+  },
+  // vsco and vcsl: other players, other instruments of the same kind, other ways of playing
+  'vsco-harp': { from: 'vsco', dir: 'Strings/Harp/', match: /^KSHarp_([A-G]#?\d)_(?:mp|mf|f)\.wav$/, every: 2, seconds: 4 },
+  'violin-pizz': { from: 'vsco',dir: 'Strings/Solo Violin/Pizz/', match: /^LLVln_Pizz_([A-G]#?\d)_(p|f)_RR1\.wav$/, layers: { p: 0.4, f: 0.9 }, seconds: 2 },
+  'trumpet-vib': { from: 'vsco', shift: 1, dir: 'Brass/Trumpet/susvib/', match: /_susvib_([A-G]#?\d)_(v1|v2)_rr1\.wav$/, layers: { v1: 0.45, v2: 0.85 }, loop: true, seconds: 4 },
+  'trombone-vib': { from: 'vsco', shift: 1, dir: 'Brass/Tenor Trombone/vib/', match: /^tenortbn_vib_([A-G]#?\d)_v1_1\.wav$/, every: 2, loop: true, seconds: 4 },
+  // a flute played straight, with no vibrato: breathier and plainer, the zen garden's and c418's flute
+  'flute-plain': { from: 'vsco', shift: 1, dir: 'Woodwinds/Flute/susNV/', match: /^LDFlute_susNV_([A-G]#?\d)_(v1|v3)_1\.wav$/, layers: { v1: 0.4, v3: 0.85 }, loop: true, seconds: 4 },
+  // a double bass bowed, with vibrato: the darkest drone the orchestra has
+  'bowed-bass': { from: 'vsco', shift: 1, dir: 'Strings/Solo Contrabass/SusVib/', match: /^BKCtbss_SusVib_([A-G]#?\d)_v3_rr1\.wav$/, every: 2, loop: true, seconds: 5 },
+  'french-harpsichord': { from: 'vcsl', shift: 1, dir: 'Chordophones/Zithers/Harpsichord, French/Sustains/', match: /^Harpsi2_Normal_([A-G]#?\d)_rr1_Main\.wav$/, seconds: 4 },
+  'harmonica-c': { from: 'vcsl', shift: 1, dir: 'Aerophones/Free Aerophones/Harmonica-Hohner-Special20-C/Sustains/Normal/', match: /^Hohner-Special20_Normal_([A-G]#?\d)\.wav$/, every: 1, loop: true, seconds: 4 },
+  // a tubular glockenspiel: little tuned metal tubes, the wind chime's real sound. its names are off
+  // ("non-standard pitch"), so each is measured and named by the note it's nearest
+  'tubular-glock': { from: 'vcsl', dir: 'Idiophones/Struck Idiophones/Tubular Glockenspiel/', match: /^([A-G]#?\d)_(medium)1\.wav$/, every: 1, seconds: 5, measure: true },
+  // a kenyan kalimba, tuned its own way and measured. (the nyunga nyunga's buzzing keys, and vcsl's other
+  // tubular bells, fooled every pitch check, so they're left out)
+  'kenya-kalimba': { from: 'vcsl', shift: 1, dir: 'Idiophones/Plucked Idiophones/Kalimba, Kenya/', match: /^Mbira6_Normal_MainSpirit_([A-G]#?\d)_k\d+_vl3_rr2\.wav$/, every: 1, seconds: 3, measure: true },
+  // the recorder's bigger sisters, the tenor and bass, for a consort of recorders
+  'tenor-recorder': { from: 'vcsl', shift: 1, dir: 'Aerophones/Edge-blown Aerophones/Baroque Tenor Recorder/Sustain/', match: /^TenRecorder_Sus_([A-G]#?\d)_rr1_Main\.wav$/, every: 2, loop: true, seconds: 4 },
+  'alto-recorder': { from: 'vcsl', shift: 1, dir: 'Aerophones/Edge-blown Aerophones/Baroque Alto Recorder/Sustain/', match: /^AltRecorder_Sus_([A-G]#?\d)_rr1_Main\.wav$/, every: 2, loop: true, seconds: 4 },
+  'yamaha-upright': { from: 'vcsl', shift: 1, dir: 'Chordophones/Zithers/Upright Piano, Yamaha/Sustains/', match: /^Upright1_Sus_([A-G]#?\d)_(vl1|vl3)_rr1\.wav$/, layers: { vl1: 0.35, vl3: 0.85 }, low: 28, high: 100, every: 1, seconds: 6 },
+  'kawai-grand': { from: 'vcsl', shift: 1, dir: 'Chordophones/Zithers/Grand Piano, Kawai/Sustains/', match: /^GPiano_sus_([A-G]#?-?\d)_(v1|v3)_rr1_Player\.wav$/, layers: { v1: 0.35, v3: 0.85 }, low: 28, high: 100, seconds: 6 },
+  clavisynth: { from: 'vcsl', shift: 2,dir: 'Electrophones/TX81Z/Clavisynth/', match: /^Clavisynth_([A-G]#?\d)_(vl1|vl3)\.wav$/, layers: { vl1: 0.4, vl3: 0.9 }, low: 36, high: 96, seconds: 3 },
+  // the second general midi set's (musyng kite), a second recording of the instruments that had one
+  'string-ensemble': { gm: 'string_ensemble_1', font: 'musyng', low: 36, high: 96, loop: true },
+  'tremolo-strings-2': { gm: 'tremolo_strings', font: 'musyng', low: 36, high: 96, loop: true },
+  'brass-section-2': { gm: 'brass_section', font: 'musyng', low: 41, high: 84, loop: true },
+  'synth-strings-2': { gm: 'synth_strings_2', font: 'musyng', low: 36, high: 96, loop: true },
+  'clarinet-2': { gm: 'clarinet', font: 'musyng', low: 50, high: 91, loop: true },
+  'horn-2': { gm: 'french_horn', font: 'musyng', low: 41, high: 77, loop: true },
+  'tuba-2': { gm: 'tuba', font: 'musyng', low: 28, high: 65, loop: true },
+  'cello-2': { gm: 'cello', font: 'musyng', low: 36, high: 76, loop: true },
+  'pan-flute-2': { gm: 'pan_flute', font: 'musyng', low: 55, high: 96, loop: true },
+  'tenor-sax-2': { gm: 'tenor_sax', font: 'musyng', low: 44, high: 80, loop: true },
+  'shakuhachi-2': { gm: 'shakuhachi', font: 'musyng', low: 55, high: 93, loop: true },
+  'shehnai-2': { gm: 'shanai', font: 'musyng', low: 55, high: 91, loop: true },
+  'reed-organ-2': { gm: 'reed_organ', font: 'musyng', shift: 1, low: 53, high: 96, loop: true },
+  'bandoneon-2': { gm: 'tango_accordion', font: 'musyng', low: 48, high: 88, loop: true },
+  'accordion-2': { gm: 'accordion', font: 'musyng', low: 41, high: 89, loop: true },
+  'blown-bottle-2': { gm: 'blown_bottle', font: 'musyng', low: 60, high: 96, loop: true },
+  'drawbar-organ-2': { gm: 'drawbar_organ', font: 'musyng', low: 36, high: 96, loop: true, trust: true },
+  'celesta-2': { gm: 'celesta', font: 'musyng', low: 60, high: 108 },
+  'music-box-2': { gm: 'music_box', font: 'musyng', low: 60, high: 108 },
+  'vibraphone-2': { gm: 'vibraphone', font: 'musyng', low: 53, high: 89 },
+  'xylophone-2': { gm: 'xylophone', font: 'musyng', low: 65, high: 108 },
+  'steel-drum-2': { gm: 'steel_drums', font: 'musyng', low: 52, high: 88 },
+  'koto-2': { gm: 'koto', font: 'musyng', low: 48, high: 88 },
+  'sitar-2': { gm: 'sitar', font: 'musyng', low: 48, high: 88 },
+  'shamisen-2': { gm: 'shamisen', font: 'musyng', low: 48, high: 88 },
+  'dulcimer-2': { gm: 'dulcimer', font: 'musyng', low: 48, high: 96 },
+  'honky-tonk-2': { gm: 'honkytonk_piano', font: 'musyng', low: 28, high: 100 },
+  'jazz-guitar-2': { gm: 'electric_guitar_jazz', font: 'musyng', low: 40, high: 84 },
+  'slap-bass-2': { gm: 'slap_bass_1', font: 'musyng', low: 28, high: 67 },
+  'fretless-2': { gm: 'fretless_bass', font: 'musyng', low: 28, high: 67 },
+  'orchestra-hit-2': { gm: 'orchestra_hit', font: 'musyng', low: 48, high: 84 },
 };
 
 // a kit's hits: [file, loudness]. vrr() spells out a set of takes: {v} and {r} in the name are the
@@ -536,13 +604,15 @@ const fileName = (midi) => `${FLATS[midi % 12].toLowerCase()}${Math.floor(midi /
 function pickNotes(spec, trees) {
   if (spec.gm) {
     const out = [];
-    for (let midi = spec.low; midi <= spec.high; midi += spec.every || 3) out.push({ source: spec.font || 'fluid', file: `${spec.gm}-mp3/${gmName(midi)}.mp3`, midi });
+    // (shift: a set whose files are named an octave off, musyng kite's reed organ)
+    for (let midi = spec.low; midi <= spec.high; midi += spec.every || 3) out.push({ source: spec.font || 'fluid', file: `${spec.gm}-mp3/${gmName(midi)}.mp3`, midi: midi - 12 * (spec.shift || 0) });
     return out;
   }
-  // files: picked by hand, [path, midi, loudness, the second to start from, cents out of tune]
+  // files: picked by hand, [path, midi, loudness, the second to start from, cents out of tune, seconds
+  // to keep (for a take that sings one note after another)]
   // runs: files of several notes each, cut apart later (buildTonal), so only the files are named here
   if (spec.runs) return spec.runs.map(([file, midi, vel]) => ({ source: spec.from, file, midi, vel, layer: vel, run: true }));
-  if (spec.files) return spec.files.map(([file, midi, vel, start = 0, tune = 0]) => ({ source: spec.from, file, midi, vel, layer: vel, start, tune }));
+  if (spec.files) return spec.files.map(([file, midi, vel, start = 0, tune = 0, length]) => ({ source: spec.from, file, midi, vel, layer: vel, start, tune, length }));
   return (spec.parts || [spec]).flatMap((part) => {
     const shift = 12 * (part.shift ?? spec.shift ?? 0);
     const found = [];
@@ -777,7 +847,7 @@ async function buildTonal(work, folder, spec) {
   const sounds = [];
   const counts = {};
   for (const [i, note] of notes.entries()) {
-    const data = cut.get(files[i]) || tidy(decode(files[i]).subarray(Math.round((note.start || 0) * RATE)), spec.seconds || 4);
+    const data = cut.get(files[i]) || tidy(decode(files[i]).subarray(Math.round((note.start || 0) * RATE)), note.length || spec.seconds || 4);
     const hz = pitchOf(data);
     const heard = hz ? midiOf(hz) : null;
     let tune = note.tune || 0;

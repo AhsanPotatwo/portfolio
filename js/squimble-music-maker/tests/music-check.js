@@ -589,6 +589,28 @@ assert.notStrictEqual(cleaned.layers[0].instrument, 'wind', "a bass can't be pla
   assert.notStrictEqual(JSON.stringify(run('composeSong')(saved).notes), JSON.stringify(composeSong(song).notes), 'the kept composer is the old one');
 }
 
+// sung lines (singLine in synth.js): a singer's move to the next note isn't an even slide. it dips the
+// other way first, arrives on time, over shoots by 25 cents at most (scaled, so never a flat held wrong
+// note), and has settled by the end of the move. a recorded choir sings a tune as a line, not its pads
+{
+  const { singerMove, pathAt, sings, INSTRUMENTS: all } = vm.runInContext('({ singerMove, pathAt, sings, INSTRUMENTS })', page);
+  for (const [from, to] of [[6000, 6200], [6400, 6100], [5000, 6200], [7200, 6000]]) {
+    const length = 0.06 + 0.009 * Math.abs(to - from) / 100;
+    const path = singerMove(from, to, 1, length);
+    const way = Math.sign(to - from);
+    const where = `a move from ${from / 100} to ${to / 100}`;
+    assert((pathAt(path, 1) - from) * way < 0, `${where} dips the other way first`);
+    assert(Math.abs(pathAt(path, 1 + length) - to) < Math.abs(to - from) * 0.05, `${where} arrives after its length`);
+    const most = Math.max(...path.map(([, p]) => (p - to) * way));
+    assert(most > 0 && most <= 25 + 1e-6, `${where} over shoots, by 25 cents at most (${most.toFixed(1)})`);
+    assert(Math.abs(pathAt(path, 1 + length * 2.6 + 0.05) - to) < 1e-6, `${where} settles on the note`);
+    for (let k = 1; k < path.length; k++) assert(path[k][0] >= path[k - 1][0], `${where}'s points are in time order`);
+  }
+  assert(sings(all['choir-oo'], { role: 'melody' }) && sings(all['choir-ah'], { role: 'counter' }), 'a choir sings a tune as a line');
+  assert(!sings(all['choir-oo'], { role: 'pad' }) && !sings(all.flute, { role: 'melody' }), 'a choir holding chords, or a flute, plays note by note');
+  assert(sings(all['alto-voice'], { role: 'pad' }), 'a sung voice always sings');
+}
+
 // recordings (RECORDINGS in synth.js): every folder an instrument or a kit's slot names is there, with
 // an index.json whose files are all there too and which says its licence. a kit's hit is one the
 // folder has

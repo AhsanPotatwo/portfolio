@@ -1,0 +1,79 @@
+{
+ "source": "Musyng Kite soundfont, via midi-js-soundfonts",
+ "link": "https://gleitz.github.io/midi-js-soundfonts/MusyngKite/",
+ "licence": "CC BY-SA 3.0",
+ "notes": [
+  {
+   "file": "eb4.mp3",
+   "midi": 63,
+   "tune": -62
+  },
+  {
+   "file": "gb4.mp3",
+   "midi": 66,
+   "tune": -64
+  },
+  {
+   "file": "a4.mp3",
+   "midi": 69,
+   "tune": -64
+  },
+  {
+   "file": "c5.mp3",
+   "midi": 72,
+   "tune": -63
+  },
+  {
+   "file": "eb5.mp3",
+   "midi": 75,
+   "tune": -62
+  },
+  {
+   "file": "gb5.mp3",
+   "midi": 78,
+   "tune": -57
+  },
+  {
+   "file": "a5.mp3",
+   "midi": 81,
+   "tune": -47
+  },
+  {
+   "file": "c6.mp3",
+   "midi": 84,
+   "tune": -32
+  },
+  {
+   "file": "eb6.mp3",
+   "midi": 87
+  },
+  {
+   "file": "gb6.mp3",
+   "midi": 90
+  },
+  {
+   "file": "a6.mp3",
+   "midi": 93
+  },
+  {
+   "file": "c7.mp3",
+   "midi": 96
+  },
+  {
+   "file": "eb7.mp3",
+   "midi": 99
+  },
+  {
+   "file": "gb7.mp3",
+   "midi": 102
+  },
+  {
+   "file": "a7.mp3",
+   "midi": 105
+  },
+  {
+   "file": "c8.mp3",
+   "midi": 108
+  }
+ ]
+}
