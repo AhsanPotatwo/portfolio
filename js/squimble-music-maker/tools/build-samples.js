@@ -84,6 +84,8 @@ const SOURCES = {
     ['clanks', 'SFX Metal Shed Door - Hits, Clangs, Rattle by EpicWizard'], ['chains', 'ChainsRattling by klakmart and chain by nettimato'],
     ['crows', 'Crows_01 by Q.K. and Crows by ken788'], ['footsteps', 'SlowStepsOnGravel by tabiCATcreations'],
     ['factory', 'Large Warehouse/Factory Ambience by fimrod'], ['steam', 'Air (or steam) pressure release by brunoboselli and Steam.wav by sniperous'],
+    // the shoegaze round: an amp feeding back, creeping in and crying out
+    ['feedback', 'guitar feedback.mp3 by Disturbed3112 and feedback.WAV by stomachache'],
   ].map(([key, name]) => [`fs-${key}`, { url: 'https://cdn.freesound.org/previews/', name: `${name} (freesound.org)`, licence: 'CC0 1.0' }])),
   // the fifth round: real recordings for the sounds that still came from the general midi set (the
   // nylon guitar, the voices, the banjo, the oboe and bassoon), and second and third recordings of the
@@ -392,6 +394,10 @@ const FOLDERS = {
   'dulcimer-2': { gm: 'dulcimer', font: 'musyng', low: 48, high: 96 },
   'honky-tonk-2': { gm: 'honkytonk_piano', font: 'musyng', low: 28, high: 100 },
   'jazz-guitar-2': { gm: 'electric_guitar_jazz', font: 'musyng', low: 40, high: 84 },
+  // the shoegaze round: natural harmonics (the first general midi set's, sounding two octaves over their
+  // names). karoryfer's behind the bridge plinks were tried and left out: each rings at its string's own
+  // pitch behind the bridge, nothing like its name, so they can't be played as notes
+  'guitar-harmonics': { gm: 'guitar_harmonics', shift: -2, low: 40, high: 76 },
   'slap-bass-2': { gm: 'slap_bass_1', font: 'musyng', low: 28, high: 67 },
   'fretless-2': { gm: 'fretless_bass', font: 'musyng', low: 28, high: 67 },
   'orchestra-hit-2': { gm: 'orchestra_hit', font: 'musyng', low: 48, high: 84 },
@@ -577,6 +583,9 @@ const KITS = {
   chains: { from: 'fs-chains', hits: { event: [['108/108265_179679-hq.mp3', 0.8, { split: { most: 4, longest: 4 } }], ['387/387240_1815993-hq.mp3', 0.8, { split: { most: 3, longest: 4 } }]] } },
   crows: { from: 'fs-crows', hits: { event: [['56/56233_91374-hq.mp3', 0.8, { split: { most: 4, longest: 4 } }], ['386/386768_5768130-hq.mp3', 0.8, { split: { most: 4, longest: 4 } }]] } },
   footsteps: { from: 'fs-footsteps', hits: { event: [['415/415783_6702737-hq.mp3', 0.8, { chop: { most: 6, length: 5 } }]] } },
+  // (midi: the note a take sings, when its start would fool the pitch check: the first one growls
+  // before it cries out on an a. the squeals slide about too much to put in key, so they're left as they are)
+  feedback: { from: 'fs-feedback', hits: { event: [['72/72698_1086347-hq.mp3', 0.8, { split: { most: 1, longest: 14 }, midi: 69 }], ['49/49282_177850-hq.mp3', 0.8, { split: { most: 4, longest: 5 } }]] } },
   steam: { from: 'fs-steam', hits: { event: [['457/457294_300738-hq.mp3', 0.8, { split: { most: 2, longest: 7 } }], ['365/365071_6639672-hq.mp3', 0.8, { chop: { most: 1, length: 8 } }]] } },
   // mark trees (a row of little chimes) brushed downwards: the shimmer an orchestra marks a new section
   // or a key change with
@@ -1091,8 +1100,9 @@ async function buildKit(work, folder, spec) {
         const loudest = Math.max(...pieces.map(rmsOf));
         for (const data of pieces.filter((one) => rmsOf(one) > loudest * 0.03)) {
           const entry = { file: `${hit}-${++n}.mp3`, hit, vel };
-          const hz = how.pitched && pitchOf(data);
-          if (hz) {
+          const hz = !how.midi && how.pitched && pitchOf(data);
+          if (how.midi) entry.midi = how.midi;
+          else if (hz) {
             entry.midi = Math.round(midiOf(hz));
             entry.tune = Math.round((entry.midi - midiOf(hz)) * 100);
           }

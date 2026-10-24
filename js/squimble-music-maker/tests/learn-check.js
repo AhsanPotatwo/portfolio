@@ -11,7 +11,7 @@ const assert = require('assert');
 
 const page = {};
 vm.createContext(page);
-for (const file of ['synth.js', 'music.js', 'learn.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), page);
+for (const file of ['synth.js', 'kept/composer-3.js', 'music.js', 'learn.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), page);
 const { generateSong, composeSong, MOODS, SCALES, playedTogether, frettings, fingersFor, keySignature, spellPitch, sheetPieces, STRINGS } = vm.runInContext('({ generateSong, composeSong, MOODS, SCALES, playedTogether, frettings, fingersFor, keySignature, spellPitch, sheetPieces, STRINGS })', page);
 
 // a shape written the way chord books write it, low e first: x an unplayed string
@@ -33,9 +33,12 @@ assert.deepStrictEqual([...frettings([{ t: 0, end: 1, notes: [{ midi: 48 }, { mi
 // the soggy-crater shape (b sus4 add9): a first finger barre at 7, the third barring a d g at 9
 assert.deepStrictEqual(fingering('799979'), ['133314', '1@7:0-4 3@9:1-3'], 'e shape with a sus and a ninth');
 
-// the composer's strummed shoegaze guitar comes out as the e shaped barre chords it plays
-const song = generateSong('shoegaze', 'tune', 'soggy-crater');
-const comp = composeSong(song);
+// the composer's strummed shoegaze guitar comes out as the e shaped barre chords it plays. (soggy-crater as
+// composer 3 wrote it, the song this was made for: composer 4 gave shoegaze its open strings, and the seed
+// makes another song now)
+const kept3 = vm.runInContext('KEPT_COMPOSERS[3]', page);
+const song = kept3.generateSong('shoegaze', 'tune', 'soggy-crater');
+const comp = kept3.composeSong(song);
 const guitar = playedTogether(comp.notes.filter((note) => note.layer === 'guitar'), comp.step);
 const fretted = frettings(guitar, 'guitar');
 assert.strictEqual(fretted.dropped, false);
@@ -47,6 +50,17 @@ guitar.forEach((event, i) => {
 });
 assert.deepStrictEqual([...fretted.placed[0].strings.map((one) => one.fret)], [7, 9, 9, 9, 7, 9], 'soggy-crater opens on a b barre at the 7th fret');
 assert(guitar.some((event) => event.up) && guitar.some((event) => !event.up), 'strums go down and up');
+
+// a guitar tuned down (drop in synth.js) is read in drop b, its low notes where they're played, not folded
+for (let n = 0, found = false; !found; n++) {
+  assert(n < 40, 'a concrete song with a drop tuned guitar turns up');
+  const one = generateSong('shoegaze', 'tune', `drop ${n}`, [], 'concrete');
+  const layer = one.layers.find((l) => l.instrument === 'drop-guitar');
+  if (!layer) continue;
+  found = true;
+  const low = frettings(playedTogether(composeSong(one).notes.filter((note) => note.layer === layer.id), comp.step), 'guitar');
+  assert(low.down && low.tuning[0] === 35 && !low.folded, 'a drop tuned part is fretted in drop b, nothing folded');
+}
 
 // every tonal part of every mood frets in reach on a guitar and on a bass, a note a string, and every
 // part's sheet music fills its bars exactly

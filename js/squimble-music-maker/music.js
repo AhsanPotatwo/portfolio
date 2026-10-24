@@ -510,13 +510,13 @@ const PATTERNS = {
   arp:     { up: 'Up', down: 'Down', updown: 'Up and down', converge: 'Inwards', random: 'Random', twinkle: 'Twinkling', roll: 'Banjo roll' },
   bells:   { phasing: 'Drifting loops', sparkle: 'Chimes on the chords', double: 'Doubles the tune' },
   keys:    { broken: 'Broken chords', block: 'Block chords', strum: 'Strummed', waltz: 'Oom-pah', comp: 'Jazz comping', skank: 'Off beat skank', bossa: 'Bossa nova' },
-  guitar:  { power: 'Power chords', eighths: 'Eighths', chug: 'Chugging riff', ring: 'Ringing chords', tremolo: 'Tremolo picked', strum: 'Strummed', funk: 'Funk scratch', boomchick: 'Boom chick' },
+  guitar:  { power: 'Power chords', eighths: 'Eighths', chug: 'Chugging riff', ring: 'Ringing chords', tremolo: 'Tremolo picked', strum: 'Strummed', funk: 'Funk scratch', boomchick: 'Boom chick', wash: 'Strummed wash', glide: 'Glide strum' },
   pad:     { sustain: 'Held', swell: 'Swells', pulse: 'Pulsing', stabs: 'Stabs', pump: 'Pumping' },
   drone:   { tonic: 'Home note', fifths: 'Open fifths', follow: 'Follows chords', cluster: 'Cluster', cycle: 'Plucked round and round' },
   bass:    { held: 'Held', pulse: 'Pulse', rootfifth: 'Root and fifth', octave: 'Octaves', walking: 'Walking', synco: 'Syncopated', riff: 'Doubles the riff', boogie: 'Boogie', hook: 'Bass hook' },
   drums:   { groove: 'Groove', halftime: 'Half time', brush: 'Brushes', pulse: 'Pulse', tribal: 'Tribal', march: 'March', sparse: 'Sparse', four: 'Four to the floor', break: 'Breakbeat', rock: 'Rock', punk: 'Punk', double: 'Double kick', breakdown: 'Breakdown', wash: 'Wash',
     swing: 'Swing', bossa: 'Bossa nova', tala: 'Tala', funk: 'Funk', onedrop: 'One drop', train: 'Train beat', shuffle: 'Shuffle',
-    boombap: 'Boom bap', trap: 'Trap', maqsum: 'Maqsum', gallop: 'Gallop' },
+    boombap: 'Boom bap', trap: 'Trap', maqsum: 'Maqsum', gallop: 'Gallop', baggy: 'Baggy' },
   texture: { steady: 'Steady' },
 };
 // the patterns that use a layer's speed (rate)
@@ -562,6 +562,8 @@ const carries = (layer) => (layer.role === 'counter' && layer.pattern === 'tune'
 //   quiet, loudQuiet   cleaner guitars, and the chance a second one plays the quiet sections
 //   breakdown   part C is a half time breakdown, not a quiet drop (grooveFor)
 //   bury        0 to 1, how far the tune sinks into the band (shoegaze's singer)
+//   openStrings its guitars' whole shapes keep two strings ringing on the same notes over every chord
+//               (openStrings())
 //   surprise    chance of an instrument from outside the palette, 0.12 unless it says
 // a section marked LIFTED in a song shape ([name, part, bars, energy, LIFTED]) is a key change: it and
 // everything after it play a step or a half step higher (section.lift). defined before MOODS uses it
@@ -1158,22 +1160,27 @@ const MOODS = {
   // my bloody valentine, slowdive, lsd and the search for god: fuzz with the tremolo arm never still,
   // so whole chords warp (kevin shields' glide guitar), reverse reverb sucking each chord in, a voice
   // buried in the wall like another guitar, steady drums under a wash of cymbals, and sweet chords
-  // (major sevenths, added ninths, a borrowed iv) blurred by the room
+  // (major sevenths, added ninths, a borrowed iv) blurred by the room. read from the tabs of about 150 of
+  // these bands' songs: whatever the chord, two strings ring on the same notes over it (openStrings), so
+  // a major key leans on IVmaj7 and vi, a minor one on bIIImaj7 and bVImaj7 (whirr's blue, slowdive's
+  // when the sun hits), and my bloody valentine's major II (when you sleep, come in alone). its kinds
+  // (FLAVOURS) split the rest by feel: fast walls of eighths, slow crushing half time, sad waltzes,
+  // drop tuned 90s riffs, sultry and slow, golden, warped and dancing, and bedroom recordings
   shoegaze: {
     group: 'Loud', opens: ['guitar', 'pad', 'drums'],
     build: 0.35, name: 'Shoegaze', colour: '#e0709a', style: 'tune',
     scales: { major: 2, mixolydian: 2, lydian: 1, dorian: 1, minor: 0.7 }, tempo: [64, 82], tuneTempo: [88, 126],
     meters: { '4/4': 7, '6/8': 1.5, '3/4': 1 },
-    chords: ['I IV', 'Imaj7 IVmaj7', 'I bVII IV I', 'I iii IV iv', 'I - IV -', 'IV I V vi', 'I vi IV iv', 'Iadd9 IVadd9', 'I bIII IV I'],
-    richness: [0.5, 0.95], energy: 0.75, space: 1, bright: 0.5, dark: 0.2, edge: 0.95, surprise: 0,
+    chords: ['I IV', 'Imaj7 IVmaj7', 'I bVII IV I', 'I iii IV iv', 'I - IV -', 'IV I V vi', 'I vi IV iv', 'Iadd9 IVadd9', 'I bIII IV I', 'IVmaj7 I vi V', 'I II IV I', 'IVadd9 vi I -', 'bVImaj7 bIIImaj7 i -'],
+    richness: [0.5, 0.95], energy: 0.75, space: 1, bright: 0.5, dark: 0.2, edge: 0.95, surprise: 0, openStrings: true,
     palette: {
-      guitar: ['glide-guitar', 'fuzz-guitar'], pad: ['reverse-guitar', 'fuzz-wall', 'swell-guitar', 'glass-pad'], melody: ['dream-voice', 'fuzz-lead'],
-      counter: ['chorus-guitar', 'fuzz-lead'], keys: ['chorus-guitar'], arp: ['chorus-guitar', 'clean-guitar'], bells: ['glass-bell', 'sine-bell'],
+      guitar: ['glide-guitar', 'fuzz-guitar', 'offset-guitar', 'octave-fuzz'], pad: ['reverse-guitar', 'fuzz-wall', 'swell-guitar', 'glass-pad'], melody: ['dream-voice', 'fuzz-lead', 'ebow-lead', 'alto-voice'],
+      counter: ['chorus-guitar', 'fuzz-lead', 'ebow-lead'], keys: ['chorus-guitar'], arp: ['chorus-guitar', 'clean-guitar'], bells: ['glass-bell', 'sine-bell', 'bridge-chimes', 'harmonics'],
       bass: ['pick-bass', 'round-bass', 'chorus-bass'], drone: ['tape-loop', 'organ-drone'],
     },
     textures: ['feedback', 'hum', 'vinyl'], kits: ['gaze-kit'], drums: [0.25, 0.95],
     layers: { guitar: 1, pad: 0.8, keys: 0, arp: 0.15, counter: 0.3, bells: 0.15, drone: 0.25, texture: 0.3 },
-    patterns: { guitar: ['ring', 'tremolo', 'ring', 'strum'], 'ambient.guitar': ['ring', 'tremolo'], drums: ['wash', 'wash', 'rock'], 'ambient.drums': ['wash', 'sparse', 'pulse'], bass: ['pulse', 'held', 'rootfifth'], pad: ['sustain', 'swell'], melody: ['long', 'phrases', 'long'] },
+    patterns: { guitar: ['ring', 'tremolo', 'ring', 'strum', 'wash', 'glide'], 'ambient.guitar': ['ring', 'tremolo'], drums: ['wash', 'wash', 'rock'], 'ambient.drums': ['wash', 'sparse', 'pulse'], bass: ['pulse', 'held', 'rootfifth'], pad: ['sustain', 'swell'], melody: ['long', 'phrases', 'long'] },
     forms: GAZE_FORMS, solo: 0.5, bury: 0.8, fx: { wobble: 0.35, drive: 0.1 },
   },
   // slowdive's quieter side, cocteau twins, beach house: chorused clean guitars ringing and picked out
@@ -2579,6 +2586,118 @@ const FLAVOURS = {
         phrasing: { shapes: { chant: 2, climb: 2, arch: 1 }, rhythm: 'long', hook: 0.2 }, build: 0.5,
         scales: { minor: 2, dorian: 1, major: 1 }, tuneTempo: [130, 170], energy: 0.95, dark: 0.45, edge: 1.1,
         kits: ['gaze-kit', 'metal-kit'], patterns: { guitar: ['tremolo', 'tremolo', 'ring'], drums: ['rock', 'wash', 'double'] },
+      },
+      // whirr's pipe dreams, around and sway (junebouvier, leave, ease, press, mumble), title fight's
+      // hyperview, parannoul: 146 to 170 bpm, every guitar strumming eighths on held major sevenths and
+      // added ninths with the open strings ringing, the bass on root eighths, a rock beat with the crash on
+      // one and the ride in the chorus. ease is in e minor (em add9, bm add9, gmaj7, then am9 and cmaj7 in
+      // the chorus), junebouvier in a major (IVmaj9 to I, vi, Vadd11)
+      rush: {
+        name: 'Rush', tip: 'Rush: fast and loud and sweet at once: every guitar strumming eighths on big ringing chords, the drums pushing, the voice lost somewhere inside',
+        phrasing: { shapes: { wave: 2, arch: 2, chant: 1.5, sigh: 1 }, rhythm: 'long', hook: 0.3 },
+        scales: { major: 2.5, minor: 2, dorian: 0.7, mixolydian: 0.7 }, tuneTempo: [140, 170], meters: { '4/4': 1 },
+        chords: ['IVmaj7 I vi V', 'IV I', 'bVImaj7 bIIImaj7', 'i v bIIImaj7 -', 'iv bVImaj7', 'IVmaj7 - vi IV', 'I vi IV V', 'bVImaj7 i bVImaj7 i', 'vi IV I V', 'iv - bVImaj7 -'],
+        richness: [0.6, 1], energy: 0.9, bright: 0.55, drums: [0.4, 1], kits: ['gaze-kit', 'rock-kit'],
+        palette: { guitar: ['offset-guitar', 'fuzz-guitar', 'glide-guitar'], melody: ['dream-voice', 'alto-voice', 'fuzz-lead'], bass: ['pick-bass', 'fuzz-bass'] },
+        layers: { pad: 0.6 },
+        patterns: { guitar: ['wash', 'wash', 'ring'], drums: ['rock', 'rock', 'wash'], bass: ['pulse', 'pulse', 'rootfifth'], melody: ['long', 'phrases'] },
+      },
+      // whirr's heavy side (raw blue, feel, blue, heavy), glare (void in blue, nü burn), nothing and
+      // narrow head: fast tempos with the snare only on three, so it crawls, fuzz tuned down, minor keys
+      // leaning on bIIImaj7 and bVImaj7, glare's major I and its semitone bII, a quiet verse before the wall
+      undertow: {
+        name: 'Undertow', tip: 'Undertow: slow and crushing: fuzz tuned way down, the drums in half time under a wash of cymbals, sweet chords sinking into the noise',
+        phrasing: { shapes: { sigh: 2, fall: 2, chant: 1.5, wave: 1 }, rhythm: 'long', hook: 0.2 },
+        scales: { minor: 2.5, dorian: 1.5, phrygian: 0.6, major: 0.6 }, tempo: [56, 70], tuneTempo: [126, 156], meters: { '4/4': 6, '3/4': 1 },
+        chords: ['bIIImaj7 bIIImaj7 I -', 'i bVImaj7', 'bVImaj7 bIIImaj7 i -', 'i - bII -', 'iv bVImaj7 i -', 'i bVI bIII bVII', 'bIIImaj7 bVImaj7', 'i iv bVImaj7 V'],
+        energy: 0.8, dark: 0.45, bright: 0.4, edge: 1.1, build: 0.3, bury: 0.85, kits: ['gaze-kit', 'rock-kit'], textures: ['feedback', 'hum'],
+        palette: { guitar: ['drop-guitar', 'sludge-guitar', 'octave-fuzz', 'fuzz-guitar'], bass: ['fuzz-bass', 'pick-bass'], melody: ['dream-voice', 'fuzz-lead', 'ebow-lead'], pad: ['fuzz-wall', 'reverse-guitar', 'swell-guitar'] },
+        quiet: ['chorus-guitar', 'clean-guitar'], loudQuiet: 0.5,
+        patterns: { guitar: ['ring', 'wash', 'ring', 'power'], drums: ['halftime', 'halftime', 'wash'], bass: ['held', 'pulse'] },
+        fx: { wobble: 0.3, drive: 0.18 },
+      },
+      // whirr's feels like you (mellow, wavelength, younger than you, before you head off, under the same
+      // name), glare's mourning haze and bloom, slowdive's dagger: 85 to 125 bpm, often a waltz, clean
+      // guitars under the fuzz, bIIImaj9 to a suspended I, IVmaj7 to vi, a piano before the noise
+      ache: {
+        name: 'Ache', tip: 'Ache: slow and sad and very pretty: clean guitars and fuzz ringing out together, sometimes a waltz, a piano before the noise comes in',
+        phrasing: { shapes: { sigh: 2.5, fall: 2, wave: 1.5, arch: 1 }, rhythm: 'long', hook: 0.15 },
+        scales: { major: 2, minor: 2, dorian: 1, lydian: 0.6 }, tuneTempo: [84, 112], meters: { '4/4': 5, '3/4': 3, '6/8': 1 },
+        chords: ['bVImaj7 i iv i', 'bIIImaj7 - Isus4 V7', 'IVmaj7 vi IVadd9 I', 'iv bVII bVImaj7 i', 'IIsus2 Imaj7', 'IVmaj7 vi I -', 'Imaj7 VI IVmaj7 -', 'bVImaj7 - i -'],
+        richness: [0.6, 1], energy: 0.55, dark: 0.3, bright: 0.45, build: 0.45, opens: ['keys', 'guitar', 'pad'], kits: ['gaze-kit', 'soft-kit'], drums: [0.2, 0.85],
+        palette: { guitar: ['shimmer-guitar', 'offset-guitar', 'chorus-guitar', 'glide-guitar'], melody: ['dream-voice', 'alto-voice', 'ebow-lead'], keys: ['piano', 'felt-keys'], counter: ['chorus-guitar', 'clean-guitar', 'ebow-lead'], bells: ['harmonics', 'glass-bell'] },
+        quiet: ['shimmer-guitar', 'chorus-guitar', 'clean-guitar'], loudQuiet: 0.7,
+        layers: { keys: 0.35, counter: 0.4 },
+        patterns: { guitar: ['ring', 'strum', 'ring', 'wash'], drums: ['wash', 'halftime', 'sparse'], keys: ['broken', 'strum'], melody: ['long', 'phrases'] },
+      },
+      // fleshwater (kiss the ladder, linda claire, woohoo, foreign), glare's heavier songs, hum, deftones,
+      // superheaven: drop b and drop c, a chugging riff the bass doubles, bVImaj7 sliding to a semitone bII,
+      // IVmaj7 to a major II, a wah lead bending a whole tone, 120 to 190 bpm
+      concrete: {
+        name: 'Concrete', tip: 'Concrete: heavy 90s riffs tuned way down, a chug under the haze, big bending leads and a beat to nod along to',
+        phrasing: { shapes: { call: 2, dive: 1.5, repeat: 1.5, fall: 1 }, rhythm: 'syncopated', hook: 0.5 },
+        scales: { minor: 2.5, phrygian: 1, dorian: 1, major: 0.8 }, tuneTempo: [118, 176], meters: { '4/4': 8, '3/4': 1 },
+        chords: ['bVImaj7 bII', 'i bIImaj7', 'IVmaj7 II', 'i - bVImaj7 -', 'bIIImaj7 i bVI V', 'I bVII', 'IVsus2 II', 'iv bVImaj7 bIII i'],
+        energy: 0.95, dark: 0.5, bright: 0.6, edge: 1.1, bury: 0.5, solo: 0.6, breakdown: true, kits: ['rock-kit', 'gaze-kit'], drums: [0.5, 1],
+        palette: { guitar: ['drop-guitar', 'drop-guitar', 'phaser-guitar', 'octave-fuzz'], melody: ['wah-lead', 'rasp-voice', 'dream-voice'], counter: ['wah-lead', 'phaser-guitar', 'chorus-guitar'], bass: ['fuzz-bass', 'pick-bass'], pad: ['fuzz-wall', 'reverse-guitar'] },
+        layers: { counter: 0.45, pad: 0.45 },
+        patterns: { guitar: ['chug', 'power', 'ring', 'eighths'], bass: ['riff', 'pulse', 'synco'], drums: ['rock', 'halftime', 'rock'], counter: ['harmony', 'answer'] },
+      },
+      // the sultry, slow side: deftones' sextape and digital bath, cigarettes after sex, slowdive's sugar
+      // for the pill, sweet trip's milk, softcult: 62 to 95 bpm, plain diatonic chords (I vi iii V, iv bVII
+      // bIII i) with major sevenths and raised fourths, a clean chorused guitar, ride eighths, the voice close
+      velvet: {
+        name: 'Velvet', tip: 'Velvet: slow, close and sultry: a clean guitar shimmering through the chorus, soft cymbals, a breathy voice right in your ear, the lights down low',
+        phrasing: { shapes: { sigh: 2, wave: 2, pendulum: 1.5, arch: 1 }, rhythm: 'long', hook: 0.3, pickup: 0.5 },
+        scales: { major: 2, minor: 1.5, dorian: 1.5, lydian: 1 }, tempo: [54, 66], tuneTempo: [62, 92], meters: { '4/4': 6, '6/8': 2 },
+        chords: ['I vi iii V', 'iv bVII bIII i', 'Imaj7 vi', 'iv bVI bIII i', 'IVmaj7 Imaj7', 'I V ii IV', 'bIIImaj7 II', 'Imaj7 IVmaj7 iii vi'],
+        richness: [0.6, 1], energy: 0.45, dark: 0.25, bright: 0.45, edge: 0.6, bury: 0.15, kits: ['soft-kit', 'machine', 'gaze-kit'], drums: [0.2, 0.85],
+        palette: { guitar: ['chorus-guitar', 'shimmer-guitar', 'clean-guitar', 'flange-guitar'], melody: ['dream-voice', 'alto-voice', 'soul-voice'], bass: ['round-bass', 'fretless', 'chorus-bass'], pad: ['glass-pad', 'swell-guitar', 'vox-pad', 'analog-pad'], keys: ['e-piano', 'wurlitzer'], bells: ['harmonics', 'glass-bell'] },
+        layers: { pad: 0.6, keys: 0.3, counter: 0.25, arp: 0.3 },
+        patterns: { guitar: ['ring', 'strum', 'ring'], drums: ['halftime', 'groove', 'brush', 'wash'], bass: ['held', 'rootfifth', 'synco'], melody: ['phrases', 'long'] },
+        fx: { wobble: 0.3, echo: 0.3 },
+      },
+      // slowdive's souvlaki and just for a day (alison, 40 days, souvlaki space station, catch the breeze),
+      // ride, lush: 90 to 115 bpm, lydian and major, IVadd9 to vi and I, a raised fourth on every chord,
+      // tape flanging, a ride washing, two voices together
+      sunlit: {
+        name: 'Sunlit', tip: 'Sunlit: mid paced and golden: chorused and flanged guitars ringing with a raised fourth, a ride cymbal washing, two voices drifting together',
+        phrasing: { shapes: { arch: 2, wave: 2, climb: 1.5, sigh: 1 }, rhythm: 'even', hook: 0.35 },
+        scales: { lydian: 2, major: 2.5, mixolydian: 1 }, tuneTempo: [88, 116],
+        chords: ['IVadd9 vi I -', 'IVmaj7 II', 'I IVmaj7', 'IV I V Imaj7', 'I - IV iii', 'vi V IV -', 'Iadd9 IVadd9', 'IVmaj7 V iii vi'],
+        energy: 0.65, bright: 0.65, dark: 0.1,
+        palette: { guitar: ['flange-guitar', 'chorus-guitar', 'glide-guitar', 'shimmer-guitar'], melody: ['dream-voice', 'alto-voice', 'fuzz-lead'], counter: ['chorus-guitar', 'clean-guitar', 'ebow-lead'], bells: ['harmonics', 'bridge-chimes', 'glass-bell'] },
+        layers: { counter: 0.4, bells: 0.3, arp: 0.3 },
+        patterns: { guitar: ['ring', 'strum', 'wash', 'tremolo'], drums: ['wash', 'rock', 'groove'], counter: ['counterpoint', 'harmony'] },
+        fx: { wobble: 0.45 },
+      },
+      // my bloody valentine's loveless and isn't anything (soon, to here knows when, only shallow, sometimes,
+      // loomer): open tunings droning (sus2s and sus4s, the major II), sixteenths strummed through a
+      // tremolo arm never still, soon's baggy beat, the voice drowned, behind the bridge plinks
+      melt: {
+        name: 'Melt', tip: 'Melt: the whole band bending in and out of tune like a record warping in the sun, sixteenths strummed soft and blurred, a loose dance beat underneath',
+        phrasing: { shapes: { chant: 2, wave: 2, sigh: 1.5, turn: 1 }, rhythm: 'long', hook: 0.25 },
+        scales: { major: 2, mixolydian: 2, lydian: 1.5, dorian: 1 }, tuneTempo: [88, 134],
+        chords: ['Isus2 vi Isus4 II', 'I II IV I', 'IVsus2 I bVImaj7 -', 'I bVIIsus2 IVadd9 Isus4', 'Imaj7 IV', 'i bVII bVImaj7 -', 'IV6 I6', 'I - Isus4 bVIIsus4'],
+        energy: 0.7, bright: 0.5, bury: 0.85, kits: ['gaze-kit', 'machine'],
+        palette: { guitar: ['glide-guitar', 'octave-fuzz', 'offset-guitar'], melody: ['dream-voice', 'alto-voice', 'ebow-lead'], pad: ['reverse-guitar', 'fuzz-wall', 'swell-guitar'], bells: ['bridge-chimes', 'harmonics'] },
+        layers: { bells: 0.3 },
+        patterns: { guitar: ['glide', 'glide', 'tremolo', 'ring'], drums: ['baggy', 'baggy', 'wash'], bass: ['held', 'pulse'] },
+        fx: { wobble: 0.55, drive: 0.12 },
+      },
+      // the bedroom shoegaze of the internet (parannoul, weatherday, julie, quannnic, wisp, teen suicide):
+      // 130 to 180 bpm, emo chords (Imaj7, II7, IVmaj9), cheap fuzz recorded too loud, a drum machine or
+      // a racing kit, twinkling clean guitars, tape hiss
+      glow: {
+        name: 'Screen glow', tip: 'Screen glow: a bedroom at three in the morning: cheap fuzz recorded far too loud, emo chords, a drum machine racing, hiss and crackle in the gaps',
+        phrasing: { shapes: { zigzag: 2, climb: 1.5, wave: 1.5, leap: 1 }, rhythm: 'running', hook: 0.4 },
+        scales: { major: 2.5, minor: 1.5, lydian: 1 }, tuneTempo: [128, 176],
+        chords: ['Isus2 II7 IV -', 'IVmaj7 Imaj7', 'bVImaj7 V', 'I bII vi bVI', 'IVmaj7 iii vi V', 'Imaj7 IVmaj7 I IVmaj7', 'vi I Isus4 -', 'I III IV iv'],
+        richness: [0.55, 0.95], energy: 0.85, bright: 0.6, kits: ['machine', 'lofi-kit', 'gaze-kit'], textures: ['vinyl', 'hum', 'feedback'],
+        palette: { guitar: ['fuzz-guitar', 'offset-guitar', 'crunch-guitar', 'chorus-guitar'], melody: ['dream-voice', 'chorus-guitar', 'fuzz-lead', 'soft-lead'], arp: ['clean-guitar', 'chorus-guitar'], drone: ['tape-loop'] },
+        layers: { arp: 0.45 },
+        patterns: { guitar: ['wash', 'eighths', 'strum'], arp: ['twinkle', 'updown'], drums: ['groove', 'rock', 'four', 'halftime'] },
+        fx: { wobble: 0.6, drive: 0.15 },
       },
     },
   },
@@ -4756,7 +4875,7 @@ function mutateSong(song, rng) {
 // "Adding things"). unstamped songs could be 1 or 1.5 (the morning of 22 october): they play as 1, the
 // page marks ones saved after 1.5 as its (markMorningSongs), and the Song tab picks by hand.
 // every composer there's been, oldest first: the last is today's
-const COMPOSER_VERSIONS = [1, 1.5, 2, 3];
+const COMPOSER_VERSIONS = [1, 1.5, 2, 3, 4];
 const COMPOSER = COMPOSER_VERSIONS[COMPOSER_VERSIONS.length - 1];
 
 // ---------- cleaning ----------
@@ -4993,8 +5112,9 @@ function composeSong(song) {
       chords: section.chords,
       rng: makeRng(song.seed, partSeed(layer, section.part), layer.role, section.part),
       vary: makeRng(song.seed, partSeed(layer, section.part), section.part, 'take', section.take),
-      // (a singer or didgeridoo sits round its own note, home: moved far, it sounds like someone else)
-      center: (INSTRUMENTS[layer.instrument]?.home ?? ROLES[layer.role].center) + layer.octave * 12,
+      // (a singer or didgeridoo sits round its own note, home: moved far, it sounds like someone else.
+      // a guitar tuned down sits lower, drop)
+      center: (INSTRUMENTS[layer.instrument]?.home ?? ROLES[layer.role].center) + layer.octave * 12 + (INSTRUMENTS[layer.instrument]?.drop || 0),
       steps: SCALES[song.scale].steps,
       melody: melodyBySection[section.index] || null,
       // the melody's line for this section, playing or not: what a layer taking or doubling the tune
@@ -5481,6 +5601,12 @@ const GROOVES = {
       { k: 'x.......x.......', s: '....x.......x...', l: 'x.x.x.x.x.x.x.x.', c: 'x.......x.......' },
       { k: 'x...x...x...x...', s: '....x.......x...', p: 'x.x.x.x.x.x.x.x.', c: 'x.......x.......' },
     ],
+    // baggy: a loose dance beat under the wall, the kick skipping round a snare on 2, its and, and 4, hats
+    // ticking eighths (my bloody valentine's soon, the madchester beat)
+    baggy: [
+      { k: 'xx.x....x.xx.xx.', s: '....x..x....x...', h: 'x.x.x.x.x.x.x.x.', c: 'x..x....x.x.....' },
+      { k: 'x..x....x.x..x..', s: '....x..x....x..-', h: 'x-x-x-x-x-x-x-x-', o: '......x.........', c: 'x..x....x.x.....' },
+    ],
     // swing: the ride's "ding, ding-a ding" (the hat line, which a jazz kit plays on its ride), the hi
     // hat's foot on two and four (the open hat line, a jazz kit's foot chick), a feathered kick and the
     // snare dropping in quietly. feel swings the eighths
@@ -5568,6 +5694,7 @@ const GROOVES = {
     double: [{ k: 'xxxxxxxxxxxx', s: '....x...x...', p: 'x...x...x...', c: 'x...........' }],
     breakdown: [{ k: 'x..x..x.....', s: '........x...', y: 'x...x...x...', c: 'x..x..x.....' }],
     wash: [{ k: 'x.......x...', s: '....x.......', p: 'x.x.x.x.x.x.', c: 'x.......x...' }],
+    baggy: [{ k: 'xx.x....x.x.', s: '....x..x....', h: 'x.x.x.x.x.x.', c: 'x..x....x...' }],
     // a jazz waltz, bossa in three, dadra (the tabla's six beat cycle: dha dhin na, dha tin na), and the rest
     swing: [{ k: '-...........', s: '......-.....', h: 'x...x.x.x...', o: '....x...x...', c: 'x...........' }],
     bossa: [{ k: 'x.....x.....', s: 'x..x..x.....', h: 'x-x-x-x-x-x-', c: 'x..x..x.....' }],
@@ -5599,6 +5726,7 @@ const GROOVES = {
     double: [{ k: 'xxxxxx', s: '...x..', p: 'x..x..', c: 'x..x..' }],
     breakdown: [{ k: 'x.x...', s: '...x..', y: 'x..x..', c: 'x.x...' }],
     wash: [{ k: 'x.....', s: '...x..', p: 'xxxxxx', c: 'x..x..' }],
+    baggy: [{ k: 'x.x..x', s: '...x..', h: 'xxxxxx', c: 'x..x..' }],
     swing: [{ k: '-.....', s: '....-.', h: 'x.xx.x', o: '...x..', c: 'x.....' }],
     bossa: [{ k: 'x..x..', s: 'x.x..x', h: 'xxxxxx', c: 'x..x..' }],
     tala: [{ k: 'xx.x..', s: 'x.xx.x', o: '.x..x.', c: 'x..x..' }],
@@ -5627,6 +5755,7 @@ const GROOVES = {
     double: [{ k: 'xxxxxxxxxxxxxxxxxxxx', s: '........x.......x...', p: 'x...x...x...x...x...', c: 'x...........x.......' }],
     breakdown: [{ k: 'x..x..x.....x..x....', s: '........x...........', y: 'x...x...x...x...x...', c: 'x..x..x.....x..x....' }],
     wash: [{ k: 'x.......x...x.......', s: '....x...........x...', p: 'x.x.x.x.x.x.x.x.x.x.', c: 'x...........x.......' }],
+    baggy: [{ k: 'xx.x....x.xx.xx.x...', s: '....x..x....x.......', h: 'x.x.x.x.x.x.x.x.x.x.', c: 'x..x....x.x.....x...' }],
     swing: [{ k: '-...........-.......', s: '......-.........-...', h: 'x...x.x.x...x.x.x...', o: '....x.......x.......', c: 'x...........x.......' }],
     bossa: [{ k: 'x.....x.x.....x.x...', s: 'x..x..x...x..x..x...', h: 'x-x-x-x-x-x-x-x-x-x-', c: 'x..x..x...x..x..x...' }],
     // jhaptaal, the tabla's ten beat cycle: dhi na, dhi dhi na, ti na, dhi dhi na
@@ -5647,7 +5776,7 @@ const GROOVE_SLOTS = { k: 0, s: 1, h: 2, o: 3, p: 4, l: 5, y: 6 };
 const LIFTS = { groove: true, halftime: true, march: true, four: true, break: true, rock: true, punk: true, double: true, funk: true, boombap: true };
 // the quieter grooves that still fill into a new part (a jazz drummer's fill, a tihai on the tabla).
 // the quietest (pulse, sparse) never do: a drum roll in the middle of a calm song made it jump
-const FILLS = { brush: true, tribal: true, swing: true, tala: true, bossa: true, shuffle: true, train: true, onedrop: true, maqsum: true, gallop: true };
+const FILLS = { baggy: true, brush: true, tribal: true, swing: true, tala: true, bossa: true, shuffle: true, train: true, onedrop: true, maqsum: true, gallop: true };
 // the rock grooves. their drummer fills down the toms, crashes at the top of every phrase in a loud
 // part, and (rock and punk) moves from the hats to the ride for the chorus
 const ROCK = { rock: true, punk: true, double: true, breakdown: true, wash: true };
@@ -6237,7 +6366,27 @@ function guitarShape(c, chord, full) {
   const shape = [root, root + fifth, root + 12, root + 12 + chord.tones[1], root + 12 + fifth];
   const colour = chord.tones.find((tone) => tone > 8);
   if (colour) shape.push(root + 12 + colour);
-  return shape;
+  return c.mood.openStrings ? openStrings(c, chord, shape) : shape;
+}
+
+// shoegaze's open strings (a mood's openStrings): two strings left ringing on the same notes over every
+// chord, the key's second and fifth, so the chords blur into each other the way they do with a
+// guitar's open strings ringing through every shape (whirr's add9s and major sevenths, the sus2s of my
+// bloody valentine's open tunings: over i, an add9; over bIII, a sixth; over bVI, a major seventh and
+// ninth). one that would rub a semitone against the chord is left off. they sit round the open b and e
+// strings, the shape's doubled notes make way so it's still six strings, and listening takes them off
+// where they'd rub against the tune, like any note of a guitar's that isn't the chord's triad
+const OPEN_STRINGS = [2, 7];
+function openStrings(c, chord, shape) {
+  const pcs = chord.tones.map((tone) => mod12(chord.root + tone));
+  const drones = OPEN_STRINGS.map((step) => mod12(c.song.key + step)).filter((pc) => !pcs.some((one) => [1, 11].includes(mod12(one - pc)))).map((pc) => near(pc, c.center + 19));
+  let notes = shape.filter((midi) => !drones.some((drone) => mod12(drone) === mod12(midi)) || midi === shape[0]);
+  // (the doubled fifth on top goes first, then any other doubled note from the top down)
+  while (notes.length + drones.length > 6) {
+    const twice = notes.findLastIndex((midi, i) => i > 0 && notes.some((other, j) => j !== i && mod12(other) === mod12(midi)));
+    notes.splice(twice > 0 ? twice : notes.length - 1, 1);
+  }
+  return [...new Set([...notes, ...drones])].sort((a, b) => a - b);
 }
 
 // a strum: the shape's notes a moment apart, low to high on the way down, and only the top strings,
@@ -6604,7 +6753,7 @@ const COMPOSERS = {
     const notes = [];
     const unit = 1 / c.sub;
     // (funk and boom chick play the whole chord too: a clean or acoustic guitar has no growl to avoid)
-    const full = pattern === 'ring' || pattern === 'tremolo' || pattern === 'strum' || pattern === 'funk' || pattern === 'boomchick';
+    const full = pattern === 'ring' || pattern === 'tremolo' || pattern === 'strum' || pattern === 'funk' || pattern === 'boomchick' || pattern === 'wash' || pattern === 'glide';
     const onBeat = (t) => Math.abs((t - c.start) % 1) < 1e-6;
     // eighths chug palm muted in the verse (part A) and ring in the chorus, the chord changes and
     // comping hits left open as accents
@@ -6618,6 +6767,27 @@ const COMPOSERS = {
         for (let t = chord.t; t < end - 1e-6; t += unit) {
           const open = !muted || t === chord.t || comps.has(t.toFixed(3));
           strum(notes, shape, t, Math.min(unit, end - t) * (open ? 0.95 : 0.6), onBeat(t) ? 0.8 : 0.7, { mute: !open });
+        }
+      } else if (pattern === 'wash') {
+        // whirr's wall: every eighth strummed on the whole ringing shape, never muted, down on the beat and
+        // up between (the top strings), the bar's first stroke hardest. quiet, it's a stroke a beat
+        for (let t = chord.t; t < end - 1e-6; t += unit) {
+          const i = Math.round(((t - c.start) % c.bpb) / unit);
+          const down = i % c.sub === 0;
+          if (density < 0.35 && !down) continue;
+          const vel = i === 0 ? 0.8 : down ? 0.72 : 0.6;
+          strum(notes, shape, t, Math.min(down && density < 0.35 ? 1 : unit, end - t) * 0.98, vel, { up: !down, spread: 0.008 });
+        }
+      } else if (pattern === 'glide') {
+        // my bloody valentine's glide: sixteenths strummed lightly down and up all the way through, the
+        // shape swelling and easing over each chord, while the rig (warp) bends it all in and out of tune.
+        // a shimmer like tremolo picking, not running notes (twelve strokes a second at most)
+        let step = 1 / (c.sub * 2);
+        while (c.song.tempo / 60 / step > 12) step *= 2;
+        let i = 0;
+        for (let t = chord.t; t < end - 1e-6; t += step, i++) {
+          const swell = Math.sin((Math.PI * (t - chord.t)) / chord.dur);
+          strum(notes, shape, t, Math.min(step * 1.5, end - t), 0.42 + 0.16 * swell + (onBeat(t) ? 0.04 : 0), { up: i % 2 === 1, spread: 0.005 });
         }
       } else if (pattern === 'ring') {
         // struck once a bar and left to ring: a wall rather than a rhythm

@@ -41,6 +41,7 @@
 //   sung       a voice singing a phrase as one line (singLine), not a note at a time. a recorded choir
 //              does too when it has a tune or counter melody to sing (sings())
 //   octave     where it plays a part, in octaves from the role's place (a cello under a flute)
+//   drop       semitones lower its part sits, for a guitar tuned down (drop b's roots sit three under standard's)
 //   range      [lowest, highest] a voice sang: its part is folded into it (composeSong)
 //   pedal      a piano whose sustain pedal a mood can hold down (pedal() in music.js)
 // a layer's tone scales these, so an instrument sounds different in every song, a harder note is
@@ -271,6 +272,31 @@ const INSTRUMENTS = {
   // tune, a held tone under the string so chords don't die, and reverse reverb swelling up behind
   'glide-guitar':  { name: 'Glide guitar', family: 'guitar', edge: 0.55, kind: 'pluck', bright: 0.6, soft: 0.2, decay: 6, ring: 0.35, sustain: 0.5, env: [0.01, 3, 1, 0.5], gain: 1, vibrato: { rate: 0.6, depth: 32, delay: 0 },
     amp: { tight: 60, curve: 'soft', gain: 40, sustain: 12, mids: [1000, -4], cab: 3500, level: 0.0263, chorus: [0.45, 0.004], reverse: 0.8 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.1 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.5 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1.1 } } },
+  // the shoegaze guitars (own: only where a mood names them), each a pedal or two from the bands' boards
+  // whirr's: an offset guitar (a jazzmaster) into a big muff and a cranked valve head, a reverb set to
+  // its modulated, chorused setting, so the wall of eighths wavers very slightly as one
+  'offset-guitar': { name: 'Offset guitar', family: 'guitar', edge: 0.6, own: true, kind: 'pluck', bright: 0.6, soft: 0.15, decay: 7, ring: 0.3, env: [0.002, 3, 1, 0.4], gain: 1, ornaments: { slide: 0.22, glide: 0.08 },
+    amp: { tight: 70, boost: [800, 3], curve: 'soft', gain: 55, sustain: 16, mids: [850, -6], cab: 3600, level: 0.022, double: true, warp: [0.3, 7] }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.1 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.5 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1 } } },
+  // an octave fuzz: the bottom half of the wave folded up, so an octave rings over every chord, thick and
+  // a little out of tune with itself (my bloody valentine, hum)
+  'octave-fuzz': { name: 'Octave fuzz guitar', family: 'guitar', edge: 0.7, own: true, kind: 'pluck', bright: 0.55, soft: 0.15, decay: 7, ring: 0.3, env: [0.002, 3, 1, 0.4], gain: 1, ornaments: { slide: 0.15, glide: 0.08 },
+    amp: { tight: 90, curve: 'octave', gain: 40, sustain: 14, mids: [1000, -5], cab: 4200, level: 0.054, double: true, warp: [0.45, 10] }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.1 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.5 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1 } } },
+  // clean and chorused into a shimmer: every chord leaves an octave up halo hanging over it (slowdive's
+  // reunion boards, alcest)
+  'shimmer-guitar': { name: 'Shimmer guitar', family: 'guitar', edge: 0.25, own: true, kind: 'pluck', bright: 0.55, soft: 0.3, decay: 3.5, env: [0.002, 3, 1, 0.5], gain: 1,
+    amp: { tight: 90, curve: 'tube', gain: 1.4, presence: [3000, 2], cab: 6500, level: 0.38, chorus: [0.5, 0.004], shimmer: 0.6 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 0.77 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.1 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 0.71 } } },
+  // a valve amp just breaking up, flanged on the tape: a slow jet plane whoosh through every chord
+  // (souvlaki, which slowdive flanged by pressing on the reels)
+  'flange-guitar': { name: 'Tape flanged guitar', family: 'guitar', edge: 0.35, own: true, kind: 'pluck', bright: 0.6, soft: 0.2, decay: 4, ring: 0.4, env: [0.002, 3, 1, 0.35], gain: 1, ornaments: { slide: 0.1, glide: 0.06 },
+    amp: { tight: 100, curve: 'tube', gain: 3, sustain: 6, presence: [2600, 2], cab: 5500, level: 0.16, double: true, flange: [0.11, 0.0025] }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 0.94 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.3 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 0.85 } } },
+  // overdrive through a phaser, the notches sweeping slowly up and down (fleshwater's background guitar,
+  // hum's leads)
+  'phaser-guitar': { name: 'Phaser guitar', family: 'guitar', edge: 0.55, own: true, kind: 'pluck', bright: 0.65, soft: 0.1, decay: 6, ring: 0.35, env: [0.002, 3, 1, 0.3], gain: 1, ornaments: { slide: 0.15, glide: 0.06 },
+    amp: { tight: 120, boost: [720, 5], curve: 'soft', gain: 12, sustain: 10, presence: [2800, 2], cab: 5000, level: 0.03, double: true, phaser: [0.35, 500] }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.1 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.5 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 0.95 } } },
+  // tuned down to drop b, a stratocaster through an overdrive into a high gain head: the 90s alternative
+  // metal weight under fleshwater, glare and deftones. drop: its chords sit three semitones lower, from the low b up
+  'drop-guitar': { name: 'Drop tuned guitar', family: 'guitar', edge: 0.8, own: true, kind: 'pluck', bright: 0.65, soft: 0.05, decay: 7, ring: 0.3, drop: -3, env: [0.002, 3, 1, 0.25], gain: 1, ornaments: { slide: 0.2, glide: 0.06 },
+    amp: { tight: 90, boost: [750, 4], curve: 'hard', gain: 60, sustain: 14, mids: [600, -7], body: [110, 5], presence: [3200, 3], cab: 4200, level: 0.024, double: true }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 1.3 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 1.8 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1.1 } } },
   // a hollow body jazz guitar on its neck pickup, the tone knob rolled back, into a clean valve amp:
   // round and warm (wes montgomery, joe pass)
   'jazz-guitar':   { name: 'Jazz guitar', family: 'guitar', edge: 0.15, kind: 'pluck', bright: 0.4, soft: 0.4, decay: 2.6, body: [[110, 3, 1.5], [250, 2, 1.5]], env: [0.003, 2.6, 1, 0.3], gain: 1, ornaments: { slide: 0.1, grace: 0.05 },
@@ -284,6 +310,14 @@ const INSTRUMENTS = {
   // the gentle bells keep harmonic overtones (2, 3, 7) so they never clash with the chords
   'glass-bell':  { name: 'Glass bell', family: 'bell', edge: 0.3, kind: 'modal', modes: [[1, 1, 4], [2, 0.3, 2, 0.4], [3, 0.06, 0.9, 0.8]], strike: [0.05, 6000, 0.003], track: 0.3, env: [0.004, 1, 1, 2], gain: 0.336, samples: 'hand-chimes', sampled: { gain: 0.33 } },
   chime:         { name: 'Wind chime', family: 'bell', edge: 0.45, world: 'acoustic', kind: 'modal', modes: [[1, 1, 3], [3, 0.2, 1, 0.5], [7, 0.05, 0.3, 1]], strike: [0.1, 7000, 0.002], track: 0.3, env: [0.002, 1, 1, 1.5], gain: 0.31, samples: 'tubular-glock', sampled: { name: 'Tubular glockenspiel (VCSL)', gain: 0.34 } },
+  // a guitar's strings plucked behind the bridge: a high, clangy plink nearly out of tune, through a clean
+  // amp and reverse reverb so each swells back in (to here knows when, sonic youth's interludes)
+  'bridge-chimes': { name: 'Behind the bridge', family: 'bell', edge: 0.4, own: true, kind: 'modal', modes: [[1, 1, 1.4], [2.32, 0.45, 0.7, 0.3], [4.25, 0.22, 0.35, 0.6], [6.8, 0.08, 0.2, 1]], strike: [0.12, 5000, 0.002], track: 0.4, env: [0.002, 1, 1, 0.8], gain: 1,
+    amp: { tight: 200, curve: 'tube', gain: 1.5, cab: 7000, level: 0.95, reverse: 0.8 } },
+  // natural harmonics, a finger resting on the string over a fret: glassy, nearly a sine, ringing long
+  // (slowdive, american football, hum's intros)
+  harmonics: { name: 'Guitar harmonics', family: 'bell', edge: 0.2, own: true, kind: 'modal', modes: [[1, 1, 3], [2, 0.12, 1.5, 0.4], [3, 0.04, 0.8, 0.8]], strike: [0.03, 4000, 0.003], track: 0.2, env: [0.003, 1, 1, 1.5], gain: 0.3,
+    amp: { tight: 150, curve: 'tube', gain: 1.2, cab: 7500, level: 1.1, chorus: [0.5, 0.004] }, samples: 'guitar-harmonics', sampled: { name: 'Guitar harmonics (FluidR3)', gain: 0.125 } },
   // nearly a pure tone, the soft bell lead of aphex twin's ageispolis. a synth, so it stays fm
   'sine-bell':   { name: 'Sine bell', family: 'bell', edge: 0.1, kind: 'fm', ratio: 1, index: 0.35, indexDecay: 0.4, sustainIndex: 0, partials: [[2, 0.12, 0.6]], env: [0.003, 2.2, 0, 1.2], gain: 0.2 },
   // a struck pipe, out of tune with itself on purpose: fallout's rusting wasteland. too harsh for
@@ -345,6 +379,15 @@ const INSTRUMENTS = {
   // a fuzz lead, thick and sustaining forever: billy corgan, j mascis
   'fuzz-lead':   { name: 'Fuzz lead', family: 'lead', edge: 0.65, own: true, kind: 'pluck', bright: 0.6, soft: 0.1, decay: 6, ring: 0.3, sustain: 0.45, env: [0.003, 2, 0.9, 0.3], gain: 1, vibrato: { rate: 5, depth: 10, delay: 0.35 }, ornaments: { bend: 0.3, bendBy: 1, slide: 0.2, shake: 0.4, glide: 0.09, release: 0.12 },
     amp: { tight: 70, curve: 'soft', gain: 80, sustain: 16, mids: [900, -6], cab: 3600, level: 0.038 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 2.5 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 3.4 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1.6 } } },
+  // an ebow: a magnet keeping the string going, so a note swells up with no pick and sings for as long as
+  // it's held, sliding like a voice. through fuzz, a chorus and reverse reverb it's the shoegaze singer's
+  // stand in (the recording swells in on the pick's ring, held up by the fuzz)
+  'ebow-lead': { name: 'Ebow guitar', family: 'lead', edge: 0.45, own: true, kind: 'pluck', bright: 0.5, soft: 0.7, decay: 9, ring: 0.2, sustain: 0.95, env: [0.28, 2, 1, 0.7], gain: 1, vibrato: { rate: 4.5, depth: 8, delay: 0.6 }, ornaments: { slide: 0.35, glide: 0.15, swell: 0.4 },
+    amp: { tight: 80, curve: 'soft', gain: 25, sustain: 16, mids: [900, -4], cab: 3800, level: 0.0236, chorus: [0.4, 0.004], reverse: 0.5 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 3.7, env: [0.3, 1, 1, 0.8] }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 5, env: [0.3, 1, 1, 0.8] } } },
+  // a fuzz lead through a wah left half down, bending a whole tone and shaking wide: a nasal, crying lead
+  // (fleshwater's)
+  'wah-lead': { name: 'Wah lead', family: 'lead', edge: 0.7, own: true, kind: 'pluck', bright: 0.7, soft: 0.1, decay: 5, ring: 0.35, sustain: 0.4, env: [0.003, 2, 0.9, 0.25], gain: 1, vibrato: { rate: 6, depth: 14, delay: 0.25 }, ornaments: { bend: 0.45, bendBy: 2, slide: 0.25, shake: 0.5, glide: 0.08, release: 0.15 },
+    amp: { tight: 120, boost: [800, 4], wah: [1000, 3], curve: 'soft', gain: 40, sustain: 12, presence: [2800, 2], cab: 4500, level: 0.03 }, samples: 'clean-guitar', sampled: { name: 'Black guitar (Karoryfer)', gain: 2.4 }, more: { 'shiny-guitar': { name: 'Shiny guitar (Karoryfer)', gain: 3.2 }, 'green-guitar': { name: 'Green guitar (Karoryfer)', gain: 1.7 } } },
   // voices with no words, for the moods whose songs would have a singer: a breathy one sung close and
   // buried in the guitars (rachel goswell, bilinda butcher), and one rasping like it's shouting
   // (kurt cobain, courtney love). singers slide between notes more than any instrument. the breathy one
@@ -509,7 +552,7 @@ const INSTRUMENTS = {
     { voice: 'crash', tone: 6000, decay: 1.4, gain: 0.16, hit: 'tr808/crash', level: 0.29 }] },
   // a cheap drum machine in a big room, a real roland tr-707 (sampled drums, the 80s' affordable box):
   // post-punk, have a nice life, and the beats under aphex twin's early ambient
-  machine: { name: 'Drum machine', family: 'kit', kind: 'drums', suits: ['groove', 'halftime', 'break', 'pulse', 'sparse', 'four', 'march'], slots: [
+  machine: { name: 'Drum machine', family: 'kit', kind: 'drums', suits: ['groove', 'halftime', 'break', 'pulse', 'sparse', 'four', 'march', 'baggy'], slots: [
     { voice: 'kick', tune: 52, decay: 0.4, gain: 0.85, hit: 'tr707/kick', level: 1.3 }, { voice: 'snare', tune: 190, tone: 1200, decay: 0.4, gain: 0.45, hit: 'tr707/snare', level: 0.41 }, { voice: 'hat', tone: 7000, decay: 0.04, gain: 0.15, hit: 'tr707/hat', level: 0.021 },
     { voice: 'hat', tone: 7000, decay: 0.3, gain: 0.13, hit: 'tr707/open-hat', level: 0.021 }, { voice: 'rim', tune: 1300, decay: 0.04, gain: 0.22, hit: 'tr707/rim', level: 0.18 }, { voice: 'tom', tune: 100, decay: 0.5, gain: 0.45, hit: 'tr707/low-tom', level: 0.34, at: 100 },
     { voice: 'crash', tone: 6000, decay: 1.4, gain: 0.16, hit: 'tr707/crash', level: 0.2 }] },
@@ -526,7 +569,7 @@ const INSTRUMENTS = {
     { voice: 'hat', tone: 8500, decay: 0.3, gain: 0.16, hit: 'studio-kit/open-hat', level: 0.35 }, { voice: 'ride', tune: 3000, tone: 7000, decay: 0.7, gain: 0.18, hit: 'studio-kit/ride', level: 1.3 }, { voice: 'tom', tune: 85, decay: 0.4, gain: 0.55, hit: 'studio-kit/low-tom', level: 0.52, at: 85 },
     { voice: 'crash', tone: 4800, decay: 1.4, gain: 0.22, hit: 'studio-kit/crash', level: 0.76 }] },
   // shoegaze drums: a soft kick, a snare left ringing in a big room, and cymbals washing on and on
-  'gaze-kit': { name: 'Gaze kit', family: 'kit', kind: 'drums', suits: ['wash', 'rock', 'halftime', 'groove', 'four', 'sparse', 'pulse'], slots: [
+  'gaze-kit': { name: 'Gaze kit', family: 'kit', kind: 'drums', suits: ['wash', 'rock', 'halftime', 'groove', 'four', 'sparse', 'pulse', 'baggy'], slots: [
     { voice: 'kick', tune: 50, decay: 0.4, gain: 0.8, click: 0.1, hit: 'studio-kit/kick', level: 1.6 }, { voice: 'snare', tune: 175, tone: 1500, decay: 0.45, gain: 0.5, hit: 'studio-kit/snare', level: 0.5 }, { voice: 'hat', tone: 6500, decay: 0.06, gain: 0.17, hit: 'studio-kit/hat', level: 0.19 },
     { voice: 'hat', tone: 6000, decay: 0.5, gain: 0.15, hit: 'studio-kit/open-hat', level: 0.79 }, { voice: 'ride', tune: 2200, tone: 5000, decay: 1.6, gain: 0.17, hit: 'studio-kit/ride', level: 1.6 }, { voice: 'tom', tune: 80, decay: 0.6, gain: 0.5, hit: 'studio-kit/low-tom', level: 0.47, at: 80 },
     { voice: 'crash', tone: 5000, decay: 2.6, gain: 0.19, hit: 'studio-kit/crash', level: 0.88 }] },
@@ -671,8 +714,9 @@ const INSTRUMENTS = {
   frogs:    { name: 'Frogs', family: 'texture', kind: 'texture', texture: 'frogs', gain: 0.8, samples: 'frogs', sampled: { gain: 2.8 }, every: [5, 16] },
   owl:      { name: 'Owl', family: 'texture', kind: 'texture', texture: 'owl', gain: 0.08, samples: 'owl', sampled: { gain: 0.126 }, every: [14, 32] },
   chimes:   { name: 'Distant chimes', family: 'texture', kind: 'texture', texture: 'chimes', gain: 0.09 },
-  // an amp starting to feed back now and then, for the loud moods
-  feedback: { name: 'Feedback', family: 'texture', kind: 'texture', texture: 'feedback', gain: 0.04 },
+  // an amp starting to feed back now and then, for the loud moods: recorded, one take creeping in from a
+  // growl to a cry on a note (moved to the home note), the others short squeals left as they are
+  feedback: { name: 'Feedback', family: 'texture', kind: 'texture', texture: 'feedback', gain: 0.04, samples: 'feedback', sampled: { gain: 0.12 }, every: [12, 30] },
   // scenery that's own (only where a mood names it), mostly recorded: events cut from one long take,
   // played every few seconds (every) from their own spot (recordedScenery). a pitched one (the singing
   // bowl) is moved to the home note
@@ -2792,11 +2836,23 @@ function singLine(ctx, channel, inst, tone, note, when, dur, spb) {
 //   double    two takes a few ms apart, each wavering, panned left and right
 //   chorus    [rate, depth in seconds] two wavering copies either side
 //   reverse   reverse reverb: an echo that swells up and cuts off
+// and the shoegaze pedals:
+//   warp      [rate, cents] the whole rig drifting in and out of tune together, before the clipping: a
+//             tremolo arm never left still (kevin shields' glide guitar), or a vibrato pedal. the chord
+//             bends as one, so it warps rather than goes out of tune
+//   wah       [hz, q] a wah pedal left half down, a vowel pushed into the clipping
+//   phaser    [rate, hz] notches sweeping up and down the sound, after the amp
+//   flange    [rate, depth in seconds] tape flanging: a copy a few ms behind, wavering and fed back, for a
+//             jet plane whoosh (slowdive pressed on the tape reels by hand)
+//   shimmer   level of an octave up wash: the sound shifted up an octave into a long reverb that feeds
+//             itself, so every chord leaves a halo ringing above it
 
 // how a rig clips, its curve over -1 to 1 with the gain built in:
 //   soft   tanh, rounding off gently: overdrive, and fuzz when driven hard
 //   hard   clean until a sudden knee, then flat: a distortion pedal's diodes
 //   tube   lopsided, one half clipping first: a valve amp's warm even harmonics
+//   octave folded, the wave's bottom half flipped up before it clips: an octave fuzz, a ringing octave
+//          over every note (the fuzz in front of my bloody valentine's amps, hum's and fleshwater's leads)
 function ampCurve(kind, gain) {
   const key = `amp|${kind}|${gain}`;
   if (!curves.has(key)) {
@@ -2805,6 +2861,7 @@ function ampCurve(kind, gain) {
       soft: (x) => Math.tanh(gain * x),
       hard: (x) => (gain * x) / (1 + Math.abs(gain * x) ** 6) ** (1 / 6),
       tube: (x) => Math.tanh(gain * (x + 0.25)) - Math.tanh(gain * 0.25),
+      octave: (x) => Math.tanh(gain * (0.55 * Math.abs(x) + 0.45 * x)),
     }[kind] || ((x) => Math.tanh(gain * x));
     const top = Math.max(Math.abs(shape(1)), Math.abs(shape(-1)));
     for (let i = 0; i < curve.length; i++) curve[i] = shape((i / (curve.length - 1)) * 2 - 1) / top;
@@ -2830,6 +2887,78 @@ function reverseImpulse(ctx) {
     reverseImpulses.set(ctx, buffer);
   }
   return reverseImpulses.get(ctx);
+}
+
+// the shimmer's wash: two seconds of dark noise dying away, mono (it's under a stereo rig anyway, and a
+// mono one costs half). kept per context
+const shimmerImpulses = new WeakMap();
+function shimmerImpulse(ctx) {
+  if (!shimmerImpulses.has(ctx)) {
+    const length = Math.floor(ctx.sampleRate * 2);
+    const buffer = ctx.createBuffer(1, length, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let low = 0;
+    for (let i = 0; i < length; i++) {
+      low += (Math.random() * 2 - 1 - low) * 0.25;
+      data[i] = low * Math.exp((-6 * i) / length);
+    }
+    shimmerImpulses.set(ctx, buffer);
+  }
+  return shimmerImpulses.get(ctx);
+}
+
+// the shimmer's octave up, the cheapest pitch shifter there is: a delay line shrinking by a second every
+// second plays twice as fast, so an octave up. it can't shrink for ever, so it jumps back every window,
+// and two of them half a window apart are faded in turn, each silent as it jumps. ramp is a saw jumping
+// half way through its cycle; fade is |cos|, silent right then (its constant part, 2 / pi, goes on the
+// gain, since a periodic wave has none). kept per context
+const shimmerWaves = new WeakMap();
+function shimmerWaveSet(ctx) {
+  if (!shimmerWaves.has(ctx)) {
+    const n = 24;
+    const sines = new Float32Array(n + 1);
+    const cosines = new Float32Array(n + 1);
+    for (let k = 1; k <= n; k++) {
+      const sign = k % 2 ? 1 : -1;
+      sines[k] = (sign * 2) / (Math.PI * k);
+      cosines[k] = (sign * 4) / (Math.PI * (4 * k * k - 1));
+    }
+    const zeros = new Float32Array(n + 1);
+    shimmerWaves.set(ctx, {
+      ramp: ctx.createPeriodicWave(zeros, sines, { disableNormalization: true }),
+      fade: ctx.createPeriodicWave(cosines, zeros, { disableNormalization: true }),
+    });
+  }
+  return shimmerWaves.get(ctx);
+}
+
+// a shimmer from a rig's sound into its output: shifted up an octave, into the wash, and a little fed
+// back round, so the halo climbs another octave as it fades (a strymon bigsky's shimmer, which slowdive,
+// alcest and deafheaven play through). running collects its oscillators to stop with the rig
+function shimmer(ctx, from, to, level, running) {
+  const window = 0.05;
+  const { ramp, fade } = shimmerWaveSet(ctx);
+  const input = new GainNode(ctx);
+  from.connect(new BiquadFilterNode(ctx, { type: 'highpass', frequency: 400 })).connect(input);
+  const up = new GainNode(ctx, { gain: 0.7 });
+  const now = ctx.currentTime;
+  for (const late of [0, window / 2]) {
+    const delay = new DelayNode(ctx, { maxDelayTime: 0.2, delayTime: window / 2 });
+    const tap = new GainNode(ctx, { gain: 0 });
+    tap.gain.setValueAtTime(2 / Math.PI, now + late);
+    for (const [wave, target, scale] of [[ramp, delay.delayTime, -window / 2], [fade, tap.gain, 1]]) {
+      const osc = new OscillatorNode(ctx, { periodicWave: wave, frequency: 1 / window });
+      osc.connect(new GainNode(ctx, { gain: scale })).connect(target);
+      osc.start(now + late);
+      running.push(osc);
+    }
+    input.connect(delay).connect(tap).connect(up);
+  }
+  const wash = new ConvolverNode(ctx, { buffer: shimmerImpulse(ctx) });
+  const tone = new BiquadFilterNode(ctx, { frequency: 5000, Q: 0.5 });
+  up.connect(wash).connect(tone);
+  tone.connect(new GainNode(ctx, { gain: 0.35 })).connect(input);
+  tone.connect(new GainNode(ctx, { gain: level })).connect(to);
 }
 
 // a rig from an instrument's amp: { input, output, stop() }. stop ends its wavering oscillators
@@ -2862,8 +2991,28 @@ function ampChain(ctx, amp) {
     gain.gain.value = level;
     from.connect(delay).connect(gain).connect(new StereoPannerNode(ctx, { pan })).connect(output);
   };
+  // a slow wave (and its fifth higher, at 1.73 times the rate) pushing a param about, stopped with the rig
+  const sway = (param, rate, depth, type = 'sine') => {
+    for (const [r, share] of [[rate, 0.6], [rate * 1.73, 0.4]]) {
+      const osc = new OscillatorNode(ctx, { type, frequency: r });
+      osc.connect(new GainNode(ctx, { gain: depth * share })).connect(param);
+      osc.start(ctx.currentTime);
+      running.push(osc);
+    }
+  };
+  if (amp.warp) {
+    // a delay line swaying: the pitch moves by how fast the delay changes, so the swing that gives the
+    // cents asked for at this rate (the two waves together peak at about 1.3 times one)
+    const [rate, cents] = amp.warp;
+    const swing = (2 ** (cents / 1200) - 1) / (2 * Math.PI * rate * 1.3);
+    const delay = new DelayNode(ctx, { maxDelayTime: 0.1, delayTime: swing + 0.002 });
+    sway(delay.delayTime, rate, swing);
+    at.connect(delay);
+    at = delay;
+  }
   if (amp.tight) filter('highpass', amp.tight, 0.7);
   if (amp.boost) filter('peaking', amp.boost[0], 0.8, amp.boost[1]);
+  if (amp.wah) filter('peaking', amp.wah[0], amp.wah[1], 14);
   if (amp.sustain) {
     // the browser's compressor puts back gain by itself (its "makeup gain"), so the threshold is all
     // that's set: the further down it is, the more of the string's dying away gets held up
@@ -2896,6 +3045,32 @@ function ampChain(ctx, amp) {
     filter('lowpass', amp.cab * 1.3, 0.6);
   }
   filter('highpass', amp.low || 70, 0.6);
+  // the dry sound and a changed copy of it summed: a phaser's swept notches, or a tape flange
+  const blend = (wet) => {
+    const sum = new GainNode(ctx, { gain: 0.65 });
+    at.connect(sum);
+    wet.connect(sum);
+    at = sum;
+  };
+  if (amp.phaser) {
+    const [rate, hz] = amp.phaser;
+    let stage = at;
+    for (const freq of [300, 600, 1200, 2400]) {
+      const pass = new BiquadFilterNode(ctx, { type: 'allpass', frequency: freq, Q: 0.6 });
+      sway(pass.frequency, rate, hz * (freq / 1200), 'triangle');
+      stage.connect(pass);
+      stage = pass;
+    }
+    blend(stage);
+  }
+  if (amp.flange) {
+    const [rate, depth] = amp.flange;
+    const delay = new DelayNode(ctx, { maxDelayTime: 0.03, delayTime: depth + 0.001 });
+    sway(delay.delayTime, rate, depth, 'triangle');
+    const back = new GainNode(ctx, { gain: 0.5 });
+    at.connect(delay).connect(back).connect(delay);
+    blend(delay);
+  }
   const mix = ctx.createGain();
   mix.gain.value = amp.level;
   at.connect(mix);
@@ -2920,6 +3095,7 @@ function ampChain(ctx, amp) {
     gain.gain.value = amp.reverse;
     mix.connect(verb).connect(gain).connect(output);
   }
+  if (amp.shimmer) shimmer(ctx, mix, output, amp.shimmer, running);
   return { input, output, stop: () => running.forEach((osc) => osc.stop()) };
 }
 

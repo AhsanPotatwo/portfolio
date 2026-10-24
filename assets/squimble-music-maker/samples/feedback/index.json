@@ -1,0 +1,23 @@
+{
+ "source": "guitar feedback.mp3 by Disturbed3112 and feedback.WAV by stomachache (freesound.org)",
+ "link": "https://cdn.freesound.org/previews/",
+ "licence": "CC0 1.0",
+ "notes": [
+  {
+   "file": "event-1.mp3",
+   "hit": "event",
+   "vel": 0.8,
+   "midi": 69
+  },
+  {
+   "file": "event-2.mp3",
+   "hit": "event",
+   "vel": 0.8
+  },
+  {
+   "file": "event-3.mp3",
+   "hit": "event",
+   "vel": 0.8
+  }
+ ]
+}

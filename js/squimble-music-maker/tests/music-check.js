@@ -757,6 +757,64 @@ block('sung lines', () => {
   assert(sings(all['alto-voice'], { role: 'pad' }), 'a sung voice always sings');
 });
 
+// shoegaze's kinds (composer 4): open strings ring over every chord without ever rubbing a semitone
+// against it, still six strings; the wash strums every eighth and the glide never faster than twelve
+// strokes a second; a drop tuned guitar goes below d2 but never under its low b; the baggy beat plays in
+// every metre
+block('shoegaze kinds', () => {
+  const { generateSong: make, composeSong: compose, INSTRUMENTS: all, GROOVES: grooves } = vm.runInContext('({ generateSong, composeSong, INSTRUMENTS, GROOVES })', page);
+  let open = 0;
+  let washed = 0;
+  let glided = 0;
+  let dropped = 0;
+  for (const kind of ['rush', 'melt', 'undertow', 'concrete', 'glow', null]) {
+    for (let n = 0; n < 12; n++) {
+      const song = make('shoegaze', 'tune', `gaze ${kind} ${n}`, [], kind || undefined);
+      const { notes } = compose(song);
+      for (const layer of song.layers.filter((one) => one.role === 'guitar')) {
+        const mine = notes.filter((note) => note.layer === layer.id);
+        if (all[layer.instrument].drop) {
+          const lowest = Math.min(...mine.map((note) => note.midi));
+          assert(lowest >= 35, `${song.seed}: the drop tuned guitar never goes under its low b (${lowest})`);
+          if (lowest < 38) dropped++;
+        }
+        if (!['wash', 'glide', 'ring', 'strum'].includes(layer.pattern)) continue;
+        // strokes: notes starting within 60 ms of each other
+        const strokes = [];
+        for (const note of mine.slice().sort((a, b) => a.t - b.t)) {
+          const last = strokes[strokes.length - 1];
+          if (last && note.t - last.t < 0.03 * (song.tempo / 60)) last.notes.push(note.midi);
+          else strokes.push({ t: note.t, notes: [note.midi] });
+        }
+        for (const stroke of strokes) assert(stroke.notes.length <= 6, `${song.seed}: a ${layer.pattern} stroke is six strings at most (${stroke.notes.length})`);
+        if (layer.pattern === 'wash') washed++;
+        if (layer.pattern === 'glide') {
+          glided++;
+          const gaps = strokes.slice(1).map((stroke, i) => stroke.t - strokes[i].t).filter((gap) => gap > 1e-6);
+          assert(Math.min(...gaps) * (60 / song.tempo) >= 1 / 12 - 1e-3, `${song.seed}: the glide strums twelve times a second at most`);
+        }
+      }
+    }
+  }
+  // a drone over each chord of a long song in an open strings kind: never a semitone from a chord note
+  const { guitarShape, ROLES } = vm.runInContext('({ guitarShape, ROLES })', page);
+  for (const key of [0, 4, 7, 9, 11]) {
+    for (const [root, tones] of [[0, [0, 4, 7]], [5, [0, 4, 7, 11]], [9, [0, 3, 7, 10]], [8, [0, 4, 7]], [1, [0, 4, 7]], [3, [0, 4, 7, 11]], [7, [0, 5, 7]]]) {
+      const c = { mood: { openStrings: true }, song: { key }, center: ROLES.guitar.center };
+      const shape = guitarShape(c, { root, tones }, true);
+      const pcs = tones.map((tone) => (root + tone) % 12);
+      for (const midi of shape) {
+        if (pcs.includes(midi % 12)) continue;
+        open++;
+        assert(pcs.every((pc) => ![1, 11].includes((midi - pc + 12) % 12)), `an open string over ${root}/${tones} in ${key} rubs a semitone`);
+      }
+      assert(shape.length <= 6, 'open string shapes are still six strings');
+    }
+  }
+  assert(open && washed && glided && dropped, `every case came up (open ${open}, wash ${washed}, glide ${glided}, drop ${dropped})`);
+  for (const meter of Object.keys(grooves)) assert(grooves[meter].baggy?.length, `the baggy beat plays in ${meter}`);
+});
+
 // recordings (RECORDINGS in synth.js): every folder an instrument or a kit's slot names is there, with
 // an index.json whose files are all there too and which says its licence. a kit's hit is one the
 // folder has

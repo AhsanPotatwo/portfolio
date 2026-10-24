@@ -35,9 +35,11 @@ function playedTogether(notes, step) {
 // ---------- guitars and basses ----------
 
 // open strings, lowest first. drop: the low string tuned down a tone, for parts that go down to a d
-// (the composer's power chords sit from about d2 up, ROLES.guitar in music.js)
+// (the composer's power chords sit from about d2 up, ROLES.guitar in music.js). lower: drop b, every
+// string down a tone and a half and the low one a fifth under the next, for a guitar tuned down (drop in
+// synth.js, the heavy shoegaze bands' tuning)
 const STRINGS = {
-  guitar: { standard: [40, 45, 50, 55, 59, 64], drop: [38, 45, 50, 55, 59, 64], frets: 22 },
+  guitar: { standard: [40, 45, 50, 55, 59, 64], drop: [38, 45, 50, 55, 59, 64], lower: [35, 42, 47, 52, 56, 61], frets: 22 },
   bass: { standard: [28, 33, 38, 43], drop: [26, 33, 38, 43], frets: 20 },
 };
 // the widest a hand reaches, in frets from the first finger's to the little finger's
@@ -96,12 +98,13 @@ function moveCost(from, to) {
 // tools do), so a hand isn't sent up the neck for one note it could play where it is. notes too low or
 // high for the neck are moved an octave nearer (folded), and a chord that can't be held whole
 // loses a note or two (left, on each event and in all). drop d is used if the part goes below the
-// low e but not below d
+// low e but not below d, and drop b (down) if it goes below d but not below b
 function frettings(events, kind) {
-  const { standard, drop, frets } = STRINGS[kind];
+  const { standard, drop, lower, frets } = STRINGS[kind];
   const lowest = Math.min(...events.flatMap((event) => event.notes.map((note) => note.midi)));
   const dropped = lowest < standard[0] && lowest >= drop[0];
-  const tuning = dropped ? drop : standard;
+  const down = !!lower && lowest < drop[0] && lowest >= lower[0];
+  const tuning = down ? lower : dropped ? drop : standard;
   const bottom = tuning[0];
   const top = tuning[tuning.length - 1] + frets;
   let folded = 0;
@@ -162,7 +165,7 @@ function frettings(events, kind) {
     }
     return { strings: way.map(([string, fret], j) => ({ string, fret, midi: pitches[j] })), hand, left: dropped };
   });
-  return { tuning, dropped, folded, left, placed };
+  return { tuning, dropped, down, folded, left, placed };
 }
 
 // which finger holds each fretted string (1 the first finger to 4 the little one), and the barres: one
