@@ -706,6 +706,42 @@ block('removing a moved note', () => {
   assert(!composeSong(cleanSong(song)).notes.some((n) => n.layer === hit.layer && Math.abs(n.gt - hit.gt) < 1e-6 && n.midi === hit.midi), 'a moved note can be removed');
 });
 
+// a layer can play another part's notes than its section's (section.use, the arrange grid's letters),
+// and parts go past C once they're given chords
+block('a part per layer', () => {
+  const { packEdit, partOf, blankSong } = vm.runInContext('({ packEdit, partOf, blankSong })', page);
+  const song = blankSong();
+  song.sections = [
+    { name: 'One', part: 'A', bars: 2, play: ['melody', 'bass'] },
+    { name: 'Two', part: 'A', bars: 2, play: ['melody', 'bass'], use: { melody: 'D', bass: 'A', drums: 'B' } },
+  ];
+  const melody = song.layers.find((l) => l.id === 'melody');
+  melody.edits = { A: { add: [packEdit({ t: 0, midi: 60, dur: 1 })], remove: [] }, D: { add: [packEdit({ t: 1, midi: 67, dur: 1 })], remove: [] } };
+  const cleaned = cleanSong(song);
+  assert.strictEqual(JSON.stringify(cleaned.sections[1].use), '{"melody":"D"}', "use keeps only layers that play, in another part than the section's");
+  assert.strictEqual(partOf(cleaned.sections[1], melody), 'D');
+  assert(cleaned.layers.find((l) => l.id === 'melody').edits.D, 'edits past part C are kept');
+  const comp = composeSong(cleaned);
+  const mine = comp.notes.filter((n) => n.layer === 'melody').map((n) => [Math.round(n.gt * 100) / 100, n.midi]);
+  assert.strictEqual(JSON.stringify(mine), '[[0,60],[9,67]]', "the second section plays part D's notes over part A's chords");
+  assert.strictEqual(comp.sections[1].chords[0].name, comp.sections[0].chords[0].name, 'the chords stay the section part\'s');
+  // a section on a part with no chords yet plays the home chord; a written layer on part D gets new notes
+  const e = cleanSong({ ...cleaned, sections: [{ name: 'E', part: 'E', bars: 2, play: ['melody'] }] });
+  assert.strictEqual(e.parts.E, 'I', 'a new part starts on the home chord');
+  assert(!('D' in cleanSong(blankSong()).parts), 'unused parts past C aren\'t saved');
+  // (a riff plays the same in every part, so a tune that isn't one)
+  let written;
+  for (let n = 0; !written || written.layers.find((l) => l.role === 'melody').pattern === 'riff'; n++) written = generateSong('happy', 'tune', `per-layer-${n}`);
+  const lead = written.layers.find((l) => l.role === 'melody');
+  const at = written.sections.findIndex((s) => s.play.includes(lead.id) && !s.lead && s.part === 'A');
+  const before = composeSong(written);
+  const notesIn = (comp, i) => comp.notes.filter((n) => n.layer === lead.id && n.gt >= comp.sections[i].start && n.gt < comp.sections[i].end).map((n) => n.midi).join();
+  written.sections[at].use = { [lead.id]: 'D' };
+  const after = composeSong(cleanSong(written));
+  assert.notStrictEqual(notesIn(after, at), notesIn(before, at), "a written melody on a new part plays a new tune there");
+  for (let i = 0; i < written.sections.length; i++) if (i !== at && written.sections[i].part !== 'A') assert.strictEqual(notesIn(after, i), notesIn(before, i), 'other parts stay as they were');
+});
+
 // junk in, a playable song out
 block('junk', () => {
   for (const junk of [null, 'hello', 42, {}, { layers: [{ role: 'nope' }, { role: 'bass', instrument: 'wind', volume: 'loud' }], sections: [{ bars: -5, play: 'bass' }], tempo: 1e9 }]) {
@@ -1401,7 +1437,7 @@ block('new notes for one part', () => {
   const bass = song.layers.find((l) => l.role === 'bass');
   bass.pattern = 'held';
   assert.strictEqual(rerollLayerPart(cleanSong(song), bass.id, 'B', 1), null, 'a held bass has nothing new to write');
-  assert(!('partSeeds' in cleanSong({ layers: [{ role: 'melody', partSeeds: { B: 5, D: 'x' } }] }).layers[0]), 'junk part seeds are dropped');
+  assert(!('partSeeds' in cleanSong({ layers: [{ role: 'melody', partSeeds: { B: 5, Z: 'x' } }] }).layers[0]), 'junk part seeds are dropped');
 });
 
 // weaves (wizard101's marleybone): the tune alone, the second theme alone, then both, a trio where the

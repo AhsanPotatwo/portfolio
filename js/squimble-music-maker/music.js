@@ -13,13 +13,15 @@
 //   flavour    which kind of the mood it is (FLAVOURS), only there when it isn't the plain mood
 //   seed       a word or two every random choice comes from, so the same settings give the same notes
 //   key, scale, tempo, meter, swing, humanise, colour (how rich the chords are), chordBars
-//   parts      chords for parts A, B and C as roman numerals ("i bVI bIII bVII"), so they work in any key
+//   parts      chords for parts A, B and C as roman numerals ("i bVI bIII bVII"), so they work in any key.
+//              a song made by hand can have parts up to H (EVERY_PART), only there once they have chords
 //   layers     the band: each has a role (pad, bass, melody...), an instrument, a pattern (how the role
 //              plays), its own seed (and partSeeds, for a part given new notes), its mix, and notes
 //              changed by hand (edits). hand: plays only those
 //   own        a track made by hand (blankSong()) rather than written from the seed
 //   composer   the composer that made it (COMPOSER_VERSIONS), when it isn't the first
-//   sections   the song from start to end: which part's chords, how many bars, which layers play
+//   sections   the song from start to end: which part's chords, how many bars, which layers play, and
+//              use: a layer playing another part's notes there than the section's (partOf)
 //   fx         the room it's played in (reverb, echo, tape wobble...)
 //
 // generateSong(mood, style, seed, mods, flavour) makes a song, composeSong(song) turns any song into
@@ -352,7 +354,13 @@ const rateStep = (rate, sub) => ({ slow: 1, medium: 1 / sub, fast: 1 / (sub * 2)
 
 // how many bars each chord lasts
 const CHORD_BARS = [0.5, 1, 2, 4];
+// the parts a song is written with. one made or changed by hand can have more (EVERY_PART): a part is a
+// set of chords, and each layer's own notes for it, so a layer can play part D's tune over part A's
+// chords (section.use) the way a tracker picks a pattern per channel
 const PARTS = ['A', 'B', 'C'];
+const EVERY_PART = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+// the part a layer plays in a section: the section's own unless it was given another
+const partOf = (section, layer) => section.use?.[layer.id] || section.part;
 
 // a roman numeral chord, like "bVII", "iv", "ii°", "Imaj7" or "Vsus4". upper case is major, lower
 // case minor, and b or # moves it a semitone. root is in semitones above the key, tones in
@@ -1197,7 +1205,7 @@ const partSeed = (layer, part) => layer.partSeeds?.[part] || layer.seed;
 function rerollLayerPart(song, id, part, nonce) {
   const written = (one) => {
     const comp = composeSong(one);
-    const inPart = (note) => comp.sections.some((section) => section.part === part && note.gt >= section.start - 1e-6 && note.gt < section.end - 1e-6);
+    const inPart = (note) => comp.sections.some((section) => partOf(section, { id }) === part && note.gt >= section.start - 1e-6 && note.gt < section.end - 1e-6);
     return JSON.stringify(comp.notes.filter((note) => note.layer === id && inPart(note)).map((note) => [note.gt, note.midi, note.dur]));
   };
   const before = written(song);
@@ -2030,7 +2038,8 @@ function cleanSong(data) {
     sections: [],
     fx: {},
   };
-  for (const part of PARTS) song.parts[part] = text(d.parts?.[part], 'I', 200);
+  // (A to C always, the rest only once they've been given chords, so older songs save as they did)
+  for (const part of EVERY_PART) if (PARTS.includes(part) || (typeof d.parts?.[part] === 'string' && d.parts[part].trim())) song.parts[part] = text(d.parts?.[part], 'I', 200);
   const ids = new Set();
   for (const raw of Array.isArray(d.layers) ? d.layers.slice(0, 16) : []) {
     if (!raw || !ROLES[raw.role]) continue;
@@ -2057,7 +2066,7 @@ function cleanSong(data) {
     if (raw.hand === true && roleFamily(raw.role) !== 'texture') layer.hand = true;
     layer.seed = text(String(raw.seed ?? ''), '0', 24);
     // a part given new notes of its own (partSeed), only when it has one
-    const partSeeds = PARTS.filter((part) => raw.partSeeds?.[part] && typeof raw.partSeeds[part] === 'string');
+    const partSeeds = EVERY_PART.filter((part) => raw.partSeeds?.[part] && typeof raw.partSeeds[part] === 'string');
     if (partSeeds.length) layer.partSeeds = Object.fromEntries(partSeeds.map((part) => [part, text(raw.partSeeds[part], '0', 24)]));
     layer.volume = num(raw.volume, 0, 1, layer.volume);
     layer.pan = num(raw.pan, -1, 1, 0);
@@ -2074,7 +2083,7 @@ function cleanSong(data) {
       attack: num(tone.attack, 0.1, 4, 1), release: num(tone.release, 0.1, 4, 1), bright: num(tone.bright, 0.25, 4, 1),
       detune: num(tone.detune, 0, 50, 0), vibrato: num(tone.vibrato, 0, 50, 0),
     };
-    for (const part of PARTS) {
+    for (const part of EVERY_PART) {
       const edit = raw.edits?.[part];
       if (!edit) continue;
       // a note is [beat, midi, length, ...the note editor's extras], see packEdit
@@ -2098,11 +2107,18 @@ function cleanSong(data) {
   }
   for (const raw of Array.isArray(d.sections) ? d.sections.slice(0, 64) : []) {
     if (!raw) continue;
+    const part = EVERY_PART.includes(raw.part) ? raw.part : 'A';
+    // (a part with no chords yet plays the home chord)
+    song.parts[part] ??= 'I';
+    const play = [...new Set(Array.isArray(raw.play) ? raw.play.filter((id) => ids.has(id)) : [])];
+    // layers playing another part's notes here (partOf), only kept for ones that play
+    const use = Object.entries(raw.use && typeof raw.use === 'object' ? raw.use : {}).filter(([id, one]) => play.includes(id) && EVERY_PART.includes(one) && one !== part);
     song.sections.push({
       name: text(raw.name, 'Part', 20),
-      part: PARTS.includes(raw.part) ? raw.part : 'A',
+      part,
       bars: Math.round(num(raw.bars, 1, 64, 8)),
-      play: [...new Set(Array.isArray(raw.play) ? raw.play.filter((id) => ids.has(id)) : [])],
+      play,
+      ...(use.length ? { use: Object.fromEntries(use) } : {}),
       // the layer playing a solo here (addSolo), only kept if it's one that can
       ...(ids.has(raw.lead) && SOLOISTS[song.layers.find((layer) => layer.id === raw.lead).role] ? { lead: raw.lead } : {}),
       // how hard it's played, 0 to 1 (feel)
@@ -2216,14 +2232,30 @@ function composeSong(song) {
   const melodyBySection = {};
   const grooves = {};
   for (const part of PARTS) grooves[part] = grooveFor(song, part);
+  // the sections as one layer sees them: a layer given other parts (section.use) plays each section as
+  // the part it plays there, counting its own times round, and hears the sections either side that way
+  const seen = {};
+  const sectionsOf = (layer) => {
+    if (!seen[layer.id]) {
+      const takes = {};
+      seen[layer.id] = !sections.some((one) => one.use?.[layer.id]) ? sections : sections.map((one) => {
+        const part = partOf(one, layer);
+        takes[part] = (takes[part] ?? -1) + 1;
+        return { ...one, part, take: takes[part] };
+      });
+    }
+    return seen[layer.id];
+  };
   // one layer's notes for one section: its composer's (or its solo, or none if it's played by hand),
-  // then its hand edits
-  const write = (layer, section) => {
+  // then its hand edits. but: anything the section's changed by for this once (another take, no solo)
+  const write = (layer, raw, but) => {
+    const mine = sectionsOf(layer);
+    const section = but ? { ...mine[raw.index], ...but } : mine[raw.index];
     const c = {
       song, layer, section, meter, scalePcs, mood, weave,
-      groove: grooves[section.part],
-      prev: sections[section.index - 1] || null,
-      next: sections[section.index + 1] || null,
+      groove: grooves[section.part] ??= grooveFor(song, section.part),
+      prev: mine[section.index - 1] || null,
+      next: mine[section.index + 1] || null,
       bpb: meter.beats, sub: meter.sub, step: gridStep(song.meter),
       start: section.start, end: section.end, bars: section.bars,
       chords: section.chords,
@@ -2237,7 +2269,7 @@ function composeSong(song) {
       // the melody's line for this section, playing or not: what a layer taking or doubling the tune
       // plays. written afresh each time, since listen, ornament and feel change notes in place. take: as
       // it went some other time round its part (0, the first)
-      line: (take = section.take) => (melodyLayer && melodyLayer !== layer ? write(melodyLayer, { ...section, take, lead: null }) : []),
+      line: (take = section.take) => (melodyLayer && melodyLayer !== layer ? write(melodyLayer, raw, { take, lead: null }) : []),
     };
     c.tonic = near(song.key, c.center);
     // a solo is its own line, so the part's hand edits don't apply to it
@@ -2444,10 +2476,10 @@ function ornament(song, sections, parts) {
     for (let k = 1; k <= 3; k++) if (scalePcs.has(mod12(midi + k * way))) return k;
     return 2;
   };
-  const placeOf = (note) => {
+  const placeOf = (note, layer) => {
     const section = sections.find((one) => note.t < one.end - 1e-6) || sections[sections.length - 1];
     const bar = Math.floor((note.t - section.start) / bpb + 1e-9);
-    return `${section.part}|${bar % 4}|${Math.round((note.t - section.start - bar * bpb) * 12)}|${Math.round(note.dur * 12)}`;
+    return `${partOf(section, layer)}|${bar % 4}|${Math.round((note.t - section.start - bar * bpb) * 12)}|${Math.round(note.dur * 12)}`;
   };
   for (const layer of song.layers) {
     const inst = INSTRUMENTS[layer.instrument];
@@ -2455,7 +2487,7 @@ function ornament(song, sections, parts) {
     if (layer.role === 'melody' || layer.role === 'counter') slurs(inst, parts[layer.id]);
     const can = inst.ornaments;
     if (!can) continue;
-    const roll = (what, note, p) => p > 0 && makeRng(song.seed, layer.seed, 'ornament', what, placeOf(note)).chance(Math.min(0.95, p * amount));
+    const roll = (what, note, p) => p > 0 && makeRng(song.seed, layer.seed, 'ornament', what, placeOf(note, layer)).chance(Math.min(0.95, p * amount));
     const glide = beats(can.glide ?? 0.1);
     const notes = parts[layer.id].filter((note) => !note.added && !note.bend && !note.mute).sort((a, b) => a.t - b.t || a.midi - b.midi);
     if (layer.role === 'guitar') {
@@ -2508,7 +2540,7 @@ function ornament(song, sections, parts) {
         note.bend = [[Math.max(0, note.dur - beats(0.1)), 0], [note.dur + beats(0.12), 3, 3]];
       }
       if (note.dur >= 1.5 && roll('swell', note, can.swell)) note.swell = ending ? -1 : 1;
-      if (note.dur >= 1 && roll('shake', note, can.shake)) note.shake = 18 + 8 * makeRng(song.seed, layer.seed, 'wide', placeOf(note)).next();
+      if (note.dur >= 1 && roll('shake', note, can.shake)) note.shake = 18 + 8 * makeRng(song.seed, layer.seed, 'wide', placeOf(note, layer)).next();
       // a double stop on a long note on the beat: a third under it in the scale
       if (note.dur >= 1 && Math.abs(note.t - Math.round(note.t)) < 1e-6 && roll('stop', note, can.stop)) {
         const third = note.midi - scaleStep(note.midi, -1) - scaleStep(note.midi - scaleStep(note.midi, -1), -1);

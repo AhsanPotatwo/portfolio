@@ -59,6 +59,8 @@
   let asSaved = false;
   let selected = null;
   let editPart = 'A';
+  // the section picked in the arrange tab (by its place in the song)
+  let pickedSection = 0;
   let tab = 'song';
   let startBeat = 0;
   const undo = [];
@@ -66,7 +68,6 @@
   let needCompose = false;
   let needMix = false;
   let scoreDirty = true;
-  let editorScroll = 0;
   let editor = null;
   // the note editor's tool, a drawn slide's speed and shape (CURVES in synth.js), a vibrato's width in
   // cents, and which way a drawn swell goes (1 growing, -1 dying away)
@@ -143,7 +144,7 @@
     scoreDirty = true;
     needCompose = false;
     if (panels) renderPanel();
-    else if (editor) editor.box.replaceWith(noteEditor(editor.layer));
+    else if (editor) keepPlace(() => editor.box.replaceWith(editor.again()));
     renderTop();
     keepDraft();
   }
@@ -198,10 +199,10 @@
   function takeNotes(layer) {
     if (layer.hand || roleFamily(layer.role) === 'texture') return;
     layer.edits = {};
-    for (const part of PARTS) {
+    for (const part of EVERY_PART) {
       // (a section in the song's own key if there is one: lifted notes are taken back down, as they'll be
       // lifted again where they play)
-      const playing = comp.sections.filter((one) => one.part === part && one.play.includes(layer.id) && one.lead !== layer.id);
+      const playing = comp.sections.filter((one) => partOf(one, layer) === part && one.play.includes(layer.id) && one.lead !== layer.id);
       const sec = playing.find((one) => !one.lift) || playing[0];
       if (!sec) continue;
       const add = comp.notes.filter((note) => note.layer === layer.id && note.gt >= sec.start - 1e-6 && note.gt < sec.end - 1e-6).map((note) => {
@@ -216,6 +217,32 @@
     }
     layer.hand = true;
   }
+
+  // the parts a layer plays somewhere (partOf: its section's, or one picked for it in the arrange grid)
+  const partsOf = (layer) => EVERY_PART.filter((part) => song.sections.some((one) => one.play.includes(layer.id) && partOf(one, layer) === part));
+  // what a layer plays in a section: a part, or nothing (null). a part the same as the section's is just
+  // the section's, so it goes on following it
+  function setCell(one, layer, part) {
+    if (!part) {
+      one.play = one.play.filter((id) => id !== layer.id);
+      if (one.lead === layer.id) delete one.lead;
+    } else if (!one.play.includes(layer.id)) one.play.push(layer.id);
+    const use = { ...one.use, [layer.id]: part };
+    for (const id of Object.keys(use)) if (!use[id] || use[id] === one.part) delete use[id];
+    if (Object.keys(use).length) one.use = use;
+    else delete one.use;
+  }
+  // a layer gone from the song is gone from every section (another layer could get its id)
+  const forget = (layer) => {
+    for (const one of song.sections) setCell(one, layer, null);
+  };
+  // songs by an older composer play as they were made, and those don't know about parts past C or
+  // layers on parts of their own
+  const tracker = () => (song.composer || 1) === COMPOSER;
+  // the parts a layer could play: any with chords, any it plays or has notes for. and the next one it
+  // has nothing for, for a part of its own (none on an older composer's song)
+  const knownParts = (layer) => EVERY_PART.filter((part) => song.parts[part] || partsOf(layer).includes(part) || layer.edits[part] || layer.partSeeds?.[part]);
+  const newPart = (layer) => (tracker() ? EVERY_PART.find((part) => !knownParts(layer).includes(part)) : undefined);
 
   // ---------- browser storage ----------
 
@@ -292,8 +319,10 @@
     remember();
     detach();
     open(blankSong());
-    setTab('layers');
-    say('A blank track. Draw notes for the melody below, or turn on Record and play them in on your keyboard.');
+    selected = 'melody';
+    pickedSection = 0;
+    setTab('arrange');
+    say("A blank track. Draw the melody's notes below the grid, or turn on Record and play them in on your keyboard. Click any square to write that layer's part.");
   });
   $('#mmUndo').addEventListener('click', () => step(undo, redo));
   $('#mmRedo').addEventListener('click', () => step(redo, undo));
@@ -475,7 +504,7 @@
     for (const layer of song.layers) takeNotes(layer);
     song.own = true;
     changed();
-    say("It's yours now. Every part plays notes you can change: open one in the Band tab.");
+    say("It's yours now. Every part plays notes you can change: click a square in the Arrange tab to open one.");
   }, 'mm-key-small mm-key-line'));
 
   // dark or light text, whichever reads on a colour
@@ -522,7 +551,7 @@
     recKey.setAttribute('aria-pressed', recording);
     if (!recording) return;
     const layer = layerById(selected);
-    if (!layer || roleFamily(layer.role) === 'texture') say('Open a layer with notes in the Band tab to record into it.');
+    if (!layer || roleFamily(layer.role) === 'texture') say('Pick a layer with notes to record into: a square in the Arrange grid, or one in the Band tab.');
     else say(`Recording the ${ROLES[layer.role].name.toLowerCase()}. ${layer.role === 'drums' ? 'A S D F G H J K L are the drums' : 'A to L are the white keys, W E T Y U O P the black ones, Z and X change octave'}.`);
     if (!player.playing) {
       player.play(startBeat);
@@ -586,7 +615,8 @@
   const RULE = '#d4c4a4';
   const INK = '#2c2721';
   const INK_SOFT = '#76695a';
-  const PART_COLOURS = { A: '#e2d2b0', B: '#d3bf97', C: '#c4ac80' };
+  // A to C the paper's own browns, the parts past them tinted so they tell apart in the grid
+  const PART_COLOURS = { A: '#e2d2b0', B: '#d3bf97', C: '#c4ac80', D: '#bccba4', E: '#a9c4c4', F: '#cbb3c6', G: '#dbb39e', H: '#b6b9d4' };
   let layout = null;
 
   function clipText(g, text, x, y, room) {
@@ -742,7 +772,7 @@
   }
 
   // clicking the sections or chords moves the marker (and the playhead). clicking a lane opens that layer
-  // in the band tab, on the part clicked
+  // in the band tab, on the part clicked (in the arrange tab, it picks that square of the grid)
   score.addEventListener('pointerdown', (event) => {
     if (!layout) return;
     const rect = score.getBoundingClientRect();
@@ -761,7 +791,10 @@
     scoreDirty = true;
     // (while learning, it's the part to learn)
     if (tab === 'learn') return renderPanel();
-    if (px > layout.gutter) editPart = (comp.sections.find((one) => beat >= one.start && beat < one.end) || comp.sections[0]).part;
+    const at = comp.sections.find((one) => beat >= one.start && beat < one.end) || comp.sections[0];
+    if (px > layout.gutter) pickedSection = at.index;
+    if (tab === 'arrange') return renderPanel();
+    if (px > layout.gutter) editPart = partOf(at, layer);
     setTab('layers');
     scoreDirty = true;
   });
@@ -846,8 +879,20 @@
   function renderPanel() {
     editor = null;
     learn = null;
+    arrangeHeads = null;
     const build = { song: songPanel, layers: bandPanel, arrange: arrangePanel, space: roomPanel, learn: learnPanel }[tab];
-    panel.replaceChildren(...build());
+    keepPlace(() => panel.replaceChildren(...build()));
+  }
+  // a panel's drawn again after every change, so its scrolling boxes (data-scroll, by name) and the key
+  // that had focus (data-focus) are put back where they were: a click in the arrange grid or the note
+  // editor mustn't throw you back to its start
+  const places = {};
+  function keepPlace(draw) {
+    for (const box of panel.querySelectorAll('[data-scroll]')) places[box.dataset.scroll] = [box.scrollLeft, box.scrollTop];
+    const focus = panel.contains(document.activeElement) && document.activeElement.dataset.focus;
+    draw();
+    for (const box of panel.querySelectorAll('[data-scroll]')) [box.scrollLeft, box.scrollTop] = places[box.dataset.scroll] || [0, 0];
+    if (focus) panel.querySelector(`[data-focus="${focus}"]`)?.focus({ preventScroll: true });
   }
 
   // ---------- the song tab ----------
@@ -887,7 +932,7 @@
       slider({ label: 'Colour', tip: 'Colour: plain chords at 0, more sevenths, ninths and suspended chords as it goes up, for a jazzier, dreamier sound', min: 0, max: 1, get: () => song.colour, set: (v) => { song.colour = v; }, format: percent }),
       field('Each chord', choices(chordBars, () => song.chordBars, (value) => edit(() => { song.chordBars = value; })(), 'Chord length'), 'How long each chord lasts'),
     );
-    const chords = section('Chords', top, ...PARTS.map(chordRow), make('p', 'mm-hint', 'Chords are roman numerals counting up the scale from the key: I is home, IV and V are the strong ones. Capitals are major (bright), lower case minor (sad). b and # move one a semitone (bVII), ° is diminished and + augmented. Add 7, maj7, 6, sus2, sus4 or add9 for colour (Imaj7). A - holds the last chord for another turn. Click a chord to hear it.'));
+    const chords = section('Chords', top, ...EVERY_PART.filter((part) => song.parts[part]).map(chordRow), make('p', 'mm-hint', 'Chords are roman numerals counting up the scale from the key: I is home, IV and V are the strong ones. Capitals are major (bright), lower case minor (sad). b and # move one a semitone (bVII), ° is diminished and + augmented. Add 7, maj7, 6, sus2, sus4 or add9 for colour (Imaj7). A - holds the last chord for another turn. Click a chord to hear it.'));
     // which composer writes the notes (COMPOSER_VERSIONS in music.js). a song keeps the one it was made
     // with; unstamped ones open as the first. only shown for a song (or the save it came from) made by
     // an older one, since a new song has nothing to choose
@@ -919,7 +964,7 @@
     const input = make('input', 'mm-input mm-chord-input');
     Object.assign(input, { type: 'text', value: song.parts[part], spellcheck: false, autocomplete: 'off' });
     input.setAttribute('aria-label', `Part ${part}'s chords`);
-    row.dataset.tip = `Part ${part}'s chords${used ? `, played in ${used} section${used > 1 ? 's' : ''}` : ", which no section uses yet (see Arrange)"}`;
+    row.dataset.tip = `Part ${part}'s chords${used ? `, played in ${used} section${used > 1 ? 's' : ''}` : ", which no section uses yet (pick it for one in Arrange)"}`;
     const chips = make('div', 'mm-chips');
     const problem = make('p', 'mm-chord-problem');
     const showChips = () => {
@@ -1047,6 +1092,24 @@
     return box;
   }
 
+  // a layer's mute and solo keys (M, S), in the band list and the arrange grid
+  function mixKeys(layer) {
+    const name = ROLES[layer.role].name.toLowerCase();
+    return [['mute', 'M', 'Mute', `Mute the ${name}`], ['solo', 'S', 'Solo', `Solo: hear only the ${name} (and any other soloed layers)`]].map(([what, letter, label, tip]) => {
+      const button = key(letter, tip, () => {
+        remember();
+        layer[what] = !layer[what];
+        scoreDirty = true;
+        mixed();
+        renderPanel();
+      }, 'mm-key-small mm-key-square');
+      button.setAttribute('aria-pressed', layer[what]);
+      button.setAttribute('aria-label', `${label} the ${name}`);
+      button.dataset.focus = `${what}:${layer.id}`;
+      return button;
+    });
+  }
+
   function bandPanel() {
     const list = make('ul', 'mm-layers');
     for (const layer of song.layers) {
@@ -1065,25 +1128,7 @@
         scoreDirty = true;
         renderPanel();
       });
-      const mute = key('M', `Mute the ${ROLES[layer.role].name.toLowerCase()}`, () => {
-        remember();
-        layer.mute = !layer.mute;
-        scoreDirty = true;
-        mixed();
-        renderPanel();
-      }, 'mm-key-small mm-key-square');
-      mute.setAttribute('aria-pressed', layer.mute);
-      mute.setAttribute('aria-label', 'Mute');
-      const solo = key('S', `Solo: hear only the ${ROLES[layer.role].name.toLowerCase()} (and any other soloed layers)`, () => {
-        remember();
-        layer.solo = !layer.solo;
-        scoreDirty = true;
-        mixed();
-        renderPanel();
-      }, 'mm-key-small mm-key-square');
-      solo.setAttribute('aria-pressed', layer.solo);
-      solo.setAttribute('aria-label', 'Solo');
-      item.append(open, mute, solo);
+      item.append(open, ...mixKeys(layer));
       list.append(item);
     }
     const roles = make('select', 'mm-select');
@@ -1143,14 +1188,14 @@
       remember();
       const copy = { ...clone(layer), id: freeId(layer.role), solo: false };
       song.layers.splice(song.layers.indexOf(layer) + 1, 0, copy);
-      for (const one of song.sections) if (one.play.includes(layer.id)) one.play.push(copy.id);
+      for (const one of song.sections) if (one.play.includes(layer.id)) setCell(one, copy, partOf(one, layer));
       selected = copy.id;
       changed();
     }, 'mm-key-small'));
     actions.append(key('Remove', `Take the ${role.name.toLowerCase()} out of the song`, () => {
       remember();
       song.layers = song.layers.filter((one) => one !== layer);
-      for (const one of song.sections) one.play = one.play.filter((id) => id !== layer.id);
+      forget(layer);
       selected = song.layers[0]?.id ?? null;
       changed();
     }, 'mm-key-small mm-key-line'));
@@ -1238,30 +1283,33 @@
   // ---------- the note editor ----------
 
   // one part of one layer as a grid: time across, pitch (or drum) down, the chord's notes shaded. edits
-  // are per part (layer.edits), so a change plays every time the part comes round
-  function noteEditor(layer) {
+  // are per part (layer.edits), so a change plays every time the part comes round. here: the section to
+  // show it over (the arrange tab's pick), else the part's first, with keys to show its other parts
+  function noteEditor(layer, here = null) {
     const box = make('div', 'mm-editor');
-    editor = { layer, box, draw: () => {} };
+    editor = { layer, box, again: () => noteEditor(layer, here && comp.sections[here.index]), draw: () => {} };
     const head = make('div', 'mm-editor-head');
-    head.append(make('h3', 'mm-section-title', 'Notes'));
-    const parts = PARTS.filter((part) => comp.sections.some((one) => one.part === part && one.play.includes(layer.id)));
+    head.append(make('h3', 'mm-section-title', here ? `Part ${partOf(here, layer)}'s notes` : 'Notes'));
+    const parts = partsOf(layer);
     if (!parts.length) {
       box.append(head, make('p', 'mm-hint', "This layer doesn't play in any section. Turn it on in the Arrange tab."));
       return box;
     }
-    if (!parts.includes(editPart)) editPart = parts[0];
+    if (here) editPart = partOf(here, layer);
+    else if (!parts.includes(editPart)) editPart = parts[0];
     // the sections a part plays in (Theme, Clash...), each name once
-    const named = (part) => [...new Set(comp.sections.filter((one) => one.part === part && one.play.includes(layer.id)).map((one) => one.name))].join(', ');
-    head.append(choices(parts.map((part) => [part, `Part ${part}`, `Show part ${part}'s notes, played in ${named(part)}`]), () => editPart, (part) => {
-      editPart = part;
-      editorScroll = 0;
-      renderPanel();
-    }, 'Part'));
+    const named = (part) => [...new Set(comp.sections.filter((one) => partOf(one, layer) === part && one.play.includes(layer.id)).map((one) => one.name))].join(', ');
+    if (!here) {
+      head.append(choices(parts.map((part) => [part, `Part ${part}`, `Show part ${part}'s notes, played in ${named(part)}`]), () => editPart, (part) => {
+        editPart = part;
+        renderPanel();
+      }, 'Part'));
+    }
     const changes = layer.edits[editPart];
     // new notes for this part only (rerollLayerPart). not on a part that plays the melody's line, nor on
     // an older composer's song, which doesn't know about part seeds
     if (!layer.hand && !carries(layer) && (song.composer || 1) === COMPOSER) {
-      head.append(key(`New part ${editPart}`, `New notes for part ${editPart} only (${named(editPart)}), grown from the same idea as the rest of the ${ROLES[layer.role].name.toLowerCase()}, so it still sounds like this song. The other parts stay as they are${changes ? ', and notes you changed here go' : ''}. Press again for another`, () => {
+      head.append(key(`Rewrite part ${editPart}`, `New notes for part ${editPart} only (${named(editPart)}), grown from the same idea as the rest of the ${ROLES[layer.role].name.toLowerCase()}, so it still sounds like this song. The other parts stay as they are${changes ? ', and notes you changed here go' : ''}. Press again for another`, () => {
         const next = rerollLayerPart(song, layer.id, editPart, Math.random());
         if (!next) return say(`This ${ROLES[layer.role].name.toLowerCase()} plays part ${editPart}'s chords as they come, so there's nothing new to write. New chords for part ${editPart} (Song tab) or another pattern will change it.`);
         // (like any edit, it plays on from where it is, so you hear the new part come round)
@@ -1271,9 +1319,17 @@
       }, 'mm-key-small mm-key-line'));
     }
     if (changes && layer.hand) {
-      // a part of your own can be copied over another part, or cleared
+      // a part of your own can be copied over another part, or cleared. under the arrange grid, it can be
+      // copied to a new part played in the section, to change there without changing it anywhere else
       for (const other of parts.filter((one) => one !== editPart)) {
         head.append(key(`Copy to ${other}`, `Copy part ${editPart}'s notes into part ${other}, in place of what's there`, edit(() => { layer.edits[other] = clone(changes); }), 'mm-key-small mm-key-line'));
+      }
+      const fresh = here && newPart(layer);
+      if (fresh) {
+        head.append(key(`Copy to new part ${fresh}`, `A new part ${fresh}, starting as a copy of part ${editPart}'s notes, played in ${here.name}. Change it there without changing part ${editPart} anywhere else`, edit(() => {
+          layer.edits[fresh] = clone(changes);
+          setCell(song.sections[here.index], layer, fresh);
+        }), 'mm-key-small mm-key-line'));
       }
       head.append(key('Clear', `Take out every note in part ${editPart}`, edit(() => { delete layer.edits[editPart]; }), 'mm-key-small mm-key-line'));
     } else if (changes) {
@@ -1317,17 +1373,17 @@
       }
     }
     const HINTS = {
-      note: `Click to add a note and drag to make it longer. Click a note to remove it. Shaded rows are in the chord playing there. Click a note name to hear it${drums ? '' : ', or play them on your keyboard (A to L, W E T Y U O P for the black keys)'}.`,
-      chord: 'Click to put down the chord playing there, its notes gathered round the row you click, and drag to make it longer. The chords come from the Song tab. Click a note to remove it.',
-      slide: 'Drag from a note\'s start to where it should end up: across for how long, up or down for the pitch it slides to. Click a note to remove it.',
+      note: `Click to add a note and drag to make it longer. Drag a note to move it, or its end to change its length, and click it to remove it. Shaded rows are in the chord playing there. Click a note name to hear it${drums ? '' : ', or play them on your keyboard (A to L, W E T Y U O P for the black keys)'}.`,
+      chord: 'Click to put down the chord playing there, its notes gathered round the row you click, and drag to make it longer. The chords come from the Song tab. Drag a note to move it, click it to remove it.',
+      slide: 'Drag from an empty spot where a note starts to where it should end up: across for how long, up or down for the pitch it slides to. Drag a note to move it, click it to remove it.',
       shake: 'Click a note to give it vibrato, or click it again to take it off. Drag on an empty spot to draw a new note with vibrato.',
       swell: 'Click a note to make it grow, again to make it die away, and again to make it plain. Drag on an empty spot to draw a new note that swells. It shows as a wedge, like a hairpin in a score.',
     };
     box.append(head, tools, make('p', 'mm-hint', HINTS[drums ? 'note' : tool]));
 
     // (edits are in the song's own key, so a section in it is shown rather than one after a key change)
-    const playing = comp.sections.filter((one) => one.part === editPart && one.play.includes(layer.id));
-    const sec = playing.find((one) => !one.lift) || playing[0];
+    const playing = comp.sections.filter((one) => partOf(one, layer) === editPart && one.play.includes(layer.id));
+    const sec = (here && !here.lift ? here : playing.find((one) => !one.lift)) || here || playing[0];
     const grid = comp.step;
     const steps = Math.round(sec.beats / grid);
     const STEP = 15;
@@ -1396,7 +1452,9 @@
       return pitch > rows[0] ? ROW / 2 : (rows.length - 0.5) * ROW;
     };
     const xOf = (t) => ((t - sec.start) / grid) * STEP;
+    // drag: a note being drawn. grab: a note picked up, to move (or, held by its end, to stretch)
     let drag = null;
+    let grab = null;
     const colour = ROLES[layer.role].colour;
     const draw = () => {
       const g = canvas.getContext('2d');
@@ -1470,7 +1528,9 @@
           g.stroke();
         }
       };
-      for (const note of notes) block(note);
+      const moving = grab && (grab.toStep !== grab.from || grab.toRow !== grab.row);
+      for (const note of notes) if (!moving || note !== grab.note) block(note);
+      if (moving) block(shown(grabbed(grab)));
       if (drag) dragNotes(drag).forEach(block);
       const at = player.playing ? player.position() : null;
       if (at !== null && at >= sec.start && at < sec.end) {
@@ -1506,63 +1566,114 @@
       return [note];
     };
 
+    // a picked up note where it's been dragged to (or out to), as the edit it'll be: one you added keeps
+    // all you gave it, a written one becomes yours with its strength and palm mute
+    const grabbed = (one) => {
+      const { note, mine } = one;
+      const base = mine ? unpackEdit(mine) : {
+        t: +(note.gt - sec.start).toFixed(3), midi: note.midi, dur: +note.dur.toFixed(3), to: note.midi, glide: 0,
+        shake: Math.round(note.shake || 0), curve: 0, swell: note.swell || 0, vel: Math.round(note.vel * 100) / 100, mute: note.mute ? 1 : 0,
+      };
+      const by = (one.toStep - one.from) * grid;
+      if (one.size) {
+        const dur = +Math.min(sec.beats - base.t, Math.max(grid, base.dur + by)).toFixed(3);
+        return { ...base, dur, glide: Math.min(base.glide, dur) };
+      }
+      const midi = rows[Math.max(0, Math.min(rows.length - 1, rowOf(note.midi) + rowOf(one.toRow) - rowOf(one.row)))];
+      return { ...base, t: +Math.max(0, Math.min(sec.beats - grid, base.t + by)).toFixed(3), midi, to: base.to + midi - base.midi };
+    };
+    // an edit as a note to draw
+    const shown = (one) => ({
+      gt: sec.start + one.t, dur: one.dur, midi: one.midi, added: true, shake: one.shake, swell: one.swell,
+      ...(one.to !== one.midi ? { bend: [[0, 0], [Math.min(one.glide, one.dur), one.to - one.midi, one.curve]] } : {}),
+    });
+
     draw();
     editor.draw = draw;
 
     const place = (event) => {
       const rect = canvas.getBoundingClientRect();
-      const stepAt = Math.max(0, Math.min(steps - 1, Math.floor((event.clientX - rect.left) / STEP)));
+      const px = event.clientX - rect.left;
+      const stepAt = Math.max(0, Math.min(steps - 1, Math.floor(px / STEP)));
       const row = rows[Math.max(0, Math.min(rows.length - 1, Math.floor((event.clientY - rect.top) / ROW)))];
-      return { stepAt, row };
-    };
-    canvas.addEventListener('pointerdown', (event) => {
-      const { stepAt, row } = place(event);
       const t = sec.start + stepAt * grid;
       const hit = notes.find((note) => note.midi === row && t >= note.gt - 1e-6 && t < note.gt + (drums ? grid : note.dur) - 1e-6);
+      // (held within a few pixels of its end, a note stretches rather than moves)
+      return { stepAt, row, hit, end: !!hit && !drums && px > xOf(hit.gt + hit.dur) - 6 };
+    };
+    canvas.addEventListener('pointerdown', (event) => {
+      const { stepAt, row, hit, end } = place(event);
+      canvas.setPointerCapture(event.pointerId);
+      if (hit && ((tool !== 'shake' && tool !== 'swell') || drums)) {
+        const relative = +(hit.gt - sec.start).toFixed(3);
+        const mine = hit.added && layer.edits[editPart]?.add.find(([at, midi]) => Math.abs(at - relative) < 1e-3 && midi === hit.midi);
+        grab = { note: hit, mine, from: stepAt, toStep: stepAt, row, toRow: row, size: end };
+        return;
+      }
+      if (!hit) {
+        drag = { from: stepAt, to: stepAt, row, toRow: row };
+        draw();
+        return;
+      }
+      // vibrato on or off, or the swell going round. a note you added just changes; a written one is
+      // taken out (by its written pitch) and added back as yours, changed
       remember();
       const changes = (layer.edits[editPart] ||= { add: [], remove: [] });
-      if (hit) {
-        const relative = +(hit.gt - sec.start).toFixed(3);
-        const mine = hit.added && changes.add.find(([at, midi]) => Math.abs(at - relative) < 1e-3 && midi === hit.midi);
-        if ((tool === 'shake' || tool === 'swell') && !drums) {
-          // vibrato on or off, or the swell going round. a note you added just changes; a written one is
-          // taken out (by its written pitch) and added back as yours, changed
-          const change = (one) => {
-            if (tool === 'shake') one.shake = one.shake ? 0 : shakeWidth;
-            else one.swell = one.swell > 0 ? -1 : one.swell < 0 ? 0 : 1;
-          };
-          if (mine) {
-            const one = unpackEdit(mine);
-            change(one);
-            changes.add[changes.add.indexOf(mine)] = packEdit(one);
-          } else if (!hit.added) {
-            changes.remove.push(editKey(relative, hit.written ?? hit.midi));
-            const one = { t: relative, midi: hit.midi, dur: +hit.dur.toFixed(3), shake: hit.shake || 0, swell: hit.swell || 0 };
-            change(one);
-            changes.add.push(packEdit(one));
-          }
-          changed(false);
-          return;
-        }
-        if (mine) changes.add = changes.add.filter((one) => one !== mine);
+      const relative = +(hit.gt - sec.start).toFixed(3);
+      const mine = hit.added && changes.add.find(([at, midi]) => Math.abs(at - relative) < 1e-3 && midi === hit.midi);
+      const change = (one) => {
+        if (tool === 'shake') one.shake = one.shake ? 0 : shakeWidth;
+        else one.swell = one.swell > 0 ? -1 : one.swell < 0 ? 0 : 1;
+      };
+      if (mine) {
+        const one = unpackEdit(mine);
+        change(one);
+        changes.add[changes.add.indexOf(mine)] = packEdit(one);
+      } else if (!hit.added) {
+        changes.remove.push(editKey(relative, hit.written ?? hit.midi));
+        const one = { t: relative, midi: hit.midi, dur: +hit.dur.toFixed(3), shake: hit.shake || 0, swell: hit.swell || 0 };
+        change(one);
+        changes.add.push(packEdit(one));
+      }
+      changed(false);
+    });
+    canvas.addEventListener('pointermove', (event) => {
+      const at = place(event);
+      if (grab) {
+        grab.toStep = at.stepAt;
+        grab.toRow = at.row;
+        draw();
+      } else if (drag) {
+        drag.to = Math.max(drag.from, at.stepAt);
+        drag.toRow = at.row;
+        draw();
+      } else {
+        // pointing: a hand over a note, arrows at its end
+        canvas.style.cursor = !at.hit ? '' : (tool === 'shake' || tool === 'swell') && !drums ? 'pointer' : at.end ? 'ew-resize' : 'grab';
+      }
+    });
+    canvas.addEventListener('pointerup', () => {
+      if (grab) {
+        // a note let go where it was picked up is taken out; moved, it goes where it was dragged
+        const one = grab;
+        grab = null;
+        const moved = one.toStep !== one.from || (!one.size && one.toRow !== one.row);
+        const entry = moved && grabbed(one);
+        remember();
+        const changes = (layer.edits[editPart] ||= { add: [], remove: [] });
+        if (one.mine) changes.add = changes.add.filter((x) => x !== one.mine);
         // a note the band moved (listen in music.js) is still known by the pitch it was written at
-        else changes.remove.push(editKey(relative, hit.written ?? hit.midi));
+        else changes.remove.push(editKey(+(one.note.gt - sec.start).toFixed(3), one.note.written ?? one.note.midi));
+        if (entry) {
+          changes.add.push(packEdit(entry));
+          changes.remove = changes.remove.filter((x) => x !== editKey(entry.t, entry.midi));
+          if (!one.size && entry.midi !== one.note.midi) player.audition(song, layer, [entry.midi], drums ? 1 : Math.min(entry.dur, 2));
+        }
         changed(false);
         return;
       }
-      drag = { from: stepAt, to: stepAt, row, toRow: row };
-      canvas.setPointerCapture(event.pointerId);
-      draw();
-    });
-    canvas.addEventListener('pointermove', (event) => {
       if (!drag) return;
-      const at = place(event);
-      drag.to = Math.max(drag.from, at.stepAt);
-      drag.toRow = at.row;
-      draw();
-    });
-    canvas.addEventListener('pointerup', () => {
-      if (!drag) return;
+      remember();
       const changes = (layer.edits[editPart] ||= { add: [], remove: [] });
       const drawn = dragNotes(drag);
       for (const note of drawn) {
@@ -1576,156 +1687,356 @@
       drag = null;
       changed(false);
     });
-    scroller.addEventListener('scroll', () => { editorScroll = scroller.scrollLeft; });
-    requestAnimationFrame(() => { scroller.scrollLeft = editorScroll; });
+    canvas.addEventListener('pointercancel', () => {
+      grab = null;
+      drag = null;
+      draw();
+    });
+    // (kept where they were when it's drawn again: keepPlace)
+    scroller.dataset.scroll = `notes-across:${layer.id}:${editPart}`;
 
     const body = make('div', 'mm-editor-body');
     body.append(labels, scroller);
+    body.dataset.scroll = `notes-down:${layer.id}:${editPart}`;
     box.append(body);
     return box;
   }
 
   // ---------- the arrange tab ----------
+  //
+  // the song as a grid, the way a tracker lays one out: a column per section, a row per layer, and in each
+  // square the part that layer plays there (a letter), or nothing. the row of letters at the top is each
+  // section's chords, and a layer plays the section's part unless it's given another (setCell). under the
+  // grid: the picked section's settings, then the picked square's part and its notes
+
+  // the section headers, to light the one playing (frame), and which one's lit
+  let arrangeHeads = null;
+  let nowShown = -1;
+
+  // a section's chords: another part's. a part with no chords yet starts as a copy of these, and then
+  // every layer goes on playing what it was (only the chords are new); otherwise the layers following
+  // the section move to the new part with it
+  function setChords(one, part) {
+    remember();
+    const fresh = !song.parts[part];
+    if (fresh) song.parts[part] = song.parts[one.part];
+    const was = one.play.map((id) => [layerById(id), partOf(one, layerById(id) || { id })]);
+    one.part = part;
+    for (const [layer, before] of was) if (layer) setCell(one, layer, fresh ? before : partOf(one, layer));
+    changed();
+  }
 
   function arrangePanel() {
-    const wrap = make('div', 'mm-arrange-wrap');
+    pickedSection = Math.max(0, Math.min(pickedSection, song.sections.length - 1));
+    nowShown = -1;
+    const own = tracker();
+    const one = song.sections[pickedSection];
+    const pick = (index, id = selected) => {
+      pickedSection = index;
+      selected = id;
+      scoreDirty = true;
+      renderPanel();
+    };
+    const OLD = "This song plays as it was saved, by an older composer, so its layers play their section's part. Pick Today's composer in the Song tab to give a layer a part of its own";
+
     const table = make('table', 'mm-arrange');
     const headRow = make('tr');
     const corner = make('th', 'mm-arrange-corner', 'Sections');
     corner.scope = 'col';
     headRow.append(corner);
-    song.sections.forEach((one, index) => {
+    arrangeHeads = song.sections.map((section, index) => {
       const cell = make('th');
       cell.scope = 'col';
-      const name = make('input', 'mm-input mm-section-name');
-      Object.assign(name, { type: 'text', value: one.name, maxLength: 20, spellcheck: false });
-      name.setAttribute('aria-label', `Section ${index + 1}'s name`);
-      name.addEventListener('focus', remember);
-      name.addEventListener('input', () => {
-        one.name = name.value.trim() || 'Part';
-        scoreDirty = true;
-        comp.sections[index].name = one.name;
-        keepDraft();
-      });
-      const part = make('select', 'mm-select mm-select-small');
-      part.setAttribute('aria-label', `Section ${index + 1}'s chords`);
-      part.dataset.tip = "Which part's chords this section plays";
-      for (const letter of PARTS) part.append(new Option(`Part ${letter}`, letter, false, letter === one.part));
-      part.addEventListener('change', edit(() => { one.part = part.value; }));
-      // who takes a solo here, if anyone (section.lead, solo() in music.js)
-      const lead = make('select', 'mm-select mm-select-small');
-      lead.setAttribute('aria-label', `Section ${index + 1}'s solo`);
-      lead.dataset.tip = 'A solo: this layer plays a long new line here, one that never repeats, instead of its usual part';
-      lead.append(new Option('No solo', '', false, !one.lead));
-      for (const layer of song.layers.filter((one) => SOLOISTS[one.role])) lead.append(new Option(`${ROLES[layer.role].name} solo`, layer.id, false, one.lead === layer.id));
-      lead.addEventListener('change', edit(() => {
-        if (!lead.value) return delete one.lead;
-        one.lead = lead.value;
-        if (!one.play.includes(lead.value)) one.play.push(lead.value);
-      }));
-      // a key change (section.lift, liftKey in music.js): this section played that many semitones higher
-      const lift = make('select', 'mm-select mm-select-small');
-      lift.setAttribute('aria-label', `Section ${index + 1}'s key`);
-      lift.dataset.tip = 'Key change: this section played higher than the rest, the trick for a last chorus or a climax. Usually the sections after it go up too';
-      for (const n of [0, 1, 2, 3]) lift.append(new Option(n ? `Key up ${n}` : 'Home key', n, false, (one.lift || 0) === n));
-      // a song saved before key changes plays with the composer it was made with (COMPOSER), which has none
-      if ((song.composer || 1) < 2) {
-        lift.disabled = true;
-        lift.dataset.tip = 'Key changes came after this song was saved, and it plays as it did then. Make it again from its seed to use them';
-      }
-      lift.addEventListener('change', edit(() => {
-        if (+lift.value) one.lift = +lift.value;
-        else delete one.lift;
-      }));
-      const bars = make('div', 'mm-bars');
-      bars.dataset.tip = 'How many bars long it is';
-      bars.append(
-        key('−', '', edit(() => { one.bars = Math.max(1, one.bars - 1); }), 'mm-key-small mm-key-square'),
-        make('span', '', `${one.bars} bars`),
-        key('+', '', edit(() => { one.bars = Math.min(64, one.bars + 1); }), 'mm-key-small mm-key-square'),
-      );
-      bars.firstChild.setAttribute('aria-label', 'One bar shorter');
-      bars.lastChild.setAttribute('aria-label', 'One bar longer');
-      // how hard it's played (section.energy, feel() in music.js)
-      const loudness = make('div', 'mm-slider mm-section-loud');
-      const loud = make('input');
-      loudness.append(loud);
-      const fill = () => loud.style.setProperty('--fill', `${loud.value * 100}%`);
-      Object.assign(loud, { type: 'range', min: 0, max: 1, step: 0.05, value: one.energy ?? 0.75 });
-      loud.setAttribute('aria-label', `How hard ${one.name} is played`);
-      loud.dataset.tip = 'Loudness: how hard the band plays here. Softer for an intro or a break, harder for a chorus. It swells up into a louder section';
-      let moving = false;
-      loud.addEventListener('input', () => {
-        if (!moving) remember();
-        moving = true;
-        one.energy = +loud.value;
-        fill();
-        soon();
-      });
-      loud.addEventListener('change', () => { moving = false; });
-      fill();
-      const tools = make('div', 'mm-section-tools');
-      const move = (by) => edit(() => {
-        const [taken] = song.sections.splice(index, 1);
-        song.sections.splice(index + by, 0, taken);
-      });
-      const tool = (label, tip, onClick, disabled) => {
-        const button = key(label, tip, onClick, 'mm-key-small mm-key-square mm-key-line');
-        button.setAttribute('aria-label', tip);
-        button.disabled = disabled;
-        return button;
-      };
-      tools.append(
-        tool('▶', 'Play from here', () => {
-          startBeat = comp.sections[index].start;
-          player.play(startBeat);
-          renderTransport();
-        }, false),
-        tool('←', 'Move it earlier', move(-1), index === 0),
-        tool('→', 'Move it later', move(1), index === song.sections.length - 1),
-        tool('×', 'Remove it', edit(() => song.sections.splice(index, 1)), song.sections.length === 1),
-      );
-      cell.append(name, part, lead, lift, bars, loudness, tools);
+      const button = make('button', 'mm-arrange-head');
+      button.type = 'button';
+      button.setAttribute('aria-pressed', index === pickedSection);
+      button.dataset.focus = `head:${index}`;
+      button.dataset.tip = `${section.name}: ${section.bars} bar${section.bars > 1 ? 's' : ''} of part ${section.part}'s chords. Click to change it under the grid`;
+      button.append(make('b', '', section.name), make('small', '', `${section.bars} bar${section.bars > 1 ? 's' : ''}`));
+      button.addEventListener('click', () => pick(index));
+      cell.append(button);
       headRow.append(cell);
+      return cell;
     });
+    const more = make('th', 'mm-arrange-more');
+    const add = key('+', 'Add a section at the end, a copy of the last one', edit(() => {
+      if (song.sections.length >= 64) return say("That's 64 sections, the most a song can have.");
+      song.sections.push(clone(song.sections[song.sections.length - 1]));
+      pickedSection = song.sections.length - 1;
+    }), 'mm-key-small mm-key-square mm-key-line');
+    add.setAttribute('aria-label', 'Add a section');
+    more.append(add);
+    headRow.append(more);
     const thead = make('thead');
     thead.append(headRow);
+
+    // a square of the grid. row: -1 for the chords, else the layer's place; col: the section's
+    const square = (text, row, col, tip, label) => {
+      const button = make('button', 'mm-cell', text);
+      button.type = 'button';
+      Object.assign(button.dataset, { row, col, tip, focus: `cell:${row}:${col}` });
+      button.setAttribute('aria-label', label);
+      if (col === pickedSection) button.classList.add('is-column');
+      return button;
+    };
     const tbody = make('tbody');
-    for (const layer of song.layers) {
-      const row = make('tr');
+    const chordRow = make('tr', 'mm-arrange-chords');
+    const chordLabel = make('th', 'mm-arrange-layer', 'Chords');
+    chordLabel.scope = 'row';
+    chordLabel.dataset.tip = "Each section's chords: part A's, part B's... (write them in the Song tab). Every layer plays its section's part unless it's given another";
+    chordRow.append(chordLabel);
+    song.sections.forEach((section, index) => {
+      const cell = make('td');
+      const button = square(section.part, -1, index, `${section.name} plays part ${section.part}'s chords. Keys 1 to 8 pick part A to H`, `${section.name}'s chords: part ${section.part}`);
+      button.style.setProperty('--chip', PART_COLOURS[section.part]);
+      button.setAttribute('aria-pressed', true);
+      button.addEventListener('click', () => pick(index));
+      cell.append(button);
+      chordRow.append(cell);
+    });
+    tbody.append(chordRow);
+    song.layers.forEach((layer, row) => {
+      const tr = make('tr');
       const label = make('th', 'mm-arrange-layer');
       label.scope = 'row';
+      const name = make('button', 'mm-arrange-name');
+      name.type = 'button';
+      name.setAttribute('aria-pressed', layer.id === selected);
+      name.dataset.focus = `name:${layer.id}`;
+      name.dataset.tip = `${ROLES[layer.role].name}: ${INSTRUMENTS[layer.instrument].name}. Click to open its part in ${one.name} under the grid`;
       const chip = make('i', 'mm-layer-chip');
       chip.style.background = ROLES[layer.role].colour;
-      label.append(chip, make('span', '', ROLES[layer.role].name));
-      row.append(label);
-      for (const one of song.sections) {
+      name.append(chip, make('span', '', ROLES[layer.role].name));
+      name.addEventListener('click', () => pick(pickedSection, layer.id));
+      label.append(name, ...mixKeys(layer));
+      tr.append(label);
+      const role = ROLES[layer.role].name;
+      song.sections.forEach((section, index) => {
+        const on = section.play.includes(layer.id);
+        const part = partOf(section, layer);
+        const solo = section.lead === layer.id;
+        const tip = !on ? `The ${role.toLowerCase()} isn't playing in ${section.name}: click to put it in`
+          : `The ${role.toLowerCase()} ${solo ? 'takes a solo' : `plays part ${part}`} in ${section.name}${!solo && part !== section.part ? `, over part ${section.part}'s chords` : ''}. Click to open it below. Keys 1 to 8 pick its part, Delete or a right click takes it out`;
+        const button = square(on ? (solo ? '★' : part) : '', row, index, tip, `${role} in ${section.name}: ${on ? (solo ? 'solo' : `part ${part}`) : 'not playing'}`);
+        button.setAttribute('aria-pressed', on);
+        button.style.setProperty('--chip', ROLES[layer.role].colour);
+        button.style.setProperty('--chip-ink', inkOn(ROLES[layer.role].colour));
+        if (index === pickedSection && layer.id === selected) button.classList.add('is-picked');
+        button.addEventListener('click', () => {
+          if (on) return pick(index, layer.id);
+          remember();
+          setCell(section, layer, section.part);
+          pickedSection = index;
+          selected = layer.id;
+          changed();
+        });
+        button.addEventListener('contextmenu', (event) => {
+          event.preventDefault();
+          if (!on) return;
+          remember();
+          setCell(section, layer, null);
+          changed();
+        });
         const cell = make('td');
-        const on = one.play.includes(layer.id);
-        const toggle = make('button', 'mm-cell');
-        toggle.type = 'button';
-        toggle.style.setProperty('--chip', ROLES[layer.role].colour);
-        toggle.setAttribute('aria-pressed', on);
-        toggle.setAttribute('aria-label', `${ROLES[layer.role].name} in ${one.name}`);
-        toggle.dataset.tip = `${on ? 'Playing' : 'Not playing'}: click to turn the ${ROLES[layer.role].name.toLowerCase()} ${on ? 'off' : 'on'} in ${one.name}`;
-        toggle.addEventListener('click', edit(() => {
-          one.play = on ? one.play.filter((id) => id !== layer.id) : [...one.play, layer.id];
-        }));
-        cell.append(toggle);
-        row.append(cell);
-      }
-      tbody.append(row);
-    }
+        cell.append(button);
+        tr.append(cell);
+      });
+      tbody.append(tr);
+    });
     table.append(thead, tbody);
+    // the keyboard, as in a tracker: arrows move round the grid, 1 to 8 pick a part, Delete (or 0) takes
+    // a layer out. (numbers, so the letters still play the open layer)
+    table.addEventListener('keydown', (event) => {
+      const cell = event.target.closest?.('[data-col]');
+      if (!cell || event.ctrlKey || event.metaKey || event.altKey) return;
+      const row = +cell.dataset.row;
+      const col = +cell.dataset.col;
+      const moves = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [-1, 0], ArrowDown: [1, 0] };
+      if (moves[event.key]) {
+        event.preventDefault();
+        const next = table.querySelector(`[data-row="${row + moves[event.key][0]}"][data-col="${col + moves[event.key][1]}"]`);
+        if (!next) return;
+        next.focus();
+        pick(+next.dataset.col, +next.dataset.row >= 0 ? song.layers[+next.dataset.row].id : selected);
+        return;
+      }
+      const digit = '12345678'.indexOf(event.key);
+      const off = ['Delete', 'Backspace', '0'].includes(event.key);
+      if (digit < 0 && !off) return;
+      event.preventDefault();
+      const section = song.sections[col];
+      const part = digit >= 0 ? EVERY_PART[digit] : null;
+      if (row < 0) {
+        if (!part || part === section.part) return;
+        if (!own && !PARTS.includes(part)) return say(OLD);
+        pickedSection = col;
+        return setChords(section, part);
+      }
+      const layer = song.layers[row];
+      if (part && !own && part !== section.part) return say(OLD);
+      remember();
+      setCell(section, layer, part);
+      if (part && section.lead === layer.id) delete section.lead;
+      pickedSection = col;
+      selected = layer.id;
+      changed();
+    });
+    const wrap = make('div', 'mm-arrange-wrap');
+    wrap.dataset.scroll = 'arrange';
     wrap.append(table);
-    const addSection = key('Add a section', 'A new section at the end, a copy of the last one', edit(() => {
-      if (song.sections.length >= 64) return;
-      const last = song.sections[song.sections.length - 1];
-      song.sections.push({ ...last, name: last.name, play: [...last.play] });
-    }), 'mm-key-small');
-    const foot = make('div', 'mm-arrange-foot');
-    foot.append(addSection, make('p', 'mm-hint', 'Each section plays one part\'s chords (set them in the Song tab). Sections of the same part play the same tune, a little changed on later times round, unless one of them has a solo. For a game loop, try leaving the quiet intro and outro out.'));
-    return [wrap, foot];
+    const hint = make('p', 'mm-hint mm-arrange-hint', own
+      ? 'Click a square to open it below, or an empty one to put that layer in. Keys 1 to 8 pick its part (A to H), Delete or a right click takes it out, and the arrows move round. A layer plays its section\'s part unless you give it another, so the drums can keep part A\'s beat under part B\'s tune.'
+      : 'Click a square to open it below, or an empty one to put that layer in. Delete or a right click takes it out, and the arrows move round.');
+    return [wrap, hint, sectionDetail(one, own, OLD), cellDetail(one, own, OLD)];
+  }
+
+  // the picked section's settings: its name, chords, length, loudness and key, and keys to play from it,
+  // move it, copy it or take it out
+  function sectionDetail(one, own, OLD) {
+    const index = pickedSection;
+    const box = make('div', 'mm-arrange-detail');
+    const head = make('div', 'mm-detail-head');
+    head.append(make('h3', 'mm-section-title', `Section ${index + 1} of ${song.sections.length}`));
+    const tools = make('div', 'mm-detail-actions');
+    const move = (by) => edit(() => {
+      const [taken] = song.sections.splice(index, 1);
+      song.sections.splice(index + by, 0, taken);
+      pickedSection = index + by;
+    });
+    const tool = (label, tip, onClick, disabled = false) => {
+      const button = key(label, tip, onClick, 'mm-key-small mm-key-line');
+      button.disabled = disabled;
+      button.dataset.focus = `section:${label}`;
+      return button;
+    };
+    tools.append(
+      tool('▶ Play from here', `Play from the start of ${one.name}`, () => {
+        startBeat = comp.sections[index].start;
+        player.play(startBeat);
+        renderTransport();
+      }),
+      tool('← Earlier', 'Move it a section earlier', move(-1), index === 0),
+      tool('Later →', 'Move it a section later', move(1), index === song.sections.length - 1),
+      tool('Copy', 'Another section just like this one, straight after it', edit(() => {
+        if (song.sections.length >= 64) return say("That's 64 sections, the most a song can have.");
+        song.sections.splice(index + 1, 0, clone(one));
+        pickedSection = index + 1;
+      })),
+      tool('Remove', `Take ${one.name} out of the song`, edit(() => {
+        song.sections.splice(index, 1);
+      }), song.sections.length === 1),
+    );
+    head.append(tools);
+
+    const name = make('input', 'mm-input mm-section-name');
+    Object.assign(name, { type: 'text', value: one.name, maxLength: 20, spellcheck: false });
+    name.setAttribute('aria-label', 'Section name');
+    name.addEventListener('focus', remember);
+    name.addEventListener('input', () => {
+      one.name = name.value.trim() || 'Part';
+      comp.sections[index].name = one.name;
+      arrangeHeads[index].querySelector('b').textContent = one.name;
+      scoreDirty = true;
+      keepDraft();
+    });
+    // (an older composer's song knows parts A to C only)
+    const letters = EVERY_PART.filter((part) => song.parts[part]);
+    const fresh = own && EVERY_PART.find((part) => !song.parts[part]);
+    const chords = choices([
+      ...letters.map((part) => [part, part, part === one.part ? `Part ${part}'s chords` : `Part ${part}'s chords. Layers playing part ${one.part} here move to part ${part} with it`]),
+      ...(fresh ? [[fresh, `New (${fresh})`, `New chords for this section: part ${fresh}, starting as a copy of part ${one.part}'s, to change in the Song tab. Every layer goes on playing what it plays now`]] : []),
+    ], () => one.part, (part) => setChords(one, part), 'Chords');
+    const bars = make('div', 'mm-bars');
+    bars.append(
+      key('−', '', edit(() => { one.bars = Math.max(1, one.bars - 1); }), 'mm-key-small mm-key-square'),
+      make('span', '', `${one.bars} bar${one.bars > 1 ? 's' : ''}`),
+      key('+', '', edit(() => { one.bars = Math.min(64, one.bars + 1); }), 'mm-key-small mm-key-square'),
+    );
+    bars.firstChild.setAttribute('aria-label', 'One bar shorter');
+    bars.lastChild.setAttribute('aria-label', 'One bar longer');
+    // a key change (section.lift, liftKey in music.js): this section played that many semitones higher
+    const lift = make('select', 'mm-select mm-select-small');
+    lift.setAttribute('aria-label', 'Key change');
+    for (const n of [0, 1, 2, 3]) lift.append(new Option(n ? `Up ${n} semitone${n > 1 ? 's' : ''}` : 'Home key', n, false, (one.lift || 0) === n));
+    let liftTip = 'Key change: this section played higher than the rest, the trick for a last chorus or a climax. Usually the sections after it go up too';
+    // a song saved before key changes plays with the composer it was made with (COMPOSER), which has none
+    if ((song.composer || 1) < 2) {
+      lift.disabled = true;
+      liftTip = 'Key changes came after this song was saved, and it plays as it did then. Make it again from its seed to use them';
+    }
+    lift.addEventListener('change', edit(() => {
+      if (+lift.value) one.lift = +lift.value;
+      else delete one.lift;
+    }));
+    const columns = make('div', 'mm-columns');
+    columns.append(
+      make('div'),
+      make('div'),
+    );
+    columns.firstChild.append(
+      field('Name', name, 'The section\'s name, shown along the top of the score'),
+      field('Chords', chords, own ? "Which part's chords it plays (write them in the Song tab)" : OLD),
+      field('Length', bars, 'How many bars long it is'),
+    );
+    columns.lastChild.append(
+      slider({ label: 'Loudness', tip: 'Loudness: how hard the band plays here. Softer for an intro or a break, harder for a chorus. It swells up into a louder section', min: 0, max: 1, step: 0.05, get: () => one.energy ?? 0.75, set: (v) => { one.energy = v; }, format: percent }),
+      field('Key', lift, liftTip),
+    );
+    box.append(head, columns);
+    return box;
+  }
+
+  // the picked square: which part the layer plays in the section (or a solo, or nothing), and that part's
+  // notes to change, which play everywhere the layer plays that part
+  function cellDetail(one, own, OLD) {
+    const layer = layerById(selected);
+    const box = make('div', 'mm-arrange-cell');
+    if (!layer) {
+      box.append(make('p', 'mm-hint', 'Click a square in the grid to choose what a layer plays there and change its notes.'));
+      return box;
+    }
+    const role = ROLES[layer.role].name;
+    const on = one.play.includes(layer.id);
+    const solo = one.lead === layer.id;
+    const part = partOf(one, layer);
+    const head = make('div', 'mm-detail-head');
+    const title = make('h3', 'mm-detail-title', `${role} in ${one.name}`);
+    title.style.setProperty('--chip', ROLES[layer.role].colour);
+    head.append(title);
+    // the parts it can play (knownParts), and a new one
+    const known = knownParts(layer);
+    const fresh = newPart(layer);
+    const where = (letter) => [...new Set(song.sections.filter((s) => s.play.includes(layer.id) && s.lead !== layer.id && partOf(s, layer) === letter).map((s) => s.name))];
+    const options = [
+      ['off', 'Off', `The ${role.toLowerCase()} doesn't play in ${one.name}`],
+      ...(own ? known : [one.part]).map((letter) => {
+        const sections = where(letter);
+        return [letter, `Part ${letter}`, `Part ${letter}: ${sections.length ? `the notes it plays in ${sections.join(', ')}` : layer.edits[letter] ? 'notes you wrote for it' : layer.hand ? "nothing yet, notes for you to write" : 'notes written for it'}${letter === one.part ? `. ${one.name}'s own part, so it follows its chords if they change` : ''}`];
+      }),
+      ...(fresh ? [[fresh, `New (${fresh})`, `A part of its own for the ${role.toLowerCase()}: part ${fresh}, ${layer.hand ? 'empty, for you to write' : 'with new notes written for it'}, over ${one.name}'s chords`]] : []),
+      ...(SOLOISTS[layer.role] ? [['solo', 'Solo', `A solo: the ${role.toLowerCase()} plays a long new line here, one that never repeats, instead of its usual part`]] : []),
+    ];
+    const pickPart = (value) => edit(() => {
+      if (value === 'off') return setCell(one, layer, null);
+      setCell(one, layer, value === 'solo' ? part : value);
+      if (value === 'solo') one.lead = layer.id;
+      else if (one.lead === layer.id) delete one.lead;
+    })();
+    const plays = choices(options, () => (!on ? 'off' : solo ? 'solo' : part), pickPart, 'Part');
+    box.append(head, field('Plays', plays, own ? `Which part the ${role.toLowerCase()} plays in ${one.name}` : OLD));
+    if (!on) {
+      box.append(make('p', 'mm-hint', `The ${role.toLowerCase()} isn't playing in ${one.name}. Pick a part to put it in.`));
+      return box;
+    }
+    if (solo) {
+      box.append(make('p', 'mm-hint', 'A solo is written new each time round, so there are no notes to draw. Pick a part to draw your own.'));
+      return box;
+    }
+    if (roleFamily(layer.role) === 'texture') return box;
+    const others = where(part).filter((name) => name !== one.name);
+    if (others.length) box.append(make('p', 'mm-hint', `Changes here play everywhere the ${role.toLowerCase()} plays part ${part}: ${one.name} and ${others.join(', ')}.`));
+    box.append(noteEditor(layer, comp.sections[pickedSection]));
+    return box;
   }
 
   // ---------- the room tab ----------
@@ -1876,13 +2187,13 @@
   // what the view needs from the notes, worked out again whenever they change
   function learnData() {
     const layer = layerById(learn.id);
-    const partOf = (id) => playedTogether(comp.notes.filter((note) => note.layer === id), comp.step);
-    const events = partOf(learn.id);
+    const heard = (id) => playedTogether(comp.notes.filter((note) => note.layer === id), comp.step);
+    const events = heard(learn.id);
     // the closest two things are decides how wide a beat's drawn, so nothing's written over anything
     let gap = comp.bpb;
     for (let i = 1; i < events.length; i++) if (events[i].t - events[i - 1].t > 1e-6) gap = Math.min(gap, events[i].t - events[i - 1].t);
     const data = { layer, events, gap };
-    if (learn.view === 'piano') data.left = learn.left ? partOf(learn.left) : [];
+    if (learn.view === 'piano') data.left = learn.left ? heard(learn.left) : [];
     if (learn.view === 'guitar' || learn.view === 'bass') {
       Object.assign(data, events.length ? frettings(events, learn.view) : { placed: [], tuning: STRINGS[learn.view].standard });
       // the shape held at each event: an upstroke (or anything else at the same frets) is the chord
@@ -2865,7 +3176,7 @@
     const t = +(at - sec.start).toFixed(3);
     const dur = layer.role === 'drums' ? grid : Math.min(sec.beats - t, Math.max(grid, Math.round(length / grid) * grid));
     remember();
-    const changes = (layer.edits[sec.part] ||= { add: [], remove: [] });
+    const changes = (layer.edits[partOf(sec, layer)] ||= { add: [], remove: [] });
     changes.add = changes.add.filter(([start, pitch]) => Math.abs(start - t) > 1e-3 || pitch !== midi);
     changes.add.push(packEdit({ t, midi, dur: +dur.toFixed(3) }));
     changes.remove = changes.remove.filter((one) => one !== editKey(t, midi));
@@ -2911,6 +3222,16 @@
     renderReadout();
     if (editor && player.playing) editor.draw();
     if (learn) drawLearn();
+    // the arrange grid lights the section playing
+    if (arrangeHeads) {
+      const at = player.playing ? player.position() : -1;
+      const now = comp.sections.findIndex((one) => at >= one.start && at < one.end);
+      if (now !== nowShown) {
+        arrangeHeads[nowShown]?.classList.remove('is-now');
+        arrangeHeads[now]?.classList.add('is-now');
+        nowShown = now;
+      }
+    }
   }
 
   // ---------- start ----------

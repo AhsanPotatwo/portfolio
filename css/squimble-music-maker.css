@@ -491,36 +491,81 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-shape:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:3px; }
 .mm-shape canvas{ display:block; }
 
-/* arrange */
-.mm-arrange-wrap{ overflow-x:auto; padding-bottom:6px; }
-.mm-arrange{ border-collapse:separate; border-spacing:6px; margin:-6px; }
-.mm-arrange th{ font-weight:600; text-align:left; vertical-align:top; }
-.mm-arrange thead th{ min-width:132px; padding:8px; background:var(--mm-dark); border-radius:4px; }
-.mm-arrange thead .mm-arrange-corner{ min-width:0; background:none; font:700 11.5px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); vertical-align:bottom; }
-.mm-arrange thead th > * + *{ margin-top:6px; }
-.mm-section-name{ width:100%; height:30px; font-weight:700; }
-.mm-arrange .mm-select{ width:100%; }
-.mm-bars{ display:flex; align-items:center; gap:6px; }
-.mm-bars span{ flex:1; text-align:center; font:500 12.5px var(--mm-mono); }
-/* a section's loudness: a slider on its own, without the label and readout a settings slider has */
-.mm-slider.mm-section-loud{ display:block; }
-.mm-section-tools{ display:flex; gap:4px; }
-.mm-section-tools .mm-key{ flex:1; min-width:0; font-size:13px; }
-.mm-arrange-layer{ white-space:nowrap; padding-right:8px; font-size:14px; }
-.mm-arrange-layer .mm-layer-chip{ display:inline-block; height:14px; margin-right:8px; vertical-align:-2px; }
+/* arrange: a tracker's grid, a narrow column per section and a letter in every square a layer plays,
+   then the picked section's settings and the picked square's part and notes under it */
+.mm-arrange-wrap{ overflow-x:auto; padding:2px 2px 8px; scrollbar-color:var(--mm-raised) var(--mm-panel); }
+.mm-arrange{ border-collapse:separate; border-spacing:4px; margin:-4px; }
+.mm-arrange th{ font-weight:600; text-align:left; vertical-align:middle; }
+.mm-arrange-corner{ font:700 11.5px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); vertical-align:bottom !important; padding-bottom:4px; }
+.mm-arrange-head{
+  display:grid;
+  width:68px;
+  padding:5px 7px 4px;
+  text-align:left;
+  color:var(--mm-text);
+  background:var(--mm-dark);
+  border:0;
+  border-radius:4px;
+  box-shadow:inset 0 -3px 0 transparent;
+  cursor:pointer;
+}
+.mm-arrange-head b{ font:700 12.5px var(--mm-ui); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mm-arrange-head small{ font:500 11px var(--mm-mono); font-variation-settings:"MONO" 1, "CASL" 0; color:var(--mm-muted); }
+.mm-arrange-head:hover{ background:#3b352e; }
+.mm-arrange-head[aria-pressed="true"]{ background:var(--mm-paper); color:var(--mm-paper-ink); }
+.mm-arrange-head[aria-pressed="true"] small{ color:#7b6f5d; }
+.mm-arrange-head:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:2px; }
+/* the section playing now */
+.is-now .mm-arrange-head{ box-shadow:inset 0 -3px 0 var(--mm-mood); }
+.mm-arrange-layer{ white-space:nowrap; padding-right:6px; font-size:14px; }
+/* the layers' names stay put while a long song scrolls under them */
+.mm-arrange tbody th, .mm-arrange-corner{ position:sticky; left:0; z-index:1; background:var(--mm-panel); }
+.mm-arrange-layer .mm-key{ margin-left:3px; min-height:26px; min-width:26px; font-size:12px; }
+.mm-arrange-name{
+  display:inline-flex; align-items:center; gap:8px;
+  min-width:104px;
+  padding:3px 8px 3px 4px;
+  font:700 13.5px var(--mm-ui);
+  color:var(--mm-text);
+  background:none;
+  border:0;
+  border-radius:4px;
+  cursor:pointer;
+}
+.mm-arrange-name .mm-layer-chip{ height:18px; }
+.mm-arrange-name:hover{ background:rgba(255,255,255,.06); }
+.mm-arrange-name[aria-pressed="true"]{ background:var(--mm-paper); color:var(--mm-paper-ink); }
+.mm-arrange-name:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:2px; }
+.mm-arrange-chords th{ font:700 11.5px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); padding-left:6px; }
 .mm-cell{
   display:block;
-  width:100%; height:28px;
+  width:68px; height:28px;
+  font:800 13px var(--mm-ui);
+  color:var(--chip-ink, var(--mm-paper-ink));
   background:var(--mm-dark);
   border:0;
   border-radius:3px;
   cursor:pointer;
 }
+.mm-cell.is-column{ background:#2a2621; }
 .mm-cell:hover{ box-shadow:inset 0 0 0 2px #6a6255; }
-.mm-cell[aria-pressed="true"]{ background:var(--chip); }
+/* (a faint ring too, so the drums' near black still reads as playing) */
+.mm-cell[aria-pressed="true"]{ background:var(--chip); box-shadow:inset 0 0 0 1px rgba(255,255,255,.2); }
+.mm-cell[aria-pressed="true"]:hover{ box-shadow:inset 0 0 0 2px rgba(255,255,255,.55); }
+.mm-arrange-chords .mm-cell{ height:22px; font-size:12px; color:var(--mm-paper-ink); }
+.mm-cell.is-picked{ outline:2px solid var(--mm-paper); outline-offset:2px; }
 .mm-cell:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:2px; }
-.mm-arrange-foot{ display:flex; flex-wrap:wrap; align-items:flex-start; gap:6px 18px; margin:16px 0 14px; }
-.mm-arrange-foot .mm-hint{ flex:1 1 300px; margin:0; }
+.mm-arrange-more{ vertical-align:top !important; }
+.mm-arrange-hint{ margin-top:12px; }
+.mm-arrange-detail, .mm-arrange-cell{ margin-top:18px; padding-top:14px; border-top:2px solid var(--mm-line); }
+.mm-arrange-detail .mm-detail-head{ margin-bottom:8px; }
+.mm-arrange-detail .mm-detail-head .mm-section-title{ flex:1 1 160px; margin:0; }
+.mm-arrange-detail .mm-detail-actions .mm-key{ min-height:28px; }
+.mm-arrange-cell .mm-detail-head{ margin-bottom:8px; }
+.mm-arrange-cell .mm-hint{ margin:4px 0 12px; }
+.mm-section-name{ width:100%; max-width:260px; height:32px; font-weight:700; }
+.mm-bars{ display:flex; align-items:center; gap:6px; max-width:200px; }
+.mm-bars span{ flex:1; text-align:center; font:500 12.5px var(--mm-mono); }
 
 /* ---------- library and export ---------- */
 .mm-ribbon{
