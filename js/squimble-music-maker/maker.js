@@ -181,11 +181,12 @@
     return id;
   };
 
-  // moves a layer's hand added notes up or down (a new key or octave). a kit's notes are drums, so they stay
-  function moveNotes(layer, by) {
+  // moves a layer's hand added notes up or down (a new key or octave), or one part's. a kit's notes are
+  // drums, so they stay
+  function moveNotes(layer, by, only = null) {
     if (!by || roleFamily(layer.role) !== 'tonal') return;
     const pitch = (midi) => Math.min(127, Math.max(0, midi + by));
-    for (const changes of Object.values(layer.edits)) {
+    for (const changes of only ? [layer.edits[only]].filter(Boolean) : Object.values(layer.edits)) {
       changes.add = changes.add.map((raw) => {
         const one = unpackEdit(raw);
         return packEdit({ ...one, midi: pitch(one.midi), to: pitch(one.to) });
@@ -195,11 +196,13 @@
 
   // a written layer's notes, as they play now, become its own (layer.hand), so they stay put when the
   // chords or mood change. each part's notes come from the first section that plays it. ornaments are
-  // left off but plain slides, and each note keeps its strength and palm mute
-  function takeNotes(layer) {
-    if (layer.hand || roleFamily(layer.role) === 'texture') return;
-    layer.edits = {};
-    for (const part of EVERY_PART) {
+  // left off but plain slides, and each note keeps its strength and palm mute. only: just that part's
+  // (the caller makes the part hand played)
+  function takeNotes(layer, only = null) {
+    if ((only ? partLayer(layer, only) : layer).hand || roleFamily(layer.role) === 'texture') return;
+    if (only) delete layer.edits[only];
+    else layer.edits = {};
+    for (const part of only ? [only] : EVERY_PART) {
       // (a section in the song's own key if there is one: lifted notes are taken back down, as they'll be
       // lifted again where they play)
       const playing = comp.sections.filter((one) => partOf(one, layer) === part && one.play.includes(layer.id) && one.lead !== layer.id);
@@ -215,7 +218,7 @@
       });
       if (add.length) layer.edits[part] = { add, remove: [] };
     }
-    layer.hand = true;
+    if (!only) layer.hand = true;
   }
 
   // the parts a layer plays somewhere (partOf: its section's, or one picked for it in the arrange grid)
@@ -1055,9 +1058,10 @@
   }
 
   // the instruments doubling a layer (layer.with): a key each to take it off, and a menu to add another
-  // (recorded only, three at most)
+  // (recorded only, three at most). everywhere: a first doubler plays wherever the layer does (one part,
+  // doubled on purpose, shouldn't wait for a loud section)
   const OCTAVE_WORDS = { '-2': ', two octaves down', '-1': ', an octave down', 1: ', an octave up', 2: ', two octaves up' };
-  function doublesEditor(layer) {
+  function doublesEditor(layer, everywhere = false) {
     const box = make('div', 'mm-doubles');
     for (const one of layer.with || []) {
       const name = `${INSTRUMENTS[one.instrument].name}${OCTAVE_WORDS[one.octave || 0] || ''}`;
@@ -1083,7 +1087,10 @@
       pick.addEventListener('change', () => {
         if (!pick.value) return;
         const added = { instrument: pick.value, ...(+octave.value ? { octave: +octave.value } : {}) };
-        edit(() => { layer.with = [...(layer.with || []), added]; })();
+        edit(() => {
+          if (everywhere && !layer.with) layer.doubleAll = true;
+          layer.with = [...(layer.with || []), added];
+        })();
         // the new doubler's recordings load as the song's do (songSamples), then it joins in
         player.audition(song, { ...layer, instrument: added.instrument, with: undefined }, [ROLES[layer.role].center + (layer.octave + (added.octave || 0)) * 12], 1.5);
       });
@@ -1164,6 +1171,105 @@
     return [grid];
   }
 
+  // a layer as one of its parts, for the controls: reading gives the part's own setting where it has one
+  // (partLayer in music.js), writing gives it one, so the same controls work on a part as on a layer
+  function partView(layer, part) {
+    const own = () => ((layer.byPart ||= {})[part] ||= {});
+    const read = (key) => (PART_KEYS.includes(key) && layer.byPart?.[part] && key in layer.byPart[part] ? (layer.byPart[part][key] === PART_NONE ? undefined : layer.byPart[part][key]) : layer[key]);
+    return new Proxy(layer, {
+      get: (_, key) => read(key),
+      set: (_, key, value) => {
+        if (PART_KEYS.includes(key)) own()[key] = value;
+        else layer[key] = value;
+        return true;
+      },
+      // (PART_NONE: the part has none, where the layer may have one)
+      deleteProperty: (_, key) => {
+        if (PART_KEYS.includes(key)) own()[key] = PART_NONE;
+        else delete layer[key];
+        return true;
+      },
+      ownKeys: () => [...new Set([...Object.keys(layer), ...Object.keys(layer.byPart?.[part] || {})])],
+      getOwnPropertyDescriptor: (_, key) => ({ configurable: true, enumerable: true, writable: true, value: read(key) }),
+    });
+  }
+
+  // what a layer sounds like and plays, and its mix: the band tab's controls for the whole layer, or under
+  // the arrange grid for one of its parts (part), which then gets settings of its own
+  function soundControls(layer, part = null) {
+    const target = part ? partView(layer, part) : layer;
+    const role = ROLES[layer.role];
+    const family = roleFamily(layer.role);
+    const sound = section('Sound', field('Instrument', instrumentSelect(target), 'Instrument: what plays this layer. Any instrument can play any part'));
+    if (recordingsOf(INSTRUMENTS[target.instrument]).length > 1) {
+      sound.append(field('Recording', recordingSelect(target), 'Recording: this instrument was recorded more than once, by different people on different instruments. Try each, they all have their own character'));
+    }
+    if (family === 'tonal') {
+      sound.append(field('Doubled by', doublesEditor(target, !!part), 'Doubled by: other instruments playing this part with it, the way an orchestra puts a flute with the violins, or a choir sings the tune in sections. Only recorded instruments double'));
+      if (target.with) {
+        const everywhere = target.doubleAll ?? !!CHOIRS[target.instrument];
+        sound.append(field('Doubled', choices([['loud', 'Loud parts', 'Doubled only in the loud sections, so the tune grows as the song does'], ['all', 'Everywhere', 'Doubled the whole way through']], () => (everywhere ? 'all' : 'loud'), (value) => edit(() => { target.doubleAll = value === 'all'; })(), 'Where it is doubled'), 'Where the doubling plays'));
+      }
+    }
+    // what it plays: only your notes (hand), or a pattern with your added notes on top
+    if (family !== 'texture') {
+      const options = [
+        ['hand', 'My notes', 'My notes: it plays only the notes you draw or record, nothing written for you'],
+        ...Object.entries(PATTERNS[layer.role]).map(([id, name]) => [id, name, PATTERN_TIPS[`${layer.role}.${id}`] || `${name}: a ${role.name.toLowerCase()} part written for you, following the chords, plus any notes you add`]),
+      ];
+      sound.append(field('Plays', choices(options, () => (target.hand ? 'hand' : target.pattern), (value) => edit(() => {
+        // a part of a written layer turned to my notes starts with the notes it played
+        if (part) {
+          if (value === 'hand') {
+            takeNotes(layer, part);
+            target.hand = true;
+          } else {
+            delete target.hand;
+            target.pattern = value;
+          }
+          return;
+        }
+        // a layer that took the tune hands it back: the melody plays again wherever it was playing it
+        const melody = song.layers.find((one) => one.role === 'melody');
+        if (melody && layer.role === 'counter' && carries(layer) && value !== 'tune') {
+          for (const one of song.sections) if (one.play.includes(layer.id) && !one.lead && !one.play.includes(melody.id)) one.play.push(melody.id);
+        }
+        if (value === 'hand') layer.hand = true;
+        else {
+          delete layer.hand;
+          layer.pattern = value;
+        }
+        // and one that takes or doubles it gets the tune handed round (passTune in music.js)
+        if (carries(layer)) {
+          for (const one of song.sections) if (melody && one.play.includes(melody.id) && !one.lead && !one.play.includes(layer.id)) one.play.push(layer.id);
+          passTune(song);
+        }
+      })(), 'Pattern'), part ? `What part ${part} plays: your own notes, or a part written for it` : 'What this layer plays: your own notes, or a part written for it'));
+    }
+    if (!target.hand && usesRate(target)) sound.append(field('Speed', choices(Object.entries(RATES).map(([id, name]) => [id, name, `${name} notes`]), () => target.rate, (value) => edit(() => { target.rate = value; })(), 'Speed'), 'How fast the notes go'));
+    if (!part && !layer.hand && layer.role === 'arp') sound.append(slider({ label: 'Range', tip: 'Range: how many octaves the arp climbs', min: 1, max: 3, step: 1, get: () => layer.span, set: (v) => { layer.span = v; }, format: (v) => `${v} octave${v > 1 ? 's' : ''}` }));
+    // (notes of your own move with it)
+    if (family === 'tonal') {
+      sound.append(slider({
+        label: 'Octave', tip: target.hand ? 'Octave: move your notes, and the keyboard, up or down' : 'Octave: move it up or down', min: -2, max: 2, step: 1, get: () => target.octave,
+        set: (v) => {
+          if (target.hand) moveNotes(layer, (v - target.octave) * 12, part);
+          target.octave = v;
+        },
+        format: (v) => (v > 0 ? `+${v}` : `${v}`),
+      }));
+    }
+    if (!target.hand && family !== 'texture' && layer.role !== 'drone') sound.append(slider({ label: 'Busy', tip: 'Busy: how many notes it plays. Low is sparse and spacious, high is lively', min: 0, max: 1, get: () => target.density, set: (v) => { target.density = v; }, format: percent }));
+
+    const mix = section('Mix',
+      slider({ label: 'Volume', tip: 'Volume', min: 0, max: 1, get: () => target.volume, set: (v) => { target.volume = v; }, format: percent, kind: 'mix' }),
+      slider({ label: 'Pan', tip: 'Pan: left or right', min: -1, max: 1, get: () => target.pan, set: (v) => { target.pan = v; }, format: (v) => (Math.abs(v) < 0.02 ? 'centre' : `${Math.round(Math.abs(v) * 100)}% ${v < 0 ? 'left' : 'right'}`), kind: 'mix' }),
+      slider({ label: 'Reverb', tip: 'Reverb: how much of it goes into the room (set the room up in the Room tab)', min: 0, max: 1, get: () => target.reverb, set: (v) => { target.reverb = v; }, format: percent, kind: 'mix' }),
+      slider({ label: 'Echo', tip: 'Echo: how much of it bounces back', min: 0, max: 1, get: () => target.echo, set: (v) => { target.echo = v; }, format: percent, kind: 'mix' }),
+    );
+    return [sound, mix];
+  }
+
   function layerDetail(layer) {
     const detail = make('div', 'mm-detail');
     const role = ROLES[layer.role];
@@ -1201,62 +1307,10 @@
     }, 'mm-key-small mm-key-line'));
     head.append(actions);
 
-    const sound = section('Sound', field('Instrument', instrumentSelect(layer), 'Instrument: what plays this layer. Any instrument can play any part'));
-    if (recordingsOf(INSTRUMENTS[layer.instrument]).length > 1) {
-      sound.append(field('Recording', recordingSelect(layer), 'Recording: this instrument was recorded more than once, by different people on different instruments. Try each, they all have their own character'));
-    }
-    if (family === 'tonal') {
-      sound.append(field('Doubled by', doublesEditor(layer), 'Doubled by: other instruments playing this part with it, the way an orchestra puts a flute with the violins, or a choir sings the tune in sections. Only recorded instruments double'));
-      if (layer.with) {
-        const everywhere = layer.doubleAll ?? !!CHOIRS[layer.instrument];
-        sound.append(field('Doubled', choices([['loud', 'Loud parts', 'Doubled only in the loud sections, so the tune grows as the song does'], ['all', 'Everywhere', 'Doubled the whole way through']], () => (everywhere ? 'all' : 'loud'), (value) => edit(() => { layer.doubleAll = value === 'all'; })(), 'Where it is doubled'), 'Where the doubling plays'));
-      }
-    }
-    // what it plays: only your notes (layer.hand), or a pattern with your added notes on top
-    if (family !== 'texture') {
-      const options = [
-        ['hand', 'My notes', 'My notes: it plays only the notes you draw or record, nothing written for you'],
-        ...Object.entries(PATTERNS[layer.role]).map(([id, name]) => [id, name, PATTERN_TIPS[`${layer.role}.${id}`] || `${name}: a ${role.name.toLowerCase()} part written for you, following the chords, plus any notes you add`]),
-      ];
-      sound.append(field('Plays', choices(options, () => (layer.hand ? 'hand' : layer.pattern), (value) => edit(() => {
-        // a layer that took the tune hands it back: the melody plays again wherever it was playing it
-        const melody = song.layers.find((one) => one.role === 'melody');
-        if (melody && layer.role === 'counter' && carries(layer) && value !== 'tune') {
-          for (const one of song.sections) if (one.play.includes(layer.id) && !one.lead && !one.play.includes(melody.id)) one.play.push(melody.id);
-        }
-        if (value === 'hand') layer.hand = true;
-        else {
-          delete layer.hand;
-          layer.pattern = value;
-        }
-        // and one that takes or doubles it gets the tune handed round (passTune in music.js)
-        if (carries(layer)) {
-          for (const one of song.sections) if (melody && one.play.includes(melody.id) && !one.lead && !one.play.includes(layer.id)) one.play.push(layer.id);
-          passTune(song);
-        }
-      })(), 'Pattern'), 'What this layer plays: your own notes, or a part written for it'));
-    }
-    if (!layer.hand && usesRate(layer)) sound.append(field('Speed', choices(Object.entries(RATES).map(([id, name]) => [id, name, `${name} notes`]), () => layer.rate, (value) => edit(() => { layer.rate = value; })(), 'Speed'), 'How fast the notes go'));
-    if (!layer.hand && layer.role === 'arp') sound.append(slider({ label: 'Range', tip: 'Range: how many octaves the arp climbs', min: 1, max: 3, step: 1, get: () => layer.span, set: (v) => { layer.span = v; }, format: (v) => `${v} octave${v > 1 ? 's' : ''}` }));
-    // (on a layer of your own notes, they move with it)
-    if (family === 'tonal') {
-      sound.append(slider({
-        label: 'Octave', tip: layer.hand ? 'Octave: move your notes, and the keyboard, up or down' : 'Octave: move it up or down', min: -2, max: 2, step: 1, get: () => layer.octave,
-        set: (v) => {
-          if (layer.hand) moveNotes(layer, (v - layer.octave) * 12);
-          layer.octave = v;
-        },
-        format: (v) => (v > 0 ? `+${v}` : `${v}`),
-      }));
-    }
-    if (!layer.hand && family !== 'texture' && layer.role !== 'drone') sound.append(slider({ label: 'Busy', tip: 'Busy: how many notes it plays. Low is sparse and spacious, high is lively', min: 0, max: 1, get: () => layer.density, set: (v) => { layer.density = v; }, format: percent }));
-
-    const mix = section('Mix',
-      slider({ label: 'Volume', tip: 'Volume', min: 0, max: 1, get: () => layer.volume, set: (v) => { layer.volume = v; }, format: percent, kind: 'mix' }),
-      slider({ label: 'Pan', tip: 'Pan: left or right', min: -1, max: 1, get: () => layer.pan, set: (v) => { layer.pan = v; }, format: (v) => (Math.abs(v) < 0.02 ? 'centre' : `${Math.round(Math.abs(v) * 100)}% ${v < 0 ? 'left' : 'right'}`), kind: 'mix' }),
-      slider({ label: 'Reverb', tip: 'Reverb: how much of it goes into the room (set the room up in the Room tab)', min: 0, max: 1, get: () => layer.reverb, set: (v) => { layer.reverb = v; }, format: percent, kind: 'mix' }),
-      slider({ label: 'Echo', tip: 'Echo: how much of it bounces back', min: 0, max: 1, get: () => layer.echo, set: (v) => { layer.echo = v; }, format: percent, kind: 'mix' }),
-    );
+    const [sound, mix] = soundControls(layer);
+    // parts with settings of their own (set under the arrange grid) say so here, as these don't reach them
+    const own = Object.keys(layer.byPart || {});
+    if (own.length) sound.firstChild.after(make('p', 'mm-hint', `Part${own.length > 1 ? 's' : ''} ${own.join(', ')} ${own.length > 1 ? 'have' : 'has'} settings of ${own.length > 1 ? 'their' : 'its'} own, which win over these where ${own.length > 1 ? 'they play' : 'it plays'}. Change them under the Arrange grid.`));
     // brightness is a power of two, so the middle of the slider is the instrument as made
     const bright = slider({ label: 'Brightness', tip: 'Brightness: duller to the left, sharper and buzzier to the right', min: -2, max: 2, get: () => Math.log2(layer.tone.bright), set: (v) => { layer.tone.bright = 2 ** v; }, format: (v) => `x${(2 ** v).toFixed(2)}`, kind: 'mix' });
     const tone = section('Tone');
@@ -1306,9 +1360,11 @@
       }, 'Part'));
     }
     const changes = layer.edits[editPart];
+    // (the part as it plays: it can be my notes, or another octave, where the layer isn't: partLayer)
+    const as = partLayer(layer, editPart);
     // new notes for this part only (rerollLayerPart). not on a part that plays the melody's line, nor on
     // an older composer's song, which doesn't know about part seeds
-    if (!layer.hand && !carries(layer) && (song.composer || 1) === COMPOSER) {
+    if (!as.hand && !carries(layer) && (song.composer || 1) === COMPOSER) {
       head.append(key(`Rewrite part ${editPart}`, `New notes for part ${editPart} only (${named(editPart)}), grown from the same idea as the rest of the ${ROLES[layer.role].name.toLowerCase()}, so it still sounds like this song. The other parts stay as they are${changes ? ', and notes you changed here go' : ''}. Press again for another`, () => {
         const next = rerollLayerPart(song, layer.id, editPart, Math.random());
         if (!next) return say(`This ${ROLES[layer.role].name.toLowerCase()} plays part ${editPart}'s chords as they come, so there's nothing new to write. New chords for part ${editPart} (Song tab) or another pattern will change it.`);
@@ -1318,18 +1374,10 @@
         changed();
       }, 'mm-key-small mm-key-line'));
     }
-    if (changes && layer.hand) {
-      // a part of your own can be copied over another part, or cleared. under the arrange grid, it can be
-      // copied to a new part played in the section, to change there without changing it anywhere else
+    if (changes && as.hand) {
+      // a part of your own can be copied over another part, or cleared
       for (const other of parts.filter((one) => one !== editPart)) {
         head.append(key(`Copy to ${other}`, `Copy part ${editPart}'s notes into part ${other}, in place of what's there`, edit(() => { layer.edits[other] = clone(changes); }), 'mm-key-small mm-key-line'));
-      }
-      const fresh = here && newPart(layer);
-      if (fresh) {
-        head.append(key(`Copy to new part ${fresh}`, `A new part ${fresh}, starting as a copy of part ${editPart}'s notes, played in ${here.name}. Change it there without changing part ${editPart} anywhere else`, edit(() => {
-          layer.edits[fresh] = clone(changes);
-          setCell(song.sections[here.index], layer, fresh);
-        }), 'mm-key-small mm-key-line'));
       }
       head.append(key('Clear', `Take out every note in part ${editPart}`, edit(() => { delete layer.edits[editPart]; }), 'mm-key-small mm-key-line'));
     } else if (changes) {
@@ -1394,10 +1442,10 @@
     // a rock kit has a seventh drum, its crash
     if (drums) rows = (INSTRUMENTS[layer.instrument]?.slots || KIT_SLOTS.slice(0, 6)).map((_, i) => i).reverse();
     else {
-      const center = ROLES[layer.role].center + layer.octave * 12;
+      const center = ROLES[layer.role].center + as.octave * 12;
       // (a part of your own gets more room: there's nothing written to show where it'll go)
-      let low = center - (layer.hand ? 14 : 10);
-      let high = center + (layer.hand ? 17 : 12);
+      let low = center - (as.hand ? 14 : 10);
+      let high = center + (as.hand ? 17 : 12);
       // (and every pitch a note bends through, so a slide's end has a row to be drawn on)
       const pitches = notes.flatMap((note) => [note.midi, ...bendPitches(note)]);
       for (const midi of pitches) {
@@ -1816,12 +1864,14 @@
         const part = partOf(section, layer);
         const solo = section.lead === layer.id;
         const tip = !on ? `The ${role.toLowerCase()} isn't playing in ${section.name}: click to put it in`
-          : `The ${role.toLowerCase()} ${solo ? 'takes a solo' : `plays part ${part}`} in ${section.name}${!solo && part !== section.part ? `, over part ${section.part}'s chords` : ''}. Click to open it below. Keys 1 to 8 pick its part, Delete or a right click takes it out`;
+          : `The ${role.toLowerCase()} ${solo ? 'takes a solo' : `plays part ${part}`} in ${section.name}${!solo && part !== section.part ? `, over part ${section.part}'s chords` : ''}. ${on && layer.byPart?.[part] ? ` (part ${part} sounds its own way: ${partWords(layer, part)})` : ''}. Click to open it below. Keys 1 to 8 pick its part, Delete or a right click takes it out`;
         const button = square(on ? (solo ? '★' : part) : '', row, index, tip, `${role} in ${section.name}: ${on ? (solo ? 'solo' : `part ${part}`) : 'not playing'}`);
         button.setAttribute('aria-pressed', on);
         button.style.setProperty('--chip', ROLES[layer.role].colour);
         button.style.setProperty('--chip-ink', inkOn(ROLES[layer.role].colour));
         if (index === pickedSection && layer.id === selected) button.classList.add('is-picked');
+        // (a part with settings of its own has a mark in its corner)
+        if (on && layer.byPart?.[part]) button.classList.add('has-own');
         button.addEventListener('click', () => {
           if (on) return pick(index, layer.id);
           remember();
@@ -1986,8 +2036,43 @@
     return box;
   }
 
-  // the picked square: which part the layer plays in the section (or a solo, or nothing), and that part's
-  // notes to change, which play everywhere the layer plays that part
+  // a layer's part in one section becomes a new part of its own: a copy, notes and settings and all, so
+  // it can change there without changing anywhere else that plays the old one. a written part's copy is
+  // written as the part it came from (layer.like), so it sounds the same until it's changed
+  function forkPart(one, layer) {
+    const from = partOf(one, layer);
+    const to = newPart(layer);
+    if (!to) return say(`The ${ROLES[layer.role].name.toLowerCase()} has every part from A to H already. Use one it doesn't play anywhere, or copy over one in the note editor.`);
+    remember();
+    if (layer.edits[from]) layer.edits[to] = clone(layer.edits[from]);
+    if (layer.byPart?.[from]) layer.byPart[to] = clone(layer.byPart[from]);
+    if (!partLayer(layer, from).hand) layer.like = { ...layer.like, [to]: writtenAs(layer, from) };
+    setCell(one, layer, to);
+    changed();
+    say(`${one.name} has its own copy of the ${ROLES[layer.role].name.toLowerCase()}'s part now, part ${to}. Change its notes or its sound here and nowhere else changes.`);
+  }
+
+  // what a part does its own way (layer.byPart), in a few words
+  function partWords(layer, part) {
+    const own = layer.byPart?.[part];
+    if (!own) return '';
+    const as = partLayer(layer, part);
+    const words = [];
+    if ('instrument' in own) words.push(`on ${INSTRUMENTS[as.instrument].name.toLowerCase()}`);
+    else if ('recording' in own) words.push('another recording');
+    if ('with' in own) words.push(as.with ? `doubled by ${as.with.map((one) => INSTRUMENTS[one.instrument].name.toLowerCase()).join(' and ')}` : 'not doubled');
+    if ('octave' in own) words.push(as.octave ? `${Math.abs(as.octave)} octave${Math.abs(as.octave) > 1 ? 's' : ''} ${as.octave > 0 ? 'up' : 'down'}` : 'in its usual octave');
+    if ('hand' in own) words.push(as.hand ? 'my notes' : 'written for it');
+    else if ('pattern' in own) words.push(`playing ${(PATTERNS[layer.role][as.pattern] || as.pattern).toLowerCase()}`);
+    if ('density' in own || 'rate' in own) words.push('busier or calmer');
+    if (['volume', 'pan', 'reverb', 'echo'].some((key) => key in own)) words.push('mixed its own way');
+    return words.join(', ');
+  }
+  // the part settings open or shut, kept while the panel's drawn again
+  let partOpen = false;
+
+  // the picked square: which part the layer plays in the section (or a solo, or nothing), then that
+  // part: where else it plays (and a key to make this one its own), how it sounds and plays, and its notes
   function cellDetail(one, own, OLD) {
     const layer = layerById(selected);
     const box = make('div', 'mm-arrange-cell');
@@ -1996,6 +2081,7 @@
       return box;
     }
     const role = ROLES[layer.role].name;
+    const name = role.toLowerCase();
     const on = one.play.includes(layer.id);
     const solo = one.lead === layer.id;
     const part = partOf(one, layer);
@@ -2008,13 +2094,13 @@
     const fresh = newPart(layer);
     const where = (letter) => [...new Set(song.sections.filter((s) => s.play.includes(layer.id) && s.lead !== layer.id && partOf(s, layer) === letter).map((s) => s.name))];
     const options = [
-      ['off', 'Off', `The ${role.toLowerCase()} doesn't play in ${one.name}`],
+      ['off', 'Off', `The ${name} doesn't play in ${one.name}`],
       ...(own ? known : [one.part]).map((letter) => {
         const sections = where(letter);
-        return [letter, `Part ${letter}`, `Part ${letter}: ${sections.length ? `the notes it plays in ${sections.join(', ')}` : layer.edits[letter] ? 'notes you wrote for it' : layer.hand ? "nothing yet, notes for you to write" : 'notes written for it'}${letter === one.part ? `. ${one.name}'s own part, so it follows its chords if they change` : ''}`];
+        return [letter, `Part ${letter}`, `Part ${letter}: ${sections.length ? `the notes it plays in ${sections.join(', ')}` : layer.edits[letter] ? 'notes you wrote for it' : partLayer(layer, letter).hand ? 'nothing yet, notes for you to write' : 'notes written for it'}${letter === one.part ? `. ${one.name}'s own part, so it follows its chords if they change` : ''}`];
       }),
-      ...(fresh ? [[fresh, `New (${fresh})`, `A part of its own for the ${role.toLowerCase()}: part ${fresh}, ${layer.hand ? 'empty, for you to write' : 'with new notes written for it'}, over ${one.name}'s chords`]] : []),
-      ...(SOLOISTS[layer.role] ? [['solo', 'Solo', `A solo: the ${role.toLowerCase()} plays a long new line here, one that never repeats, instead of its usual part`]] : []),
+      ...(fresh ? [[fresh, `New (${fresh})`, `A new part for the ${name}: part ${fresh}, ${layer.hand ? 'empty, for you to write' : 'with new notes written for it'}, over ${one.name}'s chords. To start from what it plays now, use Make it its own below instead`]] : []),
+      ...(SOLOISTS[layer.role] ? [['solo', 'Solo', `A solo: the ${name} plays a long new line here, one that never repeats, instead of its usual part`]] : []),
     ];
     const pickPart = (value) => edit(() => {
       if (value === 'off') return setCell(one, layer, null);
@@ -2022,20 +2108,55 @@
       if (value === 'solo') one.lead = layer.id;
       else if (one.lead === layer.id) delete one.lead;
     })();
-    const plays = choices(options, () => (!on ? 'off' : solo ? 'solo' : part), pickPart, 'Part');
-    box.append(head, field('Plays', plays, own ? `Which part the ${role.toLowerCase()} plays in ${one.name}` : OLD));
+    box.append(head, field('Part', choices(options, () => (!on ? 'off' : solo ? 'solo' : part), pickPart, 'Part'), own ? `Which part the ${name} plays in ${one.name}` : OLD));
     if (!on) {
-      box.append(make('p', 'mm-hint', `The ${role.toLowerCase()} isn't playing in ${one.name}. Pick a part to put it in.`));
+      box.append(make('p', 'mm-hint', `The ${name} isn't playing in ${one.name}. Pick a part to put it in.`));
       return box;
     }
     if (solo) {
       box.append(make('p', 'mm-hint', 'A solo is written new each time round, so there are no notes to draw. Pick a part to draw your own.'));
       return box;
     }
-    if (roleFamily(layer.role) === 'texture') return box;
-    const others = where(part).filter((name) => name !== one.name);
-    if (others.length) box.append(make('p', 'mm-hint', `Changes here play everywhere the ${role.toLowerCase()} plays part ${part}: ${one.name} and ${others.join(', ')}.`));
-    box.append(noteEditor(layer, comp.sections[pickedSection]));
+
+    // where else this part plays, and the way to change it here only
+    const others = where(part).filter((other) => other !== one.name);
+    const shared = make('div', 'mm-part-shared');
+    shared.append(make('p', 'mm-hint', others.length
+      ? `Part ${part} plays in ${others.join(', ')} too, so a change here changes ${others.length > 1 ? 'those' : 'that'} as well. To change ${one.name} on its own, make it its own part.`
+      : `Only ${one.name} plays part ${part}, so changes here are ${one.name}'s alone.`));
+    if (fresh) {
+      shared.append(key(`Make it its own (part ${fresh})`, `${one.name} gets its own copy of part ${part}, called part ${fresh}: the same notes and sound to start with, to change here without changing ${others.length ? others.join(', ') : 'anywhere else'}`, () => forkPart(one, layer), others.length ? 'mm-key-small' : 'mm-key-small mm-key-line'));
+    }
+    box.append(shared);
+    // (an older composer's song has no part settings)
+    if (!own) {
+      box.append(noteEditor(layer, comp.sections[pickedSection]));
+      return box;
+    }
+
+    // how the part sounds and plays: like the rest of the layer, or its own way (byPart)
+    const settings = make('details', 'mm-part-settings');
+    settings.open = partOpen;
+    settings.addEventListener('toggle', () => { partOpen = settings.open; });
+    const words = partWords(layer, part);
+    const summary = make('summary');
+    summary.append(make('b', '', `Part ${part}'s sound and playing:`), make('span', '', words ? `its own, ${words}` : `the same as the rest of the ${name}`));
+    summary.dataset.tip = `Open to give part ${part} its own instrument, doubling, octave, pattern or mix. Wherever the ${name} plays part ${part}, it plays it that way`;
+    settings.append(summary);
+    const body = make('div', 'mm-part-body');
+    body.append(make('p', 'mm-hint', `These are for part ${part} only${others.length ? ` (${[one.name, ...others].join(', ')})` : ''}. Anything left alone follows the ${name}'s settings in the Band tab.`));
+    const columns = make('div', 'mm-columns');
+    columns.append(...soundControls(layer, part));
+    body.append(columns);
+    if (layer.byPart?.[part]) {
+      body.append(key(`Back to the ${name}'s settings`, `Part ${part} sounds and plays like the rest of the ${name} again`, edit(() => {
+        delete layer.byPart[part];
+        if (!Object.keys(layer.byPart).length) delete layer.byPart;
+      }), 'mm-key-small mm-key-line'));
+    }
+    settings.append(body);
+    box.append(settings);
+    if (roleFamily(layer.role) !== 'texture') box.append(noteEditor(layer, comp.sections[pickedSection]));
     return box;
   }
 
@@ -2103,7 +2224,11 @@
   const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 
   // the player's copy of the song, slower at a practice speed. the song itself keeps its tempo
-  const load = () => player.load(practice === 1 ? song : { ...song, tempo: song.tempo * practice }, comp);
+  // (a part with settings of its own plays as a layer of its own: playable in music.js)
+  const load = () => {
+    const played = playable(practice === 1 ? song : { ...song, tempo: song.tempo * practice }, comp);
+    player.load(played.song, played.comp);
+  };
 
   function learnPanel() {
     const tonal = song.layers.filter((layer) => roleFamily(layer.role) === 'tonal');
@@ -3053,7 +3178,8 @@
     for (const button of wavKeys) button.disabled = true;
     status.textContent = 'Recording... a few seconds for a long song.';
     try {
-      const blob = await renderSong(song, comp, loop);
+      const played = playable(song, comp);
+      const blob = await renderSong(played.song, played.comp, loop);
       download(blob, `${fileName(song.name)}${loop ? '-loop' : ''}.wav`);
       status.textContent = `Downloaded ${fileName(song.name)}${loop ? '-loop' : ''}.wav.`;
     } catch (error) {

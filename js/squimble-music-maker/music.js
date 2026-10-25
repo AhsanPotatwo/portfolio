@@ -361,6 +361,26 @@ const PARTS = ['A', 'B', 'C'];
 const EVERY_PART = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 // the part a layer plays in a section: the section's own unless it was given another
 const partOf = (section, layer) => section.use?.[layer.id] || section.part;
+// a layer's settings one of its parts can have its own of (layer.byPart): its sound, and what it plays.
+// anything else (its seed, its notes, its tone) stays the layer's
+const PART_KEYS = ['instrument', 'recording', 'with', 'doubleAll', 'octave', 'volume', 'pan', 'reverb', 'echo', 'pattern', 'density', 'rate', 'hand'];
+// what a part keeps where it has none of a setting the layer has (a recording, doublers). a word, not
+// null, since a link's changes read null as a key taken away (withChanges)
+const PART_NONE = 'none';
+// a layer as it plays one of its parts: the part's own settings over its own
+function partLayer(layer, part) {
+  const own = layer.byPart?.[part];
+  if (!own) return layer;
+  const out = { ...layer };
+  for (const [key, value] of Object.entries(own)) {
+    if (value === PART_NONE) delete out[key];
+    else out[key] = value;
+  }
+  return out;
+}
+// the part a layer's part is written as: a copied part (layer.like) plays the notes of the part it was
+// copied from, until it's rewritten (partSeeds) and becomes its own
+const writtenAs = (layer, part) => (!layer.partSeeds?.[part] && layer.like?.[part]) || part;
 
 // a roman numeral chord, like "bVII", "iv", "ii°", "Imaj7" or "Vsus4". upper case is major, lower
 // case minor, and b or # moves it a semitone. root is in semitones above the key, tones in
@@ -1216,6 +1236,8 @@ function rerollLayerPart(song, id, part, nonce) {
     if (!layer) return null;
     layer.partSeeds = { ...layer.partSeeds, [part]: newToken(rng) };
     delete layer.edits[part];
+    // (a copied part rewritten is its own now)
+    if (layer.like) delete layer.like[part];
     if (written(next) !== before) return cleanSong(next);
   }
   return null;
@@ -1865,14 +1887,40 @@ function pickDoubles(song, rng) {
   }
 }
 // where a layer's doublers play (note.double): a choir's everywhere, anything else in the loud
-// sections, unless the page says otherwise (layer.doubleAll)
-function markDoubles(layer, notes, sections, from = DOUBLE_ENERGY) {
-  if (!layer.with) return;
-  const everywhere = layer.doubleAll ?? !!CHOIRS[layer.instrument];
+// sections, unless the page says otherwise (layer.doubleAll). a part can be doubled its own way (byPart)
+function markDoubles(whole, notes, sections, from = DOUBLE_ENERGY) {
+  if (!whole.with && !whole.byPart) return;
+  const at = (t) => sections.find((one) => t >= one.start - 1e-6 && t < one.end - 1e-6);
   for (const note of notes) {
-    const section = sections.find((one) => note.t >= one.start - 1e-6 && note.t < one.end - 1e-6);
-    if (everywhere || (section?.energy ?? 0.75) >= from) note.double = true;
+    // (loudness by where it's heard, as it always was; its part by where it's written, gt, since a note
+    // played a touch early belongs to its own section's part)
+    const section = at(note.t);
+    const home = at(note.gt ?? note.t);
+    const layer = home ? partLayer(whole, partOf(home, whole)) : whole;
+    if (!layer.with) continue;
+    if ((layer.doubleAll ?? !!CHOIRS[layer.instrument]) || (section?.energy ?? 0.75) >= from) note.double = true;
   }
+}
+
+// what the player plays: a part with settings of its own (byPart) plays as a layer of its own, its
+// notes moved onto it, so the player and a wav need nothing new. (the score, the editor and the learn
+// tab keep to comp, where every note is its layer's)
+function playable(song, comp) {
+  if (!song.layers.some((layer) => layer.byPart) || (song.composer || 1) !== COMPOSER) return { song, comp };
+  const moved = {};
+  const more = [];
+  for (const layer of song.layers) {
+    for (const part of Object.keys(layer.byPart || {})) {
+      moved[`${layer.id}|${part}`] = `${layer.id}~${part}`;
+      more.push({ ...partLayer(layer, part), id: `${layer.id}~${part}` });
+    }
+  }
+  const notes = comp.notes.map((note) => {
+    const section = comp.sections.find((one) => note.gt < one.end - 1e-6) || comp.sections[comp.sections.length - 1];
+    const id = moved[`${note.layer}|${partOf(section, { id: note.layer })}`];
+    return id ? { ...note, layer: id } : note;
+  });
+  return { song: { ...song, layers: [...song.layers, ...more] }, comp: { ...comp, notes } };
 }
 
 // ---------- the sustain pedal ----------
@@ -2103,6 +2151,21 @@ function cleanSong(data) {
       const remove = (Array.isArray(edit.remove) ? edit.remove.slice(0, 4000) : []).filter((key) => typeof key === 'string' && /^[\d.]+:\d+$/.test(key));
       if (add.length || remove.length) layer.edits[part] = { add, remove };
     }
+    // parts with settings of their own (partLayer): each cleaned as a layer would be, keeping only what
+    // differs from the layer's (PART_NONE: it has none of something the layer has, like a recording)
+    const byPart = {};
+    for (const part of EVERY_PART) {
+      const own = raw.byPart?.[part];
+      if (!own || typeof own !== 'object') continue;
+      const picked = Object.fromEntries(PART_KEYS.filter((key) => key in own).map((key) => [key, own[key] === PART_NONE ? undefined : own[key]]));
+      const [as] = cleanSong({ layers: [{ ...raw, ...picked, byPart: undefined, edits: undefined }] }).layers;
+      const differs = PART_KEYS.filter((key) => JSON.stringify(as[key] ?? null) !== JSON.stringify(layer[key] ?? null));
+      if (differs.length) byPart[part] = Object.fromEntries(differs.map((key) => [key, as[key] ?? PART_NONE]));
+    }
+    if (Object.keys(byPart).length) layer.byPart = byPart;
+    // parts copied from another, playing its notes (writtenAs)
+    const like = Object.entries(raw.like && typeof raw.like === 'object' ? raw.like : {}).filter(([to, from]) => EVERY_PART.includes(to) && EVERY_PART.includes(from) && to !== from);
+    if (like.length) layer.like = Object.fromEntries(like);
     song.layers.push(layer);
   }
   for (const raw of Array.isArray(d.sections) ? d.sections.slice(0, 64) : []) {
@@ -2233,24 +2296,30 @@ function composeSong(song) {
   const grooves = {};
   for (const part of PARTS) grooves[part] = grooveFor(song, part);
   // the sections as one layer sees them: a layer given other parts (section.use) plays each section as
-  // the part it plays there, counting its own times round, and hears the sections either side that way
+  // the part it plays there, counting its own times round, and hears the sections either side that way.
+  // own: the part it plays, whose notes changed by hand and settings it has; part: the part it's written
+  // as (a copied part is written as the one it was copied from, writtenAs)
   const seen = {};
   const sectionsOf = (layer) => {
     if (!seen[layer.id]) {
       const takes = {};
-      seen[layer.id] = !sections.some((one) => one.use?.[layer.id]) ? sections : sections.map((one) => {
-        const part = partOf(one, layer);
+      seen[layer.id] = !layer.like && !sections.some((one) => one.use?.[layer.id]) ? sections : sections.map((one) => {
+        const own = partOf(one, layer);
+        const part = writtenAs(layer, own);
         takes[part] = (takes[part] ?? -1) + 1;
-        return { ...one, part, take: takes[part] };
+        return { ...one, own, part, take: takes[part] };
       });
     }
     return seen[layer.id];
   };
   // one layer's notes for one section: its composer's (or its solo, or none if it's played by hand),
-  // then its hand edits. but: anything the section's changed by for this once (another take, no solo)
-  const write = (layer, raw, but) => {
-    const mine = sectionsOf(layer);
+  // then its hand edits. but: anything the section's changed by for this once (another take, no solo).
+  // the layer plays the section as its part there has it (partLayer: another instrument, octave...)
+  const write = (whole, raw, but) => {
+    const mine = sectionsOf(whole);
     const section = but ? { ...mine[raw.index], ...but } : mine[raw.index];
+    const own = section.own ?? section.part;
+    const layer = partLayer(whole, own);
     const c = {
       song, layer, section, meter, scalePcs, mood, weave,
       groove: grooves[section.part] ??= grooveFor(song, section.part),
@@ -2269,7 +2338,7 @@ function composeSong(song) {
       // the melody's line for this section, playing or not: what a layer taking or doubling the tune
       // plays. written afresh each time, since listen, ornament and feel change notes in place. take: as
       // it went some other time round its part (0, the first)
-      line: (take = section.take) => (melodyLayer && melodyLayer !== layer ? write(melodyLayer, raw, { take, lead: null }) : []),
+      line: (take = section.take) => (melodyLayer && melodyLayer !== whole ? write(melodyLayer, raw, { take, lead: null }) : []),
     };
     c.tonic = near(song.key, c.center);
     // a solo is its own line, so the part's hand edits don't apply to it
@@ -2295,7 +2364,7 @@ function composeSong(song) {
         while (note.midi < range[0]) note.midi += 12;
       }
     }
-    if (!leading) made = applyEdits(made, layer.edits[section.part], section);
+    if (!leading) made = applyEdits(made, layer.edits[own], section);
     return made;
   };
   // everyone writes their part, then the band listens (listen, on the grid), then plays it with feel

@@ -555,7 +555,28 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-arrange-chords .mm-cell{ height:22px; font-size:12px; color:var(--mm-paper-ink); }
 .mm-cell.is-picked{ outline:2px solid var(--mm-paper); outline-offset:2px; }
 .mm-cell:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:2px; }
+/* a part with settings of its own: a folded corner */
+.mm-cell.has-own{ background:linear-gradient(225deg, var(--mm-paper) 7px, var(--chip) 7px); }
 .mm-arrange-more{ vertical-align:top !important; }
+/* the picked square's part: where else it plays, then its sound and playing, folded away */
+.mm-part-shared{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin:6px 0 12px; }
+.mm-part-shared .mm-hint{ flex:1 1 320px; margin:0; }
+.mm-part-settings{ margin:0 0 16px; background:var(--mm-dark); border-radius:4px; }
+.mm-part-settings summary{
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 6px;
+  padding:10px 14px;
+  font-size:14px;
+  color:var(--mm-muted);
+  cursor:pointer;
+  list-style:none;
+}
+.mm-part-settings summary::-webkit-details-marker{ display:none; }
+.mm-part-settings summary::before{ content:"+"; width:14px; font:700 14px var(--mm-mono); color:var(--mm-mood); }
+.mm-part-settings[open] summary::before{ content:"\2212"; }
+.mm-part-settings summary b{ color:var(--mm-text); }
+.mm-part-settings summary:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:-2px; }
+.mm-part-body{ padding:0 14px 14px; }
+.mm-part-body > .mm-hint{ margin:0 0 12px; }
 .mm-arrange-hint{ margin-top:12px; }
 .mm-arrange-detail, .mm-arrange-cell{ margin-top:18px; padding-top:14px; border-top:2px solid var(--mm-line); }
 .mm-arrange-detail .mm-detail-head{ margin-bottom:8px; }

@@ -742,6 +742,57 @@ block('a part per layer', () => {
   for (let i = 0; i < written.sections.length; i++) if (i !== at && written.sections[i].part !== 'A') assert.strictEqual(notesIn(after, i), notesIn(before, i), 'other parts stay as they were');
 });
 
+// a part copied to a new one plays the same notes (layer.like) until it's rewritten, and a part can have
+// settings of its own (layer.byPart): doubled in one section only, or another octave, played as a layer
+// of its own (playable)
+block('copied parts and their own settings', () => {
+  const { playable, partLayer, rerollLayerPart } = vm.runInContext('({ playable, partLayer, rerollLayerPart })', page);
+  const clone = (thing) => JSON.parse(JSON.stringify(thing));
+  let song;
+  for (let n = 0; !song || song.layers.find((l) => l.role === 'melody').pattern === 'riff'; n++) song = generateSong('heroic', 'tune', `copied-${n}`);
+  const lead = song.layers.find((l) => l.role === 'melody');
+  const twice = song.sections.map((_, i) => i).filter((i) => song.sections[i].part === song.sections.find((s) => s.play.includes(lead.id) && !s.lead).part && song.sections[i].play.includes(lead.id) && !song.sections[i].lead);
+  assert(twice.length >= 2, 'a melody part played twice to test with');
+  const at = twice[twice.length - 1];
+  const before = composeSong(song);
+  const midis = (comp, i, id = lead.id) => comp.notes.filter((n) => n.layer === id && n.gt >= comp.sections[i].start && n.gt < comp.sections[i].end).map((n) => `${n.gt.toFixed(2)}:${n.midi}`).join();
+  const copy = clone(song);
+  copy.sections[at].use = { [lead.id]: 'D' };
+  copy.layers.find((l) => l.id === lead.id).like = { D: song.sections[at].part };
+  const copied = cleanSong(copy);
+  assert.strictEqual(copied.layers.find((l) => l.id === lead.id).like.D, song.sections[at].part, 'like is kept');
+  assert.strictEqual(midis(composeSong(copied), at), midis(before, at), 'a copied part plays the same notes where it was copied');
+  for (const i of twice) assert.strictEqual(midis(composeSong(copied), i), midis(before, i), 'and so do the other sections');
+  // doubled and an octave up in that section only
+  copied.layers.find((l) => l.id === lead.id).byPart = { D: { with: [{ instrument: 'strings' }], doubleAll: true, octave: 1, volume: 0.9, recording: 'none' } };
+  const own = cleanSong(copied);
+  const by = own.layers.find((l) => l.id === lead.id).byPart.D;
+  assert(by.with && by.octave === 1 && by.volume === 0.9, `byPart keeps what differs (${JSON.stringify(by)})`);
+  assert(!('recording' in by) || lead.recording, 'and only nulls what the layer has');
+  const comp = composeSong(own);
+  const notesAt = (i) => comp.notes.filter((n) => n.layer === lead.id && n.gt >= comp.sections[i].start && n.gt < comp.sections[i].end);
+  assert(notesAt(at).length && notesAt(at).every((n) => n.double), 'doubled where it plays part D');
+  assert(twice.filter((i) => i !== at).every((i) => notesAt(i).every((n) => !n.double) || lead.with), 'not where it plays the old part');
+  const high = (i) => notesAt(i).reduce((sum, n) => sum + n.midi, 0) / notesAt(i).length;
+  assert(high(at) > high(twice[0]) + 8, 'an octave up there');
+  const played = playable(own, comp);
+  assert(played.song.layers.some((l) => l.id === `${lead.id}~D` && l.volume === 0.9 && l.with), 'the player gets part D as a layer of its own');
+  assert(played.comp.notes.filter((n) => n.layer === `${lead.id}~D`).length === notesAt(at).length, "with part D's notes");
+  assert.strictEqual(playable(song, before).comp, before, 'a song with no part settings plays as it is');
+  assert.strictEqual(partLayer(lead, 'A'), lead, 'a part with none is the layer');
+  assert(!partLayer({ ...lead, with: [{ instrument: 'strings' }], byPart: { E: { with: 'none' } } }, 'E').with, "'none' takes a setting away from a part");
+  // a link carries it all (a link's changes read null as a key taken away, hence 'none')
+  const { songChanges, withChanges } = vm.runInContext('({ songChanges, withChanges })', page);
+  const doubled = cleanSong({ ...own, layers: own.layers.map((l) => (l.id === lead.id ? { ...l, with: [{ instrument: 'strings' }], byPart: { ...l.byPart, E: { with: 'none' } } } : l)) });
+  assert.strictEqual(JSON.stringify(cleanSong(withChanges(song, songChanges(song, doubled)))), JSON.stringify(doubled), 'a link round trips copied parts and their settings');
+  // rewritten, the copy is its own
+  const rewritten = rerollLayerPart(own, lead.id, 'D', 0.4);
+  assert(rewritten && !rewritten.layers.find((l) => l.id === lead.id).like, 'rewriting a copied part ends the copy');
+  // junk
+  const junk = cleanSong({ layers: [{ role: 'bass', byPart: { D: { instrument: 'wind', volume: 'loud', nonsense: 1 }, Z: { volume: 1 } }, like: { D: 'D', E: 'Q', F: 'A' } }] }).layers[0];
+  assert(!junk.byPart && JSON.stringify(junk.like) === '{"F":"A"}', `junk part settings are dropped (${JSON.stringify(junk)})`);
+});
+
 // junk in, a playable song out
 block('junk', () => {
   for (const junk of [null, 'hello', 42, {}, { layers: [{ role: 'nope' }, { role: 'bass', instrument: 'wind', volume: 'loud' }], sections: [{ bars: -5, play: 'bass' }], tempo: 1e9 }]) {
