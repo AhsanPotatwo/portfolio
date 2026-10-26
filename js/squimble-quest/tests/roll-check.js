@@ -2,23 +2,16 @@
 // and bodyBox() in character.js, ROLL in config.js). run it with
 // node js/squimble-quest/tests/roll-check.js
 // no output means it all passed
-const fs = require('fs');
-const vm = require('vm');
 const assert = require('assert');
+const { loadFighting, FLAT_FLOOR: floor, asset } = require('./load');
 
-const game = { PUSH_DIRECTIONS: {}, SLIPPERY_GRIP: 10, console, playSound: () => null, worldMap: null };
-vm.createContext(game);
-// const and class don't end up on game by themselves, so put the ones used here there
-vm.runInContext(['config.js', 'utils.js', 'weapons.js', 'character.js'].map((f) => fs.readFileSync(`${__dirname}/../${f}`, 'utf8')).join('\n')
-  + '\nthis.Character = Character; this.ROLL = ROLL; this.PLAYER = PLAYER; this.STAND_STILL = STAND_STILL; this.makeWeapon = makeWeapon;', game);
+const game = loadFighting();
 const { Character, ROLL, STAND_STILL } = game;
 
-// a flat endless floor with nothing in the way, like PREVIEW_FLOOR (weaponeditor.js)
-const floor = { get: () => ({ speed: 1 }), colAt: () => 0, rowAt: () => 0, moveAlongX: (b, dx) => dx, moveAlongY: (b, dy) => dy, clearLine: () => true, bounds: () => ({ top: -Infinity, bottom: Infinity }) };
 const sword = game.makeWeapon({}, 'sword');
 const bow = game.makeWeapon({ attack: 'shoot' }, 'bow');
 // wearing the quick charm (assets/squimble-quest/items/quick-charm.json) unless wearing is false
-const charm = JSON.parse(fs.readFileSync(`${__dirname}/../../../assets/squimble-quest/items/quick-charm.json`, 'utf8'));
+const charm = asset('items/quick-charm.json');
 function character(weapon, wearing = true) {
   const c = new Character(0, 0, { ...game.PLAYER, weapon });
   c.worn = () => (wearing ? [charm] : []);

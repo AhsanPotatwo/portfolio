@@ -5,20 +5,13 @@
 // a bow's drawSound plays while it's drawn and is cut off when it shoots or the shot's lost.
 // run it with node js/squimble-quest/tests/hit-check.js
 // no output means it all passed
-const fs = require('fs');
-const vm = require('vm');
 const assert = require('assert');
+const { loadFighting, FLAT_FLOOR: floor } = require('./load');
 
 const sounds = [];
 const stopped = [];
-const game = { PUSH_DIRECTIONS: {}, SLIPPERY_GRIP: 10, console, playSound: (name, at, key, options) => { sounds.push({ name, ...options }); return sounds.at(-1); }, Sound: { stop: (voice) => stopped.push(voice) }, worldMap: null };
-vm.createContext(game);
-// const and class don't end up on game by themselves, so put the ones used here there
-vm.runInContext(['config.js', 'utils.js', 'weapons.js', 'character.js'].map((f) => fs.readFileSync(`${__dirname}/../${f}`, 'utf8')).join('\n')
-  + '\nthis.Character = Character; this.PLAYER = PLAYER; this.COMBAT = COMBAT; this.DamageNumbers = DamageNumbers; this.makeWeapon = makeWeapon; this.hitWith = hitWith; this.MeleeSwing = MeleeSwing;', game);
+const game = loadFighting({ playSound: (name, at, key, options) => { sounds.push({ name, ...options }); return sounds.at(-1); }, Sound: { stop: (voice) => stopped.push(voice) } });
 const { Character, PLAYER, COMBAT, DamageNumbers, hitWith, MeleeSwing } = game;
-
-const floor = { get: () => ({ speed: 1 }), colAt: () => 0, rowAt: () => 0, moveAlongX: (b, dx) => dx, moveAlongY: (b, dy) => dy, clearLine: () => true, bounds: () => ({ top: -Infinity, bottom: Infinity }) };
 const weapon = game.makeWeapon({ damage: 10, knockback: 0 }, 'test');
 const body = (settings, x = 0) => Object.assign(new Character(x, 0, settings), { hitParticles: null });
 const step = (c, seconds) => { for (let t = 0; t < seconds; t += 1 / 60) c.update({ move: { x: 0, y: 0 }, aim: null, attack: false }, 1 / 60, { map: floor, characters: [c], arrows: [] }); };

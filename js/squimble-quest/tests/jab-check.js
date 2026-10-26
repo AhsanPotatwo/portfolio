@@ -2,21 +2,13 @@
 // only hits what's at its point. run it with
 // node js/squimble-quest/tests/jab-check.js
 // no output means it all passed
-const fs = require('fs');
-const vm = require('vm');
 const assert = require('assert');
+const { loadFighting, FLAT_FLOOR: floor, asset } = require('./load');
 
-const game = { PUSH_DIRECTIONS: {}, SLIPPERY_GRIP: 10, console, playSound: () => null, worldMap: null };
-vm.createContext(game);
-// const and class don't end up on game by themselves, so put the ones used here there
-vm.runInContext(['config.js', 'utils.js', 'weapons.js', 'character.js'].map((f) => fs.readFileSync(`${__dirname}/../${f}`, 'utf8')).join('\n')
-  + '\nthis.Character = Character; this.PLAYER = PLAYER; this.STAND_STILL = STAND_STILL; this.makeWeapon = makeWeapon;', game);
+const game = loadFighting();
 const { Character, PLAYER, STAND_STILL } = game;
 
-// a flat endless floor with nothing in the way, like PREVIEW_FLOOR (weaponeditor.js)
-const floor = { get: () => ({ speed: 1 }), colAt: () => 0, rowAt: () => 0, moveAlongX: (b, dx) => dx, moveAlongY: (b, dy) => dy, clearLine: () => true, bounds: () => ({ top: -Infinity, bottom: Infinity }) };
-const spearFile = JSON.parse(fs.readFileSync(`${__dirname}/../../../assets/squimble-quest/items/spear.json`, 'utf8'));
-const spear = game.makeWeapon(spearFile.weapon, 'spear');
+const spear = game.makeWeapon(asset('items/spear.json').weapon, 'spear');
 
 // jabs once at `at` with dummies standing at each x (on the same row unless given { x, y }), and gives
 // back which got hurt

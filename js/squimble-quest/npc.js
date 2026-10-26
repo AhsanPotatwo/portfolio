@@ -14,21 +14,20 @@ class Npc extends Character {
     // the ai function it uses (ENEMY_AIS in enemies.js), or null. Character's think() runs it
     this.ai = ENEMY_AIS[this.type.ai] ?? null;
     this.placeFeetOnTile(col, row);
-    // whether the player is close enough to talk (sketch.js sets this every frame)
-    this.canTalk = false;
   }
 
   update(dt, world) {
     super.update(this.think(world, dt), dt, world);
   }
 
+  // just the body: no health bar or swing. the E over it when you can talk is drawn with the other
+  // prompts (interact.js), so it's never behind someone or under the fog
   draw() {
     this.drawBody();
-    if (this.canTalk) drawKeyPrompt(this.x, this.y - this.h / 2 - 8);
   }
 }
 
-// a little "E" key over something you can press E on (an npc, or a warp in warps.js). x is its middle
+// a little "E" key over something you can press E on (INTERACTABLES, interact.js). x is its middle
 // and bottom is its bottom edge, in world positions
 function drawKeyPrompt(x, bottom) {
   const size = 18;

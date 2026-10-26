@@ -32,13 +32,15 @@
 //
 // step blocks share the warps' "only when your tile changes onto it" check (player.stepTile,
 // warps.js), so arriving on one or standing still on it doesn't keep setting it off. E blocks use the
-// same reach as E warps (closestInReach(), warps.js), and a warp wins if both are in reach. loop blocks
+// same reach as E warps (closestInReach(), warps.js), and a warp wins if both are in reach
+// (INTERACTABLES, interact.js). loop blocks
 // play their sound as a loop (seamless, see renderSound()) from when you come into range until you
 // leave it (Sound.update() stops it)
 //
 // where it hooks into the rest of the game:
-//   sketch.js    every frame while playing: SoundBlocks.update() (loops), updateTiles(), reachable (the E block),
-//                SoundBlocks.play() on E, checkStep() before Warps.checkStep(), and drawPrompt()
+//   sketch.js    every frame while playing: SoundBlocks.update() (loops), updateTiles(), and checkStep()
+//                before Warps.checkStep()
+//   interact.js  inReach(), play() on E and drawPrompt()
 //   tilemap.js   map.sounds, soundAt(), removeSoundAt(), and resize() dropping blocks cut off
 //   mapfile.js   saving and loading "sounds" in map files ({ sound, col, row, activate })
 //   editor.js    the Sounds tab places them (Editor.placeSoundBlock()), right click opens edit(),
@@ -127,9 +129,6 @@ const SOUND_COLOURS = {
 };
 
 const SoundBlocks = {
-  // the E block in reach this frame, or null. sketch.js sets it while playing, and it gets an E over it
-  reachable: null,
-
   // plays a block's sound from its tile. the block itself is the key, so a loop block can tell whether
   // it's still playing. a missing sound just doesn't play (playSound() gives back null)
   play(block, map) {
@@ -255,10 +254,9 @@ const SoundBlocks = {
     }
   },
 
-  // the E over the block you can reach. world positions (before camera.end())
-  drawPrompt() {
-    const block = this.reachable;
-    if (block) drawKeyPrompt((block.col + 0.5) * TILE, block.row * TILE - 4); // npc.js
+  // the E over a block you can reach (interact.js). world positions (before camera.end())
+  drawPrompt(block) {
+    drawKeyPrompt((block.col + 0.5) * TILE, block.row * TILE - 4); // npc.js
   },
 
   // the settings box for a block (right click it in the editor), in two tabs. Sound: which sound and

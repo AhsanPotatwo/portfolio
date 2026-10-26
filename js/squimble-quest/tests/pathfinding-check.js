@@ -1,9 +1,8 @@
 // checks the enemy pathfinder (pathfinding.js) on tiny maps drawn as text. run it with
 // node js/squimble-quest/tests/pathfinding-check.js
 // # is wall, . floor, L lava, S spikes, E the enemy and P the player. no output means it all passed
-const fs = require('fs');
-const vm = require('vm');
 const assert = require('assert');
+const { load } = require('./load');
 
 // the same lava and spikes as tiles/lava.json and tiles/spikes.json, filled in like TILE_DEFAULTS would
 const tile = (name, settings) => ({ name, solid: false, speed: 1, damagePerStep: 0, damagePerSecond: 0, ...settings });
@@ -13,9 +12,7 @@ const TILE_TYPES = {
   L: tile('lava', { speed: 0.7, damagePerSecond: 25 }),
   S: tile('spikes', { damagePerStep: 15 }),
 };
-const game = { TILE: 32, TILE_TYPES };
-vm.createContext(game);
-vm.runInContext(fs.readFileSync(`${__dirname}/../pathfinding.js`, 'utf8'), game);
+const game = load(['pathfinding.js'], { TILE: 32, TILE_TYPES });
 
 // just enough of a TileMap (tilemap.js) for planPath() to work
 function plan(rows, caution, health = 60, crowd) {

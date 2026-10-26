@@ -1702,7 +1702,7 @@ function inspectorInfo(selected) {
     const weapon = type.weapon;
     const worn = type.wear ? [['Worn on', WEAR_PLACES[type.wear]]] : [];
     if (!weapon) return { title: name, kind: category, rows: worn, note: 'Click the map to place one. Give puts one in your inventory' };
-    const shoots = weapon.attack === 'shoot';
+    const shoots = isRanged(weapon); // weapons.js
     return {
       title: name,
       kind: category,

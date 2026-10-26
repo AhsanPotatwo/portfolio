@@ -4,13 +4,10 @@
 // node js/squimble-quest/tests/looks-check.js
 // no output means it all passed
 const fs = require('fs');
-const vm = require('vm');
 const assert = require('assert');
+const { load, assetFolder } = require('./load');
 
-const game = { DataFiles: { register: () => {} } };
-vm.createContext(game);
-vm.runInContext(fs.readFileSync(`${__dirname}/../looks.js`, 'utf8') + '\nthis.LOOK_SLOTS = LOOK_SLOTS;', game);
-const { hexToHsl, hslToHex, recolourSwaps, LOOK_SLOTS } = game;
+const { hexToHsl, hslToHex, recolourSwaps, LOOK_SLOTS } = load(['looks.js'], { DataFiles: { register: () => {} } });
 
 // there and back gives the same colour (to within rounding)
 for (const hex of ['#fff8c8', '#e8c083', '#4f1e03', '#000000', '#ffffff', '#808080', '#3366cc']) {
@@ -18,8 +15,7 @@ for (const hex of ['#fff8c8', '#e8c083', '#4f1e03', '#000000', '#ffffff', '#8080
 }
 
 const root = `${__dirname}/../../..`;
-const parts = JSON.parse(fs.readFileSync(`${root}/assets/squimble-quest/parts/index.json`, 'utf8'))
-  .map((name) => ({ name, ...JSON.parse(fs.readFileSync(`${root}/assets/squimble-quest/parts/${name}.json`, 'utf8')) }));
+const parts = assetFolder('parts').map(([name, settings]) => ({ name, ...settings }));
 const groups = {};
 for (const part of parts) {
   assert.ok(LOOK_SLOTS.includes(part.slot), `${part.name}'s slot "${part.slot}" isn't in LOOK_SLOTS`);

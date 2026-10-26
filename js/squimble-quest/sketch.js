@@ -18,7 +18,6 @@
 //   weapons.js    weapons, their swings and arrows
 //   particles.js  particle effects: bits that fly up, fall and fade (blood when something's hit)
 //   items.js      item kinds and their weapons, from items/
-//   itemglow.js   the rarity glow and sparkles drawn around items
 //   tilemap.js    a tile map: storing, drawing, resizing, collision
 //   maps.js       start map, visited maps
 //   mapfile.js    saving and loading map files
@@ -34,25 +33,28 @@
 //   formbox.js    the editors' ask-for-things box, Picker and Checkbox
 //   hud.js        non-ui overlays (crosshair, messages, panels)
 //   inventory.js  inventories, hotbar, inventory screen and equipment, character previews, items on the ground (after button.js)
+//   itemglow.js   the rarity glow and sparkles drawn around items
 //   dialogue.js   talking to npcs: who's in range, the text box
 //   warps.js      warps (doors, caves, teleporters...): using them, checking targets
 //   warpgraph.js  editor's diagram of linked warps (after button.js)
 //   sound.js      the sound library and synthesiser: working sounds out, playing them, drawing them
 //   soundblocks.js sound blocks: tiles that play a sound, and their settings box (after sound.js)
+//   interact.js   everything you press E on (npcs, warps, chests, sound blocks) and which wins
 //   editor.js     the map editor, from dev mode (after button.js, textfield.js)
 //   edittools.js  the editor's tools (fill, rectangle, select...) and copy and paste (after editor.js)
 //   edithistory.js the editor's undo and redo, and keeping unsaved maps in the browser
 //   editormenu.js the editor's menu bar, tool strip and keys (after edittools.js)
 //   mapcheck.js   the editor's problem list and art report
 //   tileeditor.js editor's tile box (after editor.js)
-//   soundeditor.js the sound editor, a full screen synthesiser (after editor.js)
 //   particleeditor.js the particle editor box and its preview (after tileeditor.js)
 //   atmosphere.js a map's fog, colour, weather and background sound, and its editor box (after particleeditor.js)
 //   weaponeditor.js the weapon editor tabs, enemy weapons in the palette, and the combo preview (after editor.js)
+//   soundeditor.js the sound editor, a full screen synthesiser (after editor.js)
 //   shaders.js    WebGL effects over the world (lighting, shadows, screen effects), dev mode only for now
 //   colourblind.js colour blind filters over the whole canvas, picked in the pause menu
 //   access.js     accessibility settings that draw: sound captions (after sound.js)
 //   pausemenu.js  the pause menu: sound, screen, accessibility and assist settings, and keys (after formbox.js)
+//   deathscreen.js the placeholder death screen: "You died" and Respawn (after button.js)
 //   debug.js      dev mode (` or Ctrl + D)
 //
 // every spot that'd get in the way of multiplayer is marked with a "multiplayer:" comment, so search
@@ -79,8 +81,9 @@ let mapsReady = false;
 // p5 waits for anything loaded in here before it runs setup(), so pictures for buttons go here too.
 // the data files (tiles, items, enemies...) load in setup() instead, along with the maps
 function preload() {
-  // the rarity glow pictures and colours (itemglow.js)
+  // the rarity glow pictures and colours (itemglow.js), and the player's pictures (PLAYER in config.js)
   prepareArt(RARITIES, 'rarity');
+  prepareArt({ player: PLAYER }, 'player');
 }
 
 function setup() {
@@ -167,6 +170,7 @@ function setup() {
   Shaders.init();
   Editor.init();
   Dialogue.init();
+  DeathScreen.init(player);
 
   // to add ui: UI.add(new Button({ x: 20, y: 20, w: 120, h: 40, label: 'Play', onClick: () => { ... } }));
   // see the guide in button.js
@@ -291,6 +295,96 @@ function spawnCharacters() {
   });
 }
 
+// a frame of the game being played, not paused or in the editor (draw()): the player, then everyone
+// and everything else, then what E does and step triggers, then dying. aim is the mouse in world
+// positions, or null
+function updatePlaying(dt, aim) {
+  // switching window or tab pauses (pausemenu.js). otherwise Escape closes the inventory, or pauses
+  if (PauseMenu.away) {
+    PauseMenu.open();
+  } else if (Input.wasPressed('escape')) {
+    if (InventoryScreen.active) InventoryScreen.show(false);
+    else PauseMenu.open();
+  }
+  // what characters know about the world (top of character.js). characters is made once here
+  // instead of once per character. a dead player isn't one of the players, so enemies lose interest
+  // (sensePlayer() in enemies.js) and nothing attacks them until they respawn (deathscreen.js)
+  //
+  // multiplayer: players is a list already, so everything that reads it works with more. the other
+  // players would go in here (and in characters), each updated with the controls their computer sent
+  const world = { map: worldMap, players: player.dead ? [] : [player], enemies, npcs, characters: [player, ...enemies, ...npcs], arrows };
+
+  // the dead don't do anything until they respawn (deathscreen.js)
+  if (!player.dead) {
+    // the number keys and wheel pick the held item, Q drops it, and the open inventory drags items
+    // around (inventory.js). not while talking though, since the dialogue box hides the hotbar
+    //
+    // multiplayer: these change the game straight from the keyboard and mouse (which item's held,
+    // what's in which slot, dropping things), round the side of the controls. picking a slot, swapping
+    // slots and dropping would each want to be an action sent like { move, aim, attack }, so whoever
+    // runs the rules can apply them for any player (Hotbar and InventoryScreen in inventory.js)
+    if (!Dialogue.active) {
+      Hotbar.update();
+      if (Input.wasPressed('drop')) Drops.drop(worldMap, player, player.inventory.selected);
+    }
+    if (InventoryScreen.active) InventoryScreen.update(worldMap, player);
+
+    // mousePressed() ignores clicks on the ui. with the inventory open you stand still and the mouse
+    // moves items. while talking you can't attack, but walking away ends the conversation
+    // (dialogue.js). both put a drawn bow down instead of shooting it, since not holding charge would
+    // let it go (Character.updateCharge())
+    if (InventoryScreen.active || Dialogue.active) player.stopDrawing();
+    player.update(InventoryScreen.active ? STAND_STILL : {
+      move: Input.direction(),
+      aim,
+      attack: !Dialogue.active && Input.mousePressed('left'),
+      // held, for drawing a bow. pressed counts too, so a click that's let go within a frame still
+      // shoots
+      charge: !Dialogue.active && (Input.mouseHeld('left') || Input.mousePressed('left')),
+      // shift, while wearing the quick charm (Character.canRoll())
+      roll: !Dialogue.active && Input.wasPressed('roll'),
+    }, dt, world);
+  }
+  // picks up items that are close enough, and moves thrown ones through the air (inventory.js)
+  //
+  // multiplayer: only this computer's player picks things up, and it also moves drops through the air.
+  // it'd go once per player, with the throw moving once per frame on its own (Drops in inventory.js)
+  Drops.update(worldMap, player, dt);
+
+  for (const enemy of enemies) enemy.update(dt, world);
+  // the map keeps this list when you leave, so defeated ones stay gone (loadMap())
+  enemies = enemies.filter((enemy) => !enemy.dead);
+  for (const npc of npcs) npc.update(dt, world);
+  // after the characters, so arrows shot this frame fly from the start (weapons.js). world.arrows
+  // is the same list, which shooting pushed onto
+  arrows = arrows.filter((arrow) => arrow.update(dt, world));
+  // enemies following you to another map come out when it's time (warps.js)
+  Warps.update(dt);
+  // loop sound blocks start when you come close enough to hear them, and so do the sounds
+  // characters carry around and tiles make, like lava bubbling (soundblocks.js)
+  SoundBlocks.update(worldMap);
+  SoundBlocks.updateCharacters([...enemies, ...npcs], worldMap);
+  SoundBlocks.updateTiles(worldMap);
+
+  // E uses the first thing in reach (INTERACTABLES in interact.js: an npc, an E warp, a chest, an E
+  // sound block). nothing's in reach while talking (E moves the conversation on instead, dialogue.js),
+  // in the inventory or dead. with nothing in reach E opens or closes the inventory (I always does, and
+  // closes a chest too). talking is from before E, so the line E opens with isn't skipped straight away
+  const talking = Dialogue.active;
+  const used = Interact.update(player, worldMap, talking || InventoryScreen.active || player.dead, Input.wasPressed('interact'));
+  if (talking) Dialogue.update(player, worldMap, dt);
+  else if (!used && !player.dead && Input.wasPressed('inventory')) InventoryScreen.show(!InventoryScreen.active);
+  // step triggers go after E, which might have changed the map, so they never look at the new map in
+  // the same frame. sound blocks go before warps, since Warps.checkStep() is what remembers the tile
+  // you're on
+  if (!used && !player.dead) {
+    SoundBlocks.checkStep(player, worldMap);
+    Warps.checkStep(player, worldMap);
+  }
+  // last, after everything that could kill them this frame. E respawns (deathscreen.js)
+  DeathScreen.update(dt, Input.wasPressed('interact'));
+}
+
 function draw() {
   // the loading screen covers it till then (setup())
   if (!mapsReady) return;
@@ -323,105 +417,7 @@ function draw() {
   } else if (paused) {
     FormBox.update();
   } else {
-    // switching window or tab pauses (pausemenu.js). otherwise Escape closes the inventory, or pauses
-    if (PauseMenu.away) {
-      PauseMenu.open();
-    } else if (Input.wasPressed('escape')) {
-      if (InventoryScreen.active) InventoryScreen.show(false);
-      else PauseMenu.open();
-    }
-    // what characters know about the world (top of character.js). characters is made once here
-    // instead of once per character
-    //
-    // multiplayer: players is a list already, so everything that reads it works with more. the other
-    // players would go in here (and in characters), each updated with the controls their computer sent
-    const world = { map: worldMap, players: [player], enemies, npcs, characters: [player, ...enemies, ...npcs], arrows };
-
-    // the number keys and wheel pick the held item, Q drops it, and the open inventory drags items
-    // around (inventory.js). not while talking though, since the dialogue box hides the hotbar
-    //
-    // multiplayer: these change the game straight from the keyboard and mouse (which item's held, what's
-    // in which slot, dropping things), round the side of the controls. picking a slot, swapping slots and
-    // dropping would each want to be an action sent like { move, aim, attack }, so whoever runs the rules
-    // can apply them for any player (Hotbar and InventoryScreen in inventory.js)
-    if (!Dialogue.active) {
-      Hotbar.update();
-      if (Input.wasPressed('drop')) Drops.drop(worldMap, player, player.inventory.selected);
-    }
-    if (InventoryScreen.active) InventoryScreen.update(worldMap, player);
-
-    // mousePressed() ignores clicks on the ui. with the inventory open you stand still and the mouse
-    // moves items. while talking you can't attack, but walking away ends the conversation (dialogue.js).
-    // both put a drawn bow down instead of shooting it, since not holding charge would let it go
-    // (Character.updateCharge())
-    if (InventoryScreen.active || Dialogue.active) player.stopDrawing();
-    player.update(InventoryScreen.active ? STAND_STILL : {
-      move: Input.direction(),
-      aim,
-      attack: !Dialogue.active && Input.mousePressed('left'),
-      // held, for drawing a bow. pressed counts too, so a click that's let go within a frame still shoots
-      charge: !Dialogue.active && (Input.mouseHeld('left') || Input.mousePressed('left')),
-      // shift, while wearing the quick charm (Character.canRoll())
-      roll: !Dialogue.active && Input.wasPressed('roll'),
-    }, dt, world);
-    // picks up items that are close enough (inventory.js)
-    //
-    // multiplayer: only this computer's player picks things up, and it also moves drops through the air.
-    // it'd go once per player, with the throw moving once per frame on its own (Drops in inventory.js)
-    Drops.update(worldMap, player, dt);
-
-    for (const enemy of enemies) enemy.update(dt, world);
-    // the map keeps this list when you leave, so defeated ones stay gone (loadMap())
-    enemies = enemies.filter((enemy) => !enemy.dead);
-    for (const npc of npcs) npc.update(dt, world);
-    // after the characters, so arrows shot this frame fly from the start (weapons.js). world.arrows
-    // is the same list, which shooting pushed onto
-    arrows = arrows.filter((arrow) => arrow.update(dt, world));
-    // enemies following you to another map come out when it's time (warps.js)
-    Warps.update(dt);
-    // loop sound blocks start when you come close enough to hear them, and so do the sounds
-    // characters carry around and tiles make, like lava bubbling (soundblocks.js)
-    SoundBlocks.update(worldMap);
-    SoundBlocks.updateCharacters([...enemies, ...npcs], worldMap);
-    SoundBlocks.updateTiles(worldMap);
-
-    // while talking, E moves the conversation on and nothing else is in reach.
-    // otherwise E talks to the npc in range (it shows an E), or if there isn't one uses an E warp in
-    // reach (warps.js), or if there isn't one opens a chest in reach (StorageObjects in inventory.js),
-    // or if there isn't one plays an E sound block in reach (soundblocks.js), or if there's none of
-    // those either opens or closes the inventory (I always does, and closes a chest too). nothing's in
-    // reach while the inventory is open
-    //
-    // multiplayer: E is only ever this computer's player's, and what it does (using a warp, opening a
-    // chest, playing a sound block) happens straight away here. those would be actions sent like the
-    // controls, and Warps.use() would move only that player (see loadMap()). talking stays local, since
-    // npcs only say the same lines
-    const talkTo =InventoryScreen.active || Dialogue.active ? null : Dialogue.npcInRange(player, npcs, worldMap);
-    for (const npc of npcs) npc.canTalk = npc === talkTo;
-    Warps.reachable = talkTo || InventoryScreen.active || Dialogue.active ? null : Warps.inReach(player, worldMap);
-    StorageObjects.reachable = talkTo || Warps.reachable || InventoryScreen.active || Dialogue.active ? null : StorageObjects.inReach(player, worldMap);
-    SoundBlocks.reachable = talkTo || Warps.reachable || StorageObjects.reachable || InventoryScreen.active || Dialogue.active ? null : SoundBlocks.inReach(player, worldMap);
-    if (Dialogue.active) {
-      Dialogue.update(player, worldMap, dt);
-      SoundBlocks.checkStep(player, worldMap);
-      Warps.checkStep(player, worldMap);
-    } else if (talkTo && Input.wasPressed('interact')) {
-      talkTo.canTalk = false;
-      Dialogue.open(talkTo, player, gameCamera);
-    } else if (Warps.reachable && Input.wasPressed('interact')) {
-      Warps.use(Warps.reachable, player);
-    } else if (StorageObjects.reachable && Input.wasPressed('interact')) {
-      StorageObjects.open(StorageObjects.reachable);
-    } else if (SoundBlocks.reachable && Input.wasPressed('interact')) {
-      SoundBlocks.play(SoundBlocks.reachable, worldMap);
-    } else {
-      if (Input.wasPressed('inventory')) InventoryScreen.show(!InventoryScreen.active);
-      // step triggers go after the E warp, which might have changed the map, so they never look at
-      // the new map in the same frame. sound blocks go before warps, since Warps.checkStep() is what
-      // remembers the tile you're on
-      SoundBlocks.checkStep(player, worldMap);
-      Warps.checkStep(player, worldMap);
-    }
+    updatePlaying(dt, aim);
   }
   gameCamera.update(dt);
   // in the editor too, so the Particles tab can try them out and tiles show theirs while you edit them
@@ -474,11 +470,8 @@ function draw() {
     if (Debug.shows('paths')) drawEnemyPlans(enemies, gameCamera);
     // sound blocks set to be seen (soundblocks.js). the editor draws every block its own way
     if (!Editor.active) SoundBlocks.draw(worldMap);
-    if (!Editor.active && !Dialogue.active) {
-      Warps.drawPrompt();
-      StorageObjects.drawPrompt();
-      SoundBlocks.drawPrompt();
-    }
+    // the E over whatever's in reach (interact.js)
+    if (!Editor.active && !Dialogue.active) Interact.drawPrompt();
     if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
     gameCamera.end();
     // the dev mode shader over the world, but not the ui (shaders.js)
@@ -486,13 +479,16 @@ function draw() {
     // red round the edges when the player's just been hit (hud.js)
     if (!Editor.active) drawHurtFlash(player);
   }
+  // dark with "You died" over the world while dead, not in the editor, and its Respawn button not over
+  // the pause menu (deathscreen.js)
+  DeathScreen.draw(!Editor.active, !Editor.active && !paused);
 
   // the ui, in screen positions. the editor fades it out while you move (editor.js), and globalAlpha
   // lasts until pop()
   push();
   if (Editor.active) drawingContext.globalAlpha = Editor.uiAlpha;
   Debug.draw(player, gameCamera, worldMap, aim);
-  if (!Editor.active && !Dialogue.active && !InventoryScreen.active) Hotbar.drawLabel();
+  if (!Editor.active && !Dialogue.active && !InventoryScreen.active && !player.dead) Hotbar.drawLabel();
   // dev mode can outline every ui element (debug.js)
   UI.draw(Debug.shows('hitboxes'));
   InventoryScreen.drawDragged();

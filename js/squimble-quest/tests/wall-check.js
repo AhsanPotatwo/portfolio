@@ -4,17 +4,14 @@
 // (Dialogue.npcInRange()). run it with
 // node js/squimble-quest/tests/wall-check.js
 // no output means it all passed
-const fs = require('fs');
-const vm = require('vm');
 const assert = require('assert');
+const { loadFighting, asset } = require('./load');
 
-const game = { PUSH_DIRECTIONS: {}, SLIPPERY_GRIP: 10, console, playSound: () => null, worldMap: null, ENEMY_TYPES: {}, NPC_TYPES: {}, UIElement: class {},
-  constrain: (v, lo, hi) => Math.min(hi, Math.max(lo, v)), radians: (d) => d * Math.PI / 180 };
-game.TILE_TYPES = { floor: { speed: 1 }, wall: { speed: 1, solid: true } };
-vm.createContext(game);
-// const and class don't end up on game by themselves, so put the ones used here there
-vm.runInContext(['config.js', 'utils.js', 'weapons.js', 'character.js', 'tilemap.js', 'dialogue.js'].map((f) => fs.readFileSync(`${__dirname}/../${f}`, 'utf8')).join('\n')
-  + '\nthis.Character = Character; this.PLAYER = PLAYER; this.STAND_STILL = STAND_STILL; this.makeWeapon = makeWeapon; this.TileMap = TileMap; this.Dialogue = Dialogue; this.standingOnTile = standingOnTile; this.TILE = TILE; this.MAX_DT = MAX_DT;', game);
+const game = loadFighting({
+  ENEMY_TYPES: {}, NPC_TYPES: {}, UIElement: class {},
+  TILE_TYPES: { floor: { speed: 1 }, wall: { speed: 1, solid: true } },
+  constrain: (v, lo, hi) => Math.min(hi, Math.max(lo, v)), radians: (d) => d * Math.PI / 180,
+}, ['tilemap.js', 'dialogue.js']);
 const { Character, PLAYER, STAND_STILL, TileMap, Dialogue, TILE } = game;
 
 // 12 x 12 of floor with a wall down column 5 and along row 8, or no wall
@@ -33,8 +30,7 @@ const body = (x) => Object.assign(new Character(x, y, PLAYER), { hitParticles: n
 
 // attacks once from the left of the wall at a dummy on the right, and says if it got hurt
 function hurts(name, wall) {
-  const file = JSON.parse(fs.readFileSync(`${__dirname}/../../../assets/squimble-quest/items/${name}.json`, 'utf8'));
-  const weapon = game.makeWeapon(file.weapon, name);
+  const weapon = game.makeWeapon(asset(`items/${name}.json`).weapon, name);
   const map = makeMap(wall);
   const attacker = body(left);
   const dummy = body(right);

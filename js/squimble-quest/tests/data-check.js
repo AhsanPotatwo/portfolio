@@ -4,13 +4,9 @@
 // wrong, and no output means it all passed. it can't tell if a setting is a typo, the game's console
 // says that when it loads
 const fs = require('fs');
-const vm = require('vm');
+const { load, ASSETS: root } = require('./load');
 
-const game = {};
-vm.createContext(game);
-vm.runInContext(fs.readFileSync(`${__dirname}/../datafiles.js`, 'utf8'), game);
-const DATA_KINDS = vm.runInContext('DATA_KINDS', game);
-const root = `${__dirname}/../../../assets/squimble-quest/`;
+const { DATA_KINDS } = load(['datafiles.js']);
 
 const problems = [];
 for (const folder of Object.values(DATA_KINDS)) {

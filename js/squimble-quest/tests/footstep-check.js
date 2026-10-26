@@ -3,19 +3,17 @@
 // same one twice in a row, none walking into a wall, quieter for others, none out of earshot. run it
 // with node js/squimble-quest/tests/footstep-check.js
 // no output means it all passed
-const fs = require('fs');
-const vm = require('vm');
 const assert = require('assert');
+const { loadFighting } = require('./load');
 
 const played = [];
 // heard is how loud Sound.volumeAt() says it is
-const game = { PUSH_DIRECTIONS: {}, SLIPPERY_GRIP: 10, console, worldMap: null, heard: 1 };
-game.playSound = (sound, at, key, options) => played.push({ name: sound.name, at, ...options });
-game.Sound = { volumeAt: () => game.heard };
-game.SOUNDS = { a: { name: 'a', range: 6 }, b: { name: 'b', range: 6 }, c: { name: 'c', range: 6 } };
-vm.createContext(game);
-vm.runInContext(['config.js', 'utils.js', 'weapons.js', 'character.js'].map((f) => fs.readFileSync(`${__dirname}/../${f}`, 'utf8')).join('\n')
-  + '\nthis.Character = Character; this.FOOTSTEPS = FOOTSTEPS; this.PLAYER = PLAYER; this.STAND_STILL = STAND_STILL;', game);
+const game = loadFighting({
+  heard: 1,
+  playSound: (sound, at, key, options) => played.push({ name: sound.name, at, ...options }),
+  Sound: { volumeAt: () => game.heard },
+  SOUNDS: { a: { name: 'a', range: 6 }, b: { name: 'b', range: 6 }, c: { name: 'c', range: 6 } },
+});
 const { Character, FOOTSTEPS, STAND_STILL } = game;
 
 // an endless floor of one tile, with nothing in the way unless wall is true

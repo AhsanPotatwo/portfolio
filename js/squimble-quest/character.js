@@ -79,7 +79,8 @@ class Character {
     this.health = this.maxHealth;
     // counts down after getting hit, and it flashes while this is above 0
     this.hurtTimer = 0;
-    // died for good. dead enemies get removed (the player respawns instead)
+    // died for good. dead enemies get removed (the player lies there until the death screen's Respawn,
+    // deathscreen.js)
     this.dead = false;
     // the particle effects (PARTICLE_EFFECTS names, particles.js) that burst out when a swing hits it
     // and when it dies, or null for none. an enemy spawn can pick its own (spawnCharacters(), sketch.js)
@@ -452,10 +453,10 @@ class Character {
     return this.settings.weapon ?? null;
   }
 
-  // swings or shoots towards where it's aiming (its weapon's attack, weapons.js), if it has a weapon
-  // and it's ready, lunging forwards with it. a weapon with a combo does its next hit, or starts over
-  // if it waited too long or changed weapon. arrows go in world.arrows, since they keep flying after the
-  // attack's over. power is how far drawn a shot was (chargePower() in weapons.js), 1 for full
+  // swings or shoots towards where it's aiming (its weapon's attack, WEAPON_ATTACKS in weapons.js), if
+  // it has a weapon and it's ready. a weapon with a combo does its next hit, or starts over if it
+  // waited too long or changed weapon. power is how far drawn a shot was (chargePower() in
+  // weapons.js), 1 for full
   attack(world, power = 1) {
     const weapon = this.currentWeapon();
     if (!weapon || this.attackCooldown > 0) return;
@@ -466,17 +467,7 @@ class Character {
     this.comboLeft = hit.cooldown + weapon.comboWindow;
     this.attackCooldown = hit.cooldown;
     this.attackBuffer = 0;
-    if (hit.attack === 'shoot') {
-      this.pushTowards(this.aimAngle, hit.lunge);
-      // a weaker shot twangs higher (weapons.js)
-      weaponSound(this, hit.attackSound, hit, heaviness(hit, power));
-      world.arrows.push(new Arrow(this, hit, this.aimAngle));
-      return;
-    }
-    // a swing or jab lunges once its windup's over (MeleeSwing.update()). a jab (a spear) is a straight
-    // thrust that stops at the first thing it hits (Jab in weapons.js)
-    this.swing = hit.attack === 'jab' ? new Jab(this, hit, this.aimAngle) : new MeleeSwing(this, hit, this.aimAngle, this.backhand);
-    this.backhand = !this.backhand;
+    WEAPON_ATTACKS[hit.attack].start(this, hit, world, power);
   }
 
   // drawing a weapon that charges up (chargesUp() in weapons.js): it starts drawing once it's ready

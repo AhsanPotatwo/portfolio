@@ -223,7 +223,7 @@ function canAttack(enemy, world, player) {
   const weapon = enemy.currentWeapon();
   if (!weapon) return false;
   const distance = Math.hypot(player.x - enemy.x, player.y - enemy.y);
-  const range = weapon.attack === 'shoot' ? weapon.reach * ENEMY_SHOT_RANGE : Math.max(enemy.type.attackRange, weapon.reach);
+  const range = isRanged(weapon) ? weapon.reach * ENEMY_SHOT_RANGE : Math.max(enemy.type.attackRange, weapon.reach);
   const from = enemy.y + feetBelowCentre(enemy.settings); // character.js
   const to = player.y + feetBelowCentre(player.settings);
   return distance < range && world.map.clearLine(enemy.x, from, player.x, to);
@@ -231,7 +231,7 @@ function canAttack(enemy, world, player) {
 
 // is it holding something that shoots? then it stands still while it can attack
 function isShooting(enemy) {
-  return enemy.currentWeapon()?.attack === 'shoot';
+  return isRanged(enemy.currentWeapon()); // weapons.js
 }
 
 // ---------- ais ----------

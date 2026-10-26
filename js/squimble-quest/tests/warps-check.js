@@ -1,22 +1,17 @@
 // checks who follows the player through a warp (canFollow() and Warps in warps.js). run it with
 // node js/squimble-quest/tests/warps-check.js
 // no output means it all passed
-const fs = require('fs');
-const vm = require('vm');
 const assert = require('assert');
+const { load } = require('./load');
 
 // just enough of the game for warps.js: two maps, a player and some enemies
 const outside = { warps: [] };
 const hut = { warps: [{ name: 'exit', col: 0, row: 3 }], characters: { enemies: [] }, warp(name) { return this.warps.find((w) => w.name === name); } };
-const game = {
+const game = load(['warps.js'], {
   TILE: 32,
   getMap: (name) => ({ outside, hut })[name],
   feetBelowCentre: () => 0,
-};
-vm.createContext(game);
-// const Warps doesn't end up on game by itself, so put it there
-vm.runInContext(`${fs.readFileSync(`${__dirname}/../warps.js`, 'utf8')}
-this.Warps = Warps;`, game);
+});
 
 const player = {};
 // standing in the middle of the door's tile

@@ -1,15 +1,10 @@
 // checks the colour blind filters' matrices (colourblind.js). run it with
 // node js/squimble-quest/tests/colourblind-check.js
 // no output means it all passed
-const fs = require('fs');
-const vm = require('vm');
 const assert = require('assert');
+const { load } = require('./load');
 
-const game = {};
-vm.createContext(game);
-vm.runInContext(`${fs.readFileSync(`${__dirname}/../colourblind.js`, 'utf8')}
-this.COLOUR_BLIND_TYPES = COLOUR_BLIND_TYPES;
-this.colourBlindMatrix = colourBlindMatrix;`, game);
+const game = load(['colourblind.js']);
 
 const apply = (m, [r, g, b]) => [m[0] * r + m[1] * g + m[2] * b, m[3] * r + m[4] * g + m[5] * b, m[6] * r + m[7] * g + m[8] * b];
 const distance = (a, b) => Math.hypot(...a.map((v, i) => v - b[i]));

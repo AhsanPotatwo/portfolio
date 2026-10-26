@@ -110,6 +110,15 @@ const FOOTSTEPS = {
 };
 
 const PLAYER = {
+  // for warnings about its pictures (prepareArt() in utils.js, from preload() in sketch.js)
+  name: 'player',
+  // its picture, a path from the site's root like an enemy's (assets/squimble-quest/...png), or null
+  // for the placeholder rectangle. drawn at its own size with its bottom middle on the feet
+  // (drawCharacter() in character.js), so it can be bigger than the hitbox
+  image: null,
+  // what's left where they died until they respawn (Player.draw(), player.js), drawn the same way,
+  // or null for nothing: they disappear
+  deathImage: null,
   // its hitbox, what attacks hit (bodyBox() in character.js). the rectangle you see is drawn this
   // size, but a sprite can be any size. a bit under 32x64 (1 x 2 tiles)
   width: 28,

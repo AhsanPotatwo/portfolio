@@ -1,14 +1,13 @@
 // checks which sounds get captions and how they stack (Captions in access.js). run it with
 // node js/squimble-quest/tests/access-check.js
 // no output means it all passed
-const fs = require('fs');
-const vm = require('vm');
 const assert = require('assert');
+const { load } = require('./load');
 
 // just enough of the game: the settings, the listener at 0, 0 on map m, and a clock to move on
 const map = { name: 'm' };
 let now = 0;
-const game = {
+const game = load(['access.js'], {
   GAME_SETTINGS: { captions: true },
   Editor: { active: false },
   Sound: {
@@ -16,11 +15,7 @@ const game = {
     volumeAt: (at, range) => Math.max(0, 1 - Math.hypot(at.x, at.y) / (range * 32)) ** 2,
   },
   millis: () => now * 1000,
-};
-vm.createContext(game);
-vm.runInContext(`${fs.readFileSync(`${__dirname}/../access.js`, 'utf8')}
-this.Captions = Captions;
-this.CAPTIONS = CAPTIONS;`, game);
+});
 const { Captions, CAPTIONS } = game;
 
 const play = (name, at, { channel = 'effects', range = 10, minVolume = 0 } = {}) => Captions.heard({ name }, { at, channel, range, minVolume });

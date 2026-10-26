@@ -1,5 +1,5 @@
 // the player (just a rectangle until there's a sprite). the stuff it shares with everyone else is in
-// Character (character.js). this file has its inventory, who it can hit, and dying
+// Character (character.js). this file has its inventory, who it can hit, and dying and respawning
 class Player extends Character {
   constructor(x, y) {
     // PLAYER is in config.js
@@ -44,11 +44,12 @@ class Player extends Character {
     return this.inventory.held()?.type ?? null;
   }
 
-  die() {
-    this.respawn();
-  }
+  // dying is Character's die(): dead is set, and they stay where they fell until the death screen's
+  // Respawn (deathscreen.js, which lists everything that's different while dead). anything else dying
+  // should do (dropping items, losing money) goes here:
+  //   die() { super.die(); ... }
 
-  // back to full health somewhere safe. this is a placeholder until there's a proper death screen.
+  // back to full health somewhere safe, from the death screen (deathscreen.js).
   //
   // ponytail: I haven't decided where you should respawn yet (README.md known issues). for now it's
   // the current map's spawn. it's all in this function, so this is the only thing that needs to
@@ -63,12 +64,35 @@ class Player extends Character {
   // anything that moves the player without walking has to call Warps.arrived() afterwards, so a
   // 'step' warp where they land doesn't go off (warps.js)
   respawn() {
+    this.dead = false;
     this.health = this.maxHealth;
+    this.trailHealth = this.maxHealth;
+    // a fresh start: nothing from the fight that killed them carries on (placeAt() does the shoves)
+    this.swing = null;
+    this.stopDrawing();
+    this.frozen = 0;
+    this.hurtTimer = 0;
+    this.invincible = 0;
+    this.attackBuffer = 0;
+    this.rollBuffer = 0;
+    this.comboStep = 0;
     // worldMap is the game's (sketch.js)
     // multiplayer: that's this computer's map, not necessarily the one this player died on. it'd want
     // the player's own room's spawn (and respawning on another map moves just them, see loadMap())
     this.placeAt(worldMap.spawn.x, worldMap.spawn.y);
     Warps.arrived(this, worldMap);
+  }
+
+  // dead, they disappear, or leave their deathImage (PLAYER in config.js) where they died, its bottom
+  // middle on the feet like a living picture. a death animation would be that picture as a strip of
+  // frames, picked by the seconds since they died (DeathScreen.time, deathscreen.js)
+  draw() {
+    if (!this.dead) {
+      super.draw();
+      return;
+    }
+    const img = this.settings.deathImg;
+    if (img) image(img, Math.round(this.x - img.width / 2), Math.round(this.y + this.h / 2) - img.height);
   }
 
   // jumps to a spot when starting on a map or arriving through a warp (loadMap() in sketch.js)

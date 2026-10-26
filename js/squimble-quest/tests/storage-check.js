@@ -2,25 +2,18 @@
 // chest E reaches (Inventory and StorageObjects in inventory.js). run it with
 // node js/squimble-quest/tests/storage-check.js
 // no output means it all passed
-const fs = require('fs');
-const vm = require('vm');
 const assert = require('assert');
+const { load } = require('./load');
 
 // just enough of the game for inventory.js and closestInReach() in warps.js. the ui classes are only
 // extended, never made here
-const game = {
+const game = load(['inventory.js', 'warps.js'], {
   TILE: 32,
   UIElement: class {},
   Button: class {},
   feetBelowCentre: () => 0,
   OBJECT_TYPES: { chest: { width: 1, height: 1 }, wardrobe: { width: 3, height: 1 } },
-};
-vm.createContext(game);
-vm.runInContext(`${fs.readFileSync(`${__dirname}/../inventory.js`, 'utf8')}
-${fs.readFileSync(`${__dirname}/../warps.js`, 'utf8')}
-this.Inventory = Inventory;
-this.StorageObjects = StorageObjects;
-this.EQUIPMENT_SLOTS = EQUIPMENT_SLOTS;`, game);
+});
 
 // your inventory and a chest's
 const sword = { type: { wear: null } };

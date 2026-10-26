@@ -78,9 +78,11 @@
 // every setting from damage to hitStop (and windup) can be different for each hit of a combo (HIT_SETTINGS in
 // weaponeditor.js). the rest are for the whole weapon
 //
-// a new kind of attack (a spell, a thrown spear) would be a class next to MeleeSwing, Jab and Arrow, a
-// line in WEAPON_ATTACKS, and a branch in Character.attack() (character.js). a melee one can extend
-// MeleeSwing and replace hitTargets() and draw(), like Jab does
+// a new kind of attack (a spell, a boomerang, a thrown spear) is a class next to MeleeSwing, Jab and
+// Arrow, and a WEAPON_ATTACKS line whose start() makes it. a melee one can extend MeleeSwing and
+// replace hitTargets() and draw(), like Jab does. one that flies off on its own like Arrow needs an
+// update(dt, world) that gives back false once it's done, and a draw(). everything it hits should go
+// through hitWith(), so knockback, stagger, sounds and the rest come for free
 //
 // where each setting does its thing, to change how one works:
 //   Character.attack()    (character.js) the next combo hit (comboHit()), a charged shot's power
@@ -135,12 +137,50 @@ const WEAPON_DEFAULTS = {
   hitHeard: 0.5,
 };
 
-// each way a weapon can attack (its attack setting), with the words the item editor shows for it
+// each way a weapon can attack (its attack setting):
+//   label   the words the item editor shows for it
+//   ranged  it sends something off on its own (an Arrow) rather than reaching from whoever holds it.
+//           enemies stand still to use it and shoot from ENEMY_SHOT_RANGE of its reach (enemies.js),
+//           it can draw back first (chargeTime, chargesUp()), and the editor calls its reach Range
+//   start   (owner, hit, world, power) starts one attack, from Character.attack() (character.js). hit
+//           is this hit's settings (combos, charging and the wielder already worked in), power how far
+//           a shot was drawn (chargePower(), 1 for full). a swing or jab goes in owner.swing, which
+//           updates and draws itself until it's finished; anything that outlives the attack (arrows)
+//           goes in world.arrows
 const WEAPON_ATTACKS = {
-  swing: 'swing',
-  jab: 'jab (one target)',
-  shoot: 'shoot arrows',
+  swing: {
+    label: 'swing',
+    start: (owner, hit) => {
+      owner.swing = new MeleeSwing(owner, hit, owner.aimAngle, owner.backhand);
+      // so they go back and forth
+      owner.backhand = !owner.backhand;
+    },
+  },
+  jab: {
+    label: 'jab (one target)',
+    // a straight thrust that stops at the first thing it hits (Jab). it lunges once its windup's over,
+    // like a swing (MeleeSwing.update())
+    start: (owner, hit) => {
+      owner.swing = new Jab(owner, hit, owner.aimAngle);
+      owner.backhand = !owner.backhand;
+    },
+  },
+  shoot: {
+    label: 'shoot arrows',
+    ranged: true,
+    start: (owner, hit, world, power) => {
+      owner.pushTowards(owner.aimAngle, hit.lunge);
+      // a weaker shot twangs higher
+      weaponSound(owner, hit.attackSound, hit, heaviness(hit, power));
+      world.arrows.push(new Arrow(owner, hit, owner.aimAngle));
+    },
+  },
 };
+
+// does it send something flying (ranged in WEAPON_ATTACKS), like a bow? false for no weapon
+function isRanged(weapon) {
+  return WEAPON_ATTACKS[weapon?.attack]?.ranged ?? false;
+}
 
 // a weapon's settings from a file with the defaults filled in, or null for no weapon. owner is who it
 // belongs to, for the warnings (withDefaults() in utils.js)
@@ -159,8 +199,15 @@ function makeWeapon(settings, owner) {
     console.warn(`The weapon on ${owner} has a combo that isn't a list of hits [{ }, { }] (weapons.js), so it has no combo`);
     weapon.combo = null;
   }
-  // warns about typos in each hit (utils.js)
-  weapon.combo?.forEach((hit) => withDefaults(WEAPON_DEFAULTS, 'weapon', `${owner}'s combo`, hit));
+  // warns about typos in each hit (utils.js), and an attack that doesn't exist, which would leave that
+  // hit with nothing to do
+  weapon.combo?.forEach((hit) => {
+    withDefaults(WEAPON_DEFAULTS, 'weapon', `${owner}'s combo`, hit);
+    if (hit.attack !== undefined && !WEAPON_ATTACKS[hit.attack]) {
+      console.warn(`A hit in the combo of the weapon on ${owner} has an attack "${hit.attack}" that isn't in WEAPON_ATTACKS (weapons.js), so it attacks like the rest`);
+      delete hit.attack;
+    }
+  });
   return weapon;
 }
 
@@ -172,7 +219,7 @@ function comboHit(weapon, step) {
 
 // does it draw before shooting (a bow with a chargeTime)?
 function chargesUp(weapon) {
-  return weapon?.attack === 'shoot' && weapon.chargeTime > 0;
+  return isRanged(weapon) && weapon.chargeTime > 0;
 }
 
 // how strong a shot drawn for `seconds` is: its minPower straight away, up to 1 at its chargeTime
@@ -213,8 +260,8 @@ function drawChargeLine(owner, weapon, seconds) {
 // everything a hit does, for swings and arrows alike: damage, the target's particles flying the way it
 // was hit (angle, radians), knockback the same way, stagger, the hit stop on the target, and the
 // screen shake if either side has a camera (only this computer's player does, Character.camera, so
-// it's multiplayer-safe). weapon is the hit's settings (comboHit()). the damage goes last, so a player
-// it kills respawns without the knockback (Player.placeAt()). then the bits that are just for show:
+// it's multiplayer-safe). weapon is the hit's settings (comboHit()). the damage goes after those, so
+// what dying does always comes last. then the bits that are just for show:
 // the squash, the target's hitInvincible blink (PLAYER in config.js), a damage number, the sound, and a
 // bigger shake for a kill
 //
@@ -229,7 +276,7 @@ function hitWith(attacker, target, weapon, angle) {
   target.pushTowards(angle, weapon.knockback * (target.settings.knockbackTaken ?? 1), true);
   target.stagger = Math.max(target.stagger, weapon.stagger * (target.settings.staggerTaken ?? 1));
   target.freeze(weapon.hitStop);
-  // before the damage, which can respawn the player somewhere else
+  // before the damage, so it pops up from where the hit landed whatever dying does
   if (!target.inPreview) DamageNumbers.add(target, weapon.damage, Boolean(target.camera));
   target.hurt(weapon.damage);
   target.squash = COMBAT.squashTime;
@@ -704,5 +751,5 @@ function drawArrowShadow(arrow) {
 // a weapon in a few words, like "15 damage, shoots 420 px", for the editor (editor.js)
 function weaponSummary(weapon) {
   if (!weapon) return 'no weapon';
-  return `${Math.round(weapon.damage)} damage, ${weapon.attack === 'shoot' ? 'shoots' : 'reaches'} ${weapon.reach} px`;
+  return `${Math.round(weapon.damage)} damage, ${isRanged(weapon) ? 'shoots' : 'reaches'} ${weapon.reach} px`;
 }

@@ -117,19 +117,19 @@ function artProblem(kind, name, file, problem) {
 function prepareArt(types, kind) {
   for (const type of Object.values(types)) {
     type.fill = color(type.colour);
-    type.img = null;
-    if (type.image) {
-      type.img = loadImage(type.image, undefined, () => {
-        artProblem(kind, type.name, type.image, "couldn't load, so it's its colour");
-        type.img = null;
-      });
-    }
-    // portraits for the npc text box (npcs.js)
-    type.portraitImg = null;
-    if (type.portrait) {
-      type.portraitImg = loadImage(type.portrait, undefined, () => {
-        artProblem(kind, type.name, type.portrait, "(its portrait) couldn't load, so it's a placeholder");
-        type.portraitImg = null;
+    // each picture setting, the key its p5 image goes in, and what a failed one means. portraits are
+    // for the npc text box (npcs.js), deathImage for the player (PLAYER in config.js). a new kind of
+    // picture is a line here
+    for (const [setting, key, problem] of [
+      ['image', 'img', "couldn't load, so it's its colour"],
+      ['portrait', 'portraitImg', "(its portrait) couldn't load, so it's a placeholder"],
+      ['deathImage', 'deathImg', "(its death picture) couldn't load, so nothing's left when it dies"],
+    ]) {
+      type[key] = null;
+      if (!type[setting]) continue;
+      type[key] = loadImage(type[setting], undefined, () => {
+        artProblem(kind, type.name, type[setting], problem);
+        type[key] = null;
       });
     }
   }

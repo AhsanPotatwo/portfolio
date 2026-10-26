@@ -13,19 +13,18 @@
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('assert');
+const { load, ASSETS } = require('./load');
 
 // UIElement is faked too, just so soundeditor.js loads (for its make one buttons, SOUND_GENERATORS)
-const game = { TILE: 32, console: { ...console, warn: () => {} }, constrain: (v, a, b) => Math.min(b, Math.max(a, v)), UIElement: class {} };
-vm.createContext(game);
-for (const file of ['utils.js', 'datafiles.js', 'sound.js', 'soundblocks.js', 'soundeditor.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), game);
+const game = load(['utils.js', 'datafiles.js', 'sound.js', 'soundblocks.js', 'soundeditor.js'], { TILE: 32, console: { ...console, warn: () => {} }, constrain: (v, a, b) => Math.min(b, Math.max(a, v)), UIElement: class {} });
 
 // every sound and voice, loaded like DataFiles.load() does (datafiles.js), then each one written back
-// out has to match its file exactly
+// out has to match its file exactly. files are read as text here, since that's what's compared
 vm.runInContext('loadAudioFile = () => {}', game);
-const DataFiles = vm.runInContext('DataFiles', game);
+const DataFiles = game.DataFiles;
 const files = [];
 for (const kind of ['sound', 'voice']) {
-  const folder = `${__dirname}/../../../assets/squimble-quest/${kind}s/`;
+  const folder = `${ASSETS}${kind}s/`;
   for (const name of JSON.parse(fs.readFileSync(`${folder}index.json`, 'utf8'))) {
     const text = fs.readFileSync(`${folder}${name}.json`, 'utf8').replace(/\r\n/g, '\n');
     DataFiles.kinds[kind].define(name, JSON.parse(text));
@@ -38,8 +37,7 @@ for (const { kind, name, path, text } of files) {
   else assert.strictEqual(saved, text, `${kind}s/${name}.json saves back out exactly the same`);
 }
 
-const SOUNDS = vm.runInContext('SOUNDS', game);
-const VOICES = vm.runInContext('VOICES', game);
+const { SOUNDS, VOICES } = game;
 
 // every sound as a loop: the jump from the last sample back to the first is no bigger than the
 // biggest jump between two samples anywhere else, so there's no click at the join
@@ -77,7 +75,7 @@ assert(game.soundTimings(echoed).tail > 0.2, 'echo adds a tail');
 assert(Math.abs(game.renderSound(echoed).seconds - game.soundTimings(echoed).seconds) < 0.001, 'echoed sounds are the right length');
 
 // every wave and the new settings make real sound (no NaN, not silent), all at once
-for (const wave of Object.keys(vm.runInContext('SOUND_WAVES', game)).filter((w) => w !== 'file')) {
+for (const wave of Object.keys(game.SOUND_WAVES).filter((w) => w !== 'file')) {
   const busy = game.soundSettings({ wave, sustain: 300, wander: 3, wanderSpeed: 50, jump: 4, jump2: 3, jumpRepeat: 90, tremolo: 50, crackle: 200, fm: 30, echo: 50, vowelSlide: 3 });
   const { samples } = game.renderSound(busy);
   assert(samples.every((v) => !Number.isNaN(v)) && samples.some((v) => Math.abs(v) > 0.05), `${wave} with everything on makes sound`);
@@ -147,7 +145,7 @@ const levels = [{ wave: 'pink', pitch: 1500, sustain: 1000, lowPass: 55, volume:
 assert(Math.max(...levels) / Math.min(...levels) < 1.5, `levelled sounds are about as loud (${levels.map((l) => l.toFixed(2)).join(', ')})`);
 
 // the list of which sliders matter only names real settings
-const settingKeys = new Set(vm.runInContext('SOUND_SETTINGS', game).map((s) => s.key));
+const settingKeys = new Set(game.SOUND_SETTINGS.map((s) => s.key));
 for (const key of Object.keys(game.soundSettingMatters(game.soundSettings({})))) assert(settingKeys.has(key), `soundSettingMatters() names a real setting (${key})`);
 
 // growl repeats every two waves, so a growling hum loops at a whole number of pairs of them
@@ -156,9 +154,16 @@ assert(Math.abs((game.renderSound(growling, true).seconds * 110) / 2 % 1) < 0.01
 
 // every make one button makes real sound (no NaN, not silent) that isn't too long, and with every
 // knob anywhere its settings are still numbers. only one short beep of each is worked out (no echo,
-// at most 150 ms held and 150 ms fading), since all of them in full takes most of a minute. the
-// tweaked kinds leave a maker's sound alone at their normal knobs
-const generators = vm.runInContext('SOUND_GENERATORS', game);
+// at most 150 ms held and 150 ms fading), since all of them in full takes most of a minute. a sound
+// that's silent in that bit is worked out whole before it counts as silent: Bangers pops as few as 6
+// times a second at random, so sometimes no pop lands in the first 150 ms (this check used to fail
+// now and then because of it). the tweaked kinds leave a maker's sound alone at their normal knobs
+const generators = game.SOUND_GENERATORS;
+const makesSound = (sound) => {
+  const audible = ({ samples }) => samples.every((v) => !Number.isNaN(v)) && samples.some((v) => Math.abs(v) > 0.02);
+  return audible(game.renderSound({ ...sound, sustain: Math.min(sound.sustain, 150), decay: Math.min(sound.decay, 150), repeats: 1, echo: 0 }))
+    || audible(game.renderSound({ ...sound, repeats: 1, echo: 0 }));
+};
 const knobsFor = (kind, maker, anywhere) => Object.fromEntries(generators[kind].knobs.map((knob) => {
   const pick = anywhere ? [knob.min, knob.max] : maker.knobs?.[knob.key] ?? knob.normal;
   const value = typeof pick === 'function' ? pick() : Array.isArray(pick) ? pick[0] + Math.random() * (pick[1] - pick[0]) : pick;
@@ -168,8 +173,7 @@ for (const [kind, { make, makers }] of Object.entries(generators)) {
   for (const [name, maker] of Object.entries(makers)) {
     const sound = game.soundSettings(make(knobsFor(kind, maker, false), maker));
     const { seconds } = game.soundTimings(sound);
-    const { samples } = game.renderSound({ ...sound, sustain: Math.min(sound.sustain, 150), decay: Math.min(sound.decay, 150), repeats: 1, echo: 0 });
-    assert(samples.every((v) => !Number.isNaN(v)) && samples.some((v) => Math.abs(v) > 0.02), `${kind} ${name} makes sound`);
+    assert(makesSound(sound), `${kind} ${name} makes sound`);
     assert(seconds < 12, `${kind} ${name} isn't too long (${seconds.toFixed(1)} s)`);
     for (let i = 0; i < 5; i++) {
       const wild = make(knobsFor(kind, maker, true), maker);
@@ -206,7 +210,7 @@ assert.strictEqual(game.findSound('coin'), VOICES.coin);
 
 // the doppler effect: coming closer is higher, going away lower, going across or round you the same,
 // you moving counts too, 0 is off, and it never goes past maxShift
-const c = vm.runInContext('SOUND_DOPPLER', game).speedOfSound * 32;
+const c = game.SOUND_DOPPLER.speedOfSound * 32;
 const here = { x: 0, y: 0 };
 const still = { x: 0, y: 0 };
 const there = { x: 1000, y: 0 };
@@ -216,7 +220,7 @@ assert(close(game.dopplerShift(here, still, there, { x: c / 4, y: 0 }, 100), 4 /
 assert(close(game.dopplerShift(here, still, there, { x: 0, y: 300 }, 100), 1), 'going across the line between you changes nothing');
 assert(close(game.dopplerShift(here, { x: c / 4, y: 0 }, there, still, 100), 5 / 4), 'walking towards a sound is higher');
 assert(close(game.dopplerShift(here, still, there, { x: -c / 4, y: 0 }, 0), 1), 'doppler 0 is off');
-assert(game.dopplerShift(here, still, there, { x: -c * 5, y: 0 }, 300) <= vm.runInContext('SOUND_DOPPLER', game).maxShift, 'it never bends past maxShift');
+assert(game.dopplerShift(here, still, there, { x: -c * 5, y: 0 }, 300) <= game.SOUND_DOPPLER.maxShift, 'it never bends past maxShift');
 assert(close(game.soundVelocity({ x: 0, y: 0, map: 'a' }, { x: 10, y: 0, map: 'a' }, 0.1).x, 100), 'speed is how far it went over the time');
 assert.strictEqual(game.soundVelocity({ x: 0, y: 0, map: 'a' }, { x: c, y: 0, map: 'a' }, 0.1).x, 0, 'a teleport counts as still');
 assert.strictEqual(game.soundVelocity({ x: 0, y: 0, map: 'a' }, { x: 10, y: 0, map: 'b' }, 0.1).x, 0, 'so does changing map');

@@ -659,7 +659,8 @@ const Drops = {
         drop.ready = true;
         return true;
       }
-      if (!drop.ready) return true;
+      // the dead don't pick things up (deathscreen.js), but throws still land
+      if (!drop.ready || player.dead) return true;
       // picked it up
       if (player.inventory.add(drop.item)) return false;
       drop.ready = false;
@@ -717,10 +718,6 @@ class StoragePanel extends UIElement {
 // inventory screen with its box above yours. while it's open InventoryScreen.storage is it, so a lid
 // picture or opening animation can check that in drawObjects() (tilemap.js)
 const StorageObjects = {
-  // the one you can open with E this frame, or null. sketch.js sets it while playing, like
-  // Warps.reachable
-  reachable: null,
-
   // the closest one with any of its tiles in reach of your feet (closestInReach() in warps.js), so a
   // wide one opens from anywhere along it
   inReach(player, map) {
@@ -744,9 +741,8 @@ const StorageObjects = {
     InventoryScreen.show(true, obj);
   },
 
-  // the E over the middle of its top edge (npc.js)
-  drawPrompt() {
-    const obj = this.reachable;
-    if (obj) drawKeyPrompt((obj.col + OBJECT_TYPES[obj.type].width / 2) * TILE, obj.row * TILE - 4);
+  // the E over the middle of its top edge (npc.js), when it's in reach (interact.js)
+  drawPrompt(obj) {
+    drawKeyPrompt((obj.col + OBJECT_TYPES[obj.type].width / 2) * TILE, obj.row * TILE - 4);
   },
 };

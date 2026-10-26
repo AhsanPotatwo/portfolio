@@ -4,24 +4,17 @@
 // itself stops at PARTICLE_CHAIN_DEPTH, colours turn to their end colour, and pull draws them in.
 // run it with node js/squimble-quest/tests/particle-check.js
 // no output means it all passed
-const fs = require('fs');
-const vm = require('vm');
 const assert = require('assert');
+const { load, assetFolder } = require('./load');
 
 const warnings = [];
 // the canvas bits particles.js touches when it loads. nothing gets drawn here
 class Path2D { lineTo() {} moveTo() {} arc() {} ellipse() {} bezierCurveTo() {} closePath() {} }
-const game = { console: { warn: (w) => warnings.push(w) }, Path2D, radians: (d) => (d * Math.PI) / 180, loadImage: () => ({}) };
-vm.createContext(game);
-vm.runInContext(['utils.js', 'datafiles.js', 'particles.js'].map((f) => fs.readFileSync(`${__dirname}/../${f}`, 'utf8')).join('\n')
-  + '\nthis.ParticleSystem = ParticleSystem; this.PARTICLE_EFFECTS = PARTICLE_EFFECTS; this.PARTICLE_CHAIN_DEPTH = PARTICLE_CHAIN_DEPTH; this.defineParticles = defineParticles; this.particleRgb = particleRgb;', game);
+const game = load(['utils.js', 'datafiles.js', 'particles.js'], { console: { warn: (w) => warnings.push(w) }, Path2D, radians: (d) => (d * Math.PI) / 180, loadImage: () => ({}) });
 const { ParticleSystem, PARTICLE_EFFECTS, PARTICLE_CHAIN_DEPTH, defineParticles, particleRgb } = game;
 
 // every effect file loads, with no typo'd settings
-const folder = `${__dirname}/../../../assets/squimble-quest/particles/`;
-for (const name of JSON.parse(fs.readFileSync(`${folder}index.json`, 'utf8'))) {
-  defineParticles(name, JSON.parse(fs.readFileSync(`${folder}${name}.json`, 'utf8')));
-}
+for (const [name, settings] of assetFolder('particles')) defineParticles(name, settings);
 assert.deepStrictEqual(warnings, []);
 const effect = (settings) => ({ ...PARTICLE_EFFECTS.blood, countRandom: 0, speedRandom: 0, jumpRandom: 0, lifetimeRandom: 0, area: 0, ...settings });
 const run = (system, seconds, until = () => false) => {

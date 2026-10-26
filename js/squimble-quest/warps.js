@@ -26,7 +26,7 @@
 // 'interact' warp works under a solid object, since WARP_REACH reaches it from the next tile.
 //
 // warps only move the player. other things you press E on (signs, levers) should be their own kind of
-// trigger, copying how inReach() works, like chests do (StorageObjects in inventory.js)
+// trigger, a line in INTERACTABLES (interact.js) like chests and sound blocks
 
 // how many px from the middle of your feet to the middle of an 'interact' warp's tile. it's more than
 // a tile so it works from the tile in front, even if the warp's tile can't be walked on
@@ -41,9 +41,6 @@ const WARP_COLOURS = {
 };
 
 const Warps = {
-  // the 'interact' warp you can reach with E this frame, or null. sketch.js sets it while playing, and
-  // it gets drawn with an E over it
-  reachable: null,
   // enemies following you to another map that are on their way. they aren't on either map until they
   // come out (sendFollowers())
   //
@@ -53,10 +50,11 @@ const Warps = {
   followers: [],
 
   // loadMap() (sketch.js) and Player.respawn() call this after placing the player. their tile counts
-  // as stepped on, so a step warp (or step sound block) there doesn't go off
+  // as stepped on, so a step warp (or step sound block) there doesn't go off, and what E would have
+  // used was by where they were (interact.js)
   arrived(player, map) {
     player.stepTile = feetTile(player, map);
-    this.reachable = null;
+    Interact.target = null;
   },
 
   // every frame while playing, after everyone's moved. sets off a step warp if the player just stepped
@@ -145,10 +143,9 @@ const Warps = {
     }
   },
 
-  // the E over the warp you can reach. world positions (before camera.end())
-  drawPrompt() {
-    const warp = this.reachable;
-    if (warp) drawKeyPrompt((warp.col + 0.5) * TILE, warp.row * TILE - 4); // npc.js
+  // the E over a warp you can reach (interact.js). world positions (before camera.end())
+  drawPrompt(warp) {
+    drawKeyPrompt((warp.col + 0.5) * TILE, warp.row * TILE - 4); // npc.js
   },
 };
 
@@ -171,7 +168,7 @@ function feetTile(player, map) {
 }
 
 // the closest of `things` (anything with a col and row) within WARP_REACH of the player's feet, or
-// null. used for everything you press E on: warps, chests (inventory.js) and sound blocks (soundblocks.js)
+// null. used for everything you press E on that sits on a tile (INTERACTABLES, interact.js)
 function closestInReach(player, things) {
   const feetX = player.x;
   const feetY = player.y + feetBelowCentre(player.settings);

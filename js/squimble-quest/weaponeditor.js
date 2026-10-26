@@ -100,7 +100,7 @@ function weaponForm(weapon, { attacker, target }) {
   // added since copies the last one's)
   const opened = hits.map((hit) => ({ ...hit }));
 
-  const attackPicker = new Picker({ w: 180, choices: Object.keys(WEAPON_ATTACKS), value: weapon.attack, label: (attack) => WEAPON_ATTACKS[attack] });
+  const attackPicker = new Picker({ w: 180, choices: Object.keys(WEAPON_ATTACKS), value: weapon.attack, label: (attack) => WEAPON_ATTACKS[attack].label });
   const comboPicker = new Picker({
     w: 180,
     choices: Array.from({ length: MAX_COMBO }, (_, i) => i + 1),
@@ -319,7 +319,7 @@ class WeaponPreview extends UIElement {
 
     // walks up when the next hit wouldn't reach, like an enemy would
     const reach = comboHit(weapon, attacker.comboStep).reach;
-    const far = weapon.attack !== 'shoot' && target.x - target.w / 2 - attacker.x > reach * 0.9;
+    const far = !isRanged(weapon) && target.x - target.w / 2 - attacker.x > reach * 0.9;
     attacker.update({ move: { x: attacking && far ? 1 : 0, y: 0 }, aim: { x: target.x, y: target.y }, attack: attacking && !far }, dt, this.world);
     target.update(STAND_STILL, dt, this.world);
     this.world.arrows = this.world.arrows.filter((arrow) => arrow.update(dt, this.world));

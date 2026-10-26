@@ -4,26 +4,19 @@
 // in over their edge and send their sound from the nearest spot in them.
 // run it with node js/squimble-quest/tests/atmosphere-check.js
 // no output means it all passed
-const fs = require('fs');
-const vm = require('vm');
 const assert = require('assert');
+const { load, asset, assetFolder } = require('./load');
 
 const warnings = [];
 // UIElement is only extended when it loads. nothing gets drawn here
-const game = { console: { warn: (w) => warnings.push(w) }, UIElement: class {}, TILE: 32, constrain: (n, lo, hi) => Math.min(hi, Math.max(lo, n)) };
-vm.createContext(game);
-vm.runInContext(['utils.js', 'datafiles.js', 'atmosphere.js'].map((f) => fs.readFileSync(`${__dirname}/../${f}`, 'utf8')).join('\n')
-  + '\nthis.ATMOSPHERES = ATMOSPHERES; this.ATMOSPHERE_PATTERNS = ATMOSPHERE_PATTERNS; this.atmosphereField = atmosphereField; this.coverAlpha = coverAlpha; this.defineAtmosphere = defineAtmosphere; this.areaAmount = areaAmount; this.areaNearest = areaNearest;', game);
+const game = load(['utils.js', 'datafiles.js', 'atmosphere.js'], { console: { warn: (w) => warnings.push(w) }, UIElement: class {}, TILE: 32, constrain: (n, lo, hi) => Math.min(hi, Math.max(lo, n)) });
 const { ATMOSPHERES, ATMOSPHERE_PATTERNS, atmosphereField, coverAlpha, defineAtmosphere, areaAmount, areaNearest } = game;
 
-const assets = `${__dirname}/../../../assets/squimble-quest/`;
-const index = (folder) => JSON.parse(fs.readFileSync(`${assets}${folder}/index.json`, 'utf8'));
-
 // every atmosphere loads with no typo'd settings or patterns, and its weather and sounds exist
-const particles = index('particles');
-const sounds = index('sounds');
-for (const name of index('atmospheres')) {
-  defineAtmosphere(name, JSON.parse(fs.readFileSync(`${assets}atmospheres/${name}.json`, 'utf8')));
+const particles = asset('particles/index.json');
+const sounds = asset('sounds/index.json');
+for (const [name, settings] of assetFolder('atmospheres')) {
+  defineAtmosphere(name, settings);
   const a = ATMOSPHERES[name];
   for (const effect of a.weather ?? []) assert(particles.includes(effect), `${name}'s weather "${effect}" is a particle effect`);
   for (const sound of [a.sound, a.flashSound]) assert(!sound || sounds.includes(sound), `${name}'s sound "${sound}" is a sound`);
