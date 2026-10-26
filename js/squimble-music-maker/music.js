@@ -2048,7 +2048,7 @@ function mutateSong(song, rng) {
 // unstamped songs could be 1 or 1.5 (the morning of 22 october): they play as 1, the page marks ones
 // saved after 1.5 as its (markMorningSongs), and the Song tab picks by hand.
 // every composer there's been, oldest first: the last is today's
-const COMPOSER_VERSIONS = [1, 1.5, 2, 3, 4];
+const COMPOSER_VERSIONS = [1, 1.5, 2, 3, 4, 5];
 const COMPOSER = COMPOSER_VERSIONS[COMPOSER_VERSIONS.length - 1];
 
 // ---------- cleaning ----------
@@ -2381,6 +2381,7 @@ function composeSong(song) {
     parts[layer.id] = out;
   }
   listen(song, sections, parts);
+  stillHeld(song, sections, parts);
   ornament(song, sections, parts);
   pedal(song, sections, parts);
   liftKey(song, sections, parts);
@@ -2511,6 +2512,36 @@ function listen(song, sections, parts) {
       }
       return true;
     });
+  }
+}
+
+// listening moves a guitar's notes one at a time (an octave under the tune), which can leave a chord
+// no hand holds: then the notes it moved are left off instead, the highest first, until a hand can.
+// (the chord was one a hand holds before, forGuitar, so leaving off what moved always gets back to one)
+function stillHeld(song, sections, parts) {
+  const step = gridStep(song.meter);
+  for (const layer of song.layers) {
+    const notes = parts[layer.id];
+    if (!notes?.some((note) => note.written !== undefined)) continue;
+    const gone = new Set();
+    for (const section of sections) {
+      const { instrument } = partLayer(layer, partOf(section, layer));
+      if (!onGuitar(instrument)) continue;
+      // what's played at once, gathered as the learn tab gathers it (playedTogether in learn.js)
+      const together = new Map();
+      for (const note of notes) {
+        if (note.t < section.start - 1e-6 || note.t >= section.end - 1e-6) continue;
+        const at = Math.round(note.t / step);
+        if (!together.has(at)) together.set(at, []);
+        together.get(at).push(note);
+      }
+      for (const chord of together.values()) {
+        const moved = chord.filter((note) => note.written !== undefined && !note.added).sort((a, b) => b.midi - a.midi);
+        const pitches = () => [...new Set(chord.filter((note) => !gone.has(note)).map((note) => note.midi + (section.lift || 0)))].sort((a, b) => a - b);
+        while (moved.length && pitches().length > 1 && !guitarHolds(pitches(), instrument)) gone.add(moved.shift());
+      }
+    }
+    if (gone.size) parts[layer.id] = notes.filter((note) => !gone.has(note));
   }
 }
 
@@ -3584,7 +3615,178 @@ function guitarShape(c, chord, full) {
   const shape = [root, root + fifth, root + 12, root + 12 + chord.tones[1], root + 12 + fifth];
   const colour = chord.tones.find((tone) => tone > 8);
   if (colour) shape.push(root + 12 + colour);
-  return c.mood.openStrings ? openStrings(c, chord, shape) : shape;
+  return forGuitar(c, c.mood.openStrings ? openStrings(c, chord, shape) : shape, chord);
+}
+
+// a guitar's strings, lowest first: standard, drop d (the low string a tone down) and drop b (every
+// string a tone and a half down, the low one a fifth under the next: a guitar tuned down, drop in
+// instruments.js). the learn tab reads guitar parts on these
+const GUITAR_TUNINGS = { standard: [40, 45, 50, 55, 59, 64], drop: [38, 45, 50, 55, 59, 64], lower: [35, 42, 47, 52, 56, 61] };
+const GUITAR_FRETS = 22;
+// the widest a hand reaches, in frets from the first finger's to the little finger's (a fret less
+// under the fifth fret, where the frets are wider)
+const REACH = 4;
+// what's played on a guitar's neck: the guitar family, and the guitars filed with other sounds
+const NECKS = new Set(['nylon', 'steel-guitar', 'lead-guitar', 'fuzz-lead', 'swell-guitar', 'reverse-guitar']);
+const onGuitar = (id) => INSTRUMENTS[id]?.family === 'guitar' || NECKS.has(id);
+
+// every way to hold these pitches at once (lowest first) on a tuning: one note a string, within a
+// hand's reach, and a hand can finger it (fingering). a way is [[string, fret], ...], one per pitch.
+// a note can sit on a higher string than a higher one only if it's an open string (two fretted notes
+// crossed like that are more than a reach apart): an open b ringing under a c on the g string, the
+// close rubs shoegaze gets from its open strings. first: stop at the first
+function holds(pitches, tuning, frets, first = false) {
+  const ways = [];
+  const walk = (i, used, chosen, low, high) => {
+    if (i === pitches.length) {
+      if (fingering(chosen)) ways.push(chosen.slice());
+      return;
+    }
+    for (let string = 0; string < tuning.length && !(first && ways.length); string++) {
+      const fret = pitches[i] - tuning[string];
+      if (used & (1 << string) || fret < 0 || fret > frets) continue;
+      const lo = fret ? Math.min(low, fret) : low;
+      const hi = fret ? Math.max(high, fret) : high;
+      if (hi - lo > REACH) continue;
+      chosen.push([string, fret]);
+      walk(i + 1, used | (1 << string), chosen, lo, hi);
+      chosen.pop();
+    }
+  };
+  walk(0, 0, [], Infinity, -Infinity);
+  return ways;
+}
+
+// how a hand holds a way ([[string, fret], ...]), or null if it can't. four fingers, numbered up the
+// frets (1 the first finger, 4 the little one), a fret each; one finger can lie flat across strings at
+// its fret (a barre) if every string under it is held higher, since it would stop an open or lower one:
+// the first finger across any of them, the third across three (an a shape), the others two at most
+// (BARRES). fingers spread a fret apart, a fret further at a stretch. a power chord's notes all at one
+// fret are one finger. cost: how awkward it is (stretches, fingers bunched on one fret, barres, the
+// first finger's least). { fingers: { string: finger }, barres: [{ fret, from, to, finger }], cost }
+const BARRES = { 1: 6, 2: 2, 3: 3, 4: 2 };
+function fingering(way) {
+  const fretted = way.filter(([, fret]) => fret > 0).sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+  if (!fretted.length) return { fingers: {}, barres: [], cost: 0 };
+  const low = fretted[0][1];
+  if (fretted[fretted.length - 1][1] - low > (low < 5 ? REACH - 1 : REACH)) return null;
+  const fretOn = new Map(way);
+  const strings = fretted.map(([string]) => string);
+  if (fretted.length > 1 && fretted.length === way.length && fretted.every(([, fret]) => fret === low) && Math.max(...strings) - Math.min(...strings) === strings.length - 1) {
+    return { fingers: Object.fromEntries(strings.map((string) => [string, 1])), barres: [{ fret: low, from: Math.min(...strings), to: Math.max(...strings), finger: 1 }], cost: 0 };
+  }
+  // each fret's strings split every way into runs a finger can lie across
+  const splits = [...new Set(fretted.map(([, fret]) => fret))].map((fret) => {
+    const here = fretted.filter((one) => one[1] === fret).map(([string]) => string);
+    const out = [];
+    for (let joins = 0; joins < 1 << (here.length - 1); joins++) {
+      const runs = [[here[0]]];
+      let clear = true;
+      for (let i = 1; i < here.length; i++) {
+        if (!(joins & (1 << (i - 1)))) {
+          runs.push([here[i]]);
+          continue;
+        }
+        const run = runs[runs.length - 1];
+        for (let between = run[run.length - 1] + 1; between < here[i]; between++) if (!(fretOn.get(between) > fret)) clear = false;
+        run.push(here[i]);
+      }
+      if (clear) out.push(runs.map((run) => ({ fret, run })));
+    }
+    return out;
+  });
+  let best = null;
+  const tryFingers = (slots, k, from, used, cost) => {
+    if (best && cost >= best.cost) return;
+    if (k === slots.length) {
+      best = { slots, used, cost };
+      return;
+    }
+    const { fret, run } = slots[k];
+    for (let finger = from; finger <= 4 - (slots.length - k - 1); finger++) {
+      if (used.some((other, j) => fret - slots[j].fret > finger - other + 1)) continue;
+      if (run.length > BARRES[finger]) continue;
+      let more = run.length > 1 ? (finger === 1 ? 0.5 : 1) : 0;
+      if (k) {
+        const apart = fret - slots[k - 1].fret;
+        more += apart ? Math.max(0, apart - (finger - used[k - 1])) : 0.2;
+      }
+      tryFingers(slots, k + 1, finger + 1, [...used, finger], cost + more);
+    }
+  };
+  const every = (i, slots) => {
+    if (slots.length > 4) return;
+    if (i === splits.length) return tryFingers(slots, 0, 1, [], 0);
+    for (const split of splits[i]) every(i + 1, [...slots, ...split]);
+  };
+  every(0, []);
+  if (!best) return null;
+  const fingers = {};
+  const barres = [];
+  best.slots.forEach(({ fret, run }, k) => {
+    for (const string of run) fingers[string] = best.used[k];
+    if (run.length > 1) barres.push({ fret, from: run[0], to: run[run.length - 1], finger: best.used[k] });
+  });
+  return { fingers, barres, cost: best.cost };
+}
+
+// whether a hand holds these pitches (lowest first) on an instrument, in whatever tuning the learn tab
+// could read its part in (frettings in learn.js): drop b for a guitar tuned down, otherwise standard
+// or drop d (whichever the rest of the part asks for), or drop b under d. (a part set an octave under
+// the neck is folded up by the learn tab, so there's nothing to judge)
+function guitarHolds(pitches, instrument) {
+  const { standard, drop, lower } = GUITAR_TUNINGS;
+  const bass = pitches[0];
+  if (bass < lower[0]) return true;
+  const tunings = (INSTRUMENTS[instrument].drop || 0) < 0 && bass >= lower[0] ? [lower]
+    : [...(bass >= standard[0] ? [standard] : []), ...(bass >= drop[0] ? [drop] : []), ...(bass < drop[0] ? [lower] : [])];
+  return tunings.every((tuning) => holds(pitches, tuning, GUITAR_FRETS, true).length);
+}
+
+// a chord as a guitar plays it. one written like a piano's, or with open strings over a shape, can be
+// more than a hand holds (five fingers' worth, a stretch past the fifth fret, a note under a barre), so
+// it's moved to the nearest chord a hand can hold: the same bass, the same notes if it can (one an octave
+// nearer, one that's there twice left off), the same top note if it can. if a note has to go, it's the
+// chord's fifth, as a guitarist leaves it off. a chord a hand can hold already stays as it is. (held
+// where it sounds: a key change moves it up once it's written, liftKey)
+const VOICINGS = new Map();
+function forGuitar(c, pitches, chord) {
+  const { instrument } = c.layer;
+  if (!onGuitar(instrument) || pitches.length < 2) return pitches;
+  const lift = c.section.lift || 0;
+  const fifth = mod12(chord.root + (chord.tones.find((tone) => tone >= 6 && tone <= 8) ?? 7));
+  const key = `${pitches.join()} ${instrument} ${lift} ${fifth}`;
+  if (VOICINGS.has(key)) return VOICINGS.get(key);
+  const bass = pitches[0];
+  const holdable = (notes) => guitarHolds(notes.map((midi) => midi + lift), instrument);
+  if (holdable(pitches)) {
+    VOICINGS.set(key, pitches);
+    return pitches;
+  }
+  // every way of moving or leaving off the notes over the bass, nearest first. (close: neighbours a tone
+  // or a semitone apart, the rubs that make it shimmer, kept if they can be)
+  const pcs = new Set(pitches.map(mod12));
+  const top = pitches[pitches.length - 1];
+  const close = (notes) => notes.filter((midi, i) => i && midi - notes[i - 1] <= 2).length;
+  const rubs = close(pitches);
+  const tries = [];
+  const walk = (i, notes, cost) => {
+    if (i === pitches.length) {
+      const kept = [...new Set(notes)].sort((a, b) => a - b);
+      const lost = [...pcs].filter((pc) => !kept.some((midi) => mod12(midi) === pc)).reduce((sum, pc) => sum + (pc === fifth ? 2 : 6), 0);
+      tries.push({ notes: kept, cost: cost + (pitches.length - kept.length) + lost + (kept[kept.length - 1] === top ? 0 : 1) + Math.max(0, rubs - close(kept)) });
+      return;
+    }
+    for (const [midi, more] of [[pitches[i], 0], [pitches[i] + 12, 1.5], [pitches[i] - 12, 1.5], [null, 0]]) {
+      if (midi === null) walk(i + 1, notes, cost);
+      else if (midi > bass) walk(i + 1, [...notes, midi], cost + more);
+    }
+  };
+  walk(1, [bass], 0);
+  tries.sort((a, b) => a.cost - b.cost);
+  const voiced = tries.find((one) => holdable(one.notes))?.notes || [bass];
+  VOICINGS.set(key, voiced);
+  return voiced;
 }
 
 // shoegaze's open strings (a mood's openStrings): two strings left ringing on the same notes over every
@@ -3897,8 +4099,9 @@ const COMPOSERS = {
     const notes = [];
     let previous = null;
     for (const chord of c.chords) {
-      const voiced = voiceChord(chord.root, chord.tones, c.center, previous);
-      previous = voiced;
+      // (on a guitar, a shape a hand holds: the next chord's still led from the one written)
+      previous = voiceChord(chord.root, chord.tones, c.center, previous);
+      const voiced = forGuitar(c, previous, chord);
       const end = chord.t + chord.dur;
       if (pattern === 'broken') {
         // alberti bass: low, high, middle, high, the classical left hand
@@ -3924,7 +4127,7 @@ const COMPOSERS = {
         // that change bar to bar and come round every four (COMP_RHYTHMS)
         const third = chord.tones.find((tone) => tone === 3 || tone === 4) ?? chord.tones[1];
         const seventh = chord.tones.find((tone) => tone >= 9 && tone <= 11) ?? (third === 4 ? 9 : 10);
-        const rootless = voiceChord(chord.root, [third, seventh, 14], c.center, previous);
+        const rootless = forGuitar(c, voiceChord(chord.root, [third, seventh, 14], c.center, previous), chord);
         for (let bar = Math.floor((chord.t - c.start) / c.bpb); c.start + bar * c.bpb < end - 1e-6; bar++) {
           const rhythms = COMP_RHYTHMS[c.bpb] || [[[0, 0.6], [c.bpb / 2, 0.6]]];
           const hits = makeRng(c.song.seed, partSeed(c.layer, c.section.part), 'comp', c.section.part, bar % 4).pick(rhythms);
@@ -4055,8 +4258,8 @@ const COMPOSERS = {
     const notes = [];
     let previous = null;
     for (const chord of c.chords) {
-      const voiced = voiceChord(chord.root, chord.tones, c.center, previous);
-      previous = voiced;
+      previous = voiceChord(chord.root, chord.tones, c.center, previous);
+      const voiced = forGuitar(c, previous, chord);
       const end = chord.t + chord.dur;
       const hits = [];
       if (pattern === 'swell') for (let t = chord.t; t < end - 1e-6; t += c.bpb) hits.push([t, Math.min(c.bpb, end - t), 0.6]);

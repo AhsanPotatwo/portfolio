@@ -1,8 +1,9 @@
 // checks the learn tab's reading of a part (learn.js): the usual guitar shapes are fingered the way
-// players finger them, the composer's guitar chords come out as the barre shapes it means (the
-// soggy-crater shoegaze song, the one this was made for), every part of every mood can be fretted in
-// reach on a guitar and a bass, keys are written with the right signature and notes spelled in it,
-// and sheet music fills every bar exactly, cutting nothing across a bar line.
+// players finger them and shapes no hand holds are never shown, the composer's guitar chords come out as
+// the barre shapes it means (the soggy-crater shoegaze song, the one this was made for), every guitar's
+// chords in every mood and flavour are ones a hand holds whole (forGuitar), every part of every mood can
+// be fretted in reach on a guitar and a bass, a finger a fret, keys are written with the right signature
+// and notes spelled in it, and sheet music fills every bar exactly, cutting nothing across a bar line.
 // run it with
 // node js/squimble-music-maker/tests/learn-check.js (no output means it all passed)
 const fs = require('fs');
@@ -12,7 +13,8 @@ const assert = require('assert');
 const page = {};
 vm.createContext(page);
 for (const file of ['instruments.js', 'synth.js', 'kept/composer-3.js', 'moods.js', 'music.js', 'learn.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), page);
-const { generateSong, composeSong, MOODS, SCALES, playedTogether, frettings, fingersFor, keySignature, spellPitch, sheetPieces, STRINGS } = vm.runInContext('({ generateSong, composeSong, MOODS, SCALES, playedTogether, frettings, fingersFor, keySignature, spellPitch, sheetPieces, STRINGS })', page);
+const { generateSong, composeSong, MOODS, FLAVOURS, SCALES, INSTRUMENTS, playedTogether, frettings, fingersFor, keySignature, spellPitch, sheetPieces, STRINGS, onGuitar, holds, GUITAR_TUNINGS } = vm.runInContext('({ generateSong, composeSong, MOODS, FLAVOURS, SCALES, INSTRUMENTS, playedTogether, frettings, fingersFor, keySignature, spellPitch, sheetPieces, STRINGS, onGuitar, holds, GUITAR_TUNINGS })', page);
+const hand = vm.runInContext('fingering', page);
 
 // a shape written the way chord books write it, low e first: x an unplayed string
 const shape = (text) => [...text].map((fret, string) => (fret === 'x' ? null : { string, fret: +fret })).filter(Boolean);
@@ -32,6 +34,14 @@ assert.deepStrictEqual(fingering('333xxx'), ['111xxx', '1@3:0-2'], 'a power chor
 assert.deepStrictEqual([...frettings([{ t: 0, end: 1, notes: [{ midi: 48 }, { midi: 55 }, { midi: 60 }] }], 'guitar').placed[0].strings.map((s) => s.fret)], [3, 5, 5], 'c5 as a power chord shape');
 // the soggy-crater shape (b sus4 add9): a first finger barre at 7, the third barring a d g at 9
 assert.deepStrictEqual(fingering('799979'), ['133314', '1@7:0-4 3@9:1-3'], 'e shape with a sus and a ninth');
+// shapes no hand holds: 6 8 x 6 4 8 (shown once with the little finger on three frets at once), an e
+// shaped bmaj7 with its seventh on top (the little finger flat across three strings), five fingers'
+// worth, and a five fret stretch by the nut
+const unheld = (text) => hand(shape(text).map(({ string, fret }) => [string, fret])) === null;
+for (const text of ['68x648', '999876', '21342x', '15xxxx']) assert(unheld(text), `${text} can't be held`);
+// an open string can ring under a fretted note on a lower string (c on the g string over an open b):
+// the close rubs shoegaze's open strings make
+assert(holds([59, 60], GUITAR_TUNINGS.standard, 22).some((way) => way.some(([string, fret]) => string === 4 && fret === 0)), 'an open b under a c');
 
 // the composer's strummed shoegaze guitar comes out as the e shaped barre chords it plays. (soggy-crater as
 // composer 3 wrote it, the song this was made for: composer 4 gave shoegaze its open strings, and the seed
@@ -58,12 +68,27 @@ for (let n = 0, found = false; !found; n++) {
   const layer = one.layers.find((l) => l.instrument === 'drop-guitar');
   if (!layer) continue;
   found = true;
-  const low = frettings(playedTogether(composeSong(one).notes.filter((note) => note.layer === layer.id), comp.step), 'guitar');
+  const low = frettings(playedTogether(composeSong(one).notes.filter((note) => note.layer === layer.id), comp.step), 'guitar', true);
   assert(low.down && low.tuning[0] === 35 && !low.folded, 'a drop tuned part is fretted in drop b, nothing folded');
 }
 
-// every tonal part of every mood frets in reach on a guitar and on a bass, a note a string, and every
-// part's sheet music fills its bars exactly
+// today's composer only gives a guitar chords a hand holds whole, in every mood and flavour: none of a
+// guitar's chord parts loses a note in the learn tab
+for (const mood of Object.keys(MOODS)) {
+  for (const flavour of Object.keys(FLAVOURS[mood]?.kinds || { plain: 1 }).map((kind, i) => (i ? kind : undefined))) {
+    for (const [style, seed] of [['tune', 'd learn'], ['ambient', 'e learn']]) {
+      const one = generateSong(mood, style, seed, [], flavour);
+      const notes = composeSong(one);
+      for (const layer of one.layers.filter((l) => onGuitar(l.instrument) && ['guitar', 'keys', 'pad'].includes(l.role))) {
+        const { placed } = frettings(playedTogether(notes.notes.filter((note) => note.layer === layer.id), notes.step), 'guitar', (INSTRUMENTS[layer.instrument].drop || 0) < 0);
+        placed.forEach((one, i) => assert(!one.left, `${mood} ${flavour || ''} ${style} ${layer.id}: chord ${i} can't be held whole`));
+      }
+    }
+  }
+}
+
+// every tonal part of every mood frets in reach on a guitar and on a bass, a note a string, a finger on
+// one fret, and every part's sheet music fills its bars exactly
 let parts = 0;
 for (const mood of Object.keys(MOODS)) {
   for (const [style, seed] of [['tune', 'a learn'], ['ambient', 'b learn'], ['boss', 'c learn']]) {
@@ -87,7 +112,9 @@ for (const mood of Object.keys(MOODS)) {
             assert.strictEqual(tuning[s.string] + s.fret, s.midi, 'the fret plays the pitch');
             assert(s.fret <= STRINGS[kind].frets);
           }
-          for (const finger of Object.values(fingersFor(strings, hand).fingers)) assert(finger >= 1 && finger <= 4);
+          const { fingers } = fingersFor(strings, hand);
+          for (const finger of Object.values(fingers)) assert(finger >= 1 && finger <= 4);
+          for (const finger of new Set(Object.values(fingers))) assert.strictEqual(new Set(strings.filter((s) => fingers[s.string] === finger).map((s) => s.fret)).size, 1, `${mood} ${layer.id}: a finger on two frets`);
         });
       }
       const pieces = sheetPieces(events, { beats: notes.beats, bpb: notes.bpb, step: notes.step, quarters }, signature, 0);

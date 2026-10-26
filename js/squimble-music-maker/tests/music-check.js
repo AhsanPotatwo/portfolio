@@ -140,7 +140,7 @@ const page = {};
 vm.createContext(page);
 for (const file of ['instruments.js', 'synth.js', 'moods.js', 'music.js']) vm.runInContext(fs.readFileSync(`${__dirname}/../${file}`, 'utf8'), page);
 const run = (expr) => vm.runInContext(expr, page);
-const { generateSong, composeSong, cleanSong, rerollSong, parseChord, MOODS, FLAVOURS, GROOVES, METERS, PATTERNS } = run('({ generateSong, composeSong, cleanSong, rerollSong, parseChord, MOODS, FLAVOURS, GROOVES, METERS, PATTERNS })');
+const { generateSong, composeSong, cleanSong, rerollSong, parseChord, onGuitar, MOODS, FLAVOURS, GROOVES, METERS, PATTERNS } = run('({ generateSong, composeSong, cleanSong, rerollSong, parseChord, onGuitar, MOODS, FLAVOURS, GROOVES, METERS, PATTERNS })');
 const { INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries, builds, weaves } = run('({ INSTRUMENTS, maxEdge, roleFamily, MIDDLE, usesRate, rateStep, MAX_RATE, kindred, OPENERS, songMood, OPENING, FIGHTS, carries, builds, weaves })');
 const same = (a, b, message) => assert.strictEqual(JSON.stringify(a), JSON.stringify(b), message);
 // how far a note's section is lifted by a key change (section.lift): a voice goes up with everyone
@@ -884,10 +884,11 @@ block('shoegaze kinds', () => {
     }
   }
   // a drone over each chord of a long song in an open strings kind: never a semitone from a chord note
+  // (on a guitar, so a shape a hand can't hold is moved: forGuitar mustn't bring a rub back)
   const { guitarShape, ROLES } = vm.runInContext('({ guitarShape, ROLES })', page);
   for (const key of [0, 4, 7, 9, 11]) {
     for (const [root, tones] of [[0, [0, 4, 7]], [5, [0, 4, 7, 11]], [9, [0, 3, 7, 10]], [8, [0, 4, 7]], [1, [0, 4, 7]], [3, [0, 4, 7, 11]], [7, [0, 5, 7]]]) {
-      const c = { mood: { openStrings: true }, song: { key }, center: ROLES.guitar.center };
+      const c = { mood: { openStrings: true }, song: { key }, center: ROLES.guitar.center, layer: { instrument: 'offset-guitar' }, section: {} };
       const shape = guitarShape(c, { root, tones }, true);
       const pcs = tones.map((tone) => (root + tone) % 12);
       for (const midi of shape) {
@@ -1401,7 +1402,8 @@ block('short links', () => {
 // key changes (section.lift, liftKey in music.js) and longer songs. a key change never drops back
 // down within a song (once it's lifted it stays lifted to the end), every note in a lifted section is
 // the note it'd be without the lift, moved up by it (the drone and scenery aside, which are joined up
-// differently, and the drums, which roll and crash into it), the chords move with it, and the drummer crashes into a loud one. boss fights go round
+// differently, and the drums, which roll and crash into it; a guitar's chords are struck when they were,
+// but held as a hand holds them up there, forGuitar), the chords move with it, and the drummer crashes into a loud one. boss fights go round
 // for longer than they did, a final boss and a cutscene always change key and are long, and a final boss
 // outlasts a boss fight
 block('key changes', () => {
@@ -1421,6 +1423,13 @@ block('key changes', () => {
       for (const section of flat.sections) delete section.lift;
       const plain = composeSong(cleanSong(flat));
       const held = new Set(song.layers.filter((l) => ['drone', 'texture', 'drums'].includes(l.role)).map((l) => l.id));
+      const necks = song.layers.filter((l) => !held.has(l.id) && onGuitar(l.instrument)).map((l) => l.id);
+      for (const id of necks) {
+        held.add(id);
+        // (struck on the grid steps it was, as the learn tab gathers them)
+        const steps = (notes) => [...new Set(notes.filter((n) => n.layer === id).map((n) => Math.round(n.gt / comp.step)))];
+        assert.deepStrictEqual(steps(comp.notes), steps(plain.notes), `${where}: ${id} strikes its chords when it did`);
+      }
       const mine = comp.notes.filter((n) => !held.has(n.layer));
       const theirs = plain.notes.filter((n) => !held.has(n.layer));
       assert.strictEqual(mine.length, theirs.length, `${where}: a key change keeps every note`);

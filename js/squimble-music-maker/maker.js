@@ -946,7 +946,8 @@
       [1.5, '22 Oct, morning', 'The composer of the morning of 22 October, when each flavour got its own way of writing tunes. Songs saved then open as the one before: pick this if one sounds different from how you saved it'],
       [2, 'Up to 23 Oct', 'The composer of 22 and 23 October, with key changes and longer songs. Songs saved then are written by it'],
       [3, 'Up to 24 Oct', "The composer of 23 and 24 October, with the magic worlds' themes coming in one at a time and meeting. Songs saved then are written by it"],
-      [COMPOSER, "Today's", "Today's composer, with shoegaze's many kinds and open strings ringing over its chords. Every new song is written by it"],
+      [4, 'Up to 26 Oct', "The composer of 24 to 26 October, with shoegaze's many kinds and open strings ringing over its chords. Songs saved then are written by it"],
+      [COMPOSER, "Today's", "Today's composer, whose guitar chords are all shapes a hand can hold, so the Learn tab shows them as they're played. Every new song is written by it"],
     ];
     const composer = section('Composer',
       field('Written by', choices(composers, () => song.composer || 1, (value) => edit(() => {
@@ -2194,10 +2195,10 @@
   // a scrolling tab, or sheet music. learn.js works out the hands and this draws them, following the
   // playhead, or the marker while stopped (← and → step through it). practice speed slows the player
 
-  // a guitar opens on a guitar's neck, a bass guitar (or an upright) on a bass's, anything else a piano
-  const GUITARS = new Set(['nylon', 'steel-guitar', 'lead-guitar', 'fuzz-lead', 'swell-guitar', 'reverse-guitar']);
+  // a guitar (onGuitar in music.js) opens on a guitar's neck, a bass guitar (or an upright) on a bass's,
+  // anything else a piano
   const BASS_GUITARS = new Set(['pluck-bass', 'pick-bass', 'fuzz-bass', 'slap-bass', 'fretless', 'chorus-bass', 'upright']);
-  const ownView = (layer) => (INSTRUMENTS[layer.instrument].family === 'guitar' || GUITARS.has(layer.instrument) ? 'guitar' : BASS_GUITARS.has(layer.instrument) ? 'bass' : 'piano');
+  const ownView = (layer) => (onGuitar(layer.instrument) ? 'guitar' : BASS_GUITARS.has(layer.instrument) ? 'bass' : 'piano');
   const VIEWS = [
     ['piano', 'Piano', "Piano: the notes fall onto the keys they're played on, like a piano cover video"],
     ['guitar', 'Guitar', 'Guitar: where your fingers go on the neck, and the tab'],
@@ -2320,7 +2321,7 @@
     const data = { layer, events, gap };
     if (learn.view === 'piano') data.left = learn.left ? heard(learn.left) : [];
     if (learn.view === 'guitar' || learn.view === 'bass') {
-      Object.assign(data, events.length ? frettings(events, learn.view) : { placed: [], tuning: STRINGS[learn.view].standard });
+      Object.assign(data, events.length ? frettings(events, learn.view, (INSTRUMENTS[layer.instrument].drop || 0) < 0) : { placed: [], tuning: STRINGS[learn.view].standard });
       // the shape held at each event: an upstroke (or anything else at the same frets) is the chord
       // before it still held, not a new shape
       data.held = [];
