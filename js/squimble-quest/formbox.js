@@ -27,9 +27,11 @@ const FormBox = {
   tabs: [],
   tab: 0,
   tabButtons: [],
-  // how far down from the top of the box the rows start, and how many rows it has room for
+  // how far down from the top of the box the rows start, how many rows it has room for, and how tall
+  // they are (or its body, open()'s body)
   rowsTop: 0,
   mostRows: 0,
+  rowsHeight: 0,
   // where it is on screen as { x, y, w, h } (changes when it's dragged), and its backdrop
   box: null,
   backdrop: null,
@@ -47,6 +49,9 @@ const FormBox = {
   //   tabs        use this instead of rows: [{ label, rows }]. a row of tabs goes under the title and
   //               it shows one tab's rows at a time. the box is sized for the longest tab so it doesn't
   //               jump around when you switch
+  //   body        use this instead of rows for a box that's all one thing, like a grid of slots
+  //               (storageeditor.js): (x, y, w, h) => [ui elements], with bodyWidth and bodyHeight its
+  //               size. the box is sized round it
   //   minRows     optional smallest height in rows, like to leave room for the side column
   //   hint        optional line of text under the rows
   //   values      every row's field value in row order (all the tabs')
@@ -67,12 +72,14 @@ const FormBox = {
     Input.typing = true;
 
     // built from scratch every time, sized to fit what's in it
-    this.tabs = options.tabs ?? [{ rows: options.rows }];
+    this.tabs = options.tabs ?? [{ rows: options.rows ?? [] }];
     const tabbed = Boolean(options.tabs);
     this.rowsTop = FORM_BOX.titleHeight + 12 + (tabbed ? FORM_BOX.tabHeight + 8 : 0);
     this.mostRows = Math.max(options.minRows ?? 0, ...this.tabs.map(({ rows }) => rows.length));
-    const w = FORM_BOX.width + (options.side ? FORM_BOX.sideWidth : 0);
-    const h = this.rowsTop + this.mostRows * FORM_BOX.rowHeight + (options.hint ? 20 : 0) + FORM_BOX.footerHeight;
+    // a body gets the same gap under it as the last row's field has, so the hint isn't on it
+    this.rowsHeight = options.body ? options.bodyHeight + FORM_BOX.rowHeight - FORM_BOX.fieldHeight : this.mostRows * FORM_BOX.rowHeight;
+    const w = options.body ? options.bodyWidth + 32 : FORM_BOX.width + (options.side ? FORM_BOX.sideWidth : 0);
+    const h = this.rowsTop + this.rowsHeight + (options.hint ? 20 : 0) + FORM_BOX.footerHeight;
     const x = (GAME_W - w) / 2;
     const y = (GAME_H - h) / 2;
     this.box = { x, y, w, h };
@@ -114,6 +121,7 @@ const FormBox = {
     const sideTop = this.rowsTop;
     const sideBottom = h - FORM_BOX.footerHeight - (options.hint ? 20 : 0);
     if (options.side) options.side(x + FORM_BOX.width, y + sideTop, FORM_BOX.sideWidth - 16, sideBottom - sideTop - 6).forEach(add);
+    if (options.body) options.body(x + 16, y + this.rowsTop, options.bodyWidth, options.bodyHeight).forEach(add);
     // bottom right, where you'd expect them
     const buttonY = y + h - (FORM_BOX.footerHeight + 24) / 2;
     if (options.cancelLabel !== null) add(new Button({ x: x + w - 182, y: buttonY, w: 80, h: 24, label: options.cancelLabel ?? 'Cancel', style: 'editor', onClick: () => this.close() }));
@@ -268,7 +276,7 @@ class FormBoxBackdrop extends UIElement {
   draw() {
     const { x, y, w, h } = this.box;
     const { title, hint } = FormBox.options;
-    const { rowsTop, mostRows } = FormBox;
+    const { rowsTop, rowsHeight } = FormBox;
 
     // only a little bit dark, so you can still see live changes on the map (tileeditor.js)
     noStroke();
@@ -312,7 +320,7 @@ class FormBoxBackdrop extends UIElement {
     if (hint) {
       fill(C.dimText);
       setText(11, BOLD, LEFT, CENTER);
-      text(hint, x + 16, y + rowsTop + 6 + mostRows * FORM_BOX.rowHeight);
+      text(hint, x + 16, y + rowsTop + 6 + rowsHeight);
     }
   }
 }

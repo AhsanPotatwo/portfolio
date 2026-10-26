@@ -770,7 +770,7 @@ const StorageObjects = {
   },
 
   // empties it and puts in what the map says starts in it: obj.items, a name or null per slot, picked by
-  // right clicking it in the editor (Editor.editStorage()). TileMap.addObject() does it when the map's
+  // right clicking it in the editor (storageeditor.js). TileMap.addObject() does it when the map's
   // built from its file, so like placed items (Drops.restock()) what was taken is back after a reload
   //
   // ponytail: no saving, so a chest is always full again after a reload. with a save game, its saved

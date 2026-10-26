@@ -50,6 +50,7 @@
 //   particleeditor.js the particle editor box and its preview (after tileeditor.js)
 //   atmosphere.js a map's fog, colour, weather and background sound, and its editor box (after particleeditor.js)
 //   weaponeditor.js the weapon editor tabs, enemy weapons in the palette, and the combo preview (after editor.js)
+//   storageeditor.js the box for what starts in a chest, opened by right clicking one in the editor
 //   soundeditor.js the sound editor, a full screen synthesiser (after editor.js)
 //   shaders.js    WebGL effects over the world (lighting, shadows, screen effects), dev mode only for now
 //   colourblind.js colour blind filters over the whole canvas, picked in the pause menu

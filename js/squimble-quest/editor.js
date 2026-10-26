@@ -49,7 +49,7 @@
 //     copy and paste, and Pick (or Alt + click). Ctrl + Z undoes anything on the map (edithistory.js)
 //   - right click: the settings for a warp, a sound block (its sound, and how it moves), an enemy (its
 //     weapon, armour, ai, sound and particles, next to a picture of it), an npc (its voice and sound) or
-//     a chest (what starts in it, editStorage()) on the map, or a tile, item, sound or voice in the palette. resting the mouse on a row says what it does
+//     a chest (what starts in it, storageeditor.js) on the map, or a tile, item, sound or voice in the palette. resting the mouse on a row says what it does
 //   - opening it shows every enemy at its spawn, even defeated ones, so you see the whole design.
 //     closing it puts everyone back at their spawns on full health (outside the editor, maps remember
 //     their characters, loadMap() in sketch.js)
@@ -695,7 +695,7 @@ const Editor = {
       else if (sound) SoundBlocks.edit(sound);
       else if (enemy) this.editEnemy(enemy);
       else if (npc) this.editNpc(npc);
-      else if (chest) this.editStorage(chest);
+      else if (chest) StorageEditor.open(chest); // storageeditor.js
       else if (AtmosphereAreas.at(map, over.col, over.row)) AtmosphereAreas.edit(map, AtmosphereAreas.at(map, over.col, over.row));
     }
 
@@ -726,40 +726,6 @@ const Editor = {
     if (map.items.some((entry) => entry.type === name && entry.col === col && entry.row === row)) return;
     map.items.push({ type: name, col, row });
     Drops.restock(map);
-  },
-
-  // what starts in a chest (or anything with storage, objects.js): a picker per slot, saved in the map
-  // file as its items. Save also fills it now, replacing whatever was put in it while playing
-  // (StorageObjects.fill() in inventory.js)
-  editStorage(obj) {
-    const names = Object.keys(ITEM_TYPES);
-    const pickers = obj.inventory.slots.map((_, i) => {
-      const value = obj.items?.[i] ?? null;
-      return new Picker({
-        w: 180,
-        // a missing one stays in the list so opening the box doesn't quietly take it out
-        choices: [null, ...names, ...(value !== null && !ITEM_TYPES[value] ? [value] : [])],
-        value,
-        label: (name) => (name === null ? 'empty' : ITEM_TYPES[name]?.label ?? `${name} (missing)`),
-        art: (name, x, y, size) => {
-          if (ITEM_TYPES[name]) drawItemIcon({ type: ITEM_TYPES[name] }, x, y, size); // inventory.js
-        },
-      });
-    });
-    const storage = OBJECT_TYPES[obj.type].storage;
-    FormBox.open({
-      title: storage.label,
-      hint: 'What starts in it. Taken ones are back after a reload',
-      confirmLabel: 'Save',
-      rows: pickers.map((field, i) => ({ label: `Slot ${i + 1}`, field })),
-      onConfirm: (values) => {
-        // trailing empty slots aren't saved, and an empty one isn't saved at all (addObject())
-        const items = values.slice(0, values.findLastIndex((name) => name !== null) + 1);
-        if (items.length > 0) obj.items = items;
-        else delete obj.items;
-        StorageObjects.fill(obj);
-      },
-    });
   },
 
   // puts one in the player's inventory (player is in sketch.js)
