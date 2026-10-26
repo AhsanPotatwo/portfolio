@@ -62,13 +62,13 @@
     "wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa"
   ],
   "objects": [
-    { "type": "rug", "col": 61, "row": 10 }
+    { "type": "rug", "col": 61, "row": 10, "id": "nirbob" }
   ],
   "enemies": [
-    { "type": "grunt", "col": 13, "row": 38, "ai": "smart", "sound": "drone" }
+    { "type": "grunt", "col": 13, "row": 38, "ai": "smart", "sound": "drone", "id": "hmjnin" }
   ],
   "npcs": [
-    { "type": "sound-guide", "col": 39, "row": 21 }
+    { "type": "sound-guide", "col": 39, "row": 21, "id": "n16j4s" }
   ],
   "warps": [],
   "sounds": [

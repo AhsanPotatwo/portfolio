@@ -186,6 +186,9 @@ const PLAYER = {
   // seconds after a weapon hits them that nothing else can (they blink), so a crowd can't hit them
   // over and over in one go. any character can have this, enemies don't by default (hitWith())
   hitInvincible: 0.6,
+  // seconds after respawning that nothing can hit them (they blink), so whatever killed them near the
+  // spawn can't kill them again before they can move (Player.respawn())
+  respawnSafeTime: 2,
   // the sound (sounds/) when a weapon hits them, on top of the weapon's hit sound (hitWith()). only
   // this computer's player hears their own
   hurtSound: 'hurt',

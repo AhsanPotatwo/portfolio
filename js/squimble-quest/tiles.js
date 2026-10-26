@@ -250,11 +250,12 @@ function useTexture(type, img) {
 DataFiles.register('tile', {
   define: (name, entry) => {
     // only keys from TILE_DEFAULTS, so a typo can't add junk
-    const settings = { name };
+    const settings = {};
     for (const key of Object.keys(TILE_DEFAULTS)) {
       if (key in entry) settings[key] = entry[key];
     }
-    return setTile(settings);
+    // a word where a number should be keeps the default (utils.js), or whoever walks on it goes NaN
+    return setTile(withDefaults(TILE_DEFAULTS, 'tile', name, settings));
   },
   // the blank stand-in map (maps.js) still needs a floor
   loaded: () => {

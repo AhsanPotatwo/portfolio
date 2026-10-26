@@ -311,20 +311,20 @@ You can open a map in any text editor. It looks like this:
     "wa wa wa wa wa wa wa wa wa wa"
   ],
   "objects": [
-    { "type": "rug", "col": -3, "row": -1 },
-    { "type": "table", "col": 1, "row": -1 },
-    { "type": "chest", "col": 3, "row": -1, "items": ["potion", null, "sword"] }
+    { "type": "rug", "col": -3, "row": -1, "id": "q7c2m0" },
+    { "type": "table", "col": 1, "row": -1, "id": "0dk3ar" },
+    { "type": "chest", "col": 3, "row": -1, "items": ["potion", null, "sword"], "id": "h5w1zp" }
   ],
   "items": [
-    { "type": "sword", "col": 0, "row": 1 }
+    { "type": "sword", "col": 0, "row": 1, "id": "m29xbe" }
   ],
   "enemies": [
-    { "type": "dummy", "col": 2, "row": 0 },
-    { "type": "grunt", "col": 4, "row": 0, "ai": "careful" }
+    { "type": "dummy", "col": 2, "row": 0, "id": "t8n4fq" },
+    { "type": "grunt", "col": 4, "row": 0, "ai": "careful", "id": "a3pv7k" }
   ],
   "npcs": [
-    { "type": "villager", "col": -3, "row": 0 },
-    { "type": "villager", "col": 4, "row": 0, "voice": "old-man" }
+    { "type": "villager", "col": -3, "row": 0, "id": "w0g6ud" },
+    { "type": "villager", "col": 4, "row": 0, "voice": "old-man", "id": "r1y8sj" }
   ],
   "warps": [
     { "name": "front", "col": 0, "row": 2, "to": "house", "toWarp": "exit", "activate": "interact" }
@@ -343,6 +343,7 @@ You can open a map in any text editor. It looks like this:
 - **`objects`**: everything placed on the tiles. `type` is the object's name (its file in `objects/`), and `col`, `row` is the tile its top-left corner is on. They're drawn in list order, so later ones go on top. A chest's `items` is what's in it at the start: an item's name (its file in `items/`) or `null` for each slot, only there if anything is.
 - **`items`**: items lying on the ground. `type` is the item's name (its file in `items/`), and `col`, `row` is its tile. Maps without this list just have none.
 - **`enemies`**, **`npcs`**: where enemies and NPCs start. `type` is its kind's name (its file in `enemies/` or `npcs/`), and `col`, `row` is the tile it stands on. An enemy's `ai` is only there if one was picked (a name in `ENEMY_AIS` in `enemies.js`); left out, it uses its kind's own. Likewise an NPC's `voice` (a voice's name, from `voices/`) and `look` (what it looks like, picked on its box's Look and Colours tabs, format atop `looks.js`), and either's `sound` (a sound it carries around). An enemy's `follows` is only there if picked: `false` stays behind instead of following through warps, `true` follows even if its kind doesn't. So are an enemy's `hitParticles` and `deathParticles` (a name from `particles/`, or `null` for none), and its `wears`: what it wears, like `{ "head": "iron-helmet", "accessory1": "ring" }` (slots `head`, `body`, `legs`, `feet`, `accessory1` to `accessory3`, each an item name from `items/`), its `holds`: an item it holds instead of its kind's own weapon, like `"bow"` (`null` is empty hands), and its `stats`: its own numbers where they differ from its kind's, like `{ "maxHealth": 150, "damageScale": 2 }` (the keys are `ENEMY_SPAWN_STATS` in `enemies.js`). Maps without these lists just have none.
+- **`id`** (on every object, item, enemy and NPC): a short random word, different from everything else's on the map, that a save game will use to say which chest was emptied or which enemy is dead. The editor makes them and keeps them when you move things (cut and paste keeps them too, a copy gets its own). Leave them out of anything you add by hand: the game gives it one and says so in the console, and the editor shows the map as unsaved until you save it, so the ids stay the same. Don't copy one onto something else, or change one once there's a save game.
 - **`warps`**: see [Warps](#warps). `name` is the warp's name, and `col`, `row` is its tile. `to` is the map it leads to (`""` for nowhere), and `toWarp` is the warp to arrive at on that map (`""` for its spawn point). `activate` is `"step"` or `"interact"` (press E). `enemies` is `true` if enemies chasing the player follow them through it (left out means `false`). Maps without this list just have no warps.
 - **`sounds`**: see [Sound blocks](#sound-blocks). `sound` is the name of a sound (its file in `sounds/`), `col`, `row` is its tile, and `activate` is `"step"`, `"interact"` (press E) or `"loop"` (constantly nearby). A moving one also has `move` (`"side"`, `"upDown"`, `"past"`, `"pastDown"` or `"circle"`), `distance` and `speed` (tiles, and tiles a second), and one that's seen while playing has `"show": true`. Maps without this list just have no sound blocks.
 - **`left`, `top`**: the tile column and row of the map's top-left corner. Tile `(0, 0)` is at the middle of the world, so `-5, -2` puts the middle of a 10 × 5 map there.

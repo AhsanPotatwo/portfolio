@@ -37,16 +37,16 @@ class TileMap {
     // shape, fade, strength } (explained under "areas" in atmosphere.js)
     this.areas = [];
 
-    // each { type, col, row } (objects.js), plus items (what starts in it) and inventory (what's in it
-    // now) for one with storage (addObject())
+    // each { type, col, row, id } (objects.js, id is takeId()'s), plus items (what starts in it) and
+    // inventory (what's in it now) for one with storage (addObject())
     this.objects = [];
     // the index() of every tile under a solid object, so collision checks are quick. addObject() and
     // removeObjectsAt() keep it up to date
     this.solidCells = new Set();
 
-    // where characters start, each { type, col, row }: a name from enemies.js or npcs.js and its
-    // tile, plus an enemy's ai if one was picked in the editor (ENEMY_AIS). the actual characters
-    // get made from these (spawnCharacters() in sketch.js)
+    // where characters start, each { type, col, row, id }: a name from enemies.js or npcs.js, its tile
+    // and takeId()'s id, plus whatever was picked in the editor (addSpawn()). the actual characters get
+    // made from these (spawnCharacters() in sketch.js)
     this.enemySpawns = [];
     this.npcSpawns = [];
 
@@ -62,10 +62,14 @@ class TileMap {
     // items on the ground, each { item, x, y, ready, from, flight, placed } (Drops in inventory.js).
     // this is progress too, so Export doesn't save them
     this.drops = [];
-    // items placed in the editor, each { type, col, row }: an item's name and the tile it lies on. this
-    // is design, saved by Export, and Drops.restock() puts them in drops. picking one up takes it out of
-    // drops, never out of here (README "Placed items and chests")
+    // items placed in the editor, each { type, col, row, id }: an item's name, the tile it lies on and
+    // takeId()'s id (addItem()). this is design, saved by Export, and Drops.restock() puts them in drops.
+    // picking one up takes it out of drops, never out of here (README "Placed items and chests")
     this.items = [];
+    // how many things had to be given a new id when this was built from its file (mapFromData() in
+    // mapfile.js): ones from before ids, or two with the same one. above 0, the editor counts the map as
+    // unsaved until it's saved, since they'd be different next time (EditHistory.of() in edithistory.js)
+    this.idsMade = 0;
   }
 
   // ---------- reading and changing tiles ----------
@@ -140,6 +144,9 @@ class TileMap {
     }
     this.warps = this.warps.filter((warp) => this.inside(warp.col, warp.row));
     this.sounds = this.sounds.filter((block) => this.inside(block.col, block.row));
+    // placed items too, or the ones cut off went on lying outside the map (Drops.restock())
+    this.items = this.items.filter((entry) => this.inside(entry.col, entry.row));
+    this.drops = this.drops.filter((drop) => !drop.placed || this.items.includes(drop.placed));
     // the index() numbers have all changed
     this.updateSolidCells();
   }
@@ -170,16 +177,37 @@ class TileMap {
     this.spawn = standingOnTile(PLAYER, col, row);
   }
 
+  // ---------- ids ----------
+  // every object, placed item and enemy and npc spawn has an id, a short random word unique on this
+  // map, so a save game can say which chest was emptied, which item was taken and whose enemy is dead,
+  // as the map's name plus the id. live things know theirs: a drop by its entry (placed, inventory.js),
+  // a chest is its object, and an enemy or npc has its spawn's as spawnId (spawnCharacters() in
+  // sketch.js). warps don't need one, their names are already unique on a map.
+  // it's design, saved in the map file after the type (mapToData() in mapfile.js), and kept for good:
+  // moving, undo, saving and cut and paste keep it, and a copy pasted while the first is still there
+  // gets a new one. random rather than counting up, so a deleted one never comes round again (a new
+  // chest given an emptied one's id would start empty)
+
+  // `id` (from the file, or a paste) if it's a word nothing else on this map has, otherwise a new one.
+  // the editor only, never gameplay, so it isn't randomBetween() (utils.js)
+  takeId(id) {
+    const used = new Set([...this.objects, ...this.items, ...this.enemySpawns, ...this.npcSpawns].map((thing) => thing.id));
+    if (typeof id === 'string' && id !== '' && !used.has(id)) return id;
+    do id = Math.floor(Math.random() * 36 ** 6).toString(36).padStart(6, '0'); while (used.has(id));
+    return id;
+  }
+
   // ---------- objects ----------
 
   // type is a name from objects.js, with its top left on col, row. items is what starts in it if it has
-  // storage, a name or null per slot
-  addObject(type, col, row, items) {
+  // storage, a name or null per slot, and id is for takeId(). gives back the object, or undefined if
+  // there's no such kind
+  addObject(type, col, row, items, id) {
     if (!OBJECT_TYPES[type]) {
       console.warn(`There's no object called "${type}", add its file to ${DATA_FOLDER}${DATA_KINDS.object}`);
       return;
     }
-    const obj = { type, col, row };
+    const obj = { type, col, row, id: this.takeId(id) };
     // a chest or anything else with storage (objects.js) gets its own inventory. what's in it is
     // progress like drops, so map files don't save it. what starts in it (items) is design, and goes in
     // now (StorageObjects.fill() in inventory.js)
@@ -192,6 +220,18 @@ class TileMap {
     this.objects.push(obj);
     // only marks this object's tiles instead of redoing all of them
     this.markSolid(obj);
+    return obj;
+  }
+
+  // ---------- items on the ground ----------
+
+  // an item lying on col, row, placed in the editor (this.items, README "Placed items and chests"). type
+  // is an item's name, kept even if it isn't loaded, and id is for takeId(). Drops.restock()
+  // (inventory.js) puts it on the ground. gives back the entry
+  addItem(type, col, row, id) {
+    const entry = { type, col, row, id: this.takeId(id) };
+    this.items.push(entry);
+    return entry;
   }
 
   covers(obj, col, row) {
@@ -224,8 +264,9 @@ class TileMap {
   // effect names (particles.js) or null for none, wears, item names by EQUIPMENT_SLOTS key
   // (inventory.js) like { head: 'iron-helmet' }, holds, the item it holds instead of its kind's
   // weapon (null for empty hands), and stats, its own ENEMY_SPAWN_STATS numbers like { speed: 80 }. npcs
-  // can have a look, what they look like instead of their kind's (looks.js)
-  addSpawn(kind, type, col, row, { ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats, look } = {}) {
+  // can have a look, what they look like instead of their kind's (looks.js). either can have an id,
+  // for takeId(). gives back the spawn, or undefined if there's no such kind
+  addSpawn(kind, type, col, row, { ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats, look, id } = {}) {
     const info = SPAWN_KINDS[kind];
     if (!info.types[type]) {
       console.warn(`There's no ${kind} called "${type}", add its file to ${DATA_FOLDER}${DATA_KINDS[kind]}`);
@@ -277,7 +318,9 @@ class TileMap {
     }
     // ponytail: only checks it's an object. a missing part is just left out when it's drawn (lookImage())
     if (kind === 'npc' && look && typeof look === 'object') spawn.look = look;
+    spawn.id = this.takeId(id);
     this[info.list].push(spawn);
+    return spawn;
   }
 
   spawnsAt(kind, col, row) {

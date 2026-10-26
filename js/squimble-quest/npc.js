@@ -14,6 +14,9 @@ class Npc extends Character {
     // the ai function it uses (ENEMY_AIS in enemies.js), or null. Character's think() runs it
     this.ai = ENEMY_AIS[this.type.ai] ?? null;
     this.placeFeetOnTile(col, row);
+    // the id of the spawn it was made from (spawnCharacters() in sketch.js sets it, takeId() in
+    // tilemap.js), for a save game
+    this.spawnId = null;
   }
 
   update(dt, world) {

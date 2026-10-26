@@ -113,6 +113,13 @@ const door = plan([
 ], 0.15, 60, new Map([[2 * 9 + 3, 4]]));
 assert(door.reached && !door.path.some(({ col, row }) => col === 3 && row === 2), 'goes round someone parked in a door');
 
+// an enemy somewhere that isn't a number (a word in its file for its height made it NaN) gets no route.
+// this used to loop forever and freeze the page
+{
+  const map = { left: 0, top: 0, cols: 3, index: (c, r) => r * 3 + c, get: () => TILE_TYPES['.'], isSolid: () => false };
+  assert.strictEqual(game.planPath(map, { speed: 95, health: 60, maxHealth: 60 }, NaN, NaN, 1, 1, 0.15).path.length, 0, 'a NaN start gives back no route');
+}
+
 // right of way (goesFirst()): exactly one of two stuck enemies goes first, so they always agree
 const near = { plan: { path: [{}] } };
 const far = { plan: { path: [{}, {}] } };

@@ -514,7 +514,9 @@ function planPath(map, enemy, startCol, startRow, goalCol, goalRow, caution, cro
   }
 
   const path = [];
-  for (let i = best; i !== start; i = cameFrom.get(i)) {
+  // back along cameFrom until there's nothing before (only the start has nothing). I had i !== start,
+  // which never ended when a NaN position (a setting that wasn't a number) made start NaN
+  for (let i = best; cameFrom.has(i); i = cameFrom.get(i)) {
     path.unshift({ col: map.left + (i % map.cols), row: map.top + Math.floor(i / map.cols) });
   }
   return { map, path, reached: best === goal, time: time.get(best), damage: damage.get(best), fear, searched, crowd, age: 0 };

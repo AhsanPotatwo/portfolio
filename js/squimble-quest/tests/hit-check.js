@@ -25,6 +25,12 @@ assert.strictEqual(player.health, 90);
 assert(!player.hittable(), 'just hit, the player blinks and can\'t be hit');
 step(player, PLAYER.hitInvincible + 0.1);
 assert(player.hittable(), 'hittable again once hitInvincible is over');
+// just respawned (Player.respawn() sets safe): nothing lands until respawnSafeTime is over, and it isn't
+// invincible, which would make drawHurtFlash() (hud.js) glow red as if they'd been hit
+player.safe = PLAYER.respawnSafeTime;
+assert(!player.hittable() && player.invincible === 0, 'safe after respawning, without the hurt glow');
+step(player, PLAYER.respawnSafeTime + 0.1);
+assert(player.hittable(), 'hittable once respawnSafeTime is over');
 // enemies don't have it, so combos keep landing
 hitWith(player, enemy, weapon, 0);
 assert(enemy.hittable());

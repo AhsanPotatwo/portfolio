@@ -11,10 +11,10 @@
 //   - they can't move, attack, pick up drops, use the hotbar, open the inventory or press E on things,
 //     and step warps and step sound blocks don't go off
 //   - the inventory or a conversation that was open closes
-// things to try here later: losing items or money, a respawn timer, respawning somewhere else, a
-// "you were killed by ..." line (hitWith() in weapons.js knows who), and a moment of not being hit
-// after respawning (invincible, like hitInvincible), since whatever killed you near the spawn notices
-// you again straight away
+// after respawning nothing can hit them for PLAYER.respawnSafeTime (config.js), blinking, since whatever
+// killed them near the spawn notices them again straight away.
+// things to try here later: losing items or money, a respawn timer, respawning somewhere else, and a
+// "you were killed by ..." line (hitWith() in weapons.js knows who)
 
 // fade: seconds to darken. wait: seconds before you can respawn, so E pressed in the fight doesn't skip
 // it. dim: how dark it gets at the end, 0 to 255

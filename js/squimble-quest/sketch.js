@@ -289,6 +289,10 @@ function spawnCharacters() {
   // (soundblocks.js plays them)
   enemies.forEach((enemy, i) => { enemy.sound = worldMap.enemySpawns[i].sound ?? enemy.type.sound; });
   npcs.forEach((npc, i) => { npc.sound = worldMap.npcSpawns[i].sound ?? npc.type.sound; });
+  // which spawn each came from (its id, takeId() in tilemap.js), so a save game can say whose enemy is
+  // dead or where an npc's got to
+  enemies.forEach((enemy, i) => { enemy.spawnId = worldMap.enemySpawns[i].id; });
+  npcs.forEach((npc, i) => { npc.spawnId = worldMap.npcSpawns[i].id; });
   // and an enemy's particles, where null (none) is a pick too (particles.js)
   enemies.forEach((enemy, i) => {
     const spawn = worldMap.enemySpawns[i];

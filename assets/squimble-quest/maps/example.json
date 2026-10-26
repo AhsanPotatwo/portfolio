@@ -46,36 +46,36 @@
     "wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa wa"
   ],
   "objects": [
-    { "type": "table", "col": 2, "row": 2 },
-    { "type": "rug", "col": -4, "row": 2 },
-    { "type": "gravestone", "col": 28, "row": -6 },
-    { "type": "gravestone", "col": 30, "row": -6 },
-    { "type": "gravestone", "col": 32, "row": -6 },
-    { "type": "gravestone", "col": 34, "row": -6 },
-    { "type": "gravestone", "col": 28, "row": -3 },
-    { "type": "gravestone", "col": 30, "row": -3 },
-    { "type": "gravestone", "col": 32, "row": -3 },
-    { "type": "gravestone", "col": 34, "row": -3 },
-    { "type": "gravestone", "col": 28, "row": 2 },
-    { "type": "gravestone", "col": 30, "row": 2 },
-    { "type": "gravestone", "col": 32, "row": 2 },
-    { "type": "gravestone", "col": 34, "row": 2 },
-    { "type": "gravestone", "col": 28, "row": 5 },
-    { "type": "gravestone", "col": 30, "row": 5 },
-    { "type": "gravestone", "col": 32, "row": 5 },
-    { "type": "gravestone", "col": 34, "row": 5 },
-    { "type": "crypt", "col": 37, "row": -6 },
-    { "type": "dead-tree", "col": 39, "row": -2 },
-    { "type": "dead-tree", "col": 38, "row": 3 },
-    { "type": "dead-tree", "col": 27, "row": 4 },
-    { "type": "dead-tree", "col": 36, "row": 6 }
+    { "type": "table", "col": 2, "row": 2, "id": "p5n8up" },
+    { "type": "rug", "col": -4, "row": 2, "id": "q70oe5" },
+    { "type": "gravestone", "col": 28, "row": -6, "id": "c1iacd" },
+    { "type": "gravestone", "col": 30, "row": -6, "id": "jbgqv0" },
+    { "type": "gravestone", "col": 32, "row": -6, "id": "k6n00h" },
+    { "type": "gravestone", "col": 34, "row": -6, "id": "xzhz7t" },
+    { "type": "gravestone", "col": 28, "row": -3, "id": "1oag0p" },
+    { "type": "gravestone", "col": 30, "row": -3, "id": "im4q8y" },
+    { "type": "gravestone", "col": 32, "row": -3, "id": "u5dr7c" },
+    { "type": "gravestone", "col": 34, "row": -3, "id": "6mb4ua" },
+    { "type": "gravestone", "col": 28, "row": 2, "id": "2ecjll" },
+    { "type": "gravestone", "col": 30, "row": 2, "id": "8w1w13" },
+    { "type": "gravestone", "col": 32, "row": 2, "id": "5e3sqh" },
+    { "type": "gravestone", "col": 34, "row": 2, "id": "ja085t" },
+    { "type": "gravestone", "col": 28, "row": 5, "id": "46dzyt" },
+    { "type": "gravestone", "col": 30, "row": 5, "id": "9whkuq" },
+    { "type": "gravestone", "col": 32, "row": 5, "id": "xtmi65" },
+    { "type": "gravestone", "col": 34, "row": 5, "id": "gb2phy" },
+    { "type": "crypt", "col": 37, "row": -6, "id": "pvjwbn" },
+    { "type": "dead-tree", "col": 39, "row": -2, "id": "vtlezb" },
+    { "type": "dead-tree", "col": 38, "row": 3, "id": "2yhwj5" },
+    { "type": "dead-tree", "col": 27, "row": 4, "id": "0o70yg" },
+    { "type": "dead-tree", "col": 36, "row": 6, "id": "96b0vq" }
   ],
   "enemies": [
-    { "type": "dummy", "col": 3, "row": -3 },
-    { "type": "dummy", "col": 5, "row": -3 }
+    { "type": "dummy", "col": 3, "row": -3, "id": "ax468g" },
+    { "type": "dummy", "col": 5, "row": -3, "id": "4n1x7y" }
   ],
   "npcs": [
-    { "type": "villager", "col": -3, "row": -3 }
+    { "type": "villager", "col": -3, "row": -3, "id": "q83lzi" }
   ],
   "warps": [
     { "name": "hut", "col": -11, "row": -5, "to": "hut", "toWarp": "exit", "activate": "interact", "enemies": true }

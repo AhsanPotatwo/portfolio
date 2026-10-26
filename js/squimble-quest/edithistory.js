@@ -31,9 +31,11 @@ const EditHistory = {
   // warns (sketch.js)
   notKept: new Set(),
 
-  // a map's lists, started the first time the editor sees it. savedText is what counts as saved
+  // a map's lists, started the first time the editor sees it. savedText is what counts as saved: the
+  // map as it was built, unless it had to make ids its file didn't have (TileMap.idsMade), which would
+  // be different next time, so it isn't saved until it's saved
   of(map) {
-    return this.maps.get(map) ?? this.start(map, mapFileText(map));
+    return this.maps.get(map) ?? this.start(map, map.idsMade > 0 ? null : mapFileText(map));
   },
 
   start(map, savedText) {

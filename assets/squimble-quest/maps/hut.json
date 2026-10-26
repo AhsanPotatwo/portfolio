@@ -23,13 +23,13 @@
     "wa wa wa wa wa wa pl wa wa wa wa wa"
   ],
   "objects": [
-    { "type": "rug", "col": -4, "row": -2 },
-    { "type": "table", "col": -2, "row": -2 },
-    { "type": "chest", "col": -5, "row": -3 }
+    { "type": "rug", "col": -4, "row": -2, "id": "qbh3dk" },
+    { "type": "table", "col": -2, "row": -2, "id": "npuu8m" },
+    { "type": "chest", "col": -5, "row": -3, "id": "hmcb4e" }
   ],
   "enemies": [],
   "npcs": [
-    { "type": "villager", "col": 3, "row": -1 }
+    { "type": "villager", "col": 3, "row": -1, "id": "et88ze" }
   ],
   "warps": [
     { "name": "exit", "col": 0, "row": 3, "to": "example", "toWarp": "hut", "activate": "step", "enemies": true }

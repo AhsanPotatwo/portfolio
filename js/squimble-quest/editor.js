@@ -729,11 +729,12 @@ const Editor = {
   },
 
   // puts an item on the ground in the middle of the tile, ready to pick up, and saved with the map
-  // (map.items, Drops.restock() in inventory.js). not on solid or empty tiles (you couldn't reach it)
-  placeItem(map, name, col, row) {
+  // (map.addItem() in tilemap.js, Drops.restock() in inventory.js). not on solid or empty tiles (you
+  // couldn't reach it). id is a pasted one's (takeId() in tilemap.js)
+  placeItem(map, name, col, row, id) {
     if (map.isSolid(col, row)) return;
     if (map.items.some((entry) => entry.type === name && entry.col === col && entry.row === row)) return;
-    map.items.push({ type: name, col, row });
+    map.addItem(name, col, row, id);
     Drops.restock(map);
   },
 
@@ -793,12 +794,12 @@ const Editor = {
     });
   },
 
-  // with its top left on col, row. items is what starts in a chest (pasting one)
-  placeObject(map, name, col, row, items) {
+  // with its top left on col, row. items is what starts in a chest and id its id (pasting one)
+  placeObject(map, name, col, row, items, id) {
     if (!map.inside(col, row)) return;
     // no copies in the same spot (easy to do by double clicking)
     if (map.objects.some((obj) => obj.type === name && obj.col === col && obj.row === row)) return;
-    map.addObject(name, col, row, items);
+    map.addObject(name, col, row, items, id);
   },
 
   // an enemy or npc standing on col, row. not on solid or empty tiles, it'd be stuck

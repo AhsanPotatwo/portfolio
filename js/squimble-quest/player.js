@@ -73,6 +73,8 @@ class Player extends Character {
     this.frozen = 0;
     this.hurtTimer = 0;
     this.invincible = 0;
+    // a moment nothing can hit them, so they aren't killed again straight away (PLAYER in config.js)
+    this.safe = PLAYER.respawnSafeTime;
     this.attackBuffer = 0;
     this.rollBuffer = 0;
     this.comboStep = 0;

@@ -69,12 +69,21 @@ function setText(size, style = BOLD, alignX = CENTER, alignY = CENTER, font = GA
 
 // the defaults with `settings` on top, plus its name. if a setting isn't in the defaults it's probably
 // a typo (like maxHelth) that would just get ignored, so it warns about it. a setting that's actually
-// new needs a default adding. kind is only for the warning
+// new needs a default adding. a number or true/false setting that's something else (a typo in a file,
+// like "height": "50") keeps its default with a warning, since a word where a number should be makes
+// positions NaN and breaks everything that character touches. null is let through, since it means
+// "none" on purpose for some (doorOpenTime: null can't open doors). kind is only for the warning
 function withDefaults(defaults, kind, name, settings) {
+  const checked = { ...settings };
   for (const key of Object.keys(settings)) {
     if (!(key in defaults)) console.warn(`The ${kind} "${name}" has a setting "${key}" that isn't in the ${kind} defaults. A typo, or a new setting that needs its normal value adding there?`);
+    const want = typeof defaults[key];
+    if ((want === 'number' || want === 'boolean') && settings[key] !== null && typeof settings[key] !== want) {
+      console.warn(`The ${kind} "${name}" has ${key}: ${JSON.stringify(settings[key])}, which should be a ${want === 'number' ? 'number' : 'true or false'}, so it's ${defaults[key]}`);
+      checked[key] = defaults[key];
+    }
   }
-  return { ...defaults, ...settings, name };
+  return { ...defaults, ...checked, name };
 }
 
 // adds `name` to the catalogue `types` (withDefaults())

@@ -105,5 +105,9 @@ for (const [name, style] of Object.entries(BUTTON_STYLES)) {
   for (const key of ['art', 'hoverArt', 'pressedArt']) picture(`BUTTON_STYLES.${name}.${key}`, style[key]);
 }
 
+// a word where a number should be keeps the default (and says so), but null for "none" goes through
+const typo = game.withDefaults({ height: 50, doorOpenTime: 1 }, 'enemy', 'typo', { height: '50', doorOpenTime: null });
+assert(typo.height === 50 && typo.doorOpenTime === null && warnings.length === 1, 'a setting of the wrong type keeps its default');
+
 // a wrong picture setting gets caught
 assert(pictureProblem({ image: 'a.png', directions: 3 }) && pictureProblem({ frames: 2 }) && pictureProblem({ image: 'a.png', fsp: 8 }) && !pictureProblem({ image: 'a.png', frames: 6, fps: 10, directions: 4, loop: false }));

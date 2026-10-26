@@ -20,13 +20,13 @@
 //       "wa gr .. gr wa"
 //     ],
 //     "objects": [                          each one's top left tile
-//       { "type": "table", "col": -1, "row": -11 },
-//       { "type": "chest", "col": 2, "row": -11, "items": ["potion", null, "sword"] }
+//       { "type": "table", "col": -1, "row": -11, "id": "3kx9qa" },
+//       { "type": "chest", "col": 2, "row": -11, "items": ["potion", null, "sword"], "id": "p02jfm" }
 //                                           what starts in one with storage, a name or null per slot,
 //                                           only if anything does (StorageObjects.fill() in inventory.js)
 //     ],
 //     "items": [                            items lying on the ground (Drops.restock() in inventory.js),
-//       { "type": "sword", "col": 4, "row": -9 }    only if there are any
+//       { "type": "sword", "col": 4, "row": -9, "id": "c81nzr" }    only if there are any
 //     ],
 //     "enemies": [                          start tiles (enemies.js), ai only if picked (ENEMY_AIS),
 //       { "type": "dummy", "col": 3, "row": -3 },    sound (a SOUNDS name it loops) only if picked
@@ -60,6 +60,10 @@
 //       { "sound": "car", "col": 0, "row": 9, "activate": "loop", "move": "past", "distance": 40, "speed": 14 }
 //     ]                                                                  only if it moves or is seen
 //   }
+//
+// every object, item, enemy and npc has an "id" last, unique on the map and kept for good, which a save
+// game will name them by (takeId() in tilemap.js explains). the editor makes them, so leave them out of
+// anything written by hand: the game gives each one an id and asks you to save the map in the editor
 //
 // exported codes are 2 characters taken from the tile's name where possible (gr for grass, wt for
 // water because wa is already wall), so there are thousands to go round. codes typed by hand can be
@@ -108,14 +112,15 @@ function mapToData(map) {
     legend,
     rows,
     // a chest's items only go in if anything starts in it (JSON leaves out undefined)
-    objects: map.objects.map(({ type, col, row, items }) => ({ type, col, row, items })),
+    // the id goes last, after "type", so mapDataToText() still puts each on one line
+    objects: map.objects.map(({ type, col, row, items, id }) => ({ type, col, row, items, id })),
     // only maps with some
-    items: map.items.length > 0 ? map.items.map(({ type, col, row }) => ({ type, col, row })) : undefined,
+    items: map.items.length > 0 ? map.items.map(({ type, col, row, id }) => ({ type, col, row, id })) : undefined,
   };
   // "enemies" and "npcs" (SPAWN_KINDS in tilemap.js)
   for (const info of Object.values(SPAWN_KINDS)) {
     // ai, voice, sound, follows, particles, wears, holds, stats and look only go in if one was picked (JSON leaves out undefined)
-    data[info.fileKey] = map[info.list].map(({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats, look }) => ({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats, look }));
+    data[info.fileKey] = map[info.list].map(({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats, look, id }) => ({ type, col, row, ai, voice, sound, follows, hitParticles, deathParticles, wears, holds, stats, look, id }));
   }
   data.warps = map.warps.map(({ name, col, row, to, toWarp, activate, enemies }) => ({ name, col, row, to, toWarp, activate, enemies }));
   // atmosphere first, so mapDataToText() squashes each one onto one line. only maps with some
@@ -168,6 +173,8 @@ function mapFromData(data) {
   // anything it doesn't know (like a tile whose file got renamed) gets left out, with one
   // warning that lists them all
   const unknown = new Set();
+  // counts what didn't keep the id its file gave (none, or one something before it had), for idsMade
+  const madeId = (made, entry) => { if (made && made.id !== entry.id) map.idsMade++; };
 
   grid.forEach((codes, r) => {
     for (let c = 0; c < cols; c++) {
@@ -193,7 +200,7 @@ function mapFromData(data) {
     // what starts in a chest. one that isn't loaded is kept, so exporting doesn't lose it, but the
     // slot's empty (StorageObjects.fill()) and Check for problems lists it
     const items = Array.isArray(obj.items) ? obj.items.map((name) => (typeof name === 'string' ? name : null)) : undefined;
-    map.addObject(obj.type, obj.col, obj.row, items);
+    madeId(map.addObject(obj.type, obj.col, obj.row, items, obj.id), obj);
   }
 
   // "items" on the ground, which older maps don't have. one that isn't loaded is kept the same way,
@@ -203,7 +210,7 @@ function mapFromData(data) {
       unknown.add('an item without a type, col or row');
       continue;
     }
-    map.items.push({ type: entry.type, col: entry.col, row: entry.row });
+    madeId(map.addItem(entry.type, entry.col, entry.row, entry.id), entry);
   }
   Drops.restock(map); // inventory.js
 
@@ -214,7 +221,7 @@ function mapFromData(data) {
         unknown.add(`${kind} "${spawn.type}"`);
         continue;
       }
-      map.addSpawn(kind, spawn.type, spawn.col, spawn.row, { ai: spawn.ai, voice: spawn.voice, sound: spawn.sound, follows: spawn.follows, hitParticles: spawn.hitParticles, deathParticles: spawn.deathParticles, wears: spawn.wears, holds: spawn.holds, stats: spawn.stats, look: spawn.look });
+      madeId(map.addSpawn(kind, spawn.type, spawn.col, spawn.row, { ai: spawn.ai, voice: spawn.voice, sound: spawn.sound, follows: spawn.follows, hitParticles: spawn.hitParticles, deathParticles: spawn.deathParticles, wears: spawn.wears, holds: spawn.holds, stats: spawn.stats, look: spawn.look, id: spawn.id }), spawn);
     }
   }
 
@@ -303,6 +310,7 @@ function registerMap(name, data) {
     console.warn(`Couldn't use the map "${name}": ${err.message}`);
     return false;
   }
+  if (checked.idsMade > 0) console.warn(`${checked.idsMade} things on the map "${name}" had no id (or one that something else on it had), so they've been given one. Save the map in the editor to keep them, or they'll be different next time`);
   // the first build reuses the map that was just checked (so no building it twice or repeating the
   // warnings), and after that it builds a fresh one each time
   addMap(name, () => {

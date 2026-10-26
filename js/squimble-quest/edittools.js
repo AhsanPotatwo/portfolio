@@ -17,7 +17,9 @@
 // anything, so it stamps like a sticker. it brings tiles, objects (any that overlap the box, chests with
 // what starts in them), items on the ground, characters with their settings, warps, sound blocks and
 // areas that fit inside. pasted warps get a
-// name of their own, and warps and sound blocks replace any already on their tile (one per tile). the
+// name of their own, and warps and sound blocks replace any already on their tile (one per tile).
+// objects, items and characters keep their ids if nothing on the map has them any more, so cut and
+// paste moves them, and a copy of something still there gets a new one (takeId() in tilemap.js). the
 // copy lasts until the page reloads, and can go onto another map
 
 const EDIT_TOOLS = { maxBrush: 5 };
@@ -253,7 +255,7 @@ const EditTools = {
       cols: box.right - box.left + 1,
       rows: box.bottom - box.top + 1,
       tiles,
-      objects: map.objects.filter(overlaps).map(({ type, col, row, items }) => moved({ type, col, row, items })),
+      objects: map.objects.filter(overlaps).map(({ type, col, row, items, id }) => moved({ type, col, row, items, id })),
       items: map.items.filter(inBox).map(moved),
       enemySpawns: map.enemySpawns.filter(inBox).map(moved),
       npcSpawns: map.npcSpawns.filter(inBox).map(moved),
@@ -297,9 +299,9 @@ const EditTools = {
       if (tile !== null && TILE_TYPES[tile]) map.set(col + (i % copy.cols), row + Math.floor(i / copy.cols), tile);
     });
     for (const obj of copy.objects) {
-      if (OBJECT_TYPES[obj.type]) Editor.placeObject(map, obj.type, col + obj.col, row + obj.row, obj.items);
+      if (OBJECT_TYPES[obj.type]) Editor.placeObject(map, obj.type, col + obj.col, row + obj.row, obj.items, obj.id);
     }
-    for (const entry of copy.items) Editor.placeItem(map, entry.type, col + entry.col, row + entry.row);
+    for (const entry of copy.items) Editor.placeItem(map, entry.type, col + entry.col, row + entry.row, entry.id);
     for (const [kind, info] of Object.entries(SPAWN_KINDS)) {
       for (const spawn of copy[info.list]) {
         const at = { col: col + spawn.col, row: row + spawn.row };

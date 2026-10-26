@@ -1,6 +1,8 @@
 // checks items placed on the ground and what starts in chests are saved in map files and come back
 // when the map's built again (mapfile.js, Drops.restock() and StorageObjects.fill() in inventory.js),
-// while what happened while playing (picking up, emptying a chest) isn't saved. run it with
+// while what happened while playing (picking up, emptying a chest) isn't saved. and that placed things
+// keep their ids (takeId() in tilemap.js): through saving, and pasting where nothing else has it,
+// with new ones for a file without them or with one twice. run it with
 // node js/squimble-quest/tests/placed-items-check.js
 // no output means it all passed
 const assert = require('assert');
@@ -28,10 +30,11 @@ const same = (a, b, message) => assert.strictEqual(JSON.stringify(a), JSON.strin
 
 const file = {
   version: 2, left: 0, top: 0, legend: { '..': null, gr: 'grass' }, rows: ['gr gr gr', 'gr gr gr'],
-  objects: [{ type: 'chest', col: 0, row: 0, items: [null, 'potion', 'gone'] }],
-  items: [{ type: 'sword', col: 2, row: 1 }, { type: 'gone', col: 1, row: 1 }],
+  objects: [{ type: 'chest', col: 0, row: 0, items: [null, 'potion', 'gone'], id: 'chest1' }],
+  items: [{ type: 'sword', col: 2, row: 1, id: 'sword1' }, { type: 'gone', col: 1, row: 1, id: 'gone01' }],
 };
 const map = mapFromData(file);
+assert.strictEqual(map.idsMade, 0, 'ids from the file are kept');
 
 // on the ground, but only the item that exists
 same(map.drops.map((drop) => drop.item.type.name), ['sword'], 'placed items are on the ground');
@@ -56,6 +59,23 @@ assert.strictEqual(again.drops.length, 1, 'the sword is back');
 assert.strictEqual(again.objects[0].inventory.slots[1].type.name, 'potion', 'the potion is back');
 
 // one line each in the file, and maps without them don't get the list
-assert(mapDataToText(saved).includes('{ "type": "chest", "col": 0, "row": 0, "items": [null, "potion", "gone"] }'), 'a chest is one line');
+assert(mapDataToText(saved).includes('{ "type": "chest", "col": 0, "row": 0, "items": [null, "potion", "gone"], "id": "chest1" }'), 'a chest is one line');
 const bare = JSON.parse(mapDataToText(mapToData(mapFromData({ ...file, objects: [{ type: 'chest', col: 0, row: 0 }], items: undefined }))));
 assert(!('items' in bare) && !('items' in bare.objects[0]), 'no items, no lists');
+
+// a file without ids, or with one twice, gets new ones, and says how many
+const old = mapFromData({ ...file, objects: [{ type: 'chest', col: 0, row: 0 }], items: [{ type: 'sword', col: 0, row: 1, id: 'same' }, { type: 'sword', col: 1, row: 1, id: 'same' }] });
+const ids = [old.objects[0].id, ...old.items.map((entry) => entry.id)];
+assert(ids.every((id) => typeof id === 'string' && id !== ''), 'everything has an id');
+assert.strictEqual(new Set(ids).size, 3, 'no two the same');
+assert.strictEqual(old.items[0].id, 'same', 'the first with an id keeps it');
+assert.strictEqual(old.idsMade, 2, 'the chest and the second sword were given one');
+// pasting: one nothing has any more (cut and paste) keeps its id, a copy of one still there doesn't
+assert.strictEqual(map.takeId('elsewhere'), 'elsewhere');
+assert.notStrictEqual(map.takeId('sword1'), 'sword1');
+assert.notStrictEqual(map.addItem('sword', 0, 1, 'chest1').id, 'chest1', 'ids are unique across objects and items');
+// resizing cuts off placed items and their drops, like everything else
+const cut = mapFromData(file);
+cut.resize(0, 0, 2, 2);
+same(cut.items.map((entry) => entry.id), ['gone01'], 'the sword off the edge is gone');
+assert.strictEqual(cut.drops.length, 0, 'and so is its drop');

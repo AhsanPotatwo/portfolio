@@ -40,6 +40,9 @@ class Enemy extends Character {
     // what it's holding, picked for its spawn in the editor (spawnCharacters() sets it): an item's name
     // (items.js), null for empty hands, or undefined for its kind's own weapon (like the grunt's claws)
     this.holds = undefined;
+    // the id of the spawn it was made from (spawnCharacters() sets it, takeId() in tilemap.js), so a
+    // save game can say it's been defeated. it keeps it following you to another map
+    this.spawnId = null;
   }
 
   worn() {
