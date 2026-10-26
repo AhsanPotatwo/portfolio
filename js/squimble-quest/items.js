@@ -9,7 +9,7 @@
 //
 // ============================== how to make an item ==============================
 //
-// in the map editor (dev mode, then B), right click an item in the Weapons or Items tab (or press
+// in the map editor (dev mode, then B), right click an item in one of the item tabs, like Weapons (or press
 // Edit) to change its name, rarity, colour and weapon numbers. the changes show straight away, and
 // Export downloads the file of each item that's changed, to put in assets/squimble-quest/items/.
 //
@@ -41,12 +41,30 @@
 //
 // ====================================================================================
 
-// each category and the name of its tab in the editor palette (editor.js). a new line here makes a
-// new tab
+// each category and the name of its tab in the editor palette (editor.js) and the chest box
+// (storageeditor.js), in that order. a new line here makes a new tab. what each is for is only a
+// guide: nothing in the game reads the category, it's for finding things. item is the default, for
+// anything that doesn't fit the rest
 const ITEM_CATEGORIES = {
+  // swords, axes, bows, staffs: anything you hold to attack with
   weapon: 'Weapons',
+  // arrows, bolts, throwing stones: what ranged weapons use up
+  ammo: 'Ammo',
+  // helmets, chestplates, leggings, boots: worn on the head, body, legs or feet
   armour: 'Armour',
-  item: 'Items',
+  // rings, amulets, charms: worn in the accessory slots
+  accessory: 'Accessories',
+  // potions, food, scrolls: used up when used
+  consumable: 'Consumables',
+  // wood, ore, hides, monster parts: for crafting or trading
+  material: 'Materials',
+  // pickaxes, fishing rods, torches, lockpicks: used on the world rather than in a fight
+  tool: 'Tools',
+  // keys, letters, things a quest asks for
+  quest: 'Quest items',
+  // gems, gold, relics: worth something to sell
+  treasure: 'Treasure',
+  item: 'Other',
 };
 
 // where things can be worn (an item's wear) and the words for each. the inventory screen has a slot for
