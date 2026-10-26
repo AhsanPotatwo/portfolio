@@ -122,14 +122,12 @@ class Inventory {
   }
 }
 
-// an item's picture, or a placeholder square in its colour with the first letter of its label. size
-// is how many px square it is, with its top left at x, y. used for dragging. slots and the ground add
-// its glow around it (drawGlowingItem() in itemglow.js)
+// an item's picture (its image, art.js, playing if it's a sheet), or a placeholder square in its
+// colour with the first letter of its label. size is how many px square it is, with its top left at
+// x, y. used for dragging and in hands. slots and the ground add its glow around it (drawGlowingItem()
+// in itemglow.js)
 function drawItemIcon(item, x, y, size) {
-  if (item.type.img) {
-    image(item.type.img, x, y, size, size);
-    return;
-  }
+  if (drawArtBox(getArt(item.type.image, 'item', item.type.name), x, y, size, size, millis() / 1000)) return;
   noStroke();
   fill(item.type.fill);
   rect(x, y, size, size, 4);
@@ -242,11 +240,27 @@ class ItemSlot extends Button {
 
     push();
     if (equipment && dragged && !fits) drawingContext.globalAlpha *= 0.4;
-    fill(20, 22, 28, 200);
-    stroke(selected ? C.picked : fits ? C.fits : this.hovered ? 255 : C.slotEdge);
-    strokeWeight(selected || fits ? 3 : 1.5);
-    rect(this.x, this.y, this.w, this.h, 6);
-    if (equipment && !item) drawWearIcon(equipment.wear, this.x + this.w / 2, this.y + this.h / 2, this.w * 0.5);
+    // UI_ART's slot pictures (config.js, art.js), with the picked, fits and hover rings drawn over a
+    // slot picture unless the picked one has its own. or the drawn box
+    const pickedArt = selected ? uiArt('slotPicked') : null;
+    const ring = selected ? C.picked : fits ? C.fits : this.hovered ? 255 : C.slotEdge;
+    const thick = selected || fits ? 3 : 1.5;
+    if (drawArtBox(pickedArt ?? uiArt('slot'), this.x, this.y, this.w, this.h)) {
+      if (fits || this.hovered || (selected && !pickedArt)) {
+        noFill();
+        stroke(ring);
+        strokeWeight(thick);
+        rect(this.x, this.y, this.w, this.h, 6);
+      }
+    } else {
+      fill(20, 22, 28, 200);
+      stroke(ring);
+      strokeWeight(thick);
+      rect(this.x, this.y, this.w, this.h, 6);
+    }
+    if (equipment && !item && !drawArt(uiArt('wearIcons', equipment.wear), this.x + this.w / 2, this.y + this.h / 2, { anchor: 'centre' })) {
+      drawWearIcon(equipment.wear, this.x + this.w / 2, this.y + this.h / 2, this.w * 0.5);
+    }
 
     // faded out while it's being dragged
     if (item) {
@@ -302,10 +316,12 @@ function drawWearIcon(wear, x, y, size) {
 //         item types, held the item type in its hand (or null), and caption optional lines of text
 //         along the bottom. it's read every frame, so the picture changes as things get put on and
 //         taken off
+//   background  a UI_ART name (config.js) for its background, or left out for the editor's dark well
 class CharacterPreview extends UIElement {
   constructor(options) {
     super({ ...options, interactive: false });
     this.look = options.look;
+    this.background = options.background ?? null;
   }
 
   draw() {
@@ -313,14 +329,16 @@ class CharacterPreview extends UIElement {
     const { x, y, w, h } = this;
     const lineHeight = 14;
     const textH = caption.length * lineHeight;
-    fill(EDITOR_COLOURS.well); // editor.js
-    stroke(EDITOR_COLOURS.edge);
-    strokeWeight(1);
-    rect(x, y, w, h, 6);
+    if (!drawArtBox(this.background && uiArt(this.background), x, y, w, h)) { // art.js
+      fill(EDITOR_COLOURS.well); // editor.js
+      stroke(EDITOR_COLOURS.edge);
+      strokeWeight(1);
+      rect(x, y, w, h, 6);
+    }
 
     // as big as fits, in whole steps so pixel art stays square. a picture can be bigger than the body
     // (drawCharacter() in character.js), so whichever's bigger has to fit
-    const img = settings.img;
+    const img = artDrawnSize(characterArt(settings, 'idle')) ?? settings.img; // character.js
     const zoom = Math.max(1, Math.floor(Math.min((h - textH - 28) / Math.max(settings.height, img?.height ?? 0), (w - 20) / Math.max(settings.width, img?.width ?? 0))));
     const cx = Math.round(x + w / 2);
     const cy = Math.round(y + (h - textH) / 2);
@@ -333,7 +351,8 @@ class CharacterPreview extends UIElement {
     push();
     translate(cx, cy);
     scale(zoom);
-    drawCharacter(settings, 0, 0, { facing, worn, held });
+    // standing still, its idle animation playing
+    drawCharacter(settings, 0, 0, { facing, worn, held, time: millis() / 1000 });
     pop();
 
     noStroke();
@@ -373,10 +392,7 @@ class InventoryPanel extends UIElement {
 
   draw() {
     const { titleHeight, hintHeight } = INVENTORY_LAYOUT;
-    fill(20, 22, 28, 235);
-    stroke(90);
-    strokeWeight(1.5);
-    rect(this.x, this.y, this.w, this.h, 8);
+    drawPanel(this.x, this.y, this.w, this.h);
     // the line between what you're wearing and what you're carrying
     stroke(255, 255, 255, 25);
     strokeWeight(1);
@@ -442,7 +458,7 @@ const InventoryScreen = {
       equipmentMiddle: left + pad + equipmentW / 2, bagMiddle: bagLeft + bagW / 2, split: bagLeft - sectionGap / 2, bagLeft,
     }));
     UI.add(new CharacterPreview({
-      x: left + pad + size + previewGap, y: contentTop, w: previewWidth, h: contentH, group: 'inventory', visible: false,
+      x: left + pad + size + previewGap, y: contentTop, w: previewWidth, h: contentH, group: 'inventory', visible: false, background: 'characterPreview',
       look: () => ({ settings: player.settings, worn: player.worn(), held: player.heldItem(), caption: [`${Math.ceil(player.health)} / ${player.maxHealth} health`] }),
     }));
 
@@ -578,13 +594,15 @@ const THROW_TIME = 0.4;
 const THROW_HEIGHT = 24;
 
 // items on the ground. each map keeps its own in map.drops (tilemap.js) until you reload. they're
-// progress like map.characters, so Export doesn't save them, even ones placed in the editor
-// (Drops.place()).
-// each one is { item, x, y, ready, from, flight }. x, y is where it is or where it'll land. ready is
-// false until the player has been outside PICKUP_RANGE, so you don't pick drops straight back up and
-// "inventory full" only shows once each time you walk up to it, not every frame. from is where the
-// throw started (under the player) and how high. flight goes from 0 to 1 while it's in the air
-// (THROW_TIME), and it can't be picked up until it's landed
+// progress like map.characters, so Export never saves map.drops. items placed in the editor are design
+// as well: each is also in map.items, which Export saves, and Drops.restock() puts them on the ground
+// (README "Placed items and chests").
+// each one is { item, x, y, ready, from, flight, placed }. x, y is where it is or where it'll land.
+// ready is false until the player has been outside PICKUP_RANGE, so you don't pick drops straight back
+// up and "inventory full" only shows once each time you walk up to it, not every frame. from is where
+// the throw started (under the player) and how high. flight goes from 0 to 1 while it's in the air
+// (THROW_TIME), and it can't be picked up until it's landed. placed is its map.items entry if it's one
+// placed in the editor
 //
 // multiplayer: ready is one flag for everyone, so another player walking away readies it for the one
 // stood on it (who'd then pick their own drop straight back up). it'd need to be per player, or to
@@ -614,9 +632,21 @@ const Drops = {
     });
   },
 
-  // puts it straight on the ground, already landed and ready. for the editor
-  place(map, item, x, y) {
-    map.drops.push({ item, x, y, ready: true, from: null, flight: 1 });
+  // puts each item placed in the editor (map.items) on the ground in the middle of its tile, already
+  // landed and ready, unless it's there already. one that doesn't exist (renamed, say) stays off the
+  // ground, and Check for problems lists it (mapcheck.js). called when a map's built from its file,
+  // when the editor opens (so it shows the whole design, like enemies) and when one's placed
+  //
+  // ponytail: one picked up comes back on a reload or when the editor opens, since there's no saving.
+  // with a save game, skip the entries it says were taken here: this is the only way they reach the
+  // ground
+  restock(map) {
+    for (const entry of map.items) {
+      if (!ITEM_TYPES[entry.type] || map.drops.some((drop) => drop.placed === entry)) continue;
+      const x = (entry.col + 0.5) * TILE;
+      const y = (entry.row + 0.5) * TILE;
+      map.drops.push({ item: createItem(entry.type), x, y, ready: true, from: null, flight: 1, placed: entry });
+    }
   },
 
   // a random spot about DROP_DISTANCE from the feet, towards where you're aiming (DROP_SPREAD)
@@ -702,10 +732,7 @@ class StoragePanel extends UIElement {
   }
 
   draw() {
-    fill(20, 22, 28, 235);
-    stroke(90);
-    strokeWeight(1.5);
-    rect(this.x, this.y, this.w, this.h, 8);
+    drawPanel(this.x, this.y, this.w, this.h);
     noStroke();
     fill(255);
     setText(15);
@@ -713,10 +740,20 @@ class StoragePanel extends UIElement {
   }
 }
 
+// a panel behind ui (the inventory screen, a chest's box, the pause menu): UI_ART.panel (config.js,
+// art.js) stretched over it, or a dark rounded box
+function drawPanel(x, y, w, h) {
+  if (drawArtBox(uiArt('panel'), x, y, w, h)) return;
+  fill(20, 22, 28, 235);
+  stroke(90);
+  strokeWeight(1.5);
+  rect(x, y, w, h, 8);
+}
+
 // objects you keep items in, like chests: object kinds with a storage setting (objects.js). each one
 // on a map has its own Inventory, obj.inventory (TileMap.addObject()). E next to one opens the
-// inventory screen with its box above yours. while it's open InventoryScreen.storage is it, so a lid
-// picture or opening animation can check that in drawObjects() (tilemap.js)
+// inventory screen with its box above yours. while it's open InventoryScreen.storage is it, and the
+// object shows its openImage (TileMap.drawObject() in tilemap.js)
 const StorageObjects = {
   // the closest one with any of its tiles in reach of your feet (closestInReach() in warps.js), so a
   // wide one opens from anywhere along it
@@ -732,12 +769,25 @@ const StorageObjects = {
     return closestInReach(player, tiles)?.obj ?? null;
   },
 
+  // empties it and puts in what the map says starts in it: obj.items, a name or null per slot, picked by
+  // right clicking it in the editor (Editor.editStorage()). TileMap.addObject() does it when the map's
+  // built from its file, so like placed items (Drops.restock()) what was taken is back after a reload
+  //
+  // ponytail: no saving, so a chest is always full again after a reload. with a save game, its saved
+  // slots would go in instead of these
+  fill(obj) {
+    const slots = obj.inventory.slots;
+    for (let i = 0; i < slots.length; i++) slots[i] = ITEM_TYPES[obj.items?.[i]] ? createItem(obj.items[i]) : null;
+  },
+
   // a sound or the lid opening would start here (and closing in InventoryScreen.show())
   //
   // multiplayer: two players can have the same chest open, and dragging moves items between the real
   // inventories straight away (InventoryScreen.update()). with a server, each drag would be a "swap
   // these two slots" asked for and checked there, since the other player might have just taken it
   open(obj) {
+    // when it opened, for its openImage's animation (TileMap.drawObject())
+    this.openedAt = millis();
     InventoryScreen.show(true, obj);
   },
 

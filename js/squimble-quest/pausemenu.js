@@ -199,6 +199,8 @@ const PauseMenu = {
       title: 'Paused',
       confirmLabel: 'Resume',
       cancelLabel: null,
+      // UI_ART.panel (config.js), like the inventory screen
+      art: 'panel',
       // a getter, so it says what the key being looked at is shared with (the form box reads it each
       // frame)
       get hint() {

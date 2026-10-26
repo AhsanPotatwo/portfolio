@@ -14,8 +14,9 @@
 // the brush (, and .) is how many tiles across Paint and Erase are, 1 to EDIT_TOOLS.maxBrush.
 // pasting (Ctrl + V): the copy follows the mouse with its top left on the mouse's tile, and every
 // click stamps it, until Escape, right click or another tool. empty tiles in a copy don't paste over
-// anything, so it stamps like a sticker. it brings tiles, objects (any that overlap the box),
-// characters with their settings, warps, sound blocks and areas that fit inside. pasted warps get a
+// anything, so it stamps like a sticker. it brings tiles, objects (any that overlap the box, chests with
+// what starts in them), items on the ground, characters with their settings, warps, sound blocks and
+// areas that fit inside. pasted warps get a
 // name of their own, and warps and sound blocks replace any already on their tile (one per tile). the
 // copy lasts until the page reloads, and can go onto another map
 
@@ -145,6 +146,7 @@ const EditTools = {
     map.removeSoundAt(col, row);
     const items = Editor.dropsAt(map, col, row);
     map.drops = map.drops.filter((drop) => !items.includes(drop));
+    map.items = map.items.filter((entry) => entry.col !== col || entry.row !== row);
     let removedCharacter = false;
     for (const kind of Object.keys(SPAWN_KINDS)) {
       if (map.removeSpawnsAt(kind, col, row)) removedCharacter = true;
@@ -251,7 +253,8 @@ const EditTools = {
       cols: box.right - box.left + 1,
       rows: box.bottom - box.top + 1,
       tiles,
-      objects: map.objects.filter(overlaps).map(({ type, col, row }) => moved({ type, col, row })),
+      objects: map.objects.filter(overlaps).map(({ type, col, row, items }) => moved({ type, col, row, items })),
+      items: map.items.filter(inBox).map(moved),
       enemySpawns: map.enemySpawns.filter(inBox).map(moved),
       npcSpawns: map.npcSpawns.filter(inBox).map(moved),
       warps: map.warps.filter(inBox).map(moved),
@@ -294,8 +297,9 @@ const EditTools = {
       if (tile !== null && TILE_TYPES[tile]) map.set(col + (i % copy.cols), row + Math.floor(i / copy.cols), tile);
     });
     for (const obj of copy.objects) {
-      if (OBJECT_TYPES[obj.type]) Editor.placeObject(map, obj.type, col + obj.col, row + obj.row);
+      if (OBJECT_TYPES[obj.type]) Editor.placeObject(map, obj.type, col + obj.col, row + obj.row, obj.items);
     }
+    for (const entry of copy.items) Editor.placeItem(map, entry.type, col + entry.col, row + entry.row);
     for (const [kind, info] of Object.entries(SPAWN_KINDS)) {
       for (const spawn of copy[info.list]) {
         const at = { col: col + spawn.col, row: row + spawn.row };

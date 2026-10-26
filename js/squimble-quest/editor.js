@@ -28,8 +28,8 @@
 //     (tileeditor.js). Export downloads the files of new or changed tiles (datafiles.js)
 //   - objects: click to place one with its top left on the tile. enemies and npcs: click to place one
 //     standing on the tile
-//   - weapons and items (one tab for each category in items.js): click to drop one on the ground (Export
-//     doesn't save these). Give puts one in your inventory, right click or Edit changes its name,
+//   - weapons and items (one tab for each category in items.js): click to put one on the ground, saved
+//     with the map (placeItem()). Give puts one in your inventory, right click or Edit changes its name,
 //     rarity, colour and everything about its weapon (weaponeditor.js), and the inspector's Export
 //     downloads changed item files. the Weapons tab ends with the enemies' own weapons (with a badge),
 //     which clicking opens, and Export saves their enemy files too
@@ -48,8 +48,8 @@
 //     map, so they aren't drawn and can't be walked on) or removes things, Fill, Rectangle, Select with
 //     copy and paste, and Pick (or Alt + click). Ctrl + Z undoes anything on the map (edithistory.js)
 //   - right click: the settings for a warp, a sound block (its sound, and how it moves), an enemy (its
-//     weapon, armour, ai, sound and particles, next to a picture of it) or an npc (its voice and sound) on the
-//     map, or a tile, item, sound or voice in the palette. resting the mouse on a row says what it does
+//     weapon, armour, ai, sound and particles, next to a picture of it), an npc (its voice and sound) or
+//     a chest (what starts in it, editStorage()) on the map, or a tile, item, sound or voice in the palette. resting the mouse on a row says what it does
 //   - opening it shows every enemy at its spawn, even defeated ones, so you see the whole design.
 //     closing it puts everyone back at their spawns on full health (outside the editor, maps remember
 //     their characters, loadMap() in sketch.js)
@@ -478,8 +478,9 @@ const Editor = {
     // the dialogue text box would be in the way (dialogue.js)
     if (Dialogue.active) Dialogue.close();
     // everyone goes back to their spawns, even defeated ones, so it shows the whole design and resets
-    // the enemies (sketch.js)
+    // the enemies (sketch.js). placed items picked up come back for the same reason (inventory.js)
     spawnCharacters();
+    Drops.restock(worldMap);
     // start from where the camera was when it last closed on this map, otherwise where it is now, and
     // follow the view instead of the player. follow() also stops any dialogue glide
     const last = this.lastView?.map === worldMap ? this.lastView : null;
@@ -682,17 +683,19 @@ const Editor = {
     AtmosphereAreas.update(map, over);
 
     // right click: the settings for what's there (a warp, then a sound block, then an enemy, then an
-    // npc, then an atmosphere area). any new settings boxes can hook in here. not while pasting, where
-    // it stops pasting (edittools.js)
+    // npc, then a chest, then an atmosphere area). any new settings boxes can hook in here. not while
+    // pasting, where it stops pasting (edittools.js)
     if (over && Input.mousePressed('right') && !EditTools.pasting && !this.choosingStart) {
       const warp = map.warpAt(over.col, over.row);
       const sound = map.soundAt(over.col, over.row);
       const enemy = map.spawnsAt('enemy', over.col, over.row)[0];
       const npc = map.spawnsAt('npc', over.col, over.row)[0];
+      const chest = map.objectsAt(over.col, over.row).findLast((obj) => obj.inventory);
       if (warp) this.editWarp(map, warp);
       else if (sound) SoundBlocks.edit(sound);
       else if (enemy) this.editEnemy(enemy);
       else if (npc) this.editNpc(npc);
+      else if (chest) this.editStorage(chest);
       else if (AtmosphereAreas.at(map, over.col, over.row)) AtmosphereAreas.edit(map, AtmosphereAreas.at(map, over.col, over.row));
     }
 
@@ -716,12 +719,47 @@ const Editor = {
     return map.drops.filter((drop) => map.colAt(drop.x) === col && map.rowAt(drop.y) === row);
   },
 
-  // puts an item on the ground in the middle of the tile, ready to pick up. not on solid or empty tiles
-  // (you couldn't reach it). Export doesn't save it, same as any drop (inventory.js)
+  // puts an item on the ground in the middle of the tile, ready to pick up, and saved with the map
+  // (map.items, Drops.restock() in inventory.js). not on solid or empty tiles (you couldn't reach it)
   placeItem(map, name, col, row) {
     if (map.isSolid(col, row)) return;
-    if (this.dropsAt(map, col, row).some((drop) => drop.item.type.name === name)) return;
-    Drops.place(map, createItem(name), (col + 0.5) * TILE, (row + 0.5) * TILE);
+    if (map.items.some((entry) => entry.type === name && entry.col === col && entry.row === row)) return;
+    map.items.push({ type: name, col, row });
+    Drops.restock(map);
+  },
+
+  // what starts in a chest (or anything with storage, objects.js): a picker per slot, saved in the map
+  // file as its items. Save also fills it now, replacing whatever was put in it while playing
+  // (StorageObjects.fill() in inventory.js)
+  editStorage(obj) {
+    const names = Object.keys(ITEM_TYPES);
+    const pickers = obj.inventory.slots.map((_, i) => {
+      const value = obj.items?.[i] ?? null;
+      return new Picker({
+        w: 180,
+        // a missing one stays in the list so opening the box doesn't quietly take it out
+        choices: [null, ...names, ...(value !== null && !ITEM_TYPES[value] ? [value] : [])],
+        value,
+        label: (name) => (name === null ? 'empty' : ITEM_TYPES[name]?.label ?? `${name} (missing)`),
+        art: (name, x, y, size) => {
+          if (ITEM_TYPES[name]) drawItemIcon({ type: ITEM_TYPES[name] }, x, y, size); // inventory.js
+        },
+      });
+    });
+    const storage = OBJECT_TYPES[obj.type].storage;
+    FormBox.open({
+      title: storage.label,
+      hint: 'What starts in it. Taken ones are back after a reload',
+      confirmLabel: 'Save',
+      rows: pickers.map((field, i) => ({ label: `Slot ${i + 1}`, field })),
+      onConfirm: (values) => {
+        // trailing empty slots aren't saved, and an empty one isn't saved at all (addObject())
+        const items = values.slice(0, values.findLastIndex((name) => name !== null) + 1);
+        if (items.length > 0) obj.items = items;
+        else delete obj.items;
+        StorageObjects.fill(obj);
+      },
+    });
   },
 
   // puts one in the player's inventory (player is in sketch.js)
@@ -780,12 +818,12 @@ const Editor = {
     });
   },
 
-  // with its top left on col, row
-  placeObject(map, name, col, row) {
+  // with its top left on col, row. items is what starts in a chest (pasting one)
+  placeObject(map, name, col, row, items) {
     if (!map.inside(col, row)) return;
     // no copies in the same spot (easy to do by double clicking)
     if (map.objects.some((obj) => obj.type === name && obj.col === col && obj.row === row)) return;
-    map.addObject(name, col, row);
+    map.addObject(name, col, row, items);
   },
 
   // an enemy or npc standing on col, row. not on solid or empty tiles, it'd be stuck

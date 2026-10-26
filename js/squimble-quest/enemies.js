@@ -22,7 +22,12 @@
 //   colour, outline        placeholder colours
 //   hurtColour             the flash when it gets hit
 //   healthBarColour        the bar over its head, shown once it's hurt
-//   image                  a picture to use instead of the placeholder
+//   image                  its picture standing still (art.js: a file, or a sheet of frames and
+//                          directions), instead of the placeholder. drawn at its own size on its feet
+//   walkImage, attackImage, hurtImage, rollImage  what it shows while doing that, each falling back
+//                          to image (characterArt() in character.js)
+//   deathImage             plays where it fell when it dies for good, then fades (Remains,
+//                          character.js). null leaves nothing but its deathParticles
 //   ai                     how it behaves: an ENEMY_AIS name, like "smart" (see below). null just
 //                          stands still. each spawn can pick a different one (right click it in
 //                          the editor)
@@ -87,6 +92,11 @@ const ENEMY_DEFAULTS = {
   hurtFlashTime: 0.15,
   healthBarColour: '#e05050',
   image: null,
+  walkImage: null,
+  attackImage: null,
+  hurtImage: null,
+  rollImage: null,
+  deathImage: null,
   ai: null,
   damageScale: 1,
   attackSpeed: 1,

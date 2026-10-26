@@ -27,18 +27,21 @@ class Npc extends Character {
   }
 }
 
-// a little "E" key over something you can press E on (INTERACTABLES, interact.js). x is its middle
-// and bottom is its bottom edge, in world positions
+// a little key over something you can press E on (INTERACTABLES, interact.js), showing the interact
+// key's letter (it can be changed in the pause menu). x is its middle and bottom is its bottom edge,
+// in world positions. UI_ART.keyPrompt (config.js, art.js) is the key, with the letter on top
 function drawKeyPrompt(x, bottom) {
   const size = 18;
   const left = Math.round(x - size / 2);
   const top = Math.round(bottom) - size;
-  stroke(0, 0, 0, 170);
-  strokeWeight(2);
-  fill(255);
-  rect(left, top, size, size, 4);
+  if (!drawArtBox(uiArt('keyPrompt'), left, top, size, size)) {
+    stroke(0, 0, 0, 170);
+    strokeWeight(2);
+    fill(255);
+    rect(left, top, size, size, 4);
+  }
   noStroke();
   fill(30);
   setText(12);
-  text('E', left + size / 2, top + size / 2 + 1);
+  text(keyName(KEYS.interact[0]), left + size / 2, top + size / 2 + 1); // debug.js
 }

@@ -267,17 +267,21 @@ function lookImage(look) {
 
 // settings (PLAYER, or an npc or enemy type) with its picture made from look, for a Character or
 // drawCharacter() (character.js). the same settings back if there's no look. the picture's a getter,
-// so it turns up once the parts have loaded
+// so it turns up once the parts have loaded. hasLook makes it win over the kind's own picture settings
+// (characterArt() in character.js). a look is one still picture for now: animating it would make each
+// part a sheet of frames (art.js), stacked frame by frame
 function withLook(settings, look) {
   if (!look) return settings;
-  return Object.defineProperty({ ...settings }, 'img', { get: () => lookImage(look), configurable: true });
+  return Object.defineProperty({ ...settings, hasLook: true }, 'img', { get: () => lookImage(look), configurable: true });
 }
 
 // gives every type with a "look" setting its picture from it, so the editor's palette and previews
 // show it too. a kind's loaded() runs it after prepareArt() (utils.js), like npcs.js does
 function giveLooks(types) {
   for (const type of Object.values(types)) {
-    if (type.look) Object.defineProperty(type, 'img', { get: () => lookImage(type.look), configurable: true });
+    if (!type.look) continue;
+    type.hasLook = true;
+    Object.defineProperty(type, 'img', { get: () => lookImage(type.look), configurable: true });
   }
 }
 

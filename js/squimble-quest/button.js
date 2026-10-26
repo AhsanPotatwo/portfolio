@@ -119,8 +119,13 @@ class Button extends UIElement {
     pop();
   }
 
+  // its style's art (BUTTON_STYLES in config.js, art.js) stretched over it, hover and pressed falling
+  // back to art, or a box in its colours
   drawBox(y) {
     const s = this.style;
+    const held = this.pressed && this.hovered;
+    const art = (held && s.pressedArt) || (this.hovered && s.hoverArt) || s.art;
+    if (drawArtBox(getArt(art, 'button style', 'art'), this.x, y, this.w, this.h)) return;
     noStroke();
     if (s.borderWeight > 0) {
       stroke(s.border);

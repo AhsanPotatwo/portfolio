@@ -21,12 +21,16 @@
 //   feetWidth, feetHeight  the bit at the bottom that bumps into walls
 //   speed                  px/s, if their ai walks
 //   colour, outline        placeholder colours
-//   image                  a picture to use instead of the placeholder
+//   image                  their picture standing still (art.js: a file, or a sheet of frames and
+//                          directions), instead of the placeholder. drawn at its own size on their feet
+//   walkImage, attackImage, hurtImage, rollImage  what they show while doing that, each falling back
+//                          to image (characterArt() in character.js)
 //   look                   what they look like, built from parts, instead of image, like
 //                          { "parts": { "body": "squimble-body", "eyes": "squimble-eyes" } }. each one
 //                          on a map can have its own: right click it in the editor (looks.js)
-//   portrait              the picture in the text box, like 'assets/squimble-quest/npcs/baker.png'.
-//                          without one they get a placeholder face
+//   portrait               the picture in the text box, like "assets/squimble-quest/npcs/baker.png",
+//                          stretched to a square. a sheet of frames plays while the box is open (a
+//                          face talking). without one they get a placeholder face
 //   ai                     an ENEMY_AIS name, same as an enemy's (enemies.js). null just stands
 //                          still. something like wandering around would be a new one there
 //
@@ -54,6 +58,10 @@ const NPC_DEFAULTS = {
   hurtColour: '#ffffff',
   hurtFlashTime: 0.15,
   image: null,
+  walkImage: null,
+  attackImage: null,
+  hurtImage: null,
+  rollImage: null,
   portrait: null,
   ai: null,
   // what it looks like, from parts (looks.js), or null to use image

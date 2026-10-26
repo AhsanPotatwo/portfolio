@@ -570,19 +570,36 @@ class Character {
     if (this.charge !== null) drawChargeLine(this, this.chargeWeapon, this.charge);
   }
 
+  // what its picture shows now (CHARACTER_STATES) and how many seconds it's been doing it, for its
+  // animation: dead, rolling, hurt, attacking (swinging, or drawing a bow), walking or standing.
+  // another swing starts the attack over. only for drawing, so it goes by the page's clock
+  artState() {
+    const moving = Math.hypot(this.velocity.x, this.velocity.y) > 5;
+    const state = this.dead ? 'death' : this.roll ? 'roll' : this.hurtTimer > 0 ? 'hurt' : this.swing || this.charge !== null ? 'attack' : moving ? 'walk' : 'idle';
+    const now = millis() / 1000;
+    if (state !== this.shown?.state || (state === 'attack' && this.swing !== this.shown.swing)) this.shown = { state, swing: this.swing, since: now };
+    return { state, time: now - this.shown.since };
+  }
+
   // the health bar over its head, in healthBarColour, with the health it just lost as a light trail
-  // that drains away (trailHealth)
+  // that drains away (trailHealth). UI_ART's healthBar and healthFill (config.js) replace the dark
+  // back and the colour
   drawHealthBar() {
     const w = this.w + 8;
     const x = Math.round(this.x - w / 2);
     const y = Math.round(this.y - this.h / 2) - 10;
     noStroke();
-    fill(0, 0, 0, 160);
-    rect(x - 1, y - 1, w + 2, 7, 2);
+    if (!drawArtBox(uiArt('healthBar'), x - 1, y - 1, w + 2, 7)) { // art.js
+      fill(0, 0, 0, 160);
+      rect(x - 1, y - 1, w + 2, 7, 2);
+    }
     fill(255, 255, 255, 200);
     rect(x, y, w * (this.trailHealth / this.maxHealth), 5, 2);
-    fill(this.settings.healthBarColour);
-    rect(x, y, w * (this.health / this.maxHealth), 5, 2);
+    const left = w * (this.health / this.maxHealth);
+    if (!drawArtBox(uiArt('healthFill'), x, y, left, 5)) {
+      fill(this.settings.healthBarColour);
+      rect(x, y, left, 5, 2);
+    }
   }
 
   // the body, what it's wearing and which way it's facing, in world positions (inside camera.begin/end).
@@ -598,11 +615,31 @@ class Character {
     const squash = COMBAT.squash * (this.squash / COMBAT.squashTime);
     const w = body.w * (1 + squash);
     const h = body.h * (1 - squash);
+    const { state, time } = this.artState();
     push();
     if (this.invincible > 0 && Math.floor(this.invincible * 12) % 2 === 0) drawingContext.globalAlpha *= 0.35;
-    drawCharacter(this.settings, this.x, body.y + body.h - h / 2, { w, h, facing: this.facing, hurt: this.hurtTimer > 0, worn: this.worn(), held: this.heldItem() });
+    drawCharacter(this.settings, this.x, body.y + body.h - h / 2, { w, h, facing: this.facing, hurt: this.hurtTimer > 0, worn: this.worn(), held: this.heldItem(), state, time });
     pop();
   }
+}
+
+// what a character's picture shows (Character.artState()), and the picture setting for each
+// (PLAYER, ENEMY_DEFAULTS, NPC_DEFAULTS). any that's null uses image, apart from death
+const CHARACTER_STATES = {
+  idle: 'image',
+  walk: 'walkImage',
+  attack: 'attackImage',
+  hurt: 'hurtImage',
+  roll: 'rollImage',
+  death: 'deathImage',
+};
+
+// the picture (art.js) for a character doing `state`, or null for none. one with a look (looks.js)
+// uses that instead
+function characterArt(settings, state) {
+  if (settings.hasLook) return null;
+  const own = getArt(settings[CHARACTER_STATES[state]], 'character', settings.name);
+  return own ?? (state === 'death' ? null : getArt(settings.image, 'character', settings.name));
 }
 
 // where each wear place (WEAR_PLACES in items.js) goes on the placeholder body, as the top and bottom
@@ -616,38 +653,50 @@ const WORN_BANDS = {
 
 // a character's body (its picture, or a placeholder rectangle) with what it's wearing on top. the
 // placeholder also gets a dot towards whichever of the 8 directions it's facing, to show which sprite
-// it would use. settings is
-// PLAYER or an enemy or npc type, and x, y its middle. Character.drawBody() draws it on the map, and
-// the inventory and the editor's enemy and npc boxes draw big ones (CharacterPreview, inventory.js).
+// it would use. settings is PLAYER or an enemy or npc type, and x, y its middle. Character.drawBody()
+// draws it on the map, and the inventory and the editor's enemy and npc boxes draw big ones
+// (CharacterPreview, inventory.js).
 //   facing  { x, y } each -1 to 1 (Character.facing), normally down
 //   hurt    flash its hurtColour
 //   worn    item types it's wearing (Character.worn())
 //   held    the item type in its hand (Character.heldItem()), or null
 //   w, h    its size, normally its width and height (a roll squashes it, Character.drawBody())
-function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, worn = [], held = null, w = settings.width, h = settings.height } = {}) {
+//   state   what it's doing, a CHARACTER_STATES name, and time the seconds it's been doing it, which
+//           pick its picture and frame (characterArt()). dead with no deathImage draws nothing
+//
+// pictures go on at their own size with their bottom middle on the body's, squashed like the body
+// when w and h are, so art can be any size. worn things with a wornImage go on top the same way, in
+// the same frame and direction, so a sheet drawn to match the body's lines up (a paper doll)
+function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, worn = [], held = null, w = settings.width, h = settings.height, state = 'idle', time = 0 } = {}) {
   // top left, rounded to whole pixels so the edges are sharp
   const left = Math.round(x - w / 2);
   const top = Math.round(y - h / 2);
+  const bottom = y + h / 2;
+  const stretch = { sx: w / settings.width, sy: h / settings.height };
+  const art = characterArt(settings, state);
+  if (state === 'death' && !art) return;
 
   // read once, since a look's picture is worked out by a getter (withLook() in looks.js)
-  const img = settings.img;
+  const img = art ? null : settings.img;
+  const pictured = drawArt(art, x, bottom, { time, facing, ...stretch }) || Boolean(img); // art.js
   if (img) {
-    // at its own size rather than the hitbox's, so art can be any size, with its bottom middle on the
-    // body's. squashed like the body when w and h are (a roll or a hit)
-    const imgW = Math.round((img.width * w) / settings.width);
-    const imgH = Math.round((img.height * h) / settings.height);
-    image(img, Math.round(x - imgW / 2), Math.round(y + h / 2) - imgH, imgW, imgH);
-  } else {
+    const imgW = Math.round(img.width * stretch.sx);
+    const imgH = Math.round(img.height * stretch.sy);
+    image(img, Math.round(x - imgW / 2), Math.round(bottom) - imgH, imgW, imgH);
+  } else if (!pictured) {
     stroke(settings.outline);
     strokeWeight(2);
     fill(hurt ? settings.hurtColour : settings.colour);
     rect(left, top, w, h);
   }
 
-  // ponytail: worn things are bands in their colour (or their picture stretched over the band) until
-  // there are sprites for them, which would be drawn over the body's sprite here instead
+  // worn things: their wornImage over the body, or on the placeholder a band in their colour (or their
+  // icon stretched over the band), accessories as gems down the side. a picture with nothing for it
+  // shows nothing, since a band would look wrong over real art
   let accessories = 0;
   for (const type of worn) {
+    if (drawArt(getArt(type.wornImage, 'item', type.name), x, bottom, { time, facing, ...stretch })) continue;
+    if (pictured) continue;
     stroke(0, 0, 0, 90);
     strokeWeight(1);
     fill(type.fill);
@@ -663,12 +712,50 @@ function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, 
       accessories++;
     }
   }
-  // its held item, small in its right hand (drawItemIcon() in inventory.js)
+  // its held item's icon, small in its right hand (drawItemIcon() in inventory.js)
   if (held) drawItemIcon({ type: held }, left + w - 5, top + Math.round(h * 0.5), 12);
 
   // the facing dot is only for the placeholder, a picture would show which way it's facing itself
-  if (img) return;
+  if (pictured) return;
   noStroke();
   fill(settings.outline);
   circle(Math.round(x + facing.x * w * 0.3), Math.round(y + facing.y * h * 0.3), 8);
 }
+
+// ---------- remains ----------
+
+// what's left of an enemy that died for good, playing its deathImage where it fell (Enemy.die(),
+// enemy.js), then fading. only for show, like particles: sketch.js sorts them in with the characters,
+// moves them on, and forgets them on changing map. after the animation (one that doesn't loop) they
+// stay `linger` seconds, then fade over `fade`
+const REMAINS = { linger: 4, fade: 1 };
+
+const Remains = {
+  // each { art, x, bottom, facing, age }
+  list: [],
+
+  add(character) {
+    const art = characterArt(character.settings, 'death');
+    if (art) this.list.push({ art, x: character.x, bottom: character.y + character.h / 2, facing: { ...character.facing }, age: 0 });
+  },
+
+  update(dt) {
+    for (const r of this.list) r.age += dt;
+    this.list = this.list.filter((r) => r.age < this.lasts(r));
+  },
+
+  lasts(r) {
+    return (r.art.loop ? 0 : artLength(r.art)) + REMAINS.linger + REMAINS.fade;
+  },
+
+  draw(r) {
+    push();
+    drawingContext.globalAlpha *= Math.min(1, (this.lasts(r) - r.age) / REMAINS.fade);
+    drawArt(r.art, r.x, r.bottom, { time: r.age, facing: r.facing });
+    pop();
+  },
+
+  clear() {
+    this.list = [];
+  },
+};

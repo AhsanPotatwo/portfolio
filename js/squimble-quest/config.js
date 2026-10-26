@@ -12,6 +12,46 @@ const GAME_H = 540;
 // matter
 const TILE = 32;
 
+// ---------- art ----------
+// how the game's pictures work is in art.js. this is how many game px each picture px is drawn as: 1
+// for art drawn at 32 px a tile, 2 for 16 px a tile (each picture px a 2 x 2 block). a picture's own
+// "scale" setting overrides it. tile textures always fill their tile, whatever their size
+const ART_SCALE = 1;
+
+// the font for all the game's words (setText() in utils.js, buttons). a font file of your own: add an
+// @font-face for it in css/squimble-quest.css and put its family name here. the map editor uses it too
+const GAME_FONT = 'Quicksand';
+
+// pictures for the game's ui, each a picture setting (art.js) or null for the drawn shapes it has now.
+// boxes stretch to fit with their "edge" kept (a nine slice), so one picture fits any size. the map
+// editor's own ui stays drawn
+const UI_ART = {
+  // hotbar, inventory and chest slots, and the picked hotbar slot (falls back to slot plus a ring)
+  slot: null,
+  slotPicked: null,
+  // what goes in an empty equipment slot, by wear place (WEAR_PLACES in items.js), drawn in the middle
+  wearIcons: { head: null, body: null, legs: null, feet: null, accessory: null },
+  // behind the inventory screen and a chest's box, and the pause menu
+  panel: null,
+  // behind the picture of you on the inventory screen
+  characterPreview: null,
+  // the talking box along the bottom (dialogue.js), and showMessage()'s box along the top (hud.js)
+  dialogue: null,
+  message: null,
+  // the key over things you can press E on (drawKeyPrompt() in npc.js). the key's letter goes on top
+  keyPrompt: null,
+  // the mouse, drawn in the middle, and over something clickable (hud.js). Crosshair size scales them
+  crosshair: null,
+  crosshairOverUI: null,
+  // the health bar over a character's head (Character.drawHealthBar()): behind it, and its health
+  healthBar: null,
+  healthFill: null,
+  // the death screen (deathscreen.js): over the whole screen instead of the dark, and instead of
+  // "You died"
+  deathBackground: null,
+  deathTitle: null,
+};
+
 // the most seconds one frame can count as. without this the player would jump forward after the tab
 // was in the background for a while
 //
@@ -112,12 +152,17 @@ const FOOTSTEPS = {
 const PLAYER = {
   // for warnings about its pictures (prepareArt() in utils.js, from preload() in sketch.js)
   name: 'player',
-  // its picture, a path from the site's root like an enemy's (assets/squimble-quest/...png), or null
-  // for the placeholder rectangle. drawn at its own size with its bottom middle on the feet
-  // (drawCharacter() in character.js), so it can be bigger than the hitbox
+  // its pictures (art.js: a file, or a sheet of frames and directions), or null for the placeholder
+  // rectangle. drawn at their own size with their bottom middle on the feet (drawCharacter() in
+  // character.js), so they can be bigger than the hitbox. image is standing still, and the rest are
+  // what it's doing, each falling back to image if it's null (characterArt())
   image: null,
-  // what's left where they died until they respawn (Player.draw(), player.js), drawn the same way,
-  // or null for nothing: they disappear
+  walkImage: null,
+  attackImage: null,
+  hurtImage: null,
+  rollImage: null,
+  // what's left where they died until they respawn (Player.draw(), player.js), or null for nothing:
+  // they disappear. a sheet that doesn't loop plays once and stays on its last frame
   deathImage: null,
   // its hitbox, what attacks hit (bodyBox() in character.js). the rectangle you see is drawn this
   // size, but a sprite can be any size. a bit under 32x64 (1 x 2 tiles)
@@ -170,9 +215,14 @@ const CROSSHAIR = {
 
 // ---------- buttons ----------
 // button looks (button.js), picked by name like style: 'primary'. each style only needs the settings
-// that are different from default. colours can be any css colour
+// that are different from default. colours can be any css colour. art, hoverArt and pressedArt are
+// pictures (art.js, usually with an "edge" so they stretch to any button) drawn instead of the box,
+// hover and pressed falling back to art. the editor's styles keep their drawn boxes (art: null)
 const BUTTON_STYLES = {
   default: {
+    art:           null,
+    hoverArt:      null,
+    pressedArt:    null,
     fill:          '#2f3542',
     hoverFill:     '#3d4556',
     pressedFill:   '#252a35',
@@ -183,7 +233,7 @@ const BUTTON_STYLES = {
     // corner radius, 0 for square corners
     radius:        6,
     textColour:    '#ffffff',
-    font:          'Quicksand',
+    font:          GAME_FONT,
     textSize:      16,
     // 'normal', 'bold' or 'italic'
     textStyle:     'bold',
@@ -215,6 +265,9 @@ const BUTTON_STYLES = {
   },
   // the map editor's small flat toolbar buttons (editor.js, formbox.js)
   editor: {
+    art:         null,
+    hoverArt:    null,
+    pressedArt:  null,
     fill:        '#2b303a',
     hoverFill:   '#373d49',
     pressedFill: '#22262e',
@@ -226,6 +279,9 @@ const BUTTON_STYLES = {
     pressOffset: 0,
   },
   editorPrimary: {
+    art:         null,
+    hoverArt:    null,
+    pressedArt:  null,
     fill:        '#4a7bd8',
     hoverFill:   '#5b8ae3',
     pressedFill: '#3d69bd',

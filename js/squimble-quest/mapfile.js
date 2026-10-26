@@ -20,7 +20,13 @@
 //       "wa gr .. gr wa"
 //     ],
 //     "objects": [                          each one's top left tile
-//       { "type": "table", "col": -1, "row": -11 }
+//       { "type": "table", "col": -1, "row": -11 },
+//       { "type": "chest", "col": 2, "row": -11, "items": ["potion", null, "sword"] }
+//                                           what starts in one with storage, a name or null per slot,
+//                                           only if anything does (StorageObjects.fill() in inventory.js)
+//     ],
+//     "items": [                            items lying on the ground (Drops.restock() in inventory.js),
+//       { "type": "sword", "col": 4, "row": -9 }    only if there are any
 //     ],
 //     "enemies": [                          start tiles (enemies.js), ai only if picked (ENEMY_AIS),
 //       { "type": "dummy", "col": 3, "row": -3 },    sound (a SOUNDS name it loops) only if picked
@@ -101,7 +107,10 @@ function mapToData(map) {
     atmosphere: map.atmosphere || undefined,
     legend,
     rows,
-    objects: map.objects.map((obj) => ({ type: obj.type, col: obj.col, row: obj.row })),
+    // a chest's items only go in if anything starts in it (JSON leaves out undefined)
+    objects: map.objects.map(({ type, col, row, items }) => ({ type, col, row, items })),
+    // only maps with some
+    items: map.items.length > 0 ? map.items.map(({ type, col, row }) => ({ type, col, row })) : undefined,
   };
   // "enemies" and "npcs" (SPAWN_KINDS in tilemap.js)
   for (const info of Object.values(SPAWN_KINDS)) {
@@ -181,8 +190,22 @@ function mapFromData(data) {
       unknown.add(`object "${obj.type}"`);
       continue;
     }
-    map.addObject(obj.type, obj.col, obj.row);
+    // what starts in a chest. one that isn't loaded is kept, so exporting doesn't lose it, but the
+    // slot's empty (StorageObjects.fill()) and Check for problems lists it
+    const items = Array.isArray(obj.items) ? obj.items.map((name) => (typeof name === 'string' ? name : null)) : undefined;
+    map.addObject(obj.type, obj.col, obj.row, items);
   }
+
+  // "items" on the ground, which older maps don't have. one that isn't loaded is kept the same way,
+  // but isn't on the ground
+  for (const entry of data.items ?? []) {
+    if (typeof entry.type !== 'string' || !Number.isInteger(entry.col) || !Number.isInteger(entry.row)) {
+      unknown.add('an item without a type, col or row');
+      continue;
+    }
+    map.items.push({ type: entry.type, col: entry.col, row: entry.row });
+  }
+  Drops.restock(map); // inventory.js
 
   // "enemies" and "npcs". older maps don't have them
   for (const [kind, info] of Object.entries(SPAWN_KINDS)) {
@@ -341,13 +364,13 @@ function openMapFile() {
 
 // ---------- small helpers ----------
 
-// the text of a map file: json with 2 space indents (one tile row per line), with each object, enemy,
-// npc, warp, sound block and area squashed onto one line so long lists are still easy to read
+// the text of a map file: json with 2 space indents (one tile row per line), with each object, item,
+// enemy, npc, warp, sound block and area squashed onto one line so long lists are still easy to read
 function mapDataToText(data) {
   return JSON.stringify(data, null, 2)
-    // an object, character, warp, sound block or area is a { } starting with "type", "name", "sound"
-    // or "atmosphere" with only plain values in it
-    .replace(/\{\s+("(?:type|name|sound|atmosphere)":[^{}[\]]*?)\s+\}/g, (match, inside) => `{ ${inside.replace(/,\s+/g, ', ')} }`)
+    // an object, item, character, warp, sound block or area is a { } starting with "type", "name",
+    // "sound" or "atmosphere" with only plain values in it, or lists of them (a chest's items)
+    .replace(/\{\s+("(?:type|name|sound|atmosphere)":[^{}]*?)\s+\}/g, (match, inside) => `{ ${inside.replace(/\[\s+/g, '[').replace(/\s+\]/g, ']').replace(/,\s+/g, ', ')} }`)
     + '\n';
 }
 

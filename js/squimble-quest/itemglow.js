@@ -50,10 +50,8 @@ function drawGlowingItem(item, x, y, iconSize, glowSize, seed = x + y) {
 
 // the rarity's picture, or a round gradient fading out from its colour
 function drawGlowHalo(rarity, x, y, size) {
-  if (rarity.img) {
-    image(rarity.img, x - size, y - size, size * 2, size * 2);
-    return;
-  }
+  // a sheet of frames plays (art.js)
+  if (drawArtBox(getArt(rarity.image, 'rarity', rarity.name), x - size, y - size, size * 2, size * 2, millis() / 1000)) return;
   const [r, g, b] = rarity.fill.levels;
   // this uses the canvas directly because p5 doesn't do gradients. p5's camera transform still applies
   const ctx = drawingContext;

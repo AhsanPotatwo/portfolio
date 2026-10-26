@@ -55,7 +55,7 @@ function directionFromAngle(angle) {
 // sets all of p5's text settings in one go. style is NORMAL/BOLD/ITALIC, alignX is LEFT/CENTER/RIGHT
 // and alignY is TOP/CENTER/BOTTOM. the page loads quicksand and courier prime.
 // like setText(14, BOLD, CENTER, BOTTOM) or setText(13, NORMAL, LEFT, TOP, 'Courier Prime')
-function setText(size, style = BOLD, alignX = CENTER, alignY = CENTER, font = 'Quicksand') {
+function setText(size, style = BOLD, alignX = CENTER, alignY = CENTER, font = GAME_FONT) {
   textFont(font);
   textStyle(style);
   textSize(size);
@@ -110,28 +110,23 @@ function artProblem(kind, name, file, problem) {
   console.warn(`The ${kind} "${name}": ${file} ${problem}`);
 }
 
-// loads the pictures and makes the p5 colours once, instead of on every draw. objects, enemies, npcs
-// and items run it once their files have loaded (their DataFiles.register() calls), and preload()
-// (sketch.js) runs it for the rarities. tiles do their own thing in setTile() (tiles.js). kind is only
-// for the warning
+// makes the p5 colours once, instead of on every draw, and starts loading every picture setting
+// (PICTURE_SETTINGS in art.js), its weapon's too, so they're there by the time they're drawn. objects,
+// enemies, npcs and items run it once their files have loaded (their DataFiles.register() calls), and
+// preload() (sketch.js) runs it for the rarities and the player. tiles do their own thing in setTile()
+// (tiles.js). kind is only for the warnings.
+//
+// type.img is its image's first frame facing down (artStill()), for things that show a still picture:
+// icons, the editor's palette, particles cut from it. drawing it in the world goes through getArt()
 function prepareArt(types, kind) {
   for (const type of Object.values(types)) {
     type.fill = color(type.colour);
-    // each picture setting, the key its p5 image goes in, and what a failed one means. portraits are
-    // for the npc text box (npcs.js), deathImage for the player (PLAYER in config.js). a new kind of
-    // picture is a line here
-    for (const [setting, key, problem] of [
-      ['image', 'img', "couldn't load, so it's its colour"],
-      ['portrait', 'portraitImg', "(its portrait) couldn't load, so it's a placeholder"],
-      ['deathImage', 'deathImg', "(its death picture) couldn't load, so nothing's left when it dies"],
-    ]) {
-      type[key] = null;
-      if (!type[setting]) continue;
-      type[key] = loadImage(type[setting], undefined, () => {
-        artProblem(kind, type.name, type[setting], problem);
-        type[key] = null;
-      });
+    for (const holder of [type, type.weapon, ...(type.weapon?.combo ?? [])]) {
+      for (const key of PICTURE_SETTINGS) {
+        if (holder?.[key]) getArt(holder[key], kind, type.name);
+      }
     }
+    Object.defineProperty(type, 'img', { get: () => artStill(getArt(type.image, kind, type.name)), configurable: true });
   }
 }
 

@@ -56,6 +56,8 @@ const FormBox = {
   //   onUpdate    optional, runs every frame while it's open (for live previews, say)
   //   onCancel    optional, runs when it's closed without confirming (like to undo those previews)
   //   cancelLabel optional words for the Cancel button, or null to leave it out (the pause menu)
+  //   art         optional UI_ART name (config.js) for the box's picture instead of the editor's drawn
+  //               window (the pause menu's 'panel'). the fields on it stay drawn
   //   memory      optional name its open tab is remembered by (lastTabs), otherwise the title up to
   //               any colon, so every "Item: ..." box shares one
   open(options) {
@@ -275,19 +277,21 @@ class FormBoxBackdrop extends UIElement {
 
     const C = EDITOR_COLOURS;
     const { titleHeight, footerHeight } = FORM_BOX;
-    fill(C.bar);
-    stroke(C.edge);
-    strokeWeight(1);
-    rect(x, y, w, h, 4);
-
-    // darker title bar and footer, like a window has
+    // its art (art.js), or a window with a darker title bar and footer
+    if (!drawArtBox(FormBox.options.art && uiArt(FormBox.options.art), x, y, w, h)) {
+      fill(C.bar);
+      stroke(C.edge);
+      strokeWeight(1);
+      rect(x, y, w, h, 4);
+      noStroke();
+      fill(C.header);
+      rect(x + 1, y + 1, w - 2, titleHeight - 1, 4, 4, 0, 0);
+      rect(x + 1, y + h - footerHeight, w - 2, footerHeight - 1, 0, 0, 4, 4);
+      fill(C.edge);
+      rect(x, y + titleHeight, w, 1);
+      rect(x, y + h - footerHeight, w, 1);
+    }
     noStroke();
-    fill(C.header);
-    rect(x + 1, y + 1, w - 2, titleHeight - 1, 4, 4, 0, 0);
-    rect(x + 1, y + h - footerHeight, w - 2, footerHeight - 1, 0, 0, 4, 4);
-    fill(C.edge);
-    rect(x, y + titleHeight, w, 1);
-    rect(x, y + h - footerHeight, w, 1);
     fill(C.text);
     setText(13, BOLD, LEFT, CENTER);
     text(title, x + 12, y + titleHeight / 2);

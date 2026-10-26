@@ -6,6 +6,7 @@
 // this file is the game loop. squimble-quest.html loads all the other files before it, in this order:
 //   config.js     settings: sizes, speeds, controls, button styles
 //   utils.js      helpers: maths, text, catalogues, loading/downloading files
+//   art.js        pictures for everything: the picture format, sheets of frames, drawing them
 //   datafiles.js  the data folders: a file per tile, sound, item, enemy... and loading/exporting them
 //   input.js      keyboard and mouse
 //   camera.js     what's on screen, and turning world positions into screen ones and back
@@ -81,9 +82,11 @@ let mapsReady = false;
 // p5 waits for anything loaded in here before it runs setup(), so pictures for buttons go here too.
 // the data files (tiles, items, enemies...) load in setup() instead, along with the maps
 function preload() {
-  // the rarity glow pictures and colours (itemglow.js), and the player's pictures (PLAYER in config.js)
+  // the rarity glow pictures and colours (itemglow.js), the player's pictures (PLAYER in config.js)
+  // and the ui's (UI_ART, BUTTON_STYLES), so they're there from the first frame (art.js)
   prepareArt(RARITIES, 'rarity');
   prepareArt({ player: PLAYER }, 'player');
+  loadUiArt();
 }
 
 function setup() {
@@ -238,6 +241,7 @@ function loadMap(name, warpName = '') {
   if (!sameMap) {
     Particles.clear();
     DamageNumbers.clear(); // weapons.js
+    Remains.clear(); // character.js
     arrows = [];
   }
 
@@ -275,8 +279,9 @@ function loadMap(name, warpName = '') {
 function spawnCharacters() {
   // the npc you're talking to is about to be replaced
   if (Dialogue.active) Dialogue.close();
-  // they'd hang in the air in the editor, or hit the new characters
+  // they'd hang in the air in the editor, or hit the new characters, and the dead's remains go too
   arrows = [];
+  Remains.clear();
   enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row, spawn.ai, spawn.follows, spawn.stats));
   npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row, spawn.voice, spawn.look));
   // the sound each one loops wherever it goes: its own if its spawn picked one, otherwise its kind's
@@ -431,6 +436,7 @@ function draw() {
     Atmosphere.update(worldMap, dt, Editor.active ? gameCamera : { x: player.x, y: player.y + feetBelowCentre(PLAYER) });
     Particles.update(dt, worldMap);
     DamageNumbers.update(dt);
+    Remains.update(dt); // character.js
   }
   // sounds get quieter the further they are from the player's feet, and higher or lower as they and
   // the player move (the doppler effect, sound.js). this runs in the editor too, so finished sounds
@@ -450,10 +456,14 @@ function draw() {
     Shaders.capture('ground');
     // sort by feet so whatever's lower on screen is in front. drops sort by their shadow (even while
     // they're being thrown), and so do arrows and flying particles. drops show in the editor too,
-    // since you can place them there. there can be thousands of flying particles, so they keep their
-    // own sorted list and get drawn in runs between these (particles.js)
+    // since you can place them there. standing objects (trees, wardrobes, objects.js) sort by their
+    // base and dead enemies' remains by where they fell (character.js). there can be thousands of
+    // flying particles, so they keep their own sorted list and get drawn in runs between these
+    // (particles.js)
     const things = [
       ...[player, ...enemies, ...npcs].map((c) => ({ y: c.y + c.h / 2, draw: () => c.draw() })),
+      ...worldMap.standingObjects().map((o) => ({ y: (o.row + OBJECT_TYPES[o.type].height) * TILE, draw: () => worldMap.drawObject(o, view) })),
+      ...Remains.list.map((r) => ({ y: r.bottom, draw: () => Remains.draw(r) })),
       ...worldMap.drops.map((d) => ({ y: Drops.where(d).y, draw: () => Drops.draw(d) })),
       ...arrows.map((a) => ({ y: a.y, draw: () => a.draw() })),
     ];

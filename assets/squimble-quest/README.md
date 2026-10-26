@@ -41,6 +41,49 @@ A file only has the settings that aren't normal. `enemies/grunt.json` starts lik
 
 Replacing a file that's already in the folder (a changed tile, say) is just step 1.
 
+## Adding art
+
+Everything is drawn with shapes and colours until it has a picture, so art can go in one thing at a time. A picture setting is a path from the site's root:
+
+```json
+"image": "assets/squimble-quest/enemies/grunt.png"
+```
+
+or a **sheet**: a grid of frames, one per column, played left to right, and one row per direction it faces:
+
+```json
+"walkImage": { "image": "assets/squimble-quest/enemies/grunt-walk.png", "frames": 6, "fps": 10, "directions": 4 }
+```
+
+| Sheet setting | What it does | Normally |
+|---|---|---|
+| `frames` | pictures across | 1 |
+| `fps` | frames a second | 8 |
+| `loop` | start again after the last frame, or `false` to stay on it (attacks, dying, a chest lid) | `true` |
+| `directions` | rows: `1`, `4` (down, left, right, up) or `8` (down, down left, left, up left, up, up right, right, down right) | 1 |
+| `mirror` | with 1 direction, flip it when facing left (draw it facing right) | `false` |
+| `scale` | game px per picture px, instead of `ART_SCALE` in config.js (1 for 32 px tiles, 2 for 16 px art) | `ART_SCALE` |
+| `edge` | for UI boxes: px round the edge that keep their size while the middle stretches | 0 |
+
+Pictures are drawn **at their own size**, never stretched to a hitbox, so a character or tree can be bigger than it is to the game. Characters, objects and worn things stand with their bottom middle on the feet or the object's base.
+
+| Thing | Picture settings | Where |
+|---|---|---|
+| Player | `image` (standing), `walkImage`, `attackImage`, `hurtImage`, `rollImage`, `deathImage` | `PLAYER` in `js/squimble-quest/config.js` |
+| Enemy | the same, and `deathImage` plays where it fell, then fades | its file in `enemies/` |
+| NPC | `image`, `walkImage`, `attackImage`, `hurtImage`, `rollImage`, `portrait` (the talking box; a sheet plays while it's open) | its file in `npcs/` |
+| Item | `image` (its icon, everywhere), `wornImage` (on whoever wears it, drawn like their body sheet so it lines up) | its file in `items/` |
+| Weapon | `swingImage` (a swing or jab, drawn pointing right from the attacker), `arrowImage` (an arrow, pointing right, tip at the front) | inside its item's `weapon` |
+| Object | `image`, `openImage` (a chest while it's open), and `"standing": true` for tall things characters can walk behind (trees, wardrobes) | its file in `objects/` |
+| Tile | `texture`, `variants`, `frames`, dual grid tilesets | tile editor, [tiles README](tiles/README.md) |
+| Particles | `picture` | particle editor, `particles/pictures/` |
+| Rarity glow | `image` | `RARITIES` in `items.js` |
+| UI | slots, the picked slot, empty equipment slot icons, panels, the talking box, messages, the E key, the crosshair, health bars, the death screen | `UI_ART` in `config.js` |
+| Buttons | `art`, `hoverArt`, `pressedArt` on a style | `BUTTON_STYLES` in `config.js` |
+| Font | its family name (add an `@font-face` in `css/squimble-quest.css` for a font file) | `GAME_FONT` in `config.js` |
+
+Any state picture that's left out uses `image`, so a character works with just one. The full details are at the top of [`art.js`](../../js/squimble-quest/art.js). After adding art, run the checks (below): `catalogue-check.js` fails on a picture whose file isn't there or a sheet setting that doesn't make sense, and the editor's **Map > Art report** lists sheets that don't split evenly into their frames.
+
 ## Exporting from the editor
 
 The **Export** buttons in the map editor download a file for **everything that's new or changed** since the page loaded: tiles on the Tiles tab, sounds, voices and particles on theirs, atmospheres from the toolbar's Atmosphere box (**Save and export**), items on the Weapons, Armour and Items tabs, and enemies whose own weapon you changed on the Weapons tab. New pictures and audio files come too. The message at the top of the screen says where each file goes and which names to add to `index.json`. If there's a lot, the browser console (**F12**) lists it all instead. Exporting again only downloads what's changed since the last time.
@@ -50,10 +93,10 @@ Enemies, NPCs and objects can't be made in the editor yet. Make those by copying
 ## Checking it's all there
 
 ```
-node js/squimble-quest/tests/data-check.js
+node js/squimble-quest/tests/run.js
 ```
 
-It lists any file that isn't in its `index.json` (the game won't load those), any name in `index.json` without a file, and any file that isn't `{ }` with settings in. No output means it's all fine. A setting with a typo in it gets a warning in the browser console when the game loads.
+That runs every check. `data-check.js` lists any file that isn't in its `index.json` (the game won't load those), any name in `index.json` without a file, and any file that isn't `{ }` with settings in. `catalogue-check.js` catches typo'd settings, names of sounds, particles or items that don't exist, and pictures that aren't there.
 
 ## Adding a new kind of data
 

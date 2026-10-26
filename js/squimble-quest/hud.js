@@ -22,8 +22,11 @@ function drawMessage() {
   const shown = fitText(hudMessage.text, GAME_W - 64);
   const w = textWidth(shown) + 32;
   noStroke();
-  fill(0, 0, 0, 190);
-  rect((GAME_W - w) / 2, 48, w, 34, 6);
+  // UI_ART.message (config.js, art.js), or a dark box
+  if (!drawArtBox(uiArt('message'), (GAME_W - w) / 2, 48, w, 34)) {
+    fill(0, 0, 0, 190);
+    rect((GAME_W - w) / 2, 48, w, 34, 6);
+  }
   fill(255);
   text(shown, GAME_W / 2, 65);
 }
@@ -87,6 +90,11 @@ function drawCrosshair(mouse, held, overUI) {
   // bigger with the pause menu's Crosshair turned up
   const scale = GAME_SETTINGS.crosshairSize;
   const size = CROSSHAIR.size * scale;
+
+  // UI_ART's crosshair pictures (config.js, art.js), middle on the mouse. over the ui without its own
+  // picture it's the drawn ring
+  const art = overUI ? uiArt('crosshairOverUI') : uiArt('crosshair');
+  if (drawArt(art, x, y, { anchor: 'centre', sx: scale, sy: scale, time: millis() / 1000 })) return;
 
   if (overUI) {
     // a thin white ring on a thicker dark one, so it shows up on any button

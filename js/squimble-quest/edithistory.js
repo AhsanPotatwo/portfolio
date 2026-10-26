@@ -5,7 +5,8 @@
 // how it was, and if it's different the old one goes on the undo list. so a whole drag of painting is
 // one undo, a settings box is one undo when it closes, and nothing else has to remember to tell it.
 // each map keeps its own lists until the page reloads. it covers the map: tiles, size, objects,
-// characters, warps, sound blocks, areas, the spawn, its atmosphere and items placed on the ground.
+// characters, warps, sound blocks, areas, the spawn, its atmosphere, items placed on the ground and what
+// starts in chests.
 // it doesn't cover tiles', sounds' or items' own settings, which have their own boxes and Cancel
 //
 // saving: at the same times the map's file text (mapToData() in mapfile.js) is compared with how it
@@ -197,6 +198,9 @@ function designOf(map) {
     npcSpawns: plain(map.npcSpawns),
     warps: plain(map.warps),
     sounds: plain(map.sounds),
+    // the same entries, not copies, since the drops on the ground know theirs by which one it is
+    // (placed, inventory.js). nothing changes an entry, only adds or removes it
+    items: map.items.slice(),
     drops: map.drops.slice(),
   };
 }
@@ -206,7 +210,7 @@ function designOf(map) {
 function designKey(design) {
   return JSON.stringify({
     ...design,
-    objects: design.objects.map(({ type, col, row }) => [type, col, row]),
+    objects: design.objects.map(({ type, col, row, items }) => [type, col, row, items]),
     drops: design.drops.map((drop) => [drop.item.type.name, Math.floor(drop.x / TILE), Math.floor(drop.y / TILE)]),
   });
 }

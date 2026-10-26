@@ -65,13 +65,27 @@ const DeathScreen = {
     if (this.time === null || !shown) return;
     const faded = Math.min(1, this.time / DEATH_SCREEN.fade);
     noStroke();
-    fill(0, 0, 0, DEATH_SCREEN.dim * faded);
-    rect(0, 0, GAME_W, GAME_H);
-    const words = color(DEATH_SCREEN.colour);
-    words.setAlpha(255 * faded);
-    fill(words);
-    setText(40); // utils.js
-    text('You died', GAME_W / 2, GAME_H / 2 - 100);
+    // UI_ART's deathBackground and deathTitle (config.js, art.js) fade in instead of the dark and the
+    // words, playing from when they died if they're sheets
+    push();
+    drawingContext.globalAlpha *= faded;
+    const background = drawArtBox(uiArt('deathBackground'), 0, 0, GAME_W, GAME_H, this.time);
+    pop();
+    if (!background) {
+      fill(0, 0, 0, DEATH_SCREEN.dim * faded);
+      rect(0, 0, GAME_W, GAME_H);
+    }
+    push();
+    drawingContext.globalAlpha *= faded;
+    const title = drawArt(uiArt('deathTitle'), GAME_W / 2, GAME_H / 2 - 100, { anchor: 'centre', time: this.time });
+    pop();
+    if (!title) {
+      const words = color(DEATH_SCREEN.colour);
+      words.setAlpha(255 * faded);
+      fill(words);
+      setText(40); // utils.js
+      text('You died', GAME_W / 2, GAME_H / 2 - 100);
+    }
     if (!this.button.visible) return;
     fill(255, 255, 255, 200);
     // keyName() is in debug.js

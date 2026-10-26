@@ -83,16 +83,11 @@ class Player extends Character {
     Warps.arrived(this, worldMap);
   }
 
-  // dead, they disappear, or leave their deathImage (PLAYER in config.js) where they died, its bottom
-  // middle on the feet like a living picture. a death animation would be that picture as a strip of
-  // frames, picked by the seconds since they died (DeathScreen.time, deathscreen.js)
+  // dead, they disappear, or play their deathImage (PLAYER in config.js) where they died: drawBody()
+  // shows it, a sheet that doesn't loop staying on its last frame (art.js). no health bar or swing
   draw() {
-    if (!this.dead) {
-      super.draw();
-      return;
-    }
-    const img = this.settings.deathImg;
-    if (img) image(img, Math.round(this.x - img.width / 2), Math.round(this.y + this.h / 2) - img.height);
+    if (this.dead) this.drawBody();
+    else super.draw();
   }
 
   // jumps to a spot when starting on a map or arriving through a warp (loadMap() in sketch.js)

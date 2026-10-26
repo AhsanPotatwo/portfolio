@@ -82,11 +82,13 @@ class Enemy extends Character {
   }
 
   // runs its onDeath first (ENEMY_DEATHS in enemies.js), and if it's still on 0 health after that it's
-  // gone for good, bursting its deathParticles (particles.js)
+  // gone for good, bursting its deathParticles (particles.js) and leaving its deathImage playing where
+  // it fell, if it has one (Remains in character.js)
   die() {
     if (this.type.onDeath) ENEMY_DEATHS[this.type.onDeath](this);
     if (this.health > 0) return;
     this.dead = true;
     this.burstParticles(this.deathParticles);
+    Remains.add(this);
   }
 }

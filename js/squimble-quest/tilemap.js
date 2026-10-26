@@ -37,7 +37,8 @@ class TileMap {
     // shape, fade, strength } (explained under "areas" in atmosphere.js)
     this.areas = [];
 
-    // each { type, col, row } (objects.js)
+    // each { type, col, row } (objects.js), plus items (what starts in it) and inventory (what's in it
+    // now) for one with storage (addObject())
     this.objects = [];
     // the index() of every tile under a solid object, so collision checks are quick. addObject() and
     // removeObjectsAt() keep it up to date
@@ -58,9 +59,13 @@ class TileMap {
     // them the same. null until you leave it the first time. this is progress, not design: the spawn
     // lists never change, so the editor shows all of them and Export saves all of them
     this.characters = null;
-    // items on the ground, each { item, x, y, ready, from, flight } (Drops in inventory.js). this is
-    // progress too, so Export doesn't save them, even ones placed in the editor
+    // items on the ground, each { item, x, y, ready, from, flight, placed } (Drops in inventory.js).
+    // this is progress too, so Export doesn't save them
     this.drops = [];
+    // items placed in the editor, each { type, col, row }: an item's name and the tile it lies on. this
+    // is design, saved by Export, and Drops.restock() puts them in drops. picking one up takes it out of
+    // drops, never out of here (README "Placed items and chests")
+    this.items = [];
   }
 
   // ---------- reading and changing tiles ----------
@@ -167,17 +172,23 @@ class TileMap {
 
   // ---------- objects ----------
 
-  // type is a name from objects.js, with its top left on col, row
-  addObject(type, col, row) {
+  // type is a name from objects.js, with its top left on col, row. items is what starts in it if it has
+  // storage, a name or null per slot
+  addObject(type, col, row, items) {
     if (!OBJECT_TYPES[type]) {
       console.warn(`There's no object called "${type}", add its file to ${DATA_FOLDER}${DATA_KINDS.object}`);
       return;
     }
     const obj = { type, col, row };
     // a chest or anything else with storage (objects.js) gets its own inventory. what's in it is
-    // progress like drops, so map files don't save it and it's empty again after a reload
+    // progress like drops, so map files don't save it. what starts in it (items) is design, and goes in
+    // now (StorageObjects.fill() in inventory.js)
     const storage = OBJECT_TYPES[type].storage;
-    if (storage) obj.inventory = new Inventory(storage.slots);
+    if (items?.some(Boolean)) obj.items = items;
+    if (storage) {
+      obj.inventory = new Inventory(storage.slots);
+      StorageObjects.fill(obj);
+    }
     this.objects.push(obj);
     // only marks this object's tiles instead of redoing all of them
     this.markSolid(obj);
@@ -501,29 +512,43 @@ class TileMap {
     pop();
   }
 
-  // in the order they were placed, so later ones go on top
+  // the objects that lie on the ground, with the tiles, in the order they were placed so later ones go
+  // on top. standing ones (objects.js) are sorted in with the characters instead (standingObjects(),
+  // sketch.js)
   drawObjects(camera) {
     const view = camera.view();
     for (const obj of this.objects) {
-      const type = OBJECT_TYPES[obj.type];
-      const x = obj.col * TILE;
-      const y = obj.row * TILE;
-      const w = type.width * TILE;
-      const h = type.height * TILE;
-      // skip it if it's off screen
-      if (x > view.right || x + w < view.left || y > view.bottom || y + h < view.top) continue;
-
-      if (type.img) {
-        image(type.img, x, y, w, h);
-      } else {
-        // placeholder: a rounded box a bit smaller than its tiles, so it looks like it's sitting on the
-        // floor instead of being part of it
-        fill(type.fill);
-        stroke(0, 0, 0, 90);
-        strokeWeight(2);
-        rect(x + 3, y + 3, w - 6, h - 6, 5);
-        noStroke();
-      }
+      if (!OBJECT_TYPES[obj.type].standing) this.drawObject(obj, view);
     }
+  }
+
+  standingObjects() {
+    return this.objects.filter((obj) => OBJECT_TYPES[obj.type].standing);
+  }
+
+  // one object, unless it's off screen (view, camera.view()). its picture (art.js; its openImage while
+  // it's the open chest, InventoryScreen.storage) goes at its own size with its bottom middle on the
+  // middle of its base, so a tree can be taller than its tiles. without one it's a placeholder box
+  drawObject(obj, view) {
+    const type = OBJECT_TYPES[obj.type];
+    const x = obj.col * TILE;
+    const y = obj.row * TILE;
+    const w = type.width * TILE;
+    const h = type.height * TILE;
+    const open = InventoryScreen.storage === obj && type.openImage; // inventory.js
+    const art = getArt(open ? type.openImage : type.image, 'object', type.name);
+    // a picture can reach up past its tiles
+    const above = artDrawnSize(art)?.h ?? 0;
+    if (x > view.right || x + w < view.left || y > view.bottom || y + h < view.top - above) return;
+    // a lid opening plays from when it opened (StorageObjects.openedAt), anything else from page load
+    const time = (millis() - (open ? StorageObjects.openedAt : 0)) / 1000;
+    if (drawArt(art, x + w / 2, y + h, { time })) return;
+    // placeholder: a rounded box a bit smaller than its tiles, so it looks like it's sitting on the
+    // floor instead of being part of it
+    fill(type.fill);
+    stroke(0, 0, 0, 90);
+    strokeWeight(2);
+    rect(x + 3, y + 3, w - 6, h - 6, 5);
+    noStroke();
   }
 }

@@ -71,6 +71,14 @@
 //               all the same. a weak bow shot twangs higher by this much too (heaviness())
 //   hitHeard    how loud your own hits are at least, 0 to 1, however far away they land, so you hear a
 //               bow shot land across the map. only for this computer's player (weaponSound())
+//   swingImage  a swing's or jab's picture (art.js) instead of the drawn swoosh, with its left middle on
+//               the attacker, drawn pointing right and turned to the aim, flipped for every other
+//               swing (backhand). a sheet plays over the swing from when it sweeps, so make frames /
+//               fps about its swingTime. the windup still shows the drawn blade
+//   arrowImage  a shooting weapon's arrow picture, drawn pointing right with its right middle on the
+//               arrow's tip, turned the way it flies. a sheet loops while it flies (a spinning axe)
+//
+// the item's own image is its icon (items.js): what's in the hotbar and small in the hand
 //
 // the editor's Sound tab changes these, and the preview plays them while it's open. the sounds
 // themselves change in the map editor's Sounds tab
@@ -135,6 +143,8 @@ const WEAPON_DEFAULTS = {
   soundWobble: 0.06,
   soundWeight: 1,
   hitHeard: 0.5,
+  swingImage: null,
+  arrowImage: null,
 };
 
 // each way a weapon can attack (its attack setting):
@@ -500,6 +510,9 @@ class MeleeSwing {
       return;
     }
 
+    // its swingImage (art.js), pointing along the aim, flipped for backhand swings
+    if (drawArt(getArt(this.weapon.swingImage, 'weapon', 'swingImage'), ox, oy, { anchor: 'start', angle: this.angle, time: this.time, flipY: this.backhand })) return;
+
     // a see-through pie slice from the start to the blade. arc() wants the smaller angle first. the
     // p5 colour gets made here instead of being stored on the swing, so the swing stays as plain data
     // that a server without p5 could run
@@ -597,6 +610,8 @@ class Jab extends MeleeSwing {
       line(...along(reach * 0.3 - back), ...along(reach * 0.6 - back));
       return;
     }
+    // its swingImage (art.js), pointing along the jab
+    if (drawArt(getArt(this.weapon.swingImage, 'weapon', 'swingImage'), x, y, { anchor: 'start', angle: this.angle, time: this.time })) return;
     // harder hits (more knockback) are bolder, like a swing
     const heavy = Math.min(this.weapon.knockback / 500, 1.5);
     const band = color(this.weapon.colour);
@@ -625,8 +640,7 @@ const ARROW = { length: 18, checkEvery: 8, stickTime: 1.5, shaft: '#8b5a2b' };
 // height px up the screen with its shadow on the floor. Character.attack() (character.js) makes it,
 // and sketch.js keeps every arrow in the air in its arrows list, updates them and draws them
 //
-// ponytail: it's a coloured line until there's a sprite. a sprite would be drawn in draw(), rotated by
-// angle, probably from an arrowImage weapon setting loaded like an item's image (prepareArt(), utils.js)
+// it's its weapon's arrowImage (art.js), or a coloured line without one
 class Arrow {
   // owner: whoever shot it. weapon: its settings (makeWeapon()). angle: which way, in radians
   constructor(owner, weapon, angle) {
@@ -696,6 +710,13 @@ class Arrow {
     push();
     if (this.stuck !== null) drawingContext.globalAlpha *= Math.min(1, 3 * (1 - this.stuck / ARROW.stickTime));
     if (this.height > 1) drawArrowShadow(this);
+    // its picture, tip on the tip, looping from when it was first drawn
+    this.firstDrawn ??= millis();
+    const art = getArt(this.weapon.arrowImage, 'weapon', 'arrowImage');
+    if (drawArt(art, tipX, tipY, { anchor: 'end', angle: this.angle, time: (millis() - this.firstDrawn) / 1000 })) {
+      pop();
+      return;
+    }
     stroke(ARROW.shaft);
     strokeWeight(2);
     line(tipX - dx, tipY - dy, tipX, tipY);

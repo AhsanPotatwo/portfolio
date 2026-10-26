@@ -3,7 +3,8 @@
 // objects/index.json (datafiles.js). the other catalogues (enemies.js, npcs.js, items.js, tiles.js...)
 // work the same way. unlike tiles, a map keeps objects in a list, so a few can share a spot (a
 // table on a rug) and one can cover several tiles. on a map each one is { type, col, row } (its top
-// left tile), and they're drawn in the order they were placed, after the tiles but before the player.
+// left tile), and they're drawn in the order they were placed, after the tiles but before the player,
+// unless they're standing (below), when they're sorted in with the characters.
 //
 // ============================== how to make an object ==============================
 //
@@ -13,7 +14,16 @@
 //
 //   width, height   how many tiles it covers
 //   colour          the placeholder colour when there's no image
-//   image           like 'assets/squimble-quest/objects/table.png', stretched over its tiles (2 x 1 is 64 x 32)
+//   image           its picture (art.js), like "assets/squimble-quest/objects/table.png", or a sheet of
+//                   frames for one that moves (a flickering torch). drawn at its own size with its
+//                   bottom middle on the middle of its bottom edge, so a tree can be taller than its
+//                   tiles (TileMap.drawObject() in tilemap.js)
+//   openImage       a storage object's picture while it's open, like a chest with its lid up. a sheet
+//                   that doesn't loop plays once from when it opened
+//   standing        true for things that stand up off the floor (trees, wardrobes, lamp posts), so
+//                   characters behind them are hidden by them and ones in front aren't, sorted by its
+//                   bottom edge. false lies on the floor under everyone (rugs, puddles, the
+//                   placeholder boxes). a standing object's particles sort by where they are too
 //   solid           blocks the player
 //   particles       the particle effects it keeps making, like a campfire's
 //                   ["campfire-flames", "campfire-smoke"] (particles/), or null for none. they come
@@ -35,6 +45,8 @@ const OBJECT_DEFAULTS = {
   // pink so a missing colour is obvious
   colour: '#ff00ff',
   image: null,
+  openImage: null,
+  standing: false,
   solid: false,
   particles: null,
   particleRate: 1,

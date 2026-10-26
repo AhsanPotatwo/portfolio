@@ -29,7 +29,12 @@
 //   roll      true if wearing it lets you dodge roll (Shift, ROLL in config.js), like the quick charm
 //   rarity    a RARITIES key, which decides its glow (itemglow.js)
 //   colour    placeholder colour in the hotbar
-//   image     like "assets/squimble-quest/items/axe.png"
+//   image     its icon (art.js), like "assets/squimble-quest/items/axe.png": in slots, on the ground,
+//             dragged and small in the hand, stretched to a square. a sheet of frames plays (a
+//             glinting gem)
+//   wornImage what it looks like on whoever wears it, drawn over their picture with its bottom middle
+//             on their feet, in the same frame and direction as their body, so draw it as a sheet
+//             matching the body's (a paper doll). without one it's a band on placeholder bodies
 //
 // new settings (like heal or stackable) need a default in ITEM_DEFAULTS, which is also what makes
 // them get saved
@@ -78,6 +83,7 @@ const ITEM_DEFAULTS = {
   rarity: 'common',
   colour: '#ff00ff',
   image: null,
+  wornImage: null,
 };
 
 // filled in from the item files (bottom of this file)

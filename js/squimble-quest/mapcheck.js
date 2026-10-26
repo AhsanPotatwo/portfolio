@@ -88,6 +88,8 @@ function findUses({ kind, name }) {
     ['enemy', map.enemySpawns, (spawn) => `An enemy (${spawn.type})`],
     ['npc', map.npcSpawns, (spawn) => `An npc (${spawn.type})`],
     ['object', map.objects, (obj) => `A ${obj.type}`],
+    // items on the ground, whose kind is their category (the palette tab they're on)
+    ...Object.keys(ITEM_CATEGORIES).map((category) => [category, map.items.filter((entry) => ITEM_TYPES[entry.type]?.category === category), (entry) => `A ${entry.type} on the ground`]),
     ['sound', map.sounds, (block) => `A sound block (${block.sound})`],
     ['warp', map.warps, (warp) => `Warp ${warp.name}`],
     ['area', map.areas, (area) => `An area (${area.atmosphere || 'no atmosphere'})`],
@@ -196,6 +198,11 @@ function mapProblems(map) {
   for (const obj of map.objects) {
     const type = OBJECT_TYPES[obj.type];
     if (!map.inside(obj.col + type.width - 1, obj.row + type.height - 1)) add(`A ${obj.type} hangs off the edge of the map`, obj.col, obj.row);
+    for (const name of obj.items ?? []) if (name !== null && !ITEM_TYPES[name]) add(`A ${obj.type} starts with "${name}", which doesn't exist`, obj.col, obj.row);
+  }
+  for (const { type, col, row } of map.items) {
+    if (!ITEM_TYPES[type]) add(`An item on the ground is "${type}", which doesn't exist`, col, row);
+    else if (map.isSolid(col, row)) add(`A ${type} lies on ${stuck(col, row)}, so it can't be picked up`, col, row);
   }
   return problems;
 }
@@ -237,8 +244,9 @@ const ArtReport = {
 
 // pictures that loaded but don't fit what they're on, in the same shape as ART_PROBLEMS: tiles that
 // aren't square (they'd be stretched) or whose variants and frames are a different size to their
-// texture, dual grid tilesets that can't be cut into 4 x 4 pieces, and objects whose picture is a
-// different shape to their tiles. a picture that's still loading (1 x 1) is skipped
+// texture, dual grid tilesets that can't be cut into 4 x 4 pieces, and sheets of frames (art.js)
+// that don't split evenly into their frames and directions. a picture that's still loading (1 x 1) is
+// skipped
 function artSizeProblems() {
   const problems = [];
   const add = (kind, name, file, problem) => problems.push({ kind, name, file, problem });
@@ -256,11 +264,10 @@ function artSizeProblems() {
       if (loaded(img) && (img.width !== width || img.height !== height)) add('tile', type.name, texturePath(type), `has a ${which} that's ${img.width} × ${img.height} px, a different size`);
     }
   }
-  for (const type of Object.values(OBJECT_TYPES)) {
-    if (!loaded(type.img)) continue;
-    const picture = type.img.width / type.img.height;
-    const tiles = type.width / type.height;
-    if (Math.abs(picture / tiles - 1) > 0.02) add('object', type.name, type.image, `is ${type.img.width} × ${type.img.height} px but the object is ${type.width} × ${type.height} tiles, so it's squashed`);
+  for (const art of ART_CACHE.values()) {
+    if (!loaded(art?.img)) continue;
+    const { width, height } = art.img;
+    if (width % art.frames || height % art.directions) add(art.kind, art.name, art.image, `is ${width} × ${height} px, which doesn't split into ${art.frames} frames across and ${art.directions} directions down, so its frames slide about`);
   }
   return problems;
 }

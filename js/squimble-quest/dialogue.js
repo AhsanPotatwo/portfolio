@@ -74,6 +74,8 @@ const Dialogue = {
     this.active = true;
     this.npc = npc;
     this.line = 0;
+    // for their portrait's animation (DialogueBox)
+    this.openedAt = millis();
     this.startLine();
     this.box.visible = true;
     // they turn to face you
@@ -156,19 +158,20 @@ class DialogueBox extends UIElement {
     const pad = 16;
     const size = DIALOGUE_BOX.portraitSize;
 
-    stroke(255, 255, 255, 60);
-    strokeWeight(2);
-    fill(20, 22, 28);
-    rect(this.x, this.y, this.w, this.h, 10);
+    // UI_ART.dialogue (config.js, art.js), or a dark box
+    if (!drawArtBox(uiArt('dialogue'), this.x, this.y, this.w, this.h)) {
+      stroke(255, 255, 255, 60);
+      strokeWeight(2);
+      fill(20, 22, 28);
+      rect(this.x, this.y, this.w, this.h, 10);
+    }
 
-    // their portrait, or a placeholder face in their colours
+    // their portrait (playing from when the box opened, if it's a sheet), or a placeholder face in
+    // their colours
     const px = this.x + pad;
     const py = this.y + (this.h - size) / 2;
-    if (npc.type.portraitImg) {
-      image(npc.type.portraitImg, px, py, size, size);
-    } else {
-      this.drawPlaceholderPortrait(npc, px, py, size);
-    }
+    const portrait = getArt(npc.type.portrait, 'npc', npc.type.name);
+    if (!drawArtBox(portrait, px, py, size, size, (millis() - Dialogue.openedAt) / 1000)) this.drawPlaceholderPortrait(npc, px, py, size);
 
     // their name and the line (wrapped) next to the portrait
     const textX = px + size + pad;
