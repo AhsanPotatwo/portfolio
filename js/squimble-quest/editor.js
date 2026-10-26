@@ -10,9 +10,10 @@
 //     it's unsaved, edithistory.js)
 //   - the tool strip down the left (edittools.js): Paint, Erase, Fill, Rectangle, Select and Pick, the
 //     brush size, undo and redo
-//   - the dock on the right: the palette, with tabs for tiles, objects, enemies, npcs, triggers and
-//     items (the wheel scrolls it), a search box, a row of what was picked lately (Shift + click pins
-//     one), and the inspector under it showing what's picked
+//   - the dock on the right: a rail of category icons (tiles, objects, enemies, npcs, triggers, items,
+//     sounds...; Q and E step through them), a search box that looks in every category, a row of
+//     what was picked lately (Shift + click pins one), the palette (the wheel scrolls it), and the
+//     inspector under it showing what's picked
 //   - the status bar along the bottom: the tile under the mouse, what clicking will do, the selection,
 //     the brush and the zoom
 //   - the minimap in the bottom left corner of the view (EditorMinimap): click or drag it to move
@@ -104,9 +105,12 @@ const EDITOR_LAYOUT = {
   toolbarHeight: 26,
   statusHeight: 20,
   toolStripWidth: 34,
-  // the dock, its row of tabs, the search box and recent row under them, and the inspector at the
-  // bottom of it
-  dockWidth: 224,
+  // the dock (with the category rail down its left side), the open category's name along its top, the
+  // search box and recent row under that, and the inspector at the bottom of it
+  dockWidth: 252,
+  railWidth: 28,
+  // each category's square in the rail
+  railRow: 24,
   tabHeight: 22,
   searchHeight: 26,
   recentHeight: 30,
@@ -116,8 +120,6 @@ const EDITOR_LAYOUT = {
   cellSize: 40,
   // how far the palette is in from the dock's edges
   padding: 6,
-  // each of the < > tab arrows, which show when there are too many tabs to fit
-  tabArrowWidth: 16,
   scrollbarWidth: 4,
   // how far the palette scrolls for each bit the wheel turns. one notch (about 100) is roughly a row
   scrollRate: 0.4,
@@ -154,8 +156,9 @@ const TRIGGER_TYPES = {
   area: { place: (map, col, row) => AtmosphereAreas.start(col, row) },
 };
 
-// the palette tabs, left to right. kind is what the editor calls the things on that tab, types is
-// their catalogue, and place(map, name, col, row) runs when you click the map with one picked.
+// the palette's categories, top to bottom in the rail (CategoryRail). kind is what the editor calls
+// the things in it (and picks its icon, drawCategoryIcon()), types is their catalogue, and
+// place(map, name, col, row) runs when you click the map with one picked.
 // tiles have no place() because they paint while the mouse is held instead (Editor.update()).
 // so a new placeable kind is just a new line here. TILE_TYPES only fills in once the tile files load
 // (tiles.js), which is why the palette reads the catalogues every time it draws
@@ -165,7 +168,7 @@ const EDITOR_TABS = [
   { kind: 'enemy', label: 'Enemies', types: ENEMY_TYPES, place: (map, name, col, row) => Editor.placeCharacter(map, 'enemy', name, col, row) },
   { kind: 'npc', label: 'NPCs', types: NPC_TYPES, place: (map, name, col, row) => Editor.placeCharacter(map, 'npc', name, col, row) },
   { kind: 'trigger', label: 'Triggers', types: TRIGGER_TYPES, place: (map, name, col, row) => TRIGGER_TYPES[name].place(map, col, row) },
-  // one tab for each ITEM_CATEGORIES entry (items.js), with the category as its kind. they all get
+  // one for each ITEM_CATEGORIES entry (items.js), with the category as its kind. they all get
   // dropped on the ground and changed with Editor.editItem()
   ...Object.entries(ITEM_CATEGORIES).map(([kind, label]) => ({
     kind, label, types: ITEMS_BY_CATEGORY[kind],
@@ -179,7 +182,7 @@ const EDITOR_TABS = [
   // the left (so you can see the spread), from half a tile up
   { kind: 'particle', label: 'Particles', types: PARTICLE_EFFECTS, place: (map, name, col, row) => Particles.burst(name, (col + 0.5) * TILE, (row + 0.5) * TILE, { height: TILE / 2, angle: 0 }) },
   // an empty example that just says "Nothing here yet". to use it, give it a catalogue and a
-  // place(). if there are too many tabs to fit they scroll (EditorTabStrip)
+  // place(). if there are too many to fit, the rail's squares get shorter (CategoryRail)
   { kind: 'light', label: 'Lights', types: {} },
 ];
 
@@ -257,13 +260,14 @@ const Editor = {
   menuBar: null,
   palette: null,
   search: null,
-  tabStrip: null,
 
   // called once from setup(). makes the menu bar, tool strip, dock (palette and inspector) and status
   // bar, all hidden until the editor opens
   init() {
     const L = EDITOR_LAYOUT;
-    const dockX = GAME_W - L.dockWidth;
+    // the dock's width without the rail, which is to its left
+    const dockW = L.dockWidth - L.railWidth;
+    const dockX = GAME_W - dockW;
     const dockY = L.toolbarHeight;
     const dockH = GAME_H - L.toolbarHeight - L.statusHeight;
     const inspectorY = dockY + dockH - L.inspectorHeight;
@@ -275,7 +279,8 @@ const Editor = {
     this.menuBar = add(new EditorMenuBar({ x: 0, y: 0, w: GAME_W, h: L.toolbarHeight })); // editormenu.js
     add(new EditorStatusBar({ x: 0, y: GAME_H - L.statusHeight, w: GAME_W, h: L.statusHeight }));
     add(new EditorToolStrip({ x: 0, y: L.toolbarHeight, w: L.toolStripWidth, h: dockH }));
-    add(new EditorDock({ x: dockX, y: dockY, w: L.dockWidth, h: dockH, inspectorY }));
+    add(new EditorDock({ x: dockX, y: dockY, w: dockW, h: dockH, inspectorY }));
+    add(new CategoryRail({ x: dockX - L.railWidth, y: dockY, w: L.railWidth, h: dockH }));
 
     // Play goes in the middle like in a game engine, and closes the editor (player and gameCamera are
     // from sketch.js). Play here plays from the mouse (Space)
@@ -286,14 +291,13 @@ const Editor = {
     add(new EditorButton({ x: playX, y: 3, w: playW, h: L.toolbarHeight - 6, label: '▶  Play', style: 'editorPrimary', onClick: () => this.close(player, gameCamera) }));
     add(new EditorButton({ x: playX + playW + 4, y: 3, w: hereW, h: L.toolbarHeight - 6, label: 'Play here', isOn: () => this.choosingStart, onClick: () => { if (this.choosingStart) this.choosingStart = false; else this.startPlayHere(); } }));
 
-    this.tabStrip = add(new EditorTabStrip({ x: dockX, y: dockY, w: L.dockWidth, h: L.tabHeight }));
-    // under the tabs: the search box and the recent row
-    this.search = add(new PaletteSearch({ x: dockX + L.padding, y: dockY + L.tabHeight + 4, w: L.dockWidth - L.padding * 2, h: L.searchHeight - 6 }));
-    add(new RecentStrip({ x: dockX, y: dockY + L.tabHeight + L.searchHeight, w: L.dockWidth, h: L.recentHeight }));
+    // under the category's name: the search box and the recent row
+    this.search = add(new PaletteSearch({ x: dockX + L.padding, y: dockY + L.tabHeight + 4, w: dockW - L.padding * 2, h: L.searchHeight - 6 }));
+    add(new RecentStrip({ x: dockX, y: dockY + L.tabHeight + L.searchHeight, w: dockW, h: L.recentHeight }));
 
     // goes between those and the inspector
     const gridY = dockY + L.tabHeight + L.searchHeight + L.recentHeight;
-    this.palette = add(new PaletteGrid({ x: dockX, y: gridY, w: L.dockWidth, h: inspectorY - gridY }));
+    this.palette = add(new PaletteGrid({ x: dockX, y: gridY, w: dockW, h: inspectorY - gridY }));
     // the whole map, small, in the bottom left (View > Minimap). it places itself each frame
     add(new EditorMinimap());
     // the menu bar's open menu, which goes on top of everything when it opens (editormenu.js)
@@ -301,7 +305,7 @@ const Editor = {
 
     // the inspector's buttons along its bottom, for tiles (tileeditor.js), sounds (soundeditor.js) and
     // items
-    const buttonW = (L.dockWidth - L.padding * 2 - 8) / 3;
+    const buttonW = (dockW - L.padding * 2 - 8) / 3;
     // each one says when it shows (EditorButton's shows), since they share spots: New and Give are both
     // second, and the Exports are all third
     const inspectorButton = (i, label, shows, onClick) => add(new EditorButton({
@@ -534,7 +538,12 @@ const Editor = {
   // kind is from EDITOR_TABS. the tile buttons only show on Tiles
   showTab(kind) {
     this.tab = kind;
-    this.tabStrip.reveal(kind);
+  },
+
+  // the category above (-1) or below (1) the open one in the rail, going round at the ends (Q and E)
+  stepTab(by) {
+    const i = EDITOR_TABS.findIndex((tab) => tab.kind === this.tab);
+    this.showTab(EDITOR_TABS[(i + by + EDITOR_TABS.length) % EDITOR_TABS.length].kind);
   },
 
   // picks something (from the map, the recent row, the art report...), opens its tab, scrolls it into
@@ -1584,9 +1593,9 @@ function statusHint() {
   return `${hints[Editor.tool]}   ·   Alt + click: pick   ·   Right click: settings`;
 }
 
-// the dock's background, the strip behind the tabs, and the inspector (what's picked). the tabs,
-// palette and inspector buttons are their own elements on top of this (Editor.init()). inspectorY is
-// the top of the inspector
+// the dock's background, the open category's name and how many it has, and the inspector (what's
+// picked). the rail, search, palette and inspector buttons are their own elements on top of this
+// (Editor.init()). inspectorY is the top of the inspector
 class EditorDock extends UIElement {
   constructor(options) {
     super(options);
@@ -1599,9 +1608,18 @@ class EditorDock extends UIElement {
     noStroke();
     fill(C.bar);
     rect(this.x, this.y, this.w, this.h);
-    // the tab strip. the open tab covers the line under it so it looks joined on (EditorTabStrip)
-    fill(C.header);
-    rect(this.x, this.y, this.w, L.tabHeight);
+    // the name, with the keys that go up and down the rail on the right
+    const tab = EDITOR_TABS.find((t) => t.kind === Editor.tab);
+    const middleY = this.y + L.tabHeight / 2 + 1;
+    fill(C.text);
+    setText(13, BOLD, LEFT, CENTER);
+    text(tab.label, this.x + L.padding + 2, middleY);
+    const countX = this.x + L.padding + 9 + textWidth(tab.label);
+    fill(C.dimText);
+    setText(11, BOLD, LEFT, CENTER);
+    text(Editor.palette.names().length, countX, middleY);
+    setText(10, BOLD, RIGHT, CENTER);
+    text(`${keyName(KEYS.editorPrevTab[0])} ▲   ▼ ${keyName(KEYS.editorNextTab[0])}`, this.x + this.w - L.padding - 2, middleY);
     fill(C.edge);
     rect(this.x, this.y + L.tabHeight - 1, this.w, 1);
 
@@ -1616,10 +1634,6 @@ class EditorDock extends UIElement {
     setText(10, BOLD, LEFT, CENTER);
     text('INSPECTOR', this.x + L.padding + 2, y + 10);
     this.drawInspector(y + 20);
-
-    // a line down the left edge, against the map
-    fill(C.edge);
-    rect(this.x, this.y, 1, this.h);
   }
 
   // the picked thing's picture, name and kind, then some of its settings or a note
@@ -1752,127 +1766,228 @@ function inspectorInfo(selected) {
   return { title: name, kind: EDITOR_TABS.find((tab) => tab.kind === kind).label, rows: [] };
 }
 
-// the palette tabs, made to look like the panel tabs in a game engine. the open one is the same
-// colour as the dock with a coloured line along the top, so it looks joined to the palette. each is
-// as wide as its label. if they don't all fit they scroll with the < > arrows (or the wheel), and
-// opening a tab scrolls it into view, so EDITOR_TABS can have as many as you want
-class EditorTabStrip extends UIElement {
+// a palette category's icon in the rail: a line drawing in colour c, like the tool strip's
+// (drawToolIcon() in editormenu.js), about s * 2 px across, centred on cx, cy. a new category without
+// one gets a dot
+function drawCategoryIcon(kind, cx, cy, s, c) {
+  stroke(c);
+  strokeWeight(1.6);
+  noFill();
+  switch (kind) {
+    case 'tile':
+      // a square of four tiles
+      rect(cx - s, cy - s, s * 2, s * 2, 1);
+      line(cx, cy - s, cx, cy + s);
+      line(cx - s, cy, cx + s, cy);
+      break;
+    case 'object':
+      // a table
+      line(cx - s, cy - s * 0.3, cx + s, cy - s * 0.3);
+      line(cx - s * 0.7, cy - s * 0.3, cx - s * 0.7, cy + s);
+      line(cx + s * 0.7, cy - s * 0.3, cx + s * 0.7, cy + s);
+      break;
+    case 'enemy':
+      // a horned head
+      circle(cx, cy + s * 0.25, s * 1.5);
+      triangle(cx - s * 0.65, cy - s * 0.15, cx - s * 0.2, cy - s * 0.45, cx - s * 0.85, cy - s);
+      triangle(cx + s * 0.65, cy - s * 0.15, cx + s * 0.2, cy - s * 0.45, cx + s * 0.85, cy - s);
+      noStroke();
+      fill(c);
+      circle(cx - s * 0.3, cy + s * 0.25, s * 0.35);
+      circle(cx + s * 0.3, cy + s * 0.25, s * 0.35);
+      break;
+    case 'npc':
+      // head and shoulders
+      circle(cx, cy - s * 0.4, s);
+      arc(cx, cy + s, s * 1.8, s * 1.4, PI, TWO_PI);
+      break;
+    case 'trigger':
+      // a flag
+      line(cx - s * 0.7, cy - s, cx - s * 0.7, cy + s);
+      triangle(cx - s * 0.7, cy - s, cx + s, cy - s * 0.55, cx - s * 0.7, cy - s * 0.1);
+      break;
+    case 'weapon':
+      // a sword
+      line(cx - s * 0.8, cy + s * 0.8, cx + s, cy - s);
+      line(cx - s * 0.75, cy + s * 0.15, cx - s * 0.15, cy + s * 0.75);
+      break;
+    case 'ammo':
+      // an arrow
+      line(cx - s, cy + s, cx + s, cy - s);
+      line(cx + s, cy - s, cx + s * 0.3, cy - s);
+      line(cx + s, cy - s, cx + s, cy - s * 0.3);
+      line(cx - s, cy + s * 0.4, cx - s * 0.6, cy + s * 0.6);
+      line(cx - s * 0.4, cy + s, cx - s * 0.6, cy + s * 0.6);
+      break;
+    case 'armour':
+      // a shield
+      beginShape();
+      vertex(cx - s * 0.85, cy - s);
+      vertex(cx + s * 0.85, cy - s);
+      vertex(cx + s * 0.85, cy);
+      vertex(cx, cy + s);
+      vertex(cx - s * 0.85, cy);
+      endShape(CLOSE);
+      break;
+    case 'accessory':
+      // a ring with a stone
+      circle(cx, cy + s * 0.3, s * 1.4);
+      quad(cx, cy - s * 0.5, cx + s * 0.35, cy - s * 0.8, cx, cy - s * 1.1, cx - s * 0.35, cy - s * 0.8);
+      break;
+    case 'consumable':
+      // a potion
+      circle(cx, cy + s * 0.35, s * 1.3);
+      line(cx - s * 0.3, cy - s * 0.3, cx - s * 0.3, cy - s);
+      line(cx + s * 0.3, cy - s * 0.3, cx + s * 0.3, cy - s);
+      line(cx - s * 0.45, cy - s, cx + s * 0.45, cy - s);
+      break;
+    case 'material':
+      // an ingot
+      quad(cx - s, cy + s * 0.6, cx - s * 0.6, cy - s * 0.4, cx + s * 0.6, cy - s * 0.4, cx + s, cy + s * 0.6);
+      break;
+    case 'tool':
+      // a pickaxe
+      line(cx - s * 0.8, cy + s, cx + s * 0.4, cy - s * 0.4);
+      arc(cx + s * 0.4, cy + s * 0.2, s * 2, s * 1.6, PI + 0.4, TWO_PI - 0.4);
+      break;
+    case 'quest':
+      // a scroll
+      rect(cx - s * 0.7, cy - s * 0.8, s * 1.4, s * 1.6);
+      line(cx - s, cy - s * 0.8, cx + s, cy - s * 0.8);
+      line(cx - s, cy + s * 0.8, cx + s, cy + s * 0.8);
+      line(cx - s * 0.35, cy - s * 0.2, cx + s * 0.35, cy - s * 0.2);
+      line(cx - s * 0.35, cy + s * 0.2, cx + s * 0.35, cy + s * 0.2);
+      break;
+    case 'treasure':
+      // a gem
+      beginShape();
+      vertex(cx - s, cy - s * 0.3);
+      vertex(cx - s * 0.5, cy - s * 0.8);
+      vertex(cx + s * 0.5, cy - s * 0.8);
+      vertex(cx + s, cy - s * 0.3);
+      vertex(cx, cy + s);
+      endShape(CLOSE);
+      line(cx - s, cy - s * 0.3, cx + s, cy - s * 0.3);
+      break;
+    case 'item':
+      // a box
+      rect(cx - s * 0.85, cy - s * 0.5, s * 1.7, s * 1.4);
+      line(cx - s, cy - s * 0.5, cx + s, cy - s * 0.5);
+      line(cx, cy - s * 0.5, cx, cy + s * 0.9);
+      break;
+    case 'sound':
+      // a speaker and a sound wave
+      rect(cx - s, cy - s * 0.35, s * 0.5, s * 0.7);
+      triangle(cx - s * 0.5, cy - s * 0.35, cx + s * 0.1, cy - s * 0.9, cx + s * 0.1, cy + s * 0.9);
+      arc(cx + s * 0.2, cy, s * 1.6, s * 1.6, -0.9, 0.9);
+      break;
+    case 'voice':
+      // a speech bubble
+      rect(cx - s, cy - s * 0.85, s * 2, s * 1.35, 2);
+      line(cx - s * 0.4, cy + s * 0.5, cx - s * 0.6, cy + s);
+      line(cx - s * 0.6, cy + s, cx, cy + s * 0.5);
+      break;
+    case 'particle':
+      // a sparkle and two specks
+      line(cx - s * 0.3, cy - s, cx - s * 0.3, cy + s * 0.4);
+      line(cx - s, cy - s * 0.3, cx + s * 0.4, cy - s * 0.3);
+      noStroke();
+      fill(c);
+      circle(cx + s * 0.7, cy + s * 0.5, s * 0.45);
+      circle(cx + s * 0.2, cy + s * 0.95, s * 0.3);
+      break;
+    case 'light':
+      // a light bulb
+      circle(cx, cy - s * 0.25, s * 1.4);
+      line(cx - s * 0.35, cy + s * 0.65, cx + s * 0.35, cy + s * 0.65);
+      line(cx - s * 0.25, cy + s, cx + s * 0.25, cy + s);
+      break;
+    default:
+      noStroke();
+      fill(c);
+      circle(cx, cy, s * 0.6);
+  }
+}
+
+// the palette's categories as a column of icons down the left of the dock, all showing at once like
+// the side bar in a game engine. click one to open it, or Q and E go up and down it. the open one is
+// lit with a coloured line on its left. ones with nothing in them (or nothing matching the search) are
+// faded, and resting the mouse on one says its name and how many it has. the item categories sit
+// between two lines. if EDITOR_TABS ever has more than fit, the squares get shorter
+class CategoryRail extends UIElement {
   constructor(options) {
     super(options);
-    // the kind, label, and x (before scrolling) of each tab
-    setText(11, BOLD, CENTER, CENTER, BUTTON_STYLES.default.font);
-    let x = 0;
-    this.tabs = EDITOR_TABS.map(({ kind, label }) => {
-      const tab = { kind, label, x, w: Math.ceil(textWidth(label)) + 16 };
-      x += tab.w;
-      return tab;
-    });
-    this.length = x;
-    // px scrolled
-    this.scroll = 0;
-    // what the mouse is over: a tab's kind, 'back'/'forward' (the arrows), or null
+    // the kind the mouse is over, or null
     this.under = null;
   }
 
-  // the arrows only show when the tabs don't all fit
-  arrowsWidth() {
-    return this.length > this.w ? EDITOR_LAYOUT.tabArrowWidth * 2 : 0;
-  }
-
-  // how much width the tabs get
-  room() {
-    return this.w - this.arrowsWidth();
-  }
-
-  maxScroll() {
-    return Math.max(0, this.length - this.room());
-  }
-
-  // scrolls just enough to show all of tab `kind`
-  reveal(kind) {
-    const tab = this.tabs.find((t) => t.kind === kind);
-    this.scroll = constrain(constrain(this.scroll, tab.x + tab.w - this.room(), tab.x), 0, this.maxScroll());
+  // each category as { tab, y, h }, with a gap before and after the items
+  rows() {
+    const L = EDITOR_LAYOUT;
+    const gap = 9;
+    const gaps = 2 * gap;
+    const h = Math.min(L.railRow, Math.floor((this.h - 8 - gaps) / EDITOR_TABS.length));
+    let y = this.y + 4;
+    return EDITOR_TABS.map((tab, i) => {
+      if (i > 0 && isItemKind(tab.kind) !== isItemKind(EDITOR_TABS[i - 1].kind)) y += gap;
+      const row = { tab, y, h };
+      y += h;
+      return row;
+    });
   }
 
   update(hovered) {
     this.hovered = hovered;
-    this.under = null;
-    if (!hovered) return;
-
     // used up here so the camera doesn't zoom as well (same as the palette)
-    if (Input.wheel !== 0) {
-      this.scroll = constrain(this.scroll + Input.wheel * 0.5, 0, this.maxScroll());
-      Input.wheel = 0;
-    }
-
-    const mouseX = Input.mouse.x;
-    const arrowsX = this.x + this.room();
-    if (mouseX >= arrowsX) {
-      this.under = mouseX < arrowsX + EDITOR_LAYOUT.tabArrowWidth ? 'back' : 'forward';
-    } else {
-      const along = mouseX - this.x + this.scroll;
-      this.under = this.tabs.find((t) => along >= t.x && along < t.x + t.w)?.kind ?? null;
-    }
-    if (!this.under || !Input.buttonsPressed.has('left')) return;
-
-    // the arrows move one tab at a time: back to the start of the one cut off on the left, or forward
-    // to the end of the one cut off on the right
-    if (this.under === 'back') {
-      const cut = this.tabs.filter((t) => t.x < this.scroll).pop();
-      if (cut) this.scroll = cut.x;
-    } else if (this.under === 'forward') {
-      const cut = this.tabs.find((t) => t.x + t.w > this.scroll + this.room());
-      if (cut) this.scroll = Math.min(this.maxScroll(), cut.x + cut.w - this.room());
-    } else {
-      Editor.showTab(this.under);
-    }
+    if (hovered) Input.wheel = 0;
+    const y = Input.mouse.y;
+    this.under = hovered ? this.rows().find((row) => y >= row.y && y < row.y + row.h)?.tab.kind ?? null : null;
+    if (this.under && Input.buttonsPressed.has('left')) Editor.showTab(this.under);
   }
 
   draw() {
     const C = EDITOR_COLOURS;
-    const room = this.room();
-
-    // cut off tabs that are partly scrolled past the edge
-    drawingContext.save();
-    drawingContext.beginPath();
-    drawingContext.rect(this.x, this.y, room, this.h);
-    drawingContext.clip();
-    setText(11, BOLD, CENTER, CENTER);
-    for (const tab of this.tabs) {
-      const x = this.x + tab.x - this.scroll;
-      if (x + tab.w < this.x || x > this.x + room) continue;
-      const open = Editor.tab === tab.kind;
-      const hovered = this.under === tab.kind;
-      noStroke();
-      if (open) {
-        fill(C.bar);
-        rect(x, this.y, tab.w, this.h);
-        fill(C.accent);
-        rect(x, this.y, tab.w, 2);
-      } else if (hovered) {
-        fill(C.tabHover);
-        rect(x, this.y, tab.w, this.h - 1);
-      }
-      fill(open ? C.text : hovered ? 220 : C.dimText);
-      text(tab.label, x + tab.w / 2, this.y + this.h / 2 + 1);
-    }
-    drawingContext.restore();
-
-    if (this.arrowsWidth() === 0) return;
-    // the arrows, greyed out when you can't go any further
-    const left = this.x + room;
-    const arrow = EDITOR_LAYOUT.tabArrowWidth;
+    const rows = this.rows();
     noStroke();
     fill(C.header);
-    rect(left, this.y, arrow * 2, this.h - 1);
+    rect(this.x, this.y, this.w, this.h);
+    // lines against the map and the dock, and between the groups
     fill(C.edge);
-    rect(left, this.y + 4, 1, this.h - 8);
-    setText(16, BOLD, CENTER, CENTER);
-    const arrows = [['back', '‹', this.scroll > 0], ['forward', '›', this.scroll < this.maxScroll()]];
-    arrows.forEach(([which, symbol, canGo], i) => {
-      fill(!canGo ? 70 : this.under === which ? 255 : C.dimText);
-      text(symbol, left + arrow * (i + 0.5), this.y + this.h / 2 - 1);
+    rect(this.x, this.y, 1, this.h);
+    rect(this.x + this.w - 1, this.y, 1, this.h);
+    rows.forEach((row, i) => {
+      if (i > 0 && isItemKind(row.tab.kind) !== isItemKind(rows[i - 1].tab.kind)) rect(this.x + 6, row.y - 5, this.w - 12, 1);
     });
+
+    for (const { tab, y, h } of rows) {
+      const open = Editor.tab === tab.kind;
+      const hot = this.under === tab.kind;
+      noStroke();
+      if (open || hot) {
+        fill(open ? C.tabHover : '#22262e');
+        rect(this.x + 2, y, this.w - 4, h, 3);
+      }
+      if (open) {
+        fill(C.accent);
+        rect(this.x + 1, y + 3, 2, h - 6, 1);
+      }
+      const empty = Editor.palette.names(tab.kind).length === 0;
+      drawCategoryIcon(tab.kind, this.x + this.w / 2 + 1, y + h / 2, Math.min(7, h * 0.28), open || hot ? 255 : empty ? 80 : C.dimText);
+    }
+
+    if (this.under) {
+      const row = rows.find((r) => r.tab.kind === this.under);
+      UI.drawOnTop(() => this.drawTip(row));
+    }
+  }
+
+  // its name and how many it has (or match the search), in a box to the left, over the map
+  drawTip({ tab, y, h }) {
+    const count = Editor.palette.names(tab.kind).length;
+    const words = `${tab.label}   ${count === 0 ? (Editor.search.text ? 'no matches' : 'empty') : count}`;
+    setText(11, BOLD, CENTER, CENTER);
+    const w = textWidth(words) + 12;
+    drawTip(words, this.x - 6 - w / 2, y + h / 2 - 9, 0, this.x - 4);
   }
 }
 
@@ -1998,7 +2113,8 @@ class PaletteGrid extends UIElement {
     if (names.length === 0) {
       fill(C.dimText);
       setText(11, BOLD, CENTER, TOP);
-      text(Editor.search.text ? this.otherMatches() : 'Nothing here yet', this.x + 10, this.y + 22, this.w - 20, this.h - 30);
+      const empty = isItemKind(Editor.tab) ? `Nothing here yet. Items whose file says "category": "${Editor.tab}" show up here` : 'Nothing here yet';
+      text(Editor.search.text ? this.otherMatches() : empty, this.x + 10, this.y + 22, this.w - 20, this.h - 30);
     }
 
     // a scrollbar when they don't all fit
@@ -2092,6 +2208,11 @@ class PaletteSearch extends UIElement {
       else if (key.paste !== undefined) this.text = (this.text + key.paste.trim()).slice(0, 24);
       else if (key.length === 1 && this.text.length < 24) this.text += key;
     }
+    // it finds things in any category: if the open one has no matches, the first one that does opens
+    if (Input.typed.length > 0 && Editor.palette.names().length === 0) {
+      const found = EDITOR_TABS.find(({ kind }) => Editor.palette.names(kind).length > 0);
+      if (found) Editor.showTab(found.kind);
+    }
   }
 
   draw() {
@@ -2130,7 +2251,7 @@ class PaletteSearch extends UIElement {
 }
 
 // the row under the search box: what was picked lately (Editor.recent), pinned ones first with a dot.
-// click one to pick it (its tab opens), Shift + click to pin or unpin it, right click to take it off
+// click one to pick it (its category opens), Shift + click to pin or unpin it, right click to take it off
 const RECENT_STRIP = { size: 22, gap: 4, most: 7 };
 
 class RecentStrip extends UIElement {

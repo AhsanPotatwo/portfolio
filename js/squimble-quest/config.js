@@ -359,6 +359,9 @@ const KEYS = {
   editorSave:      ['Control+KeyS'],
   editorOpen:      ['Control+KeyO'],
   editorSearch:    ['Slash', 'Control+KeyF'],
+  // the palette category above and below the open one (the rail down the side of the dock)
+  editorPrevTab:   ['KeyQ'],
+  editorNextTab:   ['KeyE'],
   editorHideUI:    ['Tab'],
   editorPlayHere:  ['Space'],
   toolPaint:       ['KeyN'],

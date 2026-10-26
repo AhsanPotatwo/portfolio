@@ -27,6 +27,8 @@ const EDITOR_COMMANDS = {
   selectAll: { label: 'Select all', key: 'editorSelectAll', run: () => EditTools.selectAll(worldMap) },
   deselect: { label: 'Let go', shown: 'Esc', run: () => EditTools.escape(), enabled: () => EditTools.selection !== null || EditTools.pasting },
   search: { label: 'Search the palette', key: 'editorSearch', run: () => Editor.search.focus() },
+  prevTab: { label: 'Category above', key: 'editorPrevTab', run: () => Editor.stepTab(-1) },
+  nextTab: { label: 'Category below', key: 'editorNextTab', run: () => Editor.stepTab(1) },
 
   grid: { label: 'Grid', devKey: 'grid', run: () => Debug.flip('grid'), ticked: () => Debug.show.grid },
   atmospherePreview: { label: 'Atmosphere', run: () => Debug.flip('atmosphere'), ticked: () => Debug.show.atmosphere },
@@ -63,7 +65,7 @@ const EDITOR_COMMANDS = {
 // '-' is a line between groups
 const EDITOR_MENUS = [
   ['File', ['newMap', 'openMap', '-', 'save', 'saveAs', '-', 'recover']],
-  ['Edit', ['undo', 'redo', '-', 'cut', 'copy', 'paste', 'delete', '-', 'selectAll', 'deselect', '-', 'search']],
+  ['Edit', ['undo', 'redo', '-', 'cut', 'copy', 'paste', 'delete', '-', 'selectAll', 'deselect', '-', 'search', 'prevTab', 'nextTab']],
   ['View', ['grid', 'atmospherePreview', 'enemyPaths', 'minimap', '-', 'zoomIn', 'zoomOut', 'zoomReset', '-', 'hideUI', 'devMenu', 'devPanel']],
   ['Map', ['resize', 'atmosphere', '-', 'worldMap', 'findUses', '-', 'checkMap', 'checkAll', 'artReport']],
   ['Tools', [...EDITOR_TOOLS.map(({ name }) => `tool-${name}`), '-', 'brushBigger', 'brushSmaller']],
