@@ -283,26 +283,27 @@ function spawnCharacters() {
   // they'd hang in the air in the editor, or hit the new characters, and the dead's remains go too
   arrows = [];
   Remains.clear();
-  enemies = worldMap.enemySpawns.map((spawn) => new Enemy(spawn.type, spawn.col, spawn.row, spawn.ai, spawn.follows, spawn.stats));
-  npcs = worldMap.npcSpawns.map((spawn) => new Npc(spawn.type, spawn.col, spawn.row, spawn.voice, spawn.look));
-  // the sound each one loops wherever it goes: its own if its spawn picked one, otherwise its kind's
-  // (soundblocks.js plays them)
-  enemies.forEach((enemy, i) => { enemy.sound = worldMap.enemySpawns[i].sound ?? enemy.type.sound; });
-  npcs.forEach((npc, i) => { npc.sound = worldMap.npcSpawns[i].sound ?? npc.type.sound; });
-  // which spawn each came from (its id, takeId() in tilemap.js), so a save game can say whose enemy is
-  // dead or where an npc's got to
-  enemies.forEach((enemy, i) => { enemy.spawnId = worldMap.enemySpawns[i].id; });
-  npcs.forEach((npc, i) => { npc.spawnId = worldMap.npcSpawns[i].id; });
-  // and an enemy's particles, where null (none) is a pick too (particles.js)
-  enemies.forEach((enemy, i) => {
-    const spawn = worldMap.enemySpawns[i];
+  enemies = worldMap.enemySpawns.map((spawn) => {
+    const enemy = new Enemy(spawn.type, spawn.col, spawn.row, spawn.ai, spawn.follows, spawn.stats);
+    // its particles, where null (none) is a pick too (particles.js)
     if (spawn.hitParticles !== undefined) enemy.hitParticles = spawn.hitParticles;
     if (spawn.deathParticles !== undefined) enemy.deathParticles = spawn.deathParticles;
     // what it's wearing, by EQUIPMENT_SLOTS key (inventory.js)
     if (spawn.wears) enemy.wears = spawn.wears;
     // and what it holds instead of its own weapon (enemy.js)
     if (spawn.holds !== undefined) enemy.holds = spawn.holds;
+    return fromSpawn(enemy, spawn);
   });
+  npcs = worldMap.npcSpawns.map((spawn) => fromSpawn(new Npc(spawn.type, spawn.col, spawn.row, spawn.voice, spawn.look), spawn));
+}
+
+// what every character takes from its spawn: the sound it loops wherever it goes, its own if its spawn
+// picked one, otherwise its kind's (soundblocks.js plays them), and which spawn it came from (its id,
+// takeId() in tilemap.js), so a save game can say whose enemy is dead or where an npc's got to
+function fromSpawn(character, spawn) {
+  character.sound = spawn.sound ?? character.type.sound;
+  character.spawnId = spawn.id;
+  return character;
 }
 
 // a frame of the game being played, not paused or in the editor (draw()): the player, then everyone

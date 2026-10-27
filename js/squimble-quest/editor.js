@@ -1028,25 +1028,18 @@ const Editor = {
       // the fields are read straight from their variables, since the buttons' values (undefined) are
       // mixed in with theirs
       onConfirm: () => {
-        if (holdPicker.value === '') delete spawn.holds;
-        else spawn.holds = holdPicker.value;
         const wears = {};
         for (const { slot, picker } of wearPickers) if (picker.value !== null) wears[slot.key] = picker.value;
-        if (Object.keys(wears).length > 0) spawn.wears = wears;
-        else delete spawn.wears;
-        if (aiPicker.value) spawn.ai = aiPicker.value;
-        else delete spawn.ai;
-        if (followsPicker.value === '') delete spawn.follows;
-        else spawn.follows = followsPicker.value;
-        if (hitPicker.value === '') delete spawn.hitParticles;
-        else spawn.hitParticles = hitPicker.value;
-        if (deathPicker.value === '') delete spawn.deathParticles;
-        else spawn.deathParticles = deathPicker.value;
         // only the stats that aren't its kind's
         const stats = {};
         for (const { key } of ENEMY_SPAWN_STATS) if (statSliders[key].value !== type[key]) stats[key] = statSliders[key].value;
-        if (Object.keys(stats).length > 0) spawn.stats = stats;
-        else delete spawn.stats;
+        setOrDelete(spawn, 'holds', holdPicker.value);
+        setOrDelete(spawn, 'wears', Object.keys(wears).length > 0 ? wears : undefined);
+        setOrDelete(spawn, 'ai', aiPicker.value);
+        setOrDelete(spawn, 'follows', followsPicker.value);
+        setOrDelete(spawn, 'hitParticles', hitPicker.value);
+        setOrDelete(spawn, 'deathParticles', deathPicker.value);
+        setOrDelete(spawn, 'stats', Object.keys(stats).length > 0 ? stats : undefined);
         // makes the characters again, so the one on the map picks all of these up
         this.setCharacterSound(spawn, soundPicker.value);
       },
@@ -1120,8 +1113,7 @@ const Editor = {
   // gives a character spawn its own sound ('' goes back to its kind's), and makes the characters
   // again so the one on the map picks it up
   setCharacterSound(spawn, sound) {
-    if (sound) spawn.sound = sound;
-    else delete spawn.sound;
+    setOrDelete(spawn, 'sound', sound);
     spawnCharacters();
   },
 
@@ -1174,8 +1166,7 @@ const Editor = {
         }),
       ] }, ...look.tabs],
       onConfirm: ([voice, sound]) => {
-        if (voice) spawn.voice = voice;
-        else delete spawn.voice;
+        setOrDelete(spawn, 'voice', voice);
         const after = look.read();
         if (JSON.stringify(after) !== before) spawn.look = after;
         this.setCharacterSound(spawn, sound);

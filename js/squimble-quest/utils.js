@@ -62,6 +62,13 @@ function setText(size, style = BOLD, alignX = CENTER, alignY = CENTER, font = GA
   textAlign(alignX, alignY);
 }
 
+// puts value in obj[key], or takes the key out if it's '' or undefined (an editor picker's "its kind's
+// own"), so saved files only have what was picked. null stays, since it means "none" on purpose
+function setOrDelete(obj, key, value) {
+  if (value === '' || value === undefined) delete obj[key];
+  else obj[key] = value;
+}
+
 // ---------- catalogues ----------
 // objects.js, enemies.js, npcs.js and items.js each keep a catalogue of their kinds by name (like
 // ENEMY_TYPES.grunt), filled in from their data files (datafiles.js) by defineObject(), defineEnemy()
