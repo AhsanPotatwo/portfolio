@@ -24,8 +24,12 @@ const GAME_FONT = 'Quicksand';
 
 // pictures for the game's ui, each a picture setting (art.js) or null for the drawn shapes it has now.
 // boxes stretch to fit with their "edge" kept (a nine slice), so one picture fits any size. the map
-// editor's own ui stays drawn
+// editor's own ui stays drawn, apart from its category icons
 const UI_ART = {
+  // the map editor's category rail (CategoryRail in editor.js), by kind (EDITOR_TABS), 16 x 16 and light
+  // on clear. a kind left out or null keeps its drawn line icon
+  editorIcons: Object.fromEntries(['accessory', 'ammo', 'armour', 'consumable', 'enemy', 'light', 'material', 'npc', 'particle', 'quest', 'sound', 'tile', 'tool', 'treasure', 'trigger', 'voice', 'weapon']
+    .map((kind) => [kind, `assets/squimble-quest/editor-icons/${kind}.png`])),
   // hotbar, inventory and chest slots, and the picked hotbar slot (falls back to slot plus a ring)
   slot: null,
   slotPicked: null,

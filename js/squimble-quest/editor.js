@@ -1964,7 +1964,17 @@ class CategoryRail extends UIElement {
         rect(this.x + 1, y + 3, 2, h - 6, 1);
       }
       const empty = Editor.palette.names(tab.kind).length === 0;
-      drawCategoryIcon(tab.kind, this.x + this.w / 2 + 1, y + h / 2, Math.min(7, h * 0.28), open || hot ? 255 : empty ? 80 : C.dimText);
+      // its picture (UI_ART.editorIcons in config.js) at its own 16 px while the rows are tall enough,
+      // faded like the line icons' colours, or the line icon
+      const art = UI_ART.editorIcons[tab.kind] && uiArt('editorIcons', tab.kind);
+      if (artLoaded(art)) {
+        const size = Math.min(16, h - 2);
+        tint(255, open || hot ? 255 : empty ? 70 : 170);
+        image(art.img, Math.round(this.x + this.w / 2 + 1 - size / 2), Math.round(y + h / 2 - size / 2), size, size);
+        noTint();
+      } else {
+        drawCategoryIcon(tab.kind, this.x + this.w / 2 + 1, y + h / 2, Math.min(7, h * 0.28), open || hot ? 255 : empty ? 80 : C.dimText);
+      }
     }
 
     if (this.under) {

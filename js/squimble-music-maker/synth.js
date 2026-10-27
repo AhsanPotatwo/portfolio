@@ -2173,7 +2173,10 @@ function singLine(ctx, channel, inst, tone, note, when, dur, spb) {
 function ampCurve(kind, gain) {
   const key = `amp|${kind}|${gain}`;
   if (!curves.has(key)) {
-    const curve = new Float32Array(4096);
+    // an odd length, so silence lands on a point of the curve and comes out silent. with an even one a
+    // lopsided curve (tube, octave) turned silence into a tiny steady signal, and a rig with nothing to
+    // play kept itself, its channel and the reverb working all song
+    const curve = new Float32Array(4097);
     const shape = {
       soft: (x) => Math.tanh(gain * x),
       hard: (x) => (gain * x) / (1 + Math.abs(gain * x) ** 6) ** (1 / 6),
@@ -2567,8 +2570,9 @@ function tapeCurve() {
   const k = 1.1;
   const bias = 0.1;
   const slope = k * (1 - Math.tanh(k * bias) ** 2);
-  const curve = new Float32Array(2048);
-  for (let i = 0; i < curve.length; i++) curve[i] = (Math.tanh(k * ((i / 2047) * 2 - 1 + bias)) - Math.tanh(k * bias)) / slope;
+  // (an odd length, so silence stays silent: ampCurve)
+  const curve = new Float32Array(2049);
+  for (let i = 0; i < curve.length; i++) curve[i] = (Math.tanh(k * ((i / 2048) * 2 - 1 + bias)) - Math.tanh(k * bias)) / slope;
   return curve;
 }
 
@@ -2576,7 +2580,6 @@ function buildGraph(ctx) {
   const g = { ctx };
   g.bus = ctx.createGain();
   g.drive = ctx.createWaveShaper();
-  g.drive.oversample = '2x';
   g.warmth = ctx.createBiquadFilter();
   g.warmth.Q.value = 0.5;
   // tape wobble: everything goes through a tiny delay whose length wavers, which bends the pitch
@@ -2641,6 +2644,8 @@ function applySpace(g, fx, tempo) {
   if (g.driven !== fx.drive) {
     g.driven = fx.drive;
     g.drive.curve = fx.drive > 0.01 ? driveCurve(fx.drive) : null;
+    // (oversampling with no curve still resamples the whole mix, for nothing)
+    g.drive.oversample = fx.drive > 0.01 ? '2x' : 'none';
   }
   set(g.reverbIn.gain, fx.reverb * 1.2);
   set(g.echoIn.gain, fx.echo);
@@ -2747,13 +2752,15 @@ class MusicPlayer {
     this.channels = {};
   }
 
-  // called from a click or a key (browsers only let sound start from one). the audio buffer is bigger
-  // than the smallest (latencyHint), a little lag on the keyboard for far fewer crackles; bigger on a phone
+  // called from a click or a key (browsers only let sound start from one). the audio buffer is 40 ms
+  // (latencyHint), about beepbox's: a big song works the audio thread three quarters of the time, and
+  // with chrome's smallest buffer (which 'balanced' turned out to be on windows, 10 ms) every block
+  // that ran a little long was a stutter. a longer buffer evens them out. bigger still on a phone
   wake() {
     if (!this.ctx) {
       const Context = window.AudioContext || window.webkitAudioContext;
       try {
-        this.ctx = new Context({ latencyHint: LIGHT ? 'playback' : 'balanced' });
+        this.ctx = new Context({ latencyHint: LIGHT ? 'playback' : 0.04 });
       } catch {
         this.ctx = new Context();
       }
@@ -2787,12 +2794,14 @@ class MusicPlayer {
   beatAt(time) { return this.anchorBeat + (time - this.anchorTime) / this.secondsPerBeat; }
   timeAt(beat) { return this.anchorTime + (beat - this.anchorBeat) * this.secondsPerBeat; }
 
-  // where the song is now, in beats from its start
+  // where the song is now, in beats from its start: what's being heard, so the playhead and notes played
+  // in on the keyboard aren't ahead of the sound by the buffer
   position() {
     if (!this.playing) return null;
-    let beat = this.beatAt(this.ctx.currentTime) - this.loopOffset;
-    // loopOffset moves on when the next time round starts being scheduled, a moment early
-    if (beat < 0) beat += this.comp.beats;
+    let beat = this.beatAt(this.ctx.currentTime - (this.ctx.outputLatency || this.ctx.baseLatency || 0)) - this.loopOffset;
+    // loopOffset moves on when the next time round starts being scheduled, a moment early (and on the
+    // first time round, before the first note's heard, it's the start, not the end)
+    if (beat < 0 && this.loopOffset > 0) beat += this.comp.beats;
     return Math.max(0, beat);
   }
 
