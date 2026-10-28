@@ -1906,7 +1906,7 @@ function markDoubles(whole, notes, sections, from = DOUBLE_ENERGY) {
 // notes moved onto it, so the player and a wav need nothing new. (the score, the editor and the learn
 // tab keep to comp, where every note is its layer's)
 function playable(song, comp) {
-  if (!song.layers.some((layer) => layer.byPart) || (song.composer || 1) !== COMPOSER) return { song, comp };
+  if (!song.layers.some((layer) => layer.byPart) || !knowsParts(song)) return { song, comp };
   const moved = {};
   const more = [];
   for (const layer of song.layers) {
@@ -2050,6 +2050,10 @@ function mutateSong(song, rng) {
 // every composer there's been, oldest first: the last is today's
 const COMPOSER_VERSIONS = [1, 1.5, 2, 3, 4, 5];
 const COMPOSER = COMPOSER_VERSIONS[COMPOSER_VERSIONS.length - 1];
+// what an older composer can do too: new notes for one part (partSeeds) since 2, a layer on a part of
+// its own (section.use) with settings of its own (byPart) since 4
+const knowsPartSeeds = (song) => (song.composer || 1) >= 2;
+const knowsParts = (song) => (song.composer || 1) >= 4;
 
 // ---------- cleaning ----------
 

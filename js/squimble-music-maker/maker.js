@@ -239,9 +239,9 @@
   const forget = (layer) => {
     for (const one of song.sections) setCell(one, layer, null);
   };
-  // songs by an older composer play as they were made, and those don't know about parts past C or
-  // layers on parts of their own
-  const tracker = () => (song.composer || 1) === COMPOSER;
+  // songs by an older composer play as they were made, and those before 4 don't know about parts past C
+  // or layers on parts of their own
+  const tracker = () => knowsParts(song);
   // the parts a layer could play: any with chords, any it plays or has notes for. and the next one it
   // has nothing for, for a part of its own (none on an older composer's song)
   const knownParts = (layer) => EVERY_PART.filter((part) => song.parts[part] || partsOf(layer).includes(part) || layer.edits[part] || layer.partSeeds?.[part]);
@@ -1364,8 +1364,8 @@
     // (the part as it plays: it can be my notes, or another octave, where the layer isn't: partLayer)
     const as = partLayer(layer, editPart);
     // new notes for this part only (rerollLayerPart). not on a part that plays the melody's line, nor on
-    // an older composer's song, which doesn't know about part seeds
-    if (!as.hand && !carries(layer) && (song.composer || 1) === COMPOSER) {
+    // a song by a composer before 2, which doesn't know about part seeds
+    if (!as.hand && !carries(layer) && knowsPartSeeds(song)) {
       head.append(key(`Rewrite part ${editPart}`, `New notes for part ${editPart} only (${named(editPart)}), grown from the same idea as the rest of the ${ROLES[layer.role].name.toLowerCase()}, so it still sounds like this song. The other parts stay as they are${changes ? ', and notes you changed here go' : ''}. Press again for another`, () => {
         const next = rerollLayerPart(song, layer.id, editPart, Math.random());
         if (!next) return say(`This ${ROLES[layer.role].name.toLowerCase()} plays part ${editPart}'s chords as they come, so there's nothing new to write. New chords for part ${editPart} (Song tab) or another pattern will change it.`);

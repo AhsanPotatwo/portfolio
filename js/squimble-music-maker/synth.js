@@ -2983,7 +2983,14 @@ class MusicPlayer {
 // ---------- wav files ----------
 
 // renders a whole song offline, faster than real time. loop: the tails ringing past the end are folded
-// back onto the start, so it loops with no gap or click
+// back onto the start, so it loops with no gap or click.
+// notes go in a second or two ahead of the render (suspend), the way the live player sends them. sent
+// all at once, every note's nodes sat in the graph from the start and a five minute song took over ten
+// minutes; this way it's a few times quicker and sounds the same (no further from the old way than two
+// renders the old way were from each other). a note sent only just before it starts came out
+// different, so each second's suspend sends the second after next. (firefox can't suspend a render, so
+// there they still all go in at once)
+const RENDER_AHEAD = 1;
 async function renderSong(song, comp, loop) {
   // a render can't swap to a recording halfway through, so it waits for them all first
   await songSamples(song);
@@ -3002,7 +3009,22 @@ async function renderSong(song, comp, loop) {
     layers[layer.id] = layer;
   }
   findRestrikes(comp.notes);
-  for (const note of comp.notes) playNote(ctx, channels[note.layer], layers[note.layer], note, note.t * secondsPerBeat, secondsPerBeat);
+  const { notes } = comp;
+  let next = 0;
+  const send = (until) => {
+    // (the last second takes everything left, a note right on the end too)
+    if (until >= length) until = Infinity;
+    for (; next < notes.length && notes[next].t * secondsPerBeat < until; next++) {
+      const note = notes[next];
+      playNote(ctx, channels[note.layer], layers[note.layer], note, note.t * secondsPerBeat, secondsPerBeat);
+    }
+  };
+  try {
+    for (let at = RENDER_AHEAD; at < length; at += RENDER_AHEAD) ctx.suspend(at).then(() => { send(at + 2 * RENDER_AHEAD); ctx.resume(); });
+    send(2 * RENDER_AHEAD);
+  } catch {
+    send(Infinity);
+  }
   const buffer = await ctx.startRendering();
   const data = [buffer.getChannelData(0), buffer.getChannelData(1)];
   let frames = buffer.length;
