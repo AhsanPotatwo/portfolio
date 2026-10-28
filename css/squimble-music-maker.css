@@ -339,6 +339,8 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-fold > summary:hover{ color:var(--mm-text); }
 .mm-fold > summary:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:3px; border-radius:2px; }
 .mm-fold > .mm-hint:first-of-type{ margin-top:0; }
+/* (one folded inside a section, like the chords' help: clear of the keys above it) */
+.mm-section > .mm-fold{ margin:22px 0 0; }
 
 .mm-field,
 .mm-slider{
