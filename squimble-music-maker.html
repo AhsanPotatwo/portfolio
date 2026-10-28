@@ -45,7 +45,7 @@
 
     <div class="mm-intro">
       <h1 class="mm-title">Squimble Music Maker</h1>
-      <p class="mm-lede">Music that writes itself from a seed word. Pick a mood and it chooses a key, writes chord progressions and melodies, and puts together a band to play them. It uses the music theory composers have relied on for centuries, not AI. The band is a mix of synthesisers built from the browser's own oscillators and recordings of real instruments, marked recorded in the band. Then pull it apart: change the chords, swap the instruments, redraw a melody note by note. Or skip the writing altogether: New track gives you an empty song to make yourself, drawing notes or playing them in on your keyboard, and it only writes the parts you ask it to. I'm building it to score <a href="squimble-quest.html">Squimble Quest</a>. First time here? There's <a href="#guide">a quick tour</a> at the bottom, and <a href="#hood">how it works</a> if you're curious.</p>
+      <p class="mm-lede">Music that writes itself, using music theory rather than AI. Pick a mood, press Play, then change anything you like: the chords, the band, a melody note by note. Or start from an empty track and make your own. I'm building it to score <a href="squimble-quest.html">Squimble Quest</a>. There's <a href="#guide">a quick tour</a> further down, and <a href="#hood">how it works</a> if you're curious.</p>
       <ul class="mm-tags" aria-label="Built with">
         <li>JavaScript</li>
         <li>Web Audio</li>
@@ -79,10 +79,55 @@
         </div>
       </div>
 
+      <!-- for a first visit only (maker.js shows it, and Got it puts it away for good) -->
+      <div class="mm-welcome" id="mmWelcome" hidden>
+        <ol class="mm-welcome-steps">
+          <li><b>Press Play</b> to hear the song it's written for you.</li>
+          <li><b>Pick a mood</b> below for another kind of song, or <b>New song</b> for another in this one.</li>
+          <li><b>Remix</b> one thing at a time, or open the tabs at the bottom to change anything.</li>
+        </ol>
+        <div class="mm-welcome-keys">
+          <button type="button" class="mm-key mm-key-small mm-key-go" id="mmWelcomeOk">Got it</button>
+          <a class="mm-welcome-tour" href="#guide">The full tour</a>
+        </div>
+      </div>
+
+      <div class="mm-transport">
+        <button type="button" class="mm-key mm-key-play" id="mmPlay" data-tip="Play from the marker, or stop (Space, when nothing's being typed in)"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg><span>Play</span></button>
+        <div class="mm-toggles" role="group" aria-label="Playing">
+          <button type="button" class="mm-key" id="mmLoop" aria-pressed="true" data-tip="Loop: go back to the start when it ends, like a game's music"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M9.5 4.5A4 4 0 1 0 10 7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.6 1.6v3.6H7z"/></svg>Loop</button>
+          <button type="button" class="mm-key" id="mmRecorded" aria-pressed="true" data-tip="Recordings: instruments marked recorded play recordings of real ones. Turn it off to hear every instrument synthesised"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="6" r="1.6"/></svg>Recordings</button>
+          <button type="button" class="mm-key" id="mmClick" aria-pressed="false" data-tip="Click: a metronome tick on every beat while it plays, higher on the first beat of each bar. It's never in a download"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.4 1h3.2l2.4 10H2z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6 8.2 8.6 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Click</button>
+          <button type="button" class="mm-key mm-key-rec" id="mmRec" aria-pressed="false" data-tip="Record: play the open layer on your computer keyboard while the song plays, and every note is written into it, lined up on the grid. A S D F G H J K L are the white keys, W E T Y U O P the black ones, Z and X change octave"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4"/></svg>Record</button>
+        </div>
+        <p class="mm-readout" id="mmReadout" aria-live="off"></p>
+      </div>
+
+      <div class="mm-score-wrap">
+        <canvas id="mmScore" role="img" aria-label="The score: every layer's notes from start to end, with the sections and chords along the top"></canvas>
+      </div>
+
       <div class="mm-moods-wrap">
-        <div class="mm-row-head">
+        <p class="mm-own-note" id="mmOwnNote" hidden>This is your own track, so nothing here writes over it. The mood, style and modifiers only set the colours and how any part you let it write plays (pick a pattern instead of My notes in the Band tab). New song goes back to writing whole songs.</p>
+        <div class="mm-mood-bar">
           <h2 class="mm-heading" id="mmMoodHeading">Mood</h2>
-          <div class="mm-style" role="group" aria-label="Style">
+          <!-- filled in: a key per row of moods, which shows that row -->
+          <div class="mm-mood-groups mm-strip" id="mmMoodGroups" role="group" aria-label="Kinds of mood"></div>
+        </div>
+        <!-- filled in: a key per mood -->
+        <div class="mm-moods" id="mmMoods" role="group" aria-label="Mood"></div>
+        <!-- filled in: what the song's mood is, and a key for each of its flavours (FLAVOURS in moods.js) -->
+        <div class="mm-flavours">
+          <p class="mm-about" id="mmAbout"></p>
+          <div class="mm-kinds-row">
+            <span class="mm-mods-label" data-tip="Flavours: the kinds of music a mood holds. Underwater is the slow deep and a party on the reef, Wintry is a snowfall and Christmas. The first is the mood as it's always been">Flavour</span>
+            <div class="mm-kinds mm-strip" id="mmKinds" role="group" aria-label="Flavour"></div>
+          </div>
+          <p class="mm-kind-tip" id="mmKindTip"></p>
+        </div>
+        <div class="mm-mods-row">
+          <span class="mm-mods-label" data-tip="Style: what the music is for, from wandering about to a final boss. The mood stays, the shape of the song changes">Style</span>
+          <div class="mm-style mm-strip" role="group" aria-label="Style">
             <button type="button" class="mm-key mm-key-small" data-style="ambient" aria-pressed="true" data-tip="Explore: slow, drifting, mostly held sounds and space. For wandering the map, menus and quiet places">Explore</button>
             <button type="button" class="mm-key mm-key-small" data-style="tune" aria-pressed="false" data-tip="Theme: a melody you could hum, with a bass line and usually a beat, that starts and ends. For title screens, credits and a hero's theme">Theme</button>
             <button type="button" class="mm-key mm-key-small" data-style="loop" aria-pressed="false" data-tip="Town: a tune with no intro or outro that runs straight back into its start, the way a game plays music in a town, a shop or a hub. Short, and made to be heard for an hour">Town</button>
@@ -92,46 +137,17 @@
             <button type="button" class="mm-key mm-key-small" data-style="final" aria-pressed="false" data-tip="Final boss: the longest, biggest fight. A dark omen, the first phase, a breather, then a second phase a key higher that builds to a last stand, three to five minutes before it loops">Final boss</button>
           </div>
         </div>
-        <p class="mm-own-note" id="mmOwnNote" hidden>This is your own track, so nothing here writes over it. The mood, style and modifiers only set the colours and how any part you let it write plays (pick a pattern instead of My notes in the Band tab). New song goes back to writing whole songs.</p>
-        <div class="mm-mood-bar">
-          <!-- filled in: a key per row of moods, which shows that row -->
-          <div class="mm-mood-groups" id="mmMoodGroups" role="group" aria-label="Kinds of mood"></div>
-        </div>
-        <!-- filled in: a key per mood -->
-        <div class="mm-moods" id="mmMoods" role="group" aria-label="Mood"></div>
-        <!-- filled in: what the song's mood is, and a key for each of its flavours (FLAVOURS in moods.js) -->
-        <div class="mm-flavours">
-          <p class="mm-about" id="mmAbout"></p>
-          <div class="mm-kinds-row">
-            <span class="mm-mods-label" data-tip="Flavours: the kinds of music a mood holds. Underwater is the slow deep and a party on the reef, Wintry is a snowfall and Christmas. The first is the mood as it's always been">Flavour</span>
-            <div class="mm-kinds" id="mmKinds" role="group" aria-label="Flavour"></div>
-          </div>
-          <p class="mm-kind-tip" id="mmKindTip"></p>
-        </div>
         <!-- filled in: a key per modifier (MODIFIERS in music.js), each lit while it's on -->
         <div class="mm-mods-row">
           <span class="mm-mods-label" data-tip="Modifiers: words that change how the mood plays. Calm folk, angry folk, fast jazzy folk. The mood keeps its own band, the modifiers change how it plays. Up to four at once">Modifiers</span>
-          <div class="mm-mods" id="mmMods" role="group" aria-label="Modifiers"></div>
+          <div class="mm-mods mm-strip" id="mmMods" role="group" aria-label="Modifiers"></div>
         </div>
       </div>
 
-      <div class="mm-transport">
-        <button type="button" class="mm-key mm-key-play" id="mmPlay" data-tip="Play from the marker, or stop (Space, when nothing's being typed in)"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg><span>Play</span></button>
-        <button type="button" class="mm-key" id="mmLoop" aria-pressed="true" data-tip="Loop: go back to the start when it ends, like a game's music"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M9.5 4.5A4 4 0 1 0 10 7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.6 1.6v3.6H7z"/></svg>Loop</button>
-        <button type="button" class="mm-key" id="mmRecorded" aria-pressed="true" data-tip="Recordings: instruments marked recorded play recordings of real ones. Turn it off to hear every instrument synthesised"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="6" cy="6" r="1.6"/></svg>Recordings</button>
-        <button type="button" class="mm-key" id="mmClick" aria-pressed="false" data-tip="Click: a metronome tick on every beat while it plays, higher on the first beat of each bar. It's never in a download"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M4.4 1h3.2l2.4 10H2z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M6 8.2 8.6 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Click</button>
-        <button type="button" class="mm-key mm-key-rec" id="mmRec" aria-pressed="false" data-tip="Record: play the open layer on your computer keyboard while the song plays, and every note is written into it, lined up on the grid. A S D F G H J K L are the white keys, W E T Y U O P the black ones, Z and X change octave"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4"/></svg>Record</button>
-        <p class="mm-readout" id="mmReadout" aria-live="off"></p>
-      </div>
-
-      <div class="mm-score-wrap">
-        <canvas id="mmScore" role="img" aria-label="The score: every layer's notes from start to end, with the sections and chords along the top"></canvas>
-      </div>
-
       <div class="mm-remix">
-        <h2 class="mm-heading">Remix</h2>
+        <h2 class="mm-heading mm-mods-label" data-tip="Remix: write one part of this song again and leave the rest as it is">Remix</h2>
         <!-- filled in: a key for each part of the song to pick again -->
-        <div class="mm-remix-keys" id="mmRemix" role="group" aria-label="Remix"></div>
+        <div class="mm-remix-keys mm-strip" id="mmRemix" role="group" aria-label="Remix"></div>
       </div>
 
       <div class="mm-tabs" id="mmTabs" role="tablist" aria-label="Settings">
@@ -144,7 +160,11 @@
       <!-- filled in: the open tab's settings -->
       <div class="mm-panel" id="mmPanel" role="tabpanel"></div>
 
-      <p class="mm-tip" id="mmTip"></p>
+      <!-- the tip line, kept on screen along the bottom, with a play key for when the real one's scrolled away -->
+      <div class="mm-dock" id="mmDock">
+        <button type="button" class="mm-key mm-key-play mm-dock-play" id="mmDockPlay" aria-label="Play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg></button>
+        <p class="mm-tip" id="mmTip"></p>
+      </div>
     </section>
 
     <h2 class="mm-ribbon">Keep your songs</h2>
@@ -226,7 +246,7 @@
             <li><b>Remix one thing at a time.</b> The Remix keys pick just the chords, or just the melodies, or just the band again, and leave everything else alone. Orchestra hands the tune round a new way: another instrument taking turns with the melody, or bells doubling it. To change one section's tune, click its square in the Arrange tab and press Rewrite part: only that part gets new notes, grown from the same idea as the rest. Or pick New there, and that layer gets a part of its own in just that section.</li>
             <li><b>Open the Band tab</b> to change a part's instrument, what it plays and how busy it is. Anything marked recorded plays real recordings, and some have a Recording menu with a few to choose from (a Wurlitzer or a Pianet, two different electric guitars, a grand or an electric grand).</li>
             <li><b>Draw your own notes</b> in the note editor, under the Arrange grid or in the Band tab. Click to add, drag to make longer, drag a note to move it (or its end to change its length), click a note to take it out. The other tools add slides, vibrato and swells, and Chords puts down the whole chord playing there in one click.</li>
-            <li><b>Or make your own.</b> New track is an empty song with a melody, a bass and drums that play nothing until you give them notes. Click a square in the Arrange grid and draw under it, or turn on Record, press Play and play it on your keyboard (A to L are the white keys, W E T Y U O P the black ones, Z and X change octave). Click turns on a metronome. Any layer's Plays can be My notes or a pattern it writes for you, so you can write the tune and let it fill in a bass line that follows your chords. Make it mine (next to Remix) takes over a written song, turning every part into notes you can change.</li>
+            <li><b>Or make your own.</b> New track is an empty song with a melody, a bass and drums that play nothing until you give them notes. Click a square in the Arrange grid and draw under it, or turn on Record, press Play and play it on your keyboard (A to L are the white keys, W E T Y U O P the black ones, Z and X change octave). Click turns on a metronome. Any layer's Plays can be My notes or a pattern it writes for you, so you can write the tune and let it fill in a bass line that follows your chords. Make it mine (the last of the Remix keys) takes over a written song, turning every part into notes you can change.</li>
             <li><b>The Arrange tab</b> is the song from start to end as a grid, a column for each section and a row for each layer, like a tracker. The letter in a square is the part that layer plays there, and each layer picks its own: the drums can keep part A's beat while the melody moves on to part B, or a layer can have a part made just for one section (New). Click a square to change it and its notes underneath, click an empty one to bring that layer in, and press 1 to 8 for parts A to H or Delete to take it out. The top row is each section's chords. Under the grid are the section's length, loudness and key, and keys to copy or move it, then the square you clicked: its part, its notes, and where else that part plays. A part played in two sections changes in both, so to change one on its own (double the guitar in the last chorus only, say), press Make it its own: that section gets a copy of the part to change. Open the part's sound and playing to give it its own instrument, doubling, octave, pattern or volume. The rest of the layer stays as it is. <b>Room</b> is the space it's played in: reverb, echo, tape wobble.</li>
             <li><b>Learn it.</b> The Learn tab shows any part the way you'd play it: notes falling onto a piano's keys, the tune in your right hand and the bass in your left, or a guitar's or a bass's neck with a dot for each finger over the tab, with a box for every chord shape the part uses. Sheet music works for anything. It follows the song as it plays, Speed slows it down to half while you get the hang of it, and while it's stopped, ← and → step through it one chord at a time.</li>
             <li><b>Keep it.</b> Save puts it in your library in this browser, notes and all, so it always plays the way it did when you saved it. Open a saved song and Save changes saves over it, with the save before kept in its history, or Save copy keeps both. Forgotten songs wait in the bin. Back up library downloads every song as one file, which Restore opens in any browser. To give someone a song, send them its song file (Download song file, or Download in your library): Add song files puts it in their library, notes and all. You can also download a WAV or copy a short link.</li>

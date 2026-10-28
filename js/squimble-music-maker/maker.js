@@ -264,7 +264,11 @@
   // ---------- the tip line ----------
 
   const tipLine = $('#mmTip');
-  const DEFAULT_TIP = 'Point at anything to see what it does. Space plays and stops, Ctrl + Z undoes, and your keyboard plays the open layer (A to L).';
+  // (a phone or tablet: no pointing, no keyboard)
+  const touch = matchMedia('(hover: none)').matches;
+  const DEFAULT_TIP = touch
+    ? 'Tap anything and this line says what it does.'
+    : 'Point at anything to see what it does. Space plays and stops, Ctrl + Z undoes, and your keyboard plays the open layer (A to L).';
   let pointedTip = '';
   let message = '';
   let messageUntil = 0;
@@ -288,7 +292,20 @@
   };
   machine.addEventListener('pointerover', pointTo);
   machine.addEventListener('focusin', pointTo);
-  machine.addEventListener('pointerleave', () => { pointedTip = ''; showTip(); });
+  // (a finger leaves as soon as it lifts, so a tapped key's tip stays until the next tap)
+  machine.addEventListener('pointerleave', (event) => {
+    if (event.pointerType !== 'mouse') return;
+    pointedTip = '';
+    showTip();
+  });
+
+  // the three steps for a first visit, put away for good by Got it
+  const WELCOMED_KEY = 'squimble-music-welcomed';
+  try { $('#mmWelcome').hidden = !!localStorage.getItem(WELCOMED_KEY); } catch { /* storage off: shown */ $('#mmWelcome').hidden = false; }
+  $('#mmWelcomeOk').addEventListener('click', () => {
+    $('#mmWelcome').hidden = true;
+    try { localStorage.setItem(WELCOMED_KEY, '1'); } catch { /* shown again next time */ }
+  });
 
   // ---------- the top: name, seed, moods, remix, transport ----------
 
@@ -529,6 +546,10 @@
     renderTransport();
   };
   playKey.addEventListener('click', togglePlay);
+  // the dock's play key shows while the real one's scrolled out of sight
+  const dockKey = $('#mmDockPlay');
+  dockKey.addEventListener('click', togglePlay);
+  new IntersectionObserver(([seen]) => $('#mmDock').classList.toggle('is-away', !seen.isIntersecting)).observe(playKey);
   loopKey.addEventListener('click', () => {
     player.loop = !player.loop;
     loopKey.setAttribute('aria-pressed', player.loop);
@@ -562,9 +583,12 @@
     }
   });
   function renderTransport() {
-    playKey.classList.toggle('is-playing', player.playing);
     playKey.querySelector('span').textContent = player.playing ? 'Stop' : 'Play';
-    playKey.querySelector('svg').innerHTML = player.playing ? '<path d="M2.5 2.5h7v7h-7z"/>' : '<path d="M3 1.8v8.4L10 6z"/>';
+    for (const button of [playKey, dockKey]) {
+      button.classList.toggle('is-playing', player.playing);
+      button.querySelector('svg').innerHTML = player.playing ? '<path d="M2.5 2.5h7v7h-7z"/>' : '<path d="M3 1.8v8.4L10 6z"/>';
+    }
+    dockKey.setAttribute('aria-label', player.playing ? 'Stop' : 'Play');
   }
 
   function renderTop() {
@@ -867,6 +891,16 @@
     box.append(make('h3', 'mm-section-title', title), ...children);
     return box;
   }
+  // a section folded shut until it's wanted, for the fine tuning most songs never need. stays open or
+  // shut (by title) while the panel's drawn again
+  const unfolded = new Set();
+  function fold(title, ...children) {
+    const box = make('details', 'mm-section mm-fold');
+    box.open = unfolded.has(title);
+    box.addEventListener('toggle', () => (box.open ? unfolded.add(title) : unfolded.delete(title)));
+    box.append(make('summary', 'mm-section-title', title), ...children);
+    return box;
+  }
 
   // ---------- tabs ----------
 
@@ -935,7 +969,7 @@
       slider({ label: 'Colour', tip: 'Colour: plain chords at 0, more sevenths, ninths and suspended chords as it goes up, for a jazzier, dreamier sound', min: 0, max: 1, get: () => song.colour, set: (v) => { song.colour = v; }, format: percent }),
       field('Each chord', choices(chordBars, () => song.chordBars, (value) => edit(() => { song.chordBars = value; })(), 'Chord length'), 'How long each chord lasts'),
     );
-    const chords = section('Chords', top, ...EVERY_PART.filter((part) => song.parts[part]).map(chordRow), make('p', 'mm-hint', 'Chords are roman numerals counting up the scale from the key: I is home, IV and V are the strong ones. Capitals are major (bright), lower case minor (sad). b and # move one a semitone (bVII), ° is diminished and + augmented. Add 7, maj7, 6, sus2, sus4 or add9 for colour (Imaj7). A - holds the last chord for another turn. Click a chord to hear it.'));
+    const chords = section('Chords', top, ...EVERY_PART.filter((part) => song.parts[part]).map(chordRow), fold('How to write chords', make('p', 'mm-hint', 'Chords are roman numerals counting up the scale from the key: I is home, IV and V are the strong ones. Capitals are major (bright), lower case minor (sad). b and # move one a semitone (bVII), ° is diminished and + augmented. Add 7, maj7, 6, sus2, sus4 or add9 for colour (Imaj7). A - holds the last chord for another turn. Click a chord to hear it.')));
     // which composer writes the notes (COMPOSER_VERSIONS in music.js). a song keeps the one it was made
     // with; unstamped ones open as the first. only shown for a song (or the save it came from) made by
     // an older one, since a new song has nothing to choose
@@ -1314,7 +1348,7 @@
     if (own.length) sound.firstChild.after(make('p', 'mm-hint', `Part${own.length > 1 ? 's' : ''} ${own.join(', ')} ${own.length > 1 ? 'have' : 'has'} settings of ${own.length > 1 ? 'their' : 'its'} own, which win over these where ${own.length > 1 ? 'they play' : 'it plays'}. Change them under the Arrange grid.`));
     // brightness is a power of two, so the middle of the slider is the instrument as made
     const bright = slider({ label: 'Brightness', tip: 'Brightness: duller to the left, sharper and buzzier to the right', min: -2, max: 2, get: () => Math.log2(layer.tone.bright), set: (v) => { layer.tone.bright = 2 ** v; }, format: (v) => `x${(2 ** v).toFixed(2)}`, kind: 'mix' });
-    const tone = section('Tone');
+    const tone = fold('Tone');
     if (family === 'tonal') {
       tone.append(
         slider({ label: 'Attack', tip: 'Attack: how slowly each note fades in. Long is soft and swelling', min: 0.1, max: 4, get: () => layer.tone.attack, set: (v) => { layer.tone.attack = v; }, format: (v) => `x${v.toFixed(2)}`, kind: 'mix' }),
@@ -1935,7 +1969,9 @@
     const wrap = make('div', 'mm-arrange-wrap');
     wrap.dataset.scroll = 'arrange';
     wrap.append(table);
-    const hint = make('p', 'mm-hint mm-arrange-hint', own
+    const hint = make('p', 'mm-hint mm-arrange-hint', touch
+      ? `Tap a square to open it below, or an empty one to put that layer in. ${own ? 'Under the grid, pick which part it plays there, or Off to take it out. A layer plays its section\'s part unless you give it another.' : 'Pick Off under the grid to take it out.'} Swipe the grid sideways for the rest of the song.`
+      : own
       ? 'Click a square to open it below, or an empty one to put that layer in. Keys 1 to 8 pick its part (A to H), Delete or a right click takes it out, and the arrows move round. A layer plays its section\'s part unless you give it another, so the drums can keep part A\'s beat under part B\'s tune.'
       : 'Click a square to open it below, or an empty one to put that layer in. Delete or a right click takes it out, and the arrows move round.');
     return [wrap, hint, sectionDetail(one, own, OLD), cellDetail(one, own, OLD)];

@@ -33,6 +33,9 @@
   background:var(--mm-ink);
 }
 html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
+/* clip, not styles.css's hidden: still no sideways scroll, but no scroll box either, so the dock can
+   stick to the window */
+.mm-page, .mm-page main{ overflow-x:clip; }
 .mm-page ::selection{ background:var(--mm-mood); color:var(--mm-mood-ink); }
 .mm-page .site-header{ background:var(--mm-dark); border-bottom-color:var(--mm-line); }
 .mm-page .site-footer{ border-top-color:var(--mm-line); }
@@ -128,8 +131,26 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   border-top:6px solid var(--mm-mood);
   border-radius:10px;
   color:var(--mm-text);
-  overflow:hidden;
+  /* (clip, not hidden: hidden would make it a scroll box and the dock couldn't stick to the window) */
+  overflow:clip;
 }
+
+/* a first visit's three steps, on paper like the label */
+.mm-welcome{
+  display:flex; flex-wrap:wrap; align-items:center;
+  gap:10px 24px;
+  margin:16px 20px 0;
+  padding:12px 16px;
+  background:var(--mm-paper);
+  color:var(--mm-paper-ink);
+  border-radius:4px;
+}
+.mm-welcome-steps{ flex:1 1 420px; display:grid; list-style:decimal; gap:4px; margin:0; padding:0 0 0 1.4em; font-size:14.5px; line-height:1.45; }
+.mm-welcome-steps li::marker{ font-weight:900; color:#7b6f5d; }
+.mm-welcome-keys{ display:flex; align-items:center; gap:14px; }
+.mm-welcome .mm-key-go{ background:var(--mm-paper-ink); color:var(--mm-paper); box-shadow:0 3px 0 #000; }
+.mm-welcome .mm-key-go:hover{ background:#433b32; }
+.mm-welcome-tour{ font:700 13.5px var(--mm-ui); color:var(--mm-paper-ink); text-underline-offset:3px; }
 
 /* top bar: the cassette label, new song, undo, save */
 .mm-bar{
@@ -163,10 +184,9 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-label-seed input{ font:500 13px var(--mm-mono); }
 .mm-bar-actions{ display:flex; gap:8px; margin-left:auto; }
 
-/* moods */
-.mm-moods-wrap{ padding:18px 20px 4px; }
-.mm-row-head{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 12px; margin-bottom:12px; }
-.mm-style{ display:flex; flex-wrap:wrap; gap:6px; }
+/* moods, style and modifiers: what kind of song, under the score */
+.mm-moods-wrap{ margin-top:20px; padding:18px 20px 4px; border-top:2px solid var(--mm-line); }
+.mm-style{ display:flex; flex-wrap:wrap; gap:6px 5px; }
 /* the rows of moods as keys, one row's moods shown at a time */
 .mm-mood-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin-bottom:12px; }
 .mm-mood-groups{ display:flex; flex-wrap:wrap; gap:6px 5px; }
@@ -196,7 +216,7 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-kind-tip{ margin:0; max-width:90ch; font-size:13px; line-height:1.45; color:var(--mm-text); }
 /* the modifiers under the moods: small outlined keys that light up in the mood's colour while on */
 .mm-mods-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:14px 0 12px; }
-.mm-mods-label{ font:700 10px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); white-space:nowrap; }
+.mm-mods-label{ min-width:76px; font:700 10px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); white-space:nowrap; }
 .mm-mods{ display:flex; flex-wrap:wrap; gap:6px 5px; }
 .mm-mod[aria-pressed="true"]{ box-shadow:none; }
 
@@ -206,6 +226,7 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   gap:10px 12px;
   padding:18px 20px 12px;
 }
+.mm-toggles{ display:flex; flex-wrap:wrap; gap:10px 8px; }
 .mm-key-play{
   min-width:118px;
   min-height:42px;
@@ -240,7 +261,7 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-remix{
   display:flex; flex-wrap:wrap; align-items:center;
   gap:10px 14px;
-  padding:16px 20px 20px;
+  padding:6px 20px 20px;
 }
 .mm-remix-keys{ display:flex; flex-wrap:wrap; gap:9px 6px; }
 
@@ -271,12 +292,23 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-tab:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:-2px; }
 .mm-panel{ padding:22px 20px 10px; background:var(--mm-panel); min-height:320px; container-type:inline-size; }
 
-/* the tip line along the bottom */
-.mm-tip{
-  margin:0;
-  min-height:3.4em;
-  padding:12px 20px 14px;
+/* the tip line along the bottom, stuck to the window's bottom edge while the machine's in view, with
+   a play key of its own once the real one's scrolled away */
+.mm-dock{
+  position:sticky; bottom:0; z-index:5;
+  display:flex; align-items:center; gap:12px;
+  padding:10px 20px;
   background:var(--mm-dark);
+  border-top:2px solid var(--mm-line);
+}
+.mm-dock .mm-dock-play{ display:none; flex:none; min-width:48px; min-height:40px; padding:0; }
+.mm-dock-play svg{ width:14px; height:14px; }
+.mm-dock.is-away .mm-dock-play{ display:inline-flex; }
+.mm-tip{
+  flex:1;
+  margin:0;
+  min-height:3em;
+  display:flex; align-items:center;
   font-size:14px;
   line-height:1.5;
   color:var(--mm-muted);
@@ -299,6 +331,14 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 }
 .mm-section-title::after{ content:""; flex:1; height:2px; background:var(--mm-line); }
 .mm-hint{ margin:10px 0 0; max-width:78ch; font-size:13.5px; line-height:1.55; color:var(--mm-muted); }
+/* a section folded shut (fold() in maker.js): its title opens it */
+.mm-fold > summary{ cursor:pointer; list-style:none; }
+.mm-fold > summary::-webkit-details-marker{ display:none; }
+.mm-fold > summary::before{ content:"+"; width:10px; font:700 13px var(--mm-mono); color:var(--mm-mood); }
+.mm-fold[open] > summary::before{ content:"\2212"; }
+.mm-fold > summary:hover{ color:var(--mm-text); }
+.mm-fold > summary:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:3px; border-radius:2px; }
+.mm-fold > .mm-hint:first-of-type{ margin-top:0; }
 
 .mm-field,
 .mm-slider{
@@ -712,8 +752,9 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 @media (max-width:900px){
   .mm-guide-grid{ grid-template-columns:minmax(0,1fr); }
 }
-.mm-steps, .mm-tips{ margin:14px 0 0; padding:0 0 0 1.3em; display:grid; gap:12px; font-size:15px; line-height:1.6; color:#ddd5c6; }
+.mm-steps, .mm-tips{ margin:14px 0 0; padding:0 0 0 1.3em; display:grid; list-style:decimal; gap:12px; font-size:15px; line-height:1.6; color:#ddd5c6; }
 .mm-steps li::marker{ font-weight:900; color:var(--mm-mood); }
+.mm-tips{ list-style:disc; }
 .mm-tips li::marker{ color:var(--mm-mood); }
 .mm-steps b, .mm-tips b{ color:var(--mm-text); }
 .mm-hood{ display:grid; gap:10px; max-width:860px; }
@@ -741,17 +782,45 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-page .page-back{ padding-inline:0; margin-top:clamp(40px,5vw,64px); }
 
 @media (max-width:600px){
+  /* a phone: the machine runs edge to edge, and the site's bar scrolls away so the song has the screen */
+  .mm-page .site-header{ position:relative; }
+  .mm-intro{ padding:32px 0 22px; }
+  .mm-machine{ margin-inline:calc(-1 * var(--gutter)); border-radius:0; }
   .mm-bar, .mm-moods-wrap, .mm-transport, .mm-remix{ padding-left:14px; padding-right:14px; }
+  .mm-welcome{ margin:14px 14px 0; padding:12px 14px; }
+  .mm-welcome-steps{ flex-basis:100%; font-size:14px; }
+  /* long rows of keys become one line to swipe along, running off the screen's edge so it's plain
+     there's more */
+  .mm-strip{
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    margin-inline:-14px;
+    padding:2px 14px 6px;
+    scrollbar-width:none;
+    overscroll-behavior-x:contain;
+  }
+  .mm-strip::-webkit-scrollbar{ display:none; }
+  .mm-strip > *{ flex:none; }
+  .mm-mods-row > .mm-strip, .mm-mood-bar > .mm-strip{ flex-basis:calc(100% + 28px); }
+  /* (inside the flavour strip's box: no running off the edge) */
+  .mm-kinds.mm-strip{ margin-inline:0; padding-inline:0; flex:1 1 100%; }
+  .mm-mods-row, .mm-mood-bar{ gap:6px 12px; }
   .mm-moods{ grid-template-columns:repeat(auto-fill,minmax(98px,1fr)); }
   /* (the longest names, Underwater and Mysterious, only just fit three to a row) */
   .mm-mood{ padding:0 6px; gap:5px; }
-  .mm-style{ width:100%; }
-  .mm-style .mm-key{ flex:1; padding:0 6px; }
+  /* play across the top, the four switches in a row under it */
+  .mm-key-play{ flex:1 1 100%; min-height:48px; font-size:15px; }
+  .mm-toggles{ flex:1 1 100%; flex-wrap:nowrap; gap:6px; }
+  .mm-toggles .mm-key{ flex:1 1 0; min-width:0; padding:0 4px; gap:5px; font-size:12.5px; }
+  .mm-toggles .mm-key svg{ width:11px; height:11px; }
   .mm-score-wrap{ margin:0 14px; }
+  .mm-remix{ gap:6px 14px; }
+  .mm-remix > .mm-strip{ flex-basis:calc(100% + 28px); }
   .mm-tabs{ padding:0 14px; }
   .mm-tab{ flex:1; padding:10px 6px; font-size:14px; }
   .mm-panel{ padding:18px 14px 8px; }
-  .mm-tip{ padding:12px 14px; }
+  .mm-dock{ padding:8px 14px; gap:10px; }
+  .mm-tip{ font-size:13px; line-height:1.4; min-height:2.8em; }
   .mm-bar-actions{ margin-left:0; width:100%; }
   .mm-bar-actions .mm-key{ flex:1; }
   .mm-readout{ text-align:left; }
