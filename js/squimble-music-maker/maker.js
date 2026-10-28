@@ -3174,23 +3174,80 @@
     setTimeout(() => URL.revokeObjectURL(link.href), 4000);
   }
 
-  const wavKeys = [$('#mmWav'), $('#mmWavLoop')];
-  async function exportWav(loop) {
-    for (const button of wavKeys) button.disabled = true;
-    status.textContent = 'Recording... a few seconds for a long song.';
+  const audioKeys = [$('#mmWav'), $('#mmWavLoop'), $('#mmMp3')];
+  // how far along it is: a moving stripe until renderSong says (it never does in firefox)
+  const progress = $('#mmProgress');
+  const showProgress = (words, done) => {
+    progress.value = done;
+    status.textContent = `${words} ${Math.round(done * 100)}%`;
+  };
+  // mp3: the wav, encoded by lamejs (vendor/, LAME in javascript, LGPL), fetched the first time it's
+  // wanted. an mp3 can't loop: its encoder pads each end with a little silence
+  let fetchingLame = null;
+  function fetchLame() {
+    fetchingLame ??= new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'js/squimble-music-maker/vendor/lame.min.js';
+      script.onload = resolve;
+      script.onerror = () => {
+        fetchingLame = null;
+        script.remove();
+        reject(new Error("vendor/lame.min.js didn't load"));
+      };
+      document.head.append(script);
+    });
+    return fetchingLame;
+  }
+  // 192 kbps stereo, about 1.4 mb a minute to a wav's 10. it's encoded a slice at a time, the page
+  // drawn between, so it doesn't freeze and the bar can show how far it's got
+  const MP3_KBPS = 192;
+  async function mp3File(wav) {
+    await fetchLame();
+    const samples = new Int16Array(await wav.arrayBuffer(), 44);
+    const frames = samples.length / 2;
+    const left = new Int16Array(frames);
+    const right = new Int16Array(frames);
+    for (let i = 0; i < frames; i++) {
+      left[i] = samples[2 * i];
+      right[i] = samples[2 * i + 1];
+    }
+    const encoder = new lamejs.Mp3Encoder(2, 44100, MP3_KBPS);
+    const parts = [];
+    const SLICE = 1152 * 40;
+    let last = performance.now();
+    for (let i = 0; i < frames; i += SLICE) {
+      parts.push(encoder.encodeBuffer(left.subarray(i, i + SLICE), right.subarray(i, i + SLICE)));
+      if (performance.now() - last > 50) {
+        showProgress('Making the MP3...', i / frames);
+        await new Promise((resolve) => setTimeout(resolve));
+        last = performance.now();
+      }
+    }
+    parts.push(encoder.flush());
+    return new Blob(parts, { type: 'audio/mpeg' });
+  }
+  async function exportAudio(kind) {
+    const name = `${fileName(song.name)}${kind === 'loop' ? '-loop' : ''}.${kind === 'mp3' ? 'mp3' : 'wav'}`;
+    for (const button of audioKeys) button.disabled = true;
+    progress.removeAttribute('value');
+    progress.hidden = false;
+    status.textContent = 'Recording...';
     try {
       const played = playable(song, comp);
-      const blob = await renderSong(played.song, played.comp, loop);
-      download(blob, `${fileName(song.name)}${loop ? '-loop' : ''}.wav`);
-      status.textContent = `Downloaded ${fileName(song.name)}${loop ? '-loop' : ''}.wav.`;
+      const wav = await renderSong(played.song, played.comp, kind === 'loop', (done) => showProgress('Recording...', done));
+      if (kind === 'mp3') progress.removeAttribute('value');
+      download(kind === 'mp3' ? await mp3File(wav) : wav, name);
+      status.textContent = `Downloaded ${name}.`;
     } catch (error) {
-      status.textContent = "Couldn't record it in this browser.";
+      status.textContent = kind === 'mp3' && !fetchingLame ? "Couldn't fetch the MP3 maker. Check the connection and try again, or download a WAV." : "Couldn't record it in this browser.";
       console.error(error);
     }
-    for (const button of wavKeys) button.disabled = false;
+    progress.hidden = true;
+    for (const button of audioKeys) button.disabled = false;
   }
-  $('#mmWav').addEventListener('click', () => exportWav(false));
-  $('#mmWavLoop').addEventListener('click', () => exportWav(true));
+  $('#mmWav').addEventListener('click', () => exportAudio('wav'));
+  $('#mmWavLoop').addEventListener('click', () => exportAudio('loop'));
+  $('#mmMp3').addEventListener('click', () => exportAudio('mp3'));
   // the open song as a song file (library.songFile), with the notes it plays now, so it sounds the same
   // in any browser. an unchanged save goes as that save; anything else as a new save of the open song
   $('#mmFile').addEventListener('click', async () => {

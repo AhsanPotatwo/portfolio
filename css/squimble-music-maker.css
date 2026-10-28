@@ -672,9 +672,36 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-export h3{ margin:0 0 4px; font:700 16px var(--mm-ui); }
 .mm-export p{ margin:0; font-size:14px; line-height:1.55; color:var(--mm-muted); }
 .mm-export-keys{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
+/* the two downloads side by side, the loop under them, so the words beside them keep some room */
+.mm-export-audio .mm-export-keys{ max-width:280px; }
 .mm-open{ position:relative; }
 .mm-open input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
 .mm-open:focus-within{ outline:2px solid var(--mm-mood); outline-offset:3px; }
+/* a wav being recorded: fills like a slider's track. a moving stripe until it knows how far it's got
+   (the recordings loading, or a browser that can't say) */
+.mm-export-progress{
+  -webkit-appearance:none; appearance:none;
+  display:block; width:100%; height:8px;
+  margin:14px 0 2px;
+  border:0; border-radius:0;
+  background:var(--mm-edge);
+  color:var(--mm-mood);
+}
+.mm-export-progress[hidden]{ display:none; }
+.mm-export-progress::-webkit-progress-bar{ background:var(--mm-edge); }
+.mm-export-progress::-webkit-progress-value{ background:var(--mm-mood); transition:width .25s linear; }
+.mm-export-progress::-moz-progress-bar{ background:var(--mm-mood); }
+.mm-export-progress:indeterminate{
+  background:repeating-linear-gradient(-45deg, var(--mm-mood) 0 10px, var(--mm-edge) 10px 20px) 0 0 / 28.28px 100%;
+  animation:mm-stripes .8s linear infinite;
+}
+.mm-export-progress:indeterminate::-webkit-progress-bar{ background:transparent; }
+.mm-export-progress:indeterminate::-moz-progress-bar{ background:transparent; }
+@keyframes mm-stripes{ to{ background-position:28.28px 0; } }
+@media (prefers-reduced-motion: reduce){
+  .mm-export-progress:indeterminate{ animation:none; }
+  .mm-export-progress::-webkit-progress-value{ transition:none; }
+}
 .mm-export-status{ min-height:1.5em; margin:4px 0 0 !important; color:var(--mm-mood) !important; overflow-wrap:anywhere; }
 
 /* the guide at the bottom: a tour, tips, and how it's built */

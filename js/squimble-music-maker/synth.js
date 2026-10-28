@@ -2989,9 +2989,10 @@ class MusicPlayer {
 // minutes; this way it's a few times quicker and sounds the same (no further from the old way than two
 // renders the old way were from each other). a note sent only just before it starts came out
 // different, so each second's suspend sends the second after next. (firefox can't suspend a render, so
-// there they still all go in at once)
+// there they still all go in at once). progress, if given, hears how far through it is (0 to 1) at each
+// suspend: never, where there's none
 const RENDER_AHEAD = 1;
-async function renderSong(song, comp, loop) {
+async function renderSong(song, comp, loop, progress) {
   // a render can't swap to a recording halfway through, so it waits for them all first
   await songSamples(song);
   const rate = 44100;
@@ -3020,7 +3021,11 @@ async function renderSong(song, comp, loop) {
     }
   };
   try {
-    for (let at = RENDER_AHEAD; at < length; at += RENDER_AHEAD) ctx.suspend(at).then(() => { send(at + 2 * RENDER_AHEAD); ctx.resume(); });
+    for (let at = RENDER_AHEAD; at < length; at += RENDER_AHEAD) ctx.suspend(at).then(() => {
+      send(at + 2 * RENDER_AHEAD);
+      progress?.(at / length);
+      ctx.resume();
+    });
     send(2 * RENDER_AHEAD);
   } catch {
     send(Infinity);
