@@ -85,8 +85,8 @@ for (const [name, type] of Object.entries(OBJECT_TYPES)) {
 }
 for (const [name, settings] of tiles) {
   const tile = `the tile "${name}"`;
-  for (const sound of [...(settings.sounds ?? []), ...(settings.stepSounds ?? [])]) named(tile, sound, sounds, 'sounds');
-  for (const effect of settings.particles ?? []) named(tile, effect, particles, 'particles');
+  for (const sound of [...(settings.sounds ?? []), ...(settings.stepSounds ?? []), ...(settings.splashSounds ?? [])]) named(tile, sound, sounds, 'sounds');
+  for (const effect of [settings.particles, settings.splashParticles, settings.rippleParticles].flat()) if (effect) named(tile, effect, particles, 'particles');
   for (const other of settings.blendsWith ?? []) assert(tiles.some(([n]) => n === other), `${tile} blends with "${other}", which isn't a tile`);
 }
 pictures('PLAYER (config.js)', PLAYER);

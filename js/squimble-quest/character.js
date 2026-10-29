@@ -92,6 +92,12 @@ class Character {
     this.tile = null;
     this.tileCol = null;
     this.tileRow = null;
+    // how far it's sunk into a liquid (a tile with sink, tiles.js), as a part of its height, easing
+    // towards the tile's. the liquid it's in, or was last in while it's still coming out, and the
+    // seconds until it next ripples (checkTile()). only for drawing and effects
+    this.sink = 0;
+    this.liquid = null;
+    this.rippleIn = 0;
 
     // the exact way it's facing in radians (0 is right, PI/2 is down), for things that need to be
     // precise like which way to swing
@@ -417,13 +423,14 @@ class Character {
 
   // keeps track of the tile under the middle of the feet and applies its damage or healing
   // (damagePerStep, damagePerSecond, healPerSecond in tiles.js). it's the same for everyone, so lava
-  // hurts enemies too
+  // hurts enemies too. then sinks it into a liquid it's in (inLiquid())
   checkTile(map, dt) {
     const feet = this.feetBox();
     const col = map.colAt(feet.x + feet.w / 2);
     const row = map.rowAt(feet.y + feet.h / 2);
 
     // just stepped onto a new tile
+    const was = this.tile;
     if (col !== this.tileCol || row !== this.tileRow) {
       this.tileCol = col;
       this.tileRow = row;
@@ -433,6 +440,59 @@ class Character {
 
     if (this.tile?.damagePerSecond) this.hurt(this.tile.damagePerSecond * dt);
     if (this.tile?.healPerSecond) this.heal(this.tile.healPerSecond * dt);
+    this.inLiquid(was, map, dt);
+  }
+
+  // sinking into liquids and coming out (sink, LIQUID in config.js): a splash on stepping in from
+  // anything else (warping in too), and ripples while it's in. one that starts in a liquid (its first
+  // update, so spawning there) is already in, without a splash. only for show, so the rules never
+  // read it
+  inLiquid(was, map, dt) {
+    const tile = this.tile;
+    if (tile?.sink) this.liquid = tile;
+    const depth = this.depthAt(map);
+    if (was === null) this.sink = depth;
+    this.sink = approach(this.sink, depth, LIQUID.sinkSpeed, dt); // utils.js
+    if (!tile?.sink) return;
+    const feet = this.y + this.h / 2;
+    // was is last frame's tile, so wading from one tile of water to the next isn't stepping in
+    if (was !== null && tile !== was) {
+      // just in front of the feet, so the drops are drawn over the body
+      for (const effect of tile.splashParticles ?? []) Particles.burst(effect, this.x, feet + 1); // particles.js
+      const sounds = tile.splashSounds ?? [];
+      const sound = SOUNDS[sounds[Math.floor(randomBetween(0, sounds.length))]]; // sound.js
+      if (sound) playSound(sound, { x: this.x, y: feet, map }, null, { rate: randomBetween(0.92, 1.08), doppler: 0 });
+      this.rippleIn = 0;
+    }
+    const moving = Math.hypot(this.velocity.x, this.velocity.y) > 5;
+    this.rippleIn -= dt * (moving ? LIQUID.rippleWalking : 1);
+    if (this.rippleIn > 0) return;
+    this.rippleIn = LIQUID.rippleEvery * randomBetween(0.8, 1.2);
+    // on the floor, which is the surface, so they're drawn under everyone
+    for (const effect of tile.rippleParticles ?? []) Particles.burst(effect, this.x, feet);
+  }
+
+  // how far it should be sunk in where it's standing, as a part of its height. its tile's sink, but
+  // shallower near the shore, like a beach: nothing until its whole width is in, then deeper to the
+  // full sink LIQUID.shore px from every edge (zelda's shallow water round deep water, but smooth).
+  // the part under is drawn below its feet (drawInLiquid()), over what's in front of it, so it's also
+  // never deeper than the liquid goes down the screen from them, or near the bottom shore it would
+  // look sunk into the ground. I first went by the tile under the feet alone, which did exactly that
+  // coming in from the bottom or a corner, and cut the body off over the sand coming in from the side
+  depthAt(map) {
+    const sink = this.tile?.sink;
+    if (!sink) return 0;
+    const full = sink * this.h;
+    const cap = Math.max(full, LIQUID.shore);
+    const feet = this.y + this.h / 2;
+    const half = this.w / 2;
+    // its width, every half tile and both edges, so no column it stands over is missed
+    const across = [this.x + half];
+    for (let x = this.x - half; x < this.x + half; x += TILE / 2) across.push(x);
+    const down = Math.min(...across.map((x) => liquidRun(map, x, feet, 0, 1, cap)));
+    const up = Math.min(...across.map((x) => liquidRun(map, x, feet, 0, -1, cap)));
+    const sides = Math.min(liquidRun(map, this.x - half, feet, -1, 0, cap), liquidRun(map, this.x + half, feet, 1, 0, cap));
+    return Math.min(full * Math.min(1, Math.min(down, up, sides) / LIQUID.shore), down) / this.h;
   }
 
   // ---------- aiming and attacking ----------
@@ -587,11 +647,11 @@ class Character {
 
   // the health bar over its head, in healthBarColour, with the health it just lost as a light trail
   // that drains away (trailHealth). UI_ART's healthBar and healthFill (config.js) replace the dark
-  // back and the colour
+  // back and the colour. it goes down with the head in a liquid (drawInLiquid())
   drawHealthBar() {
     const w = this.w + 8;
     const x = Math.round(this.x - w / 2);
-    const y = Math.round(this.y - this.h / 2) - 10;
+    const y = Math.round(this.y - this.h / 2 + this.sink * this.h) - 10;
     noStroke();
     if (!drawArtBox(uiArt('healthBar'), x - 1, y - 1, w + 2, 7)) { // art.js
       fill(0, 0, 0, 160);
@@ -621,9 +681,15 @@ class Character {
     const h = body.h * (1 - squash);
     const { state, time } = this.artState();
     const blinking = Math.max(this.invincible, this.safe);
+    const bottom = body.y + body.h;
+    const draw = () => drawCharacter(this.settings, this.x, bottom - h / 2, { w, h, facing: this.facing, hurt: this.hurtTimer > 0, worn: this.worn(), held: this.heldItem(), state, time });
     push();
     if (blinking > 0 && Math.floor(blinking * 12) % 2 === 0) drawingContext.globalAlpha *= 0.35;
-    drawCharacter(this.settings, this.x, body.y + body.h - h / 2, { w, h, facing: this.facing, hurt: this.hurtTimer > 0, worn: this.worn(), held: this.heldItem(), state, time });
+    // under half a pixel in is out, so coming out of a liquid ends cleanly. worldMap is the game's
+    // (sketch.js), fine for drawing since that's only ever this computer's
+    const sunk = this.sink * h;
+    if (sunk >= 0.5) drawInLiquid(this.liquid, this.x, bottom, w, sunk, draw, worldMap);
+    else draw();
     pop();
   }
 }
@@ -725,6 +791,115 @@ function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, 
   noStroke();
   fill(settings.outline);
   circle(Math.round(x + facing.x * w * 0.3), Math.round(y + facing.y * h * 0.3), 8);
+}
+
+// ---------- in a liquid ----------
+
+// px from x, y (world px) along dx, dy (one of them 1 or -1) to the edge of the liquid it's in, up to
+// cap. 0 if x, y isn't in a liquid (Character.depthAt())
+function liquidRun(map, x, y, dx, dy, cap) {
+  let col = map.colAt(x);
+  let row = map.rowAt(y);
+  if (!map.get(col, row)?.sink) return 0;
+  // to the far side of this tile, then a tile at a time
+  let run = dx > 0 ? (col + 1) * TILE - x : dx < 0 ? x - col * TILE : dy > 0 ? (row + 1) * TILE - y : y - row * TILE;
+  while (run < cap) {
+    col += dx;
+    row += dy;
+    if (!map.get(col, row)?.sink) break;
+    run += TILE;
+  }
+  return Math.min(run, cap);
+}
+
+// a character sunk `sunk` px into a liquid (a tile with sink, tiles.js), its feet's middle at x,
+// surface and its body w px wide. draw() draws the character standing there. like swimming and wading
+// in most top down games, the tiles are the surface, so it's drawn that much lower, bobbing, and cut
+// off where it meets the surface at its feet: a ring round the body (a circle seen at the game's
+// angle), so the cut dips in the middle, along the front of the ring. in order:
+//   1. the back of the ring, behind the body
+//   2. the part under, seen through the liquid (clarity) in strips that wobble sideways, squashed a
+//      bit shorter (LIQUID.refract, config.js), and only over the map's liquid tiles so it never
+//      shows through the shore. being see-through, the liquid's own colour behind it tints it
+//   3. the part above, cut off along the front of the ring
+//   4. the front of the ring, then a glowing liquid's light on whoever's in it
+// it's all clipping on the canvas, so it works without the shaders (shaders.js) and on any picture or
+// the placeholder. push() and pop() round each clip, since they also put p5's colours back
+function drawInLiquid(liquid, x, surface, w, sunk, draw, map) {
+  const ctx = drawingContext;
+  const now = millis() / 1000;
+  const down = sunk + Math.sin(now * Math.PI * 2 * LIQUID.bobSpeed) * LIQUID.bob;
+  const rx = (w * LIQUID.ringWidth) / 2;
+  const ry = rx * LIQUID.ringSquash;
+  // px, past anything a character draws
+  const far = 500;
+  // everything above the surface (to = surface - far) or under it (to = surface + far)
+  const clipAt = (to) => {
+    ctx.beginPath();
+    ctx.moveTo(x - far, surface);
+    // through the bottom of the ring
+    ctx.ellipse(x, surface, rx, ry, 0, Math.PI, 0, true);
+    ctx.lineTo(x + far, surface);
+    ctx.lineTo(x + far, to);
+    ctx.lineTo(x - far, to);
+    ctx.clip();
+  };
+  const [r, g, b] = hexToRgb(liquid.surfaceColour); // particles.js
+  // the ring fades out over the last few px of coming out, rather than vanishing
+  const showing = Math.min(1, sunk / 6);
+  const ring = (from, to, alpha, weight) => {
+    noFill();
+    stroke(r, g, b, 255 * alpha * showing);
+    strokeWeight(weight);
+    arc(x, surface, rx * 2, ry * 2, from, to);
+  };
+
+  ring(Math.PI, Math.PI * 2, 0.3, 1);
+  if (liquid.clarity > 0) {
+    push();
+    ctx.beginPath();
+    for (let col = map.colAt(x - w); col <= map.colAt(x + w); col++) {
+      for (let row = map.rowAt(surface); row <= map.rowAt(surface + sunk); row++) {
+        if (map.get(col, row)?.sink) ctx.rect(col * TILE, row * TILE, TILE, TILE);
+      }
+    }
+    ctx.clip();
+    clipAt(surface + far);
+    ctx.globalAlpha *= liquid.clarity;
+    for (let top = surface; top < surface + sunk; top += LIQUID.strip) {
+      push();
+      ctx.beginPath();
+      ctx.rect(x - far, top, far * 2, LIQUID.strip);
+      ctx.clip();
+      // whole px, so the art stays sharp. the wave moves down from the surface
+      translate(Math.round(Math.sin(now * 4 - (top - surface) * 0.5) * LIQUID.wobble), surface);
+      scale(1, LIQUID.refract);
+      translate(0, down - surface);
+      draw();
+      pop();
+    }
+    pop();
+  }
+  push();
+  clipAt(surface - far);
+  translate(0, down);
+  draw();
+  pop();
+  ring(0, Math.PI, 0.85, 1.5);
+
+  if (!liquid.glow) return;
+  push();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.translate(x, surface);
+  ctx.scale(rx * 1.1, rx * 0.9);
+  const light = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+  light.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.25 * showing})`);
+  light.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+  ctx.fillStyle = light;
+  ctx.beginPath();
+  ctx.arc(0, 0, 1, 0, Math.PI * 2);
+  ctx.fill();
+  pop();
 }
 
 // ---------- remains ----------

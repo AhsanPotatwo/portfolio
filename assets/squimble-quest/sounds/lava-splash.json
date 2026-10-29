@@ -1,0 +1,13 @@
+{
+  "wave": "pink",
+  "pitch": 500,
+  "attack": 3,
+  "sustain": 60,
+  "decay": 450,
+  "crackle": 90,
+  "crackleLength": 25,
+  "crackleDepth": 70,
+  "lowPass": 60,
+  "lowPassSweep": -30,
+  "volume": 90
+}

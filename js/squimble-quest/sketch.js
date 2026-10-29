@@ -461,7 +461,7 @@ function draw() {
     drawWorld(gameCamera, worldMap, Debug.shows('grid'));
     // particles lying on the floor go under everything (particles.js)
     const view = gameCamera.view();
-    Particles.drawFloor(view);
+    Particles.drawFloor(view, worldMap);
     // shaders like Sun tell what's standing on the ground by what changes from here... (shaders.js)
     Shaders.capture('ground');
     // sort by feet so whatever's lower on screen is in front. drops sort by their shadow (even while

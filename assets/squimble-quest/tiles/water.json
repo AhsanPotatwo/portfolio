@@ -1,5 +1,23 @@
 {
   "colour": "#3b7dd8",
-  "solid": true,
-  "seeThrough": true
+  "speed": 0.6,
+  "particles": [
+    "water-glints"
+  ],
+  "stepSounds": [
+    "wade"
+  ],
+  "stepVolume": 0.8,
+  "sink": 0.4,
+  "clarity": 0.45,
+  "surfaceColour": "#d6ecff",
+  "splashParticles": [
+    "water-splash"
+  ],
+  "rippleParticles": [
+    "water-ripple"
+  ],
+  "splashSounds": [
+    "splash"
+  ]
 }

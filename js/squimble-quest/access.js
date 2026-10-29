@@ -20,6 +20,9 @@
 const SOUND_CAPTIONS = {
   'grass-step': 'Footsteps',
   'dirt-step': 'Footsteps',
+  wade: 'Wading',
+  splash: 'Splash',
+  'lava-splash': 'Lava splash',
 };
 
 const CAPTIONS = {

@@ -2,7 +2,7 @@
 // have to edit the tile files (tiles.js) by hand.
 //   - New (in the inspector on the Tiles tab) opens a box for a new tile. right clicking a tile in
 //     the palette (or Edit) opens it for one that already exists
-//   - the tabs are Look, then TILE_BEHAVIOURS' tabs (Behaviours, Effects, Sounds, Footsteps), then Dual grid
+//   - the tabs are Look, then TILE_BEHAVIOURS' tabs (Behaviours, Effects, Sounds, Footsteps, Liquid), then Dual grid
 //     (blendsWith). settings with lots of choices (particles, which tiles blend onto it) are one row
 //     each with a list that drops down (MultiPicker in formbox.js), so the tabs never spill over
 //   - the Look tab has its name, kind, colour and texture, and for normal tiles more pictures:
@@ -66,6 +66,15 @@ const TILE_BEHAVIOURS = [
   { tab: 'Footsteps', key: 'stepPitch', label: 'Pitch', after: '% of normal', scale: 100, field: (value) => new NumberField({ w: 90, value, min: 10, max: 400 }), tip: 'Higher and shorter over 100, lower and longer under. Lets one step sound do for a few materials' },
   { tab: 'Footsteps', key: 'stepPitchVariety', label: 'Pitch varies', after: '%', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 50 }), tip: 'Each step plays up to this much higher or lower, so they never sound exactly the same' },
   { tab: 'Footsteps', key: 'stepRange', label: 'Heard from', after: 'tiles', field: (value) => new NumberField({ w: 90, value, max: 50 }), tip: "How far away enemies' and npcs' steps are heard. 0 uses each sound's own Heard from" },
+
+  // what wading in it looks like (drawInLiquid() in character.js). sink at most 90%, or the head goes under too
+  { tab: 'Liquid', key: 'sink', label: 'Sink in', after: '% of height', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 90 }), tip: 'Over 0 makes it a liquid: whoever walks in sinks this far. 40 is about the waist' },
+  { tab: 'Liquid', key: 'clarity', label: 'See through', after: '%', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 100 }), tip: 'How much of the part under shows, wobbling. 0 hides it (lava, mud)' },
+  { tab: 'Liquid', key: 'surfaceColour', label: 'Surface', field: (value) => new ColourField({ w: 180, value }), tip: 'The ring round whoever is in it, where they meet the surface' },
+  { tab: 'Liquid', key: 'glow', label: 'Glow', field: (value) => new Checkbox({ w: 180, value, label: 'lights up whoever is in it' }), tip: 'For lava: the ring glows, and so does whoever is in it from the surface up' },
+  { tab: 'Liquid', key: 'splashParticles', label: 'Splash', field: (value) => particleMultiPicker(value), tip: 'Particle effects when someone steps in' },
+  { tab: 'Liquid', key: 'rippleParticles', label: 'Ripples', field: (value) => particleMultiPicker(value), tip: "Particle effects round whoever's in it every so often, more often walking. They start on the surface" },
+  { tab: 'Liquid', key: 'splashSounds', label: 'Splash sound', field: (value) => soundMultiPicker(value), tip: 'One of these plays when someone steps in. Wading is Footsteps' },
 ];
 
 // the most rows on a tab. any more carry on in a numbered tab ("Effects 2"). the box is always this

@@ -57,8 +57,8 @@ const TILE_DEFAULTS = {
   oldNames: null,
   // can't be walked on (walls, deep water)
   solid: false,
-  // solid, but doesn't block seeing past it (water), so enemies can spot you across it (clearLine()
-  // in tilemap.js)
+  // solid, but doesn't block seeing past it (deep water, a chasm), so enemies can spot you across it
+  // (clearLine() in tilemap.js)
   seeThrough: false,
   // walking speed multiplier, 0.5 is half speed
   speed: 1,
@@ -109,6 +109,25 @@ const TILE_DEFAULTS = {
   stepPitchVariety: 0.1,
   // how many tiles away other people's steps are heard, or 0 for each sound's own Heard from
   stepRange: 0,
+
+  // ---------- liquids (water, lava, mud, slime...) ----------
+  // anything with a sink over 0 is a liquid: whoever's in it sinks in that much of their height (0.4
+  // is about the waist), shallower near the shore like a beach (Character.depthAt()), with the part
+  // under hidden or seen through it and a ring where they meet the surface (drawInLiquid() in
+  // character.js, LIQUID in config.js). make it slow (speed) or hurt (damagePerSecond) as well
+  sink: 0,
+  // how much of the part under shows through, wobbling: 0 hides it (lava, mud), 1 is clear
+  clarity: 0.4,
+  // the ring round whoever's in it, where they meet the surface
+  surfaceColour: '#ffffff',
+  // it gives off light (lava): the ring glows and so does whoever's in it, from the surface up
+  glow: false,
+  // particle effects (particles/): splash bursts when someone steps in, and ripple every so often
+  // round them while they're in it, more often walking. ripples lie flat on the surface
+  splashParticles: null,
+  rippleParticles: null,
+  // sounds (sounds/) for stepping in, one at random. wading is just stepSounds
+  splashSounds: null,
 };
 
 // does the dual grid tile `dual` round off onto `tile`? if not, it stops in a straight line at tile's

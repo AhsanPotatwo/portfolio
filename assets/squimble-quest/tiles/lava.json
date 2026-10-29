@@ -9,5 +9,22 @@
   "sounds": [
     "lava-bubbling",
     "lava-rumble"
+  ],
+  "stepSounds": [
+    "wade"
+  ],
+  "stepPitch": 0.55,
+  "sink": 0.3,
+  "clarity": 0,
+  "surfaceColour": "#ffd23f",
+  "glow": true,
+  "splashParticles": [
+    "lava-splash"
+  ],
+  "rippleParticles": [
+    "lava-ripple"
+  ],
+  "splashSounds": [
+    "lava-splash"
   ]
 }

@@ -94,6 +94,8 @@ const PARTICLE_SETTINGS = [
   { tab: 'Life', key: 'opacity', label: 'Opacity', normal: 100, min: 5, max: 100, step: 5, unit: '%', tip: 'How solid they are. Lower is more see-through' },
   { tab: 'Life', key: 'glow', label: 'Glow', normal: false, tick: 'light up what is behind', tip: 'Adds its colour onto what is behind instead of covering it, for sparks and magic' },
   { tab: 'Life', key: 'shadow', label: 'Shadow', normal: true, tick: 'on the floor while flying', tip: 'A little shadow under each one while it is in the air' },
+  // drawFloor() clips them to the map's liquid tiles. the editor's preview has no map, so shows them all
+  { tab: 'Life', key: 'onLiquid', label: 'Liquid only', normal: false, tick: 'only shows over liquids', tip: 'On the floor, it only shows over liquids (tiles that you sink into), so ripples stop at the shore' },
 
   // other effects, by name ('' for none). they come out of each particle's spot and height
   { tab: 'Chain', key: 'trail', label: 'Trail', normal: '', choices: particleEffectChoices, say: sayParticleEffect, art: (name, x, y, size) => drawParticleChoice(name, x, y, size), tip: 'Each one keeps bursting this behind it while it lasts, like sparks off a rocket' },
@@ -126,6 +128,12 @@ const PARTICLE_SHAPES = {
     path.arc(0, 0, 1, 0, Math.PI * 2);
     path.moveTo(0.55, 0);
     path.arc(0, 0, 0.55, 0, Math.PI * 2);
+  }) },
+  // a thin ring, for ripples. stretched wide (stretch), it lies flat on the floor like a liquid's surface
+  ripple: { say: 'ripples', path: particlePath((path) => {
+    path.arc(0, 0, 1, 0, Math.PI * 2);
+    path.moveTo(0.86, 0);
+    path.arc(0, 0, 0.86, 0, Math.PI * 2);
   }) },
   plus: { say: 'pluses', path: particlePath([[-0.35, -1], [0.35, -1], [0.35, -0.35], [1, -0.35], [1, 0.35], [0.35, 0.35], [0.35, 1], [-0.35, 1], [-0.35, 0.35], [-1, 0.35], [-1, -0.35], [-0.35, -0.35]]) },
   // a thin line, turned to point the way it's flying (update()) instead of spinning
@@ -454,12 +462,33 @@ class ParticleSystem {
   // the ones lying on the floor, in world positions (inside camera.begin/end). they go under
   // everything else, and flying ones get sorted in with the characters (drawFlyingWith()). view is
   // the camera's (camera.view()) so ones off the screen get skipped, or leave it out for all of them
-  drawFloor(view) {
+  drawFloor(view, map) {
     const batch = this.beginDrawing();
+    let onLiquid = false;
     for (const p of this.list) {
-      if (p.z <= 0 && this.onScreen(p, view)) this.drawOne(p, batch);
+      if (p.z > 0 || !this.onScreen(p, view)) continue;
+      if (p.effect.onLiquid && map) onLiquid = true;
+      else this.drawOne(p, batch);
     }
     this.endDrawing(batch);
+    if (!onLiquid) return;
+    // the ones that only show over liquids (ripples) go in a second run, clipped to the liquid tiles
+    // on screen, so they stop at the shore
+    const ctx = drawingContext;
+    ctx.save();
+    ctx.beginPath();
+    for (let row = map.rowAt(view.top); row <= map.rowAt(view.bottom); row++) {
+      for (let col = map.colAt(view.left); col <= map.colAt(view.right); col++) {
+        if (map.get(col, row)?.sink) ctx.rect(col * TILE, row * TILE, TILE, TILE);
+      }
+    }
+    ctx.clip();
+    const liquid = this.beginDrawing();
+    for (const p of this.list) {
+      if (p.z <= 0 && p.effect.onLiquid && this.onScreen(p, view)) this.drawOne(p, liquid);
+    }
+    this.endDrawing(liquid);
+    ctx.restore();
   }
 
   // the flying ones on screen, sorted in with `things` (each { y, draw() }, already sorted by y) so

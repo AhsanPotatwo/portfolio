@@ -164,7 +164,7 @@ function checkAi(ai, owner) {
 //
 //   noticing  it goes for the nearest player (nearestPlayer(), so it works with more than one) that
 //             it can either see or hear. seeing means within sightRange with no wall in between
-//             (clearLine() in tilemap.js. seeThrough tiles like water don't block it, and objects
+//             (clearLine() in tilemap.js. seeThrough tiles like deep water don't block it, and objects
 //             never do). hearing means within its hearing, even through walls
 //   alerting  the moment it notices someone, any allies within its alertRange that aren't already
 //             after someone get told too, even through walls. this only happens when it notices you

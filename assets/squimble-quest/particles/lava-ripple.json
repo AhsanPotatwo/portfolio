@@ -1,0 +1,23 @@
+{
+  "count": 1,
+  "countRandom": 0,
+  "area": 0,
+  "speed": 0,
+  "jumpHeight": 0,
+  "gravity": 0,
+  "hitsWalls": false,
+  "shape": "ripple",
+  "size": 16,
+  "sizeRandom": 10,
+  "endSize": 160,
+  "stretch": 230,
+  "colour": "#ffd23f",
+  "colour2": "#ff9a3a",
+  "lifetime": 1.5,
+  "lifetimeRandom": 15,
+  "fadeTime": 1.2,
+  "opacity": 40,
+  "glow": true,
+  "shadow": false,
+  "onLiquid": true
+}

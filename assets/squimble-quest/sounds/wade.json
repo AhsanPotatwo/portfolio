@@ -1,0 +1,12 @@
+{
+  "wave": "sine",
+  "pitch": 260,
+  "slide": 120,
+  "attack": 2,
+  "sustain": 15,
+  "decay": 90,
+  "hiss": 45,
+  "lowPass": 70,
+  "volume": 55,
+  "range": 6
+}

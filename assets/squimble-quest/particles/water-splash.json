@@ -1,0 +1,17 @@
+{
+  "count": 10,
+  "countRandom": 3,
+  "area": 14,
+  "speed": 45,
+  "jumpHeight": 18,
+  "gravity": 700,
+  "bounce": 0,
+  "hitsWalls": false,
+  "size": 2,
+  "colour": "#e6f4ff",
+  "colour2": "#9cc8f0",
+  "lifetime": 0.6,
+  "fadeTime": 0.2,
+  "opacity": 85,
+  "shadow": false
+}

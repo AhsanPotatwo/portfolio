@@ -19,7 +19,7 @@
 //   crowdCosts()     here        what the other characters are about to do, as extra cost on tiles
 //   checkStuck()     here        noticing when it's stuck, and deciding who gives way (goesFirst())
 //   drawEnemyPlans() here        dev mode's view of all of this (sketch.js draws it, P turns it on/off)
-//   clearLine()      tilemap.js  line of sight, for sensePlayer(). seeThrough tiles (water) don't block it
+//   clearLine()      tilemap.js  line of sight, for sensePlayer(). seeThrough tiles (deep water) don't block it
 //
 // ---------- one frame ----------
 //
@@ -78,7 +78,7 @@
 // (stepCost()). a route that would kill it, or leave it with less than PATH_SAFETY of its health,
 // counts as a wall, even for reckless. so one already that low won't take any harm at all, but still
 // walks harmless tiles. that margin is there because the walk never goes exactly like
-// the plan. if there's no way at all (water in between, or the search ran out) it goes to the closest
+// the plan. if there's no way at all (walls all round, or the search ran out) it goes to the closest
 // free tile it found that isn't lava and waits there, labelled "(no way)". diagonal steps never cut
 // past a wall corner (the feet would catch on it), or past a tile that's worse to stand on than
 // either end (it'd brush the lava next to its route).

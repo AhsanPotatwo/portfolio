@@ -26,5 +26,10 @@
   "fireflies",
   "motes",
   "ghost-lights",
-  "steam"
+  "steam",
+  "water-splash",
+  "water-ripple",
+  "water-glints",
+  "lava-splash",
+  "lava-ripple"
 ]

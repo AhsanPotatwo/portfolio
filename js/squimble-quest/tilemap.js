@@ -159,7 +159,7 @@ class TileMap {
   }
 
   // can you see from one world point to the other? solid tiles block it unless they're seeThrough
-  // (water), and so do empty and off-map ones. objects don't because furniture is low. it checks every
+  // (deep water), and so do empty and off-map ones. objects don't because furniture is low. it checks every
   // quarter of a tile, so it can sneak between two walls touching at a corner. used for enemies'
   // sight (sensePlayer() in enemies.js)
   clearLine(x1, y1, x2, y2) {

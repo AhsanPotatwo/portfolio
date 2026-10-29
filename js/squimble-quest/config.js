@@ -153,6 +153,34 @@ const FOOTSTEPS = {
   othersVolume: 0.6,
 };
 
+// how everyone sits in liquids, for every liquid (a tile's sink and the rest, tiles.js). what each
+// liquid looks like is its tile's; this is how it moves (Character.checkTile(), drawInLiquid() in
+// character.js)
+const LIQUID = {
+  // how quickly it sinks in or comes out (an approach() speed, utils.js). 10 is most of the way in
+  // a fifth of a second, so the edge of a lake reads as wading in rather than a step down
+  sinkSpeed: 10,
+  // px from the shore it takes to get to a liquid's full depth, from the moment the whole body's in
+  // (Character.depthAt()), like walking down a beach. smaller is a steeper bank
+  shore: 24,
+  // the surface bobs up and down this many px, this many times a second
+  bob: 1,
+  bobSpeed: 0.4,
+  // the part under shows in strips this many px tall, each pushed sideways up to wobble px, like the
+  // surface bending it. lower strips are more work for every character in a liquid
+  strip: 2,
+  wobble: 1.5,
+  // the part under looks this much shorter, since water makes things look shallower than they are
+  refract: 0.85,
+  // the surface ring is this many times as wide as the body, and this much as tall as it's wide
+  // (it's a circle seen from above at the game's angle)
+  ringWidth: 1.5,
+  ringSquash: 0.35,
+  // seconds between ripples standing still, and how many times as often while moving
+  rippleEvery: 1.3,
+  rippleWalking: 5,
+};
+
 const PLAYER = {
   // for warnings about its pictures (prepareArt() in utils.js, from preload() in sketch.js)
   name: 'player',

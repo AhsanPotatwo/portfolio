@@ -31,5 +31,8 @@
   "lava-bubbling",
   "lava-rumble",
   "grass-step",
-  "dirt-step"
+  "dirt-step",
+  "wade",
+  "splash",
+  "lava-splash"
 ]

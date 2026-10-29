@@ -121,6 +121,9 @@ const MAX_SHADER_LIGHTS = 32;
 // the most things that cast shadows at once (Shaders.casters()), the closest to the middle of the
 // screen. a burst of particles is a lot of them
 const MAX_SHADER_CASTERS = 128;
+// the Pixel lock shader: how many art px a tile is across. 32, the squimble's (32 x 64 parts, a game
+// px each), which the pixel size is going by. the 16 px stand-in tiles' pixels are 2 x 2 of them
+const SHADER_PIXEL_LOCK = 32;
 // the localStorage key for which one's on
 const SHADER_STORAGE_KEY = 'sq-dev-shader';
 
@@ -574,6 +577,22 @@ vec3 effect() {
   float l = clamp(luma(c) * 1.15 + (bayer[i] / 16.0 - 0.5) * 0.3, 0.0, 0.999);
   vec3 greens[4] = vec3[](vec3(0.06, 0.22, 0.06), vec3(0.19, 0.38, 0.19), vec3(0.55, 0.67, 0.06), vec3(0.61, 0.74, 0.06));
   return greens[int(l * 4.0)];
+}`,
+  },
+
+  {
+    // every art pixel (a tile is SHADER_PIXEL_LOCK of them across) is one block of colour stuck to the
+    // ground, so nothing's drawn off the art's grid: characters, swings, particles and anything not
+    // drawn as pixel art all snap to it, and no pixel's ever half one colour and half another
+    name: 'pixellock', label: 'Pixel lock', note: `everything snapped to the art's pixels, ${SHADER_PIXEL_LOCK} a tile`,
+    uniforms: () => ({ u_artPx: TILE / SHADER_PIXEL_LOCK }),
+    glsl: `
+uniform float u_artPx;
+vec3 effect() {
+  // the colour in the middle of the art pixel this screen pixel's in. texelFetch() takes that one
+  // pixel as it is, since scene() smooths between pixels and the middle can be right on an edge
+  vec2 uv = toUv(toGame((floor(worldPos / u_artPx) + 0.5) * u_artPx));
+  return texelFetch(u_scene, ivec2(uv * vec2(textureSize(u_scene, 0))), 0).rgb;
 }`,
   },
 

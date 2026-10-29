@@ -468,7 +468,7 @@ class MeleeSwing {
   }
 
   // no wall between the owner's feet and the target's: the same walls that stop arrows (clearLine() in
-  // tilemap.js), so not water. feet, not middles, since a head pokes up over the wall behind it
+  // tilemap.js), so not deep water. feet, not middles, since a head pokes up over the wall behind it
   clearTo(target, map) {
     const feet = (c) => c.y + feetBelowCentre(c.settings); // character.js
     return map.clearLine(this.owner.x, feet(this.owner), target.x, feet(target));
@@ -634,7 +634,7 @@ class Jab extends MeleeSwing {
 const ARROW = { length: 18, checkEvery: 8, stickTime: 1.5, shaft: '#8b5a2b' };
 
 // one arrow from a "shoot" weapon. it flies from the owner's middle towards where they were aiming,
-// hits the first target it touches, and stops at walls (tiles that block sight, so it flies over water
+// hits the first target it touches, and stops at walls (tiles that block sight, so it flies over deep water
 // like enemies see over it). it drops as it nears its reach and lands there. top down like particles
 // (particles.js): x, y is its spot on the floor and height is how far above that it is, so it's drawn
 // height px up the screen with its shadow on the floor. Character.attack() (character.js) makes it,
