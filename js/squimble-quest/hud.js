@@ -62,7 +62,8 @@ function drawNoMapsMessage() {
   text(lines[2], GAME_W / 2, GAME_H - 18);
 }
 
-// shown until the game gets clicked, since it doesn't get any input before then (input.js)
+// shown until the game gets clicked, since it doesn't get any input before then (input.js), and again
+// after leaving full screen (setup() in sketch.js)
 function drawClickToPlay() {
   // darken the game
   noStroke();
@@ -76,7 +77,7 @@ function drawClickToPlay() {
   setText(18, NORMAL);
   text('Move with WASD or the arrow keys, aim with the mouse, click to attack', GAME_W / 2, GAME_H / 2 + 24);
   setText(14, NORMAL);
-  text(`${keyName(KEYS.fullscreen[0])} for full screen`, GAME_W / 2, GAME_H / 2 + 54);
+  text('Plays in full screen', GAME_W / 2, GAME_H / 2 + 54);
 }
 
 // takes the place of the mouse cursor while playing (the real one is hidden in squimble-quest.css).

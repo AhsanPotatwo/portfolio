@@ -98,17 +98,18 @@ function setup() {
   new ResizeObserver(fitResolution).observe(canvas.elt.parentElement);
   // the full screen button in the bar under the game (squimble-quest.html). F does it too (draw())
   document.getElementById('sqFullscreen')?.addEventListener('click', toggleFullscreen);
-  // the "full screen" message (toggleFullscreen()) is out of date once it's left, however it was left
-  document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement) hudMessage = null; // hud.js
+  // the game's only played full screen, since people would take the small one on the page as how it's
+  // meant to look. clicking or tabbing to it goes full screen (enterFullscreen()), and leaving lets go
+  // of it, back to "Click to play" (hud.js), pausing like switching tab does
+  canvas.elt.addEventListener('focus', () => {
+    if (!document.fullscreenElement) enterFullscreen();
   });
-  // the page sizes the game to fit the window (squimble-quest.css), so clicking to play brings all of
-  // it into view if it's partly scrolled off. centred below the sticky header (the page's
-  // scroll-padding-top, styles.css)
-  const frame = canvas.elt.closest('.sq-game-frame');
-  canvas.elt.addEventListener('pointerdown', () => {
-    const edges = frame.getBoundingClientRect();
-    if (!Input.focused && (edges.top < 0 || edges.bottom > window.innerHeight)) frame.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  document.addEventListener('fullscreenchange', () => {
+    if (document.fullscreenElement) return;
+    // the "full screen" message is out of date once it's left, however it was left
+    hudMessage = null; // hud.js
+    canvas.elt.blur();
+    PauseMenu.leave();
   });
   // keeps pixel art sharp when it's scaled up. p5 keeps it when fitResolution() changes the resolution
   noSmooth();
@@ -196,27 +197,30 @@ function fitResolution() {
   if (Math.abs(density - pixelDensity()) > 0.001) pixelDensity(density);
 }
 
-// full screen on and off, for the frame round the game, which then fills the screen with the game in
-// the middle, black bars if the monitor isn't 16:9 (squimble-quest.css). the browser only allows it
-// just after a click or key press, which the button under the game and F always are.
+// full screen on and off, from the button under the game and F. the button took the keyboard, so
+// focusing the game gives it back, and goes full screen (setup())
+function toggleFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else drawingContext.canvas.focus();
+}
+
+// full screen for the frame round the game, which then fills the screen with the game in the middle,
+// black bars if the monitor isn't 16:9 (squimble-quest.css). the browser only allows it just after a
+// click or key press, and if it says no the game lets go of the keyboard, back to "Click to play".
 // Escape normally leaves full screen straight away, but the editor's boxes use it too (formbox.js,
 // soundeditor.js, warpgraph.js), so in browsers that can (Chrome, Edge) the keyboard lock keeps a tap of
 // Escape for the game and holding it leaves (the browser says so at the top). others leave on a tap
-function toggleFullscreen() {
+function enterFullscreen() {
   const canvas = drawingContext.canvas;
-  // the button took the keyboard, so give it back to the game. this also starts the game if it was
-  // waiting for a click
-  canvas.focus();
-  if (document.fullscreenElement) {
-    document.exitFullscreen();
-    return;
-  }
   canvas.closest('.sq-game-frame').requestFullscreen()
     .then(() => {
       navigator.keyboard?.lock(['Escape']).catch(() => {});
       showMessage(`Full screen. Press ${keyName(KEYS.fullscreen[0])} or ${navigator.keyboard ? 'hold' : 'press'} Esc to leave`); // hud.js
     })
-    .catch(() => showMessage("The browser didn't allow full screen"));
+    .catch(() => {
+      canvas.blur();
+      showMessage("The browser didn't allow full screen, which the game needs");
+    });
 }
 
 // goes to map `name` (MAPS, maps.js), arriving on warp `warpName` (warps.js), or on the map's spawn

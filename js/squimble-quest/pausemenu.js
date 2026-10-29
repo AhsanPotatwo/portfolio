@@ -62,15 +62,19 @@ const PauseMenu = {
   active: false,
   // the action waiting for a key to be pressed, or null
   waitingFor: null,
-  // set when you switch window or tab with pauseWhenAway on, and sketch.js opens the menu
+  // set when you switch window or tab, or leave full screen (sketch.js), with pauseWhenAway on, and
+  // sketch.js opens the menu
   away: false,
+
+  // not in the editor, or with the menu already open (resuming would open it again)
+  leave() {
+    if (GAME_SETTINGS.pauseWhenAway && !this.active && !Editor.active) this.away = true;
+  },
 
   // puts the saved settings in place. runs at the start of setup(), before the keys are listened for
   load() {
-    // not in the editor, or with the menu already open (resuming would open it again)
-    const leave = () => { if (GAME_SETTINGS.pauseWhenAway && !this.active && !Editor.active) this.away = true; };
-    window.addEventListener('blur', leave);
-    document.addEventListener('visibilitychange', () => { if (document.hidden) leave(); });
+    window.addEventListener('blur', () => this.leave());
+    document.addEventListener('visibilitychange', () => { if (document.hidden) this.leave(); });
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem(PAUSE_STORAGE_KEY)); } catch (e) {}
     if (saved && typeof saved === 'object') this.use(saved);
