@@ -58,13 +58,14 @@ Every tile in the game is its own file in this folder, named after it (`lava.jso
    - **Liquid** (water, lava, mud, slime: anything you wade into)
      - **Sink in**: over 0% makes it a liquid. Whoever walks in sinks this much of their height (40% is about the waist), with a ring round them where they meet the surface. Near the shore it's shallower, like a beach: nobody sinks until all of them is in, and they reach the full depth a little way from every edge, so they never look sunk into the ground beside it. Leave it solid off, and add **Speed** and **Damage** for wading slowly or getting burnt.
      - **See through**: how much of the part under the surface shows, wobbling as if the surface bends it. 0% hides it (lava, mud), 100% is clear. It only shows over tiles of the liquid, never through the shore.
-     - **Surface**: the colour of the ring round whoever's in it.
+     - **Surface**: the colour of the ring round whoever's in it, and of their wake.
      - **Glow**: for liquids that give off light, like lava. The ring glows and so does whoever's in it, from the surface up.
+     - **Wake**: how strong the V that opens out behind whoever wades through it is. 100% is normal, lower is fainter (lava's is 50%, since it's thick), 0% is none. Everyone makes one, enemies too, stronger the faster they go, and it stops at the shore.
      - **Splash**: particle effects when someone steps in, like water's **water-splash**.
-     - **Ripples**: particle effects round whoever's in it every so often, more often while they walk (a wake), like **water-ripple**. Ripple shaped particles stretched wide (**Stretch** over 200%) lie flat on the surface, and ticking **Liquid only** (the particle editor's **Life** tab) stops them at the shore.
-     - **Splash sound**: one of these plays when someone steps in. Wading is the **Footsteps** tab, like water's **wade** (lava uses it at 55% pitch).
+     - **Ripples**: particle effects round whoever's standing in it every so often (walking, the wake takes over, with one ripple just after stopping), like **water-ripple**. Ripple shaped particles stretched wide (**Stretch** over 200%) lie flat on the surface, and ticking **Liquid only** (the particle editor's **Life** tab) stops them at the shore.
+     - **Splash sound** (**Liquid 2**): one of these plays when someone steps in. Wading is the **Footsteps** tab, like water's **wade** (lava uses it at 55% pitch).
 
-     How quickly everyone sinks, how far from the shore it gets to full depth, how much the surface bobs and wobbles and how often ripples come are `LIQUID` in [`config.js`](../../../js/squimble-quest/config.js), the same for every liquid.
+     How quickly everyone sinks, how far from the shore it gets to full depth, how much the surface bobs and wobbles and how often ripples come are `LIQUID` in [`config.js`](../../../js/squimble-quest/config.js), the same for every liquid. How the wakes look (how wide they open, how long they last, how thick and see-through they are) is `WAKE` at the top of [`wakes.js`](../../../js/squimble-quest/wakes.js).
 
    - **Dual grid**
      - **Blends**: which dual grid tiles (like grass) round off onto this tile. **every dual grid tile** includes ones made later. **only the ticked ones** lets you untick the ones that look wrong in **Ticked** (click it for the list): they stop in a straight line at this tile's edge instead. Good for planks, walls and roofs; leave it on for natural ground like dirt.

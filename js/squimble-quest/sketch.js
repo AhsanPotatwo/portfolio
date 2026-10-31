@@ -18,6 +18,7 @@
 //   npcs.js       npc kinds and what they say
 //   weapons.js    weapons, their swings and arrows
 //   particles.js  particle effects: bits that fly up, fall and fade (blood when something's hit)
+//   wakes.js      the V behind whoever wades through a liquid
 //   items.js      item kinds and their weapons, from items/
 //   tilemap.js    a tile map: storing, drawing, resizing, collision
 //   maps.js       start map, visited maps
@@ -245,6 +246,7 @@ function loadMap(name, warpName = '') {
   // particles are just for show, so the last map's are forgotten (particles.js), and so are its arrows
   if (!sameMap) {
     Particles.clear();
+    Wakes.clear(); // wakes.js
     DamageNumbers.clear(); // weapons.js
     Remains.clear(); // character.js
     arrows = [];
@@ -445,6 +447,7 @@ function draw() {
   if (!paused) {
     Atmosphere.update(worldMap, dt, Editor.active ? gameCamera : { x: player.x, y: player.y + feetBelowCentre(PLAYER) });
     Particles.update(dt, worldMap);
+    Wakes.update(dt); // wakes.js
     DamageNumbers.update(dt);
     Remains.update(dt); // character.js
   }
@@ -459,8 +462,9 @@ function draw() {
   if (!WarpGraph.active && !SoundEditor.active) {
     gameCamera.begin();
     drawWorld(gameCamera, worldMap, Debug.shows('grid'));
-    // particles lying on the floor go under everything (particles.js)
+    // wakes on liquids, then particles lying on the floor, go under everything (wakes.js, particles.js)
     const view = gameCamera.view();
+    Wakes.draw(view, worldMap);
     Particles.drawFloor(view, worldMap);
     // shaders like Sun tell what's standing on the ground by what changes from here... (shaders.js)
     Shaders.capture('ground');

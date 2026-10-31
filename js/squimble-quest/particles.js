@@ -476,13 +476,7 @@ class ParticleSystem {
     // on screen, so they stop at the shore
     const ctx = drawingContext;
     ctx.save();
-    ctx.beginPath();
-    for (let row = map.rowAt(view.top); row <= map.rowAt(view.bottom); row++) {
-      for (let col = map.colAt(view.left); col <= map.colAt(view.right); col++) {
-        if (map.get(col, row)?.sink) ctx.rect(col * TILE, row * TILE, TILE, TILE);
-      }
-    }
-    ctx.clip();
+    map.clipToLiquid(view); // tilemap.js
     const liquid = this.beginDrawing();
     for (const p of this.list) {
       if (p.z <= 0 && p.effect.onLiquid && this.onScreen(p, view)) this.drawOne(p, liquid);

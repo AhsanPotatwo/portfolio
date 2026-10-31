@@ -157,9 +157,11 @@ const FOOTSTEPS = {
 // liquid looks like is its tile's; this is how it moves (Character.checkTile(), drawInLiquid() in
 // character.js)
 const LIQUID = {
-  // how quickly it sinks in or comes out (an approach() speed, utils.js). 10 is most of the way in
+  // how quickly it sinks in (an approach() speed, utils.js). 10 is most of the way in
   // a fifth of a second, so the edge of a lake reads as wading in rather than a step down
   sinkSpeed: 10,
+  // and coming out, quicker, so it's up out of it by the time it's on the shore even rolling out
+  riseSpeed: 30,
   // px from the shore it takes to get to a liquid's full depth, from the moment the whole body's in
   // (Character.depthAt()), like walking down a beach. smaller is a steeper bank
   shore: 24,
@@ -176,9 +178,12 @@ const LIQUID = {
   // (it's a circle seen from above at the game's angle)
   ringWidth: 1.5,
   ringSquash: 0.35,
-  // seconds between ripples standing still, and how many times as often while moving
+  // seconds between ripples standing still, and before the first one after stopping. moving makes a
+  // wake instead (WAKE in wakes.js), and moving without making one (a liquid with no wake) ripples
+  // this many times as often
   rippleEvery: 1.3,
-  rippleWalking: 5,
+  rippleStopping: 0.25,
+  rippleMoving: 3,
 };
 
 const PLAYER = {

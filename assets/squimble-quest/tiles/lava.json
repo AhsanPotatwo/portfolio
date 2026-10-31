@@ -18,6 +18,7 @@
   "clarity": 0,
   "surfaceColour": "#ffd23f",
   "glow": true,
+  "wake": 0.5,
   "splashParticles": [
     "lava-splash"
   ],

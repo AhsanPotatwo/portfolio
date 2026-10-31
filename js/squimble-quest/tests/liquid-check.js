@@ -1,6 +1,6 @@
 // checks liquids (a tile's sink and the rest in tiles.js, Character.inLiquid() in character.js,
 // LIQUID in config.js): sinking in eases, one splash stepping in however many tiles you wade
-// through, ripples more often walking than standing, coming back out, and starting in one without a
+// through, a wake walking and ripples standing, coming back out, and starting in one without a
 // splash. run it with node js/squimble-quest/tests/liquid-check.js
 // no output means it all passed
 const assert = require('assert');
@@ -8,8 +8,12 @@ const { loadFighting } = require('./load');
 
 const bursts = [];
 const played = [];
+const followed = new Set();
+// how much wake Wakes.follow() says it's making
+let waking = 1;
 const game = loadFighting({
   Particles: { burst: (effect) => bursts.push(effect) },
+  Wakes: { follow: (owner) => followed.add(owner) && waking },
   SOUNDS: { splash: { name: 'splash' } },
   playSound: (sound) => played.push(sound.name),
 });
@@ -49,14 +53,22 @@ assert(Math.abs(c.sink - 0.4) < 0.01, `it settles at the tile's sink (${c.sink})
 assert.strictEqual(count(bursts, 'drops'), 1, 'one splash stepping in, none tile to tile');
 assert.deepStrictEqual(played, ['splash'], 'one splash sound');
 
-// ripples: more a second walking than standing
+// ripples: none walking, where the wake is (wakes.js), one just after stopping, then every so often
 bursts.length = 0;
 c.step(right, 2);
-const walking = count(bursts, 'ring');
+assert.strictEqual(count(bursts, 'ring'), 0, 'no ripples walking');
+assert(followed.has(c), 'walking in water makes a wake');
+c.step(STAND_STILL, game.LIQUID.rippleStopping + 0.05);
+assert.strictEqual(count(bursts, 'ring'), 1, 'a ripple just after stopping');
+c.step(STAND_STILL, 3);
+assert(count(bursts, 'ring') >= 3, `ripples standing (${count(bursts, 'ring')})`);
+// moving without making a wake (spinning on the spot, or a liquid with none) ripples instead, more
+// often than standing
+waking = 0;
 bursts.length = 0;
-c.step(STAND_STILL, 2);
-const standing = count(bursts, 'ring');
-assert(standing >= 1 && walking > standing * 2, `ripples walking (${walking}) and standing (${standing})`);
+c.step(left, 2);
+assert(count(bursts, 'ring') >= 3, `ripples moving with no wake (${count(bursts, 'ring')})`);
+waking = 1;
 
 // back out onto the ground: it comes out, and remembers what it was in for drawing that
 while (c.x > TILE) c.step(left, 0.1);

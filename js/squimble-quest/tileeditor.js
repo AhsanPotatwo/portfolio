@@ -70,10 +70,11 @@ const TILE_BEHAVIOURS = [
   // what wading in it looks like (drawInLiquid() in character.js). sink at most 90%, or the head goes under too
   { tab: 'Liquid', key: 'sink', label: 'Sink in', after: '% of height', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 90 }), tip: 'Over 0 makes it a liquid: whoever walks in sinks this far. 40 is about the waist' },
   { tab: 'Liquid', key: 'clarity', label: 'See through', after: '%', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 100 }), tip: 'How much of the part under shows, wobbling. 0 hides it (lava, mud)' },
-  { tab: 'Liquid', key: 'surfaceColour', label: 'Surface', field: (value) => new ColourField({ w: 180, value }), tip: 'The ring round whoever is in it, where they meet the surface' },
+  { tab: 'Liquid', key: 'surfaceColour', label: 'Surface', field: (value) => new ColourField({ w: 180, value }), tip: 'The ring round whoever is in it, where they meet the surface, and their wake' },
   { tab: 'Liquid', key: 'glow', label: 'Glow', field: (value) => new Checkbox({ w: 180, value, label: 'lights up whoever is in it' }), tip: 'For lava: the ring glows, and so does whoever is in it from the surface up' },
+  { tab: 'Liquid', key: 'wake', label: 'Wake', after: '%', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 200 }), tip: 'How strong the V behind whoever wades through it is, in the surface colour. Lower for thick liquids like lava, 0 for none' },
   { tab: 'Liquid', key: 'splashParticles', label: 'Splash', field: (value) => particleMultiPicker(value), tip: 'Particle effects when someone steps in' },
-  { tab: 'Liquid', key: 'rippleParticles', label: 'Ripples', field: (value) => particleMultiPicker(value), tip: "Particle effects round whoever's in it every so often, more often walking. They start on the surface" },
+  { tab: 'Liquid', key: 'rippleParticles', label: 'Ripples', field: (value) => particleMultiPicker(value), tip: "Particle effects round whoever's standing in it every so often. They start on the surface" },
   { tab: 'Liquid', key: 'splashSounds', label: 'Splash sound', field: (value) => soundMultiPicker(value), tip: 'One of these plays when someone steps in. Wading is Footsteps' },
 ];
 

@@ -405,6 +405,19 @@ class TileMap {
     return Math.floor(y / TILE);
   }
 
+  // clips what's drawn next to the liquid tiles (a sink over 0, tiles.js) in view (camera.view()), till
+  // drawingContext.restore(), so ripples and wakes (wakes.js) stop at the shore
+  clipToLiquid(view) {
+    const ctx = drawingContext;
+    ctx.beginPath();
+    for (let row = this.rowAt(view.top); row <= this.rowAt(view.bottom); row++) {
+      for (let col = this.colAt(view.left); col <= this.colAt(view.right); col++) {
+        if (this.get(col, row)?.sink) ctx.rect(col * TILE, row * TILE, TILE, TILE);
+      }
+    }
+    ctx.clip();
+  }
+
   // the map's edges, in world positions
   bounds() {
     return {

@@ -122,8 +122,11 @@ const TILE_DEFAULTS = {
   surfaceColour: '#ffffff',
   // it gives off light (lava): the ring glows and so does whoever's in it, from the surface up
   glow: false,
+  // how strong the V shaped wake behind whoever wades through it is (wakes.js): 1 is normal, lower is
+  // fainter (thick lava), 0 is none
+  wake: 1,
   // particle effects (particles/): splash bursts when someone steps in, and ripple every so often
-  // round them while they're in it, more often walking. ripples lie flat on the surface
+  // round them while they stand in it. ripples lie flat on the surface
   splashParticles: null,
   rippleParticles: null,
   // sounds (sounds/) for stepping in, one at random. wading is just stepSounds
