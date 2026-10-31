@@ -4,3 +4,6 @@ node_modules/
 .DS_Store
 Thumbs.db
 
+
+# the music maker report's source, kept out of the repo until it goes public
+js/squimble-music-maker/report/
