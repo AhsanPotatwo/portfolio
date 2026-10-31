@@ -161,6 +161,10 @@
       fetchComposer(fresh).then(() => { if (ticket === opening) open(next); }, () => say(COMPOSER_MISSING));
       return;
     }
+    // (a card dealt for every song after the first, and its score written in)
+    if (song) deal(dealWay);
+    dealWay = 1;
+    revealFrom = performance.now();
     song = fresh;
     if (!song.layers.some((layer) => layer.id === selected)) selected = (song.layers.find((layer) => layer.role === 'melody') || song.layers[0])?.id ?? null;
     changed();
@@ -170,6 +174,7 @@
   function step(from, to) {
     if (!from.length) return;
     to.push(JSON.stringify(song));
+    dealWay = from === undo ? -1 : 1;
     open(JSON.parse(from.pop()));
   }
 
@@ -261,6 +266,64 @@
   };
   const library = new SongLibrary();
 
+  // ---------- motion ----------
+  //
+  // a toy's: the song's card dealt off a deck, a new mood painted over the page from its swatch, the
+  // score written in, the play key and the card bobbing on the beat (frame()). the css has the rest.
+  // none of it with reduced motion, and nothing ever waits for any of it
+  const calm = matchMedia('(prefers-reduced-motion: reduce)');
+  const SPRING = getComputedStyle(document.body).getPropertyValue('--mm-spring').trim() || 'ease-out';
+  const OUT = 'cubic-bezier(.22,1,.36,1)';
+  const deck = $('.mm-deck');
+  const label = $('.mm-label');
+  // which way the old card goes: 1 for a new song, -1 for undo (the song comes back off the pile)
+  let dealWay = 1;
+  // when the score started being written in (drawScore)
+  let revealFrom = 0;
+  function deal(way) {
+    for (const old of deck.querySelectorAll('.is-ghost')) old.remove();
+    if (calm.matches) return;
+    // the old song's card, in the old mood's colour, thrown off the top and slipped under the deck
+    const ghost = label.cloneNode(true);
+    ghost.classList.add('is-ghost');
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.inert = true;
+    for (const one of ghost.querySelectorAll('[id]')) one.removeAttribute('id');
+    const look = getComputedStyle(label);
+    Object.assign(ghost.style, { background: look.backgroundColor, color: look.color, translate: '' });
+    deck.append(ghost);
+    ghost.animate([
+      { transform: 'none' },
+      { transform: `translate(${way * 58}%, -22px) rotate(${way * 10}deg)`, zIndex: 3, offset: 0.4 },
+      { zIndex: 0, offset: 0.41 },
+      { transform: `translate(${way * 5}px, 5px) rotate(${way * 3}deg) scale(.96)`, zIndex: 0, opacity: 0 },
+    ], { duration: 640, easing: 'cubic-bezier(.4,0,.2,1)' }).onfinish = () => ghost.remove();
+    // and the new song's comes up off the deck
+    label.animate([
+      { transform: 'translateY(8px) scale(.94)', filter: 'brightness(.9)' },
+      { transform: 'none', filter: 'none' },
+    ], { duration: 560, delay: 120, easing: SPRING, fill: 'backwards' });
+  }
+  // a change that recolours the page (a mood, dark mode) spreads over it in a circle from the key
+  // pressed, like paint, where the browser can (view transitions). painting counts the ones running, as
+  // a second skips the first
+  let painting = 0;
+  function paint(button, change) {
+    if (!document.startViewTransition || calm.matches) return change();
+    const box = button.getBoundingClientRect();
+    const x = box.left + box.width / 2;
+    const y = box.top + box.height / 2;
+    const root = document.documentElement;
+    root.classList.add('mm-painting');
+    painting++;
+    const turn = document.startViewTransition(change);
+    turn.ready.then(() => {
+      const reach = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
+      root.animate({ clipPath: [`circle(0 at ${x}px ${y}px)`, `circle(${reach}px at ${x}px ${y}px)`] }, { duration: 700, easing: 'cubic-bezier(.6,0,.2,1)', pseudoElement: '::view-transition-new(root)' });
+    }, () => {});
+    turn.finished.finally(() => { if (!--painting) root.classList.remove('mm-painting'); });
+  }
+
   // ---------- the tip line ----------
 
   const tipLine = $('#mmTip');
@@ -284,6 +347,7 @@
     clearTimeout(messageTimer);
     messageTimer = setTimeout(showTip, 5050);
     showTip();
+    if (!calm.matches) tipLine.animate([{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'none' }], { duration: 320, easing: SPRING });
   }
   const machine = $('#maker');
   const pointTo = (event) => {
@@ -303,7 +367,10 @@
   const WELCOMED_KEY = 'squimble-music-welcomed';
   try { $('#mmWelcome').hidden = !!localStorage.getItem(WELCOMED_KEY); } catch { /* storage off: shown */ $('#mmWelcome').hidden = false; }
   $('#mmWelcomeOk').addEventListener('click', () => {
-    $('#mmWelcome').hidden = true;
+    const card = $('#mmWelcome');
+    const away = () => { card.hidden = true; };
+    if (calm.matches) away();
+    else card.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(-8px) scale(.94)' }], { duration: 220, easing: 'ease-in' }).onfinish = away;
     try { localStorage.setItem(WELCOMED_KEY, '1'); } catch { /* shown again next time */ }
   });
 
@@ -331,6 +398,8 @@
   seedField.addEventListener('keydown', (event) => { if (event.key === 'Enter') useSeed(); });
 
   $('#mmNew').addEventListener('click', () => {
+    // (the dice roll)
+    if (!calm.matches) $('#mmNew svg').animate([{ transform: 'none' }, { transform: 'rotate(200deg) scale(1.35)', offset: 0.45 }, { transform: 'rotate(360deg)' }], { duration: 560, easing: OUT });
     remember();
     detach();
     open(generateSong(song.mood, song.style, newSeed(randomRng()), song.mods, song.flavour));
@@ -376,6 +445,11 @@
     keepDraft();
     renderTop();
     renderLibrary();
+    // (Save stamps it, and the song slides into its place in the library)
+    if (!calm.matches) {
+      $('#mmSave').animate([{ transform: 'none' }, { transform: 'scale(1.12) rotate(-3deg)', offset: 0.35 }, { transform: 'none' }], { duration: 420, easing: OUT });
+      $('#mmLibrary .is-open')?.animate([{ transform: 'translateX(-14px)', background: MOODS[song.mood].colour }, { transform: 'none' }], { duration: 700, easing: OUT });
+    }
     if (copy) say(`Saved a copy as "${entry.name}". The song you opened is as it was.`);
     else if (renamed) say(`Saved as "${entry.name}", since another song in your library has that name.`);
     else say(over ? `Saved "${entry.name}". The save before is in its history.` : `Saved "${entry.name}" to your library.`);
@@ -408,6 +482,11 @@
   const showGroup = (group) => {
     for (const button of groupKeys.children) button.setAttribute('aria-pressed', button.dataset.group === group);
     for (const button of moodKeys.children) button.hidden = MOODS[button.dataset.mood].group !== group;
+    // (dealt out one after another)
+    if (calm.matches) return;
+    [...moodKeys.children].filter((button) => !button.hidden).forEach((button, i) => {
+      button.animate([{ opacity: 0, transform: 'translateY(10px) scale(.92)' }, { opacity: 1, transform: 'none' }], { duration: 420, delay: i * 30, easing: SPRING, fill: 'backwards' });
+    });
   };
   for (const group of MOOD_GROUPS) {
     const moods = Object.values(MOODS).filter((one) => one.group === group).map((one) => one.name);
@@ -426,11 +505,11 @@
   };
   // (a mood opens in its plain flavour: a flavour belongs to its own mood)
   for (const [id, mood] of Object.entries(MOODS)) {
-    const button = key(mood.name, '', () => {
+    const button = key(mood.name, '', () => paint(button, () => {
       if (song.own) return retune(() => { song.mood = id; delete song.flavour; });
       remember();
       open(generateSong(id, keeps(song.style) ? song.style : mood.style, song.seed, song.mods));
-    }, 'mm-mood');
+    }), 'mm-mood');
     button.dataset.mood = id;
     button.style.setProperty('--c', mood.colour);
     button.style.setProperty('--c-ink', inkOn(mood.colour));
@@ -535,6 +614,40 @@
     return (lum + 0.05) / 0.061 >= 0.971 / (lum + 0.05) ? '#2b1508' : '#fff6d8';
   }
 
+  // the page's title a letter at a time (read out whole): each hops when pointed at, and clicked plays a
+  // note of the song's scale on its melody's instrument, each word running up the scale from its key
+  const title = $('.mm-title');
+  const titleText = title.textContent.trim();
+  let letters = 0;
+  title.replaceChildren(make('span', 'mm-visually-hidden', titleText), ...titleText.split(/\s+/).flatMap((word, w) => {
+    const box = make('span', 'mm-word');
+    box.setAttribute('aria-hidden', 'true');
+    box.append(...[...word].map((letter, step) => {
+      const one = make('span', 'mm-letter', letter);
+      one.dataset.step = step;
+      one.style.setProperty('--i', letters++);
+      return one;
+    }));
+    return w ? [' ', box] : [box];
+  }));
+  title.addEventListener('click', (event) => {
+    const letter = event.target.closest('.mm-letter');
+    const layer = song.layers.find((one) => one.role === 'melody') || song.layers.find((one) => roleFamily(one.role) === 'tonal');
+    if (!letter || !layer) return;
+    const { steps } = SCALES[song.scale];
+    const step = +letter.dataset.step;
+    try {
+      player.audition(song, layer, [60 + (song.key > 6 ? song.key - 12 : song.key) + steps[step % steps.length] + 12 * Math.floor(step / steps.length)], 1);
+    } catch { /* no web audio: it still hops */ }
+    if (!calm.matches) {
+      letter.animate([
+        { transform: 'none', easing: 'cubic-bezier(.2,.7,.4,1)' },
+        { transform: 'translateY(-.32em) rotate(-8deg)', offset: 0.35, easing: 'cubic-bezier(.5,0,.8,.4)' },
+        { transform: 'none' },
+      ], { duration: 480 });
+    }
+  });
+
   const playKey = $('#mmPlay');
   const loopKey = $('#mmLoop');
   const togglePlay = () => {
@@ -577,10 +690,13 @@
   darkKey.setAttribute('aria-pressed', document.body.classList.contains('is-dark'));
   darkKey.addEventListener('click', () => {
     const on = !document.body.classList.contains('is-dark');
-    setDark(on);
+    paint(darkKey, () => {
+      setDark(on);
+      // (the note editor's paper too, and the score now, not next frame, for the paint to show it)
+      renderPanel();
+      drawScore();
+    });
     try { localStorage.setItem(DARK_KEY, on ? '1' : ''); } catch { /* light again next time */ }
-    // (the note editor's paper too)
-    renderPanel();
   });
   const clickKey = $('#mmClick');
   clickKey.addEventListener('click', () => {
@@ -649,9 +765,11 @@
     const readings = [`bar ${bar}`, `${clock(at * secondsPerBeat)} / ${clock(comp.beats * secondsPerBeat)}`, `${NOTE_NAMES[song.key]} ${SCALES[song.scale].name.toLowerCase()}`, `${song.tempo} bpm${practice < 1 ? ` (practising at ${percent(practice)})` : ''}`, song.meter];
     const text = [where, ...readings].join('|');
     if (text === lastReadout) return;
+    const moved = lastReadout.split('|')[0] !== where;
     lastReadout = text;
-    // (a row of small readings, the section's name first)
+    // (a row of small readings, the section's name first, springing in as the song moves into it)
     $('#mmReadout').replaceChildren(make('b', '', where), ...readings.map((one) => make('span', '', one)));
+    if (moved && player.playing && !calm.matches) $('#mmReadout b').animate([{ opacity: 0, transform: 'translateY(-8px)' }, { opacity: 1, transform: 'none' }], { duration: 420, easing: SPRING });
   }
 
   // ---------- the score ----------
@@ -808,7 +926,15 @@
     if (!layout) return;
     const g = score.getContext('2d');
     g.setTransform(1, 0, 0, 1, 0, 0);
-    g.drawImage(paper, 0, 0);
+    // a new song's score is written in from the left, a pen in the mood's colour leading
+    const written = calm.matches ? 1 : Math.min(1, (performance.now() - revealFrom) / 700);
+    if (written < 1) {
+      const w = Math.max(1, Math.round(score.width * (1 - (1 - written) ** 3)));
+      g.clearRect(0, 0, score.width, score.height);
+      g.drawImage(paper, 0, 0, w, paper.height, 0, 0, w, paper.height);
+      g.fillStyle = MOODS[song.mood].colour;
+      g.fillRect(w - 3 * layout.dpr, 0, 3 * layout.dpr, score.height);
+    } else g.drawImage(paper, 0, 0);
     g.setTransform(layout.dpr, 0, 0, layout.dpr, 0, 0);
     const { x } = layout;
     // a section going round on its own (Loop it): a bar over it along the top
@@ -950,6 +1076,7 @@
   const panel = $('#mmPanel');
   const tabKeys = document.querySelectorAll('.mm-tab');
   for (const button of tabKeys) button.addEventListener('click', () => setTab(button.dataset.tab));
+  const TAB_ORDER = [...tabKeys].map((button) => button.dataset.tab);
   function setTab(name) {
     // (a part left out to play along comes back once you're not learning it)
     if (name !== 'learn' && (leftOut || waiting)) {
@@ -957,9 +1084,18 @@
       waiting = false;
       load();
     }
+    const way = Math.sign(TAB_ORDER.indexOf(name) - TAB_ORDER.indexOf(tab));
     tab = name;
     for (const button of tabKeys) button.setAttribute('aria-selected', button.dataset.tab === tab);
     renderPanel();
+    if (way) slideIn(way);
+  }
+  // a tab's settings slide in a part at a time, from the side of the tab picked. only on a new tab: the
+  // panel's drawn again after every change in it, and that mustn't move
+  function slideIn(way) {
+    if (calm.matches) return;
+    const parts = [...panel.children].flatMap((one) => (one.matches('.mm-columns, .mm-band') ? [...one.children] : [one])).slice(0, 8);
+    parts.forEach((one, i) => one.animate([{ opacity: 0, transform: `translateX(${way * 24}px)` }, { opacity: 1, transform: 'none' }], { duration: 380, delay: i * 45, easing: OUT, fill: 'backwards' }));
   }
 
   function renderPanel() {
@@ -3731,6 +3867,7 @@
     }
   });
 
+  let bobbing = false;
   function frame() {
     // asked for first, so one frame going wrong can't stop drawing for good (old safari did that)
     requestAnimationFrame(frame);
@@ -3742,6 +3879,18 @@
       keepDraft();
     }
     if (!player.playing && playKey.classList.contains('is-playing')) renderTransport();
+    // while it plays, the play keys and the song's card bob on each beat, more on a bar's first. (not the
+    // card while its name or seed's being typed in)
+    if (player.playing && !calm.matches) {
+      const at = player.position();
+      const kick = Math.exp(-(at % 1) * 8) * (at % comp.bpb < 1 ? 1 : 0.5);
+      playKey.style.scale = dockKey.style.scale = (1 + 0.05 * kick).toFixed(3);
+      label.style.translate = label.contains(document.activeElement) ? '' : `0 ${(-3 * kick).toFixed(2)}px`;
+      bobbing = true;
+    } else if (bobbing) {
+      bobbing = false;
+      playKey.style.scale = dockKey.style.scale = label.style.translate = '';
+    }
     drawScore();
     renderReadout();
     if (editor && player.playing) editor.draw();

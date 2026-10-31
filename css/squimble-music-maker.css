@@ -35,6 +35,10 @@
   --mm-focus:     var(--mm-on-sky);
   --mm-ui: "Recursive", var(--font-sans);
   --mm-mono: "Recursive", ui-monospace, Consolas, monospace;
+  /* how things move: out fast and settle, or spring past and back like something on a spring. (maker.js
+     reads --mm-spring for what it animates) */
+  --mm-out: cubic-bezier(.22,1,.36,1);
+  --mm-spring: cubic-bezier(.34,1.56,.64,1);
 
   /* overrides for styles.css */
   --bg: var(--mm-sky);
@@ -46,6 +50,10 @@
   background:var(--mm-sky);
   /* (a new mood washes over the page instead of snapping) */
   transition:background-color .6s ease;
+}
+/* (a real spring where the browser can draw one: past the end, back, and a little past again) */
+@supports (transition-timing-function:linear(0, 1)){
+  .mm-page{ --mm-spring:linear(0, .2 3.5%, .6 9%, .93 15%, 1.08 20%, 1.12 24%, 1.1 28%, 1.03 35%, .99 42%, .985 48%, 1 60%, 1.004 70%, 1); }
 }
 /* dark mode (#mmDark, kept in this browser): the toy turns dark brown with black outlines, the words
    and picked things cream. the sky and the mood's colour stay as they are */
@@ -137,13 +145,19 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   box-shadow:0 3px 0 var(--mm-edge);
   cursor:pointer;
   white-space:nowrap;
-  transition:transform .06s, box-shadow .06s;
+  /* (down at once, back up on a spring) */
+  transition:transform .32s var(--mm-spring), box-shadow .32s var(--mm-spring), background-color .15s, color .15s;
 }
 .mm-key:hover{ background:var(--mm-butter-hi); }
-.mm-key:active{ transform:translateY(3px); box-shadow:0 0 0 var(--mm-edge); }
+/* a key pointed at rises off its edge a little, ready to press. (not on a touch screen, where a tapped
+   key would stay up) */
+@media (hover:hover){
+  .mm-key:hover{ transform:translateY(-1px); box-shadow:0 4px 0 var(--mm-edge); }
+}
+.mm-key:active{ transform:translateY(3px); box-shadow:0 0 0 var(--mm-edge); transition-duration:.05s; }
 .mm-key:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:3px; }
 .mm-key:disabled{ opacity:.4; cursor:default; }
-.mm-key:disabled:hover{ background:var(--mm-butter); }
+.mm-key:disabled:hover{ background:var(--mm-butter); transform:none; box-shadow:0 3px 0 var(--mm-edge); }
 .mm-key:disabled:active{ transform:none; box-shadow:0 3px 0 var(--mm-edge); }
 .mm-key svg{ width:13px; height:13px; fill:currentColor; flex:none; }
 /* a setting that's on: the mood's colour */
@@ -158,14 +172,16 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
 .mm-key-line,
 .mm-key-line:active,
 .mm-key-line:disabled:active{ background:transparent; box-shadow:none; transform:none; }
-.mm-key-line:hover{ background:var(--mm-dent); }
+.mm-key-line:hover{ background:var(--mm-dent); transform:none; box-shadow:none; }
 .mm-key-line:disabled:hover{ background:transparent; }
 .mm-key-small{ min-height:32px; padding:0 11px; font-size:13.5px; border-radius:10px; }
 .mm-key-square{ min-width:32px; padding:0; }
 .mm-key-dark{ width:40px; }
-.mm-key-dark svg{ width:16px; height:16px; }
+.mm-key-dark svg{ width:16px; height:16px; transition:rotate .6s var(--mm-spring); }
+/* (the moon turns over into the night, and back) */
+.mm-key-dark[aria-pressed="true"] svg{ rotate:360deg; }
 @media (prefers-reduced-motion: reduce){
-  .mm-key{ transition:none; }
+  .mm-key, .mm-key-dark svg{ transition:none; }
 }
 
 /* a row's name: sentence case, heavy and casual, the same as the section titles in the tabs */
@@ -212,10 +228,28 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   gap:14px 14px;
   padding:20px 22px 18px;
 }
-/* the name sticker: the mood's colour, stuck on slightly askew */
-.mm-label{
+/* the name card: the mood's colour, stuck on slightly askew, on top of a deck of two more. a new song
+   is dealt off the top (deal() in maker.js); pointed at, the deck fans out a little */
+.mm-deck{
   flex:1 1 300px;
   max-width:480px;
+  position:relative;
+  isolation:isolate;
+  display:grid;
+}
+.mm-deck::before,
+.mm-deck::after{
+  content:"";
+  position:absolute; inset:0;
+  border:2px solid var(--mm-edge);
+  border-radius:14px;
+  box-shadow:0 4px 0 var(--mm-edge);
+  transition:rotate .5s var(--mm-spring), translate .5s var(--mm-spring);
+}
+.mm-deck::before{ background:color-mix(in oklab, var(--mm-mood) 70%, var(--mm-edge)); rotate:2.4deg; translate:6px 3px; }
+.mm-deck::after{ background:color-mix(in oklab, var(--mm-mood) 55%, var(--mm-butter)); rotate:-2.6deg; translate:-4px 4px; }
+.mm-label{
+  position:relative; z-index:2;
   display:grid;
   gap:1px;
   padding:9px 16px 10px;
@@ -224,8 +258,16 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   border:2px solid var(--mm-edge);
   border-radius:14px;
   box-shadow:0 4px 0 var(--mm-edge);
-  transform:rotate(-0.8deg);
+  rotate:-0.8deg;
+  transition:rotate .45s var(--mm-spring);
 }
+@media (hover:hover){
+  .mm-deck:hover .mm-label{ rotate:-1.8deg; }
+  .mm-deck:hover::before{ rotate:4.5deg; translate:10px 2px; }
+  .mm-deck:hover::after{ rotate:-4.5deg; translate:-8px 6px; }
+}
+/* the old song's card, on its way under the deck */
+.mm-label.is-ghost{ position:absolute; inset:0; z-index:3; pointer-events:none; animation:none; }
 .mm-label input{
   width:100%;
   padding:0;
@@ -262,6 +304,9 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
 }
 .mm-key-play svg{ width:16px; height:16px; }
 .mm-key-play:hover{ background:color-mix(in oklab, var(--mm-mood) 82%, #fff); }
+@media (hover:hover){
+  .mm-key-play:hover{ transform:translateY(-2px); box-shadow:0 7px 0 var(--mm-edge); }
+}
 .mm-key-play:active{ transform:translateY(5px); box-shadow:0 0 0 var(--mm-edge); }
 .mm-key-play.is-playing, .mm-key-play.is-playing:hover{ background:var(--mm-ink); color:var(--mm-butter); }
 /* where the song's got to, as a row of small readings */
@@ -303,7 +348,8 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   background:color-mix(in oklab, var(--c) 24%, var(--mm-butter));
 }
 .mm-mood:hover{ background:color-mix(in oklab, var(--c) 40%, var(--mm-butter)); }
-.mm-mood::before{ content:""; width:14px; height:14px; border-radius:50%; background:var(--c); border:2px solid var(--mm-edge); flex:none; }
+.mm-mood::before{ content:""; width:14px; height:14px; border-radius:50%; background:var(--c); border:2px solid var(--mm-edge); flex:none; transition:scale .35s var(--mm-spring); }
+.mm-mood:hover::before{ scale:1.3; }
 .mm-mood[aria-pressed="true"],
 .mm-mood[aria-pressed="true"]:hover{ color:var(--c-ink); background:var(--c); }
 .mm-mood[aria-pressed="true"]::before{ background:var(--c-ink); border-color:var(--c-ink); }
@@ -417,8 +463,12 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   background:var(--mm-butter);
   font:800 13px/1 var(--mm-mono);
 }
+.mm-fold > summary::before,
+.mm-part-settings summary::before,
+.mm-hood summary::before{ transition:rotate .45s var(--mm-spring), background-color .2s; }
+/* (the plus spins round into a minus) */
 .mm-fold[open] > summary::before,
-.mm-part-settings[open] summary::before{ content:"\2212"; background:var(--mm-mood); color:var(--mm-mood-ink); }
+.mm-part-settings[open] summary::before{ content:"\2212"; background:var(--mm-mood); color:var(--mm-mood-ink); rotate:180deg; }
 .mm-fold > summary:hover{ color:var(--mm-ink-soft); }
 .mm-fold > summary:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:3px; border-radius:4px; }
 .mm-fold > .mm-hint:first-of-type{ margin-top:0; }
@@ -476,6 +526,7 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   border:2px solid var(--mm-edge);
   background:var(--mm-knob);
   box-shadow:0 2px 0 var(--mm-edge);
+  transition:transform .3s var(--mm-spring);
 }
 .mm-slider input::-moz-range-thumb{
   width:16px; height:16px;
@@ -483,7 +534,11 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   border:2px solid var(--mm-edge);
   background:var(--mm-knob);
   box-shadow:0 2px 0 var(--mm-edge);
+  transition:transform .3s var(--mm-spring);
 }
+/* (the knob swells under a finger while it's dragged) */
+.mm-slider input:active::-webkit-slider-thumb{ transform:scale(1.2); }
+.mm-slider input:active::-moz-range-thumb{ transform:scale(1.2); }
 .mm-slider input:focus-visible{ outline:none; }
 .mm-slider input:focus-visible::-webkit-slider-thumb{ outline:3px solid var(--mm-focus); outline-offset:2px; }
 .mm-slider input:focus-visible::-moz-range-thumb{ outline:3px solid var(--mm-focus); outline-offset:2px; }
@@ -533,9 +588,10 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   border-radius:9px;
   box-shadow:0 2px 0 var(--mm-edge);
   cursor:pointer;
+  transition:transform .3s var(--mm-spring), box-shadow .3s var(--mm-spring);
 }
 .mm-chip:hover{ background:var(--mm-butter-hi); }
-.mm-chip:active{ transform:translateY(2px); box-shadow:0 0 0 var(--mm-edge); }
+.mm-chip:active{ transform:translateY(2px); box-shadow:0 0 0 var(--mm-edge); transition-duration:.05s; }
 .mm-chip:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:2px; }
 .mm-chip b{ font:600 13.5px var(--mm-mono); }
 .mm-chip small{ font:500 10.5px var(--mm-ui); color:var(--mm-ink-soft); }
@@ -621,9 +677,10 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   border-radius:10px;
   box-shadow:0 3px 0 var(--mm-edge);
   cursor:pointer;
+  transition:transform .3s var(--mm-spring), box-shadow .3s var(--mm-spring);
 }
 .mm-shape:hover{ background:#fff6d8; }
-.mm-shape:active{ transform:translateY(3px); box-shadow:0 0 0 var(--mm-edge); }
+.mm-shape:active{ transform:translateY(3px); box-shadow:0 0 0 var(--mm-edge); transition-duration:.05s; }
 .mm-shape:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:3px; }
 .mm-shape canvas{ display:block; }
 
@@ -644,6 +701,7 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   border-radius:10px;
   box-shadow:inset 0 -4px 0 transparent;
   cursor:pointer;
+  transition:box-shadow .25s var(--mm-out);
 }
 .mm-arrange-head b{ font:800 12.5px var(--mm-ui); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .mm-arrange-head small{ font:500 11px var(--mm-mono); font-variation-settings:"MONO" 1, "CASL" 0; color:var(--mm-ink-soft); }
@@ -873,7 +931,7 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   content:"+"; display:grid; place-items:center; width:26px; height:26px; flex:none; border-radius:50%;
   border:2px solid var(--mm-edge); background:var(--mm-butter-hi); font:800 15px/1 var(--mm-mono);
 }
-.mm-hood details[open] summary::before{ content:"\2212"; background:var(--mm-mood); color:var(--mm-mood-ink); }
+.mm-hood details[open] summary::before{ content:"\2212"; background:var(--mm-mood); color:var(--mm-mood-ink); rotate:180deg; }
 .mm-hood summary:hover{ background:var(--mm-butter-hi); }
 .mm-hood summary:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:-4px; }
 .mm-hood details p{ max-width:72ch; margin:0; padding:0 22px 16px 62px; font-size:15px; line-height:1.65; color:var(--mm-ink); }
@@ -895,7 +953,7 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   .mm-machine{ margin-inline:calc(-1 * var(--gutter)); border-width:3px 0; border-radius:0; }
   .mm-bar, .mm-moods-wrap, .mm-transport, .mm-remix{ padding-left:14px; padding-right:14px; }
   .mm-bar{ padding-top:16px; }
-  .mm-label{ max-width:none; }
+  .mm-deck{ max-width:none; }
   .mm-label-name input{ font-size:23px; }
   .mm-welcome{ margin:4px 14px 0; padding:12px 14px; }
   .mm-welcome-steps{ flex-basis:100%; font-size:14px; }
@@ -949,4 +1007,64 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   .mm-export-row{ grid-template-columns:minmax(0,1fr); }
   .mm-export-keys{ justify-content:flex-start; }
   .mm-shelf{ padding:18px; border-radius:18px; }
+}
+
+/* ---------- motion: a toy's. keys spring, settings pop on, the song's card is dealt off its deck, a
+   new mood spreads from its swatch like paint, the score writes itself in, and the play key and the
+   card bob on the beat (those last in maker.js). quick, so nothing ever waits on it, and none of it
+   with reduced motion ---------- */
+/* the title's letters (split up by maker.js): each hops when pointed at, and plays a note when clicked */
+.mm-word{ display:inline-block; white-space:nowrap; }
+.mm-letter{ display:inline-block; cursor:pointer; transition:translate .45s var(--mm-spring); }
+@media (hover:hover){
+  .mm-letter:hover{ translate:0 -.1em; transition-duration:.2s; }
+}
+
+/* a new mood or dark mode, painted over the page from the key pressed (paint() in maker.js) */
+html.mm-painting::view-transition-old(root),
+html.mm-painting::view-transition-new(root){ animation:none; mix-blend-mode:normal; }
+html.mm-painting .mm-page, html.mm-painting .mm-page *{ transition:none !important; }
+
+@media (prefers-reduced-motion: no-preference){
+  @keyframes mm-pop{ 0%{ scale:.88; } 55%{ scale:1.07; } 100%{ scale:1; } }
+  @keyframes mm-grow{ from{ scale:0; } }
+  @keyframes mm-hop{ from{ translate:0 6px; } }
+  @keyframes mm-drop{ from{ opacity:0; translate:0 -40px; rotate:-10deg; } }
+  @keyframes mm-rise{ from{ opacity:0; translate:0 32px; } }
+
+  /* a setting turned on pops (only the keys that stay put: the tabs' keys are drawn again on every change) */
+  .mm-mood[aria-pressed="true"],
+  .mm-style [aria-pressed="true"],
+  .mm-mod[aria-pressed="true"],
+  .mm-kind[aria-pressed="true"],
+  .mm-group[aria-pressed="true"],
+  .mm-toggles [aria-pressed="true"]{ animation:mm-pop .4s var(--mm-out); }
+  .mm-mood[aria-pressed="true"]::before{ animation:mm-grow .5s var(--mm-spring); }
+  .mm-tab[aria-selected="true"]{ animation:mm-hop .4s var(--mm-spring); }
+
+  /* the page arriving: the title's letters drop in one by one, the machine rises, the card lands on it */
+  .mm-letter{ animation:mm-drop .6s var(--mm-spring) backwards; animation-delay:calc(var(--i) * 28ms); }
+  .mm-machine{ animation:mm-rise .6s var(--mm-out) .1s backwards; }
+  .mm-label{ animation:mm-drop .7s var(--mm-spring) .45s backwards; }
+  .mm-welcome{ animation:mm-rise .5s var(--mm-spring) .6s backwards; }
+
+  /* folds slide open and shut, where the browser can size to fit */
+  @supports selector(::details-content){
+    .mm-page{ interpolate-size:allow-keywords; }
+    .mm-page details::details-content{ block-size:0; overflow-y:clip; transition:block-size .35s var(--mm-out), content-visibility .35s allow-discrete; }
+    .mm-page details[open]::details-content{ block-size:auto; }
+  }
+
+  /* further down, the cards and headings rise into place as they're scrolled to. (over a set distance,
+     not a share of the card: the tour is taller than a screen, and would still be fading in while read) */
+  @supports (animation-timeline: view()){
+    .mm-ribbon, .mm-lower > .mm-shelf, .mm-guide-grid > .mm-shelf, .mm-hood > .mm-shelf{
+      animation:mm-rise linear both;
+      animation-timeline:view();
+      animation-range:entry 0px entry 200px;
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce){
+  .mm-page *, .mm-page *::before, .mm-page *::after{ transition-duration:0s !important; }
 }
