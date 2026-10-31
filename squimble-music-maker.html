@@ -20,6 +20,8 @@
 </head>
 
 <body class="mm-page">
+  <!-- dark mode, if it was picked last time, before anything's drawn (maker.js keeps it) -->
+  <script>try { if (localStorage.getItem('squimble-music-dark')) document.body.classList.add('is-dark'); } catch { /* light */ }</script>
 
   <a class="skip-link" href="#maker">Skip to the music maker</a>
 
@@ -72,6 +74,7 @@
         <button type="button" class="mm-key mm-key-go" id="mmNew" data-tip="New song: a new seed in the same mood and style"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="5.2" cy="5.2" r="1.3"/><circle cx="10.8" cy="10.8" r="1.3"/><circle cx="8" cy="8" r="1.3"/></svg>New song</button>
         <button type="button" class="mm-key mm-key-line" id="mmBlank" data-tip="New track: a blank song to make yourself, with an empty melody, bass and drums. Draw notes in the Arrange tab, or play them in on your keyboard"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>New track</button>
         <div class="mm-bar-actions">
+          <button type="button" class="mm-key mm-key-square mm-key-dark" id="mmDark" aria-pressed="false" aria-label="Dark mode" data-tip="Dark mode: the page and the score go dark, easier on the eyes at night. This browser remembers it"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 10.4A5.6 5.6 0 0 1 5.6 2.8a5.6 5.6 0 1 0 7.6 7.6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button>
           <button type="button" class="mm-key mm-key-line" id="mmUndo" data-tip="Undo: back to before the last change (Ctrl + Z)">Undo</button>
           <button type="button" class="mm-key mm-key-line" id="mmRedo" data-tip="Redo: forward again (Ctrl + Y)">Redo</button>
           <button type="button" class="mm-key mm-key-go" id="mmSave" data-tip="Save it to your library below, kept in this browser">Save</button>

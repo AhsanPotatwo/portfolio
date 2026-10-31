@@ -530,7 +530,7 @@
   // dark or light text, whichever reads on a colour
   function inkOn(hex) {
     const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.42 ? '#1c1a17' : '#fbf6ec';
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.42 ? '#2b1508' : '#fff6d8';
   }
 
   const playKey = $('#mmPlay');
@@ -561,6 +561,24 @@
     recordedKey.setAttribute('aria-pressed', RECORDINGS.on);
     load();
     player.mix();
+  });
+  // dark mode: the page and the score's paper go dark. kept in this browser (the page's head puts the
+  // class on before anything's drawn, so a dark page never flashes light first)
+  const DARK_KEY = 'squimble-music-dark';
+  const darkKey = $('#mmDark');
+  const setDark = (on) => {
+    document.body.classList.toggle('is-dark', on);
+    darkKey.setAttribute('aria-pressed', on);
+    sheet = on ? SHEETS.dark : SHEETS.light;
+    scoreDirty = true;
+  };
+  darkKey.setAttribute('aria-pressed', document.body.classList.contains('is-dark'));
+  darkKey.addEventListener('click', () => {
+    const on = !document.body.classList.contains('is-dark');
+    setDark(on);
+    try { localStorage.setItem(DARK_KEY, on ? '1' : ''); } catch { /* light again next time */ }
+    // (the note editor's paper too)
+    renderPanel();
   });
   const clickKey = $('#mmClick');
   clickKey.addEventListener('click', () => {
@@ -625,9 +643,13 @@
     const at = player.playing ? player.position() : startBeat;
     const section = comp.sections.find((one) => at >= one.start && at < one.end) || comp.sections[0];
     const bar = Math.floor(at / comp.bpb) + 1;
-    const where = `${section.name} · bar ${bar}`;
-    const text = `${where} · ${clock(at * secondsPerBeat)} / ${clock(comp.beats * secondsPerBeat)} · ${NOTE_NAMES[song.key]} ${SCALES[song.scale].name.toLowerCase()} · ${song.tempo} bpm${practice < 1 ? ` (practising at ${percent(practice)})` : ''} · ${song.meter}`;
-    if (text !== lastReadout) $('#mmReadout').textContent = lastReadout = text;
+    const where = section.name;
+    const readings = [`bar ${bar}`, `${clock(at * secondsPerBeat)} / ${clock(comp.beats * secondsPerBeat)}`, `${NOTE_NAMES[song.key]} ${SCALES[song.scale].name.toLowerCase()}`, `${song.tempo} bpm${practice < 1 ? ` (practising at ${percent(practice)})` : ''}`, song.meter];
+    const text = [where, ...readings].join('|');
+    if (text === lastReadout) return;
+    lastReadout = text;
+    // (a row of small readings, the section's name first)
+    $('#mmReadout').replaceChildren(make('b', '', where), ...readings.map((one) => make('span', '', one)));
   }
 
   // ---------- the score ----------
@@ -637,13 +659,27 @@
   const HEAD = 22;
   const CHORDS = 20;
   const LANE = 30;
-  const PAPER = '#efe6d3';
-  const PAPER_DARK = '#e4d7bc';
-  const RULE = '#d4c4a4';
-  const INK = '#2c2721';
-  const INK_SOFT = '#76695a';
+  // the squimble's colours, like the page (css/squimble-music-maker.css)
+  const PAPER = '#fffdf3';
+  const PAPER_DARK = '#f6e8c4';
+  const RULE = '#ead8b0';
+  const INK = '#2b1508';
+  const INK_SOFT = '#7a5a3e';
   // A to C the paper's own browns, the parts past them tinted so they tell apart in the grid
   const PART_COLOURS = { A: '#e2d2b0', B: '#d3bf97', C: '#c4ac80', D: '#bccba4', E: '#a9c4c4', F: '#cbb3c6', G: '#dbb39e', H: '#b6b9d4' };
+  // the score's and the note editor's paper: the colours above, or dark ones in dark mode. (the learn tab
+  // stays on paper in both: a piano, a guitar's neck and sheet music are drawn as they look)
+  const mix = (hex, into, amount) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(hex.slice(i, i + 2), 16) * (1 - amount) + parseInt(into.slice(i, i + 2), 16) * amount).toString(16).padStart(2, '0')).join('');
+  const SHEETS = {
+    light: { paper: PAPER, paperDark: PAPER_DARK, rule: RULE, ink: INK, inkSoft: INK_SOFT, line: '44, 39, 33', parts: PART_COLOURS },
+    dark: {
+      paper: '#251b14', paperDark: '#33261c', rule: '#3f3024', ink: '#f6e9cc', inkSoft: '#b9a185', line: '246, 233, 204',
+      parts: Object.fromEntries(Object.entries(PART_COLOURS).map(([part, colour]) => [part, mix(colour, '#251b14', 0.62)])),
+    },
+  };
+  let sheet = document.body.classList.contains('is-dark') ? SHEETS.dark : SHEETS.light;
+  // a layer's colour. the drums' near black would vanish on dark paper, so they're a warm grey there
+  const colourOf = (role) => (role === 'drums' && sheet === SHEETS.dark ? '#8f7e6b' : ROLES[role].colour);
   let layout = null;
 
   function clipText(g, text, x, y, room) {
@@ -683,49 +719,49 @@
     layout = { width, height, gutter, right, x, dpr, ranges, lanes, beatAt: (px) => ((px - gutter) / (right - gutter)) * comp.beats };
     const g = paper.getContext('2d');
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.fillStyle = PAPER;
+    g.fillStyle = sheet.paper;
     g.fillRect(0, 0, width, height);
     g.textBaseline = 'middle';
     for (const section of comp.sections) {
       const x0 = x(section.start);
       const x1 = x(section.end);
-      g.fillStyle = PART_COLOURS[section.part];
+      g.fillStyle = sheet.parts[section.part];
       g.fillRect(x0, 0, x1 - x0, HEAD);
-      g.fillStyle = INK;
+      g.fillStyle = sheet.ink;
       g.font = '700 11px Recursive, sans-serif';
       clipText(g, section.name, x0 + 5, HEAD / 2 + 1, x1 - x0 - 8);
       g.font = '500 10.5px Recursive, monospace';
       for (const chord of section.chords) {
         const cx = x(chord.t);
-        g.fillStyle = RULE;
+        g.fillStyle = sheet.rule;
         g.fillRect(cx, HEAD, 1, CHORDS);
-        g.fillStyle = INK_SOFT;
+        g.fillStyle = sheet.inkSoft;
         // chord names only where they fit whole: a cut off one could be misread as another chord
         if (g.measureText(chord.name).width < x(chord.t + chord.dur) - cx - 5) g.fillText(chord.name, cx + 3, HEAD + CHORDS / 2);
       }
     }
-    g.fillStyle = 'rgba(44, 39, 33, 0.07)';
+    g.fillStyle = `rgba(${sheet.line}, 0.07)`;
     if (((right - gutter) / comp.beats) * comp.bpb >= 5) for (let beat = 0; beat < comp.beats; beat += comp.bpb) g.fillRect(x(beat), HEAD + CHORDS, 1, height);
-    g.fillStyle = 'rgba(44, 39, 33, 0.3)';
+    g.fillStyle = `rgba(${sheet.line}, 0.3)`;
     for (const section of comp.sections) g.fillRect(Math.round(x(section.start)), 0, 1, height);
-    g.fillStyle = PAPER;
+    g.fillStyle = sheet.paper;
     g.fillRect(0, 0, gutter - 4, HEAD + CHORDS);
     song.layers.forEach((layer, i) => {
       const top = HEAD + CHORDS + i * LANE;
       lanes[layer.id] = top;
-      g.fillStyle = RULE;
+      g.fillStyle = sheet.rule;
       g.fillRect(0, top, width, 1);
-      g.fillStyle = layer.id === selected ? PAPER_DARK : PAPER;
+      g.fillStyle = layer.id === selected ? sheet.paperDark : sheet.paper;
       g.fillRect(0, top + 1, gutter - 4, LANE - 1);
       g.globalAlpha = audible(song, layer) ? 1 : 0.3;
-      const colour = ROLES[layer.role].colour;
+      const colour = colourOf(layer.role);
       g.fillStyle = colour;
       g.fillRect(6, top + 7, 5, LANE - 13);
-      g.fillStyle = INK;
+      g.fillStyle = sheet.ink;
       g.font = '700 11.5px Recursive, sans-serif';
       clipText(g, ROLES[layer.role].name + (layer.solo ? ' · solo' : ''), 17, gutter > 100 ? top + 10 : top + LANE / 2, gutter - 24);
       if (gutter > 100) {
-        g.fillStyle = INK_SOFT;
+        g.fillStyle = sheet.inkSoft;
         g.font = '500 10.5px Recursive, sans-serif';
         clipText(g, INSTRUMENTS[layer.instrument].name, 17, top + 21, gutter - 24);
       }
@@ -775,7 +811,7 @@
     const { x } = layout;
     if (player.playing) {
       const at = player.position();
-      g.fillStyle = INK;
+      g.fillStyle = sheet.ink;
       for (const note of comp.notes) {
         if (note.t > at) break;
         if (note.t + note.dur <= at || note.layer === undefined) continue;
@@ -787,13 +823,13 @@
       g.fillRect(Math.round(x(at)) - 1, 0, 2, layout.height);
     } else {
       const mx = Math.round(x(startBeat));
-      g.fillStyle = INK;
+      g.fillStyle = sheet.ink;
       g.beginPath();
       g.moveTo(mx - 5, 0);
       g.lineTo(mx + 5, 0);
       g.lineTo(mx, 7);
       g.fill();
-      g.fillStyle = 'rgba(44, 39, 33, 0.55)';
+      g.fillStyle = `rgba(${sheet.line}, 0.55)`;
       for (let y = 8; y < layout.height; y += 6) g.fillRect(mx, y, 1, 3);
     }
   }
@@ -1161,7 +1197,7 @@
       open.setAttribute('aria-pressed', layer.id === selected);
       open.dataset.tip = `Open the ${ROLES[layer.role].name.toLowerCase()} to change it`;
       const chip = make('i', 'mm-layer-chip');
-      chip.style.background = ROLES[layer.role].colour;
+      chip.style.background = colourOf(layer.role);
       const words = make('span', 'mm-layer-words');
       words.append(make('b', '', ROLES[layer.role].name), make('small', '', `${instrumentName(INSTRUMENTS[layer.instrument])}${layer.hand ? ' · my notes' : ''}`));
       open.append(chip, words);
@@ -1312,7 +1348,7 @@
     const playing = comp.sections.filter((one) => one.play.includes(layer.id)).length;
     const head = make('div', 'mm-detail-head');
     const title = make('h3', 'mm-detail-title', role.name);
-    title.style.setProperty('--chip', role.colour);
+    title.style.setProperty('--chip', colourOf(layer.role));
     head.append(title, make('span', 'mm-detail-note', `plays in ${playing} of ${comp.sections.length} sections`));
     const actions = make('div', 'mm-detail-actions');
     if (family !== 'texture' && !layer.hand) {
@@ -1512,12 +1548,12 @@
 
     const lg = labels.getContext('2d');
     lg.setTransform(dpr, 0, 0, dpr, 0, 0);
-    lg.fillStyle = PAPER_DARK;
+    lg.fillStyle = sheet.paperDark;
     lg.fillRect(0, 0, LABELS, height);
     lg.textBaseline = 'middle';
     rows.forEach((row, i) => {
       const home = !drums && row % 12 === song.key;
-      lg.fillStyle = home ? INK : INK_SOFT;
+      lg.fillStyle = home ? sheet.ink : sheet.inkSoft;
       lg.font = `${home ? 700 : 500} 10px Recursive, monospace`;
       lg.fillText(drums ? KIT_SLOTS[row] : noteName(row), 5, i * ROW + ROW / 2 + 0.5);
     });
@@ -1538,16 +1574,16 @@
     // drag: a note being drawn. grab: a note picked up, to move (or, held by its end, to stretch)
     let drag = null;
     let grab = null;
-    const colour = ROLES[layer.role].colour;
+    const colour = colourOf(layer.role);
     const draw = () => {
       const g = canvas.getContext('2d');
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      g.fillStyle = PAPER;
+      g.fillStyle = sheet.paper;
       g.fillRect(0, 0, width, height);
       if (!drums) {
         rows.forEach((row, i) => {
           if (row % 12 === song.key) {
-            g.fillStyle = 'rgba(44, 39, 33, 0.05)';
+            g.fillStyle = `rgba(${sheet.line}, 0.05)`;
             g.fillRect(0, i * ROW, width, ROW);
           }
         });
@@ -1562,11 +1598,11 @@
         const beat = s * grid;
         const bar = Math.abs(beat / comp.bpb - Math.round(beat / comp.bpb)) < 1e-6;
         const onBeat = Math.abs(beat - Math.round(beat)) < 1e-6;
-        g.fillStyle = bar ? 'rgba(44, 39, 33, 0.4)' : onBeat ? 'rgba(44, 39, 33, 0.16)' : 'rgba(44, 39, 33, 0.06)';
+        g.fillStyle = bar ? `rgba(${sheet.line}, 0.4)` : onBeat ? `rgba(${sheet.line}, 0.16)` : `rgba(${sheet.line}, 0.06)`;
         g.fillRect(s * STEP, 0, 1, height);
       }
       for (let i = 1; i < rows.length; i++) {
-        g.fillStyle = 'rgba(44, 39, 33, 0.06)';
+        g.fillStyle = `rgba(${sheet.line}, 0.06)`;
         g.fillRect(0, i * ROW, width, 1);
       }
       // a note: its block (outlined if you added it), its pitch line if it bends, a wiggle for vibrato
@@ -1579,12 +1615,12 @@
         g.fillStyle = colour;
         g.fillRect(x + 1, i * ROW + 2, w - 1, ROW - 3);
         if (note.added) {
-          g.strokeStyle = INK;
+          g.strokeStyle = sheet.ink;
           g.lineWidth = 1.5;
           g.strokeRect(x + 1.75, i * ROW + 2.75, w - 2.5, ROW - 4.5);
         }
         if (note.bend) {
-          g.strokeStyle = INK;
+          g.strokeStyle = sheet.ink;
           g.lineWidth = 1.5;
           g.beginPath();
           g.moveTo(x + 1, yOf(note.midi + note.bend[0][1]));
@@ -1593,7 +1629,7 @@
           g.stroke();
         }
         if (note.shake) {
-          g.strokeStyle = INK;
+          g.strokeStyle = sheet.ink;
           g.lineWidth = 1;
           g.beginPath();
           for (let dx = 2, up = true; dx < w - 1; dx += 3, up = !up) g[dx === 2 ? 'moveTo' : 'lineTo'](x + dx, i * ROW + (up ? 1 : 4));
@@ -1602,7 +1638,7 @@
         // a swell is a hairpin, the way scores write one: opening out as it grows, closing as it dies
         if (note.swell) {
           const [narrow, wide] = note.swell > 0 ? [x + 3, x + w - 2] : [x + w - 2, x + 3];
-          g.strokeStyle = INK;
+          g.strokeStyle = sheet.ink;
           g.lineWidth = 1;
           g.beginPath();
           g.moveTo(wide, i * ROW + 3.5);
@@ -1617,7 +1653,7 @@
       if (drag) dragNotes(drag).forEach(block);
       const at = player.playing ? player.position() : null;
       if (at !== null && at >= sec.start && at < sec.end) {
-        g.fillStyle = INK;
+        g.fillStyle = sheet.ink;
         g.fillRect(xOf(at) - 1, 0, 2, height);
       }
     };
@@ -1888,7 +1924,7 @@
       name.dataset.focus = `name:${layer.id}`;
       name.dataset.tip = `${ROLES[layer.role].name}: ${INSTRUMENTS[layer.instrument].name}. Click to open its part in ${one.name} under the grid`;
       const chip = make('i', 'mm-layer-chip');
-      chip.style.background = ROLES[layer.role].colour;
+      chip.style.background = colourOf(layer.role);
       name.append(chip, make('span', '', ROLES[layer.role].name));
       name.addEventListener('click', () => pick(pickedSection, layer.id));
       label.append(name, ...mixKeys(layer));
@@ -1902,8 +1938,8 @@
           : `The ${role.toLowerCase()} ${solo ? 'takes a solo' : `plays part ${part}`} in ${section.name}${!solo && part !== section.part ? `, over part ${section.part}'s chords` : ''}. ${on && layer.byPart?.[part] ? ` (part ${part} sounds its own way: ${partWords(layer, part)})` : ''}. Click to open it below. Keys 1 to 8 pick its part, Delete or a right click takes it out`;
         const button = square(on ? (solo ? '★' : part) : '', row, index, tip, `${role} in ${section.name}: ${on ? (solo ? 'solo' : `part ${part}`) : 'not playing'}`);
         button.setAttribute('aria-pressed', on);
-        button.style.setProperty('--chip', ROLES[layer.role].colour);
-        button.style.setProperty('--chip-ink', inkOn(ROLES[layer.role].colour));
+        button.style.setProperty('--chip', colourOf(layer.role));
+        button.style.setProperty('--chip-ink', inkOn(colourOf(layer.role)));
         if (index === pickedSection && layer.id === selected) button.classList.add('is-picked');
         // (a part with settings of its own has a mark in its corner)
         if (on && layer.byPart?.[part]) button.classList.add('has-own');
@@ -2124,7 +2160,7 @@
     const part = partOf(one, layer);
     const head = make('div', 'mm-detail-head');
     const title = make('h3', 'mm-detail-title', `${role} in ${one.name}`);
-    title.style.setProperty('--chip', ROLES[layer.role].colour);
+    title.style.setProperty('--chip', colourOf(layer.role));
     head.append(title);
     // the parts it can play (knownParts), and a new one
     const known = knownParts(layer);

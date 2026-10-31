@@ -1,461 +1,553 @@
-/* squimble music maker. a flat, painted tape deck: warm black body, keys with a hard edge under them
-   (a cousin of the sound studio's), cream score paper, and lettering like a hand painted label.
-   the song's mood colour (--mm-mood, set by maker.js) is the signal: the label stripe, the play key,
-   lit keys and slider fills all change with the mood. no gradients or soft shadows */
+/* squimble music maker. squimble's music box: a chunky toy made of the squimble's own colours (the
+   butter of its skin, the warm shading, the dark brown outline round every edge), with hard cartoon
+   shadows under it. it sits in a world the colour of the song's mood (--mm-mood, set by maker.js), so
+   picking a mood repaints the whole page.
+   two meanings, kept everywhere: the mood's colour is a setting that's on (play, a mood, a modifier,
+   a choice), ink is the thing you're looking at (the open layer, the picked section). no gradients or
+   soft shadows */
 .mm-page{
-  --mm-ink:     #1b1916;
-  --mm-body:    #292520;
-  --mm-dark:    #211e1a;
-  --mm-panel:   #332e28;
-  --mm-raised:  #4a443b;
-  --mm-hover:   #575046;
-  --mm-edge:    #12100d;
-  --mm-line:    #463f37;
-  --mm-well:    #1d1a17;
-  --mm-paper:   #efe6d3;
-  --mm-paper-2: #e2d6bd;
-  --mm-paper-ink: #2c2721;
-  --mm-text:    #f3ede1;
-  --mm-muted:   #b4aa98;
-  --mm-warn:    #ff9a85;
-  --mm-mood:    #9cc5a1;
-  --mm-mood-ink:#1c1a17;
+  --mm-ink:       #2b1508;
+  --mm-ink-soft:  #74563b;
+  /* outlines and the hard shadows under things. the same as the ink here; apart in dark mode */
+  --mm-edge:      #2b1508;
+  --mm-edge-deep: #000;
+  --mm-dent:      rgba(43,21,8,.07);
+  --mm-dent-2:    rgba(43,21,8,.13);
+  --mm-knob:      var(--mm-butter);
+  --mm-dock:      #2b1508;
+  --mm-dock-text: #fff6d8;
+  --mm-butter:    #fff6d8;
+  --mm-butter-hi: #fffcee;
+  --mm-well:      #f6e6bf;
+  --mm-line:      #e4cc98;
+  --mm-paper:     #fffdf3;
+  --mm-warn:      #b3321c;
+  --mm-mood:      #9cc5a1;
+  --mm-mood-ink:  #2b1508;
+  /* the world: the mood's colour sunk into the ink, so every mood gets a dark sky of its own */
+  --mm-sky:       color-mix(in oklab, var(--mm-mood) 36%, #170d07);
+  --mm-sky-deep:  color-mix(in oklab, var(--mm-mood) 16%, #120904);
+  --mm-drop:      color-mix(in oklab, var(--mm-mood) 10%, #0b0502);
+  --mm-on-sky:    #fff6d8;
+  --mm-on-sky-soft: color-mix(in oklab, var(--mm-mood) 25%, #e6d6b6);
+  --mm-mood-light: color-mix(in oklab, var(--mm-mood) 55%, #fff6d8);
+  --mm-tint:      color-mix(in oklab, var(--mm-mood) 26%, var(--mm-butter));
+  --mm-focus:     var(--mm-on-sky);
   --mm-ui: "Recursive", var(--font-sans);
   --mm-mono: "Recursive", ui-monospace, Consolas, monospace;
 
   /* overrides for styles.css */
-  --bg: var(--mm-ink);
-  --muted: var(--mm-muted);
-  --dim: #8a8070;
-  --nav-purple: var(--mm-mood);
-  --accent-text: var(--mm-mood);
-  --page-accent: var(--mm-mood);
-  background:var(--mm-ink);
+  --bg: var(--mm-sky);
+  --muted: var(--mm-on-sky-soft);
+  --dim: var(--mm-on-sky-soft);
+  --nav-purple: var(--mm-mood-light);
+  --accent-text: var(--mm-mood-light);
+  --page-accent: var(--mm-mood-light);
+  background:var(--mm-sky);
+  /* (a new mood washes over the page instead of snapping) */
+  transition:background-color .6s ease;
 }
-html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
+/* dark mode (#mmDark, kept in this browser): the toy turns dark brown with black outlines, the words
+   and picked things cream. the sky and the mood's colour stay as they are */
+.mm-page.is-dark{
+  color-scheme:dark;
+  --mm-ink:       #f6e9cc;
+  --mm-ink-soft:  #bba387;
+  --mm-edge:      #0e0805;
+  --mm-edge-deep: #0e0805;
+  --mm-butter:    #2e2219;
+  --mm-butter-hi: #3a2b20;
+  --mm-well:      #241a13;
+  --mm-line:      #44342a;
+  --mm-paper:     #251b14;
+  --mm-warn:      #ff8f75;
+  --mm-dent:      rgba(246,233,204,.06);
+  --mm-dent-2:    rgba(246,233,204,.12);
+  --mm-knob:      #eadcbd;
+  --mm-dock:      #0e0805;
+  --mm-tint:      color-mix(in oklab, var(--mm-mood) 22%, var(--mm-butter));
+}
+html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in oklab, var(--mm-mood) 45%, #3a2414) var(--mm-sky-deep); }
 /* clip, not styles.css's hidden: still no sideways scroll, but no scroll box either, so the dock can
    stick to the window */
 .mm-page, .mm-page main{ overflow-x:clip; }
 .mm-page ::selection{ background:var(--mm-mood); color:var(--mm-mood-ink); }
-.mm-page .site-header{ background:var(--mm-dark); border-bottom-color:var(--mm-line); }
-.mm-page .site-footer{ border-top-color:var(--mm-line); }
+.mm-page .site-header{ background:var(--mm-sky-deep); border-bottom-color:rgba(255,246,216,.1); transition:background-color .6s ease; }
+.mm-page .site-footer{ border-top-color:rgba(255,246,216,.1); }
 @media (max-width:820px){
-  .mm-page .nav{ background:var(--mm-dark); }
+  .mm-page .nav{ background:var(--mm-sky-deep); }
 }
 /* recursive: one family for everything. its casual axis (CASL) leans letters towards brush lettering,
-   like a hand painted label, and its MONO axis gives the readouts even, tabular numbers */
-.mm-page main{ font-family:var(--mm-ui); font-variation-settings:"CASL" 0.35; }
+   and its MONO axis gives the readouts even, tabular numbers */
+.mm-page main{ font-family:var(--mm-ui); font-variation-settings:"CASL" 0.5; }
+/* (buttons don't take the page's font on their own, so the small lines in them would be the system's) */
+.mm-page main button{ font-family:var(--mm-ui); }
 .mm-label-seed input, .mm-readout, .mm-slider output, .mm-chord-input, .mm-chip b, .mm-bars span{ font-variation-settings:"MONO" 1, "CASL" 0; }
 /* the page hides parts with the hidden attribute, which loses to display:grid and flex otherwise */
 .mm-page [hidden]{ display:none !important; }
 .mm-visually-hidden{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+/* on butter, focus rings are ink; on the sky and the dock they're butter */
+.mm-machine, .mm-shelf{ --mm-focus:var(--mm-ink); }
+.mm-dock{ --mm-focus:var(--mm-dock-text); }
+@media (prefers-reduced-motion: reduce){
+  .mm-page, .mm-page .site-header{ transition:none; }
+}
 
 /* ---------- intro ---------- */
-.mm-intro{ padding:clamp(48px,6vw,80px) 0 clamp(28px,3.5vw,40px); }
+.mm-intro{ padding:clamp(48px,6vw,84px) 0 clamp(30px,3.5vw,44px); }
 .mm-title{
   margin:0;
-  font:900 clamp(40px,6vw,80px)/1 var(--mm-ui);
+  font:1000 clamp(44px,7.4vw,100px)/.95 var(--mm-ui);
   font-variation-settings:"CASL" 1;
-  letter-spacing:-.02em;
-  color:var(--mm-text);
+  letter-spacing:-.025em;
+  color:var(--mm-on-sky);
+  /* a hard shadow in the mood's colour, so the name changes with the song */
+  text-shadow:0 .06em 0 var(--mm-mood);
 }
 .mm-lede{
-  max-width:64ch;
-  margin:20px 0 0;
-  font-size:clamp(16px,1.3vw,18px);
+  max-width:62ch;
+  margin:26px 0 0;
+  font-size:clamp(16px,1.3vw,18.5px);
   line-height:1.6;
-  color:var(--mm-muted);
+  color:var(--mm-on-sky-soft);
 }
-.mm-lede a{ color:var(--mm-mood); text-underline-offset:3px; }
-.mm-tags{ list-style:none; display:flex; flex-wrap:wrap; gap:8px; margin:20px 0 0; padding:0; }
+.mm-lede a{ color:var(--mm-mood-light); font-weight:700; text-underline-offset:3px; }
+.mm-tags{ list-style:none; display:flex; flex-wrap:wrap; gap:8px; margin:22px 0 0; padding:0; }
 .mm-tags li{
-  padding:4px 10px;
-  border-radius:3px;
-  background:var(--mm-panel);
-  color:var(--mm-text);
-  font:600 14px var(--mm-ui);
+  padding:4px 11px;
+  border:2px solid color-mix(in oklab, var(--mm-mood) 50%, #fff6d8 20%);
+  border-radius:999px;
+  color:var(--mm-on-sky);
+  font:700 13.5px var(--mm-ui);
 }
+.mm-page a:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:3px; border-radius:3px; }
 
-/* ---------- keys: every button. they sit on a hard edge and press down into it ---------- */
+/* ---------- keys: every button. butter caps with an ink outline, sitting on a hard ink edge that
+   they press down into ---------- */
 .mm-key{
   display:inline-flex; align-items:center; justify-content:center; gap:7px;
-  min-height:36px;
-  padding:0 14px;
-  font:700 14px/1.1 var(--mm-ui);
-  letter-spacing:.005em;
-  color:var(--mm-text);
-  background:var(--mm-raised);
-  border:0;
-  border-radius:4px;
+  min-height:38px;
+  padding:0 15px;
+  font:750 14px/1.1 var(--mm-ui);
+  font-variation-settings:"CASL" 0.7;
+  color:var(--mm-ink);
+  background:var(--mm-butter);
+  border:2px solid var(--mm-edge);
+  border-radius:12px;
   box-shadow:0 3px 0 var(--mm-edge);
   cursor:pointer;
   white-space:nowrap;
+  transition:transform .06s, box-shadow .06s;
 }
-.mm-key:hover{ background:var(--mm-hover); }
-.mm-key:active{ transform:translateY(2px); box-shadow:0 1px 0 var(--mm-edge); }
-.mm-key:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:3px; }
-.mm-key:disabled{ opacity:.38; cursor:default; }
-.mm-key:disabled:hover{ background:var(--mm-raised); }
+.mm-key:hover{ background:var(--mm-butter-hi); }
+.mm-key:active{ transform:translateY(3px); box-shadow:0 0 0 var(--mm-edge); }
+.mm-key:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:3px; }
+.mm-key:disabled{ opacity:.4; cursor:default; }
+.mm-key:disabled:hover{ background:var(--mm-butter); }
 .mm-key:disabled:active{ transform:none; box-shadow:0 3px 0 var(--mm-edge); }
 .mm-key svg{ width:13px; height:13px; fill:currentColor; flex:none; }
-.mm-key[aria-pressed="true"]{
-  color:var(--mm-mood-ink);
-  background:var(--mm-mood);
-  box-shadow:0 3px 0 color-mix(in srgb, var(--mm-mood) 50%, #000);
-}
-/* the main action: a paper cap */
-.mm-key-go{ background:var(--mm-paper); color:var(--mm-paper-ink); box-shadow:0 3px 0 #8f8570; }
-.mm-key-go:hover{ background:#f8f1e2; }
-.mm-key-go:active{ box-shadow:0 1px 0 #8f8570; }
-.mm-key-go:disabled:hover{ background:var(--mm-paper); }
-/* a quieter action: an outline, flush with the panel */
+/* a setting that's on: the mood's colour */
+.mm-key[aria-pressed="true"],
+.mm-key[aria-pressed="true"]:hover{ color:var(--mm-mood-ink); background:var(--mm-mood); }
+/* the main action: solid ink */
+.mm-key-go{ background:var(--mm-ink); color:var(--mm-butter); box-shadow:0 3px 0 var(--mm-edge-deep); }
+.mm-key-go:hover{ background:color-mix(in oklab, var(--mm-ink) 86%, var(--mm-butter)); }
+.mm-key-go:active{ box-shadow:0 0 0 var(--mm-edge-deep); }
+.mm-key-go:disabled:hover{ background:var(--mm-ink); }
+/* a quieter action: an outline, flush with what's under it */
 .mm-key-line,
 .mm-key-line:active,
-.mm-key-line:disabled:active{ background:transparent; box-shadow:inset 0 0 0 2px #5e564b; color:var(--mm-text); transform:none; }
-.mm-key-line:hover{ background:rgba(255,255,255,.06); }
+.mm-key-line:disabled:active{ background:transparent; box-shadow:none; transform:none; }
+.mm-key-line:hover{ background:var(--mm-dent); }
 .mm-key-line:disabled:hover{ background:transparent; }
-.mm-key-small{ min-height:30px; padding:0 10px; font-size:13px; }
-.mm-key-square{ min-width:30px; padding:0; }
-
-.mm-heading{
-  margin:0;
-  font:700 12px var(--mm-ui);
-  letter-spacing:.14em;
-  text-transform:uppercase;
-  color:var(--mm-muted);
+.mm-key-small{ min-height:32px; padding:0 11px; font-size:13.5px; border-radius:10px; }
+.mm-key-square{ min-width:32px; padding:0; }
+.mm-key-dark{ width:40px; }
+.mm-key-dark svg{ width:16px; height:16px; }
+@media (prefers-reduced-motion: reduce){
+  .mm-key{ transition:none; }
 }
 
-/* ---------- the machine ---------- */
+/* a row's name: sentence case, heavy and casual, the same as the section titles in the tabs */
+.mm-heading,
+.mm-mods-label{
+  margin:0;
+  min-width:86px;
+  font:850 15px var(--mm-ui);
+  font-variation-settings:"CASL" 1;
+  color:var(--mm-ink);
+  white-space:nowrap;
+}
+
+/* ---------- the machine: the toy itself ---------- */
 .mm-machine{
-  background:var(--mm-body);
-  border-top:6px solid var(--mm-mood);
-  border-radius:10px;
-  color:var(--mm-text);
+  background:var(--mm-butter);
+  border:3px solid var(--mm-edge);
+  border-radius:26px;
+  box-shadow:0 10px 0 var(--mm-drop);
+  color:var(--mm-ink);
   /* (clip, not hidden: hidden would make it a scroll box and the dock couldn't stick to the window) */
   overflow:clip;
 }
 
-/* a first visit's three steps, on paper like the label */
+/* a first visit's three steps, on a card in the mood's tint */
 .mm-welcome{
   display:flex; flex-wrap:wrap; align-items:center;
-  gap:10px 24px;
-  margin:16px 20px 0;
-  padding:12px 16px;
-  background:var(--mm-paper);
-  color:var(--mm-paper-ink);
-  border-radius:4px;
+  gap:12px 24px;
+  margin:4px 22px 0;
+  padding:14px 18px;
+  background:var(--mm-tint);
+  border:2px solid var(--mm-edge);
+  border-radius:16px;
 }
-.mm-welcome-steps{ flex:1 1 420px; display:grid; list-style:decimal; gap:4px; margin:0; padding:0 0 0 1.4em; font-size:14.5px; line-height:1.45; }
-.mm-welcome-steps li::marker{ font-weight:900; color:#7b6f5d; }
+.mm-welcome-steps{ flex:1 1 420px; display:grid; list-style:decimal; gap:5px; margin:0; padding:0 0 0 1.5em; font-size:15px; line-height:1.45; }
+.mm-welcome-steps li::marker{ font-weight:1000; }
+.mm-welcome-steps b{ font-weight:850; }
 .mm-welcome-keys{ display:flex; align-items:center; gap:14px; }
-.mm-welcome .mm-key-go{ background:var(--mm-paper-ink); color:var(--mm-paper); box-shadow:0 3px 0 #000; }
-.mm-welcome .mm-key-go:hover{ background:#433b32; }
-.mm-welcome-tour{ font:700 13.5px var(--mm-ui); color:var(--mm-paper-ink); text-underline-offset:3px; }
+.mm-welcome-tour{ font:750 14px var(--mm-ui); color:var(--mm-ink); text-underline-offset:3px; }
 
-/* top bar: the cassette label, new song, undo, save */
+/* top bar: the song's name sticker, new song, undo, save */
 .mm-bar{
   display:flex; flex-wrap:wrap; align-items:center;
-  gap:12px 14px;
-  padding:16px 20px;
-  background:var(--mm-dark);
+  gap:14px 14px;
+  padding:20px 22px 18px;
 }
+/* the name sticker: the mood's colour, stuck on slightly askew */
 .mm-label{
   flex:1 1 300px;
   max-width:480px;
   display:grid;
-  gap:2px;
-  padding:8px 14px 9px;
-  background:var(--mm-paper);
-  border-left:10px solid var(--mm-mood);
-  border-radius:4px;
-  color:var(--mm-paper-ink);
+  gap:1px;
+  padding:9px 16px 10px;
+  background:var(--mm-mood);
+  color:var(--mm-mood-ink);
+  border:2px solid var(--mm-edge);
+  border-radius:14px;
+  box-shadow:0 4px 0 var(--mm-edge);
+  transform:rotate(-0.8deg);
 }
 .mm-label input{
   width:100%;
   padding:0;
   background:transparent;
   border:0;
-  color:var(--mm-paper-ink);
+  color:inherit;
 }
-.mm-label input:focus{ outline:none; box-shadow:0 2px 0 var(--mm-paper-ink); }
-.mm-label-name input{ font:900 23px/1.25 var(--mm-ui); font-variation-settings:"CASL" 1; }
+.mm-label input:focus{ outline:none; box-shadow:0 2px 0 currentColor; }
+.mm-label-name input{ font:1000 26px/1.2 var(--mm-ui); font-variation-settings:"CASL" 1; letter-spacing:-.01em; }
 .mm-label-seed{ display:flex; align-items:baseline; gap:8px; }
-.mm-label-seed span{ font:700 10px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:#7b6f5d; }
-.mm-label-seed input{ font:500 13px var(--mm-mono); }
+.mm-label-seed span{ font:800 12px var(--mm-ui); font-variation-settings:"CASL" 1; opacity:.7; }
+.mm-label-seed input{ font:500 13.5px var(--mm-mono); }
 .mm-bar-actions{ display:flex; gap:8px; margin-left:auto; }
 
-/* moods, style and modifiers: what kind of song, under the score */
-.mm-moods-wrap{ margin-top:20px; padding:18px 20px 4px; border-top:2px solid var(--mm-line); }
-.mm-style{ display:flex; flex-wrap:wrap; gap:6px 5px; }
-/* the rows of moods as keys, one row's moods shown at a time */
-.mm-mood-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin-bottom:12px; }
-.mm-mood-groups{ display:flex; flex-wrap:wrap; gap:6px 5px; }
-.mm-group[aria-pressed="true"]{ background:var(--mm-paper); color:var(--mm-paper-ink); box-shadow:none; }
-.mm-moods{ display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:9px 7px; }
-.mm-mood{ justify-content:flex-start; padding:0 10px; }
-.mm-mood::before{ content:""; width:10px; height:10px; border-radius:2px; background:var(--c); flex:none; }
-.mm-mood[aria-pressed="true"]{
-  color:var(--c-ink);
-  background:var(--c);
-  box-shadow:0 3px 0 color-mix(in srgb, var(--c) 50%, #000);
-}
-.mm-mood[aria-pressed="true"]::before{ background:var(--c-ink); }
-/* the song's mood, what it's for, and its flavours: a strip in the mood's colour under the moods */
-.mm-flavours{
-  display:grid; gap:10px;
-  margin-top:14px;
-  padding:12px 14px;
-  background:var(--mm-dark);
-  border-left:6px solid var(--mm-mood);
-  border-radius:4px;
-}
-.mm-about{ margin:0; max-width:90ch; font-size:14px; line-height:1.5; color:var(--mm-muted); }
-.mm-about b{ margin-right:4px; color:var(--mm-text); font-weight:800; }
-.mm-kinds-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
-.mm-kinds{ display:flex; flex-wrap:wrap; gap:6px 5px; }
-.mm-kind-tip{ margin:0; max-width:90ch; font-size:13px; line-height:1.45; color:var(--mm-text); }
-/* the modifiers under the moods: small outlined keys that light up in the mood's colour while on */
-.mm-mods-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:14px 0 12px; }
-.mm-mods-label{ min-width:76px; font:700 10px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); white-space:nowrap; }
-.mm-mods{ display:flex; flex-wrap:wrap; gap:6px 5px; }
-.mm-mod[aria-pressed="true"]{ box-shadow:none; }
-
-/* transport */
+/* transport: a big play key, the switches, and where the song's got to */
 .mm-transport{
   display:flex; flex-wrap:wrap; align-items:center;
-  gap:10px 12px;
-  padding:18px 20px 12px;
+  gap:12px 10px;
+  padding:20px 22px 0;
 }
 .mm-toggles{ display:flex; flex-wrap:wrap; gap:10px 8px; }
 .mm-key-play{
-  min-width:118px;
-  min-height:42px;
-  font-size:14px;
+  min-width:150px;
+  min-height:54px;
+  gap:10px;
+  padding:0 26px;
+  font:1000 20px var(--mm-ui);
+  font-variation-settings:"CASL" 1;
   color:var(--mm-mood-ink);
   background:var(--mm-mood);
-  box-shadow:0 3px 0 color-mix(in srgb, var(--mm-mood) 50%, #000);
+  border-width:3px;
+  border-radius:999px;
+  box-shadow:0 5px 0 var(--mm-edge);
 }
-.mm-key-play:hover{ background:color-mix(in srgb, var(--mm-mood) 85%, #fff); }
-.mm-key-play:active{ box-shadow:0 1px 0 color-mix(in srgb, var(--mm-mood) 50%, #000); }
-.mm-key-play.is-playing{ background:var(--mm-paper); color:var(--mm-paper-ink); box-shadow:0 3px 0 #8f8570; }
+.mm-key-play svg{ width:16px; height:16px; }
+.mm-key-play:hover{ background:color-mix(in oklab, var(--mm-mood) 82%, #fff); }
+.mm-key-play:active{ transform:translateY(5px); box-shadow:0 0 0 var(--mm-edge); }
+.mm-key-play.is-playing, .mm-key-play.is-playing:hover{ background:var(--mm-ink); color:var(--mm-butter); }
+/* where the song's got to, as a row of small readings */
 .mm-readout{
   flex:1 1 280px;
+  display:flex; flex-wrap:wrap; justify-content:flex-end;
+  gap:2px 16px;
   margin:0;
-  font:500 12.5px var(--mm-mono);
+  font:500 13px var(--mm-mono);
   font-variant-numeric:tabular-nums;
-  color:var(--mm-muted);
-  text-align:right;
+  color:var(--mm-ink-soft);
 }
+.mm-readout b{ font-weight:800; color:var(--mm-ink); font-variation-settings:"MONO" 0, "CASL" 1; }
 
-/* the score: cream paper in a dark bezel */
+/* the score: a paper screen in an ink frame */
 .mm-score-wrap{
-  margin:0 20px;
+  position:relative;
+  margin:16px 22px 0;
   background:var(--mm-paper);
-  border:5px solid var(--mm-edge);
-  border-radius:6px;
-  overflow:hidden;
+  border:3px solid var(--mm-edge);
+  border-radius:16px;
 }
-.mm-score-wrap canvas{ display:block; width:100%; height:120px; cursor:pointer; touch-action:manipulation; }
+.mm-score-wrap canvas{ display:block; width:100%; height:120px; border-radius:13px; cursor:pointer; touch-action:manipulation; }
+/* moods, style and modifiers: what kind of song, under the score */
+.mm-moods-wrap{ margin-top:24px; padding:22px 22px 6px; border-top:2px solid var(--mm-line); }
+.mm-style{ display:flex; flex-wrap:wrap; gap:7px 6px; }
+/* the rows of moods as keys, one row's moods shown at a time */
+.mm-mood-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin-bottom:14px; }
+.mm-mood-groups{ display:flex; flex-wrap:wrap; gap:6px 5px; }
+.mm-group[aria-pressed="true"], .mm-group[aria-pressed="true"]:hover{ background:var(--mm-ink); color:var(--mm-butter); }
+/* each mood a swatch of its own colour, full strength on the song's mood */
+.mm-moods{ display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:10px 8px; }
+.mm-mood{
+  justify-content:flex-start;
+  min-height:44px;
+  padding:0 12px;
+  font-size:15px;
+  font-weight:850;
+  background:color-mix(in oklab, var(--c) 24%, var(--mm-butter));
+}
+.mm-mood:hover{ background:color-mix(in oklab, var(--c) 40%, var(--mm-butter)); }
+.mm-mood::before{ content:""; width:14px; height:14px; border-radius:50%; background:var(--c); border:2px solid var(--mm-edge); flex:none; }
+.mm-mood[aria-pressed="true"],
+.mm-mood[aria-pressed="true"]:hover{ color:var(--c-ink); background:var(--c); }
+.mm-mood[aria-pressed="true"]::before{ background:var(--c-ink); border-color:var(--c-ink); }
+/* the song's mood, what it's for, and its flavours: a card in the mood's tint under the moods */
+.mm-flavours{
+  display:grid; gap:10px;
+  margin-top:16px;
+  padding:14px 18px 15px;
+  background:var(--mm-tint);
+  border:2px solid var(--mm-edge);
+  border-radius:16px;
+}
+.mm-about{ margin:0; max-width:86ch; font-size:15px; line-height:1.5; color:var(--mm-ink); }
+.mm-about b{ margin-right:4px; font-weight:1000; font-variation-settings:"CASL" 1; }
+.mm-kinds-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; }
+.mm-kinds-row .mm-mods-label{ min-width:72px; }
+.mm-kinds{ display:flex; flex-wrap:wrap; gap:6px 5px; }
+.mm-kind-tip{ margin:0; max-width:86ch; font-size:14px; line-height:1.45; color:var(--mm-ink-soft); }
+/* style and modifiers under the moods */
+.mm-mods-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:16px 0 14px; }
+.mm-mods{ display:flex; flex-wrap:wrap; gap:6px 5px; }
+/* (a long row of keys wraps beside its name, not under it) */
+.mm-mods-row > .mm-strip, .mm-mood-bar > .mm-strip, .mm-remix > .mm-strip{ flex:1 1 0; min-width:0; }
 
 /* remix */
 .mm-remix{
   display:flex; flex-wrap:wrap; align-items:center;
-  gap:10px 14px;
-  padding:6px 20px 20px;
+  gap:10px 12px;
+  padding:4px 22px 24px;
 }
 .mm-remix-keys{ display:flex; flex-wrap:wrap; gap:9px 6px; }
 
 /* your own track (song.own): no seed to type and nothing to remix, and a line saying what the moods do now */
 .mm-machine.is-own .mm-label-seed,
 .mm-machine.is-own .mm-remix{ display:none; }
-.mm-own-note{ margin:-2px 0 14px; max-width:78ch; font-size:13.5px; line-height:1.55; color:var(--mm-muted); }
+.mm-own-note{ margin:-4px 0 16px; max-width:78ch; font-size:14px; line-height:1.55; color:var(--mm-ink-soft); }
 
 /* record: a red dot, and red all over while it's on */
-.mm-key-rec svg{ fill:#d0533a; }
-.mm-key-rec[aria-pressed="true"]{ color:#fbf6ec; background:#c0442c; box-shadow:0 3px 0 #6e2416; }
+.mm-key-rec svg{ fill:#d0402a; }
+.mm-key-rec[aria-pressed="true"], .mm-key-rec[aria-pressed="true"]:hover{ color:#fff6d8; background:#c0391f; }
 .mm-key-rec[aria-pressed="true"] svg{ fill:currentColor; }
 
 /* tabs: folder tabs that join the panel under them */
-.mm-tabs{ display:flex; gap:4px; padding:0 20px; }
+.mm-tabs{ display:flex; gap:4px; padding:0 22px; }
 .mm-tab{
-  padding:11px 18px 10px;
-  font:800 15px var(--mm-ui);
-  font-variation-settings:"CASL" 0.8;
-  color:var(--mm-muted);
-  background:var(--mm-dark);
-  border:0;
-  border-radius:6px 6px 0 0;
+  position:relative;
+  padding:11px 20px 10px;
+  font:850 16px var(--mm-ui);
+  font-variation-settings:"CASL" 1;
+  color:var(--mm-ink-soft);
+  background:transparent;
+  border:2px solid transparent;
+  border-bottom:0;
+  border-radius:14px 14px 0 0;
   cursor:pointer;
 }
-.mm-tab:hover{ color:var(--mm-text); }
-.mm-tab[aria-selected="true"]{ background:var(--mm-panel); color:var(--mm-text); box-shadow:inset 0 3px 0 var(--mm-mood); }
-.mm-tab:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:-2px; }
-.mm-panel{ padding:22px 20px 10px; background:var(--mm-panel); min-height:320px; container-type:inline-size; }
+.mm-tab:hover{ color:var(--mm-ink); background:var(--mm-dent); }
+.mm-tab[aria-selected="true"]{ z-index:1; margin-bottom:-2px; padding-bottom:12px; color:var(--mm-ink); background:var(--mm-well); border-color:var(--mm-edge); }
+.mm-tab:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:-5px; }
+.mm-panel{ padding:24px 22px 12px; background:var(--mm-well); border-top:2px solid var(--mm-edge); min-height:320px; container-type:inline-size; }
 
 /* the tip line along the bottom, stuck to the window's bottom edge while the machine's in view, with
    a play key of its own once the real one's scrolled away */
 .mm-dock{
   position:sticky; bottom:0; z-index:5;
   display:flex; align-items:center; gap:12px;
-  padding:10px 20px;
-  background:var(--mm-dark);
-  border-top:2px solid var(--mm-line);
+  padding:10px 22px;
+  background:var(--mm-dock);
+  color:var(--mm-dock-text);
 }
-.mm-dock .mm-dock-play{ display:none; flex:none; min-width:48px; min-height:40px; padding:0; }
-.mm-dock-play svg{ width:14px; height:14px; }
+.mm-dock .mm-dock-play{ display:none; flex:none; min-width:52px; min-height:42px; padding:0; border-color:var(--mm-dock-text); box-shadow:none; }
+.mm-dock .mm-dock-play.is-playing{ background:var(--mm-dock-text); color:var(--mm-dock); }
+.mm-dock-play svg{ width:15px; height:15px; }
 .mm-dock.is-away .mm-dock-play{ display:inline-flex; }
 .mm-tip{
   flex:1;
   margin:0;
   min-height:3em;
   display:flex; align-items:center;
-  font-size:14px;
+  font-size:14.5px;
   line-height:1.5;
-  color:var(--mm-muted);
+  color:color-mix(in oklab, var(--mm-dock-text) 78%, var(--mm-dock));
 }
-.mm-tip.is-news{ color:var(--mm-mood); }
+.mm-tip.is-news{ color:var(--mm-mood-light); font-weight:700; }
 
 /* ---------- panel parts ---------- */
-.mm-columns{ display:grid; grid-template-columns:minmax(0,1fr); gap:6px 36px; align-items:start; }
+.mm-columns{ display:grid; grid-template-columns:minmax(0,1fr); gap:6px 40px; align-items:start; }
 @container (min-width:720px){
   .mm-columns{ grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
 }
-.mm-section{ margin-bottom:20px; }
+.mm-section{ margin-bottom:22px; }
 .mm-section-title{
-  display:flex; align-items:center; gap:10px;
-  margin:0 0 8px;
-  font:700 11.5px var(--mm-ui);
-  letter-spacing:.14em;
-  text-transform:uppercase;
-  color:var(--mm-muted);
+  display:flex; align-items:center; gap:12px;
+  margin:0 0 10px;
+  font:850 16px var(--mm-ui);
+  font-variation-settings:"CASL" 1;
+  color:var(--mm-ink);
 }
 .mm-section-title::after{ content:""; flex:1; height:2px; background:var(--mm-line); }
-.mm-hint{ margin:10px 0 0; max-width:78ch; font-size:13.5px; line-height:1.55; color:var(--mm-muted); }
+.mm-hint{ margin:10px 0 0; max-width:78ch; font-size:14px; line-height:1.55; color:var(--mm-ink-soft); }
 /* a section folded shut (fold() in maker.js): its title opens it */
 .mm-fold > summary{ cursor:pointer; list-style:none; }
 .mm-fold > summary::-webkit-details-marker{ display:none; }
-.mm-fold > summary::before{ content:"+"; width:10px; font:700 13px var(--mm-mono); color:var(--mm-mood); }
-.mm-fold[open] > summary::before{ content:"\2212"; }
-.mm-fold > summary:hover{ color:var(--mm-text); }
-.mm-fold > summary:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:3px; border-radius:2px; }
+.mm-fold > summary::before,
+.mm-part-settings summary::before{
+  content:"+";
+  display:grid; place-items:center;
+  width:20px; height:20px; flex:none;
+  border:2px solid var(--mm-edge);
+  border-radius:50%;
+  background:var(--mm-butter);
+  font:800 13px/1 var(--mm-mono);
+}
+.mm-fold[open] > summary::before,
+.mm-part-settings[open] summary::before{ content:"\2212"; background:var(--mm-mood); color:var(--mm-mood-ink); }
+.mm-fold > summary:hover{ color:var(--mm-ink-soft); }
+.mm-fold > summary:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:3px; border-radius:4px; }
 .mm-fold > .mm-hint:first-of-type{ margin-top:0; }
 /* (one folded inside a section, like the chords' help: clear of the keys above it) */
-.mm-section > .mm-fold{ margin:22px 0 0; }
+.mm-section > .mm-fold{ margin:24px 0 0; }
 
 .mm-field,
 .mm-slider{
   display:grid;
-  grid-template-columns:100px minmax(0,1fr);
+  grid-template-columns:104px minmax(0,1fr);
   align-items:center;
   gap:10px;
-  min-height:36px;
+  min-height:38px;
 }
-.mm-slider{ grid-template-columns:100px minmax(0,1fr) 86px; min-height:32px; }
+.mm-slider{ grid-template-columns:104px minmax(0,1fr) 86px; min-height:34px; }
 .mm-field-label,
-.mm-slider label{ font-size:14px; font-weight:600; color:#ddd5c6; }
+.mm-slider label{ font-size:14.5px; font-weight:700; color:var(--mm-ink); }
 .mm-field + .mm-field, .mm-slider + .mm-field, .mm-field + .mm-slider{ margin-top:4px; }
-.mm-choices{ display:flex; flex-wrap:wrap; gap:8px 5px; padding:3px 0 5px; }
+.mm-choices{ display:flex; flex-wrap:wrap; gap:8px 5px; padding:3px 0 6px; }
 .mm-doubles{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 5px; padding:3px 0 5px; }
 .mm-doubles .mm-select{ flex:1 1 9em; min-width:0; }
 .mm-slider output{
-  font:500 12px var(--mm-mono);
+  font:500 12.5px var(--mm-mono);
   font-variant-numeric:tabular-nums;
-  color:var(--mm-text);
+  color:var(--mm-ink);
   text-align:right;
   white-space:nowrap;
   overflow:hidden; text-overflow:ellipsis;
 }
+/* a groove with the mood's colour poured in up to a round knob */
 .mm-slider input{
   -webkit-appearance:none; appearance:none;
-  width:100%; height:22px;
+  width:100%; height:24px;
   margin:0;
   background:transparent;
   cursor:pointer;
 }
 .mm-slider input::-webkit-slider-runnable-track{
-  height:4px;
-  background:linear-gradient(90deg, var(--mm-mood) var(--fill), var(--mm-edge) var(--fill));
+  height:10px;
+  border:2px solid var(--mm-edge);
+  border-radius:999px;
+  background:linear-gradient(90deg, var(--mm-mood) var(--fill), var(--mm-butter-hi) var(--fill));
 }
 .mm-slider input::-moz-range-track{
-  height:4px;
-  background:linear-gradient(90deg, var(--mm-mood) var(--fill), var(--mm-edge) var(--fill));
+  height:6px;
+  border:2px solid var(--mm-edge);
+  border-radius:999px;
+  background:linear-gradient(90deg, var(--mm-mood) var(--fill), var(--mm-butter-hi) var(--fill));
 }
-/* a flat fader cap with a line across it */
 .mm-slider input::-webkit-slider-thumb{
   -webkit-appearance:none;
-  width:12px; height:20px;
-  margin-top:-8px;
-  border-radius:2px;
-  border:1px solid var(--mm-edge);
-  background:linear-gradient(90deg, transparent 5px, var(--mm-edge) 5px, var(--mm-edge) 6px, transparent 6px) var(--mm-paper);
+  width:20px; height:20px;
+  margin-top:-7px;
+  border-radius:50%;
+  border:2px solid var(--mm-edge);
+  background:var(--mm-knob);
+  box-shadow:0 2px 0 var(--mm-edge);
 }
 .mm-slider input::-moz-range-thumb{
-  width:12px; height:20px;
-  border-radius:2px;
-  border:1px solid var(--mm-edge);
-  background:linear-gradient(90deg, transparent 5px, var(--mm-edge) 5px, var(--mm-edge) 6px, transparent 6px) var(--mm-paper);
+  width:16px; height:16px;
+  border-radius:50%;
+  border:2px solid var(--mm-edge);
+  background:var(--mm-knob);
+  box-shadow:0 2px 0 var(--mm-edge);
 }
 .mm-slider input:focus-visible{ outline:none; }
-.mm-slider input:focus-visible::-webkit-slider-thumb{ box-shadow:0 0 0 2px var(--mm-mood); }
-.mm-slider input:focus-visible::-moz-range-thumb{ box-shadow:0 0 0 2px var(--mm-mood); }
+.mm-slider input:focus-visible::-webkit-slider-thumb{ outline:3px solid var(--mm-focus); outline-offset:2px; }
+.mm-slider input:focus-visible::-moz-range-thumb{ outline:3px solid var(--mm-focus); outline-offset:2px; }
 
 .mm-select,
 .mm-input{
-  height:34px;
+  height:36px;
   padding:0 10px;
-  font:600 14px var(--mm-ui);
-  color:var(--mm-text);
-  background:var(--mm-well);
-  border:0;
-  border-radius:4px;
+  font:650 14px var(--mm-ui);
+  color:var(--mm-ink);
+  background:var(--mm-butter-hi);
+  border:2px solid var(--mm-edge);
+  border-radius:10px;
   min-width:0;
 }
 .mm-select{ max-width:260px; cursor:pointer; }
-.mm-select optgroup{ font-style:normal; color:var(--mm-muted); }
-.mm-select option{ color:var(--mm-text); background:var(--mm-well); }
+.mm-select optgroup{ font-style:normal; color:var(--mm-ink-soft); }
+.mm-select option{ color:var(--mm-ink); background:var(--mm-butter-hi); }
 .mm-select:focus-visible,
-.mm-input:focus{ outline:2px solid var(--mm-mood); outline-offset:1px; }
-.mm-select-small{ height:30px; font-size:13px; padding:0 6px; }
+.mm-input:focus{ outline:3px solid var(--mm-focus); outline-offset:1px; }
+.mm-select-small{ height:32px; font-size:13px; padding:0 6px; }
 
 /* chords */
-.mm-chords{ margin-top:14px; }
+.mm-chords{ margin-top:16px; }
 .mm-chords-line{ display:flex; align-items:center; gap:8px; }
 .mm-part{
   display:grid; place-items:center;
   flex:none;
-  width:34px; height:34px;
-  border-radius:4px;
-  font:800 15px var(--mm-ui);
-  color:var(--mm-paper-ink);
+  width:36px; height:36px;
+  border:2px solid var(--mm-edge);
+  border-radius:10px;
+  font:1000 16px var(--mm-ui);
+  font-variation-settings:"CASL" 1;
+  /* (on a part's own tan colour, in either theme) */
+  color:#2b1508;
 }
 .mm-chord-input{ flex:1; font:500 14px var(--mm-mono); }
-.mm-chips{ display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 0 42px; }
+.mm-chips{ display:flex; flex-wrap:wrap; gap:6px; margin:9px 0 0 44px; }
 .mm-chip{
   display:grid;
   min-width:58px;
-  padding:5px 9px 4px;
+  padding:5px 10px 4px;
   text-align:left;
-  color:var(--mm-paper-ink);
-  background:var(--mm-paper);
-  border:0;
-  border-radius:3px;
-  box-shadow:0 2px 0 #8f8570;
+  color:var(--mm-ink);
+  background:var(--mm-butter);
+  border:2px solid var(--mm-edge);
+  border-radius:9px;
+  box-shadow:0 2px 0 var(--mm-edge);
   cursor:pointer;
 }
-.mm-chip:hover{ background:#f8f1e2; }
-.mm-chip:active{ transform:translateY(1px); box-shadow:0 1px 0 #8f8570; }
-.mm-chip:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:2px; }
+.mm-chip:hover{ background:var(--mm-butter-hi); }
+.mm-chip:active{ transform:translateY(2px); box-shadow:0 0 0 var(--mm-edge); }
+.mm-chip:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:2px; }
 .mm-chip b{ font:600 13.5px var(--mm-mono); }
-.mm-chip small{ font:500 10.5px var(--mm-ui); color:#7b6f5d; }
-.mm-chord-problem{ margin:6px 0 0 42px; font-size:13px; color:var(--mm-warn); }
+.mm-chip small{ font:500 10.5px var(--mm-ui); color:var(--mm-ink-soft); }
+.mm-chord-problem{ margin:6px 0 0 44px; font-size:13.5px; font-weight:650; color:var(--mm-warn); }
 .mm-chord-problem:empty{ display:none; }
 
 /* band */
-.mm-band{ display:grid; grid-template-columns:minmax(0,1fr); gap:24px; }
+.mm-band{ display:grid; grid-template-columns:minmax(0,1fr); gap:26px; }
 @container (min-width:760px){
-  .mm-band{ grid-template-columns:230px minmax(0,1fr); }
+  .mm-band{ grid-template-columns:240px minmax(0,1fr); }
 }
-.mm-layers{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+.mm-layers{ list-style:none; margin:0; padding:0; display:grid; gap:7px; }
 .mm-layer{ display:flex; align-items:center; gap:5px; }
 .mm-layer-open{
   flex:1;
@@ -463,230 +555,239 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   display:flex; align-items:center; gap:10px;
   padding:6px 10px;
   text-align:left;
-  color:var(--mm-text);
-  background:var(--mm-dark);
-  border:0;
-  border-radius:4px;
+  color:var(--mm-ink);
+  background:var(--mm-butter);
+  border:2px solid var(--mm-edge);
+  border-radius:12px;
   cursor:pointer;
 }
-.mm-layer-open:hover{ background:#3b352e; }
-.mm-layer-open[aria-pressed="true"]{ background:var(--mm-paper); color:var(--mm-paper-ink); }
-.mm-layer-open:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:2px; }
-.mm-layer-chip{ flex:none; width:8px; height:26px; border-radius:2px; }
+.mm-layer-open:hover{ background:var(--mm-butter-hi); }
+.mm-layer-open[aria-pressed="true"]{ background:var(--mm-ink); color:var(--mm-butter); }
+.mm-layer-open:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:2px; }
+.mm-layer-chip{ flex:none; width:10px; height:26px; border-radius:4px; box-shadow:inset 0 0 0 1.5px var(--mm-edge); }
+.mm-layer-open[aria-pressed="true"] .mm-layer-chip{ box-shadow:none; }
 .mm-layer-words{ display:grid; min-width:0; }
-.mm-layer-words b{ font:700 13.5px var(--mm-ui); }
-.mm-layer-words small{ font-size:12px; opacity:.72; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.mm-add{ display:flex; gap:6px; margin-top:12px; }
-.mm-add .mm-select{ flex:1; height:30px; font-size:13px; }
+.mm-layer-words b{ font:800 14px var(--mm-ui); font-variation-settings:"CASL" 1; }
+.mm-layer-words small{ font-size:12px; opacity:.75; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mm-add{ display:flex; gap:6px; margin-top:14px; }
+.mm-add .mm-select{ flex:1; height:32px; font-size:13px; }
 
-.mm-detail-head{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin-bottom:16px; }
+.mm-detail-head{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin-bottom:18px; }
 .mm-detail-title{
   display:flex; align-items:center; gap:10px;
   margin:0;
-  font:900 22px var(--mm-ui);
+  font:1000 24px var(--mm-ui);
   font-variation-settings:"CASL" 1;
 }
-.mm-detail-title::before{ content:""; width:12px; height:22px; border-radius:2px; background:var(--chip); }
-.mm-detail-note{ font-size:13px; color:var(--mm-muted); }
+.mm-detail-title::before{ content:""; width:14px; height:24px; border-radius:5px; background:var(--chip); border:2px solid var(--mm-edge); }
+.mm-detail-note{ font-size:13.5px; color:var(--mm-ink-soft); }
 .mm-detail-actions{ display:flex; flex-wrap:wrap; gap:6px; margin-left:auto; }
 
-/* the note editor */
+/* the note editor: a paper screen like the score */
 .mm-editor{ margin-top:4px; }
 .mm-editor-head{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 14px; }
 .mm-editor-head .mm-section-title{ flex:1 1 140px; margin:0; }
 /* the note editor's tools (notes, slides, vibrato) and the slide speed, under its head */
-.mm-editor-tools{ display:flex; flex-wrap:wrap; align-items:center; gap:0 14px; margin-top:4px; }
-.mm-editor .mm-hint{ margin:4px 0 10px; }
+.mm-editor-tools{ display:flex; flex-wrap:wrap; align-items:center; gap:0 14px; margin-top:6px; }
+.mm-editor .mm-hint{ margin:6px 0 12px; }
 .mm-editor-body{
   display:flex;
   max-height:380px;
   overflow-y:auto;
   background:var(--mm-paper);
-  border:4px solid var(--mm-edge);
-  border-radius:4px;
+  border:3px solid var(--mm-edge);
+  border-radius:14px;
+  scrollbar-color:var(--mm-line) var(--mm-paper);
 }
 .mm-editor-labels{ flex:none; cursor:pointer; }
-.mm-editor-scroll{ flex:1; min-width:0; overflow-x:auto; scrollbar-color:#a89b82 var(--mm-paper-2); }
+.mm-editor-scroll{ flex:1; min-width:0; overflow-x:auto; scrollbar-color:var(--mm-line) var(--mm-paper); }
 .mm-editor-grid{ display:block; cursor:crosshair; touch-action:none; }
 
 /* learn: the part on a piano, a guitar's neck and tab, or a staff, on the same paper as the score,
    and the chord shapes it uses as a row of songbook boxes */
 .mm-learn-controls{ display:grid; gap:4px; }
-.mm-learn{ margin-top:12px; background:var(--mm-paper); border:4px solid var(--mm-edge); border-radius:4px; overflow:hidden; }
+.mm-learn{ margin-top:14px; background:#fffdf3; border:3px solid var(--mm-edge); border-radius:14px; overflow:hidden; }
 .mm-learn canvas{ display:block; width:100%; height:260px; cursor:pointer; touch-action:manipulation; }
-.mm-shapes{ margin-top:18px; }
+.mm-shapes{ margin-top:20px; }
 .mm-shapes:empty{ display:none; }
-.mm-shape-row{ display:flex; flex-wrap:wrap; gap:8px; }
+.mm-shape-row{ display:flex; flex-wrap:wrap; gap:9px; }
 .mm-shape{
   display:flex; flex-direction:column; align-items:center; gap:2px;
   padding:6px 6px 7px;
-  font:700 12px var(--mm-ui);
-  color:var(--mm-paper-ink);
-  background:var(--mm-paper);
-  border:0;
-  border-radius:4px;
+  font:750 12px var(--mm-ui);
+  color:#2b1508;
+  background:#fffdf3;
+  border:2px solid var(--mm-edge);
+  border-radius:10px;
   box-shadow:0 3px 0 var(--mm-edge);
   cursor:pointer;
 }
-.mm-shape:hover{ background:var(--mm-paper-2); }
-.mm-shape:active{ transform:translateY(2px); box-shadow:0 1px 0 var(--mm-edge); }
-.mm-shape:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:3px; }
+.mm-shape:hover{ background:#fff6d8; }
+.mm-shape:active{ transform:translateY(3px); box-shadow:0 0 0 var(--mm-edge); }
+.mm-shape:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:3px; }
 .mm-shape canvas{ display:block; }
 
 /* arrange: a tracker's grid, a narrow column per section and a letter in every square a layer plays,
    then the picked section's settings and the picked square's part and notes under it */
-.mm-arrange-wrap{ overflow-x:auto; padding:2px 2px 8px; scrollbar-color:var(--mm-raised) var(--mm-panel); }
-.mm-arrange{ border-collapse:separate; border-spacing:4px; margin:-4px; }
+.mm-arrange-wrap{ overflow-x:auto; padding:2px 2px 10px; scrollbar-color:var(--mm-line) var(--mm-well); }
+.mm-arrange{ border-collapse:separate; border-spacing:5px; margin:-5px; }
 .mm-arrange th{ font-weight:600; text-align:left; vertical-align:middle; }
-.mm-arrange-corner{ font:700 11.5px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); vertical-align:bottom !important; padding-bottom:4px; }
+.mm-arrange-corner{ font:850 14px var(--mm-ui); font-variation-settings:"CASL" 1; color:var(--mm-ink); vertical-align:bottom !important; padding-bottom:6px; }
 .mm-arrange-head{
   display:grid;
-  width:68px;
-  padding:5px 7px 4px;
+  width:70px;
+  padding:5px 8px 4px;
   text-align:left;
-  color:var(--mm-text);
-  background:var(--mm-dark);
-  border:0;
-  border-radius:4px;
-  box-shadow:inset 0 -3px 0 transparent;
+  color:var(--mm-ink);
+  background:var(--mm-butter);
+  border:2px solid var(--mm-edge);
+  border-radius:10px;
+  box-shadow:inset 0 -4px 0 transparent;
   cursor:pointer;
 }
-.mm-arrange-head b{ font:700 12.5px var(--mm-ui); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.mm-arrange-head small{ font:500 11px var(--mm-mono); font-variation-settings:"MONO" 1, "CASL" 0; color:var(--mm-muted); }
-.mm-arrange-head:hover{ background:#3b352e; }
-.mm-arrange-head[aria-pressed="true"]{ background:var(--mm-paper); color:var(--mm-paper-ink); }
-.mm-arrange-head[aria-pressed="true"] small{ color:#7b6f5d; }
-.mm-arrange-head:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:2px; }
+.mm-arrange-head b{ font:800 12.5px var(--mm-ui); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mm-arrange-head small{ font:500 11px var(--mm-mono); font-variation-settings:"MONO" 1, "CASL" 0; color:var(--mm-ink-soft); }
+.mm-arrange-head:hover{ background:var(--mm-butter-hi); }
+.mm-arrange-head[aria-pressed="true"]{ background:var(--mm-ink); color:var(--mm-butter); }
+.mm-arrange-head[aria-pressed="true"] small{ color:color-mix(in oklab, var(--mm-butter) 70%, var(--mm-ink)); }
+.mm-arrange-head:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:2px; }
 /* the section playing now */
-.is-now .mm-arrange-head{ box-shadow:inset 0 -3px 0 var(--mm-mood); }
+.is-now .mm-arrange-head{ box-shadow:inset 0 -5px 0 var(--mm-mood); }
 .mm-arrange-layer{ white-space:nowrap; padding-right:6px; font-size:14px; }
 /* the layers' names stay put while a long song scrolls under them */
-.mm-arrange tbody th, .mm-arrange-corner{ position:sticky; left:0; z-index:1; background:var(--mm-panel); }
-.mm-arrange-layer .mm-key{ margin-left:3px; min-height:26px; min-width:26px; font-size:12px; }
+.mm-arrange tbody th, .mm-arrange-corner{ position:sticky; left:0; z-index:1; background:var(--mm-well); }
+.mm-arrange-layer .mm-key{ margin-left:3px; min-height:28px; min-width:28px; font-size:12px; border-radius:8px; box-shadow:0 2px 0 var(--mm-edge); }
+.mm-arrange-layer .mm-key:active{ box-shadow:none; transform:translateY(2px); }
 .mm-arrange-name{
   display:inline-flex; align-items:center; gap:8px;
-  min-width:104px;
-  padding:3px 8px 3px 4px;
-  font:700 13.5px var(--mm-ui);
-  color:var(--mm-text);
+  min-width:106px;
+  padding:3px 9px 3px 5px;
+  font:800 14px var(--mm-ui);
+  font-variation-settings:"CASL" 1;
+  color:var(--mm-ink);
   background:none;
-  border:0;
-  border-radius:4px;
+  border:2px solid transparent;
+  border-radius:10px;
   cursor:pointer;
 }
 .mm-arrange-name .mm-layer-chip{ height:18px; }
-.mm-arrange-name:hover{ background:rgba(255,255,255,.06); }
-.mm-arrange-name[aria-pressed="true"]{ background:var(--mm-paper); color:var(--mm-paper-ink); }
-.mm-arrange-name:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:2px; }
-.mm-arrange-chords th{ font:700 11.5px var(--mm-ui); letter-spacing:.14em; text-transform:uppercase; color:var(--mm-muted); padding-left:6px; }
+.mm-arrange-name:hover{ background:var(--mm-dent); }
+.mm-arrange-name[aria-pressed="true"]{ background:var(--mm-ink); color:var(--mm-butter); }
+.mm-arrange-name:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:2px; }
+.mm-arrange-chords th{ font:850 14px var(--mm-ui); font-variation-settings:"CASL" 1; color:var(--mm-ink); padding-left:6px; }
+/* an empty square is a dent in the panel; a playing one is filled with its layer's colour */
 .mm-cell{
   display:block;
-  width:68px; height:28px;
-  font:800 13px var(--mm-ui);
-  color:var(--chip-ink, var(--mm-paper-ink));
-  background:var(--mm-dark);
-  border:0;
-  border-radius:3px;
+  width:70px; height:30px;
+  font:900 13.5px var(--mm-ui);
+  color:var(--chip-ink, var(--mm-ink));
+  background:var(--mm-dent);
+  border:2px solid transparent;
+  border-radius:8px;
   cursor:pointer;
 }
-.mm-cell.is-column{ background:#2a2621; }
-.mm-cell:hover{ box-shadow:inset 0 0 0 2px #6a6255; }
-/* (a faint ring too, so the drums' near black still reads as playing) */
-.mm-cell[aria-pressed="true"]{ background:var(--chip); box-shadow:inset 0 0 0 1px rgba(255,255,255,.2); }
-.mm-cell[aria-pressed="true"]:hover{ box-shadow:inset 0 0 0 2px rgba(255,255,255,.55); }
-.mm-arrange-chords .mm-cell{ height:22px; font-size:12px; color:var(--mm-paper-ink); }
-.mm-cell.is-picked{ outline:2px solid var(--mm-paper); outline-offset:2px; }
-.mm-cell:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:2px; }
+.mm-cell.is-column{ background:var(--mm-dent-2); }
+.mm-cell:hover{ border-color:var(--mm-ink-soft); }
+.mm-cell[aria-pressed="true"]{ background:var(--chip); border-color:var(--mm-edge); }
+.mm-cell[aria-pressed="true"]:hover{ box-shadow:inset 0 0 0 2px rgba(255,246,216,.6); }
+.mm-arrange-chords .mm-cell{ height:24px; font-size:12px; color:#2b1508; }
+.mm-cell.is-picked{ outline:3px solid var(--mm-ink); outline-offset:2px; }
+.mm-cell:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:2px; }
 /* a part with settings of its own: a folded corner */
-.mm-cell.has-own{ background:linear-gradient(225deg, var(--mm-paper) 7px, var(--chip) 7px); }
+.mm-cell.has-own{ background:linear-gradient(225deg, var(--mm-butter) 8px, var(--mm-edge) 8px 10px, var(--chip) 10px); }
 .mm-arrange-more{ vertical-align:top !important; }
 /* the picked square's part: where else it plays, then its sound and playing, folded away */
-.mm-part-shared{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin:6px 0 12px; }
+.mm-part-shared{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin:6px 0 14px; }
 .mm-part-shared .mm-hint{ flex:1 1 320px; margin:0; }
-.mm-part-settings{ margin:0 0 16px; background:var(--mm-dark); border-radius:4px; }
+.mm-part-settings{ margin:0 0 18px; background:var(--mm-butter); border:2px solid var(--mm-edge); border-radius:14px; }
 .mm-part-settings summary{
-  display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 6px;
+  display:flex; flex-wrap:wrap; align-items:center; gap:2px 8px;
   padding:10px 14px;
-  font-size:14px;
-  color:var(--mm-muted);
+  font-size:14.5px;
+  color:var(--mm-ink-soft);
   cursor:pointer;
   list-style:none;
 }
 .mm-part-settings summary::-webkit-details-marker{ display:none; }
-.mm-part-settings summary::before{ content:"+"; width:14px; font:700 14px var(--mm-mono); color:var(--mm-mood); }
-.mm-part-settings[open] summary::before{ content:"\2212"; }
-.mm-part-settings summary b{ color:var(--mm-text); }
-.mm-part-settings summary:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:-2px; }
+.mm-part-settings summary b{ color:var(--mm-ink); font-weight:850; }
+.mm-part-settings summary:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:-3px; border-radius:12px; }
 .mm-part-body{ padding:0 14px 14px; }
 .mm-part-body > .mm-hint{ margin:0 0 12px; }
 .mm-arrange-hint{ margin-top:12px; }
-.mm-arrange-detail, .mm-arrange-cell{ margin-top:18px; padding-top:14px; border-top:2px solid var(--mm-line); }
+.mm-arrange-detail, .mm-arrange-cell{ margin-top:20px; padding-top:16px; border-top:2px solid var(--mm-line); }
 .mm-arrange-detail .mm-detail-head{ margin-bottom:8px; }
 .mm-arrange-detail .mm-detail-head .mm-section-title{ flex:1 1 160px; margin:0; }
-.mm-arrange-detail .mm-detail-actions .mm-key{ min-height:28px; }
+.mm-arrange-detail .mm-detail-actions .mm-key{ min-height:30px; }
 .mm-arrange-cell .mm-detail-head{ margin-bottom:8px; }
 .mm-arrange-cell .mm-hint{ margin:4px 0 12px; }
-.mm-section-name{ width:100%; max-width:260px; height:32px; font-weight:700; }
+.mm-section-name{ width:100%; max-width:260px; height:34px; font-weight:750; }
 .mm-bars{ display:flex; align-items:center; gap:6px; max-width:200px; }
 .mm-bars span{ flex:1; text-align:center; font:500 12.5px var(--mm-mono); }
 
-/* ---------- library and export ---------- */
+/* ---------- library and export: butter cards on the sky ---------- */
 .mm-ribbon{
-  margin:clamp(56px,7vw,88px) 0 clamp(20px,2.5vw,28px);
-  font:900 clamp(28px,3.2vw,42px)/1.1 var(--mm-ui);
+  margin:clamp(64px,8vw,104px) 0 clamp(22px,2.5vw,30px);
+  font:1000 clamp(32px,4vw,54px)/1.05 var(--mm-ui);
   font-variation-settings:"CASL" 1;
-  letter-spacing:-.01em;
-  color:var(--mm-text);
+  letter-spacing:-.02em;
+  color:var(--mm-on-sky);
 }
 .mm-lower{
   display:grid;
   grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);
-  gap:24px;
+  gap:26px;
   align-items:start;
 }
 @media (max-width:900px){
   .mm-lower{ grid-template-columns:minmax(0,1fr); }
 }
-.mm-shelf{ padding:22px; background:var(--mm-body); border-radius:10px; color:var(--mm-text); }
-.mm-shelf-title{ margin:0; font:900 22px var(--mm-ui); font-variation-settings:"CASL" 1; }
-.mm-shelf-note{ margin:6px 0 14px; font-size:14px; color:var(--mm-muted); }
+.mm-shelf{
+  padding:24px;
+  background:var(--mm-butter);
+  border:3px solid var(--mm-edge);
+  border-radius:22px;
+  box-shadow:0 8px 0 var(--mm-drop);
+  color:var(--mm-ink);
+}
+.mm-shelf-title{ margin:0; font:1000 24px var(--mm-ui); font-variation-settings:"CASL" 1; }
+.mm-shelf-note{ margin:6px 0 16px; font-size:14.5px; color:var(--mm-ink-soft); }
 
-.mm-library{ list-style:none; margin:0; padding:0; max-height:440px; overflow-y:auto; }
+.mm-library{ list-style:none; margin:0; padding:0; max-height:440px; overflow-y:auto; scrollbar-color:var(--mm-line) var(--mm-butter); }
 .mm-library li{
   display:grid;
-  grid-template-columns:10px minmax(0,1fr) auto;
+  grid-template-columns:12px minmax(0,1fr) auto;
   align-items:center;
   gap:12px;
-  padding:8px 4px;
+  padding:9px 6px;
   border-bottom:2px solid var(--mm-line);
 }
-.mm-library li.is-open{ background:rgba(239,230,211,.06); }
-.mm-library .mm-library-empty{ display:block; padding:12px 4px; border:0; font-size:14px; color:var(--mm-muted); }
-.mm-library-chip{ width:10px; height:28px; border-radius:2px; }
+.mm-library li.is-open{ background:var(--mm-tint); border-radius:10px; }
+.mm-library .mm-library-empty{ display:block; padding:12px 4px; border:0; font-size:14.5px; color:var(--mm-ink-soft); }
+.mm-library-chip{ width:12px; height:30px; border-radius:4px; border:2px solid var(--mm-edge); }
 .mm-library-name{
   display:grid;
   min-width:0;
   padding:2px 0;
   text-align:left;
-  color:var(--mm-text);
+  color:var(--mm-ink);
   background:none;
   border:0;
   cursor:pointer;
 }
-.mm-library-name span{ font:700 15px var(--mm-ui); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.mm-library-name small{ font-size:12.5px; color:var(--mm-muted); }
-.mm-library-name:hover span{ color:var(--mm-mood); }
-.mm-library-name:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:2px; border-radius:3px; }
+.mm-library-name span{ font:850 15.5px var(--mm-ui); font-variation-settings:"CASL" 1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mm-library-name small{ font-size:12.5px; color:var(--mm-ink-soft); }
+.mm-library-name:hover span{ text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:3px; }
+.mm-library-name:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:2px; border-radius:4px; }
 .mm-library-forget{
   padding:4px 6px;
-  font:500 12.5px var(--mm-ui);
-  color:var(--mm-muted);
+  font:600 13px var(--mm-ui);
+  color:var(--mm-ink-soft);
   background:none; border:0;
   text-decoration:underline; text-underline-offset:3px;
   cursor:pointer;
 }
 .mm-library-forget:hover{ color:var(--mm-warn); }
-.mm-library-forget:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:2px; border-radius:3px; }
+.mm-library-forget:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:2px; border-radius:4px; }
 .mm-library-keys{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:2px 4px; }
 /* a song's earlier saves, under it */
 .mm-library .mm-library-history{ display:block; padding:0 4px 8px 26px; }
@@ -696,10 +797,10 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
 .mm-bin{ margin-top:10px; }
 .mm-bin .mm-library{ margin-top:6px; opacity:.85; }
 .mm-bin div.mm-library-name{ cursor:default; }
-.mm-backup{ margin-top:18px; padding-top:16px; border-top:2px solid var(--mm-line); }
-.mm-backup h3{ margin:0; font:700 16px var(--mm-ui); }
+.mm-backup{ margin-top:20px; padding-top:18px; border-top:2px solid var(--mm-line); }
+.mm-backup h3{ margin:0; font:850 17px var(--mm-ui); font-variation-settings:"CASL" 1; }
 .mm-backup .mm-shelf-note{ line-height:1.55; }
-.mm-backup .mm-shelf-note.is-warn{ color:var(--mm-text); }
+.mm-backup .mm-shelf-note.is-warn{ color:var(--mm-ink); }
 .mm-backup .mm-export-keys{ justify-content:flex-start; }
 
 .mm-export .mm-shelf-title{ margin-bottom:8px; }
@@ -708,33 +809,34 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   grid-template-columns:minmax(0,1fr) auto;
   align-items:start;
   gap:12px 20px;
-  padding:16px 0;
+  padding:18px 0;
   border-top:2px solid var(--mm-line);
 }
-.mm-export h3{ margin:0 0 4px; font:700 16px var(--mm-ui); }
-.mm-export p{ margin:0; font-size:14px; line-height:1.55; color:var(--mm-muted); }
+.mm-export h3{ margin:0 0 4px; font:850 17px var(--mm-ui); font-variation-settings:"CASL" 1; }
+.mm-export p{ margin:0; font-size:14.5px; line-height:1.55; color:var(--mm-ink-soft); }
 .mm-export-keys{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
 /* the two downloads side by side, the loop under them, so the words beside them keep some room */
-.mm-export-audio .mm-export-keys{ max-width:280px; }
+.mm-export-audio .mm-export-keys{ max-width:290px; }
 .mm-open{ position:relative; }
 .mm-open input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
-.mm-open:focus-within{ outline:2px solid var(--mm-mood); outline-offset:3px; }
-/* a wav being recorded: fills like a slider's track. a moving stripe until it knows how far it's got
+.mm-open:focus-within{ outline:3px solid var(--mm-focus); outline-offset:3px; }
+/* a wav being recorded: fills like a slider's groove. a moving stripe until it knows how far it's got
    (the recordings loading, or a browser that can't say) */
 .mm-export-progress{
   -webkit-appearance:none; appearance:none;
-  display:block; width:100%; height:8px;
+  display:block; width:100%; height:14px;
   margin:14px 0 2px;
-  border:0; border-radius:0;
-  background:var(--mm-edge);
+  border:2px solid var(--mm-edge); border-radius:999px;
+  overflow:hidden;
+  background:var(--mm-butter-hi);
   color:var(--mm-mood);
 }
 .mm-export-progress[hidden]{ display:none; }
-.mm-export-progress::-webkit-progress-bar{ background:var(--mm-edge); }
+.mm-export-progress::-webkit-progress-bar{ background:var(--mm-butter-hi); }
 .mm-export-progress::-webkit-progress-value{ background:var(--mm-mood); transition:width .25s linear; }
 .mm-export-progress::-moz-progress-bar{ background:var(--mm-mood); }
 .mm-export-progress:indeterminate{
-  background:repeating-linear-gradient(-45deg, var(--mm-mood) 0 10px, var(--mm-edge) 10px 20px) 0 0 / 28.28px 100%;
+  background:repeating-linear-gradient(-45deg, var(--mm-mood) 0 10px, var(--mm-butter-hi) 10px 20px) 0 0 / 28.28px 100%;
   animation:mm-stripes .8s linear infinite;
 }
 .mm-export-progress:indeterminate::-webkit-progress-bar{ background:transparent; }
@@ -744,52 +846,58 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
   .mm-export-progress:indeterminate{ animation:none; }
   .mm-export-progress::-webkit-progress-value{ transition:none; }
 }
-.mm-export-status{ min-height:1.5em; margin:4px 0 0 !important; color:var(--mm-mood) !important; overflow-wrap:anywhere; }
+.mm-export-status{ min-height:1.5em; margin:6px 0 0 !important; color:var(--mm-ink) !important; font-weight:700; overflow-wrap:anywhere; }
 
 /* the guide at the bottom: a tour, tips, and how it's built */
-.mm-guide-lede{ max-width:72ch; margin:0 0 20px; font-size:16px; line-height:1.65; color:var(--mm-muted); }
-.mm-guide-lede a, .mm-guide a{ color:var(--mm-mood); text-underline-offset:3px; }
-.mm-guide code{ font:500 .92em var(--mm-mono); font-variation-settings:"MONO" 1, "CASL" 0; color:var(--mm-text); }
-.mm-guide-grid{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; align-items:start; }
+.mm-guide-lede{ max-width:68ch; margin:0 0 24px; font-size:16.5px; line-height:1.65; color:var(--mm-on-sky-soft); }
+.mm-guide-lede a{ color:var(--mm-mood-light); font-weight:700; text-underline-offset:3px; }
+.mm-shelf a{ color:var(--mm-ink); font-weight:700; text-underline-offset:3px; }
+.mm-guide code{ font:500 .92em var(--mm-mono); font-variation-settings:"MONO" 1, "CASL" 0; color:var(--mm-on-sky); }
+.mm-guide-grid{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:26px; align-items:start; }
 @media (max-width:900px){
   .mm-guide-grid{ grid-template-columns:minmax(0,1fr); }
 }
-.mm-steps, .mm-tips{ margin:14px 0 0; padding:0 0 0 1.3em; display:grid; list-style:decimal; gap:12px; font-size:15px; line-height:1.6; color:#ddd5c6; }
-.mm-steps li::marker{ font-weight:900; color:var(--mm-mood); }
+.mm-steps, .mm-tips{ margin:16px 0 0; padding:0 0 0 1.4em; display:grid; list-style:decimal; gap:13px; font-size:15px; line-height:1.6; color:var(--mm-ink); }
+.mm-steps li::marker{ font-weight:1000; }
 .mm-tips{ list-style:disc; }
-.mm-tips li::marker{ color:var(--mm-mood); }
-.mm-steps b, .mm-tips b{ color:var(--mm-text); }
-.mm-hood{ display:grid; gap:10px; max-width:860px; }
-.mm-hood details{ padding:0; }
+.mm-steps b, .mm-tips b{ font-weight:850; }
+.mm-hood{ display:grid; gap:12px; max-width:880px; }
+.mm-hood details{ padding:0; box-shadow:0 5px 0 var(--mm-drop); }
 .mm-hood summary{
-  display:flex; align-items:center; gap:12px; padding:16px 22px; cursor:pointer; list-style:none;
-  font:900 18px var(--mm-ui); font-variation-settings:"CASL" 1; border-radius:10px;
+  display:flex; align-items:center; gap:14px; padding:16px 22px; cursor:pointer; list-style:none;
+  font:1000 18px var(--mm-ui); font-variation-settings:"CASL" 1; border-radius:19px;
 }
+.mm-hood summary b{ font-weight:inherit; }
 .mm-hood summary::-webkit-details-marker{ display:none; }
 .mm-hood summary::before{
-  content:"+"; display:grid; place-items:center; width:24px; height:24px; flex:none; border-radius:6px;
-  background:var(--mm-raised); color:var(--mm-mood); font:700 16px var(--mm-mono);
+  content:"+"; display:grid; place-items:center; width:26px; height:26px; flex:none; border-radius:50%;
+  border:2px solid var(--mm-edge); background:var(--mm-butter-hi); font:800 15px/1 var(--mm-mono);
 }
-.mm-hood details[open] summary::before{ content:"\2212"; }
-.mm-hood summary:hover{ background:rgba(255,255,255,.03); }
-.mm-hood summary:focus-visible{ outline:2px solid var(--mm-mood); outline-offset:-2px; }
-.mm-hood details p{ max-width:72ch; margin:0; padding:0 22px 16px 58px; font-size:15px; line-height:1.65; color:#ddd5c6; }
+.mm-hood details[open] summary::before{ content:"\2212"; background:var(--mm-mood); color:var(--mm-mood-ink); }
+.mm-hood summary:hover{ background:var(--mm-butter-hi); }
+.mm-hood summary:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:-4px; }
+.mm-hood details p{ max-width:72ch; margin:0; padding:0 22px 16px 62px; font-size:15px; line-height:1.65; color:var(--mm-ink); }
+.mm-hood details code{ color:var(--mm-ink); }
 @media (max-width:600px){
   .mm-hood summary{ padding:14px 16px; font-size:16px; }
   .mm-hood details p{ padding:0 16px 14px; }
 }
 
-.mm-credits{ max-width:72ch; margin:clamp(40px,5vw,64px) 0 0; font-size:13px; line-height:1.6; color:var(--mm-muted); }
+.mm-credits{ max-width:72ch; margin:clamp(48px,6vw,72px) 0 0; font-size:13px; line-height:1.6; color:var(--mm-on-sky-soft); }
 .mm-credits a{ color:inherit; }
 .mm-page .page-back{ padding-inline:0; margin-top:clamp(40px,5vw,64px); }
 
 @media (max-width:600px){
   /* a phone: the machine runs edge to edge, and the site's bar scrolls away so the song has the screen */
   .mm-page .site-header{ position:relative; }
-  .mm-intro{ padding:32px 0 22px; }
-  .mm-machine{ margin-inline:calc(-1 * var(--gutter)); border-radius:0; }
+  .mm-intro{ padding:32px 0 24px; }
+  .mm-lede{ margin-top:18px; }
+  .mm-machine{ margin-inline:calc(-1 * var(--gutter)); border-width:3px 0; border-radius:0; }
   .mm-bar, .mm-moods-wrap, .mm-transport, .mm-remix{ padding-left:14px; padding-right:14px; }
-  .mm-welcome{ margin:14px 14px 0; padding:12px 14px; }
+  .mm-bar{ padding-top:16px; }
+  .mm-label{ max-width:none; }
+  .mm-label-name input{ font-size:23px; }
+  .mm-welcome{ margin:4px 14px 0; padding:12px 14px; }
   .mm-welcome-steps{ flex-basis:100%; font-size:14px; }
   /* long rows of keys become one line to swipe along, running off the screen's edge so it's plain
      there's more */
@@ -797,39 +905,46 @@ html:has(.mm-page){ scrollbar-color:var(--mm-raised) var(--mm-ink); }
     flex-wrap:nowrap;
     overflow-x:auto;
     margin-inline:-14px;
-    padding:2px 14px 6px;
+    padding:2px 14px 7px;
     scrollbar-width:none;
     overscroll-behavior-x:contain;
   }
   .mm-strip::-webkit-scrollbar{ display:none; }
   .mm-strip > *{ flex:none; }
   .mm-mods-row > .mm-strip, .mm-mood-bar > .mm-strip{ flex-basis:calc(100% + 28px); }
-  /* (inside the flavour strip's box: no running off the edge) */
+  /* (inside the flavour card: no running off the edge) */
   .mm-kinds.mm-strip{ margin-inline:0; padding-inline:0; flex:1 1 100%; }
   .mm-mods-row, .mm-mood-bar{ gap:6px 12px; }
-  .mm-moods{ grid-template-columns:repeat(auto-fill,minmax(98px,1fr)); }
+  .mm-moods{ grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:9px 6px; }
   /* (the longest names, Underwater and Mysterious, only just fit three to a row) */
-  .mm-mood{ padding:0 6px; gap:5px; }
+  .mm-mood{ min-height:40px; padding:0 7px; gap:6px; font-size:14px; }
+  .mm-mood::before{ width:11px; height:11px; }
+  .mm-flavours{ padding:12px 14px; }
   /* play across the top, the four switches in a row under it */
-  .mm-key-play{ flex:1 1 100%; min-height:48px; font-size:15px; }
+  .mm-key-play{ flex:1 1 100%; min-height:54px; font-size:19px; }
   .mm-toggles{ flex:1 1 100%; flex-wrap:nowrap; gap:6px; }
   .mm-toggles .mm-key{ flex:1 1 0; min-width:0; padding:0 4px; gap:5px; font-size:12.5px; }
-  .mm-toggles .mm-key svg{ width:11px; height:11px; }
-  .mm-score-wrap{ margin:0 14px; }
+  /* (four to a row only fit as words, so only record keeps its dot) */
+  .mm-toggles .mm-key svg{ display:none; }
+  .mm-toggles .mm-key-rec svg{ display:block; width:10px; height:10px; }
+  .mm-readout{ justify-content:flex-start; gap:2px 12px; font-size:12.5px; }
+  .mm-score-wrap{ margin:14px 14px 0; border-radius:14px; }
+  .mm-score-wrap canvas{ border-radius:11px; }
   .mm-remix{ gap:6px 14px; }
   .mm-remix > .mm-strip{ flex-basis:calc(100% + 28px); }
-  .mm-tabs{ padding:0 14px; }
-  .mm-tab{ flex:1; padding:10px 6px; font-size:14px; }
-  .mm-panel{ padding:18px 14px 8px; }
+  .mm-tabs{ padding:0 10px; gap:2px; }
+  .mm-tab{ flex:1; padding:10px 4px; font-size:14.5px; }
+  .mm-tab[aria-selected="true"]{ padding-bottom:12px; }
+  .mm-panel{ padding:20px 14px 10px; }
   .mm-dock{ padding:8px 14px; gap:10px; }
-  .mm-tip{ font-size:13px; line-height:1.4; min-height:2.8em; }
+  .mm-tip{ font-size:13.5px; line-height:1.4; min-height:2.8em; }
   .mm-bar-actions{ margin-left:0; width:100%; }
   .mm-bar-actions .mm-key{ flex:1; }
-  .mm-readout{ text-align:left; }
-  .mm-field, .mm-slider{ grid-template-columns:82px minmax(0,1fr); }
-  .mm-slider{ grid-template-columns:82px minmax(0,1fr) 72px; }
+  .mm-bar-actions .mm-key-dark{ flex:none; width:44px; }
+  .mm-field, .mm-slider{ grid-template-columns:84px minmax(0,1fr); }
+  .mm-slider{ grid-template-columns:84px minmax(0,1fr) 72px; }
   .mm-chips, .mm-chord-problem{ margin-left:0; }
   .mm-export-row{ grid-template-columns:minmax(0,1fr); }
   .mm-export-keys{ justify-content:flex-start; }
-  .mm-shelf{ padding:16px; }
+  .mm-shelf{ padding:18px; border-radius:18px; }
 }
