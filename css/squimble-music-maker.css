@@ -927,6 +927,8 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   /* (four to a row only fit as words, so only record keeps its dot) */
   .mm-toggles .mm-key svg{ display:none; }
   .mm-toggles .mm-key-rec svg{ display:block; width:10px; height:10px; }
+  /* (a phone's browser rarely hears a midi keyboard, and a fifth switch doesn't fit) */
+  #mmMidiIn{ display:none; }
   .mm-readout{ justify-content:flex-start; gap:2px 12px; font-size:12.5px; }
   .mm-score-wrap{ margin:14px 14px 0; border-radius:14px; }
   .mm-score-wrap canvas{ border-radius:11px; }

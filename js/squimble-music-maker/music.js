@@ -423,6 +423,27 @@ function parseProgression(text) {
   return { slots, bad };
 }
 
+// chords typed by name ("Am F C G7", the way chord sheets and tabs write them) to roman numerals in a
+// key, so they keep working when the key changes. anything that isn't a chord name is left as it was
+const LETTER_PCS = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+// a name's ending: whether it's minor, and the roman numeral's ending that says the rest
+const NAME_ENDINGS = {
+  '': [false, ''], m: [true, ''], min: [true, ''], maj: [false, ''], M: [false, ''],
+  7: [false, '7'], m7: [true, '7'], min7: [true, '7'], maj7: [false, 'maj7'], M7: [false, 'maj7'], 6: [false, '6'], m6: [true, '6'],
+  dim: [true, '°'], '°': [true, '°'], o: [true, '°'], aug: [false, '+'], '+': [false, '+'],
+  sus2: [false, 'sus2'], sus4: [false, 'sus4'], sus: [false, 'sus4'], add9: [false, 'add9'], 2: [false, 'sus2'], 4: [false, 'sus4'],
+};
+function romanChords(text, key) {
+  return String(text || '').replace(/(^|[\s,|])([A-G])([#b♯♭]?)([^\s,|]*)/g, (whole, gap, letter, accidental, ending) => {
+    const kind = NAME_ENDINGS[ending];
+    if (!kind) return whole;
+    const pc = LETTER_PCS[letter] + (accidental === '#' || accidental === '♯' ? 1 : accidental === 'b' || accidental === '♭' ? -1 : 0);
+    const [minor, extra] = kind;
+    const numeral = ROMAN_BY_ROOT[mod12(pc - key)];
+    return gap + (minor ? numeral.replace(/[IV]+/, (n) => n.toLowerCase()) : numeral) + extra;
+  });
+}
+
 // the triad on a degree of the scale, by stacking every other note
 function diatonicChord(steps, degree) {
   const n = steps.length;
@@ -2272,7 +2293,12 @@ function cadence(song, last) {
   Object.assign(chord, { root, tones, pcs: new Set(tones.map((tone) => mod12(root + tone))), name: chordName(root, tones), home: true });
 }
 
-function composeSong(song) {
+// round: which time round a loop is on (MusicPlayer.vary), when it's played a little differently each
+// time, the way a band never plays a chorus quite the same twice. every part is played as a later take
+// of itself (an ending changed, a phrase decorated, another fill), on that round's own random numbers.
+// round 0 is the song as written
+const ROUND_TAKES = 1000;
+function composeSong(song, round = 0) {
   // an older song plays with the composer it was made with, when the page has it
   const kept = (song.composer || 1) !== COMPOSER && typeof KEPT_COMPOSERS !== 'undefined' && KEPT_COMPOSERS[song.composer || 1];
   if (kept) return kept.composeSong(song);
@@ -2282,11 +2308,12 @@ function composeSong(song) {
   const weave = weaves(song);
   const sections = [];
   const takes = {};
+  const later = round * ROUND_TAKES;
   let start = 0;
   for (const [index, section] of song.sections.entries()) {
     const beats = section.bars * meter.beats;
     takes[section.part] = (takes[section.part] ?? -1) + 1;
-    sections.push({ ...section, index, take: takes[section.part], start, beats, end: start + beats, chords: sectionChords(song, section, start) });
+    sections.push({ ...section, index, take: takes[section.part] + later, start, beats, end: start + beats, chords: sectionChords(song, section, start) });
     start += beats;
   }
   cadence(song, sections[sections.length - 1]);
@@ -2311,7 +2338,7 @@ function composeSong(song) {
         const own = partOf(one, layer);
         const part = writtenAs(layer, own);
         takes[part] = (takes[part] ?? -1) + 1;
-        return { ...one, own, part, take: takes[part] };
+        return { ...one, own, part, take: takes[part] + later };
       });
     }
     return seen[layer.id];
@@ -4445,3 +4472,191 @@ const COMPOSERS = {
     return [{ t: c.start, dur: c.end - c.start, midi: near(c.song.key, 60), vel: 1 }];
   },
 };
+
+// ---------- in a game ----------
+//
+// what a game's music does that a recording can't, the way game music engines handle it: the band turns
+// up and down with what's happening (intensity), short cues play over the music in time and in key
+// (stingers), and it moves to another song on a bar line (MusicPlayer.queue in synth.js). none of it
+// changes a song's notes: it's how they're played
+
+// each layer's intensity, 0 to 1: it plays once the intensity reaches it. the order is the song's own:
+// the quietest section a layer plays in (so the parts that open the song stay longest), ties going the
+// way a song gathers its band (ROLE_ENTRY), spread evenly so each step up brings someone in. scenery
+// stays with the first player. at 1 every layer plays where the arrangement has it
+function intensityLadder(song) {
+  const lowest = {};
+  for (const section of song.sections) for (const id of section.play) lowest[id] = Math.min(lowest[id] ?? Infinity, section.energy ?? 0.75);
+  const usual = (role) => (ROLE_ENTRY[role] ? ROLE_ENTRY[role][0] + ROLE_ENTRY[role][1] : 1);
+  const players = song.layers.filter((layer) => lowest[layer.id] !== undefined && layer.role !== 'texture')
+    .sort((a, b) => lowest[a.id] - lowest[b.id] || usual(a.role) - usual(b.role) || ROLE_ORDER.indexOf(b.role) - ROLE_ORDER.indexOf(a.role));
+  const ladder = {};
+  players.forEach((layer, i) => { ladder[layer.id] = players.length > 1 ? i / (players.length - 1) : 0; });
+  for (const layer of song.layers) ladder[layer.id] ??= layer.role === 'texture' ? 0 : 1;
+  return ladder;
+}
+
+// stingers: a short cue over whatever's playing, on the song's own instruments, landing on the next
+// beat (or bar) in the chord sounding there, so it always fits. on: where it lands. voices: the roles
+// that can play it, the first the song has
+const STINGERS = {
+  found: { name: 'Found it', on: 'beat', voices: ['bells', 'arp', 'melody', 'keys', 'counter'], tip: 'Found it: a quick run up the chord playing now, for picking something up' },
+  sparkle: { name: 'Sparkle', on: 'beat', voices: ['bells', 'arp', 'keys', 'melody'], tip: 'Sparkle: a soft run down the scale, for magic, a secret or a door opening' },
+  danger: { name: 'Danger', on: 'beat', voices: ['pad', 'drone', 'keys', 'counter', 'melody'], tip: 'Danger: a low hit and a held rub on top, for an enemy appearing' },
+  ouch: { name: 'Ouch', on: 'beat', voices: ['melody', 'counter', 'keys', 'arp', 'bells'], tip: 'Ouch: two falling notes, for getting hurt or getting it wrong' },
+  hooray: { name: 'Hooray', on: 'bar', voices: ['melody', 'counter', 'bells', 'keys'], tip: 'Hooray: a fanfare up to the home note on the next bar, for winning' },
+};
+// the notes of a stinger landing at beat at (from the song's start, inside it), each on a layer
+function stingerNotes(song, comp, kind, at) {
+  const plan = STINGERS[kind];
+  const section = comp.sections.find((one) => at < one.end - 1e-6) || comp.sections[comp.sections.length - 1];
+  const chord = section.chords.find((one) => at < one.t + one.dur - 1e-6) || section.chords[section.chords.length - 1];
+  const key = mod12(song.key + (section.lift || 0));
+  const steps = SCALES[song.scale].steps;
+  const tonal = (layer) => roleFamily(layer.role) === 'tonal' && !layer.mute;
+  const voice = (roles) => roles.map((role) => song.layers.find((layer) => layer.role === role && tonal(layer))).find(Boolean) || song.layers.find(tonal);
+  const centreOf = (layer) => (INSTRUMENTS[layer.instrument]?.home ?? ROLES[layer.role].center) + layer.octave * 12;
+  // as quick as the grid allows, but no more than eight notes a second
+  const grid = gridStep(song.meter);
+  const quick = Math.max(grid, Math.ceil((song.tempo / 60 / 8) / grid - 1e-9) * grid);
+  const notes = [];
+  const lead = voice(plan.voices);
+  const play = (layer, t, dur, midi, vel, extra = {}) => layer && notes.push({ layer: layer.id, t: at + t, dur, midi, vel, ...extra });
+  // chord notes from about a note, going up
+  const chordFrom = (pcs, from, count) => {
+    const out = [];
+    for (let midi = from; out.length < count; midi++) if (pcs.has(mod12(midi))) out.push(midi);
+    return out;
+  };
+  const scaleFrom = (from, count, way) => {
+    const out = [];
+    for (let midi = from; out.length < count; midi += way) if (steps.includes(mod12(midi - key))) out.push(midi);
+    return out;
+  };
+  const triad = new Set(chord.tones.slice(0, 3).map((tone) => mod12(chord.root + tone)));
+  if (kind === 'found' && lead) {
+    const run = chordFrom(triad, centreOf(lead) - 5, 4);
+    run.forEach((midi, i) => play(lead, i * quick, i === 3 ? 2 : quick, midi, 0.62 + i * 0.08));
+  }
+  if (kind === 'sparkle' && lead) {
+    const run = scaleFrom(centreOf(lead) + 12, 6, -1);
+    run.forEach((midi, i) => play(lead, i * quick, i === 5 ? 2 : quick * 1.5, midi, 0.65 - i * 0.04));
+  }
+  if (kind === 'danger') {
+    // the low root under it all, and a rub held over it: the chord's root and the scale note above it
+    const bass = song.layers.find((layer) => layer.role === 'bass' && !layer.mute);
+    if (bass) play(bass, 0, 3, near(chord.root, centreOf(bass) - 5), 0.95);
+    if (lead) {
+      const root = near(chord.root, centreOf(lead));
+      const above = scaleFrom(root + 1, 1, 1)[0];
+      play(lead, 0, 3, root, 0.7, { swell: 1 });
+      play(lead, 0, 3, above, 0.6, { swell: 1 });
+    }
+  }
+  if (kind === 'ouch' && lead) {
+    // a chord note, then down two steps of the scale: a sigh
+    const top = chordFrom(triad, centreOf(lead), 1)[0];
+    const fall = scaleFrom(top - 1, 2, -1)[1];
+    play(lead, 0, quick * 2, top, 0.8);
+    play(lead, quick * 2, 1.5, fall, 0.7);
+  }
+  if (kind === 'hooray' && lead) {
+    // up the home chord to its root an octave higher, short short short long, and the bass on the root
+    const home = diatonicChord(harmonySteps(song.scale), 0);
+    const pcs = new Set(home.tones.map((tone) => mod12(key + home.root + tone)));
+    const run = chordFrom(pcs, near(key + home.root, centreOf(lead) - 6), 4);
+    run.forEach((midi, i) => play(lead, i * quick, i === 3 ? 2.5 : quick, midi, 0.75 + i * 0.06));
+    const bass = song.layers.find((layer) => layer.role === 'bass' && !layer.mute);
+    if (bass) play(bass, 3 * quick, 2.5, near(key + home.root, centreOf(bass)), 0.9);
+  }
+  // the kit marks the big ones: a crash (its open hat where it has none) and a low drum
+  const drums = song.layers.find((layer) => layer.role === 'drums' && !layer.mute);
+  if (drums && (kind === 'danger' || kind === 'hooray')) {
+    const kit = INSTRUMENTS[drums.instrument]?.slots || [];
+    const hitAt = kind === 'hooray' ? 3 * quick : 0;
+    // tuned like the song's own (tuneDrum)
+    const tuned = (slot) => (kit[slot]?.tune ? { tune: tuneDrum(kit[slot].tune, key) } : {});
+    play(drums, hitAt, grid, kit[6] ? 6 : 3, 0.85, tuned(kit[6] ? 6 : 3));
+    play(drums, hitAt, grid, kind === 'danger' && kit[5] ? 5 : 0, 0.9, tuned(kind === 'danger' && kit[5] ? 5 : 0));
+  }
+  return notes;
+}
+
+// ---------- chords for a tune ----------
+//
+// the other way round from writing a tune over chords: the chords a tune drawn or played in by hand
+// suggests, for a part. each chord's stretch of the tune is scored against every chord of the scale (and
+// a few borrowed ones): its notes in the chord count for it, most on strong beats and long notes, a note
+// a semitone off one against. then the cheapest path through the part (viterbi, as learn.js fingers a
+// part) leans on the moves chords usually make (CHORD_MOVES), starting home. null when the part has no
+// tune to go by
+const BORROWED = { major: [[10, [0, 4, 7]], [5, [0, 3, 7]]], minor: [[7, [0, 4, 7]]] };
+// the scores, set against written songs (whose tunes were written over chords: these find about two
+// thirds of their roots again, the rest mostly a chord sharing two notes, vi for I). a tune's notes: in
+// the chord, off it, or a semitone off one of its notes; the first note of a bar and notes on the beat
+// count more. the path: a chord held on, a borrowed or diminished chord (rarer), starting home
+const FIT = { tone: 1, off: -0.4, rub: -0.4, bar: 2, beat: 1.6, hold: 0.1, moves: 0.3, borrowed: -0.25, dim: -0.3, start: 0.8 };
+function fitChords(song, part) {
+  const comp = composeSong(song);
+  const tune = song.layers.find((layer) => layer.role === 'melody') || song.layers.find((layer) => roleFamily(layer.role) === 'tonal');
+  const section = tune && comp.sections.find((one) => one.part === part && one.play.includes(tune.id) && comp.notes.some((note) => note.layer === tune.id && note.t >= one.start - 1e-6 && note.t < one.end - 1e-6));
+  if (!section) return null;
+  const bpb = comp.bpb;
+  const slot = song.chordBars * bpb;
+  const count = Math.max(1, Math.min(8, Math.round(section.beats / slot)));
+  // how much of each pitch class sounds in each chord's stretch (a longer section folds round)
+  const heard = Array.from({ length: count }, () => new Array(12).fill(0));
+  for (const note of comp.notes) {
+    if (note.layer !== tune.id || note.t < section.start - 1e-6 || note.t >= section.end - 1e-6) continue;
+    const t = note.t - section.start;
+    const strong = Math.abs(t / bpb - Math.round(t / bpb)) < 0.02 ? FIT.bar : Math.abs(t - Math.round(t)) < 0.02 ? FIT.beat : 1;
+    const pc = mod12(note.midi - (section.lift || 0) - song.key);
+    for (let k = Math.floor(t / slot); k * slot < t + note.dur - 1e-6 && k * slot < section.beats; k++) {
+      const overlap = Math.min(t + note.dur, (k + 1) * slot) - Math.max(t, k * slot);
+      if (overlap > 0) heard[k % count][pc] += overlap * (k * slot <= t + 1e-6 ? strong : 1);
+    }
+  }
+  const steps = harmonySteps(song.scale);
+  const candidates = steps.map((_, degree) => ({ degree, ...diatonicChord(steps, degree) }));
+  for (const [root, tones] of BORROWED[steps[2] === 4 ? 'major' : 'minor']) {
+    if (!candidates.some((one) => one.root === root && one.tones[1] === tones[1])) candidates.push({ degree: -1, root, tones });
+  }
+  for (const one of candidates) one.pcs = new Set(one.tones.map((tone) => mod12(one.root + tone)));
+  const fit = (one, weights) => {
+    const total = weights.reduce((sum, w) => sum + w, 0) || 1;
+    let score = 0;
+    weights.forEach((w, pc) => {
+      if (!w) return;
+      const rub = [...one.pcs].some((other) => mod12(pc - other) === 1 || mod12(other - pc) === 1);
+      score += (w / total) * (one.pcs.has(pc) ? FIT.tone : rub ? FIT.rub : FIT.off);
+    });
+    return score + (one.degree < 0 ? FIT.borrowed : 0) + (one.tones[2] === 6 ? FIT.dim : 0);
+  };
+  const move = (from, to) => {
+    if (from === to) return FIT.hold;
+    if (from.degree < 0 || to.degree < 0 || from.degree > 6 || to.degree > 6) return 0;
+    return (CHORD_MOVES[from.degree][to.degree] / 5) * FIT.moves;
+  };
+  // viterbi: the best score of a path ending on each chord, slot by slot
+  let best = candidates.map((one) => fit(one, heard[0]) + (one.root === 0 ? FIT.start : 0));
+  const back = [];
+  for (let k = 1; k < count; k++) {
+    const from = [];
+    best = candidates.map((one) => {
+      let top = -Infinity;
+      let pick = 0;
+      candidates.forEach((prior, i) => {
+        const score = best[i] + move(prior, one);
+        if (score > top) [top, pick] = [score, i];
+      });
+      from.push(pick);
+      return top + fit(one, heard[k]);
+    });
+    back.push(from);
+  }
+  let at = best.indexOf(Math.max(...best));
+  const path = [at];
+  for (let k = back.length - 1; k >= 0; k--) path.unshift(at = back[k][at]);
+  // repeats held with -, as a progression's typed
+  return path.map((i, k) => (k && i === path[k - 1] ? '-' : chordToken(candidates[i].root, candidates[i].tones))).join(' ');
+}

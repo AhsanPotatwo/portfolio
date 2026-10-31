@@ -811,6 +811,11 @@
     g.drawImage(paper, 0, 0);
     g.setTransform(layout.dpr, 0, 0, layout.dpr, 0, 0);
     const { x } = layout;
+    // a section going round on its own (Loop it): a bar over it along the top
+    if (player.range) {
+      g.fillStyle = sheet.ink;
+      g.fillRect(x(player.range[0]), 0, x(player.range[1]) - x(player.range[0]), 3);
+    }
     if (player.playing) {
       const at = player.position();
       g.fillStyle = sheet.ink;
@@ -869,8 +874,8 @@
   // ---------- controls for the panels ----------
 
   let sliderCount = 0;
-  // a labelled slider. get and set read and write the song. kind: 'notes', or 'mix' if it only changes
-  // the sound
+  // a labelled slider. get and set read and write the song. kind: 'notes', 'mix' if it only changes
+  // the sound, or 'live' if it's how the player plays rather than the song (nothing to undo or save)
   function slider({ label, tip, min, max, step = 0.01, get, set, format, kind = 'notes' }) {
     const row = make('div', 'mm-slider');
     row.dataset.tip = tip;
@@ -884,13 +889,13 @@
     const fill = () => input.style.setProperty('--fill', `${((input.value - min) / (max - min)) * 100}%`);
     let dragging = false;
     input.addEventListener('input', () => {
-      if (!dragging) remember();
+      if (!dragging && kind !== 'live') remember();
       dragging = true;
       set(+input.value);
       out.textContent = format(+input.value);
       fill();
       if (kind === 'mix') mixed();
-      else soon();
+      else if (kind === 'notes') soon();
     });
     input.addEventListener('change', () => { dragging = false; });
     fill();
@@ -946,6 +951,12 @@
   const tabKeys = document.querySelectorAll('.mm-tab');
   for (const button of tabKeys) button.addEventListener('click', () => setTab(button.dataset.tab));
   function setTab(name) {
+    // (a part left out to play along comes back once you're not learning it)
+    if (name !== 'learn' && (leftOut || waiting)) {
+      leftOut = null;
+      waiting = false;
+      load();
+    }
     tab = name;
     for (const button of tabKeys) button.setAttribute('aria-selected', button.dataset.tab === tab);
     renderPanel();
@@ -955,7 +966,7 @@
     editor = null;
     learn = null;
     arrangeHeads = null;
-    const build = { song: songPanel, layers: bandPanel, arrange: arrangePanel, space: roomPanel, learn: learnPanel }[tab];
+    const build = { song: songPanel, layers: bandPanel, arrange: arrangePanel, space: roomPanel, learn: learnPanel, game: gamePanel }[tab];
     keepPlace(() => panel.replaceChildren(...build()));
   }
   // a panel's drawn again after every change, so its scrolling boxes (data-scroll, by name) and the key
@@ -1007,7 +1018,7 @@
       slider({ label: 'Colour', tip: 'Colour: plain chords at 0, more sevenths, ninths and suspended chords as it goes up, for a jazzier, dreamier sound', min: 0, max: 1, get: () => song.colour, set: (v) => { song.colour = v; }, format: percent }),
       field('Each chord', choices(chordBars, () => song.chordBars, (value) => edit(() => { song.chordBars = value; })(), 'Chord length'), 'How long each chord lasts'),
     );
-    const chords = section('Chords', top, ...EVERY_PART.filter((part) => song.parts[part]).map(chordRow), fold('How to write chords', make('p', 'mm-hint', 'Chords are roman numerals counting up the scale from the key: I is home, IV and V are the strong ones. Capitals are major (bright), lower case minor (sad). b and # move one a semitone (bVII), ° is diminished and + augmented. Add 7, maj7, 6, sus2, sus4 or add9 for colour (Imaj7). A - holds the last chord for another turn. Click a chord to hear it.')));
+    const chords = section('Chords', top, ...EVERY_PART.filter((part) => song.parts[part]).map(chordRow), fold('How to write chords', make('p', 'mm-hint', 'Chords are roman numerals counting up the scale from the key: I is home, IV and V are the strong ones. Capitals are major (bright), lower case minor (sad). b and # move one a semitone (bVII), ° is diminished and + augmented. Add 7, maj7, 6, sus2, sus4 or add9 for colour (Imaj7). A - holds the last chord for another turn. Click a chord to hear it. Or type chord names off a chord sheet (Am F C G7): they turn into numerals in this key, so they follow it if it changes. Drawn your own tune? Fit my tune finds chords for it.')));
     // which composer writes the notes (COMPOSER_VERSIONS in music.js). a song keeps the one it was made
     // with; unstamped ones open as the first. only shown for a song (or the save it came from) made by
     // an older one, since a new song has nothing to choose
@@ -1061,12 +1072,16 @@
       }));
     };
     input.addEventListener('focus', remember);
+    // (chord names, Am F C G, play as typed and turn into numerals in this key once you're done)
     input.addEventListener('input', () => {
-      song.parts[part] = input.value.slice(0, 200) || 'I';
+      song.parts[part] = romanChords(input.value.slice(0, 200), song.key) || 'I';
       soon();
       showChips();
     });
-    input.addEventListener('change', () => changed(false));
+    input.addEventListener('change', () => {
+      if (input.value !== song.parts[part]) input.value = song.parts[part];
+      changed(false);
+    });
     showChips();
     const again = key('New', `New chords for part ${part} only`, () => {
       remember();
@@ -1074,6 +1089,20 @@
     }, 'mm-key-small mm-key-line');
     const line = make('div', 'mm-chords-line');
     line.append(name, input, again);
+    // chords found for a tune drawn or played in (fitChords in music.js), for a part whose tune is yours.
+    // (a written tune is written over the chords, so new ones would only write it again)
+    const tune = song.layers.find((layer) => layer.role === 'melody');
+    if (tune?.edits[part]?.add?.length) {
+      line.append(key('Fit my tune', `Chords that fit the tune you've written in part ${part}: the notes on the strong beats and the long ones lead`, () => {
+        const text = fitChords(song, part);
+        if (!text) return say(`Part ${part} has no tune to go by yet. Draw or play a few notes into the melody first.`);
+        if (text === song.parts[part]) return say(`Those are already the chords that fit it best: ${text}.`);
+        remember();
+        song.parts[part] = text;
+        changed();
+        say(`Chords for your tune: ${text}. Undo puts the old ones back.`);
+      }, 'mm-key-small mm-key-line'));
+    }
     row.append(line, chips, problem);
     return row;
   }
@@ -2040,6 +2069,10 @@
         player.play(startBeat);
         renderTransport();
       }),
+      tool(looped === index ? 'Stop looping' : 'Loop it', looped === index ? 'Back to the whole song' : `Play just ${one.name}, round and round, while you work on it`, () => {
+        loopSection(looped === index ? null : index);
+        renderPanel();
+      }),
       tool('← Earlier', 'Move it a section earlier', move(-1), index === 0),
       tool('Later →', 'Move it a section later', move(1), index === song.sections.length - 1),
       tool('Copy', 'Another section just like this one, straight after it', edit(() => {
@@ -2263,6 +2296,83 @@
     return [columns];
   }
 
+  // ---------- the game tab ----------
+  //
+  // what the song does in a game, tried by hand: how much is going on (the player's setIntensity), cues
+  // over it (stinger), moving to another style of it on a beat, bar or section (queue), and loops played
+  // a little differently each time round (vary). see "in a game" in music.js. none of it changes the
+  // song, so none of it's saved
+  let moveWhen = 'bar';
+  const WHENS = [
+    ['beat', 'Next beat', 'On the next beat: straight away, for a sudden ambush'],
+    ['bar', 'Next bar', 'On the next bar line: quick, and still in step'],
+    ['section', 'Next section', 'At the start of the next section: the smoothest, but it can take a while'],
+  ];
+  // the same seed's song in another style, from the next beat, bar or section on. the player carries on
+  // to there and goes straight into it, the way a game goes from exploring into a fight
+  function moveTo(style) {
+    if (style === song.style) return;
+    if (song.own) return say('Your own track has no seed to write another style of it from. The style keys above change how its written parts play.');
+    const next = cleanSong(generateSong(song.mood, style, song.seed, song.mods, song.flavour));
+    if (!player.playing) {
+      remember();
+      open(next);
+      return;
+    }
+    const played = playable(next, composeSong(next));
+    player.queue(played.song, played.comp, moveWhen, () => {
+      remember();
+      song = next;
+      looped = null;
+      if (!song.layers.some((layer) => layer.id === selected)) selected = (song.layers.find((layer) => layer.role === 'melody') || song.layers[0])?.id ?? null;
+      changed();
+    });
+    say(`Into ${STYLES[style].toLowerCase()} ${{ beat: 'on the next beat', bar: 'on the next bar line', section: 'when this section ends' }[moveWhen]}.`);
+  }
+  function gamePanel() {
+    // who's playing at the intensity now, in words
+    const who = make('p', 'mm-hint');
+    const tellWho = () => {
+      const ladder = intensityLadder(song);
+      const names = song.layers.filter((layer) => layer.role !== 'texture' && ladder[layer.id] <= player.intensity + 1e-9).map((layer) => ROLES[layer.role].name.toLowerCase());
+      const all = names.length === song.layers.filter((layer) => layer.role !== 'texture').length;
+      who.textContent = all ? 'Everyone plays, as the song was written.' : `Playing: ${names.length > 1 ? `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}` : names[0] || 'nobody'}.`;
+    };
+    tellWho();
+    const stings = make('div', 'mm-choices');
+    for (const [kind, plan] of Object.entries(STINGERS)) {
+      stings.append(key(plan.name, plan.tip, () => {
+        if (!player.stinger(kind, startBeat)) say('There\'s nothing here to play it on yet. Give the song a part that plays notes.');
+      }, 'mm-key-small'));
+    }
+    const styles = Object.entries(STYLES).map(([id, name]) => [id, name, `${name}: this song's seed as ${name.toLowerCase()}, from the ${{ beat: 'next beat', bar: 'next bar', section: 'next section' }[moveWhen]}`]);
+    const columns = make('div', 'mm-columns');
+    columns.append(
+      section('How much is going on',
+        slider({ label: 'Intensity', tip: 'Intensity: how much is going on. Down, and the band thins out to the parts that open the song. Up, and everyone comes back. Each change waits for the next bar line', min: 0, max: 1, get: () => player.intensity, set: (v) => { player.setIntensity(v); tellWho(); }, format: percent, kind: 'live' }),
+        who,
+        make('p', 'mm-hint', "In a game this follows what's happening: just the quiet parts while you wander, everyone in when something's after you. Players fade in and out on the bar line, so it never sounds cut."),
+      ),
+      section('Stingers',
+        stings,
+        make('p', 'mm-hint', "Short cues for things that happen, played over the music on its own instruments. Each lands on the next beat (Hooray on the next bar) in the chord playing there, so it always fits. Press Play first to hear them over the song."),
+      ),
+    );
+    const more = make('div', 'mm-columns');
+    more.append(
+      section('Moving on',
+        field('When', choices(WHENS, () => moveWhen, (value) => { moveWhen = value; renderPanel(); }, 'When to move'), 'When the music moves to the next song'),
+        field('Go to', choices(styles, () => song.style, moveTo, 'Go to'), 'This song in another style, from the same seed: the same key and chords, played for something else'),
+        make('p', 'mm-hint', "While it plays, the song carries on to the beat, bar or section you picked and goes straight into the new one, the way a game goes from exploring into a fight and back. The same seed keeps the same key and chords, so they belong together. Undo comes back to this one."),
+      ),
+      section('Each time round',
+        field('Loops', choices([[false, 'The same', 'The same: every time round it plays exactly as written, like a recording'], [true, 'A little different', 'A little different: every time round the tune and the drums change a few things, a phrase ending here, a fill there, the way a band never plays a chorus quite the same twice']], () => varied, (value) => { varied = value; load(); renderPanel(); }, 'Each time round'), 'How a loop plays the second time round, and every time after'),
+        make('p', 'mm-hint', "For music you'll hear for an hour. The score shows the first time round; the song itself and its downloads don't change."),
+      ),
+    );
+    return [columns, more];
+  }
+
   // ---------- the learn tab ----------
   //
   // one layer's part as a player reads it: notes falling onto piano keys, a guitar's or bass's neck over
@@ -2299,11 +2409,38 @@
   const clamp = (value, low, high) => Math.min(high, Math.max(low, value));
 
   // the player's copy of the song, slower at a practice speed. the song itself keeps its tempo
-  // (a part with settings of its own plays as a layer of its own: playable in music.js)
+  // (a part with settings of its own plays as a layer of its own: playable in music.js). and how it's
+  // played: round and round one section (looped), without the part being learned (leftOut), a little
+  // differently each time round (varied, the Game tab)
+  let looped = null;
+  let leftOut = null;
+  let varied = false;
+  // wait for me (the learn tab): stopped at the part's next note or chord until it's played (waitFor)
+  let waiting = false;
   const load = () => {
-    const played = playable(practice === 1 ? song : { ...song, tempo: song.tempo * practice }, comp);
+    let played = playable(practice === 1 ? song : { ...song, tempo: song.tempo * practice }, comp);
+    if (leftOut && layerById(leftOut)) {
+      played = { ...played, song: { ...played.song, layers: played.song.layers.map((one) => (one.id.split('~')[0] === leftOut ? { ...one, mute: true, solo: false } : one)) } };
+    }
+    const sec = looped !== null && comp.sections[looped];
+    player.range = sec ? [sec.start, sec.end] : null;
+    if (!sec) looped = null;
+    // (a song playing its saved notes, asSaved, plays them every time round)
+    player.vary = varied && !asSaved ? (round) => playable(song, composeSong(song, round)).comp : null;
     player.load(played.song, played.comp);
   };
+  // loops one section (by its place), or the whole song again (null). starts there if it's elsewhere
+  function loopSection(index) {
+    looped = index;
+    load();
+    const sec = comp.sections[index];
+    if (sec && (!player.playing || player.position() < sec.start || player.position() >= sec.end)) {
+      startBeat = sec.start;
+      player.play(startBeat);
+      renderTransport();
+    }
+    scoreDirty = true;
+  }
 
   function learnPanel() {
     const tonal = song.layers.filter((layer) => roleFamily(layer.role) === 'tonal');
@@ -2323,6 +2460,11 @@
     const pickPart = (id) => {
       selected = id;
       scoreDirty = true;
+      // (the part left out is the one being learned)
+      if (leftOut) {
+        leftOut = id;
+        load();
+      }
       renderPanel();
     };
     const controls = make('div', 'mm-learn-controls');
@@ -2346,6 +2488,31 @@
       load();
       renderPanel();
     }, 'Practice speed'), "Practice speed: the song plays slower while you learn it. It doesn't change the song, its tempo or its downloads"));
+    const here = player.playing ? player.position() : startBeat;
+    const sectionHere = comp.sections.find((one) => here >= one.start - 1e-6 && here < one.end - 1e-6) || comp.sections[0];
+    controls.append(
+      field('Loop', choices([[false, 'Whole song', 'The whole song, round and round'], [true, 'This section', `Just ${sectionHere.name}, round and round, to get the hard bit right`]], () => looped !== null, (value) => {
+        loopSection(value ? sectionHere.index : null);
+        renderPanel();
+      }, 'Loop'), 'Loop: the whole song, or just the section the marker is in'),
+      field('Your part', choices([['in', 'Played', 'Played: you hear the part as you learn it'], ['out', 'Left out', 'Left out: the band plays without it, so you can play it yourself']], () => (leftOut === layer.id || waiting ? 'out' : 'in'), (value) => {
+        leftOut = value === 'out' ? layer.id : null;
+        if (!leftOut) waiting = false;
+        load();
+        renderPanel();
+      }, 'Your part'), 'Your part: played with the band, or left out for you to play along'),
+      field('Wait for me', choices([[false, 'Off', "Off: the song plays on whether you're there or not"], [true, 'On', 'On: the song waits at each note or chord until you play it, on the keys or a MIDI keyboard, then plays on to the next']], () => waiting, (value) => {
+        const events = learn?.data?.events || [];
+        const first = events.find((one) => one.t >= startBeat - 1e-6) || events[0];
+        waiting = value;
+        leftOut = value ? layer.id : null;
+        if (value) player.stop();
+        load();
+        renderTransport();
+        renderPanel();
+        if (value) say(`Play ${first ? eventName(first) : 'the first note'} to start, on the keys or a MIDI keyboard. Any octave counts.`);
+      }, 'Wait for me'), 'Wait for me: the song waits for you to play each note or chord'),
+    );
     const canvas = make('canvas');
     canvas.setAttribute('role', 'img');
     canvas.setAttribute('aria-label', `The ${partName(layer).toLowerCase()} shown as ${view === 'sheet' ? 'sheet music' : `it's played on a ${VIEWS.find(([id]) => id === view)[1].toLowerCase()}`}, following the playhead`);
@@ -3322,6 +3489,42 @@
   $('#mmWav').addEventListener('click', () => exportAudio('wav'));
   $('#mmWavLoop').addEventListener('click', () => exportAudio('loop'));
   $('#mmMp3').addEventListener('click', () => exportAudio('mp3'));
+  // stems: each layer recorded alone through the same room and desk (the others there, silent, so its
+  // low cut and the rest are as in the song), in a zip. a part with its own settings goes in its layer's.
+  // with Loop on, each loops like Loop WAV, so a game can bring them in and out over each other
+  const stemsKey = $('#mmStems');
+  audioKeys.push(stemsKey);
+  stemsKey.addEventListener('click', async () => {
+    for (const button of audioKeys) button.disabled = true;
+    progress.hidden = false;
+    const played = playable(song, comp);
+    const layers = song.layers.filter((layer) => played.comp.notes.some((note) => String(note.layer).split('~')[0] === layer.id));
+    const files = [];
+    try {
+      for (const [i, layer] of layers.entries()) {
+        const notes = played.comp.notes.filter((note) => String(note.layer).split('~')[0] === layer.id);
+        const wav = await renderSong(played.song, { ...played.comp, notes }, player.loop, (done) => showProgress(`Recording ${i + 1} of ${layers.length}...`, (i + done) / layers.length));
+        files.push([`${fileName(song.name)}/${String(i + 1).padStart(2, '0')}-${fileName(`${layer.id} ${INSTRUMENTS[layer.instrument].name}`)}.wav`, wav]);
+      }
+      status.textContent = 'Packing...';
+      const name = `${fileName(song.name)}-stems.zip`;
+      download(await zipFile(files), name);
+      status.textContent = `Downloaded ${name}: ${layers.length} stems${player.loop ? ' that loop' : ''}.`;
+    } catch (error) {
+      status.textContent = "Couldn't record the stems in this browser.";
+      console.error(error);
+    }
+    progress.hidden = true;
+    for (const button of audioKeys) button.disabled = false;
+  });
+  // midi: the notes the song plays now (midiFile in synth.js)
+  $('#mmMidi').addEventListener('click', () => {
+    if (needCompose) changed(false);
+    const played = playable(song, comp);
+    const name = `${fileName(song.name)}.mid`;
+    download(midiFile(played.song, played.comp), name);
+    status.textContent = `Downloaded ${name}.`;
+  });
   // the open song as a song file (library.songFile), with the notes it plays now, so it sounds the same
   // in any browser. an unchanged save goes as that save; anything else as a new save of the open song
   $('#mmFile').addEventListener('click', async () => {
@@ -3405,23 +3608,86 @@
     const midi = keyPitch(layer, letter);
     if (midi < 0 || held[letter]) return;
     event.preventDefault();
-    // a held note rings until the key's let go (16 beats at most). a drum just hits
-    const drum = layer.role === 'drums';
-    held[letter] = { layer, midi, drum, channel: player.audition(song, layer, [midi], drum ? 1 : 16), from: recording && player.playing ? player.position() : null };
+    startNote(letter, layer, midi);
   }
-  function releaseKey(letter) {
-    const press = held[letter];
+  // a key down, from the computer's keys or a midi keyboard (id: which key, so its letting go finds it).
+  // a held note rings until the key's let go (16 beats at most). a drum just hits. vel: how hard (a midi
+  // keyboard's), kept in what's recorded
+  function startNote(id, layer, midi, vel) {
+    const drum = layer.role === 'drums';
+    held[id] = { layer, midi, drum, vel, channel: player.audition(song, layer, [midi], drum ? 1 : 16, vel ? { vel } : {}), from: recording && player.playing ? player.position() : null };
+    waitFor();
+  }
+  function releaseKey(id) {
+    const press = held[id];
     if (!press) return;
-    delete held[letter];
+    delete held[id];
     if (!press.drum) closeChannel(press.channel, player.ctx.currentTime);
-    if (press.from !== null && player.playing) recordNote(press.layer, press.midi, press.from, player.position());
+    if (press.from !== null && player.playing) recordNote(press.layer, press.midi, press.from, player.position(), press.vel);
   }
   document.addEventListener('keyup', (event) => releaseKey(event.key.toLowerCase()));
   window.addEventListener('blur', () => Object.keys(held).forEach(releaseKey));
 
+  // wait for me (the learn tab): while it's stopped, the note or chord at the marker (or the next after
+  // it) played on the keys, in any octave, plays the band from there up to the part's next one, and the
+  // marker waits there
+  function waitFor() {
+    if (!waiting || tab !== 'learn' || player.playing || !learn?.data?.events.length) return;
+    const { events } = learn.data;
+    const event = events.find((one) => one.t >= startBeat - 1e-6) || events[0];
+    const down = new Set(Object.values(held).map((press) => mod12(press.midi)));
+    if (!event.notes.every((note) => down.has(mod12(note.midi)))) return;
+    const next = events[events.indexOf(event) + 1];
+    player.play(event.t, next ? next.t : comp.beats);
+    startBeat = next ? next.t : 0;
+    learn.dirty = true;
+    renderTransport();
+    if (!next) say("That's the whole part. Play its first note to go again.");
+  }
+
+  // a midi keyboard (web midi) plays like the computer's keys: the open layer, written in by Record, and
+  // the learn tab's wait for me. the browser asks first, so it's only asked from the MIDI key (or quietly
+  // when it's been allowed before). its drums are general midi's, as near as the kit has
+  const midiKey = $('#mmMidiIn');
+  const MIDI_DRUMS = { 35: 0, 36: 0, 38: 1, 40: 1, 42: 2, 44: 2, 46: 3, 41: 5, 43: 5, 45: 5, 47: 5, 48: 5, 50: 5, 49: 6, 57: 6, 51: 3, 52: 6, 55: 6 };
+  let midiAccess = null;
+  function onMidi({ data }) {
+    const [status, pitch, velocity = 0] = data;
+    const kind = status & 0xf0;
+    const id = `midi${pitch}`;
+    if (kind === 0x90 && velocity > 0) {
+      const layer = layerById(selected);
+      if (!layer || roleFamily(layer.role) === 'texture' || held[id]) return;
+      startNote(id, layer, layer.role === 'drums' ? MIDI_DRUMS[pitch] ?? 4 : pitch, velocity / 127);
+    } else if (kind === 0x80 || kind === 0x90) releaseKey(id);
+  }
+  async function connectMidi(quiet) {
+    if (!navigator.requestMIDIAccess) {
+      if (!quiet) say("This browser can't hear MIDI keyboards. Chrome, Edge, Opera and Firefox can.");
+      return;
+    }
+    try {
+      midiAccess ??= await navigator.requestMIDIAccess();
+    } catch {
+      if (!quiet) say("The browser didn't allow MIDI, so a keyboard can't be heard. It asks again next time.");
+      return;
+    }
+    const listen = () => {
+      const inputs = [...midiAccess.inputs.values()];
+      for (const input of inputs) input.onmidimessage = onMidi;
+      midiKey.setAttribute('aria-pressed', inputs.length > 0);
+      return inputs;
+    };
+    const inputs = listen();
+    midiAccess.onstatechange = listen;
+    if (!quiet) say(inputs.length ? `Listening to ${inputs.map((input) => input.name).join(' and ')}: it plays the open layer, like the computer's keys.` : "MIDI's on, but no keyboard is plugged in. Plug one in and it's heard straight away.");
+  }
+  midiKey.addEventListener('click', () => connectMidi(false));
+  navigator.permissions?.query({ name: 'midi' }).then((state) => { if (state.state === 'granted') connectMidi(true); }).catch(() => { /* asked from the key */ });
+
   // a note played in while recording, on the grid in its section's part. one already at the same time
   // and pitch is replaced, so playing along round the loop doesn't pile up copies
-  function recordNote(layer, played, from, to) {
+  function recordNote(layer, played, from, to, vel) {
     if (!layerById(layer.id)) return;
     const grid = comp.step;
     const at = (Math.round(from / grid) * grid) % comp.beats;
@@ -3436,7 +3702,7 @@
     remember();
     const changes = (layer.edits[partOf(sec, layer)] ||= { add: [], remove: [] });
     changes.add = changes.add.filter(([start, pitch]) => Math.abs(start - t) > 1e-3 || pitch !== midi);
-    changes.add.push(packEdit({ t, midi, dur: +dur.toFixed(3) }));
+    changes.add.push(packEdit({ t, midi, dur: +dur.toFixed(3), ...(vel ? { vel: +vel.toFixed(2) } : {}) }));
     changes.remove = changes.remove.filter((one) => one !== editKey(t, midi));
     changed(false);
   }

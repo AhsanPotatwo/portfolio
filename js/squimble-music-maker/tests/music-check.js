@@ -56,6 +56,10 @@ const TOTALS = {
     assert(soloBars > 200 && soloNew / soloBars > 0.9, `solos are new all the way through (${soloNew} of ${soloBars} bars)`);
   },
   loud: ({ riffs, doubled, splits, solos }) => assert(riffs > 20 && doubled > 5 && splits > 5 && solos > 20, `enough loud songs to check riffs (${riffs}), doubled bass (${doubled}), loud quiet splits (${splits}) and solos (${solos})`),
+  game: ({ varied, songs, strong, onChord }) => {
+    assert(varied / songs > 0.75, `most loops change a little the next time round (${varied} of ${songs})`);
+    assert(onChord / strong > 0.85, `a later round's melodies still start bars on chord notes (${onChord} of ${strong})`);
+  },
 };
 
 if (!piece) {
@@ -1541,6 +1545,128 @@ block('weaves', () => {
   }
   assert(woven >= 20, `songs weave (${woven})`);
 });
+
+// in a game (music.js "in a game"): the intensity ladder has every layer on it, one player at the
+// bottom and everyone at the top; stingers land in the song's key and the chord there, on its own
+// instruments; a loop's later times round are the song played a little differently (round 0 is the song
+// exactly, a round is the same every time, its chords and sections don't move, its melodies still land
+// on chord notes); chord names turn into numerals, a drawn tune gets chords that fit it, and a midi file
+// reads back with every note on paired with its note off
+block('in a game', () => {
+  const { intensityLadder, stingerNotes, STINGERS, romanChords, fitChords, parseProgression, blankSong, midiFile, playable, SCALES, mod12 } = run('({ intensityLadder, stingerNotes, STINGERS, romanChords, fitChords, parseProgression, blankSong, midiFile, playable, SCALES, mod12 })');
+  let varied = 0;
+  let songs = 0;
+  let strong = 0;
+  let onChord = 0;
+  Object.keys(MOODS).forEach((mood, i) => {
+    if (!mine(i)) return;
+    attempt(() => {
+      for (const style of ['ambient', 'tune', 'loop']) {
+        const where = `${mood}/${style}`;
+        const song = generateSong(mood, style, 'game-day');
+        const ladder = intensityLadder(song);
+        assert(song.layers.every((l) => ladder[l.id] >= 0 && ladder[l.id] <= 1), `${where}: every layer is on the ladder`);
+        const players = song.layers.filter((l) => l.role !== 'texture' && song.sections.some((s) => s.play.includes(l.id)));
+        assert(players.filter((l) => ladder[l.id] === 0).length === 1 && players.some((l) => ladder[l.id] === 1), `${where}: one player at the bottom, someone at the top`);
+        const comp = composeSong(song);
+        for (const at of [0, comp.beats / 2, comp.beats - 1]) {
+          const section = comp.sections.find((s) => at < s.end - 1e-6);
+          const chord = section.chords.find((c) => at < c.t + c.dur - 1e-6);
+          const scale = new Set(SCALES[song.scale].steps.map((step) => mod12(song.key + (section.lift || 0) + step)));
+          for (const kind of Object.keys(STINGERS)) {
+            const notes = stingerNotes(song, comp, kind, at);
+            assert(notes.length, `${where}: ${kind} plays`);
+            for (const note of notes) {
+              const layer = song.layers.find((l) => l.id === note.layer);
+              assert(layer && note.t >= at - 1e-6, `${where}: ${kind} plays on the song's own layers, from where it lands`);
+              if (layer.role === 'drums') continue;
+              assert(note.midi >= 0 && note.midi <= 127, `${where}: ${kind} stays a note`);
+              if (kind === 'found') assert(chord.pcs.has(mod12(note.midi)), `${where}: found it runs up the chord there`);
+              else if (kind !== 'hooray') assert(scale.has(mod12(note.midi)) || chord.pcs.has(mod12(note.midi)), `${where}: ${kind} is in the key`);
+            }
+            if (kind === 'hooray') assert(mod12(notes.filter((n) => n.layer !== 'drums').reduce((a, b) => (b.t > a.t ? b : a)).midi - song.key - (section.lift || 0)) === mod12(SCALES[song.scale].steps[0]), `${where}: hooray ends home`);
+          }
+        }
+        // rounds
+        const zero = JSON.stringify(comp.notes);
+        same(JSON.stringify(composeSong(song, 0).notes), zero, `${where}: round 0 is the song as written`);
+        const one = composeSong(song, 1);
+        same(JSON.stringify(one.notes), JSON.stringify(composeSong(song, 1).notes), `${where}: a round is the same every time`);
+        same(one.sections.map((s) => [s.start, s.part, s.chords.map((c) => c.name)]), comp.sections.map((s) => [s.start, s.part, s.chords.map((c) => c.name)]), `${where}: a round keeps the chords and sections`);
+        songs++;
+        if (JSON.stringify(one.notes) !== zero) varied++;
+        const melody = song.layers.find((l) => l.role === 'melody');
+        for (const note of one.notes) {
+          if (note.layer !== melody?.id || Math.abs(note.gt / one.bpb - Math.round(note.gt / one.bpb)) > 1e-6) continue;
+          const section = one.sections.find((s) => note.gt < s.end - 1e-6);
+          if (section.lead) continue;
+          strong++;
+          if (section.chords.find((c) => note.gt < c.t + c.dur - 1e-6).pcs.has(mod12(note.midi))) onChord++;
+        }
+      }
+    });
+  });
+  tally('game', { varied, songs, strong, onChord });
+
+  // chord names
+  assert.strictEqual(romanChords('Am F C G7', 0), 'vi IV I V7', 'chord names in C');
+  assert.strictEqual(romanChords('Am F C G7', 9), 'i bVI bIII bVII7', 'and in A');
+  assert.strictEqual(romanChords('Bbmaj7 F#dim Esus4 Cadd9 Dm7 C#m - x', 0), 'bVIImaj7 #iv° IIIsus4 Iadd9 ii7 bii - x', 'endings, sharps, flats and holds');
+  assert.strictEqual(romanChords('I bVII vi° IV', 4), 'I bVII vi° IV', 'numerals are left alone');
+  assert(!parseProgression(romanChords('Am F C G Bb Ebmaj7 F#m7', 2)).bad.length, 'every name parses once it is a numeral');
+
+  // chords for a drawn tune: c e g up, a f down, g b d, c, in c
+  const blank = blankSong();
+  assert.strictEqual(fitChords(blank, 'A'), null, 'no tune, no chords');
+  blank.layers[0].edits = { A: { add: [[0, 72, 1], [1, 76, 1], [2, 79, 2], [4, 81, 1], [5, 77, 1], [6, 72, 2], [8, 79, 1], [9, 71, 1], [10, 74, 2], [12, 72, 4]], remove: [] } };
+  const fitted = fitChords(cleanSong(blank), 'A');
+  same(fitted, 'I IV V I', 'a drawn tune gets the chords that fit it');
+
+  // midi: the file's bytes, read back (a stand in for the browser's blob keeps them)
+  page.Blob = class { constructor(parts) { this.bytes = parts[0]; } };
+  page.TextEncoder = TextEncoder;
+  for (const [mood, style] of [['magic', 'loop'], ['shoegaze', 'tune'], ['ironcity', 'boss']]) {
+    const song = generateSong(mood, style, 'midi-file');
+    const played = playable(song, composeSong(song));
+    const bytes = midiFile(played.song, played.comp).bytes;
+    const u32 = (at) => ((bytes[at] << 24) | (bytes[at + 1] << 16) | (bytes[at + 2] << 8) | bytes[at + 3]) >>> 0;
+    assert.strictEqual(String.fromCharCode(...bytes.slice(0, 4)), 'MThd', `${mood}: a midi header`);
+    const tracks = (bytes[10] << 8) | bytes[11];
+    const layers = played.song.layers.filter((l) => l.role !== 'texture' && played.comp.notes.some((n) => n.layer === l.id));
+    assert.strictEqual(tracks, layers.length + 1, `${mood}: a track a layer, and the first`);
+    let at = 14;
+    let on = 0;
+    for (let t = 0; t < tracks; t++) {
+      assert.strictEqual(String.fromCharCode(...bytes.slice(at, at + 4)), 'MTrk', `${mood}: track ${t}`);
+      const end = at + 8 + u32(at + 4);
+      at += 8;
+      const open = new Map();
+      while (at < end) {
+        while (bytes[at++] & 0x80);
+        const status = bytes[at++];
+        if (status === 0xff) {
+          at++;
+          let length = 0;
+          let b;
+          do { b = bytes[at++]; length = (length << 7) | (b & 0x7f); } while (b & 0x80);
+          at += length;
+          continue;
+        }
+        const kind = status & 0xf0;
+        const [d1, d2] = [bytes[at], bytes[at + 1]];
+        at += kind === 0xc0 || kind === 0xd0 ? 1 : 2;
+        assert(d1 < 128 && (kind === 0xc0 || d2 < 128), `${mood}: data bytes under 128`);
+        if (kind === 0x90 && d2) {
+          on++;
+          open.set(d1, (open.get(d1) || 0) + 1);
+        } else if (kind === 0x80) open.set(d1, open.get(d1) - 1);
+      }
+      assert.strictEqual(at, end, `${mood}: track ${t} is as long as it says`);
+      assert([...open.values()].every((n) => n === 0), `${mood}: every note on has its note off`);
+    }
+    assert.strictEqual(on, layers.reduce((n, l) => n + played.comp.notes.filter((x) => x.layer === l.id).length, 0), `${mood}: every note's in it`);
+  }
+}, true);
 
 // what this piece found, for the run that started it
 process.send({ failures, tallies, times }, () => process.exit(0));

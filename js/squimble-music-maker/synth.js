@@ -2664,17 +2664,18 @@ function applySpace(g, fx, tempo) {
 }
 
 // a layer's channel: input -> its instrument's chain (instrumentChain, plugged in by setChannel) -> low
-// cut -> its place (PLACES) -> volume -> pan, with sends to the room, reverb and echo. the rig is before
-// the volume, so turning a guitar down doesn't drive its amp less
+// cut -> its place (PLACES) -> volume -> gate -> pan, with sends to the room, reverb and echo. the rig
+// is before the volume, so turning a guitar down doesn't drive its amp less. the gate is the game's
+// intensity (MusicPlayer.setIntensity): open, unless the layer's been faded out
 function makeChannel(g) {
   const { ctx } = g;
   const channel = {
     ctx, input: ctx.createGain(), cut: new BiquadFilterNode(ctx, { type: 'highpass', frequency: 20, Q: 0.6 }),
     presence: new BiquadFilterNode(ctx, { type: 'peaking', frequency: 2500, Q: 0.8 }), air: new BiquadFilterNode(ctx, { type: 'highshelf', frequency: 8000 }),
-    volume: ctx.createGain(), pan: ctx.createStereoPanner(), room: ctx.createGain(), reverb: ctx.createGain(), echo: ctx.createGain(),
+    volume: ctx.createGain(), gate: ctx.createGain(), pan: ctx.createStereoPanner(), room: ctx.createGain(), reverb: ctx.createGain(), echo: ctx.createGain(),
   };
   channel.cut.connect(channel.presence).connect(channel.air).connect(channel.volume);
-  channel.volume.connect(channel.pan);
+  channel.volume.connect(channel.gate).connect(channel.pan);
   channel.pan.connect(g.bus);
   channel.pan.connect(channel.room).connect(g.roomIn);
   channel.pan.connect(channel.reverb).connect(g.reverbIn);
@@ -2741,7 +2742,10 @@ function closeChannel(channel, now) {
 
 // plays a song live. load() swaps in new notes while it plays: notes already sent finish as they were,
 // and everything after is the new version. times are beats since play() started, every time round the
-// loop included (loopOffset is where this time round began)
+// loop included (loopOffset is where this time round began).
+// what a game needs too (music.js "in a game"): setIntensity() turns the band up and down on the bar
+// line, stinger() plays a cue over it in time and in key, queue() moves to another song on a beat, bar
+// or section, and vary gives each time round a loop's own notes
 class MusicPlayer {
   constructor() {
     this.ctx = null;
@@ -2750,6 +2754,13 @@ class MusicPlayer {
     // a click on every beat while it plays, for playing along (never in a wav)
     this.metronome = false;
     this.channels = {};
+    // 0 to 1: which layers play (intensityLadder in music.js). 1 is the song as written
+    this.intensity = 1;
+    // [from, to] in beats: just this stretch, round and round (a section while practising it)
+    this.range = null;
+    this.until = null;
+    // (round) => notes for that time round a loop (composeSong(song, round)), or null to repeat it
+    this.vary = null;
   }
 
   // called from a click or a key (browsers only let sound start from one). the audio buffer is 40 ms
@@ -2798,11 +2809,18 @@ class MusicPlayer {
   // in on the keyboard aren't ahead of the sound by the buffer
   position() {
     if (!this.playing) return null;
+    const [start, end] = this.span();
     let beat = this.beatAt(this.ctx.currentTime - (this.ctx.outputLatency || this.ctx.baseLatency || 0)) - this.loopOffset;
     // loopOffset moves on when the next time round starts being scheduled, a moment early (and on the
     // first time round, before the first note's heard, it's the start, not the end)
-    if (beat < 0 && this.loopOffset > 0) beat += this.comp.beats;
+    if (beat < start && this.wraps > 0) beat += end - start;
     return Math.max(0, beat);
+  }
+
+  // the stretch of the song it plays, [from, to]: up to until (play()), the range, or the whole song
+  span() {
+    if (this.until !== null) return [0, Math.min(this.until, this.comp.beats)];
+    return this.range || [0, this.comp.beats];
   }
 
   load(song, comp) {
@@ -2814,14 +2832,19 @@ class MusicPlayer {
     }
     this.song = song;
     this.comp = comp;
+    this.ladder = null;
+    // (a time round worked out before a change would play the song from before it)
+    this.nextRound = null;
     findRestrikes(comp.notes);
     this.secondsPerBeat = secondsPerBeat;
     if (this.ctx) applySpace(this.graph, song.fx, song.tempo);
     this.fetchRecordings();
     if (!this.playing) return;
     this.mix();
+    // a layer added or moved up the ladder comes and goes with the rest, on the bar line
+    if (this.intensity < 1) this.gates(this.nextBar());
     // a shorter song that's now behind the playhead starts again from the top
-    if (this.scheduledTo - this.loopOffset > comp.beats) this.loopOffset = this.scheduledTo;
+    if (this.scheduledTo - this.loopOffset > this.span()[1]) this.loopOffset = this.scheduledTo - this.span()[0];
     this.index = this.warmed = this.firstFrom(this.scheduledTo - this.loopOffset);
   }
 
@@ -2837,9 +2860,121 @@ class MusicPlayer {
     if (!this.playing) return;
     const now = this.ctx.currentTime;
     for (const layer of this.song.layers) {
-      if (!this.channels[layer.id]) this.channels[layer.id] = makeChannel(this.graph);
+      if (!this.channels[layer.id]) {
+        this.channels[layer.id] = makeChannel(this.graph);
+        this.gates(null, [layer.id]);
+      }
       setChannel(this.channels[layer.id], this.song, layer, now, true);
     }
+  }
+
+  // ---------- in a game ----------
+
+  // how much is going on, 0 to 1 (intensityLadder in music.js): layers come in and drop out on the next
+  // bar line, fading over a beat, the way a game's music follows what's happening
+  setIntensity(level) {
+    this.intensity = Math.min(1, Math.max(0, level));
+    if (this.playing) this.gates(this.nextBar());
+  }
+  // opens or shuts the channels' gates for the intensity: at a time, fading, or (when null) at once.
+  // a part with settings of its own (id~D, playable() in music.js) goes with its layer
+  gates(when, ids = Object.keys(this.channels)) {
+    this.ladder ??= intensityLadder(this.song);
+    for (const id of ids) {
+      const gate = this.channels[id]?.gate.gain;
+      if (!gate) continue;
+      const open = (this.ladder[id.split('~')[0]] ?? 0) <= this.intensity + 1e-9 ? 1 : 0;
+      if (when === null) gate.setValueAtTime(open, this.ctx.currentTime);
+      else gate.setTargetAtTime(open, when, this.secondsPerBeat / 3);
+    }
+  }
+  // the time of the next bar line to be heard. (just after the next time round's been scheduled, the
+  // playhead is "before" its start, so its first bar is next)
+  nextBar() {
+    const bpb = this.comp.bpb;
+    const beat = this.beatAt(this.ctx.currentTime + 0.03) - this.loopOffset;
+    return this.timeAt(Math.ceil(beat / bpb - 1e-6) * bpb + this.loopOffset);
+  }
+  // where a beat from play()'s start falls in the song: past the end of the stretch it plays, it's
+  // round again at the start
+  songBeat(beat) {
+    const [start, end] = this.span();
+    let at = beat - this.loopOffset;
+    while (at >= end - 1e-9 && this.loop && end > start) at -= end - start;
+    return Math.min(Math.max(at, 0), this.comp.beats - 1e-6);
+  }
+
+  // a stinger (STINGERS in music.js) over the music, on its own channels: on the next beat or bar, in
+  // the chord there. while it's stopped, at once, in the chord at beat from
+  stinger(kind, from = 0) {
+    this.wake();
+    const now = this.ctx.currentTime;
+    let at = from;
+    let when = now + 0.03;
+    if (this.playing) {
+      const grid = STINGERS[kind].on === 'bar' ? this.comp.bpb : 1;
+      const beat = this.beatAt(now + 0.03) - this.loopOffset;
+      const landing = Math.ceil(beat / grid - 1e-6) * grid + this.loopOffset;
+      at = this.songBeat(landing);
+      when = this.timeAt(landing);
+    }
+    const notes = stingerNotes(this.song, this.comp, kind, at);
+    const channels = {};
+    let last = 0;
+    for (const note of notes) {
+      const layer = this.song.layers.find((one) => one.id === note.layer);
+      if (!channels[layer.id]) {
+        channels[layer.id] = makeChannel(this.graph);
+        setChannel(channels[layer.id], this.song, { ...layer, mute: false, solo: true }, now, false);
+      }
+      const start = when + (note.t - at) * this.secondsPerBeat;
+      playNote(this.ctx, channels[layer.id], layer, note, start, this.secondsPerBeat);
+      last = Math.max(last, start + note.dur * this.secondsPerBeat);
+    }
+    setTimeout(() => Object.values(channels).forEach((channel) => closeChannel(channel, this.ctx.currentTime)), (last - now + 4) * 1000);
+    return notes.length > 0;
+  }
+
+  // another song from the next beat, bar or section on (at), the way a game goes from exploring into a
+  // fight: the song playing carries on to there, its last notes ringing out, and the new one starts
+  // from its top. onSwitch hears when it does, a moment before it's heard. while stopped, it just plays
+  queue(song, comp, at = 'bar', onSwitch = null) {
+    if (!this.playing) {
+      this.load(song, comp);
+      onSwitch?.();
+      this.play(0);
+      return;
+    }
+    // (notes are already sent up to scheduledTo, so it can't come sooner)
+    const from = this.scheduledTo - this.loopOffset;
+    const [, end] = this.span();
+    let beat;
+    if (at === 'section') beat = this.comp.sections.find((one) => one.start >= from - 1e-6)?.start ?? end;
+    else beat = Math.ceil(from / (at === 'beat' ? 1 : this.comp.bpb) - 1e-6) * (at === 'beat' ? 1 : this.comp.bpb);
+    this.queued = { song, comp, at: Math.min(beat, end) + this.loopOffset, onSwitch };
+  }
+  // the queued song takes over (tick(), once everything before it's been sent). the old song's channels
+  // close once its notes have rung out
+  switchSong() {
+    const { song, comp, at, onSwitch } = this.queued;
+    this.queued = null;
+    const old = Object.values(this.channels);
+    setTimeout(() => old.forEach((channel) => closeChannel(channel, this.ctx.currentTime)), 8000);
+    this.channels = {};
+    // the new song's beats count from the switch, at its own tempo (set first, so load() doesn't take
+    // it as a tempo change from now)
+    this.anchorTime = this.timeAt(at);
+    this.anchorBeat = at;
+    this.secondsPerBeat = 60 / song.tempo;
+    this.range = null;
+    this.until = null;
+    this.wraps = 0;
+    this.nextRound = null;
+    this.loopOffset = at;
+    this.scheduledTo = at;
+    this.load(song, comp);
+    this.index = this.warmed = 0;
+    onSwitch?.();
   }
 
   firstFrom(beat) {
@@ -2854,12 +2989,17 @@ class MusicPlayer {
     return low;
   }
 
-  play(from = 0) {
+  // until: stop there (a beat), for playing just up to the next note while practising
+  play(from = 0, until = null) {
     this.stop();
     this.wake();
     this.playing = true;
     this.loopOffset = 0;
     this.scheduledTo = from;
+    this.until = until;
+    this.wraps = 0;
+    this.queued = null;
+    this.nextRound = null;
     this.channels = {};
     this.mix();
     this.index = this.warmed = this.firstFrom(from);
@@ -2902,10 +3042,13 @@ class MusicPlayer {
   tick() {
     if (!this.playing) return;
     const ahead = this.beatAt(this.ctx.currentTime + (document.hidden ? 1.5 : LIGHT ? 0.5 : 0.3));
-    const { notes } = this.comp;
+    const looping = this.loop && this.until === null;
     while (this.scheduledTo < ahead) {
-      const songEnd = this.loopOffset + this.comp.beats;
-      const until = Math.min(ahead, songEnd);
+      // (this.comp, not a copy: a new time round or a queued song swaps it)
+      const { notes } = this.comp;
+      const [start, end] = this.span();
+      const songEnd = this.loopOffset + end;
+      const until = Math.min(ahead, songEnd, this.queued?.at ?? Infinity);
       while (this.index < notes.length && notes[this.index].t + this.loopOffset < until) {
         const note = notes[this.index++];
         this.send(note, this.timeAt(note.t + this.loopOffset));
@@ -2914,14 +3057,30 @@ class MusicPlayer {
         for (let beat = Math.ceil(this.scheduledTo - this.loopOffset - 1e-9); beat < until - this.loopOffset - 1e-9; beat++) this.click(this.timeAt(beat + this.loopOffset), beat % this.comp.bpb === 0);
       }
       this.scheduledTo = until;
-      if (until < songEnd || !this.loop) break;
-      this.loopOffset = songEnd;
-      this.index = this.warmed = 0;
+      if (this.queued && until >= this.queued.at - 1e-9) {
+        this.switchSong();
+        continue;
+      }
+      if (until < songEnd || !looping) break;
+      this.loopOffset = songEnd - start;
+      this.wraps++;
+      // a loop played a little differently each time round: the next round's notes, worked out while
+      // this one played (the first time, now)
+      // (none to give, and it goes round as it is)
+      const next = this.vary && !this.range && (this.nextRound || this.vary(this.wraps));
+      if (next) {
+        this.comp = next;
+        findRestrikes(next.notes);
+        const round = this.wraps + 1;
+        this.nextRound = null;
+        setTimeout(() => { if (this.playing && this.wraps === round - 1 && this.vary) this.nextRound = this.vary(round); }, 100);
+      }
+      this.index = this.warmed = this.firstFrom(start);
     }
     // and the next two seconds' strings and struck notes, a few milliseconds' worth at a time (warm)
     this.warm(this.beatAt(this.ctx.currentTime + 2.5), 4);
     // not looping: stop once the end's been reached, leaving the last notes to ring out
-    if (!this.loop && this.beatAt(this.ctx.currentTime) - this.loopOffset >= this.comp.beats) this.stop(false);
+    if (!looping && this.beatAt(this.ctx.currentTime) - this.loopOffset >= this.span()[1]) this.stop(false);
   }
 
   // works out the strings and struck notes (warmNote) of the notes not sent yet, up to beat until (from
@@ -3070,4 +3229,191 @@ function wavFile(channels, frames, rate) {
     }
   }
   return new Blob([view], { type: 'audio/wav' });
+}
+
+// a zip of files ([name, blob]), stored as they are: wavs hardly squeeze, so it's just to keep a song's
+// stems together in one download
+const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+async function zipFile(files) {
+  const parts = [];
+  const central = [];
+  let offset = 0;
+  for (const [name, blob] of files) {
+    const data = new Uint8Array(await blob.arrayBuffer());
+    let crc = 0xffffffff;
+    for (let i = 0; i < data.length; i++) crc = CRC_TABLE[(crc ^ data[i]) & 0xff] ^ (crc >>> 8);
+    crc = (crc ^ 0xffffffff) >>> 0;
+    const title = new TextEncoder().encode(name);
+    // the local header and its entry in the central directory say the same things
+    const fields = (view, at) => {
+      view.setUint16(at, 20, true);
+      view.setUint16(at + 2, 0x800, true);
+      view.setUint16(at + 4, 0, true);
+      view.setUint32(at + 6, 0x00210000, true);
+      view.setUint32(at + 10, crc, true);
+      view.setUint32(at + 14, data.length, true);
+      view.setUint32(at + 18, data.length, true);
+      view.setUint16(at + 22, title.length, true);
+    };
+    const head = new DataView(new ArrayBuffer(30));
+    head.setUint32(0, 0x04034b50, true);
+    fields(head, 4);
+    parts.push(head, title, data);
+    const entry = new DataView(new ArrayBuffer(46));
+    entry.setUint32(0, 0x02014b50, true);
+    entry.setUint16(4, 20, true);
+    fields(entry, 6);
+    entry.setUint32(42, offset, true);
+    central.push(entry, title);
+    offset += 30 + title.length + data.length;
+  }
+  const size = central.reduce((sum, one) => sum + one.byteLength, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(8, files.length, true);
+  end.setUint16(10, files.length, true);
+  end.setUint32(12, size, true);
+  end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, end], { type: 'application/zip' });
+}
+
+// ---------- midi files ----------
+//
+// the notes as a standard midi file (type 1) for a daw or a notation program. a track a layer (a part
+// with settings of its own is its own track, playable() in music.js), named for its role and instrument,
+// on its own channel with the general midi sound nearest its instrument; the drums on channel 10 as
+// general midi's drums. the first track has the tempo, time signature, key (and key changes), the
+// sections as markers and the chords as text. slides and bends are pitch bends, an octave either way.
+// scenery has no notes to give, and doubling is only the player's
+
+// general midi's sounds (numbered from 0), and the instruments nearest each. anything not here takes
+// its family's
+const GM_PROGRAMS = {
+  0: 'piano felt-keys reverse-piano', 3: 'honky-tonk', 4: 'e-piano wurlitzer', 6: 'harpsichord', 7: 'clavinet', 8: 'celesta', 9: 'glock glass-bell',
+  10: 'music-box', 11: 'vibes', 12: 'marimba', 13: 'xylophone bonang', 14: 'bell chime sine-bell', 15: 'santoor zither', 16: 'hammond', 19: 'organ organ-drone',
+  20: 'harmonium', 21: 'accordion', 22: 'harmonica melodica', 24: 'nylon oud', 25: 'steel-guitar pedal-steel', 26: 'jazz-guitar',
+  27: 'clean-guitar chorus-guitar glide-guitar offset-guitar shimmer-guitar flange-guitar phaser-guitar swell-guitar reverse-guitar',
+  29: 'crunch-guitar drive-guitar lead-guitar wah-lead', 30: 'dist-guitar fuzz-guitar metal-guitar sludge-guitar octave-fuzz drop-guitar metal-lead fuzz-lead ebow-lead',
+  31: 'harmonics', 32: 'upright', 33: 'pluck-bass chorus-bass', 34: 'pick-bass fuzz-bass', 35: 'fretless', 36: 'slap-bass',
+  38: 'synth-bass moog-bass sub-bass chip-bass 808-bass', 39: 'round-bass growl-bass reese', 40: 'violin', 42: 'cello cello-drone',
+  44: 'tremolo-strings', 45: 'pizzicato', 46: 'harp lyre', 48: 'strings', 50: 'synth-strings', 52: 'choir-ah chant-voice throat-singing kargyraa',
+  53: 'choir-oo soprano humming alto-voice soul-voice', 54: 'vox-pad dream-voice rasp-voice', 55: 'orchestra-hit', 56: 'trumpet', 57: 'trombone',
+  58: 'tuba', 59: 'mute-trumpet', 60: 'horn', 61: 'brass-section', 62: 'synth-brass', 65: 'alto-sax', 66: 'tenor-sax', 68: 'oboe', 70: 'bassoon',
+  71: 'clarinet', 72: 'piccolo', 73: 'flute bansuri', 74: 'tenor-recorder', 75: 'pan-flute', 76: 'blown-bottle', 77: 'shakuhachi', 78: 'whistle', 79: 'ocarina',
+  80: 'square-lead pulse-lead bit-lead', 81: 'saw-lead moog-lead', 82: 'soft-lead', 84: 'pluck-lead', 88: 'shimmer glass-pad', 89: 'warm-pad air-pad deep-drone tape-loop',
+  90: 'analog-pad dark-pad fuzz-wall', 92: 'bowed-vibes bowed-metal wine-glass bowed-psaltery', 94: 'haunted-pad', 95: 'void',
+  104: 'sitar tanpura', 105: 'banjo', 106: 'shamisen', 107: 'koto', 108: 'kalimba mbira', 109: 'bagpipe didgeridoo', 110: 'erhu', 111: 'shawm',
+  112: 'metal-ping bridge-chimes', 114: 'steel-drum',
+};
+const GM_FAMILIES = { pad: 89, keys: 0, guitar: 27, bell: 14, lead: 80, bass: 33, drone: 89 };
+const GM_BY_ID = {};
+for (const [program, ids] of Object.entries(GM_PROGRAMS)) for (const id of ids.split(' ')) GM_BY_ID[id] = +program;
+const gmProgram = (id) => GM_BY_ID[id] ?? GM_FAMILIES[INSTRUMENTS[id]?.family] ?? 0;
+// a kit's slot as general midi's drum: by what was recorded for it, what it is (its voice), or a tom's pitch
+const GM_HITS = {
+  'open-hat': 46, tambourine: 54, cabasa: 69, guiro: 73, 'sleigh-bells': 54, woodblock: 76, triangle: 81, 'finger-cymbals': 81, 'hand-bells': 81,
+  'mark-tree': 81, 'slit-high': 77, 'slit-low': 76, 'bongo-high': 60, cowbell: 56, ride: 51, timpani: 41,
+};
+const GM_DRUMS = { kick: 36, heart: 36, taiko: 35, snare: 38, brush: 38, clap: 39, slap: 39, noise: 39, rim: 37, hat: 42, crash: 49, ride: 51, shaker: 70, cowbell: 56, gong: 52, conga: 63, dayan: 63, bayan: 64, blip: 76, tick: 75 };
+function gmDrum(slot, index) {
+  const hit = slot.hit?.split('/').pop();
+  if (GM_HITS[hit]) return GM_HITS[hit];
+  if (slot.voice === 'hat' && index === 3) return 46;
+  if (slot.voice === 'tom') return slot.tune < 80 ? 41 : slot.tune < 110 ? 45 : slot.tune < 160 ? 47 : 50;
+  return GM_DRUMS[slot.voice] ?? 37;
+}
+
+function midiFile(song, comp) {
+  // a beat is a quarter note, but in 6/8 a dotted one
+  const quarters = song.meter === '6/8' ? 1.5 : 1;
+  const ticks = (beat) => Math.max(0, Math.round(beat * 480 * quarters));
+  const varLen = (n) => {
+    const out = [n & 0x7f];
+    while ((n >>>= 7)) out.unshift((n & 0x7f) | 0x80);
+    return out;
+  };
+  const utf8 = (text) => [...new TextEncoder().encode(text)];
+  const meta = (type, data) => [0xff, type, ...varLen(data.length), ...data];
+  const u32 = (n) => [(n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff];
+  // a track from [tick, order, bytes]: in time, and at the same tick settings, then note offs, then ons
+  const track = (events) => {
+    events.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    const out = [];
+    let last = 0;
+    for (const [at, , data] of events) {
+      for (const byte of varLen(at - last)) out.push(byte);
+      for (const byte of data) out.push(byte);
+      last = at;
+    }
+    out.push(0, 0xff, 0x2f, 0);
+    return [0x4d, 0x54, 0x72, 0x6b, ...u32(out.length), ...out];
+  };
+  const steps = SCALES[song.scale].steps;
+  const signature = (lift) => [(typeof keySignature === 'function' ? keySignature(mod12(song.key + lift), steps) : 0) & 0xff, steps[2] === 3 ? 1 : 0];
+  const conductor = [
+    [0, -2, meta(0x03, utf8(song.name || 'Song'))],
+    [0, -2, meta(0x51, u32(Math.round(60e6 / (song.tempo * quarters))).slice(1))],
+    [0, -2, meta(0x58, { '4/4': [4, 2, 24, 8], '3/4': [3, 2, 24, 8], '5/4': [5, 2, 24, 8], '6/8': [6, 3, 36, 8] }[song.meter])],
+  ];
+  let lift = null;
+  for (const section of comp.sections) {
+    if ((section.lift || 0) !== lift) conductor.push([ticks(section.start), -2, meta(0x59, signature((lift = section.lift || 0)))]);
+    conductor.push([ticks(section.start), -1, meta(0x06, utf8(section.name))]);
+    for (const chord of section.chords) conductor.push([ticks(chord.t), -1, meta(0x01, utf8(chord.name))]);
+  }
+  const tracks = [track(conductor)];
+  const free = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15];
+  let next = 0;
+  for (const layer of song.layers) {
+    const inst = INSTRUMENTS[layer.instrument];
+    const notes = comp.notes.filter((note) => note.layer === layer.id).sort((a, b) => a.t - b.t);
+    if (!inst || layer.role === 'texture' || !notes.length) continue;
+    const drums = inst.kind === 'drums';
+    const channel = drums ? 9 : free[next++ % free.length];
+    const [base, part] = layer.id.split('~');
+    const events = [
+      [0, -2, meta(0x03, utf8(`${ROLES[layer.role].name}${base !== layer.role ? ` (${base})` : ''}${part ? `, part ${part}` : ''}: ${inst.name}`))],
+      [0, -2, [0xb0 | channel, 7, Math.round(Math.min(1, layer.volume) * 127)]],
+      [0, -2, [0xb0 | channel, 10, Math.round(64 + Math.max(-1, Math.min(1, layer.pan)) * 63)]],
+    ];
+    if (!drums) events.push([0, -2, [0xc0 | channel, gmProgram(layer.instrument)]]);
+    // pitch bends reach an octave (registered parameter 0, then closed again)
+    if (notes.some((note) => note.bend)) for (const [control, value] of [[101, 0], [100, 0], [6, 12], [38, 0], [101, 127], [100, 127]]) events.push([0, -2, [0xb0 | channel, control, value]]);
+    const bend = (at, semitones) => {
+      const value = Math.max(0, Math.min(16383, Math.round(8192 + (semitones / 12) * 8191)));
+      events.push([at, 2, [0xe0 | channel, value & 0x7f, value >> 7]]);
+    };
+    // a pitch's note ends where the same pitch starts again, which midi can't tell apart
+    const ends = new Map();
+    const pitchOf = (note) => Math.max(0, Math.min(127, drums ? gmDrum(inst.slots[note.midi] || {}, note.midi) : Math.round(note.midi)));
+    for (let i = notes.length - 1; i >= 0; i--) {
+      const note = notes[i];
+      const pitch = pitchOf(note);
+      const start = ticks(note.t);
+      const end = Math.max(start + 1, Math.min(ticks(note.t + (drums ? Math.min(note.dur, 0.25) : note.dur)), ends.get(pitch) ?? Infinity));
+      ends.set(pitch, start);
+      events.push([start, 1, [0x90 | channel, pitch, Math.max(1, Math.min(127, Math.round((note.vel ?? 0.75) * 127)))]]);
+      events.push([end, 0, [0x80 | channel, pitch, 0]]);
+      if (note.bend && !drums) {
+        // the bend's pins joined in straight lines, a value every sixteenth of a beat, back to 0 at the end
+        const pins = note.bend;
+        const at = (beat) => {
+          if (beat <= pins[0][0]) return pins[0][1];
+          for (let k = 1; k < pins.length; k++) {
+            if (beat <= pins[k][0]) return pins[k - 1][1] + ((pins[k][1] - pins[k - 1][1]) * (beat - pins[k - 1][0])) / (pins[k][0] - pins[k - 1][0] || 1);
+          }
+          return pins[pins.length - 1][1];
+        };
+        for (let beat = 0; beat < note.dur; beat += 1 / 16) bend(ticks(note.t + beat), at(beat));
+        events.push([end, 0, [0xe0 | channel, 0, 64]]);
+      }
+    }
+    tracks.push(track(events));
+  }
+  const head = [0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 1, tracks.length >> 8, tracks.length & 0xff, 480 >> 8, 480 & 0xff];
+  return new Blob([new Uint8Array([...head, ...tracks.flat()])], { type: 'audio/midi' });
 }
