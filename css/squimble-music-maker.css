@@ -29,8 +29,8 @@
   --mm-sky-deep:  color-mix(in oklab, var(--mm-mood) 16%, #120904);
   --mm-drop:      color-mix(in oklab, var(--mm-mood) 10%, #0b0502);
   --mm-on-sky:    #fff6d8;
-  --mm-on-sky-soft: color-mix(in oklab, var(--mm-mood) 25%, #e6d6b6);
-  --mm-mood-light: color-mix(in oklab, var(--mm-mood) 55%, #fff6d8);
+  --mm-on-sky-soft: color-mix(in oklab, var(--mm-mood) 18%, #eadcbf);
+  --mm-mood-light: color-mix(in oklab, var(--mm-mood) 34%, #fff6d8);
   --mm-tint:      color-mix(in oklab, var(--mm-mood) 26%, var(--mm-butter));
   --mm-focus:     var(--mm-on-sky);
   --mm-ui: "Recursive", var(--font-sans);

@@ -527,10 +527,12 @@
     say("It's yours now. Every part plays notes you can change: click a square in the Arrange tab to open one.");
   }, 'mm-key-small mm-key-line'));
 
-  // dark or light text, whichever reads on a colour
+  // dark or light text, whichever has more contrast on a colour (wcag's relative luminance: the ink's is
+  // 0.011, the butter's 0.921)
   function inkOn(hex) {
-    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.42 ? '#2b1508' : '#fff6d8';
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return (lum + 0.05) / 0.061 >= 0.971 / (lum + 0.05) ? '#2b1508' : '#fff6d8';
   }
 
   const playKey = $('#mmPlay');
