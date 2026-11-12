@@ -61,16 +61,33 @@
   // background starfield (particles.js, project pages only)
   if (!reduced && window.PortfolioFX) window.PortfolioFX.initBackgroundStarfield();
 
-  // pause the project cards' idle loops while they're off screen
+  // pause the idle loops (twinkling hero stars, project cards) while they're off screen
   if ('IntersectionObserver' in window) {
     var loopWatcher = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         entry.target.classList.toggle('loops-paused', !entry.isIntersecting);
       });
     });
-    document.querySelectorAll('.projects').forEach(function (section) {
+    document.querySelectorAll('.hero, .projects').forEach(function (section) {
       loopWatcher.observe(section);
     });
+  }
+
+  // the scrollbar under the project strip on phones: the thumb is as long as the share of the strip
+  // in view and slides along with it. (translateX % is of the thumb's own width, hence the 1 / share)
+  var strip = document.querySelector('.project-grid');
+  var stripThumb = document.querySelector('.swipe-bar i');
+  if (strip && stripThumb) {
+    var moveThumb = function () {
+      var travel = strip.scrollWidth - strip.clientWidth;
+      if (travel <= 0) return;
+      var share = strip.clientWidth / strip.scrollWidth;
+      stripThumb.style.width = (share * 100) + '%';
+      stripThumb.style.transform = 'translateX(' + (strip.scrollLeft / travel * (1 / share - 1) * 100) + '%)';
+    };
+    strip.addEventListener('scroll', moveThumb, { passive: true });
+    window.addEventListener('resize', moveThumb);
+    moveThumb();
   }
 
   // copy the email address. if the clipboard is blocked (old browser, page opened from file://),
