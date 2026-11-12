@@ -11,24 +11,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=Fira+Mono:wght@400&family=Crimson+Pro:wght@400&family=Tektur:wdth,wght@75..100,600..800&family=Recursive:wght,CASL@800..1000,0..1&family=Barlow+Condensed:ital,wght@1,700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=Bagel+Fat+One&family=Gochi+Hand&family=Crimson+Pro:wght@400&family=Tektur:wdth,wght@75..100,600..800&family=Recursive:wght,CASL@800..1000,0..1&family=Barlow+Condensed:ital,wght@1,700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
 
-<body>
+<body class="home">
 
-  <!-- background stuff, just decoration, sits behind everything -->
-  <div class="bg-glow" aria-hidden="true">
-    <div class="bg-nebula bg-nebula-1"></div>
-    <div class="bg-nebula bg-nebula-2"></div>
-    <div class="bg-nebula bg-nebula-3"></div>
-  </div>
-  <canvas class="bg-fx" id="bgFx" aria-hidden="true"></canvas>
-  <!-- shooting stars, particles.js moves these around -->
-  <span class="shooting-star" aria-hidden="true"></span>
-  <span class="shooting-star" aria-hidden="true"></span>
-  <span class="shooting-star" aria-hidden="true"></span>
+  <!-- the one star shape, reused for every star on the page -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="star" viewBox="-10 -10 20 20"><path d="M0-8.14 2.23-2.21 8.56-1.92 3.61 2.03 5.29 8.14 0 4.66-5.29 8.14-3.61 2.03-8.56-1.92-2.23-2.21Z" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></symbol>
+  </svg>
 
   <a class="skip-link" href="#home">Skip to content</a>
 
@@ -54,53 +47,21 @@
   <main>
 
     <section class="hero" id="home">
-      <!-- constellation effect, desktop only -->
-      <canvas class="hero-fx" id="heroFx" aria-hidden="true"></canvas>
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <p class="hero-greeting hand">Hello! I am...</p>
+          <h1 class="hero-name">Ahsan <span>Siddiqui</span></h1>
+          <p class="hero-role">Full stack developer in Manchester. I build websites, browser games and little music toys, mostly in JavaScript, PHP and .NET.</p>
+          <ul class="hero-facts">
+            <li class="hero-open">Open to full stack roles</li>
+            <li>BSc Computer Science (2:1)</li>
+          </ul>
 
-      <div class="hero-fx-anchor" aria-hidden="true">
-        <div class="hero-aura"></div>
-
-        <!-- fake code editor card, main.js types the text out -->
-        <div class="hero-card">
-          <div class="hero-card-inner" id="heroCard">
-            <div class="hero-card-pulse"></div>
-            <!-- tilted orbital rings around the card, each with its star riding it.
-                 the near half of a ring passes in front of the card, the far half behind -->
-            <div class="hero-card-orbits">
-              <span class="hc-ring hc-ring-1"><span class="hc-orbit"><span class="hc-arm"><i></i></span></span></span>
-              <span class="hc-ring hc-ring-2"><span class="hc-orbit"><span class="hc-arm"><i></i></span></span></span>
-              <span class="hc-ring hc-ring-3"><span class="hc-orbit"><span class="hc-arm"><i></i></span></span></span>
-            </div>
-            <div class="hero-card-body">
-              <div class="hero-card-bar">
-                <span class="hero-card-dot hero-card-dot-r"></span>
-                <span class="hero-card-dot hero-card-dot-y"></span>
-                <span class="hero-card-dot hero-card-dot-g"></span>
-                <span class="hero-card-file">ahsan.js</span>
-              </div>
-              <pre class="hero-card-code"><code id="heroCode"></code></pre>
-            </div>
-            <span class="hero-card-spark hero-card-spark-a"></span>
-            <span class="hero-card-spark hero-card-spark-b"></span>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="assets/AhsanResume.pdf" download="Ahsan-Resume.pdf" data-resume-viewer>My resume</a>
+            <a class="btn btn-ghost" href="#projects">See my projects</a>
           </div>
-        </div>
-      </div>
 
-      <div class="container">
-        <p class="hero-greeting">Hello! I am...</p>
-        <h1 class="hero-name">Ahsan Siddiqui</h1>
-        <p class="hero-role">Full Stack Developer</p>
-        <p class="hero-meta">BSc Computer Science (2:1) · Manchester, UK <span class="hero-open">Open to full stack roles</span></p>
-
-        <div class="hero-rule" aria-hidden="true"></div>
-
-        <div class="hero-actions">
-          <a class="btn btn-primary" href="assets/AhsanResume.pdf" download="Ahsan-Resume.pdf" data-resume-viewer>My resume</a>
-          <a class="btn btn-ghost" href="#projects">Projects</a>
-        </div>
-
-        <div class="connect">
-          <span class="connect-label">Connect with me:</span>
           <ul class="socials">
             <li>
               <a class="social" href="https://www.linkedin.com/in/ahsan-siddiqui-85332133b/" target="_blank" rel="noopener" aria-label="LinkedIn">
@@ -123,15 +84,55 @@
             </li>
           </ul>
         </div>
+
+        <!-- photo in an arched window, a flat cut-out behind it and a few stars stuck round the edge -->
+        <figure class="hero-portrait">
+          <span class="portrait-back" aria-hidden="true"></span>
+          <img class="portrait-photo" src="assets/profile.jpg" alt="Photo of Ahsan Siddiqui" width="3000" height="4000">
+          <svg class="portrait-sky" viewBox="0 0 100 125" aria-hidden="true">
+            <path class="sky-line" d="M-4 14L9 4L21 11"/>
+            <use href="#star" class="sky-star sky-star-a" x="-10" y="5" width="12" height="12"/>
+            <use href="#star" class="sky-star sky-star-b" x="5" y="0" width="8" height="8"/>
+            <use href="#star" class="sky-star sky-star-c" x="18" y="8" width="6" height="6"/>
+            <use href="#star" class="sky-star sky-star-d" x="96" y="96" width="14" height="14"/>
+          </svg>
+        </figure>
       </div>
     </section>
 
     <!-- projects -->
     <section class="projects" id="projects">
       <div class="container">
-        <h2 class="section-title">My projects</h2>
+        <div class="section-head">
+          <h2 class="section-title">Projects</h2>
+          <p class="hand section-note">most of these run right here in your browser!
+            <svg class="note-arrow" viewBox="0 0 60 44" aria-hidden="true"><path d="M3 5c18-3 36 4 43 30M37 29l9 8 5-11"/></svg>
+          </p>
+          <p class="hand swipe-hint" aria-hidden="true">swipe for more
+            <svg viewBox="0 0 40 16"><path d="M2 9c10-4 22-5 34-1M30 3l6 5-6 5"/></svg>
+          </p>
+          <!-- what's here at a glance, each dot in its card's colour. wide screens only, where it has a column to itself -->
+          <nav class="project-index" aria-label="Projects by kind">
+            <p class="pi-group">Games</p>
+            <ul>
+              <li><a href="#wizard-battles" style="--c:#ff6b6b">Wizard Battles</a></li>
+              <li><a href="#cli-battleships" style="--c:#2dc963">CLI Battleships</a></li>
+              <li><a href="#squimble-quest" style="--c:#4ea862">Squimble Quest</a></li>
+            </ul>
+            <p class="pi-group">Sound &amp; music</p>
+            <ul>
+              <li><a href="#sound-studio" style="--c:#b2c295">Squimble Sound Studio</a></li>
+              <li><a href="#music-maker" style="--c:#ff6ac1">Squimble Music Maker</a></li>
+              <li><a href="#oscilloscope" style="--c:#6dff96">Oscilloscope Playground</a></li>
+            </ul>
+            <p class="pi-group">Apps</p>
+            <ul>
+              <li><a href="#pantry-wizard" style="--c:#af53ff">Pantry Wizard</a></li>
+            </ul>
+          </nav>
+        </div>
         <ul class="project-grid">
-          <li class="project">
+          <li class="project" id="wizard-battles">
             <div class="project-card project-card-wizard">
               <a class="project-card-link" href="wizard-battles.html" aria-describedby="pj-wizard">
                 <span class="wizard-robe wizard-robe-a" aria-hidden="true"></span>
@@ -152,7 +153,7 @@
               <ul class="project-tags"><li>p5.js</li><li>Node.js</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Play in browser</li></ul>
             </div>
           </li>
-          <li class="project">
+          <li class="project" id="cli-battleships">
             <div class="project-card project-card-cli">
               <a class="project-card-link" href="cli-battleships.html" aria-describedby="pj-cli">
               <span class="cli-grid" aria-hidden="true">
@@ -181,7 +182,7 @@
               <ul class="project-tags"><li>Python</li><li>C</li><li>Rust</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Play in browser</li></ul>
             </div>
           </li>
-          <li class="project">
+          <li class="project" id="pantry-wizard">
             <div class="project-card project-card-pantry">
               <a class="project-card-link" href="pantry-wizard.html" aria-describedby="pj-pantry">
                 <span class="pantry-orb" aria-hidden="true">
@@ -207,7 +208,7 @@
               <ul class="project-tags"><li>C#</li><li>.NET MAUI</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Try the web version</li></ul>
             </div>
           </li>
-          <li class="project">
+          <li class="project" id="squimble-quest">
             <!-- placeholder art until the card is designed in figma -->
             <div class="project-card project-card-squimble">
               <a class="project-card-link" href="squimble-quest.html" aria-describedby="pj-squimble">
@@ -220,7 +221,7 @@
               <ul class="project-tags"><li>p5.js</li><li class="project-tag-wip">In development</li></ul>
             </div>
           </li>
-          <li class="project">
+          <li class="project" id="sound-studio">
             <div class="project-card project-card-studio">
               <a class="project-card-link" href="squimble-sound-studio.html" aria-describedby="pj-studio">
                 <!-- the whole sound, drawn like the studio's scope, and a playhead that sweeps it on hover -->
@@ -234,7 +235,7 @@
               <ul class="project-tags"><li>JavaScript</li><li>Web Audio</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Try it in browser</li></ul>
             </div>
           </li>
-          <li class="project">
+          <li class="project" id="music-maker">
             <div class="project-card project-card-music">
               <a class="project-card-link" href="squimble-music-maker.html" aria-describedby="pj-music">
                 <!-- squimble's music box: a sky in the song's mood, the maker's square notes on a grand staff and a row
@@ -251,7 +252,7 @@
               <ul class="project-tags"><li>JavaScript</li><li>Web Audio</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Try it in browser</li></ul>
             </div>
           </li>
-          <li class="project">
+          <li class="project" id="oscilloscope">
             <div class="project-card project-card-osc">
               <a class="project-card-link" href="oscilloscope.html" aria-describedby="pj-osc">
                 <!-- a 1:2 lissajous figure, an infinity loop, glowing on the phosphor; on hover the beam runs round it, its tail fading -->
@@ -264,58 +265,43 @@
               <ul class="project-tags"><li>JavaScript</li><li>WebGL</li><li>Web Audio</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Try it in browser</li></ul>
             </div>
           </li>
+          <!-- the empty slot at the end of the grid -->
+          <li class="project">
+            <div class="project-card project-card-next">
+              <a class="project-card-link" href="https://github.com/AhsanPotatwo" target="_blank" rel="noopener" aria-describedby="pj-next">
+                <span class="next-title hand">next one's brewing...</span>
+              </a>
+            </div>
+            <div class="project-info" id="pj-next">
+              <p class="project-hook">More projects are on the way. Follow along on GitHub.</p>
+            </div>
+          </li>
         </ul>
-        <p class="projects-more">More projects are brewing.
-          <a href="https://github.com/AhsanPotatwo" target="_blank" rel="noopener">Follow along on GitHub<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></a>
-        </p>
       </div>
     </section>
 
     <!-- about me -->
     <section class="about" id="about">
-      <div class="container">
-        <div class="about-panel">
-          <div class="about-card" id="aboutCard">
-            <div class="avatar-wrap">
-              <span class="avatar-halo" aria-hidden="true"></span>
-              <div class="avatar">
-                <img class="avatar-ring" src="assets/avatar-ring.svg" alt="" aria-hidden="true">
-                <img class="avatar-photo" src="assets/profile.jpg" alt="Photo of Ahsan Siddiqui">
-              </div>
-              <span class="av-orbit av-orbit-1" aria-hidden="true"><i></i></span>
-              <span class="av-orbit av-orbit-2" aria-hidden="true"><i></i></span>
-            </div>
-
-            <dl class="specs">
-              <div class="spec-row">
-                <dt>User:</dt>
-                <dd class="v-name">Ahsan</dd>
-              </div>
-              <div class="spec-row">
-                <dt>Role:</dt>
-                <dd class="v-role">Full stack developer</dd>
-              </div>
-              <div class="spec-row">
-                <dt>Location:</dt>
-                <dd class="v-loc">Manchester, UK</dd>
-              </div>
-              <div class="spec-row">
-                <dt>Status:</dt>
-                <dd><span class="badge-open">open to work</span></dd>
-              </div>
-            </dl>
-          </div>
-
-          <div class="about-copy">
-            <h2>About me</h2>
-            <p>I'm Ahsan, a Manchester-based full stack developer with a BSc in Computer Science and a background
-              spanning web development, cross-platform applications, and interactive game design. I've delivered
-              tailored work across professional and freelance environments, and I write across multiple languages and
-              frameworks because I believe adaptability is what separates good developers from great ones. I'm driven by
-              curiosity and building things that are both creatively compelling and engaging. I'm always working on
-              something new.</p>
-          </div>
+      <div class="container about-inner">
+        <div class="about-copy">
+          <h2 class="section-title">About me</h2>
+          <p>I'm a full stack developer based in Manchester. I finished a BSc in Computer Science at Manchester
+            Metropolitan University in 2025 with a 2:1, and I've been building websites for clients since, at Global PPC
+            and as a freelancer.</p>
+          <p>Outside client work I make things I'd want to use or play: browser games, a pantry app for phones and a
+            growing pile of sound and music toys. I pick up whatever language a project needs, so the work on this page
+            covers JavaScript, C#, PHP, Python, C and Rust.</p>
         </div>
+
+        <!-- a sticky note of what I'm up to, taped to the page -->
+        <aside class="sticky-note hand" aria-labelledby="noteTitle">
+          <p class="sticky-title" id="noteTitle">Right now:</p>
+          <ul>
+            <li>building Squimble Quest</li>
+            <li>adding to the music maker</li>
+            <li>looking for a full stack role</li>
+          </ul>
+        </aside>
       </div>
     </section>
 
@@ -325,8 +311,57 @@
 
         <div class="skills-grid">
 
+          <!-- work + education timeline -->
+          <div class="timeline-col">
+            <h3 class="timeline-heading">Experience</h3>
+
+            <ol class="timeline">
+              <li class="tl-item">
+                <p class="tl-when">Feb 2025 – Oct 2025</p>
+                <h4 class="tl-title">Full stack developer</h4>
+                <p class="tl-meta">Global PPC Ltd</p>
+                <ul class="tl-points">
+                  <li>Developed responsive, high-performance web interfaces using p5.js, .NET and PHP, reducing page
+                    load times by ~40% across 3 client projects</li>
+                  <li>Designed and integrated REST APIs to enable real-time data sync between front-end and back-end
+                    systems</li>
+                  <li>Translated design concepts into production-ready UIs, collaborating closely with designers and
+                    back-end developers to ensure seamless functionality</li>
+                  <li>Optimized front-end performance and code quality, contributing to testing, deployment, and on-time
+                    delivery of all assigned features</li>
+                  <li>Praised for technical proficiency, quick learning, and proactive problem-solving in a fast-paced
+                    remote team environment</li>
+                </ul>
+              </li>
+
+              <li class="tl-item">
+                <p class="tl-when">Jun 2025 – now</p>
+                <h4 class="tl-title">Freelance web developer</h4>
+                <ul class="tl-points">
+                  <li>Delivered 4 responsive client websites (HTML/CSS/JS) in under 2 weeks</li>
+                  <li>Achieved 100% on-time delivery across 4 concurrent client projects</li>
+                  <li>Managed full project lifecycle: requirements, design, deployment</li>
+                </ul>
+              </li>
+            </ol>
+
+            <h3 class="timeline-heading timeline-heading-education">Education</h3>
+
+            <ol class="timeline">
+              <li class="tl-item">
+                <p class="tl-when">2022 – 2025</p>
+                <h4 class="tl-title">BSc Computer Science</h4>
+                <p class="tl-meta">Manchester Metropolitan University</p>
+                <ul class="tl-points">
+                  <li>Graduated with a 2:1 (Upper Second-Class Honours)</li>
+                </ul>
+              </li>
+            </ol>
+          </div>
+
           <!-- skill icons, grouped by category -->
           <div class="skill-groups">
+            <h3 class="timeline-heading">Toolbox</h3>
 
             <h3 class="group-title">Frontend</h3>
             <ul class="tiles">
@@ -391,7 +426,7 @@
 
             <h3 class="group-title">Tools &amp; workflow</h3>
             <ul class="tiles">
-              <li class="tile tile-figma">
+              <li class="tile">
                 <span class="glyph composite" aria-hidden="true">
                   <img class="layer base" src="assets/figma.svg" alt="">
                   <img class="layer fig-5" src="assets/figma-5.svg" alt="">
@@ -401,13 +436,6 @@
                   <img class="layer fig-1" src="assets/figma-1.svg" alt="">
                 </span>
                 <span>Figma</span>
-                <!-- opens the design viewer -->
-                <a class="figma-tag" href="https://www.figma.com/design/8I7CBDkn3dz2HJuaapmHwE/Portfolio-website-design" target="_blank" rel="noopener" data-design-viewer>
-                  <span class="figma-tag-stone">
-                    <span class="figma-tag-star" aria-hidden="true">&#10022;</span>
-                    <span class="figma-tag-text">Check out this site's<br>initial UI designs</span>
-                  </span>
-                </a>
               </li>
               <li class="tile">
                 <img class="glyph" src="assets/vscode-full.svg" alt="" aria-hidden="true">
@@ -418,6 +446,11 @@
                 <span>Git</span>
               </li>
             </ul>
+            <!-- taped under the figma icon, opens the design viewer -->
+            <a class="figma-note hand" href="https://www.figma.com/design/8I7CBDkn3dz2HJuaapmHwE/Portfolio-website-design" target="_blank" rel="noopener" data-design-viewer>
+              <svg viewBox="0 0 30 30" aria-hidden="true"><path d="M27 25C14 25 8 18 7 5M3 10l4-5 4 5"/></svg>
+              peek at this site's first designs
+            </a>
 
             <h3 class="group-title">Languages</h3>
             <ul class="tiles">
@@ -438,64 +471,16 @@
               </li>
             </ul>
           </div>
-
-          <!-- work + education timeline -->
-          <div class="timeline-col">
-            <h3 class="timeline-heading">Experience</h3>
-
-            <ol class="timeline">
-              <li class="tl-item">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <h4 class="tl-title">Full stack developer</h4>
-                <p class="tl-meta"><span>Global PPC Ltd</span><span>Feb 2025 – Oct 2025</span></p>
-                <ul class="tl-points">
-                  <li>Developed responsive, high-performance web interfaces using p5.js, .NET and PHP, reducing page
-                    load times by ~40% across 3 client projects</li>
-                  <li>Designed and integrated REST APIs to enable real-time data sync between front-end and back-end
-                    systems</li>
-                  <li>Translated design concepts into production-ready UIs, collaborating closely with designers and
-                    back-end developers to ensure seamless functionality</li>
-                  <li>Optimized front-end performance and code quality, contributing to testing, deployment, and on-time
-                    delivery of all assigned features</li>
-                  <li>Praised for technical proficiency, quick learning, and proactive problem-solving in a fast-paced
-                    remote team environment</li>
-                </ul>
-              </li>
-
-              <li class="tl-item">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <h4 class="tl-title">Freelance web developer</h4>
-                <p class="tl-meta"><span>Jun 2025 – Present</span></p>
-                <ul class="tl-points">
-                  <li>Delivered 4 responsive client websites (HTML/CSS/JS) in under 2 weeks</li>
-                  <li>Achieved 100% on-time delivery across 4 concurrent client projects</li>
-                  <li>Managed full project lifecycle: requirements, design, deployment</li>
-                </ul>
-              </li>
-            </ol>
-
-            <h3 class="timeline-heading timeline-heading-education">Education</h3>
-
-            <ol class="timeline">
-              <li class="tl-item">
-                <span class="tl-dot" aria-hidden="true"></span>
-                <h4 class="tl-title">BSc Computer Science</h4>
-                <p class="tl-meta"><span>Manchester Metropolitan University</span><span>2022 – 2025</span></p>
-                <ul class="tl-points">
-                  <li>Graduated with a 2:1 (Upper Second-Class Honours)</li>
-                </ul>
-              </li>
-            </ol>
-          </div>
         </div>
       </div>
     </section>
 
     <section class="contact" id="contact">
+      <svg class="contact-star" aria-hidden="true"><use href="#star"/></svg>
       <div class="container contact-inner">
         <h2 class="section-title">Get in touch</h2>
-        <p class="contact-copy">Open to full stack roles and freelance work.</p>
-        <a class="btn btn-primary" href="mailto:ahsansid10@hotmail.com">Email me</a>
+        <p class="contact-copy">I'm open to full stack roles and freelance work.</p>
+        <a class="btn btn-ink" href="mailto:ahsansid10@hotmail.com">Email me</a>
 
         <!-- for anyone without a mail app set up: the address itself, one click to copy (main.js) -->
         <button class="copy-email" type="button" data-copy="ahsansid10@hotmail.com">
@@ -589,7 +574,6 @@
     </div>
   </dialog>
 
-  <script src="js/particles.js"></script>
   <script src="js/main.js"></script>
   <script src="js/design-viewer.js"></script>
   <script src="js/resume-viewer.js"></script>

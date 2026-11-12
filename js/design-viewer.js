@@ -1,5 +1,5 @@
-// popup for the figma designs, opened from the tag on the figma tile.
-// without js the tag is just a link to figma
+// popup for the figma designs, opened from the butter note under the figma icon.
+// without js the note is just a link to figma
 (function () {
   'use strict';
 

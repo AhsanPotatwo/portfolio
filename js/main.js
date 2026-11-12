@@ -40,12 +40,10 @@
   }
 
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var makeParticleField = window.PortfolioFX && window.PortfolioFX.makeParticleField;
 
-  // fade sections in the first time they scroll into view. once only, so scrolling back up
-  // doesn't make everything fade out and in again
+  // fade [data-reveal] blocks in the first time they scroll into view (project pages). once only,
+  // so scrolling back up doesn't make everything fade out and in again
   if (!reduced && 'IntersectionObserver' in window) {
-    var targets = document.querySelectorAll('.about-panel, .skill-groups, .timeline-col, .project-grid, .contact-inner, .skills .section-title, .projects .section-title, [data-reveal]');
     var revealer = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         if (!entry.isIntersecting) return;
@@ -54,169 +52,23 @@
       });
     }, { threshold: 0.08 });
 
-    var cascadeSelector = '.about-panel, .skill-groups, .timeline-col';
-
-    targets.forEach(function (el) {
+    document.querySelectorAll('[data-reveal]').forEach(function (el) {
       el.classList.add('reveal');
-      if (el.matches(cascadeSelector)) el.classList.add('reveal-cascade');
       revealer.observe(el);
     });
   }
 
-  if (!reduced) {
-    // constellation effect next to the hero text, only on wider screens
-    var heroCanvas = document.getElementById('heroFx');
-    if (heroCanvas && window.matchMedia('(min-width:821px)').matches && makeParticleField) {
-      makeParticleField({
-        canvas: heroCanvas,
-        sizeEl: heroCanvas.closest('.hero'),
-        watchEl: heroCanvas.closest('.hero'),
-        fixed: false,
-        interactive: true,
-        twinkle: true,
-        glow: true,
-        varySize: true,
-        maxLinks: 1,
-        mouseLinks: 2,
-        constellations: 10,
-        linkRefresh: 650,
-        density: 16000,
-        maxCount: 55,
-        speed: 0.3,
-        linkDist: 100,
-        mouseDist: 200,
-        dotSize: 2,
-        palette: [
-          { c: 'rgba(198,163,255,.85)', w: 6 },
-          { c: 'rgba(168,199,255,.85)', w: 3 },
-          { c: 'rgba(255,214,163,.8)', w: 1 }
-        ],
-        colors: {
-          line: function (t) { return 'rgba(157,120,199,' + (0.3 * t) + ')'; },
-          lineNear: function (t) { return 'rgba(212,184,255,' + (0.7 * t) + ')'; },
-          constellation: 'rgba(200,172,255,.4)',
-          dot: 'rgba(198,163,255,.7)',
-          dotNear: '#f1e9ff'
-        }
-      });
-    }
+  // background starfield (particles.js, project pages only)
+  if (!reduced && window.PortfolioFX) window.PortfolioFX.initBackgroundStarfield();
 
-    // background starfield (particles.js)
-    if (window.PortfolioFX) window.PortfolioFX.initBackgroundStarfield();
-  }
-
-  // types out the little code snippet in the hero card
-  var heroCardOuter = document.querySelector('.hero-card');
-  var heroCardInner = document.getElementById('heroCard');
-  var heroCodeEl = document.getElementById('heroCode');
-
-  if (heroCardOuter && heroCardInner && heroCodeEl && heroCardOuter.offsetParent !== null) {
-    // broken into tokens so I can colour keywords/strings differently as it types
-    var codeTokens = [
-      { t: 'const ', c: 'hc-key' },
-      { t: 'developer', c: '' },
-      { t: ' = {\n  ', c: '' },
-      { t: 'name', c: 'hc-prop' },
-      { t: ': ', c: '' },
-      { t: "'Ahsan'", c: 'hc-str' },
-      { t: ',\n  ', c: '' },
-      { t: 'role', c: 'hc-prop' },
-      { t: ': ', c: '' },
-      { t: "'Full Stack Developer'", c: 'hc-str' },
-      { t: ',\n  ', c: '' },
-      { t: 'stack', c: 'hc-prop' },
-      { t: ': [', c: '' },
-      { t: "'JavaScript'", c: 'hc-str' },
-      { t: ', ', c: '' },
-      { t: "'PHP'", c: 'hc-str' },
-      { t: ', ', c: '' },
-      { t: "'.NET'", c: 'hc-str' },
-      // own line, so the array doesn't wrap mid-item in the narrow card
-      { t: ',\n          ', c: '' },
-      { t: "'React'", c: 'hc-str' },
-      { t: '],\n  ', c: '' },
-      { t: 'status', c: 'hc-prop' },
-      { t: ': ', c: '' },
-      { t: "'open_to_work'", c: 'hc-str' },
-      { t: '\n};', c: '' }
-    ];
-    var codeLength = codeTokens.reduce(function (n, tok) { return n + tok.t.length; }, 0);
-
-    var escapeHtml = function (str) {
-      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    };
-
-    var renderCode = function (count) {
-      var used = 0, html = '';
-      for (var i = 0; i < codeTokens.length; i++) {
-        var tok = codeTokens[i];
-        if (used + tok.t.length <= count) {
-          html += tok.c ? '<span class="' + tok.c + '">' + escapeHtml(tok.t) + '</span>' : escapeHtml(tok.t);
-          used += tok.t.length;
-        } else {
-          var slice = tok.t.slice(0, count - used);
-          if (slice) html += tok.c ? '<span class="' + tok.c + '">' + escapeHtml(slice) + '</span>' : escapeHtml(slice);
-          break;
-        }
-      }
-      return html + '<span class="hero-card-caret">&nbsp;</span>';
-    };
-
-    if (reduced) {
-      heroCodeEl.innerHTML = renderCode(codeLength);
-    } else {
-      var typed = 0;
-      var typeTimer = setInterval(function () {
-        typed++;
-        heroCodeEl.innerHTML = renderCode(typed);
-        if (typed >= codeLength) clearInterval(typeTimer);
-      }, 22);
-
-      // tilt the card toward the cursor a bit
-      var tiltHost = heroCardOuter.closest('.hero');
-      if (tiltHost) {
-        tiltHost.addEventListener('mousemove', function (e) {
-          var rect = heroCardInner.getBoundingClientRect();
-          var relX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-          var relY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
-          var maxTilt = 8;
-          var rotateY = (relX - 0.5) * maxTilt * 2;
-          var rotateX = -(relY - 0.5) * maxTilt * 2;
-          heroCardInner.style.transform = 'perspective(900px) rotateX(' + rotateX.toFixed(2) + 'deg) rotateY(' + rotateY.toFixed(2) + 'deg)';
-        });
-        tiltHost.addEventListener('mouseleave', function () {
-          heroCardInner.style.transform = 'perspective(900px) rotateX(0deg) rotateY(0deg)';
-        });
-      }
-    }
-  }
-
-  // same tilt trick but smaller, for the about card
-  var aboutCard = document.getElementById('aboutCard');
-  if (aboutCard && !reduced) {
-    aboutCard.addEventListener('mousemove', function (e) {
-      var rect = aboutCard.getBoundingClientRect();
-      var relX = (e.clientX - rect.left) / rect.width;
-      var relY = (e.clientY - rect.top) / rect.height;
-      var maxTilt = 3.5;
-      var rotateY = (relX - 0.5) * maxTilt * 2;
-      var rotateX = -(relY - 0.5) * maxTilt * 2;
-      aboutCard.style.transform = 'perspective(1200px) rotateX(' + rotateX.toFixed(2) + 'deg) rotateY(' + rotateY.toFixed(2) + 'deg)';
-    });
-    aboutCard.addEventListener('mouseleave', function () {
-      aboutCard.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg)';
-    });
-  }
-
-  // pause the decorative loops (orbits, glows, card idles) in any section that's off screen.
-  // a section that loads off screen also holds its entrance, e.g. the hero rings, until it's seen
+  // pause the project cards' idle loops while they're off screen
   if ('IntersectionObserver' in window) {
     var loopWatcher = new IntersectionObserver(function (entries) {
       entries.forEach(function (entry) {
         entry.target.classList.toggle('loops-paused', !entry.isIntersecting);
       });
     });
-    document.querySelectorAll('.hero, .projects, .about, .skills').forEach(function (section) {
+    document.querySelectorAll('.projects').forEach(function (section) {
       loopWatcher.observe(section);
     });
   }

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- one tile of the home page sky. dots placed by hand so the repeat isn't obvious; styles.css lays it twice at different sizes -->
+  <defs>
+    <!-- the page's star (index.html #star), small here -->
+    <path id="s" d="M0-8.14 2.23-2.21 8.56-1.92 3.61 2.03 5.29 8.14 0 4.66-5.29 8.14-3.61 2.03-8.56-1.92-2.23-2.21Z" stroke-width="2" stroke-linejoin="round"/>
+  </defs>
+  <g fill="#f6f0e4">
+    <circle cx="23" cy="41" r="1.2" opacity=".55"/>
+    <circle cx="96" cy="12" r=".9" opacity=".35"/>
+    <circle cx="151" cy="77" r="1.5" opacity=".6"/>
+    <circle cx="214" cy="31" r="1" opacity=".4"/>
+    <circle cx="288" cy="64" r="1.3" opacity=".5"/>
+    <circle cx="361" cy="22" r=".8" opacity=".3"/>
+    <circle cx="57" cy="139" r=".9" opacity=".35"/>
+    <circle cx="122" cy="186" r="1.1" opacity=".45"/>
+    <circle cx="247" cy="152" r=".8" opacity=".3"/>
+    <circle cx="334" cy="129" r="1.6" opacity=".55"/>
+    <circle cx="390" cy="201" r="1" opacity=".4"/>
+    <circle cx="18" cy="247" r="1.4" opacity=".5"/>
+    <circle cx="173" cy="263" r=".9" opacity=".35"/>
+    <circle cx="231" cy="232" r="1.2" opacity=".5"/>
+    <circle cx="302" cy="287" r=".8" opacity=".3"/>
+    <circle cx="84" cy="318" r="1" opacity=".4"/>
+    <circle cx="137" cy="372" r="1.5" opacity=".55"/>
+    <circle cx="259" cy="351" r="1" opacity=".35"/>
+    <circle cx="372" cy="342" r="1.2" opacity=".45"/>
+  </g>
+  <use href="#s" transform="translate(196 117) scale(.5) rotate(-8)" fill="#ffd166" stroke="#ffd166" opacity=".55"/>
+  <use href="#s" transform="translate(47 200) scale(.4) rotate(12)" fill="#b49cff" stroke="#b49cff" opacity=".6"/>
+  <use href="#s" transform="translate(340 239) scale(.38) rotate(20)" fill="#f6f0e4" stroke="#f6f0e4" opacity=".5"/>
+</svg>
