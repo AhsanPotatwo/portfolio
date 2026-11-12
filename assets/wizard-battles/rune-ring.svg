@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-200 -200 400 400" width="400" height="400">
+  <!-- the flat magic circle under the crystal ball on wizard battles: a ring of runes, and the game's
+       triangle of elements (fire beats earth beats water beats fire) drawn inside it -->
+  <defs>
+    <path id="fehu" d="M0-12V12M0-12 9-6M0-3 9 3"/>
+    <path id="algiz" d="M0-12V12M0-2-8-11M0-2 8-11"/>
+    <path id="othala" d="M0-12 8-3-6 12M0-12-8-3 6 12"/>
+    <path id="thurisaz" d="M-4-12V12M-4-6 5 0-4 6"/>
+    <path id="dagaz" d="M-9-10V10L9-10V10Z"/>
+    <path id="sowilo" d="M-5-12 5-4-5 4 5 12"/>
+    <path id="ingwaz" d="M0-10 8 0 0 10-8 0Z"/>
+  </defs>
+
+  <g fill="none" stroke="#5e4335" stroke-linecap="round" stroke-linejoin="round">
+    <circle r="192" stroke-width="4"/>
+    <circle r="148" stroke-width="3"/>
+    <circle r="118" stroke-width="3" stroke-dasharray="0 14"/>
+    <path d="M0-148 128.2 74H-128.2Z" stroke-width="3"/>
+    <g stroke-width="3">
+      <use href="#fehu" transform="rotate(30) translate(0 -170)"/>
+      <use href="#algiz" transform="rotate(60) translate(0 -170)"/>
+      <use href="#othala" transform="rotate(90) translate(0 -170)"/>
+      <use href="#sowilo" transform="rotate(150) translate(0 -170)"/>
+      <use href="#dagaz" transform="rotate(180) translate(0 -170) scale(.85)"/>
+      <use href="#thurisaz" transform="rotate(210) translate(0 -170)"/>
+      <use href="#ingwaz" transform="rotate(270) translate(0 -170)"/>
+      <use href="#algiz" transform="rotate(300) translate(0 -170)"/>
+      <use href="#fehu" transform="rotate(330) translate(0 -170)"/>
+    </g>
+  </g>
+
+  <!-- the elements, where the triangle meets the ring -->
+  <g stroke="#2e1f1a" stroke-width="4">
+    <circle cy="-170" r="15" fill="#8a3a32"/>
+    <circle cx="147.2" cy="85" r="15" fill="#3f6a2f"/>
+    <circle cx="-147.2" cy="85" r="15" fill="#2c6a86"/>
+  </g>
+</svg>
