@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 560" width="560" height="560">
+  <!-- one tile of the battleships page's background: a 10x10 board in 56px squares on the dark green
+       screen, with the terminal's own board marks drawn flat in some of them (~ water, O a white miss peg,
+       X a hit) and two ships, one sunk. placed by hand so the repeat isn't obvious.
+       cli-battleships.css pins it behind the page -->
+  <defs>
+    <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M0 0H56M0 0V56" fill="none" stroke="#152119" stroke-width="2"/>
+    </pattern>
+    <path id="wave" d="M-11 2c3.7-5 7.3-5 11 0s7.3 5 11 0"/>
+    <path id="hit" d="M-7-7 7 7M7-7-7 7"/>
+  </defs>
+  <rect width="560" height="560" fill="url(#grid)"/>
+
+  <!-- ships (squares 2-4 on row 7, and 4-5 down column 7) -->
+  <g fill="#14211a">
+    <rect x="120" y="406" width="152" height="28" rx="14"/>
+    <rect x="406" y="232" width="28" height="104" rx="14"/>
+  </g>
+
+  <g fill="none" stroke="#1c3a29" stroke-width="3" stroke-linecap="round">
+    <use href="#wave" x="84" y="28"/>
+    <use href="#wave" x="252" y="84"/>
+    <use href="#wave" x="476" y="28"/>
+    <use href="#wave" x="28" y="196"/>
+    <use href="#wave" x="364" y="196"/>
+    <use href="#wave" x="196" y="308"/>
+    <use href="#wave" x="532" y="308"/>
+    <use href="#wave" x="84" y="476"/>
+    <use href="#wave" x="308" y="476"/>
+    <use href="#wave" x="476" y="420"/>
+    <use href="#wave" x="364" y="364"/>
+  </g>
+
+  <g fill="#e4f2e8" opacity=".14">
+    <circle cx="140" cy="140" r="6"/>
+    <circle cx="420" cy="140" r="6"/>
+    <circle cx="252" cy="252" r="6"/>
+    <circle cx="28" cy="364" r="6"/>
+    <circle cx="476" cy="532" r="6"/>
+  </g>
+
+  <g fill="none" stroke="#ff6b6b" stroke-width="3.5" stroke-linecap="round" opacity=".26">
+    <use href="#hit" x="196" y="420"/>
+    <use href="#hit" x="252" y="420"/>
+    <use href="#hit" x="140" y="420"/>
+    <use href="#hit" x="420" y="308"/>
+  </g>
+</svg>
