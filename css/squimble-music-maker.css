@@ -953,7 +953,8 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
   .mm-machine{ margin-inline:calc(-1 * var(--gutter)); border-width:3px 0; border-radius:0; }
   .mm-bar, .mm-moods-wrap, .mm-transport, .mm-remix{ padding-left:14px; padding-right:14px; }
   .mm-bar{ padding-top:16px; }
-  .mm-deck{ max-width:none; }
+  /* (the card's shadow and the tilted cards under it eat most of the row gap, so more room below) */
+  .mm-deck{ max-width:none; margin-bottom:10px; }
   .mm-label-name input{ font-size:23px; }
   .mm-welcome{ margin:4px 14px 0; padding:12px 14px; }
   .mm-welcome-steps{ flex-basis:100%; font-size:14px; }
