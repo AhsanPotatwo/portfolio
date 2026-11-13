@@ -205,13 +205,15 @@ const Hotbar = {
   },
 };
 
-// the inventory screen's colours: the picked hotbar slot, slots the dragged item can be worn in, and
-// the outline of other slots
+// the inventory screen's colours: the picked hotbar slot and slots the dragged item can be worn in.
+// other slots are outlined in UI_BOX.line (config.js)
 const INVENTORY_COLOURS = {
   picked: '#ffd23f',
   fits: '#7ec8ff',
-  slotEdge: 90,
 };
+
+// px across the notch in each slot's corners, smaller than the panels' (UI_BOX.step) to suit their size
+const SLOT_STEP = 3;
 
 // a slot on the hotbar, the inventory screen or a chest's box. it's a Button so it gets clicking for free, and it
 // draws the slot and its item. hotbar slots show their number, and a ring when they're picked. empty
@@ -243,39 +245,46 @@ class ItemSlot extends Button {
     // UI_ART's slot pictures (config.js, art.js), with the picked, fits and hover rings drawn over a
     // slot picture unless the picked one has its own. or the drawn box
     const pickedArt = selected ? uiArt('slotPicked') : null;
-    const ring = selected ? C.picked : fits ? C.fits : this.hovered ? 255 : C.slotEdge;
+    const ring = selected ? C.picked : fits ? C.fits : this.hovered ? 255 : UI_BOX.line;
     const thick = selected || fits ? 3 : 1.5;
-    if (drawArtBox(pickedArt ?? uiArt('slot'), this.x, this.y, this.w, this.h)) {
-      if (fits || this.hovered || (selected && !pickedArt)) {
-        noFill();
-        stroke(ring);
-        strokeWeight(thick);
-        rect(this.x, this.y, this.w, this.h, 6);
-      }
-    } else {
-      fill(20, 22, 28, 200);
-      stroke(ring);
-      strokeWeight(thick);
-      rect(this.x, this.y, this.w, this.h, 6);
+    const art = drawArtBox(pickedArt ?? uiArt('slot'), this.x, this.y, this.w, this.h);
+    if (!art) {
+      noStroke();
+      fill(UI_BOX.well);
+      steppedRect(this.x, this.y, this.w, this.h, SLOT_STEP);
     }
     if (equipment && !item && !drawArt(uiArt('wearIcons', equipment.wear), this.x + this.w / 2, this.y + this.h / 2, { anchor: 'centre' })) {
       drawWearIcon(equipment.wear, this.x + this.w / 2, this.y + this.h / 2, this.w * 0.5);
     }
 
-    // faded out while it's being dragged
+    // kept inside the slot so its glow and sparkles don't spill out, and faded while it's being dragged
     if (item) {
-      const pad = 8;
+      const pad = 9;
       if (InventoryScreen.dragging === this) drawingContext.globalAlpha *= 0.3;
+      clipToNotched(this.x, this.y, this.w, this.h, SLOT_STEP); // ui.js
       drawGlowingItem(item, this.x + this.w / 2, this.y + this.h / 2, this.w - pad * 2, this.w / 2);
+      drawingContext.restore();
+    }
+
+    // the ring goes over the item. on a slot picture only the picked, fits and hover ones
+    if (!art || fits || this.hovered || (selected && !pickedArt)) {
+      noFill();
+      stroke(ring);
+      strokeWeight(thick);
+      steppedRect(this.x, this.y, this.w, this.h, SLOT_STEP);
     }
     pop();
 
-    // the number in the top left
+    // the number in the top left, inside the corner's notch, outlined so it shows over a bright glow
     if (!onHotbar) return;
-    noStroke();
-    fill(selected ? C.picked : 200);
+    push();
+    stroke(UI_BOX.edge);
+    strokeWeight(3);
+    strokeJoin(ROUND);
+    fill(selected ? C.picked : 230);
     setText(10, BOLD, LEFT, TOP);
-    text(this.slot + 1, this.x + 4, this.y + 2);
+    text(this.slot + 1, this.x + SLOT_STEP + 2, this.y + SLOT_STEP + 1);
+    pop();
   }
 }
 
@@ -316,7 +325,8 @@ function drawWearIcon(wear, x, y, size) {
 //         item types, held the item type in its hand (or null), and caption optional lines of text
 //         along the bottom. it's read every frame, so the picture changes as things get put on and
 //         taken off
-//   background  a UI_ART name (config.js) for its background, or left out for the editor's dark well
+//   background  a UI_ART name (config.js) for its background, drawn as the game's well while it has no
+//               picture, or left out for the editor's dark well
 class CharacterPreview extends UIElement {
   constructor(options) {
     super({ ...options, interactive: false });
@@ -329,11 +339,19 @@ class CharacterPreview extends UIElement {
     const { x, y, w, h } = this;
     const lineHeight = 14;
     const textH = caption.length * lineHeight;
-    if (!drawArtBox(this.background && uiArt(this.background), x, y, w, h)) { // art.js
-      fill(EDITOR_COLOURS.well); // editor.js
-      stroke(EDITOR_COLOURS.edge);
-      strokeWeight(1);
-      rect(x, y, w, h, 6);
+    // its picture (art.js), or the game's well (UI_BOX in config.js) when it has a background setting
+    // and the editor's (editor.js) when it doesn't
+    if (!drawArtBox(this.background && uiArt(this.background), x, y, w, h)) {
+      strokeWeight(this.background ? 1.5 : 1);
+      if (this.background) {
+        fill(UI_BOX.well);
+        stroke(UI_BOX.line);
+        steppedRect(x, y, w, h);
+      } else {
+        fill(EDITOR_COLOURS.well);
+        stroke(EDITOR_COLOURS.edge);
+        rect(x, y, w, h, 6);
+      }
     }
 
     // as big as fits, in whole steps so pixel art stays square. a picture can be bigger than the body
@@ -741,13 +759,10 @@ class StoragePanel extends UIElement {
 }
 
 // a panel behind ui (the inventory screen, a chest's box, the pause menu): UI_ART.panel (config.js,
-// art.js) stretched over it, or a dark rounded box
+// art.js) stretched over it, or the drawn box (drawFlatBox() in ui.js)
 function drawPanel(x, y, w, h) {
   if (drawArtBox(uiArt('panel'), x, y, w, h)) return;
-  fill(20, 22, 28, 235);
-  stroke(90);
-  strokeWeight(1.5);
-  rect(x, y, w, h, 8);
+  drawFlatBox(x, y, w, h);
 }
 
 // objects you keep items in, like chests: object kinds with a storage setting (objects.js). each one

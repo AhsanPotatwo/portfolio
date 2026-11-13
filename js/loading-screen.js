@@ -14,15 +14,11 @@
 //                        design drawn at that width scales to any size, e.g. font-size: calc(22 * var(--u))
 const LoadingScreen = {
   THEMES: {
-    // temporary, until there's a real design. a night forest like the squimble quest page
+    // the squimble quest page's meadow and logo, with the player walking along the bar as it fills. the
+    // logo's path is from squimble-quest.html
     squimble: `
-      <i class="ls-firefly" style="--x:14%; --y:22%; --d:0s"></i>
-      <i class="ls-firefly" style="--x:80%; --y:30%; --d:-1.4s"></i>
-      <i class="ls-firefly" style="--x:28%; --y:74%; --d:-2.6s"></i>
-      <i class="ls-firefly" style="--x:68%; --y:80%; --d:-0.7s"></i>
-      <i class="ls-firefly" style="--x:90%; --y:62%; --d:-3.3s"></i>
-      <div class="ls-title">Squimble <span>Quest</span></div>
-      <div class="ls-bar"><div class="ls-bar-fill"></div></div>
+      <img class="ls-title" src="assets/squimble-quest-page/logo.svg" alt="" width="111" height="16">
+      <div class="ls-bar"><div class="ls-bar-fill"></div><i class="ls-walker"></i></div>
       <p class="ls-text" data-ls-text></p>`,
   },
 

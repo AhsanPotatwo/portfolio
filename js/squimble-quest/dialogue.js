@@ -158,13 +158,8 @@ class DialogueBox extends UIElement {
     const pad = 16;
     const size = DIALOGUE_BOX.portraitSize;
 
-    // UI_ART.dialogue (config.js, art.js), or a dark box
-    if (!drawArtBox(uiArt('dialogue'), this.x, this.y, this.w, this.h)) {
-      stroke(255, 255, 255, 60);
-      strokeWeight(2);
-      fill(20, 22, 28);
-      rect(this.x, this.y, this.w, this.h, 10);
-    }
+    // UI_ART.dialogue (config.js, art.js), or the drawn box (ui.js)
+    if (!drawArtBox(uiArt('dialogue'), this.x, this.y, this.w, this.h)) drawFlatBox(this.x, this.y, this.w, this.h);
 
     // their portrait (playing from when the box opened, if it's a sheet), or a placeholder face in
     // their colours

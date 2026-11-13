@@ -56,6 +56,22 @@ const UI_ART = {
   deathTitle: null,
 };
 
+// how the game's ui is drawn where it has no UI_ART picture: flat dark boxes with stepped corners on a
+// solid edge, the same as the boxes on the page round the game (css/squimble-quest.css). drawFlatBox()
+// in ui.js. fill is the box, edge the strip under it (depth px deep), well the inside of slots, line
+// their outline, step the size of the corner's pixel steps. key is the E over things (npc.js)
+const UI_BOX = {
+  fill:      '#1c2618',
+  edge:      '#0e140c',
+  well:      'rgba(14, 20, 12, 0.82)',
+  line:      '#4a5c40',
+  depth:     5,
+  step:      4,
+  key:       '#fff8e1',
+  keyEdge:   '#b8bd9c',
+  keyText:   '#1c2618',
+};
+
 // the most seconds one frame can count as. without this the player would jump forward after the tab
 // was in the background for a while
 //
@@ -279,6 +295,10 @@ const BUTTON_STYLES = {
     textStyle:     'bold',
     // how far it sinks while held down
     pressOffset:   2,
+    // a colour to make it a key: a face with stepped corners (UI_BOX) on a solid edge this colour,
+    // edgeDepth px of its height. pressOffset the same so it sinks onto it. null for a plain box
+    edge:          null,
+    edgeDepth:     0,
     // how see-through it is while disabled
     disabledAlpha: 0.4,
   },
@@ -287,6 +307,9 @@ const BUTTON_STYLES = {
     hoverFill:   '#5b8ae3',
     pressedFill: '#3d69bd',
     border:      '#23407a',
+    edge:        '#23407a',
+    edgeDepth:   5,
+    pressOffset: 5,
   },
   danger: {
     fill:        '#c94545',

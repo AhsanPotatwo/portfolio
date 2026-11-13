@@ -37,14 +37,19 @@ function drawKeyPrompt(x, bottom) {
   const size = 18;
   const left = Math.round(x - size / 2);
   const top = Math.round(bottom) - size;
+  // or a key on its edge, like the page's (ui.js)
   if (!drawArtBox(uiArt('keyPrompt'), left, top, size, size)) {
+    // a dark outline round the key and its edge, so it shows on light ground too
     stroke(0, 0, 0, 170);
     strokeWeight(2);
-    fill(255);
-    rect(left, top, size, size, 4);
+    fill(UI_BOX.keyEdge);
+    steppedRect(left, top, size, size + 3, 2);
+    noStroke();
+    fill(UI_BOX.key);
+    steppedRect(left, top, size, size, 2);
   }
   noStroke();
-  fill(30);
+  fill(UI_BOX.keyText);
   setText(12);
   text(keyName(KEYS.interact[0]), left + size / 2, top + size / 2 + 1); // debug.js
 }

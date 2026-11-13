@@ -127,6 +127,14 @@ class Button extends UIElement {
     const art = (held && s.pressedArt) || (this.hovered && s.hoverArt) || s.art;
     if (drawArtBox(getArt(art, 'button style', 'art'), this.x, y, this.w, this.h)) return;
     noStroke();
+    // a key: a stepped face on its edge, sinking onto it while held (pressOffset = edgeDepth)
+    if (s.edge) {
+      fill(s.edge);
+      steppedRect(this.x, this.y + s.edgeDepth, this.w, this.h - s.edgeDepth);
+      fill(this.boxColour());
+      steppedRect(this.x, y, this.w, this.h - s.edgeDepth);
+      return;
+    }
     if (s.borderWeight > 0) {
       stroke(s.border);
       strokeWeight(s.borderWeight);
@@ -156,6 +164,8 @@ class Button extends UIElement {
     noStroke();
     fill(s.textColour);
     setText(s.textSize, s.textStyle, CENTER, CENTER, s.font);
-    text(this.label, this.x + this.w / 2, y + this.h / 2);
+    // in the middle of the face, which is edgeDepth shorter on a key
+    const face = this.h - (s.edge && !this.image ? s.edgeDepth : 0);
+    text(this.label, this.x + this.w / 2, y + face / 2);
   }
 }

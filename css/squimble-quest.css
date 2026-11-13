@@ -1,154 +1,163 @@
-/* squimble quest page. just the hero + game area for now, the rest of the page comes later */
+/* squimble quest page, loaded on top of styles.css.
+   flat colours like the home page, but this page is the game's world in daylight, seen from above: its
+   own grass, sand and water colours, the blue of the player for the things that matter, and dark ink
+   boxes like the game's own panels (UI_BOX in js/squimble-quest/config.js draws them the same). corners
+   have a square notch cut out, boxes and keys sit on a solid darker edge, headings are in a pixel font */
 .sq-page{
-  --sq-green:  #7bd88f;
-  --sq-leaf:   #3f8f52;
-  --sq-moss:   #1b2a1f;
-  /* the night sky, darkest at the top and lighter down towards the trees */
-  --sq-sky-top: #070e0b;
-  --sq-sky-low: #13291f;
-  --sq-firefly: #eaff9a;
+  --grass:      #6fae4f;
+  --grass-dark: #5e9a40;
+  --grass-deep: #457a2e;
+  --ink:        #1c2618;
+  --ink-2:      #2b3a24;
+  --ink-edge:   #0e140c;
+  --cream:      #fff8e1;
+  --cream-edge: #b8bd9c;
+  --sand:       #e6d28e;
+  --sand-edge:  #b39b52;
+  --water:      #3b7dd8;
+  --blue:       #4a7bd8;
+  --blue-edge:  #23407a;
+  --font-pixel: "Jersey 10", var(--font-sans);
 
-  /* overrides for styles.css, so this page is a night forest instead of the site's purple */
-  --bg: var(--sq-sky-top);
-  --muted: #9fb3a5;
-  --dim: #6d8274;
-  --nav-purple: var(--sq-green);
-  --accent-text: var(--sq-green);
-  /* colour of the "Back to all projects" link (.page-back in styles.css) */
-  --page-accent: var(--sq-green);
-  background:linear-gradient(var(--sq-sky-top), var(--sq-sky-low)) fixed;
-}
-html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
-.sq-page ::selection{ background:rgba(123,216,143,.35); color:#fff; }
-.sq-page .site-header{
-  background:rgba(8,16,12,.88);
-  border-bottom-color:rgba(123,216,143,.14);
-}
-.sq-page .brand:hover{ color:#a8ecb5; }
-.sq-page .nav-link:hover{ color:#d4f7da; }
-.sq-page .site-footer{ border-top-color:rgba(123,216,143,.12); }
-@media (max-width:820px){
-  .sq-page .nav{ background:#0c1812; }
-}
 
-/* ---------- page backdrop ----------
-   the site's background glows recoloured (moonlight, the forest, a warm firefly glow), then a row
-   of pixel trees along the bottom and fireflies drifting in front of them. all behind the page */
-.sq-page .bg-nebula-1{ background:radial-gradient(circle at 40% 40%, rgba(170,220,200,.10), transparent 70%); }
-.sq-page .bg-nebula-2{ background:radial-gradient(circle at 60% 60%, rgba(63,143,82,.30), transparent 70%); }
-.sq-page .bg-nebula-3{ background:radial-gradient(circle at 50% 50%, rgba(240,200,110,.07), transparent 72%); }
-
-.sq-forest{
-  position:fixed;
-  inset:0;
+  /* the "Back to all projects" link (.page-back in styles.css) */
+  --page-accent:var(--ink);
+  background:var(--grass);
+  color:var(--ink);
+}
+/* the grass: one hand-placed pixel tile, pinned to the window so the page scrolls over it */
+.sq-page::before{
+  content:"";
+  position:fixed; inset:0;
   z-index:-1;
-  overflow:hidden;
+  background:url("../assets/squimble-quest-page/meadow.svg") 0 0 / 640px;
   pointer-events:none;
 }
-/* one row of trees and bushes along the bottom, a repeating strip. the picture is 40 pixels tall,
-   drawn at --px screen pixels per pixel so it looks like pixel art like the game */
-.sq-trees{
-  --px:4px;
-  position:absolute;
-  left:0; right:0; bottom:0;
-  height:calc(40 * var(--px));
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 150 40' shape-rendering='crispEdges' fill='%230b1812'%3E%3Crect y='36' width='150' height='4'/%3E%3Cpath transform='translate(4 18)' d='M4 0H6V3H7V6H8V9H9V12H10V14H0V12H1V9H2V6H3V3H4Z'/%3E%3Crect x='8' y='32' width='2' height='4'/%3E%3Cpath transform='translate(19 22)' d='M3 0H9V1H11V3H12V7H11V9H9V10H3V9H1V7H0V3H1V1H3Z'/%3E%3Crect x='24' y='32' width='2' height='4'/%3E%3Cpath transform='translate(33 32)' d='M2 0H6V1H8V4H0V1H2Z'/%3E%3Cpath transform='translate(47 15)' d='M2 0H4V4H5V9H6V16H0V9H1V4H2Z'/%3E%3Crect x='49' y='31' width='2' height='5'/%3E%3Cpath transform='translate(58 20)' d='M4 0H6V3H7V6H8V9H9V12H10V14H0V12H1V9H2V6H3V3H4Z'/%3E%3Crect x='62' y='34' width='2' height='2'/%3E%3Cpath transform='translate(79 32)' d='M2 0H6V1H8V4H0V1H2Z'/%3E%3Cpath transform='translate(94 23)' d='M3 0H9V1H11V3H12V7H11V9H9V10H3V9H1V7H0V3H1V1H3Z'/%3E%3Crect x='99' y='33' width='2' height='3'/%3E%3Cpath transform='translate(112 16)' d='M4 0H6V3H7V6H8V9H9V12H10V14H0V12H1V9H2V6H3V3H4Z'/%3E%3Crect x='116' y='30' width='2' height='6'/%3E%3Cpath transform='translate(125 32)' d='M2 0H6V1H8V4H0V1H2Z'/%3E%3Cpath transform='translate(138 17)' d='M2 0H4V4H5V9H6V16H0V9H1V4H2Z'/%3E%3Crect x='140' y='33' width='2' height='3'/%3E%3C/svg%3E");
-  background-size:calc(150 * var(--px)) 100%;
-  background-repeat:repeat-x;
-  background-position:left bottom;
-  image-rendering:pixelated;
-}
-@media (max-width:600px){
-  .sq-trees{ --px:3px; }
+html:has(.sq-page){ scrollbar-color:var(--grass-deep) var(--grass); }
+.sq-page ::selection{ background:var(--ink); color:var(--cream); }
+.sq-page :focus-visible{ outline-color:var(--ink); }
+.sq-page .site-header :focus-visible,
+.sq-page .sq-band :focus-visible{ outline-color:var(--cream); }
+
+/* a square notch cut out of each corner of the page's boxes and keys, --s across (set on each), like
+   the game's boxes (steppedRect() in js/squimble-quest/ui.js) */
+.sq-tags li, .sq-game-frame, .sq-mobile-note, .sq-controls, .sq-controls kbd{
+  --s:4px;
+  clip-path:polygon(
+    0 var(--s), var(--s) var(--s), var(--s) 0, calc(100% - var(--s)) 0, calc(100% - var(--s)) var(--s), 100% var(--s),
+    100% calc(100% - var(--s)), calc(100% - var(--s)) calc(100% - var(--s)), calc(100% - var(--s)) 100%,
+    var(--s) 100%, var(--s) calc(100% - var(--s)), 0 calc(100% - var(--s)));
 }
 
-/* fireflies: square, like pixels, blinking as they wander. where each one is (--x, --y), how long
-   its wander takes (--t) and how far through it starts (--d) are set on it in the html */
-.sq-firefly{
+.visually-hidden{
   position:absolute;
-  left:var(--x); top:var(--y);
-  width:3px; height:3px;
-  background:var(--sq-firefly);
-  box-shadow:0 0 6px 2px rgba(214,255,120,.55);
-  opacity:0;
-  animation:sqFirefly var(--t, 9s) ease-in-out var(--d, 0s) infinite;
+  width:1px; height:1px;
+  overflow:hidden;
+  clip:rect(0 0 0 0);
+  white-space:nowrap;
 }
-@keyframes sqFirefly{
-  0%, 100%{ translate:0 0;       opacity:.1; }
-  25%     { translate:18px -22px; opacity:1; }
-  45%     { translate:4px -40px;  opacity:.2; }
-  70%     { translate:-16px -18px; opacity:.9; }
+.sq-svg-defs{ position:absolute; width:0; height:0; overflow:hidden; }
+
+/* nav: a dark bar along the top like the game's, the brand in sand with grass brackets */
+.sq-page .site-header{ background:var(--ink); backdrop-filter:none; border-bottom:4px solid var(--ink-edge); }
+.sq-page .brand{ color:var(--sand); }
+.sq-page .brand-bracket{ color:var(--grass); }
+.sq-page .nav-link{ color:var(--cream); }
+.sq-page .nav-link:hover,
+.sq-page .nav-link.is-active{ color:var(--sand); }
+.sq-page .nav-link::after{ background:var(--sand); }
+.sq-page .nav-toggle span{ background:var(--cream); }
+@media (max-width:820px){
+  .sq-page .nav{ background:var(--ink); border-bottom:4px solid var(--ink-edge); }
+  .sq-page .nav .nav-link + .nav-link{ border-top-color:var(--ink-2); }
+  .sq-page .nav .nav-link.is-active{ background:var(--ink-2); border-left-color:var(--sand); }
 }
-@media (prefers-reduced-motion: reduce){
-  .sq-firefly{ animation:none; opacity:.6; }
+.sq-page .site-footer{ border-top:0; color:var(--ink); font-weight:600; }
+
+/* ---------- keys (.btn from styles.css), squarer than the home page's ---------- */
+.sq-page .btn{ border-radius:6px; font-family:var(--font-pixel); font-weight:400; font-size:26px; letter-spacing:.02em; }
+.sq-btn-sand{ --k:var(--sand-edge); background:var(--sand); color:var(--ink); }
+.sq-btn-sand:hover{ background:#eedc9d; }
+.sq-btn-ink{ --k:var(--ink-edge); background:var(--ink); color:var(--cream); }
+.sq-btn-ink:hover{ background:var(--ink-2); }
+
+.sq-heading{
+  font-family:var(--font-pixel);
+  font-weight:400;
+  font-size:clamp(48px,5.6vw,76px);
+  line-height:.9;
 }
 
 /* ---------- hero ---------- */
 .sq-hero{
-  padding:clamp(56px,7vw,96px) 0 var(--section-pad);
+  padding:clamp(48px,6vw,80px) 0 0;
   text-align:center;
 }
-.sq-title{
-  margin:0;
-  font-size:clamp(40px,6vw,80px);
-  font-weight:700;
-  line-height:1.05;
+/* the logo: a pixel svg built from the heading font's own pixels (assets/squimble-quest-page/logo.svg,
+   111 x 16), shown at a whole number of screen px per pixel, as many as fit up to 8, so every pixel is
+   the same size. the plain width first for browsers without round() */
+.sq-title img{
+  --px:round(down, clamp(2px, (100vw - 48px) / 111, 8px), 1px);
+  width:min(888px, 100%);
+  width:calc(111 * var(--px));
+  height:auto;
+  margin-inline:auto;
+  image-rendering:pixelated;
 }
-.sq-title span{ color:var(--sq-green); }
 .sq-subtitle{
-  margin:14px 0 0;
+  text-wrap:balance;
+  max-width:34em;
+  margin:22px auto 0;
   font-size:var(--text-body);
-  color:var(--muted);
+  font-weight:700;
+  line-height:1.4;
 }
 .sq-tags{
-  list-style:none;
   display:flex; flex-wrap:wrap; justify-content:center;
   gap:10px;
-  margin:24px 0 clamp(32px,4vw,48px);
-  padding:0;
+  margin:22px 0 clamp(32px,4vw,44px);
 }
 .sq-tags li{
+  --s:3px;
   padding:6px 14px;
-  border-radius:999px;
-  border:1px solid rgba(123,216,143,.35);
-  background:rgba(123,216,143,.08);
-  color:var(--sq-green);
+  background:var(--ink);
+  color:var(--cream);
   font-size:15px;
-  font-weight:600;
+  font-weight:700;
+  line-height:1;
 }
+.sq-tags .sq-tag-wip{ background:var(--sand); color:var(--ink); }
 
 /* ---------- game ---------- */
 /* the game is 960 x 540 game px (js/squimble-quest/config.js), shown as big as fits: up to 1920 x 1080
-   page px, never wider than the window, and no taller than the window either (190px leaves room for
-   the sticky site header, the frame's padding and the bar under the game) so all of it fits under the
-   header, unless that's less than the 960 it always used to be. sketch.js's
-   fitResolution() draws it at the resolution it's shown at, so it's sharp at any size */
+   page px, never wider than the window, and no taller than the window either (200px leaves room for
+   the sticky site header, the frame and the bar under the game) so all of it fits under the header,
+   unless that's less than the 960 it always used to be. sketch.js's fitResolution() draws it at the
+   resolution it's shown at, so it's sharp at any size */
 .sq-game-frame{
-  --sq-pad:18px;
-  --sq-game-w:min(1920px, calc(100vw - 2 * var(--gutter) - 2 * var(--sq-pad)), max(960px, calc((100vh - 190px) * 16 / 9)));
+  --sq-pad:12px;
+  --s:6px;
+  --sq-game-w:min(1920px, calc(100vw - 2 * var(--gutter) - 2 * var(--sq-pad)), max(960px, calc((100vh - 200px) * 16 / 9)));
   width:calc(var(--sq-game-w) + 2 * var(--sq-pad));
   /* it can be wider than the page's container, so this centres it on the page instead */
   margin:0 0 0 calc(50% - var(--sq-game-w) / 2 - var(--sq-pad));
-  padding:var(--sq-pad);
-  border-radius:26px;
-  background:linear-gradient(160deg, rgba(63,143,82,.35), rgba(27,42,31,.2));
-  box-shadow:0 0 0 1px rgba(123,216,143,.2), 0 25px 60px rgba(0,0,0,.45);
-  transition:box-shadow .2s ease;
+  padding:var(--sq-pad) var(--sq-pad) 8px;
+  background:var(--ink);
+  border-bottom:8px solid var(--ink-edge);
+  transition:background-color .15s ease, border-color .15s ease;
 }
-/* the game only hears the keyboard once it's clicked (js/squimble-quest/input.js).
-   the frame lights up to show that instead of the browser's outline on the canvas */
-.sq-game-frame:focus-within{
-  box-shadow:0 0 0 2px var(--sq-green), 0 0 24px rgba(123,216,143,.35), 0 25px 60px rgba(0,0,0,.45);
-}
+/* the game only hears the keyboard once it's clicked (js/squimble-quest/input.js). the frame turns the
+   player's blue to show that, instead of the browser's outline on the canvas */
+.sq-game-frame:focus-within{ background:var(--blue); border-bottom-color:var(--blue-edge); }
+.sq-game-frame:focus-within .sq-game-hint{ color:var(--cream); }
 /* while playing, the game draws its own crosshair (ui.js) in place of the cursor */
 .sq-game-stage canvas:focus{ outline:none; cursor:none; }
 .sq-game-stage{
   /* the loading screen goes over it (js/loading-screen.js) */
   position:relative;
   aspect-ratio:16/9;
-  border-radius:14px;
   overflow:hidden;
-  background:var(--sq-moss);
+  background:var(--grass);
 }
 /* p5 puts a fixed px size on the canvas inline, this sizes it to the frame instead */
 .sq-game-stage canvas{
@@ -160,35 +169,45 @@ html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
 
 /* the bar under the game, with the full screen button on the right like a video player */
 .sq-game-bar{
-  display:flex;
-  justify-content:flex-end;
-  margin-top:12px;
+  display:flex; align-items:center; justify-content:space-between; gap:16px;
+  margin-top:10px;
+}
+.sq-game-hint{
+  padding-left:4px;
+  font-family:var(--font-pixel);
+  font-size:22px;
+  color:var(--cream-edge);
+  text-align:left;
 }
 .sq-fullscreen-btn{
   display:inline-flex; align-items:center; gap:8px;
-  padding:6px 14px;
-  border-radius:999px;
-  border:1px solid rgba(123,216,143,.45);
-  background:rgba(123,216,143,.1);
-  color:var(--sq-green);
-  font:inherit;
-  font-size:15px;
-  font-weight:600;
+  flex:none;
+  padding:5px 12px;
+  border:0;
+  border-radius:4px;
+  background:var(--cream);
+  box-shadow:0 4px 0 var(--cream-edge);
+  color:var(--ink);
+  font-family:var(--font-pixel);
+  font-size:22px;
+  line-height:1;
   cursor:pointer;
-  transition:background .15s ease;
+  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out);
 }
-.sq-fullscreen-btn:hover{ background:rgba(123,216,143,.22); }
-.sq-fullscreen-btn:focus-visible{ outline:2px solid var(--sq-green); outline-offset:2px; }
+.sq-fullscreen-btn:hover{ transform:translateY(-1px); box-shadow:0 5px 0 var(--cream-edge); }
+.sq-fullscreen-btn:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--cream-edge); }
+.sq-fullscreen-btn:focus-visible{ outline:3px solid var(--sand); outline-offset:3px; }
 .sq-fullscreen-btn svg{
-  width:18px; height:18px;
-  fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round;
+  width:16px; height:16px;
+  fill:none; stroke:currentColor; stroke-width:2.6; stroke-linecap:square;
 }
 .sq-fullscreen-btn kbd{
-  padding:0 7px;
-  border-radius:6px;
-  border:1px solid rgba(123,216,143,.45);
-  font-family:'Courier Prime', monospace;
-  font-size:13px;
+  padding:0 6px;
+  border-radius:3px;
+  background:var(--ink);
+  color:var(--cream);
+  font-family:inherit;
+  font-size:18px;
 }
 
 /* full screen (F, or the button, toggleFullscreen() in sketch.js): the frame fills the screen and the
@@ -197,52 +216,102 @@ html:has(.sq-page){ scrollbar-color:#2f5a3c var(--sq-sky-top); }
 .sq-game-frame:fullscreen{
   display:flex; align-items:center; justify-content:center;
   padding:0;
-  border-radius:0;
+  clip-path:none;
+  border:0;
   background:#000;
-  box-shadow:none;
 }
-.sq-game-frame:fullscreen .sq-game-stage{
-  width:min(100vw, calc(100vh * 16 / 9));
-  border-radius:0;
-}
+.sq-game-frame:fullscreen .sq-game-stage{ width:min(100vw, calc(100vh * 16 / 9)); }
 .sq-game-frame:fullscreen .sq-game-bar{ display:none; }
-
-.sq-note{
-  margin:20px auto 0;
-  max-width:560px;
-  color:var(--muted);
-  font-size:15px;
-}
 
 /* message for phones/tablets, hidden everywhere else */
 .sq-mobile-note{
   display:none;
   max-width:520px;
   margin:0 auto;
-  padding:28px 24px;
-  border-radius:var(--radius-card);
-  border:2px dashed rgba(123,216,143,.4);
-  background:rgba(27,42,31,.6);
-  color:var(--muted);
+  padding:26px 24px 30px;
+  background:var(--ink);
+  border-bottom:6px solid var(--ink-edge);
+  color:var(--cream);
   font-size:17px;
   line-height:1.6;
 }
-.sq-mobile-note p{ margin:0; }
 .sq-mobile-note-title{
-  margin-bottom:8px !important;
-  color:var(--sq-green);
-  font-size:22px;
-  font-weight:700;
+  margin-bottom:8px;
+  font-family:var(--font-pixel);
+  font-size:32px;
+  color:var(--sand);
 }
 
+/* ---------- controls: a dark panel of keys, like the game's pause menu ---------- */
+.sq-section{ padding-top:var(--section-pad); }
+.sq-section .sq-heading{ margin-bottom:24px; }
+.sq-controls{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap:18px 32px;
+  padding:clamp(22px,3vw,34px);
+  background:var(--ink);
+  border-bottom:8px solid var(--ink-edge);
+  color:var(--cream);
+}
+.sq-controls > div{ display:flex; align-items:center; gap:16px; }
+.sq-controls dt{ display:flex; align-items:center; gap:6px; flex:none; }
+.sq-controls dd{ font-size:17px; font-weight:600; line-height:1.35; }
+.sq-to{ font-family:var(--font-pixel); font-size:24px; color:var(--cream-edge); }
+/* a key: cream face on its edge, corners notched */
+.sq-controls kbd{
+  --s:3px;
+  display:grid; place-items:center;
+  min-width:40px; height:44px;
+  padding:0 10px 4px;
+  background:var(--cream);
+  border-bottom:5px solid var(--cream-edge);
+  color:var(--ink);
+  font-family:var(--font-pixel);
+  font-size:26px;
+  line-height:1;
+}
+.sq-controls .sq-key-wide{ min-width:72px; }
+.sq-key-mouse svg{ width:14px; height:20px; fill:var(--ink); shape-rendering:crispEdges; }
+.sq-mouse-split{ fill:var(--cream); }
+.sq-mouse-left{ fill:transparent; }
+.sq-key-click .sq-mouse-left{ fill:var(--blue); }
+
+/* ---------- the page ends on the shore: a stepped strip of sand, then water ---------- */
+.sq-band{
+  position:relative;
+  margin-top:calc(var(--section-pad) + 16px);
+  padding:clamp(48px,6vw,80px) 0;
+  background:var(--water);
+  border-top:16px solid var(--sand);
+  color:var(--cream);
+}
+/* the sand's edge into the grass, in pixel steps like the game's tiles' edges */
+.sq-band::before{
+  content:"";
+  position:absolute;
+  left:0; right:0; bottom:100%;
+  height:16px;
+  margin-bottom:16px;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 4' shape-rendering='crispEdges' fill='%23e6d28e'%3E%3Cpath d='M0 4V2h2V1h3V0h3v1h2v1h3v1h3v1z'/%3E%3C/svg%3E") 0 100% / 64px 16px repeat-x;
+}
+.sq-band-inner{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:28px 48px; }
+.sq-band .sq-heading{ text-shadow:0 4px 0 var(--blue-edge); }
+.sq-band p{ max-width:34em; margin-top:14px; font-size:var(--text-body); font-weight:600; line-height:1.5; }
+.sq-band-links{ display:flex; flex-wrap:wrap; gap:16px; }
+.sq-page .page-back{ padding-block:clamp(40px,5vw,56px); }
+.sq-page .page-back a:hover{ color:var(--blue-edge); }
+
 @media (max-width:600px){
-  .sq-game-frame{ --sq-pad:6px; border-radius:14px; }
-  .sq-game-stage{ border-radius:10px; }
+  .sq-game-frame{ --sq-pad:6px; --s:4px; }
+  .sq-game-hint{ display:none; }
+  .sq-game-bar{ justify-content:flex-end; }
+  .sq-band-links, .sq-band-links .btn{ width:100%; }
 }
 
 /* touch screen with no mouse = phone or tablet. goes by input type rather than width
    so a small desktop window still gets the game. keep in sync with setup() in sketch.js */
 @media (hover:none) and (pointer:coarse){
-  .sq-game-frame, .sq-note{ display:none; }
+  .sq-game-frame{ display:none; }
   .sq-mobile-note{ display:block; }
 }

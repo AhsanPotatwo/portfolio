@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="640" height="640" shape-rendering="crispEdges">
+  <!-- one tile of the squimble quest page's background: the game's grass seen from above, in pixels
+       (shown 4 screen px each), with tufts, a few flowers and pebbles placed by hand so the repeat isn't
+       obvious. the grass colour itself is the page's background (css/squimble-quest.css), and the loading
+       screen's (css/loading-screen.css) -->
+  <defs>
+    <path id="tuft" d="M0 1h1v2H0zM2 0h1v3H2zM4 1h1v2H4z"/>
+    <path id="sprig" d="M0 0h1v2H0zM2 1h1v1H2z"/>
+    <path id="petals" d="M1 0h1v1H1zM0 1h1v1H0zM2 1h1v1H2zM1 2h1v1H1z"/>
+    <path id="pebble" d="M1 0h2v1H1zM0 1h4v1H0z"/>
+  </defs>
+
+  <g fill="#5e9a40">
+    <use href="#tuft" x="12" y="18"/>
+    <use href="#tuft" x="70" y="8"/>
+    <use href="#tuft" x="128" y="26"/>
+    <use href="#tuft" x="40" y="58"/>
+    <use href="#tuft" x="100" y="52"/>
+    <use href="#tuft" x="148" y="80"/>
+    <use href="#tuft" x="20" y="100"/>
+    <use href="#tuft" x="78" y="94"/>
+    <use href="#tuft" x="118" y="122"/>
+    <use href="#tuft" x="50" y="140"/>
+    <use href="#tuft" x="138" y="150"/>
+    <use href="#tuft" x="4" y="148"/>
+    <use href="#sprig" x="90" y="30"/>
+    <use href="#sprig" x="30" y="84"/>
+    <use href="#sprig" x="62" y="122"/>
+    <use href="#sprig" x="146" y="110"/>
+    <use href="#sprig" x="110" y="76"/>
+    <use href="#sprig" x="8" y="44"/>
+  </g>
+
+  <!-- lighter blades catching the sun -->
+  <g fill="#82bf5f">
+    <rect x="56" y="32" width="1" height="1"/>
+    <rect x="22" y="128" width="1" height="1"/>
+    <rect x="96" y="112" width="1" height="1"/>
+    <rect x="134" y="62" width="1" height="1"/>
+    <rect x="84" y="70" width="1" height="1"/>
+    <rect x="152" y="4" width="1" height="1"/>
+  </g>
+
+  <g fill="#fff8e1">
+    <use href="#petals" x="36" y="30"/>
+    <use href="#petals" x="122" y="84"/>
+    <use href="#petals" x="84" y="144"/>
+  </g>
+  <g fill="#7ec8ff">
+    <use href="#petals" x="148" y="44"/>
+    <use href="#petals" x="14" y="122"/>
+  </g>
+  <g fill="#ffd23f">
+    <rect x="37" y="31" width="1" height="1"/>
+    <rect x="123" y="85" width="1" height="1"/>
+    <rect x="85" y="145" width="1" height="1"/>
+    <rect x="149" y="45" width="1" height="1"/>
+    <rect x="15" y="123" width="1" height="1"/>
+  </g>
+
+  <g fill="#8d9480">
+    <use href="#pebble" x="104" y="10"/>
+    <use href="#pebble" x="58" y="104"/>
+  </g>
+</svg>

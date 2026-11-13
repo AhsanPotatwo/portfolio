@@ -22,11 +22,8 @@ function drawMessage() {
   const shown = fitText(hudMessage.text, GAME_W - 64);
   const w = textWidth(shown) + 32;
   noStroke();
-  // UI_ART.message (config.js, art.js), or a dark box
-  if (!drawArtBox(uiArt('message'), (GAME_W - w) / 2, 48, w, 34)) {
-    fill(0, 0, 0, 190);
-    rect((GAME_W - w) / 2, 48, w, 34, 6);
-  }
+  // UI_ART.message (config.js, art.js), or the drawn box (ui.js)
+  if (!drawArtBox(uiArt('message'), (GAME_W - w) / 2, 48, w, 34)) drawFlatBox((GAME_W - w) / 2, 48, w, 34);
   fill(255);
   text(shown, GAME_W / 2, 65);
 }

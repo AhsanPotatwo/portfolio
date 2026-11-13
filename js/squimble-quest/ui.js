@@ -15,6 +15,44 @@
 //   4. load it in squimble-quest.html after ui.js
 //   5. UI.add(new Slider({ x: 20, y: 20, w: 200, h: 20 }))
 
+// the corners of a rectangle with a square notch, step px across, cut out of each, going round
+function notchedCorners(x, y, w, h, step = UI_BOX.step) {
+  const s = Math.min(step, w / 4, h / 4);
+  return [
+    [x, y + s], [x + s, y + s], [x + s, y], [x + w - s, y], [x + w - s, y + s], [x + w, y + s],
+    [x + w, y + h - s], [x + w - s, y + h - s], [x + w - s, y + h], [x + s, y + h], [x + s, y + h - s], [x, y + h - s],
+  ];
+}
+
+// that rectangle, in the fill and stroke already set
+function steppedRect(x, y, w, h, step = UI_BOX.step) {
+  beginShape();
+  for (const [px, py] of notchedCorners(x, y, w, h, step)) vertex(px, py);
+  endShape(CLOSE);
+}
+
+// keeps what's drawn until the matching drawingContext.restore() inside that rectangle
+function clipToNotched(x, y, w, h, step = UI_BOX.step) {
+  const ctx = drawingContext;
+  ctx.save();
+  ctx.beginPath();
+  notchedCorners(x, y, w, h, step).forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
+  ctx.closePath();
+  ctx.clip();
+}
+
+// the game's drawn box (UI_BOX in config.js): a stepped face on a solid edge sticking out depth px under
+// it, so the whole thing is h + depth tall
+function drawFlatBox(x, y, w, h, face = UI_BOX.fill, edge = UI_BOX.edge, depth = UI_BOX.depth) {
+  noStroke();
+  if (depth > 0) {
+    fill(edge);
+    steppedRect(x, y + depth, w, h);
+  }
+  fill(face);
+  steppedRect(x, y, w, h);
+}
+
 class UIElement {
   // takes one options object in any order: new UIElement({ x: 10, y: 10, w: 100, h: 40, group: 'pause menu' })
   constructor(options = {}) {

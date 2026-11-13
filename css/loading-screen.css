@@ -12,52 +12,59 @@
 }
 .loading-screen.ls-hidden{ opacity:0; }
 
-/* ---------- squimble: temporary, a night forest like the squimble quest page ---------- */
+/* ---------- squimble: the squimble quest page's meadow (css/squimble-quest.css) ---------- */
 .ls-squimble{
-  gap:calc(22 * var(--u));
-  background:
-    radial-gradient(ellipse at 50% 120%, rgba(63,143,82,.45), transparent 60%),
-    linear-gradient(#070e0b, #13291f);
-  color:#9fb3a5;
+  --ink:#1c2618;
+  --cream:#fff8e1;
+  gap:calc(30 * var(--u));
+  /* the page's grass tile, 2 design px to its pixel */
+  background:#6fae4f url("../assets/squimble-quest-page/meadow.svg") 0 0 / calc(320 * var(--u));
+  color:var(--ink);
 }
+/* the page's logo (assets/squimble-quest-page/logo.svg, 111 x 16) at a whole number of screen px per
+   pixel, about 6 design px, so every pixel is the same size. the plain width first for browsers without
+   round() */
 .ls-squimble .ls-title{
-  font-family:'Quicksand', sans-serif;
-  font-weight:700;
-  font-size:calc(52 * var(--u));
-  color:#fff;
-  -webkit-text-stroke:calc(7 * var(--u)) #245a33;
-  paint-order:stroke fill;
+  --px:max(1px, round(down, calc(6 * var(--u)), 1px));
+  width:calc(666 * var(--u));
+  width:calc(111 * var(--px));
+  height:auto;
+  image-rendering:pixelated;
 }
-.ls-squimble .ls-title span{ color:#7bd88f; }
-/* a chunky pixel bar, cut into blocks */
+/* a dark bar on its edge, filling in sand blocks, with the player (the game's blue placeholder) walking
+   along the top of it */
 .ls-squimble .ls-bar{
-  width:calc(320 * var(--u));
-  height:calc(20 * var(--u));
-  padding:calc(4 * var(--u));
-  border:calc(4 * var(--u)) solid #3f8f52;
-  background:#1b2a1f;
+  position:relative;
+  width:calc(360 * var(--u));
+  height:calc(30 * var(--u));
+  margin-top:calc(34 * var(--u));
+  padding:calc(6 * var(--u));
+  background:var(--ink);
+  box-shadow:0 calc(6 * var(--u)) 0 #0e140c;
 }
 .ls-squimble .ls-bar-fill{
   width:calc(var(--progress) * 100%);
   height:100%;
-  background:repeating-linear-gradient(90deg, #7bd88f 0 calc(12 * var(--u)), transparent 0 calc(16 * var(--u)));
+  background:repeating-linear-gradient(90deg, #e6d28e 0 calc(14 * var(--u)), transparent 0 calc(18 * var(--u)));
   transition:width .3s steps(4);
 }
+.ls-squimble .ls-walker{
+  position:absolute;
+  bottom:100%;
+  left:calc(var(--progress) * (100% - 14 * var(--u)));
+  width:calc(14 * var(--u)); height:calc(28 * var(--u));
+  background:#4a7bd8;
+  border:calc(3 * var(--u)) solid #23407a;
+  border-bottom:0;
+  transition:left .3s steps(4);
+  animation:lsHop .5s steps(2) infinite;
+}
+@keyframes lsHop{ 50%{ translate:0 calc(-3 * var(--u)); } }
 .ls-squimble .ls-text{
   margin:0;
-  font-family:'Courier Prime', monospace;
-  font-size:calc(18 * var(--u));
+  font-family:'Jersey 10', 'Quicksand', sans-serif;
+  font-size:calc(30 * var(--u));
 }
-/* square fireflies, blinking as they drift */
-.ls-squimble .ls-firefly{
-  position:absolute;
-  left:var(--x); top:var(--y);
-  width:calc(4 * var(--u)); height:calc(4 * var(--u));
-  background:#eaff9a;
-  box-shadow:0 0 calc(10 * var(--u)) #eaff9a;
-  animation:lsFirefly 4s ease-in-out var(--d) infinite;
-}
-@keyframes lsFirefly{
-  0%, 100%{ opacity:.15; transform:translate(0, 0); }
-  50%{ opacity:1; transform:translate(calc(14 * var(--u)), calc(-10 * var(--u))); }
+@media (prefers-reduced-motion: reduce){
+  .ls-squimble .ls-walker{ animation:none; }
 }

@@ -104,7 +104,10 @@ const FormBox = {
     this.tabButtons = tabbed ? this.tabs.map(({ label }, i) => {
       const button = add(new Button({
         x: tabX, y: y + FORM_BOX.titleHeight + 10, w: tabWidths[i] * squash, h: FORM_BOX.tabHeight, label,
-        style: { ...BUTTON_STYLES.editor, textSize: 11 },
+        // on the game's panel (the pause menu), in its colours (UI_BOX in config.js)
+        style: options.art === 'panel'
+          ? { ...BUTTON_STYLES.editor, fill: '#2b3a24', hoverFill: '#364830', pressedFill: UI_BOX.edge, border: UI_BOX.line, textSize: 11 }
+          : { ...BUTTON_STYLES.editor, textSize: 11 },
         // a toggle so the open one lights up. the click flips it, then showTab() sets them all right
         toggle: true,
         onClick: () => this.showTab(i),
@@ -285,8 +288,14 @@ class FormBoxBackdrop extends UIElement {
 
     const C = EDITOR_COLOURS;
     const { titleHeight, footerHeight } = FORM_BOX;
-    // its art (art.js), or a window with a darker title bar and footer
-    if (!drawArtBox(FormBox.options.art && uiArt(FormBox.options.art), x, y, w, h)) {
+    // the game's panel (the pause menu, drawPanel() in inventory.js), other art (art.js), or a window
+    // with a darker title bar and footer
+    const { art } = FormBox.options;
+    if (art === 'panel') {
+      drawPanel(x, y, w, h);
+      fill(UI_BOX.line);
+      rect(x + 12, y + titleHeight, w - 24, 2);
+    } else if (!drawArtBox(art && uiArt(art), x, y, w, h)) {
       fill(C.bar);
       stroke(C.edge);
       strokeWeight(1);
