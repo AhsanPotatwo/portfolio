@@ -31,13 +31,11 @@
   height:auto;
   image-rendering:pixelated;
 }
-/* a dark bar on its edge, filling in sand blocks, with the player (the game's blue placeholder) walking
-   along the top of it */
+/* a dark bar on its edge, filling in sand blocks */
 .ls-squimble .ls-bar{
   position:relative;
   width:calc(360 * var(--u));
   height:calc(30 * var(--u));
-  margin-top:calc(34 * var(--u));
   padding:calc(6 * var(--u));
   background:var(--ink);
   box-shadow:0 calc(6 * var(--u)) 0 #0e140c;
@@ -48,23 +46,8 @@
   background:repeating-linear-gradient(90deg, #e6d28e 0 calc(14 * var(--u)), transparent 0 calc(18 * var(--u)));
   transition:width .3s steps(4);
 }
-.ls-squimble .ls-walker{
-  position:absolute;
-  bottom:100%;
-  left:calc(var(--progress) * (100% - 14 * var(--u)));
-  width:calc(14 * var(--u)); height:calc(28 * var(--u));
-  background:#4a7bd8;
-  border:calc(3 * var(--u)) solid #23407a;
-  border-bottom:0;
-  transition:left .3s steps(4);
-  animation:lsHop .5s steps(2) infinite;
-}
-@keyframes lsHop{ 50%{ translate:0 calc(-3 * var(--u)); } }
 .ls-squimble .ls-text{
   margin:0;
   font-family:'Jersey 10', 'Quicksand', sans-serif;
   font-size:calc(30 * var(--u));
-}
-@media (prefers-reduced-motion: reduce){
-  .ls-squimble .ls-walker{ animation:none; }
 }

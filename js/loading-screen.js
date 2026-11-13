@@ -14,11 +14,10 @@
 //                        design drawn at that width scales to any size, e.g. font-size: calc(22 * var(--u))
 const LoadingScreen = {
   THEMES: {
-    // the squimble quest page's meadow and logo, with the player walking along the bar as it fills. the
-    // logo's path is from squimble-quest.html
+    // the squimble quest page's meadow and logo, and a bar. the logo's path is from squimble-quest.html
     squimble: `
       <img class="ls-title" src="assets/squimble-quest-page/logo.svg" alt="" width="111" height="16">
-      <div class="ls-bar"><div class="ls-bar-fill"></div><i class="ls-walker"></i></div>
+      <div class="ls-bar"><div class="ls-bar-fill"></div></div>
       <p class="ls-text" data-ls-text></p>`,
   },
 

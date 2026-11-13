@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 85 8" width="85" height="8" shape-rendering="crispEdges">
+  <!-- one tile of the squimble quest shore, in pixels: the sand's wandering edge into the grass (rows 0-4),
+       sand with a few grains and shell bits (to row 6), then the water's top row with foam along it.
+       placed by hand so the repeat isn't obvious. used under the squimble quest page's grass
+       (css/squimble-quest.css) and on its home card (css/styles.css) -->
+  <path fill="#e6d28e" d="M0 3h5v4h-5zM5 2h3v5h-3zM8 1h6v6h-6zM14 2h2v5h-2zM16 3h4v4h-4zM20 4h7v3h-7zM27 3h3v4h-3zM30 2h2v5h-2zM32 2h8v5h-8zM40 1h3v6h-3zM43 0h2v7h-2zM45 1h4v6h-4zM49 2h5v5h-5zM54 3h6v4h-6zM60 4h3v3h-3zM63 3h2v4h-2zM65 2h5v5h-5zM70 1h4v6h-4zM74 2h6v5h-6zM80 3h5v4h-5z"/>
+  <path fill="#cdb46f" d="M7 5h1v1h-1zM19 6h1v1h-1zM31 5h1v1h-1zM44 6h1v1h-1zM52 4h1v1h-1zM63 5h1v1h-1zM71 6h1v1h-1zM84 5h1v1h-1z"/>
+  <path fill="#f6ecc4" d="M13 6h1v1h-1zM38 5h1v1h-1zM58 6h1v1h-1zM77 5h1v1h-1z"/>
+  <rect y="7" width="85" height="1" fill="#3b7dd8"/>
+  <path fill="#a9d0f5" d="M2 7h3v1h-3zM11 7h2v1h-2zM20 7h4v1h-4zM33 7h2v1h-2zM41 7h5v1h-5zM55 7h3v1h-3zM64 7h2v1h-2zM73 7h4v1h-4z"/>
+</svg>

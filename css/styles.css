@@ -919,8 +919,8 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
   width:130px;
   transform:rotate(45deg);
   transform-origin:center;
-  background:#f4c430;
-  color:#1a1408;
+  background:#e6d28e;
+  color:#1c2618;
   font-family:var(--font-sans);
   font-weight:700;
   font-size:11px;
@@ -928,7 +928,6 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
   text-align:center;
   text-transform:uppercase;
   padding:3px 0;
-  box-shadow:0 2px 5px rgba(0,0,0,.35);
   z-index:5;
   pointer-events:none;
 }
@@ -1232,25 +1231,46 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
 }
 
 /* squimble quest card, placeholder for now. the faint grid is meant to look like a top down tile map */
+/* squimble quest card: the squimble quest page's meadow, its logo, and the shore it ends on. everything
+   is in pixels of --px screen px, a whole number so the pixel art stays even (logo.svg is 111 x 16,
+   meadow.svg 160 x 160, shore.svg 85 x 8) */
 .project-card-squimble{
   position:relative;
   overflow:hidden;
-  background:
-    linear-gradient(rgba(0,0,0,.14) 1px, transparent 1px) 0 0/24px 24px,
-    linear-gradient(90deg, rgba(0,0,0,.14) 1px, transparent 1px) 0 0/24px 24px,
-    linear-gradient(135deg, #3f8f52, #2a6b3c);
-  transition:filter .25s ease, transform .25s var(--ease-out), box-shadow .25s ease;
+  background:#6fae4f;
 }
-.project-card-squimble:hover,
-.project-card-squimble:focus-within{ filter:brightness(1.1); }
-.squimble-title{
-  position:relative; z-index:2;
-  font-family:var(--font-sans);
-  font-weight:700;
-  font-size:clamp(24px,2.8vw,36px); font-size:9cqi;
-  color:#fff;
-  -webkit-text-stroke:4.5px #245a33;
-  paint-order:stroke fill;
+/* on the link, since cqi on the card itself would measure the card's parent */
+.project-card-squimble .project-card-link{
+  --px:max(1px, round(nearest, .56cqi, 1px));
+  background:url("../assets/squimble-quest-page/meadow.svg") 0 0 / calc(160 * var(--px));
+}
+/* on a narrow card the WIP ribbon would cover the logo. the "In development" tag under it still says so */
+@container (max-width:380px){
+  .project-card-squimble .wip-ribbon{ display:none; }
+}
+.squimble-logo{
+  position:relative; z-index:1;
+  width:62%;
+  width:calc(111 * var(--px));
+  height:auto;
+  image-rendering:pixelated;
+  transition:translate .2s steps(2);
+}
+.project-card-squimble:hover .squimble-logo,
+.project-card-squimble:focus-within .squimble-logo{ translate:0 calc(-1 * var(--px)); }
+/* water along the bottom, with the shore tile's sand and wandering edge sitting on its top row */
+.squimble-shore{
+  position:absolute; left:0; right:0; bottom:0;
+  height:calc(5 * var(--px));
+  background:#3b7dd8;
+}
+.squimble-shore::before{
+  content:"";
+  position:absolute;
+  left:0; right:0;
+  bottom:calc(100% - var(--px));
+  height:calc(8 * var(--px));
+  background:url("../assets/squimble-quest-page/shore.svg") 0 0 / calc(85 * var(--px)) 100% repeat-x;
 }
 
 /* squimble sound studio card: the studio's green lcd, edge to edge, dot matrix and all. the whole

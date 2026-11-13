@@ -277,23 +277,23 @@ html:has(.sq-page){ scrollbar-color:var(--grass-deep) var(--grass); }
 .sq-mouse-left{ fill:transparent; }
 .sq-key-click .sq-mouse-left{ fill:var(--blue); }
 
-/* ---------- the page ends on the shore: a stepped strip of sand, then water ---------- */
+/* ---------- the page ends on the shore: the shore tile's sand, then water ---------- */
 .sq-band{
   position:relative;
-  margin-top:calc(var(--section-pad) + 16px);
+  margin-top:calc(var(--section-pad) + 28px);
   padding:clamp(48px,6vw,80px) 0;
   background:var(--water);
-  border-top:16px solid var(--sand);
   color:var(--cream);
 }
-/* the sand's edge into the grass, in pixel steps like the game's tiles' edges */
+/* the sand and its wandering edge into the grass (assets/squimble-quest-page/shore.svg, 85 x 8, at 4px a
+   pixel), sitting on the water's top row */
 .sq-band::before{
   content:"";
   position:absolute;
-  left:0; right:0; bottom:100%;
-  height:16px;
-  margin-bottom:16px;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 4' shape-rendering='crispEdges' fill='%23e6d28e'%3E%3Cpath d='M0 4V2h2V1h3V0h3v1h2v1h3v1h3v1z'/%3E%3C/svg%3E") 0 100% / 64px 16px repeat-x;
+  left:0; right:0;
+  bottom:calc(100% - 4px);
+  height:32px;
+  background:url("../assets/squimble-quest-page/shore.svg") 0 0 / 340px 32px repeat-x;
 }
 .sq-band-inner{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:28px 48px; }
 .sq-band .sq-heading{ text-shadow:0 4px 0 var(--blue-edge); }
