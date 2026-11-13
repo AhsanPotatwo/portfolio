@@ -1,0 +1,177 @@
+<!doctype html>
+<!-- my resume. edit this, then print it to assets/AhsanResume.pdf:
+     chrome --headless --no-pdf-header-footer --print-to-pdf=assets/AhsanResume.pdf assets/AhsanResume.html
+     (or Ctrl+P in Chrome: A4, margins none, background graphics on). keep it to one page -->
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<title>Ahsan Siddiqui - Resume</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* same colours as the home page: night ink and butter */
+  :root { --ink: #1f1a33; --soft: #5b5470; --butter: #ffd166; --link: #5a3fd6; }
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    width: 210mm; min-height: 297mm; padding: 12mm 15mm 10mm;
+    font: 500 9.2pt/1.38 "Quicksand", "Segoe UI", sans-serif; color: var(--ink); background: #fff;
+  }
+  a { color: inherit; text-decoration: none; }
+
+  header { display: flex; justify-content: space-between; align-items: flex-end; gap: 8mm; margin-bottom: 5mm; }
+  h1 { font: 700 26pt/1 "Quicksand", "Segoe UI", sans-serif; letter-spacing: -.2pt; }
+  h1 .br { color: #f2b632; }
+  .role { margin-top: 2mm; font-size: 10.5pt; font-weight: 600; color: var(--soft); }
+  .contact { list-style: none; text-align: right; font-size: 8.8pt; line-height: 1.55; }
+  .contact a { color: var(--link); }
+
+  /* section titles get a highlighter swipe instead of a rule */
+  h2 {
+    display: inline-block; margin: 3.6mm 0 1.2mm; padding: 0 1.5mm 0 1mm;
+    font-size: 11.5pt; font-weight: 700;
+    background: linear-gradient(transparent 52%, var(--butter) 52% 90%, transparent 90%);
+  }
+  .intro { max-width: 172mm; }
+  .note { color: var(--soft); margin-bottom: 1.2mm; }
+  .note a { color: var(--link); }
+
+  .item { margin-top: 1.7mm; break-inside: avoid; }
+  .item-head { display: flex; justify-content: space-between; align-items: baseline; gap: 4mm; }
+  h3 { font-size: 10pt; font-weight: 700; }
+  h3 a, a.also { border-bottom: 1.2pt solid var(--butter); }
+  a.also { font-weight: 700; }
+  .meta { font-weight: 600; color: var(--soft); }
+  .when { flex: none; font-size: 8.8pt; font-weight: 600; color: var(--soft); }
+  ul.points { margin: .6mm 0 0 4.2mm; }
+  ul.points li { padding-left: .6mm; margin-top: .3mm; }
+  ul.points li::marker { color: #c9a24a; }
+
+  .skills { display: grid; grid-template-columns: 30mm 1fr; row-gap: .8mm; }
+  .skills dt { font-weight: 700; }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1><span class="br">[</span>Ahsan Siddiqui<span class="br">]</span></h1>
+    <p class="role">Full stack developer, Manchester</p>
+  </div>
+  <ul class="contact">
+    <li>07306 335800</li>
+    <li><a href="mailto:ahsansid10@hotmail.com">ahsansid10@hotmail.com</a></li>
+    <li><a href="https://ahsanpotatwo.github.io/portfolio/">ahsanpotatwo.github.io/portfolio</a></li>
+    <li><a href="https://github.com/AhsanPotatwo">github.com/AhsanPotatwo</a></li>
+    <li><a href="https://www.linkedin.com/in/ahsan-siddiqui-85332133b/">linkedin.com/in/ahsan-siddiqui-85332133b</a></li>
+  </ul>
+</header>
+
+<p class="intro">Computer Science graduate (2:1) with eight months as a full stack developer at Global PPC and over a year
+of freelance web work. I like building things people can actually use and play with, and I usually design them in Figma
+before I start coding. Looking for a junior full stack or front end role.</p>
+
+<h2>Experience</h2>
+
+<div class="item">
+  <div class="item-head">
+    <h3>Freelance web developer <span class="meta">&nbsp;Remote</span></h3>
+    <span class="when">Jun 2025 to now</span>
+  </div>
+  <ul class="points">
+    <li>Built four websites for clients in HTML, CSS and JavaScript, the first one live in under two weeks</li>
+    <li>Ran each project myself from start to finish: requirements, design, build and launch</li>
+    <li>Delivered all four on time while working on them side by side</li>
+  </ul>
+</div>
+
+<div class="item">
+  <div class="item-head">
+    <h3>Full stack developer <span class="meta">&nbsp;Global PPC Ltd, remote</span></h3>
+    <span class="when">Feb 2025 to Oct 2025</span>
+  </div>
+  <ul class="points">
+    <li>Built and sped up web pages for three client projects using p5.js, .NET and PHP, cutting load times by about 40%</li>
+    <li>Designed and built REST APIs to keep data in sync between the front end and back end in real time</li>
+    <li>Turned design mockups into working interfaces, working with the designers and back end developers</li>
+    <li>Helped with testing, bug fixing and deployments, and delivered every feature I was given on time</li>
+  </ul>
+</div>
+
+<h2>Projects</h2>
+<p class="note">All on my <a href="https://ahsanpotatwo.github.io/portfolio/">portfolio</a>, and most of them run in the browser, so you can try them.</p>
+
+<div class="item">
+  <div class="item-head">
+    <h3><a href="https://ahsanpotatwo.github.io/portfolio/squimble-music-maker.html">Squimble Music Maker</a> <span class="meta">&nbsp;JavaScript, Web Audio API, IndexedDB, Node.js</span></h3>
+    <span class="when">2026</span>
+  </div>
+  <ul class="points">
+    <li>Writes whole songs from a random seed using music theory rules (no AI), then lets you change the chords, instruments or single notes</li>
+    <li>Wrote my own synths and mixer on the Web Audio API, with export to WAV, MP3, MIDI and stems</li>
+    <li>Songs are saved in IndexedDB with version history, and a Node test suite replays about a thousand saved songs to make sure they never change</li>
+  </ul>
+</div>
+
+<div class="item">
+  <div class="item-head">
+    <h3><a href="https://ahsanpotatwo.github.io/portfolio/squimble-quest.html">Squimble Quest</a> <span class="meta">&nbsp;p5.js, JavaScript</span></h3>
+    <span class="when">In progress</span>
+  </div>
+  <ul class="points">
+    <li>Top-down RPG with quests, combat and enemy pathfinding, plus an in-game editor for maps, tiles, items and sounds that saves to JSON</li>
+    <li>Added colourblind modes, key remapping and over 20 test scripts for pathfinding, warps and collisions</li>
+  </ul>
+</div>
+
+<div class="item">
+  <div class="item-head">
+    <h3><a href="https://ahsanpotatwo.github.io/portfolio/wizard-battles.html">Wizard Battles</a> <span class="meta">&nbsp;p5.js, Node.js, Express (dissertation)</span></h3>
+    <span class="when">2025</span>
+  </div>
+  <ul class="points">
+    <li>Turn-based duel game that measures how much risk players take, built for psychology research with ethics approval. The opponent AI learns from past moves but never sees the current one, so the test stays fair</li>
+    <li>Logged every round to CSV on the server, then ran a pilot with 10 people and compared their games to their survey answers</li>
+  </ul>
+</div>
+
+<div class="item">
+  <div class="item-head">
+    <h3><a href="https://ahsanpotatwo.github.io/portfolio/oscilloscope.html">Oscilloscope Playground</a> <span class="meta">&nbsp;JavaScript, WebGL 2, GLSL</span></h3>
+    <span class="when">2026</span>
+  </div>
+  <ul class="points">
+    <li>A vintage oscilloscope with signal generators and circuits to plug in, its trace drawn by shaders that copy how a real beam lights up phosphor</li>
+  </ul>
+</div>
+
+<div class="item">
+  <h3>Also built</h3>
+  <ul class="points">
+    <li><a class="also" href="https://ahsanpotatwo.github.io/portfolio/cli-battleships.html">CLI Battleships</a>, one terminal game written in Python, C and Rust to compare OOP, procedural and functional code</li>
+    <li><a class="also" href="https://ahsanpotatwo.github.io/portfolio/pantry-wizard.html">Pantry Wizard</a>, a .NET MAUI mobile app for tracking your cupboards, using the camera, GPS and text-to-speech</li>
+  </ul>
+</div>
+
+<h2>Skills</h2>
+<dl class="skills">
+  <dt>Languages</dt><dd>JavaScript, TypeScript, C#, PHP, Python, Java, C, Rust, HTML, CSS, SQL</dd>
+  <dt>Frameworks</dt><dd>.NET, .NET MAUI, Node.js, Express, p5.js</dd>
+  <dt>Web</dt><dd>REST APIs, Web Audio API, WebGL, IndexedDB, responsive design, accessibility (WCAG AA)</dd>
+  <dt>Tools</dt><dd>Git, GitHub, Figma, Visual Studio, VS Code, SQLite</dd>
+</dl>
+
+<h2>Education</h2>
+<div class="item">
+  <div class="item-head">
+    <h3>BSc (Hons) Computer Science, 2:1 <span class="meta">&nbsp;Manchester Metropolitan University</span></h3>
+    <span class="when">2022 to 2025</span>
+  </div>
+</div>
+
+
+</body>
+</html>
