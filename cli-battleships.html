@@ -93,19 +93,19 @@
             </div>
           </div>
 
-          <!-- a board to fire pegs into: red on a ship, white on the water. page.js lays the squares and
-               handles the clicks; it's a toy, the real game is the terminal below -->
-          <figure class="cb-board-wrap" aria-hidden="true">
-            <div class="cb-board-cols"><i>A</i><i>B</i><i>C</i><i>D</i><i>E</i><i>F</i><i>G</i><i>H</i></div>
-            <div class="cb-board-rows"><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i><i>7</i><i>8</i></div>
-            <div class="cb-board" id="cbBoard">
-              <span class="cb-hull" style="--c:2;--r:2;--w:4"></span>
-              <span class="cb-hull" style="--c:7;--r:3;--h:3"></span>
-              <span class="cb-hull" style="--c:3;--r:6;--w:2"></span>
-              <span class="cb-hull" style="--c:6;--r:8;--w:3"></span>
-            </div>
-            <figcaption class="cb-board-note"><span>&gt;</span> click a square to fire</figcaption>
-          </figure>
+          <!-- sonar: just to look at, the game is the terminal below. each contact sits at --a (clockwise from N)
+               and --r from the middle; --d = --a / 360 * 4s so it pops in as the sweep passes -->
+          <div class="cb-radar" aria-hidden="true">
+            <span class="cb-radar-sweep"></span>
+            <span class="cb-radar-ping" style="--a:50deg;--r:30%;--d:.56s"></span>
+            <span class="cb-radar-ping cb-radar-hit" style="--a:140deg;--r:36%;--d:1.56s"></span>
+            <span class="cb-radar-ping" style="--a:220deg;--r:20%;--d:2.44s"></span>
+            <span class="cb-radar-ping" style="--a:305deg;--r:34%;--d:3.39s"></span>
+            <span class="cb-radar-label cb-radar-n">N</span>
+            <span class="cb-radar-label cb-radar-e">E</span>
+            <span class="cb-radar-label cb-radar-s">S</span>
+            <span class="cb-radar-label cb-radar-w">W</span>
+          </div>
         </section>
 
         <!-- terminal (js/cli-battleships/terminal.js) -->
