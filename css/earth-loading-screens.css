@@ -1,0 +1,373 @@
+/* earth loading screens page, loaded on top of styles.css.
+   flat colours like the home page. in the middle, a picture framed exactly the way Wikipedia frames one,
+   on a loading screen with a loading bar and a spinning globe. keys sit on a solid darker edge and press
+   down, headings are Fredoka, round and friendly, and the page ends on a band of colour.
+
+   it has three themes, picked under the title and remembered (page.js, and a line in the page's head
+   so the right one is there before anything's drawn). each is only colours, set below on <html
+   data-el-theme>; the rest of the file uses them and never a colour of its own:
+     white  the default. flat white, Wikipedia's greys and link blue, ending on a blue band
+     ocean  the sea on an old atlas: ocean blue under little wave marks (assets/earth-loading-screens/
+            sea.svg), a deep blue screen, ending on land (coast.svg)
+     night  dark, the frame as Wikipedia draws it in dark mode, ending on a deep blue band */
+.el-page{
+  /* white */
+  --bg:#ffffff;            --tile:none;
+  --text:#202122;          --muted:#72777d;          --heading-shadow:transparent;
+  --header:#ffffff;        --header-edge:#eaecf0;    --brand:#202122;         --bracket:#3366cc;
+  --nav:#202122;           --nav-on:#3366cc;
+  --screen:#f1f3f5;        --screen-edge:#dfe3e8;
+  --key:#ffffff;           --key-edge:#cfd4da;       --key-text:#202122;      --key-hover:#ffffff;
+  --key-on:#3366cc;        --key-on-edge:#22468f;    --key-on-text:#ffffff;
+  --track:#dfe3e8;         --fill:#3366cc;           --fill-edge:#2a55ad;     --pct:#3366cc;
+  --globe-sea:#5aa5e6;     --globe-land:#6dbf5b;     --globe-rim:#202122;     --globe-night:rgba(0,0,0,.14);
+  --band:#3366cc;          --band-text:#ffffff;      --band-edge:none;        --band-focus:#ffffff;
+  --btn-a:#ffffff;         --btn-a-edge:#b9c9ea;     --btn-a-text:#202122;
+  --btn-b:#202122;         --btn-b-edge:#000000;     --btn-b-text:#ffffff;
+  --focus:#3366cc;         --select:#cfdcf5;
+  /* wikipedia's own colours, for the picture frame */
+  --wp-paper:#f8f9fa;      --wp-border:#c8ccd1;      --wp-text:#202122;       --wp-link:#3366cc;
+  --wp-icon:#54595d;       --wp-pic:#ffffff;
+
+  --font-round:"Fredoka", var(--font-sans);
+  /* the "Back to all projects" link (.page-back in styles.css) */
+  --page-accent:var(--band-text);
+  background:var(--bg);
+  color:var(--text);
+}
+:root[data-el-theme="ocean"] .el-page{
+  --bg:#1f5f8b;            --tile:url("../assets/earth-loading-screens/sea.svg");
+  --text:#e8f3fa;          --muted:#9db9cc;          --heading-shadow:#0a2a40;
+  --header:#123f5f;        --header-edge:#0a2a40;    --brand:#f2d27a;         --bracket:#7cc25b;
+  --nav:#e8f3fa;           --nav-on:#f2d27a;
+  --screen:#123f5f;        --screen-edge:#0a2a40;
+  --key:#e8f3fa;           --key-edge:#9db9cc;       --key-text:#0d2233;      --key-hover:#ffffff;
+  --key-on:#f2d27a;        --key-on-edge:#c49a3a;    --key-on-text:#0d2233;
+  --track:#0a2a40;         --fill:#7cc25b;           --fill-edge:#4f8f37;     --pct:#7cc25b;
+  --globe-sea:#3d8fd1;     --globe-land:#7cc25b;     --globe-rim:#0a2a40;     --globe-night:rgba(10,42,64,.32);
+  --band:#7cc25b;          --band-text:#0d2233;      --band-edge:url("../assets/earth-loading-screens/coast.svg"); --band-focus:#0d2233;
+  --btn-a:#f2d27a;         --btn-a-edge:#c49a3a;     --btn-a-text:#0d2233;
+  --btn-b:#123f5f;         --btn-b-edge:#0a2a40;     --btn-b-text:#e8f3fa;
+  --focus:#f2d27a;         --select:#f2d27a;
+}
+:root[data-el-theme="night"] .el-page{
+  --bg:#101418;            --tile:none;
+  --text:#eaecf0;          --muted:#a2a9b1;          --heading-shadow:transparent;
+  --header:#101418;        --header-edge:#27292d;    --brand:#eaecf0;         --bracket:#88a3e8;
+  --nav:#eaecf0;           --nav-on:#88a3e8;
+  --screen:#1b1e23;        --screen-edge:#0a0c0f;
+  --key:#2e3238;           --key-edge:#0a0c0f;       --key-text:#eaecf0;      --key-hover:#383d44;
+  --key-on:#88a3e8;        --key-on-edge:#4a64a8;    --key-on-text:#101418;
+  --track:#0a0c0f;         --fill:#88a3e8;           --fill-edge:#6681c8;     --pct:#88a3e8;
+  --globe-sea:#3a6fa8;     --globe-land:#5b9e4c;     --globe-rim:#0a0c0f;     --globe-night:rgba(0,0,0,.35);
+  --band:#1d2d4f;          --band-text:#eaecf0;      --band-edge:none;        --band-focus:#88a3e8;
+  --btn-a:#88a3e8;         --btn-a-edge:#4a64a8;     --btn-a-text:#101418;
+  --btn-b:#2e3238;         --btn-b-edge:#0a0c0f;     --btn-b-text:#eaecf0;
+  --focus:#88a3e8;         --select:#3a4a73;
+  --wp-paper:#101418;      --wp-border:#54595d;      --wp-text:#eaecf0;       --wp-link:#88a3e8;
+  --wp-icon:#a2a9b1;       --wp-pic:#202122;
+}
+/* the background tile (ocean's wave marks), pinned to the window so the page scrolls over it */
+.el-page::before{
+  content:"";
+  position:fixed; inset:0;
+  z-index:-1;
+  background:var(--tile) 0 0 / 320px;
+  pointer-events:none;
+}
+html:has(.el-page){ scrollbar-color:var(--muted) var(--bg); }
+.el-page ::selection{ background:var(--select); color:inherit; }
+.el-page :focus-visible{ outline-color:var(--focus); }
+
+.el-page .site-header{ background:var(--header); backdrop-filter:none; border-bottom:3px solid var(--header-edge); }
+.el-page .brand{ color:var(--brand); }
+.el-page .brand-bracket{ color:var(--bracket); }
+.el-page .nav-link{ color:var(--nav); }
+.el-page .nav-link:hover,
+.el-page .nav-link.is-active{ color:var(--nav-on); }
+.el-page .nav-link::after{ background:var(--nav-on); }
+.el-page .nav-toggle span{ background:var(--nav); }
+@media (max-width:820px){
+  .el-page .nav{ background:var(--header); border-bottom:3px solid var(--header-edge); }
+  .el-page .nav .nav-link + .nav-link{ border-top-color:var(--header-edge); }
+  .el-page .nav .nav-link.is-active{ background:var(--screen); border-left-color:var(--nav-on); }
+}
+.el-page .site-footer{ border-top:0; background:var(--band); color:var(--band-text); font-weight:600; }
+
+.el-heading{
+  font-family:var(--font-round);
+  font-weight:700;
+  line-height:1;
+  letter-spacing:-.01em;
+}
+
+/* ---------- hero ---------- */
+/* one short row, so all of the screen under it is in view straight away: the title, then the words and
+   the theme switch beside it */
+.el-hero{
+  display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
+  gap:12px 48px;
+  padding-block:28px 20px;
+}
+.el-hero .el-heading{ font-size:clamp(36px,4vw,56px); text-shadow:0 4px 0 var(--heading-shadow); }
+.el-hero-side{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 28px; }
+.el-lede{
+  max-width:25em;
+  font-size:clamp(16px,1.3vw,18px);
+  font-weight:600;
+  line-height:1.45;
+  text-wrap:pretty;
+}
+/* the theme switch: three small keys, each with a swatch of its theme */
+.el-themes{ display:flex; gap:8px; }
+.el-theme{
+  display:inline-flex; align-items:center; gap:7px;
+  height:34px;
+  padding:0 12px 0 9px;
+  border:0;
+  border-radius:999px;
+  background:var(--key);
+  box-shadow:0 3px 0 var(--key-edge);
+  color:var(--key-text);
+  font:600 14px/1 var(--font-round);
+  cursor:pointer;
+  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out);
+}
+.el-theme:hover{ transform:translateY(-1px); box-shadow:0 4px 0 var(--key-edge); }
+.el-theme:active{ transform:translateY(3px); box-shadow:0 0 0 var(--key-edge); }
+.el-theme[aria-pressed="true"]{ background:var(--key-on); box-shadow:0 3px 0 var(--key-on-edge); color:var(--key-on-text); }
+.el-theme i{ width:14px; height:14px; border-radius:50%; background:var(--sw); box-shadow:inset 0 0 0 2px rgba(0,0,0,.18); }
+
+/* ---------- the loading screen ---------- */
+/* the screen fits the window under the site header and the hero (about 216px together), and the
+   picture gets what's left once a three line caption, the credit and the bottom row have their room
+   (about 310px) */
+.el-screen{
+  --screen-h:clamp(520px, calc(100svh - 216px), 940px);
+  --pic-h:calc(var(--screen-h) - 310px);
+  position:relative;
+  display:grid;
+  grid-template-rows:1fr auto;
+  gap:18px;
+  min-height:var(--screen-h);
+  scroll-margin-top:92px;
+  padding:clamp(18px,2.6vw,30px) clamp(16px,2.4vw,28px) clamp(16px,2.4vw,28px);
+  border-radius:24px;
+  background:var(--screen);
+  box-shadow:0 8px 0 var(--screen-edge);
+}
+.el-screen:focus{ outline:none; }
+.el-screen:fullscreen{
+  --screen-h:100vh;
+  border-radius:0;
+  box-shadow:none;
+}
+
+.el-middle{
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:10px;
+  min-width:0;
+}
+
+/* the picture in a frame the way wikipedia draws one: grey border, a little padding, the caption in
+   plain sans-serif under it with blue links, the magnify box in the caption's corner.
+   as wide as the picture is at --pic-h tall (--ratio is its width over height, from page.js), so small
+   pictures are blown up to the same height as big ones, and never wider than the screen */
+.el-thumb{
+  width:min(100%, calc(var(--pic-h) * var(--ratio, 1.5) + 10px));
+  min-width:min(300px, 100%);
+  padding:4px;
+  border:1px solid var(--wp-border);
+  background:var(--wp-paper);
+  color:var(--wp-text);
+  font-family:sans-serif;
+  transition:opacity .3s ease, translate .3s var(--ease-out);
+}
+.el-thumb.is-out{ opacity:0; translate:0 10px; }
+.el-thumb img{
+  display:block;
+  width:100%; height:auto;
+  /* only a very tall, thin picture held at the frame's smallest width reaches this */
+  max-height:var(--pic-h);
+  object-fit:contain;
+  border:1px solid var(--wp-border);
+  background:var(--wp-pic);
+}
+/* as wide as the picture and no wider: width 0 stops it widening the frame, min-width fills it */
+.el-thumb figcaption{
+  width:0; min-width:100%;
+  padding:8px 4px 4px;
+  font-size:clamp(17px,1.55vw,21px);
+  line-height:1.45;
+  text-align:left;
+  text-wrap:pretty;
+}
+.el-thumb a{ color:var(--wp-link); }
+.el-thumb a:hover{ text-decoration:underline; }
+.el-thumb a:focus-visible{ outline:2px solid var(--wp-link); outline-offset:1px; }
+.el-enlarge{
+  float:right;
+  display:grid; place-items:center;
+  width:30px; height:26px;
+  margin:-2px -4px 0 10px;
+}
+.el-enlarge svg{ width:17px; height:13px; fill:var(--wp-paper); stroke:var(--wp-icon); stroke-width:1.4; }
+.el-enlarge:hover svg{ stroke:var(--wp-link); }
+.el-credit{
+  min-height:1.4em;
+  max-width:60ch;
+  font-size:13px;
+  font-weight:600;
+  color:var(--muted);
+  text-align:center;
+  transition:opacity .3s ease;
+}
+.el-thumb.is-out + .el-credit{ opacity:0; }
+
+/* ---------- the bottom row: keys, the loading bar, the globe ---------- */
+.el-bottom{
+  display:grid;
+  grid-template-columns:auto 1fr auto;
+  align-items:end;
+  gap:20px clamp(18px,3vw,40px);
+}
+.el-controls{ display:flex; gap:10px; }
+.el-key{
+  display:grid; place-items:center;
+  width:50px; height:46px;
+  border:0;
+  border-radius:12px;
+  background:var(--key);
+  box-shadow:0 5px 0 var(--key-edge);
+  color:var(--key-text);
+  cursor:pointer;
+  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out), background-color .15s ease;
+}
+.el-key:hover{ transform:translateY(-2px); box-shadow:0 7px 0 var(--key-edge); background:var(--key-hover); }
+.el-key:active{ transform:translateY(4px); box-shadow:0 1px 0 var(--key-edge); }
+.el-key svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2.8; stroke-linecap:round; stroke-linejoin:round; }
+.el-key .el-icon-play{ fill:currentColor; stroke-width:2; }
+.el-key .el-icon-play,
+#elPause[aria-pressed="true"] .el-icon-pause{ display:none; }
+#elPause[aria-pressed="true"] .el-icon-play{ display:block; }
+/* a key that's on (paused, music playing) stays lit so it's clear why */
+.el-key[aria-pressed="true"]{ background:var(--key-on); box-shadow:0 5px 0 var(--key-on-edge); color:var(--key-on-text); }
+/* the music key while the band gets ready */
+.el-key.is-waiting svg{ animation:el-wait 1s ease-in-out infinite alternate; }
+@keyframes el-wait{ to{ opacity:.3; } }
+.el-key[hidden]{ display:none; }
+
+.el-load{ min-width:0; padding-bottom:4px; }
+.el-load-words{
+  display:flex; justify-content:space-between; gap:12px;
+  margin-bottom:8px;
+  font-family:var(--font-round);
+  font-weight:600;
+  font-size:clamp(16px,1.4vw,19px);
+}
+#elStatus{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#elStatus::after{ content:"…"; }
+#elPct{ flex:none; color:var(--pct); font-variant-numeric:tabular-nums; }
+.el-bar{
+  height:20px;
+  padding:4px;
+  border-radius:999px;
+  background:var(--track);
+}
+.el-bar i{
+  display:block;
+  width:0;
+  height:100%;
+  min-width:12px;
+  border-radius:999px;
+  background:var(--fill);
+  box-shadow:inset 0 -3px 0 var(--fill-edge);
+}
+
+/* the globe, spinning in the corner */
+.el-globe{ display:flex; align-items:center; gap:12px; }
+.el-globe svg{ width:clamp(56px,6vw,76px); height:auto; overflow:visible; }
+.el-globe-sea{ fill:var(--globe-sea); }
+.el-globe-rim{ fill:none; stroke:var(--globe-rim); stroke-width:3; }
+#elLand{ fill:var(--globe-land); }
+.el-globe-night{ fill:var(--globe-night); }
+.el-globe-spin{ animation:el-spin 14s linear infinite; }
+@keyframes el-spin{ to{ transform:translateX(-200px); } }
+/* "Loading" in a different language every few seconds (page.js): the same width whatever the word,
+   so the bar beside it never jumps */
+.el-globe-word{ width:8.6em; white-space:nowrap; font-family:var(--font-round); font-weight:700; font-size:clamp(17px,1.6vw,22px); }
+#elWord{ display:inline-block; transition:opacity .4s; }
+#elWord.is-out{ opacity:0; }
+.el-dots i{ font-style:normal; animation:el-dot 1.5s steps(1) infinite; }
+.el-dots i:nth-child(2){ animation-delay:.25s; }
+.el-dots i:nth-child(3){ animation-delay:.5s; }
+@keyframes el-dot{ 0%{ opacity:0; } 33%,100%{ opacity:1; } }
+
+.el-keys-hint{
+  margin-top:22px;
+  font-size:15px;
+  font-weight:600;
+  color:var(--muted);
+  text-align:center;
+}
+.el-keys-hint kbd{
+  display:inline-block;
+  min-width:28px;
+  padding:1px 7px 2px;
+  border-radius:6px;
+  background:var(--key);
+  box-shadow:0 3px 0 var(--key-edge);
+  color:var(--key-text);
+  font-family:var(--font-round);
+  font-size:14px;
+}
+/* no keyboard to speak of on a phone */
+@media (hover:none) and (pointer:coarse){ .el-keys-hint{ display:none; } }
+
+/* ---------- the band the page ends on ---------- */
+.el-band{
+  position:relative;
+  margin-top:calc(var(--section-pad) + 30px);
+  padding:clamp(40px,5vw,64px) 0 clamp(48px,6vw,72px);
+  background:var(--band);
+  color:var(--band-text);
+}
+/* ocean's coast along its top edge */
+.el-band::before{
+  content:"";
+  position:absolute;
+  left:0; right:0;
+  bottom:calc(100% - 2px);
+  height:40px;
+  background:var(--band-edge) 0 0 / 400px 40px repeat-x;
+}
+.el-band-inner{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:28px 48px; }
+.el-band .el-heading{ font-size:clamp(34px,4vw,52px); }
+.el-band p{ max-width:36em; margin-top:12px; font-size:var(--text-body); font-weight:600; line-height:1.5; }
+.el-band p a{ color:inherit; text-decoration:underline; text-underline-offset:3px; }
+.el-band-links{ display:flex; flex-wrap:wrap; gap:16px; }
+.el-band :focus-visible{ outline-color:var(--band-focus); }
+.el-page .btn{ font-family:var(--font-round); font-weight:600; }
+.el-btn-a{ --k:var(--btn-a-edge); background:var(--btn-a); color:var(--btn-a-text); }
+.el-btn-b{ --k:var(--btn-b-edge); background:var(--btn-b); color:var(--btn-b-text); }
+.el-btn-a:hover, .el-btn-b:hover{ filter:brightness(1.06); }
+.el-page .page-back{ padding:clamp(36px,5vw,52px) var(--gutter) 0; }
+.el-page .page-back a:hover{ color:var(--band-text); opacity:.8; }
+
+/* ---------- phones: the picture gets the whole width, the keys go under the bar ---------- */
+@media (max-width:700px){
+  .el-screen{ --pic-h:44svh; min-height:0; border-radius:18px; gap:14px; }
+  .el-screen:fullscreen{ --pic-h:calc(100vh - 280px); min-height:100vh; }
+  .el-bottom{ grid-template-columns:1fr auto; }
+  .el-load{ grid-column:1; grid-row:1; }
+  .el-globe{ grid-column:2; grid-row:1; }
+  .el-globe-word{ display:none; }
+  .el-controls{ grid-column:1 / -1; justify-content:center; }
+  .el-key{ width:48px; }
+  .el-band-links, .el-band-links .btn{ width:100%; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .el-globe-spin, .el-dots i, .el-key.is-waiting svg{ animation:none; }
+  .el-thumb, .el-credit, #elWord{ transition:none; }
+}

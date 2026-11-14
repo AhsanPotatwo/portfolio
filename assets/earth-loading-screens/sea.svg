@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" width="320" height="320">
+  <!-- one tile of the earth loading screens sea: little wave marks like the ocean on an old atlas, in
+       twos and threes, placed by hand so the repeat isn't obvious. css/earth-loading-screens.css lays it
+       under the page. marks stay clear of the tile's edges so none get cut in half -->
+  <g fill="none" stroke="#2a6b97" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M28 40q5-6 10 0t10 0t10 0"/>
+    <path d="M36 50q5-6 10 0t10 0"/>
+
+    <path d="M150 22q5-6 10 0t10 0"/>
+
+    <path d="M232 64q5-6 10 0t10 0t10 0"/>
+    <path d="M222 74q5-6 10 0t10 0t10 0"/>
+    <path d="M240 84q5-6 10 0t10 0"/>
+
+    <path d="M96 118q5-6 10 0t10 0"/>
+    <path d="M104 128q5-6 10 0t10 0t10 0"/>
+
+    <path d="M270 170q5-6 10 0t10 0"/>
+
+    <path d="M30 196q5-6 10 0t10 0t10 0"/>
+    <path d="M40 206q5-6 10 0t10 0"/>
+
+    <path d="M170 214q5-6 10 0t10 0t10 0"/>
+    <path d="M160 224q5-6 10 0t10 0"/>
+    <path d="M178 234q5-6 10 0t10 0t10 0"/>
+
+    <path d="M88 284q5-6 10 0t10 0"/>
+
+    <path d="M238 278q5-6 10 0t10 0t10 0"/>
+    <path d="M248 288q5-6 10 0t10 0"/>
+  </g>
+  <!-- a few specks of foam between them -->
+  <g fill="#2a6b97">
+    <circle cx="196" cy="128" r="2"/>
+    <circle cx="20" cy="120" r="1.6"/>
+    <circle cx="300" cy="30" r="1.6"/>
+    <circle cx="126" cy="254" r="2"/>
+    <circle cx="292" cy="236" r="1.6"/>
+  </g>
+</svg>

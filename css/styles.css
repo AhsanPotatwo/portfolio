@@ -1514,6 +1514,55 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
   text-shadow:0 0 2px #fff, 0 0 12px #3dff7a, 0 0 26px rgba(60,255,120,.55), 0 0 2px #050907;
 }
 
+/* earth loading screens card: the page's default white theme, Wikipedia's paper and link blue, its globe
+   spinning, and the title over a loading bar. on hover the globe spins faster and the bar fills up,
+   never quite reaching the end, like the page's own */
+.project-card-earth{
+  position:relative;
+  overflow:hidden;
+  background:#f8f9fa;
+}
+.project-card-earth:hover,
+.project-card-earth:focus-within{ background:#ffffff; }
+/* on the link, since cqi on the card itself would measure the card's parent */
+.project-card-earth .project-card-link{
+  display:flex; align-items:center; justify-content:center;
+  gap:6cqi;
+}
+.earth-globe{ flex:none; width:25cqi; height:auto; }
+.earth-sea{ fill:#5aa5e6; }
+.earth-rim{ fill:none; stroke:#202122; stroke-width:3; }
+#earthCardLand{ fill:#6dbf5b; }
+.earth-night{ fill:#000; opacity:.14; }
+.earth-spin{ animation:earth-spin 14s linear infinite; }
+.project-card-earth:hover .earth-spin,
+.project-card-earth:focus-within .earth-spin{ animation-duration:3.5s; }
+@keyframes earth-spin{ to{ transform:translateX(-200px); } }
+.earth-words{ display:flex; flex-direction:column; width:50cqi; }
+.earth-title{
+  font-family:"Fredoka", var(--font-sans);
+  font-weight:700;
+  font-size:7.6cqi;
+  line-height:1;
+  color:#202122;
+}
+.earth-bar{
+  height:4cqi;
+  margin-top:3.4cqi;
+  padding:.8cqi;
+  border-radius:999px;
+  background:#dfe3e8;
+}
+.earth-bar i{
+  display:block;
+  width:22%; height:100%;
+  border-radius:999px;
+  background:#3366cc;
+}
+.project-card-earth:hover .earth-bar i,
+.project-card-earth:focus-within .earth-bar i{ animation:earth-load 3.2s cubic-bezier(.1,.7,.2,1) infinite; }
+@keyframes earth-load{ 0%{ width:8%; } 85%,100%{ width:97%; } }
+
 /* contact: the page ends on a flat butter band, with one big night-coloured star in the corner */
 .contact{
   position:relative;
@@ -1762,4 +1811,5 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
   .project-card-music, .music-paint, .music-notes i, .music-swatches i, .music-title, .music-word span{ animation:none !important; }
   .osc-tail, .osc-head{ animation:none; opacity:0; }
   .pantry-food, .pantry-food-inner{ animation:none; }
+  .earth-spin, .earth-bar i{ animation:none !important; }
 }

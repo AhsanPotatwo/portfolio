@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 40" width="400" height="40">
+  <!-- one tile of the coast the earth loading screens page ends on: the land's wandering edge with a
+       strip of beach and a line of foam in front of it, drawn by hand so the repeat isn't obvious. each
+       line ends where it starts, at x 400, so the tiles join. sits on the land band's top edge
+       (css/earth-loading-screens.css) -->
+  <path fill="none" stroke="#e8f3fa" stroke-width="3" stroke-linecap="round"
+    d="M-2 17c22-5 36 2 58-3s34-9 58-4 28 9 52 6 30-11 56-9 34 8 58 5 40-6 60-1 40 4 60 6"/>
+  <path fill="#f2d27a"
+    d="M0 22c22-5 36 2 58-3s34-9 58-4 28 9 52 6 30-11 56-9 34 8 58 5 40-6 60-1 40 4 58 6v28H0z"/>
+  <path fill="#7cc25b"
+    d="M0 29c18-3 34 1 52-2s40-8 62-4 30 8 54 4 34-9 56-7 32 7 58 4 42-5 58 0 30 3 60 5v16H0z"/>
+</svg>

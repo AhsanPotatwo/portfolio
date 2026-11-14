@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Earth Loading Screens — Ahsan</title>
+  <meta name="description"
+    content="Earth Loading Screens — tips, facts and bits of history to read while the planet loads, like a video game's loading screen. Every picture and fact comes from Wikipedia.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Quicksand:wght@400;500;600;700&family=Fredoka:wght@500;600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/earth-loading-screens.css">
+  <!-- the theme picked last time, before anything's drawn so it never flashes white first (page.js) -->
+  <script>try { document.documentElement.dataset.elTheme = localStorage.getItem('earthLoadingTheme') || 'white'; } catch { }</script>
+</head>
+
+<body class="el-page">
+
+  <a class="skip-link" href="#screen">Skip to the loading screen</a>
+
+  <header class="site-header" id="header">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html#home"><span class="brand-bracket">[</span>Ahsan<span class="brand-bracket">]</span></a>
+
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="nav" id="primaryNav" aria-label="Primary">
+        <a href="index.html#home" class="nav-link">Home</a>
+        <a href="index.html#about" class="nav-link">About</a>
+        <a href="index.html#skills" class="nav-link">Skills</a>
+        <a href="index.html#projects" class="nav-link is-active">Projects</a>
+        <a href="index.html#contact" class="nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <div class="container el-hero">
+      <h1 class="el-heading">Earth Loading Screens</h1>
+      <div class="el-hero-side">
+        <p class="el-lede">Little things to look at while the planet loads, like a video game's loading screen. Every picture comes from Wikipedia.</p>
+        <div class="el-themes" role="group" aria-label="Theme">
+          <button class="el-theme" type="button" data-theme="white" style="--sw:#ffffff" aria-pressed="false"><i></i>White</button>
+          <button class="el-theme" type="button" data-theme="ocean" style="--sw:#1f5f8b" aria-pressed="false"><i></i>Ocean</button>
+          <button class="el-theme" type="button" data-theme="night" style="--sw:#101418" aria-pressed="false"><i></i>Night</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- the loading screen. js/earth-loading-screens/page.js fills it from tips.js -->
+    <div class="container">
+      <section class="el-screen" id="screen" aria-label="Loading screen" tabindex="-1">
+        <div class="el-middle">
+          <!-- a picture with its caption, framed the way Wikipedia frames one -->
+          <figure class="el-thumb is-out" id="elThumb">
+            <img id="elImg" alt="">
+            <figcaption id="elCaption">
+              <a class="el-enlarge" id="elEnlarge" href="https://commons.wikimedia.org/" aria-label="About this picture, on Wikimedia Commons">
+                <svg viewBox="0 0 15 11" aria-hidden="true"><path d="M1.5 4.5h7v5h-7zM5.5 1.5h8v5h-5"/></svg>
+              </a>
+              <span id="elText"></span>
+            </figcaption>
+          </figure>
+          <p class="el-credit" id="elCredit"></p>
+        </div>
+
+        <div class="el-bottom">
+          <div class="el-controls" role="group" aria-label="Loading screen controls">
+            <button class="el-key" type="button" id="elBack" aria-label="Previous tip" title="Previous (left arrow)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+            </button>
+            <button class="el-key" type="button" id="elPause" aria-label="Pause" title="Pause (space)">
+              <svg class="el-icon-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5v14M15.5 5v14"/></svg>
+              <svg class="el-icon-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 4.5v15l12-7.5z"/></svg>
+            </button>
+            <button class="el-key" type="button" id="elNext" aria-label="Next tip" title="Next (right arrow)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <!-- calm music, written as it plays by the squimble music maker's composer (page.js) -->
+            <button class="el-key" type="button" id="elMusic" aria-label="Music" aria-pressed="true" title="Music (M)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg>
+            </button>
+            <button class="el-key" type="button" id="elFull" aria-label="Full screen" title="Full screen (F)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg>
+            </button>
+          </div>
+
+          <!-- the loading bar: creeps up as the tips go by, never quite reaching 100 -->
+          <div class="el-load">
+            <p class="el-load-words"><span id="elStatus">Loading Earth</span><span id="elPct">0%</span></p>
+            <div class="el-bar" role="progressbar" aria-label="Loading Earth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="elBar"><i id="elFill"></i></div>
+          </div>
+
+          <!-- the globe: rough continents on a strip two worlds wide, sliding behind a round window -->
+          <div class="el-globe" aria-hidden="true">
+            <svg viewBox="0 0 100 100">
+              <defs>
+                <clipPath id="elGlobeClip"><circle cx="50" cy="50" r="47"/></clipPath>
+                <path id="elLand" d="M6.7 13.3L11.1 10.6L22.2 11.1L30.6 10.0L47.2 10.0L55.6 8.9L65.6 13.3L69.4 21.1L63.3 25.0L57.8 30.6L55.0 36.1L54.4 33.3L50.0 33.9L46.1 35.6L46.1 38.9L50.0 38.3L51.7 41.7L53.9 45.0L56.7 45.6L52.8 43.3L48.9 41.7L41.7 38.9L38.9 36.7L36.1 33.3L34.4 31.1L31.1 27.8L31.1 23.3L27.8 19.4L22.2 16.7L15.6 17.8L8.3 19.4L12.2 16.7L7.8 15.6ZM59.4 6.7L66.7 4.4L83.3 3.9L88.9 7.8L87.8 11.1L77.8 14.4L72.2 15.6L69.4 12.2L61.1 7.8ZM55.6 45.0L58.3 43.9L65.6 43.9L71.1 47.2L72.2 50.0L80.6 53.3L78.9 57.2L77.2 62.2L73.3 64.4L70.6 68.9L67.8 71.1L63.9 73.3L62.2 77.8L61.1 80.6L58.9 77.8L59.4 72.2L60.6 66.7L61.1 60.0L57.8 57.8L55.0 52.8L55.6 50.0L56.7 47.8ZM94.4 30.0L95.0 26.1L98.9 25.6L97.2 23.3L101.1 21.7L104.4 20.0L105.6 17.8L102.8 15.6L108.3 11.7L115.6 10.6L122.2 12.8L133.3 11.7L138.9 9.4L144.4 9.4L155.6 7.2L163.9 8.9L177.8 10.0L188.9 11.1L200.0 12.2L200.0 14.4L194.4 16.7L188.9 19.4L178.9 21.1L177.8 24.4L175.0 26.1L171.7 27.8L170.0 30.6L167.2 32.8L167.8 36.1L165.0 37.2L161.1 38.3L159.4 40.6L160.6 43.3L158.3 45.0L157.2 49.4L155.6 47.8L154.4 44.4L154.4 41.1L152.2 40.0L150.6 37.8L148.3 38.3L144.4 41.7L142.8 45.6L140.6 40.6L140.0 38.3L136.7 36.1L131.7 36.1L132.8 37.8L128.9 41.1L124.4 43.3L123.9 41.7L121.7 38.3L119.4 34.4L118.9 32.8L120.0 30.0L115.6 29.4L114.4 27.8L112.8 27.8L112.2 29.4L110.6 26.7L107.2 25.0L104.4 25.6L101.7 26.1L99.4 29.4L96.7 30.0ZM90.6 38.3L90.6 41.7L93.3 45.6L95.6 47.8L102.8 47.2L105.0 47.8L105.6 50.6L107.2 53.3L106.7 59.4L108.3 65.0L110.0 68.9L114.4 68.9L118.3 65.0L119.4 62.2L122.2 58.3L122.2 55.6L121.7 52.8L123.9 50.0L128.3 43.9L123.9 43.3L121.1 40.0L118.3 33.3L113.9 32.2L111.1 32.8L105.6 29.4L97.2 30.0L94.4 33.3ZM163.3 62.2L163.3 68.9L165.6 69.4L172.2 67.8L176.7 69.4L177.8 71.1L181.7 71.7L183.3 70.6L185.0 65.6L185.0 63.9L181.1 60.6L178.9 56.1L175.6 56.7L172.2 56.7L170.6 57.8L167.8 60.0ZM96.7 22.2L101.1 21.7L100.0 17.8L97.2 17.8ZM172.2 32.8L178.3 30.0L178.9 26.1L177.2 27.8L173.3 31.1ZM124.4 63.9L126.1 63.9L127.8 58.3L127.2 56.7L124.4 59.4ZM160.6 49.4L163.9 47.2L166.1 49.4L164.4 52.2L161.1 51.7ZM152.8 47.2L158.9 53.3L156.7 52.2ZM195.6 69.4L198.9 71.1L196.7 72.8L192.8 75.6L195.6 73.3ZM0.0 90.0L33.3 91.1L66.7 85.6L100.0 88.9L133.3 87.2L166.7 86.7L200.0 90.0L200.0 100.0L0.0 100.0Z"/>
+              </defs>
+              <circle class="el-globe-sea" cx="50" cy="50" r="47"/>
+              <g clip-path="url(#elGlobeClip)">
+                <g class="el-globe-spin"><use href="#elLand"/><use href="#elLand" x="200"/></g>
+                <!-- the night side, a flat crescent -->
+                <path class="el-globe-night" d="M50 3A47 47 0 0 1 50 97A30 47 0 0 0 50 3Z"/>
+              </g>
+              <circle class="el-globe-rim" cx="50" cy="50" r="47"/>
+            </svg>
+            <span class="el-globe-word"><span id="elWord" lang="en">Loading</span><span class="el-dots"><i>.</i><i>.</i><i>.</i></span></span>
+          </div>
+        </div>
+      </section>
+
+      <p class="el-keys-hint"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> to flip through, <kbd>Space</kbd> to pause, <kbd>M</kbd> for music, <kbd>F</kbd> for full screen</p>
+    </div>
+
+    <!-- the page ends on a band of the theme's colour (ocean's is land, with a strip of beach) -->
+    <section class="el-band">
+      <div class="container el-band-inner">
+        <div>
+          <h2 class="el-heading">Made from Wikipedia</h2>
+          <p>Every picture comes from Wikimedia Commons, many captions are Wikipedia's own (shared under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA</a>), and every blue word goes to its article. The pictures belong to the people who took them; the little box in each caption's corner shows who, and the licence they shared it under. The music is written as it plays by the <a href="squimble-music-maker.html">Squimble Music Maker</a>.</p>
+        </div>
+        <div class="el-band-links">
+          <a class="btn el-btn-a" href="https://en.wikipedia.org/wiki/Special:Random" target="_blank" rel="noopener">Read a random article</a>
+          <a class="btn el-btn-b" href="https://commons.wikimedia.org/wiki/Main_Page" target="_blank" rel="noopener">Wikimedia Commons</a>
+        </div>
+      </div>
+      <div class="container page-back">
+        <a href="index.html#projects"><span aria-hidden="true">&larr;</span> Back to all projects</a>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Made in <span id="year">2026</span> by pondering my crystal orb ~ Ahsan, Full Stack Wizard</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <!-- every tip on the page, then the screen that shows them -->
+  <script src="js/earth-loading-screens/tips.js"></script>
+  <script src="js/earth-loading-screens/page.js"></script>
+</body>
+
+</html>
