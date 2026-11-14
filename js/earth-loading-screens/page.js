@@ -259,7 +259,7 @@
   const remember = on => { try { localStorage.setItem('earthLoadingMusic', on ? 'on' : 'off'); } catch { /* not remembered */ } };
   async function toggleMusic() {
     if (music.getAttribute('aria-pressed') === 'true' && loading) {
-      player?.stop(false);
+      player?.stop();
       clearTimeout(nextSong);
       music.setAttribute('aria-pressed', false);
       remember(false);
