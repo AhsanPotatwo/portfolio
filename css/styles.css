@@ -932,305 +932,203 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
   pointer-events:none;
 }
 
-/* wizard battles card, positions taken from the figma file */
+/* wizard battles card: its page's table. the wood with runes scratched faintly into it (runes.svg), the page's
+   magic circle turning slowly on the right, and the name a wizard to a line in Crimson Pro, blue shadow under
+   one and red under the other, with the title's twinkles. on hover the words take turns lunging, like the
+   duel, and the circle speeds up */
 .project-card-wizard{
   position:relative;
   overflow:hidden;
-  background:#50352e;
+  background:#3d2a23 url("../assets/wizard-battles/runes.svg") 0 0 / 300px;
 }
 .project-card-wizard:hover,
-.project-card-wizard:focus-within{ background:#5a3c34; }
-
-
-.wizard-robe{ position:absolute; inset:0; }
-.wizard-robe-a{
-  background:#98c1ff;
-  clip-path:polygon(0% 0%, 25.6% 0%, 13.7% 61.7%, 0% 41.7%);
-  animation:robe-idle-a 4.6s ease-in-out infinite;
-}
-.wizard-robe-b{
-  background:#ff6b6b;
-  clip-path:polygon(100% 100%, 100% 26.2%, 78.8% 50.2%, 86.1% 100%);
-  animation:robe-idle-b 4.6s ease-in-out infinite .3s;
-}
-
-/* idle breathing */
-@keyframes robe-idle-a{
-  0%,100%{ opacity:1; }
-  50%{ opacity:.85; }
-}
-@keyframes robe-idle-b{
-  0%,100%{ opacity:.85; }
-  50%{ opacity:1; }
-}
-
-.wizard-wand{
+.project-card-wizard:focus-within{ background-color:#46302a; }
+.project-card-wizard .project-card-link{ justify-items:start; }
+.wizard-ring{
   position:absolute;
-  width:0; height:0;
-  transform-origin:0 0;
+  right:-4cqi; top:50%;
+  width:46cqi; height:46cqi;
+  margin-top:-23cqi;
+  animation:wizard-turn 60s linear infinite;
 }
-.wizard-wand-a{ left:18.6%; top:12.9%; transform:rotate(18.9deg); animation:wand-idle-a 3.4s ease-in-out infinite; }
-.wizard-wand-b{ left:87%; top:87.8%; transform:rotate(195deg); animation:wand-idle-b 3.8s ease-in-out infinite; }
-
-/* gentle idle sway, much smaller arc than the hover duel-wave below */
-@keyframes wand-idle-a{
-  0%,100%{ transform:rotate(18.9deg); }
-  50%{ transform:rotate(14.5deg); }
-}
-@keyframes wand-idle-b{
-  0%,100%{ transform:rotate(195deg); }
-  50%{ transform:rotate(199.4deg); }
-}
-
-.wand-stick{
-  position:absolute; left:0; top:-7px;
-  width:87px; height:14px;
-  background:#494949;
-  transition:background-color .25s ease;
-}
-.wand-tip{
-  position:absolute; left:87px; top:0;
-  width:14px; height:14px;
-  background:#bbbbbb;
-  transform:translate(-50%,-50%);
-  transition:background-color .25s ease, box-shadow .25s ease;
-  animation:tip-glow-idle 3.4s ease-in-out infinite;
-}
-@keyframes tip-glow-idle{
-  0%,100%{ box-shadow:0 0 3px 1px rgba(255,235,180,.35), 0 0 8px 3px rgba(255,200,90,.2); }
-  50%{ box-shadow:0 0 6px 2px rgba(255,235,180,.55), 0 0 14px 5px rgba(255,200,90,.35); }
-}
-
+.project-card-wizard:hover .wizard-ring,
+.project-card-wizard:focus-within .wizard-ring{ animation-duration:9s; }
+@keyframes wizard-turn{ to{ rotate:360deg; } }
 .wizard-title{
   position:relative; z-index:1;
+  margin-left:9cqi;
   font-family:"Crimson Pro", var(--font-sans);
-  font-weight:400; font-style:normal;
-  font-size:clamp(24px,2.8vw,36px); font-size:9cqi;
+  font-weight:700;
+  font-size:12.5cqi;
+  line-height:.86;
+  letter-spacing:-.01em;
   color:#ffc9ac;
 }
+.wizard-title > span{ display:block; }
+.wizard-you{ text-shadow:.035em .045em 0 #3f6dc0; }
+.wizard-foe{ margin-left:.6em; text-shadow:.035em .045em 0 #b83a40; }
+/* a turn each: the caster leans into the spell and its shadow throws further, then it's the other's go */
+.project-card-wizard:hover .wizard-you,
+.project-card-wizard:focus-within .wizard-you{ animation:wizard-you 1.6s cubic-bezier(.3,1.4,.5,1) infinite; }
+.project-card-wizard:hover .wizard-foe,
+.project-card-wizard:focus-within .wizard-foe{ animation:wizard-foe 1.6s cubic-bezier(.3,1.4,.5,1) infinite; }
+@keyframes wizard-you{
+  0%, 40%, 100%{ translate:0 0; text-shadow:.035em .045em 0 #3f6dc0; }
+  12%{ translate:.06em 0; text-shadow:.09em .07em 0 #3f6dc0; }
+}
+@keyframes wizard-foe{
+  0%, 50%, 90%, 100%{ translate:0 0; text-shadow:.035em .045em 0 #b83a40; }
+  62%{ translate:-.06em 0; text-shadow:-.02em .07em 0 #b83a40; }
+}
+.wizard-twinkle{
+  position:absolute;
+  fill:currentColor;
+  animation:wizard-twinkle 5s ease-in-out infinite;
+}
+.wizard-twinkle-a{ left:46cqi; top:6cqi; width:3.4cqi; color:#f6c96b; }
+.wizard-twinkle-b{ left:5cqi; top:26cqi; width:2.2cqi; color:#98c1ff; animation-delay:-1.7s; }
+.wizard-twinkle-c{ left:62cqi; top:27cqi; width:2cqi; color:#ff6b6b; animation-delay:-3.3s; }
+@keyframes wizard-twinkle{
+  0%, 100%{ opacity:1; scale:1; }
+  50%{ opacity:.45; scale:.75; }
+}
 
-@keyframes wand-wave-a{
-  0%,100%{ transform:rotate(18.9deg); }
-  50%{ transform:rotate(30deg); }
-}
-@keyframes wand-wave-b{
-  0%,100%{ transform:rotate(195deg); }
-  50%{ transform:rotate(183.9deg); }
-}
-.project-card-wizard:hover .wizard-wand-a,
-.project-card-wizard:focus-within .wizard-wand-a{ animation:wand-wave-a .9s ease-in-out infinite; }
-.project-card-wizard:hover .wizard-wand-b,
-.project-card-wizard:focus-within .wizard-wand-b{ animation:wand-wave-b .9s ease-in-out infinite; }
-
-.project-card-wizard:hover .wand-tip,
-.project-card-wizard:focus-within .wand-tip{
-  background:#fff3d6;
-  animation:tip-glow .9s ease-in-out infinite;
-}
-@keyframes tip-glow{
-  0%,100%{ box-shadow:0 0 6px 2px rgba(255,235,180,.7), 0 0 16px 6px rgba(255,200,90,.4); }
-  50%{ box-shadow:0 0 11px 4px rgba(255,235,180,1), 0 0 26px 10px rgba(255,200,90,.7); }
-}
-
-/* cli battleships card */
+/* cli battleships card: its page's board, the sea.svg tile in squares on the dark green screen, laid so four
+   rows fill the card. a grey ship sits on the bottom row and the title stands under the command that runs it,
+   in the page's stencil with CLI in phosphor green. a miss and a hit are already on the board; on hover the
+   rest of the shots go in one by one, pegs pushed into their squares, till the ship sinks */
 .project-card-cli{
   position:relative;
   overflow:hidden;
-  background:#0b0f0b;
+  background:#0c110e;
 }
 .project-card-cli:hover,
-.project-card-cli:focus-within{ background:#0e130e; }
-
-/* real line elements instead of a repeating background, the background version
-   doubled up the top/left edge with the frame border. no border on cli-grid
-   or the % positions stop lining up with the pings */
-.cli-grid{
+.project-card-cli:focus-within{ background:#0f1611; }
+/* on the board, since cqi on the card itself would measure the card's parent */
+.cli-board{
+  --sq:9.0625cqi;
   position:absolute; inset:0;
-  overflow:hidden;
-  border-radius:20px;
-  transition:filter .3s ease;
+  background:url("../assets/cli-battleships/sea.svg") 0 0 / calc(10 * var(--sq));
 }
-.cli-frame{
-  position:absolute; inset:0;
-  border:2px solid rgba(45,201,99,.55);
-  border-radius:20px;
-  pointer-events:none;
-  transition:filter .3s ease;
+.cli-board i{ position:absolute; }
+.cli-ship{
+  left:calc(2 * var(--sq) + 1cqi); top:calc(3 * var(--sq) + 1.4cqi);
+  width:calc(3 * var(--sq) - 2cqi); height:calc(var(--sq) - 2.8cqi);
+  border-radius:99px;
+  background:#4a5a50;
+  box-shadow:0 .7cqi 0 #26302a;
+  transition:background-color .3s ease;
 }
-.project-card-cli:hover .cli-grid,
-.project-card-cli:hover .cli-frame,
-.project-card-cli:focus-within .cli-grid,
-.project-card-cli:focus-within .cli-frame{ filter:brightness(1.4); }
-
-.cli-vline{ position:absolute; top:0; bottom:0; width:2px; background:rgba(45,201,99,.55); }
-.cli-hline{ position:absolute; left:0; right:0; height:2px; background:rgba(45,201,99,.55); }
-
-/* radar pings, sit in the middle of a grid cell (8x3). delays roughly follow the scanline */
-.cli-ping{
-  position:absolute;
-  width:14px; height:14px;
+.cli-peg{
+  left:calc((var(--c) + .5) * var(--sq)); top:calc((var(--r) + .5) * var(--sq));
+  width:3.4cqi; height:3.4cqi;
+  margin:-1.7cqi 0 0 -1.7cqi;
   border-radius:50%;
-  border:2px solid rgba(120,255,160,.9);
-  transform:translate(-50%,-50%) scale(.3);
+  background:#e4f2e8;
+  box-shadow:0 .6cqi 0 #8fa597;
   opacity:0;
-  animation:cli-ping-idle 3.6s ease-out infinite;
 }
-.cli-ping-a{ left:31.25%; top:50%; }
-.cli-ping-b{ left:81.25%; top:50%; animation-delay:2.1s; }
-.cli-ping-c{ left:31.25%; top:16.667%; animation-delay:.7s; }
-.cli-ping-d{ left:68.75%; top:16.667%; animation-delay:1.4s; }
-.cli-ping-e{ left:56.25%; top:83.333%; animation-delay:2.8s; }
-/* faint idle blips, hover swaps them for the brighter ones below */
-@keyframes cli-ping-idle{
-  0%{ transform:translate(-50%,-50%) scale(.3); opacity:.4; }
-  100%{ transform:translate(-50%,-50%) scale(1.8); opacity:0; }
+.cli-hit{ background:#ff6b6b; box-shadow:0 .6cqi 0 #b83a3a; }
+.cli-peg-set{ opacity:1; }
+.project-card-cli:hover .cli-peg:not(.cli-peg-set),
+.project-card-cli:focus-within .cli-peg:not(.cli-peg-set){ animation:cli-peg .3s cubic-bezier(.3,1.5,.6,1) calc(.25s + var(--d) * .4s) both; }
+@keyframes cli-peg{
+  from{ opacity:0; scale:1.9; translate:0 -1.5cqi; }
+  to{ opacity:1; scale:1; translate:0 0; }
 }
-.project-card-cli:hover .cli-ping,
-.project-card-cli:focus-within .cli-ping{ animation:cli-ping .8s ease-out .52s infinite; }
-.project-card-cli:hover .cli-ping-c,
-.project-card-cli:focus-within .cli-ping-c{ animation-delay:.30s; }
-.project-card-cli:hover .cli-ping-d,
-.project-card-cli:focus-within .cli-ping-d{ animation-delay:.38s; }
-.project-card-cli:hover .cli-ping-b,
-.project-card-cli:focus-within .cli-ping-b{ animation-delay:.60s; }
-.project-card-cli:hover .cli-ping-e,
-.project-card-cli:focus-within .cli-ping-e{ animation-delay:.80s; }
-@keyframes cli-ping{
-  0%{ transform:translate(-50%,-50%) scale(.3); opacity:.9; }
-  100%{ transform:translate(-50%,-50%) scale(2.6); opacity:0; }
-}
-
-.cli-title{
+/* the last hit sinks it */
+.project-card-cli:hover .cli-ship,
+.project-card-cli:focus-within .cli-ship{ animation:cli-sink .4s ease 1.75s both; }
+@keyframes cli-sink{ to{ background:#6b3a3a; box-shadow:0 .7cqi 0 #3a1f1f; } }
+.cli-words{
   position:relative; z-index:1;
+  display:flex; flex-direction:column; align-items:flex-start;
+  gap:1.4cqi;
+}
+.cli-path{
   font-family:var(--font-mono);
   font-weight:700;
-  font-size:clamp(20px,2.4vw,32px); font-size:8cqi;
-  color:#0ba800;
-  transition:color .3s ease, text-shadow .3s ease;
+  font-size:2.9cqi;
+  color:#93ab9c;
 }
-.project-card-cli:hover .cli-title,
-.project-card-cli:focus-within .cli-title{
-  color:#2be645;
-  text-shadow:0 0 10px rgba(80,255,150,.6);
+.cli-user{ color:#3ddc84; }
+.cli-title{
+  font-family:"Saira Stencil One", var(--font-sans);
+  font-size:9.6cqi;
+  line-height:.95;
+  color:#e4f2e8;
+  text-shadow:0 .06em 0 #050806;
+  white-space:nowrap;
 }
+.cli-title-cli{ color:#3ddc84; }
+.cli-caret{
+  display:inline-block;
+  width:.42em; height:.8em;
+  margin-left:.12em;
+  background:#3ddc84;
+  vertical-align:-.04em;
+  animation:cli-blink 1s step-end infinite;
+}
+@keyframes cli-blink{ 50%{ opacity:0; } }
 
-.cli-scan{
-  position:absolute; left:0; right:0; height:28px;
-  top:-30px;
-  background:linear-gradient(rgba(110,255,150,0) 0%, rgba(130,255,170,.5) 50%, rgba(110,255,150,0) 100%);
-  pointer-events:none;
-  opacity:0;
-  animation:cli-scan-idle 4.5s ease-in-out infinite;
-}
-/* slow, dim standby sweep; hover swaps it for the brighter, faster pass below */
-@keyframes cli-scan-idle{
-  0%{ top:-30px; opacity:0; }
-  12%{ opacity:.35; }
-  88%{ opacity:.35; }
-  100%{ top:100%; opacity:0; }
-}
-.project-card-cli:hover .cli-scan,
-.project-card-cli:focus-within .cli-scan{ animation:cli-scan-sweep 1.6s ease-in-out infinite; }
-@keyframes cli-scan-sweep{
-  0%{ top:-30px; opacity:0; }
-  12%{ opacity:1; }
-  88%{ opacity:1; }
-  100%{ top:100%; opacity:0; }
-}
-
-/* pantry wizard card, positions from figma (400x145) as % so it scales */
+/* pantry wizard card: a shelf in the pantry, flat violet from the app's own blue to purple. the crystal ball
+   that keeps count sits at one end with the food along the shelf, and the title above. on hover the orb
+   takes stock: each food hops in turn as it's counted */
 .project-card-pantry{
   position:relative;
   overflow:hidden;
-  background:linear-gradient(109deg, #5e7fff 2.6%, #af53ff 98.1%);
-  transition:filter .25s ease, transform .2s ease;
+  background:#7357f2;
 }
 .project-card-pantry:hover,
-.project-card-pantry:focus-within{
-  background:linear-gradient(109deg, #6f8dff 2.6%, #bd68ff 98.1%);
-  filter:brightness(1.08);
+.project-card-pantry:focus-within{ background:#7b60f6; }
+.project-card-pantry .project-card-link > *{ position:absolute; }
+/* the shelf's lip, and its front down to the bottom of the card */
+.pantry-shelf{
+  left:0; right:0; top:29cqi; bottom:0;
+  background:#4b33c4;
+  border-top:1.8cqi solid #a08cff;
 }
-
 .pantry-orb{
-  position:absolute;
-  left:1.5%; top:6.9%;
-  width:31.25%;
-  aspect-ratio:1/1;
-  z-index:0;
+  left:4.5cqi; top:4.4cqi;
+  width:25cqi; height:25cqi;
+  animation:pantry-float 4s ease-in-out infinite;
 }
-.pantry-food{
-  position:absolute;
-  z-index:1;
-  --tilt:6deg;
-  animation:pantry-bob var(--dur,4s) ease-in-out infinite, pantry-idle-glow 3s ease-in-out infinite;
-  animation-delay:var(--delay,0s), var(--delay,0s);
+@keyframes pantry-float{
+  0%, 100%{ translate:0 0; }
+  50%{ translate:0 -1cqi; }
 }
-.pantry-food-inner{ display:block; width:100%; height:100%; }
-.pantry-orb img,
-.pantry-food img{ display:block; width:100%; height:100%; pointer-events:none; }
-
-/* zigzag left to right, --delay staggers the bob and the hover animation */
-.pantry-food-drumstick{
-  left:36.25%; top:53.8%; width:16.5%; aspect-ratio:1/1;
-  --tilt:8deg; --dur:3.8s; --delay:0s;
+.pantry-food{ bottom:calc(100% - 29.6cqi); transform-origin:50% 100%; }
+/* (bread.svg has more empty space under it than the others, so it sits lower to rest on the shelf too) */
+.pantry-food-bread{ left:36cqi; width:13cqi; bottom:calc(100% - 30.8cqi); }
+.pantry-food-drumstick{ left:52cqi; width:13.5cqi; }
+.pantry-food-kiwi{ left:69cqi; width:12cqi; }
+.pantry-food-apple{ left:84cqi; width:11.5cqi; }
+.project-card-pantry:hover .pantry-orb,
+.project-card-pantry:focus-within .pantry-orb{ animation:pantry-look 2.4s ease-in-out infinite; }
+@keyframes pantry-look{
+  0%, 100%{ rotate:0deg; }
+  25%{ rotate:-4deg; }
+  70%{ rotate:5deg; }
 }
-.pantry-food-bread{
-  left:51.25%; top:2.8%; width:16.5%; aspect-ratio:1/1;
-  --tilt:-7deg; --dur:4.6s; --delay:.2s;
+.project-card-pantry:hover .pantry-food,
+.project-card-pantry:focus-within .pantry-food{ animation:pantry-count 2.4s cubic-bezier(.3,1.3,.5,1) calc(var(--i) * .3s) infinite; }
+@keyframes pantry-count{
+  0%, 22%, 100%{ translate:0 0; scale:1; }
+  4%{ translate:0 0; scale:1.08 .9; }
+  11%{ translate:0 -3.4cqi; scale:.96 1.05; }
 }
-.pantry-food-kiwi{
-  left:66.25%; top:53.8%; width:16.5%; aspect-ratio:1/1;
-  --tilt:-6deg; --dur:4.2s; --delay:.4s;
-}
-.pantry-food-apple{
-  left:80%; top:12%; width:16.5%; aspect-ratio:1/1;
-  --tilt:9deg; --dur:5s; --delay:.6s;
-}
-
 .pantry-title{
-  position:relative; z-index:2;
+  left:32cqi; right:3cqi; top:4.6cqi;
   font-family:var(--font-sans);
   font-weight:700;
-  font-size:clamp(24px,2.8vw,36px); font-size:9cqi;
+  font-size:8.6cqi;
+  line-height:1;
+  text-align:center;
   color:#fff;
-  -webkit-text-stroke:4.5px #d167ff;
-  paint-order:stroke fill;
-  text-shadow:0 0 0 rgba(209,103,255,0);
-  transition:text-shadow .3s ease;
-}
-.project-card-pantry:hover .pantry-title,
-.project-card-pantry:focus-within .pantry-title{
-  text-shadow:0 0 12px rgba(209,103,255,.85), 0 0 26px rgba(209,103,255,.55);
+  text-shadow:0 .07em 0 #3a2591;
+  white-space:nowrap;
 }
 
-/* continuous idle float, running the whole time regardless of hover */
-@keyframes pantry-bob{
-  0%,100%{ transform:translateY(0) rotate(var(--tilt,0deg)); }
-  50%{ transform:translateY(-9px) rotate(calc(var(--tilt,0deg) * -1)); }
-}
-
-/* idle shimmer */
-@keyframes pantry-idle-glow{
-  0%,100%{ filter:drop-shadow(0 0 0 rgba(230,190,255,0)); }
-  50%{ filter:drop-shadow(0 0 5px rgba(230,190,255,.55)); }
-}
-
-/* hover: food disappears one by one then fades back. on the inner span
-   so it doesn't fight with the bob animation */
-.project-card-pantry:hover .pantry-food-inner,
-.project-card-pantry:focus-within .pantry-food-inner{
-  animation:pantry-apparate 2.6s ease-in-out infinite;
-  animation-delay:var(--delay,0s);
-}
-@keyframes pantry-apparate{
-  0%,3%{ transform:scale(1) rotate(0deg); opacity:1; }
-  5%{ transform:scale(1.15) rotate(-6deg); opacity:1; }
-  10.5%{ transform:scale(0) rotate(26deg); opacity:0; }
-  10.51%,40%{ transform:scale(0) rotate(0deg); opacity:0; }
-  46%,100%{ transform:scale(1) rotate(0deg); opacity:1; }
-}
-
-/* squimble quest card, placeholder for now. the faint grid is meant to look like a top down tile map */
 /* squimble quest card: the squimble quest page's meadow, its logo, and the shore it ends on. everything
    is in pixels of --px screen px, a whole number so the pixel art stays even (logo.svg is 111 x 16,
    meadow.svg 160 x 160, shore.svg 85 x 8) */
@@ -1805,11 +1703,11 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
   .reveal{ opacity:1; transform:none; }
   .bg-nebula-1, .bg-nebula-2, .bg-nebula-3, .shooting-star{ animation:none; }
   .design-viewer[open]{ animation:none; }
-  .wizard-robe-a, .wizard-robe-b, .wizard-wand-a, .wizard-wand-b, .wand-tip{ animation:none; }
-  .cli-ping, .cli-scan{ animation:none; }
+  .wizard-ring, .wizard-you, .wizard-foe, .wizard-twinkle{ animation:none !important; }
+  .cli-caret{ animation:none; }
   .studio-wave i, .studio-playhead{ animation:none; }
   .project-card-music, .music-paint, .music-notes i, .music-swatches i, .music-title, .music-word span{ animation:none !important; }
   .osc-tail, .osc-head{ animation:none; opacity:0; }
-  .pantry-food, .pantry-food-inner{ animation:none; }
+  .pantry-orb, .pantry-food{ animation:none !important; }
   .earth-spin, .earth-bar i{ animation:none !important; }
 }

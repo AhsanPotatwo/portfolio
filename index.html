@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=Bagel+Fat+One&family=Gochi+Hand&family=Crimson+Pro:wght@400&family=Tektur:wdth,wght@75..100,600..800&family=Recursive:wght,CASL@800..1000,0..1&family=Barlow+Condensed:ital,wght@1,700&family=Fredoka:wght@700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=Bagel+Fat+One&family=Gochi+Hand&family=Crimson+Pro:wght@700&family=Saira+Stencil+One&family=Tektur:wdth,wght@75..100,600..800&family=Recursive:wght,CASL@800..1000,0..1&family=Barlow+Condensed:ital,wght@1,700&family=Fredoka:wght@700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -140,17 +140,14 @@
           <li class="project" id="wizard-battles">
             <div class="project-card project-card-wizard">
               <a class="project-card-link" href="wizard-battles.html" aria-describedby="pj-wizard">
-                <span class="wizard-robe wizard-robe-a" aria-hidden="true"></span>
-                <span class="wizard-robe wizard-robe-b" aria-hidden="true"></span>
-                <span class="wizard-wand wizard-wand-a" aria-hidden="true">
-                  <span class="wand-stick"></span>
-                  <span class="wand-tip"></span>
-                </span>
-                <span class="wizard-wand wizard-wand-b" aria-hidden="true">
-                  <span class="wand-stick"></span>
-                  <span class="wand-tip"></span>
-                </span>
-                <span class="wizard-title">Wizard Battles</span>
+                <!-- the wizard battles table: runes scratched into the wood, the page's magic circle turning, and the name
+                     a wizard to a line, blue shadow under one and red under the other. on hover they take turns, like the
+                     duel: one word lunges, then the other, and the circle speeds up -->
+                <img class="wizard-ring" src="assets/wizard-battles/rune-ring.svg" alt="" draggable="false">
+                <span class="wizard-title"><span class="wizard-you">Wizard</span> <span class="wizard-foe">Battles</span></span>
+                <svg class="wizard-twinkle wizard-twinkle-a" viewBox="0 0 84.349 84.349" aria-hidden="true" focusable="false"><path d="M0 41.975L27.983 27.983L41.974 0L55.966 27.983L84.349 41.975L55.966 55.966L41.974 84.349L27.983 55.966Z"/></svg>
+                <svg class="wizard-twinkle wizard-twinkle-b" viewBox="0 0 84.349 84.349" aria-hidden="true" focusable="false"><path d="M0 41.975L27.983 27.983L41.974 0L55.966 27.983L84.349 41.975L55.966 55.966L41.974 84.349L27.983 55.966Z"/></svg>
+                <svg class="wizard-twinkle wizard-twinkle-c" viewBox="0 0 84.349 84.349" aria-hidden="true" focusable="false"><path d="M0 41.975L27.983 27.983L41.974 0L55.966 27.983L84.349 41.975L55.966 55.966L41.974 84.349L27.983 55.966Z"/></svg>
               </a>
             </div>
             <div class="project-info" id="pj-wizard">
@@ -161,25 +158,21 @@
           <li class="project" id="cli-battleships">
             <div class="project-card project-card-cli">
               <a class="project-card-link" href="cli-battleships.html" aria-describedby="pj-cli">
-              <span class="cli-grid" aria-hidden="true">
-                <span class="cli-vline" style="left:12.5%"></span>
-                <span class="cli-vline" style="left:25%"></span>
-                <span class="cli-vline" style="left:37.5%"></span>
-                <span class="cli-vline" style="left:50%"></span>
-                <span class="cli-vline" style="left:62.5%"></span>
-                <span class="cli-vline" style="left:75%"></span>
-                <span class="cli-vline" style="left:87.5%"></span>
-                <span class="cli-hline" style="top:33.333%"></span>
-                <span class="cli-hline" style="top:66.667%"></span>
-                <span class="cli-ping cli-ping-a" aria-hidden="true"></span>
-                <span class="cli-ping cli-ping-b" aria-hidden="true"></span>
-                <span class="cli-ping cli-ping-c" aria-hidden="true"></span>
-                <span class="cli-ping cli-ping-d" aria-hidden="true"></span>
-                <span class="cli-ping cli-ping-e" aria-hidden="true"></span>
-              </span>
-              <span class="cli-frame" aria-hidden="true"></span>
-              <span class="cli-title">CLI Battleships</span>
-              <span class="cli-scan" aria-hidden="true"></span>
+                <!-- the battleships page's board in squares on the green screen, a grey ship, and the title under the
+                     command that runs it. on hover the shots go in, white pegs for misses and red for hits, till the ship sinks -->
+                <span class="cli-board" aria-hidden="true">
+                  <i class="cli-ship"></i>
+                  <i class="cli-peg cli-miss cli-peg-set" style="--c:3;--r:0"></i>
+                  <i class="cli-peg cli-hit cli-peg-set" style="--c:2;--r:3"></i>
+                  <i class="cli-peg cli-miss" style="--c:6;--r:0;--d:0"></i>
+                  <i class="cli-peg cli-hit" style="--c:3;--r:3;--d:1"></i>
+                  <i class="cli-peg cli-miss" style="--c:9;--r:3;--d:2"></i>
+                  <i class="cli-peg cli-hit" style="--c:4;--r:3;--d:3"></i>
+                </span>
+                <span class="cli-words">
+                  <span class="cli-path" aria-hidden="true"><span class="cli-user">guest@ahsan</span>:~$ ./battleships</span>
+                  <span class="cli-title"><span class="cli-title-cli">CLI</span> Battleships<span class="cli-caret" aria-hidden="true"></span></span>
+                </span>
               </a>
             </div>
             <div class="project-info" id="pj-cli">
@@ -190,21 +183,14 @@
           <li class="project" id="pantry-wizard">
             <div class="project-card project-card-pantry">
               <a class="project-card-link" href="pantry-wizard.html" aria-describedby="pj-pantry">
-                <span class="pantry-orb" aria-hidden="true">
-                  <img src="assets/pantry-crystalball.svg" alt="" draggable="false">
-                </span>
-                <span class="pantry-food pantry-food-bread" aria-hidden="true">
-                  <span class="pantry-food-inner"><img src="assets/pantry-bread.svg" alt="" draggable="false"></span>
-                </span>
-                <span class="pantry-food pantry-food-drumstick" aria-hidden="true">
-                  <span class="pantry-food-inner"><img src="assets/pantry-drumstick.svg" alt="" draggable="false"></span>
-                </span>
-                <span class="pantry-food pantry-food-kiwi" aria-hidden="true">
-                  <span class="pantry-food-inner"><img src="assets/pantry-kiwi.svg" alt="" draggable="false"></span>
-                </span>
-                <span class="pantry-food pantry-food-apple" aria-hidden="true">
-                  <span class="pantry-food-inner"><img src="assets/pantry-apple.svg" alt="" draggable="false"></span>
-                </span>
+                <!-- a shelf in the pantry: the crystal ball that keeps count at one end and the food along the shelf.
+                     on hover the orb takes stock, and each food hops in turn as it's counted -->
+                <span class="pantry-shelf" aria-hidden="true"></span>
+                <img class="pantry-orb" src="assets/pantry-crystalball.svg" alt="" draggable="false">
+                <img class="pantry-food pantry-food-bread" style="--i:0" src="assets/pantry-bread.svg" alt="" draggable="false">
+                <img class="pantry-food pantry-food-drumstick" style="--i:1" src="assets/pantry-drumstick.svg" alt="" draggable="false">
+                <img class="pantry-food pantry-food-kiwi" style="--i:2" src="assets/pantry-kiwi.svg" alt="" draggable="false">
+                <img class="pantry-food pantry-food-apple" style="--i:3" src="assets/pantry-apple.svg" alt="" draggable="false">
                 <span class="pantry-title">Pantry Wizard</span>
               </a>
             </div>

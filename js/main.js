@@ -136,47 +136,6 @@
   // shooting stars (particles.js)
   if (window.PortfolioFX) window.PortfolioFX.initShootingStars();
 
-  // shuffle the radar pings on the cli battleships card each hover so it's not the same cells every time
-  var cliCards = document.querySelectorAll('.project-card-cli');
-  if (cliCards.length) {
-    var cliCols = 8, cliRows = 3;
-    var cliCells = [];
-    for (var cr = 0; cr < cliRows; cr++) {
-      for (var cc = 0; cc < cliCols; cc++) {
-        cliCells.push({
-          left: ((cc + 0.5) / cliCols * 100).toFixed(3) + '%',
-          top: ((cr + 0.5) / cliRows * 100).toFixed(3) + '%'
-        });
-      }
-    }
-
-    var shuffledCliCells = function () {
-      var pool = cliCells.slice();
-      for (var i = pool.length - 1; i > 0; i--) {
-        var j = Math.floor(Math.random() * (i + 1));
-        var tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
-      }
-      return pool;
-    };
-
-    Array.prototype.forEach.call(cliCards, function (card) {
-      var pings = card.querySelectorAll('.cli-ping');
-
-      var randomizePings = function () {
-        var pool = shuffledCliCells();
-        Array.prototype.forEach.call(pings, function (ping, i) {
-          var cell = pool[i % pool.length];
-          ping.style.left = cell.left;
-          ping.style.top = cell.top;
-        });
-      };
-
-      randomizePings();
-      card.addEventListener('mouseenter', randomizePings);
-      card.addEventListener('focusin', randomizePings);
-    });
-  }
-
   // keep the footer year up to date
   var year = document.getElementById('year');
   if (year) year.textContent = String(new Date().getFullYear());
