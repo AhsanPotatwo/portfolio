@@ -104,6 +104,10 @@
   }
 
   let order = shuffle([...TIPS.keys()]);
+  // the bar fills (and the planet fails to load) once a lap of about a thousand tips, however many tips
+  // there are, going on through the same shuffled order so none comes back until all have been seen
+  const LAP = TIPS.length / Math.max(1, Math.round(TIPS.length / 1000));
+  const lapStart = i => Math.floor(i / LAP) !== Math.floor((i - 1) / LAP);
   let at = -1;          // where in order we are
   let shown = 0;        // how far through this tip's time we are, 0 to 1
   let length = 1;       // this tip's time, in ms
@@ -153,7 +157,7 @@
     text.innerHTML = linked(tip.text);
     enlarge.href = p.page;
     credit.textContent = p.by ? `Picture: ${p.by}${p.licence ? ', ' + p.licence : ''}` : p.licence ? `Picture: ${p.licence}` : '';
-    statusWords.textContent = loops && at === 0 ? 'Earth failed to load. Trying again' : STATUS[(at + loops) % STATUS.length];
+    statusWords.textContent = lapStart(at) && (loops || at > 0) ? 'Earth failed to load. Trying again' : STATUS[(at + loops) % STATUS.length];
     // screen readers hear the new caption only when it was asked for, not every few seconds
     caption.setAttribute('aria-live', byHand ? 'polite' : 'off');
     thumb.classList.remove('is-out');
@@ -171,7 +175,7 @@
   // the bar: how many tips have gone by, eased like every loading bar that ever lied, quick at first then
   // crawling, a fifth of the way after a few tips, halfway after a few dozen, never past 99
   function draw() {
-    const x = (Math.max(at, 0) + shown) / order.length;
+    const x = (Math.max(at, 0) % LAP + shown) / LAP;
     const done = 99 * (1 - (1 - x) ** 4.5);
     fill.style.width = done + '%';
     pct.textContent = Math.floor(done) + '%';
