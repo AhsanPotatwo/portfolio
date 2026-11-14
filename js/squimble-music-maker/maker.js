@@ -834,6 +834,7 @@
     const colour = MOODS[song.mood].colour;
     document.body.style.setProperty('--mm-mood', colour);
     document.body.style.setProperty('--mm-mood-ink', inkOn(colour));
+    sky.mood(song.mood, colour);
   }
 
   let lastReadout = '';
@@ -3976,6 +3977,7 @@
       bobbing = false;
       playKey.style.scale = dockKey.style.scale = label.style.translate = '';
     }
+    sky.frame(player);
     drawScore();
     renderReadout();
     if (editor && player.playing) editor.draw();

@@ -88,6 +88,10 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
 /* recursive: one family for everything. its casual axis (CASL) leans letters towards brush lettering,
    and its MONO axis gives the readouts even, tabular numbers */
 .mm-page main{ font-family:var(--mm-ui); font-variation-settings:"CASL" 0.5; }
+/* the sky (sky.js): a canvas fixed behind the page. main and the footer are positioned so they're drawn
+   over it, in the order they come */
+.mm-sky{ position:fixed; inset:0; width:100%; height:100%; pointer-events:none; }
+.mm-page main, .mm-page .site-footer{ position:relative; }
 /* (buttons don't take the page's font on their own, so the small lines in them would be the system's) */
 .mm-page main button{ font-family:var(--mm-ui); }
 .mm-label-seed input, .mm-readout, .mm-slider output, .mm-chord-input, .mm-chip b, .mm-bars span{ font-variation-settings:"MONO" 1, "CASL" 0; }

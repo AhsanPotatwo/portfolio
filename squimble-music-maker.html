@@ -22,6 +22,8 @@
 <body class="mm-page">
   <!-- dark mode, if it was picked last time, before anything's drawn (maker.js keeps it) -->
   <script>try { if (localStorage.getItem('squimble-music-dark')) document.body.classList.add('is-dark'); } catch { /* light */ }</script>
+  <!-- the sky behind everything, drawn to the music in the mood's own scene (js/squimble-music-maker/sky.js) -->
+  <canvas class="mm-sky" id="mmSky" aria-hidden="true"></canvas>
 
   <a class="skip-link" href="#maker">Skip to the music maker</a>
 
@@ -397,6 +399,7 @@
   <script src="js/squimble-music-maker/music.js"></script>
   <script src="js/squimble-music-maker/learn.js"></script>
   <script src="js/squimble-music-maker/library.js"></script>
+  <script src="js/squimble-music-maker/sky.js"></script>
   <script src="js/squimble-music-maker/maker.js"></script>
 </body>
 
