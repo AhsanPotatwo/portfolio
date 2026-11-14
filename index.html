@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=Bagel+Fat+One&family=Gochi+Hand&family=Crimson+Pro:wght@700&family=Saira+Stencil+One&family=Tektur:wdth,wght@75..100,600..800&family=Recursive:wght,CASL@800..1000,0..1&family=Barlow+Condensed:ital,wght@1,700&family=Fredoka:wght@700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Courier+Prime:wght@400;700&family=Bagel+Fat+One&family=Gochi+Hand&family=Crimson+Pro:wght@700&family=Saira+Stencil+One&family=Tektur:wdth,wght@75..100,600..800&family=Recursive:wght,CASL@800..1000,0..1&family=Barlow+Condensed:ital,wght@1,700&family=Fredoka:wght@700&family=Sniglet:wght@800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -133,6 +133,7 @@
             <p class="pi-group">Just for fun</p>
             <ul>
               <li><a href="#earth-loading-screens" style="--c:#7cc25b">Earth Loading Screens</a></li>
+              <li><a href="#distant-cousins" style="--c:#ef6a4c">Distant Cousins</a></li>
             </ul>
           </nav>
         </div>
@@ -282,6 +283,26 @@
             <div class="project-info" id="pj-earth">
               <p class="project-hook">A thousand little pictures and captions from Wikipedia, shown one at a time like a video game's loading screen, with calm music.</p>
               <ul class="project-tags"><li>JavaScript</li><li>Wikimedia API</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Try it in browser</li></ul>
+            </div>
+          </li>
+          <li class="project" id="distant-cousins">
+            <div class="project-card project-card-dc">
+              <a class="project-card-link" href="distant-cousins.html" aria-describedby="pj-dc">
+                <!-- the page's sand and fossils, and a little tree: a knot at the bottom with three branches, each ending
+                     in a specimen card. on hover the cards bob one after another, like the page's cards do -->
+                <svg class="cousins-tree" viewBox="0 0 100 100" aria-hidden="true">
+                  <path class="cousins-branch" d="M50 92V64C50 50 22 52 20 34M50 64V28M50 64C50 50 78 52 80 34"/>
+                  <g class="cousins-leaf"><circle cx="20" cy="27" r="13"/><circle class="cousins-dot" cx="20" cy="24" r="4.5" fill="#ef6a4c"/></g>
+                  <g class="cousins-leaf"><circle cx="50" cy="21" r="13"/><circle class="cousins-dot" cx="50" cy="18" r="4.5" fill="#4f9d69"/></g>
+                  <g class="cousins-leaf"><circle cx="80" cy="27" r="13"/><circle class="cousins-dot" cx="80" cy="24" r="4.5" fill="#ffc53d"/></g>
+                  <circle class="cousins-knot" cx="50" cy="92" r="6"/>
+                </svg>
+                <span class="cousins-title">Distant Cousins</span>
+              </a>
+            </div>
+            <div class="project-info" id="pj-dc">
+              <p class="project-hook">The family tree of every animal, from the first life on Earth up. Over two million creatures to find, with a favourite to compare them all with.</p>
+              <ul class="project-tags"><li>JavaScript</li><li>Wikidata</li><li>Node.js</li><li class="project-tag-play"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Try it in browser</li></ul>
             </div>
           </li>
           <!-- the empty slot at the end of the grid -->

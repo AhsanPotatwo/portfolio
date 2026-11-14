@@ -1461,6 +1461,38 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
 .project-card-earth:focus-within .earth-bar i{ animation:earth-load 3.2s cubic-bezier(.1,.7,.2,1) infinite; }
 @keyframes earth-load{ 0%{ width:8%; } 85%,100%{ width:97%; } }
 
+/* distant cousins card: the page's peach sand with its fossils, a little tree whose branches end in
+   specimen cards, and the title with the page's soft shadow. on hover the cards bob one after another */
+.project-card-dc{
+  position:relative;
+  overflow:hidden;
+  background:#fde3cf url("../assets/distant-cousins/fossils.svg") 0 0 / 200px;
+}
+.project-card-dc:hover,
+.project-card-dc:focus-within{ background-color:#fee9d9; }
+.project-card-dc .project-card-link{
+  display:flex; align-items:center; justify-content:center;
+  gap:5cqi;
+}
+.cousins-tree{ flex:none; width:27cqi; height:auto; overflow:visible; }
+.cousins-branch{ fill:none; stroke:#9a6a52; stroke-width:6; stroke-linecap:round; stroke-linejoin:round; }
+.cousins-knot{ fill:#9a6a52; }
+.cousins-leaf > circle:first-child{ fill:#fffaf4; stroke:#e8bf9f; stroke-width:3; }
+.cousins-leaf{ transform-box:fill-box; transform-origin:50% 100%; }
+.project-card-dc:hover .cousins-leaf,
+.project-card-dc:focus-within .cousins-leaf{ animation:cousins-bob 1.2s var(--ease-out) infinite; }
+.project-card-dc .cousins-leaf:nth-of-type(2){ animation-delay:.15s; }
+.project-card-dc .cousins-leaf:nth-of-type(3){ animation-delay:.3s; }
+@keyframes cousins-bob{ 0%,60%,100%{ transform:none; } 25%{ transform:translateY(-12%) rotate(-4deg); } }
+.cousins-title{
+  font-family:"Sniglet", var(--font-sans);
+  font-weight:800;
+  font-size:8.4cqi;
+  line-height:1;
+  color:#3b2440;
+  text-shadow:0 .7cqi 0 #f6bfa2;
+}
+
 /* contact: the page ends on a flat butter band, with one big night-coloured star in the corner */
 .contact{
   position:relative;
@@ -1710,4 +1742,5 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
   .osc-tail, .osc-head{ animation:none; opacity:0; }
   .pantry-orb, .pantry-food{ animation:none !important; }
   .earth-spin, .earth-bar i{ animation:none !important; }
+  .cousins-leaf{ animation:none !important; }
 }

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320" fill="none" stroke="#f6cdb3" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+  <!-- fossils pressed faintly into the sand, placed by hand so the tile never lines up in rows -->
+  <!-- ammonite: a spiral of half circles -->
+  <path d="M60 70A3 3 0 0 1 66 70A6 6 0 0 1 54 70A9 9 0 0 1 72 70A12 12 0 0 1 48 70A15 15 0 0 1 78 70A18 18 0 0 1 42 70"/>
+  <!-- trilobite -->
+  <path d="M232 36C247 36 251 48 249 60C247 74 240 82 232 82C224 82 217 74 215 60C213 48 217 36 232 36Z"/>
+  <path d="M216 50Q232 57 248 50M227 51L228 80M237 51L236 80M218 59H246M218 66H246M220 73H244"/>
+  <!-- three toed footprint -->
+  <path d="M46 186L34 164M46 186L47 160M46 186L59 166M46 186V194"/>
+  <!-- bone -->
+  <path d="M152 146H180"/>
+  <circle cx="149" cy="142" r="4"/><circle cx="149" cy="150" r="4"/><circle cx="183" cy="142" r="4"/><circle cx="183" cy="150" r="4"/>
+  <!-- scallop shell -->
+  <path d="M268 226L249 196Q268 176 287 196Z"/>
+  <path d="M268 226L259 190M268 226L268 185M268 226L277 190M262 232H274"/>
+  <!-- fern frond -->
+  <path d="M96 296Q104 248 126 206"/>
+  <path d="M99 280L86 274M100 272L113 268M103 260L90 252M106 250L119 246M110 238L98 230M114 229L127 226M119 218L109 211"/>
+  <!-- fish bones -->
+  <path d="M176 278H212L222 271M212 278L222 285M184 271V285M192 269V287M200 270V286M176 278L168 271M176 278L168 285"/>
+  <!-- little pebbles and grains -->
+  <circle cx="132" cy="38" r="2.5"/><circle cx="292" cy="122" r="2.5"/><circle cx="24" cy="262" r="2.5"/><circle cx="210" cy="132" r="2"/><circle cx="160" cy="226" r="2"/><circle cx="296" cy="300" r="2"/>
+</svg>
