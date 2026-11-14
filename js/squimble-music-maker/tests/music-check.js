@@ -21,6 +21,9 @@
 // gamelan's gong comes round every cycle, and a place's own kits and scenery stay in its moods.
 // a blank track plays nothing, and its layers played by hand play only their own notes. every rule
 // above holds for every flavour of every mood too, and flavours name only real things and save.
+// a song is planned whole (the plan): parts start on different chords, a section leading on over one
+// chord turns into the next, the lift has the tune's top notes, the bass ends at home. an older
+// composer that's here writes a new song its own way, and one that isn't hands it to today's.
 // (double stops, notes marked stop, are a second note under the tune on purpose, so the one note at a
 // time checks leave them out)
 // run it with
@@ -824,6 +827,15 @@ block('kept composers', () => {
   assert(!('composer' in cleanSong(saved)) && !('composer' in cleanSong({ ...saved, composer: 9 })), 'no stamp, or junk, is the first composer');
   same(run('composeSong')(run('cleanSong')(saved)).notes, run('KEPT_COMPOSERS[1].composeSong')(cleanSong(saved)).notes, 'a song from before the stamp plays with the kept composer');
   assert.notStrictEqual(JSON.stringify(run('composeSong')(saved).notes), JSON.stringify(composeSong(song).notes), 'the kept composer is the old one');
+  // an older composer that's here writes a new song its own way, picks and notes (the page's Composer
+  // key): the song its own generateSong makes, saying it made it, played by it. one it never had the
+  // mood for goes to today's
+  const older = run("generateSong('calm', 'tune', 'frosted-waffle', ['fast'], undefined, 1)");
+  same(older, run("cleanSong(KEPT_COMPOSERS[1].generateSong('calm', 'tune', 'frosted-waffle', ['fast']))"), 'an older composer writes the song it always would have');
+  assert(!('composer' in older) && JSON.stringify(older) !== JSON.stringify(run("generateSong('calm', 'tune', 'frosted-waffle', ['fast'])")), "it's the first composer's, not today's");
+  same(run('composeSong')(older).notes, run('KEPT_COMPOSERS[1].composeSong')(older).notes, 'and plays it');
+  assert(run("composerKnows(1, 'calm', 'tune') && !composerKnows(1, 'sands', 'tune') && !composerKnows(1, 'calm', 'final') && !composerKnows(4, 'calm', 'tune')"), 'a composer knows the moods and styles it had, when it is here');
+  same(run("generateSong('sands', 'tune', 'frosted-waffle', [], undefined, 1)"), run("generateSong('sands', 'tune', 'frosted-waffle')"), "a mood it never had is written by today's");
 });
 
 // sung lines (singLine in synth.js): a singer's move to the next note isn't an even slide. it dips the
@@ -1428,21 +1440,29 @@ block('key changes', () => {
       const plain = composeSong(cleanSong(flat));
       const held = new Set(song.layers.filter((l) => ['drone', 'texture', 'drums'].includes(l.role)).map((l) => l.id));
       const necks = song.layers.filter((l) => !held.has(l.id) && onGuitar(l.instrument)).map((l) => l.id);
+      // the bar before a change of key (a loop's last bar too, going back down) is its own: it leads
+      // into the new key (a pickup steps into the tune's first note there, the bass into its first
+      // chord) and has no turnaround, where the same join without the key change might
+      const turning = comp.sections.filter((one) => one.into !== null && (comp.sections[one.into].lift || 0) !== (one.lift || 0));
+      const leading = (n) => turning.some((one) => n.gt >= one.end - comp.bpb - 1e-6 && n.gt < one.end - 1e-6);
       for (const id of necks) {
         held.add(id);
         // (struck on the grid steps it was, as the learn tab gathers them)
-        const steps = (notes) => [...new Set(notes.filter((n) => n.layer === id).map((n) => Math.round(n.gt / comp.step)))];
+        const steps = (notes) => [...new Set(notes.filter((n) => n.layer === id && !leading(n)).map((n) => Math.round(n.gt / comp.step)))];
         assert.deepStrictEqual(steps(comp.notes), steps(plain.notes), `${where}: ${id} strikes its chords when it did`);
       }
-      const mine = comp.notes.filter((n) => !held.has(n.layer));
-      const theirs = plain.notes.filter((n) => !held.has(n.layer));
+      // (in the grid's order: the notes of a chord come out in the order their feel's dice put them)
+      const inOrder = (notes) => notes.filter((n) => !held.has(n.layer) && !leading(n)).sort((a, b) => a.gt - b.gt || (a.layer < b.layer ? -1 : a.layer > b.layer ? 1 : 0) || a.midi - b.midi);
+      const mine = inOrder(comp.notes);
+      const theirs = inOrder(plain.notes);
       assert.strictEqual(mine.length, theirs.length, `${where}: a key change keeps every note`);
       mine.forEach((note, i) => {
         const section = comp.sections.find((one) => note.gt >= one.start - 1e-6 && note.gt < one.end - 1e-6);
-        assert(note.layer === theirs[i].layer && Math.abs(note.t - theirs[i].t) < 1e-9, `${where}: a key change keeps the rhythm`);
+        // (on the grid: how many notes the bar before had moves the dice of every later note's feel)
+        assert(note.layer === theirs[i].layer && Math.abs(note.gt - theirs[i].gt) < 1e-9, `${where}: a key change keeps the rhythm`);
         assert.strictEqual(note.midi, theirs[i].midi + (section.lift || 0), `${where}: ${note.layer} at ${note.gt} moves with the key`);
       });
-      for (const section of comp.sections.filter((one) => one.lift)) {
+      for (const section of comp.sections.filter((one) => one.lift && !turning.includes(one))) {
         const was = plain.sections[section.index].chords;
         section.chords.forEach((chord, i) => assert.strictEqual(chord.root, (was[i].root + section.lift) % 12, `${where}: the chords move with the key`));
       }
@@ -1489,7 +1509,10 @@ block('new notes for one part', () => {
     assert(next, `${where}: the melody's part B can be written again`);
     const after = composeSong(next);
     const inB = (n) => before.sections.some((s) => s.part === 'B' && n.gt >= s.start - 1e-6 && n.gt < s.end - 1e-6);
-    same(written(after, (n) => !inB(n)), written(before, (n) => !inB(n)), `${where}: only part B changes`);
+    // (and the bar that leads into a part B section: a pickup steps into B's first note, which is new,
+    // and the band answers the tune there)
+    const intoB = (n) => before.sections.some((s) => s.into !== null && before.sections[s.into].part === 'B' && n.gt >= s.end - before.bpb - 1e-6 && n.gt < s.end - 1e-6);
+    same(written(after, (n) => !inB(n) && !intoB(n)), written(before, (n) => !inB(n) && !intoB(n)), `${where}: only part B changes`);
     assert.notStrictEqual(written(after, (n) => inB(n) && n.layer === melody.id), written(before, (n) => inB(n) && n.layer === melody.id), `${where}: part B's melody is new`);
     same(cleanSong(JSON.parse(JSON.stringify(next))), next, `${where}: a part's own seed saves`);
     same(cleanSong(withChanges(song, songChanges(song, next))), next, `${where}: and links`);
@@ -1667,6 +1690,103 @@ block('in a game', () => {
     assert.strictEqual(on, layers.reduce((n, l) => n + played.comp.notes.filter((x) => x.layer === l.id).length, 0), `${mood}: every note's in it`);
   }
 }, true);
+
+// the plan (planSong in music.js): a song is planned whole before it's written. its parts start on
+// different chords, a section that leads on over the same chord turns to the chord that pulls into the
+// next (never in a track made by hand, a drone, or over a key change), the tune's long last note steps
+// onto that chord, the song's lift has the tune's highest notes, pickups step over joins, the bass comes
+// home on the last bar, and every part that isn't A is made from the theme
+block('the plan', () => {
+  const { leadingChord, blankSong } = vm.runInContext('({ leadingChord, blankSong })', page);
+  const pc = (midi) => ((midi % 12) + 12) % 12;
+  const notesIn = (comp, id, section) => comp.notes.filter((note) => note.layer === id && !note.stop && note.gt >= section.start - 1e-6 && note.gt < section.end - 1e-6).sort((a, b) => a.gt - b.gt);
+  const seeds = ['plan-one', 'plan-two', 'plan-three', 'plan-four'];
+  const count = { songs: 0, sameStart: 0, allSame: 0, unsteady: 0, lifts: 0, higher: 0, top: 0, turns: 0, rested: 0, rests: 0, joins: 0, pickups: 0, endings: 0 };
+  const first = (text) => String(text).trim().split(/\s+/)[0];
+  for (const mood of Object.keys(MOODS)) {
+    for (const [i, seed] of seeds.entries()) {
+      const style = ['tune', 'tune', 'loop', 'boss'][i];
+      const song = generateSong(mood, style, seed);
+      const where = `${mood} ${style} ${seed}`;
+      count.songs++;
+      if (first(song.parts.A) === first(song.parts.B)) count.sameStart++;
+      if (first(song.parts.A) === first(song.parts.B) && first(song.parts.B) === first(song.parts.C)) count.allSame++;
+      for (const part of ['B', 'C']) if (parseChord(first(song.parts[part])).tones[2] !== 7) count.unsteady++;
+      const comp = composeSong(song);
+      const melody = song.layers.find((l) => l.role === 'melody');
+      const bass = song.layers.find((l) => l.role === 'bass');
+      const tuneIn = (section) => (melody ? notesIn(comp, melody.id, section).filter((note) => note.dur >= 0.2) : []);
+      for (const section of comp.sections) {
+        const next = section.into === null ? null : comp.sections[section.into];
+        assert.strictEqual(section.into, comp.sections[section.index + 1] ? section.index + 1 : style === 'tune' ? null : 0, `${where}: a section leads into the next, a loop's last into its first`);
+        const last = section.chords[section.chords.length - 1];
+        for (const chord of section.chords) {
+          if (!chord.turn) continue;
+          count.turns++;
+          assert(chord === last && section.leads && next, `${where}: a turnaround is the last chord of a section that leads on`);
+          assert(chord.root !== next.chords[0].root && chord.tones[2] === 7, `${where}: a turnaround is a steady chord that isn't the one it leads to`);
+          assert.strictEqual(Math.abs(chord.t + chord.dur - section.end) < 1e-6 && chord.dur <= comp.bpb + 1e-6, true, `${where}: a turnaround is the end of the last bar, a bar at most`);
+          // the tune's long notes over it are notes it has (restOn), bar the odd scale with none near
+          for (const note of tuneIn(section).filter((one) => one.dur >= 1 && one.gt + one.dur > chord.t + 0.5 && !section.lead)) {
+            count.rests++;
+            if (chord.pcs.has(pc(note.midi))) count.rested++;
+          }
+        }
+        // a join that leads on with the same chord either side is only ever one that can't turn
+        if (section.leads && next && last.root === next.chords[0].root) {
+          const drone = section.chords.every((chord) => chord.root === last.root);
+          const keyChange = (section.lift || 0) !== (next.lift || 0);
+          assert(drone || keyChange || !leadingChord(song, next.chords[0]), `${where}: ${section.name} sits on one chord over the join into ${next.name}`);
+        }
+        // pickups over a join: short notes in the last beat, the tune there on the next downbeat
+        if (next && comp.sections[section.index + 1] && !section.lead && !next.lead && tuneIn(section).length && tuneIn(next).length) {
+          count.joins++;
+          if (section.leads && tuneIn(section).some((note) => note.gt >= section.end - 1 - 1e-6 && note.dur <= 0.55) && tuneIn(next)[0].gt < next.start + 0.3) count.pickups++;
+        }
+      }
+      // the lift has the top of the tune
+      const sung = comp.sections.filter((section) => !section.lead && tuneIn(section).length > 4);
+      const pitches = (list) => list.flatMap((section) => tuneIn(section).map((note) => note.midi - (section.lift || 0)));
+      const up = pitches(sung.filter((section) => section.reach > 0));
+      const under = pitches(sung.filter((section) => section.reach < 0));
+      if (up.length && under.length) {
+        const mean = (list) => list.reduce((a, b) => a + b, 0) / list.length;
+        count.lifts++;
+        if (mean(up) > mean(under) + 1) count.higher++;
+        if (Math.max(...up) >= Math.max(...under)) count.top++;
+      }
+      // the bass comes home
+      const end = comp.sections[comp.sections.length - 1];
+      if (style === 'tune' && bass && end.play.includes(bass.id)) {
+        const line = notesIn(comp, bass.id, end);
+        const final = line[line.length - 1];
+        const chord = end.chords[end.chords.length - 1];
+        count.endings++;
+        assert(end.closes && pc(final.midi) === chord.root, `${where}: the bass ends on the last chord's root`);
+        assert(final.gt + final.dur > end.end - comp.bpb * 0.1 && line.filter((note) => note.gt >= Math.max(chord.t, end.end - comp.bpb) - 1e-6).length === 1, `${where}: and holds it through the last bar`);
+      } else if (style !== 'tune') assert(!comp.sections.some((section) => section.closes), `${where}: a loop never closes`);
+    }
+  }
+  assert(count.sameStart / count.songs < 0.35 && count.allSame / count.songs < 0.12, `parts start on different chords (A and B the same in ${count.sameStart} of ${count.songs} songs, all three in ${count.allSame})`);
+  assert(count.unsteady / (count.songs * 2) < 0.08, `parts B and C seldom start on a diminished or augmented chord (${count.unsteady} of ${count.songs * 2})`);
+  assert(count.turns > 40, `enough turnarounds to check (${count.turns})`);
+  assert(count.rests > 20 && count.rested / count.rests > 0.9, `the tune's long notes over a turnaround are the chord's (${count.rested} of ${count.rests})`);
+  assert(count.lifts > 100 && count.higher / count.lifts > 0.6 && count.top / count.lifts > 0.75, `the lift's tune is the higher (${count.higher} of ${count.lifts} sit higher, ${count.top} reach the top note)`);
+  assert(count.pickups / count.joins > 0.1, `tunes step over joins (${count.pickups} of ${count.joins})`);
+  assert(count.endings > 60, `enough endings to check (${count.endings})`);
+  // a track made by hand plays its chords as typed: no turnaround, even over a join that sits still
+  const own = blankSong();
+  own.parts = { A: 'I IV I I' };
+  own.sections = [{ name: 'One', part: 'A', bars: 4, play: ['melody', 'bass', 'drums'], energy: 0.7 }, { name: 'Two', part: 'A', bars: 4, play: ['melody', 'bass', 'drums'], energy: 0.8 }];
+  const byHand = composeSong(cleanSong(own));
+  assert(byHand.sections[0].leads && !byHand.sections.some((section) => section.chords.some((chord) => chord.turn)), 'a track made by hand has no turnarounds');
+  const written = composeSong(cleanSong({ ...own, own: false }));
+  assert(written.sections[0].chords.some((chord) => chord.turn) && !written.sections[1].chords.some((chord) => chord.turn), 'the same chords in a written song turn into the next section, and not at the end');
+  // an older composer that isn't here, or never had the mood, hands a new song to today's
+  const { composerKnows, COMPOSER } = vm.runInContext('({ composerKnows, COMPOSER })', page);
+  assert(composerKnows(COMPOSER, 'calm', 'tune') && !composerKnows(1, 'calm', 'tune'), "today's composer writes anything, and one that isn't here writes nothing");
+  same(generateSong('calm', 'tune', 'plan-one', [], undefined, 1), generateSong('calm', 'tune', 'plan-one'), "a composer that isn't here hands the song to today's");
+});
 
 // what this piece found, for the run that started it
 process.send({ failures, tallies, times }, () => process.exit(0));

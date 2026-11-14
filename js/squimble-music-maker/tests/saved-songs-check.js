@@ -57,7 +57,7 @@ function makeSongs(n) {
     songs.push(own);
   }
   // as they'd be saved: what the page keeps is the song after a trip through json, saying which composer
-  // made it (none for the first; 1.5 made songs without saying, and it's picked in the Song tab)
+  // made it (none for the first; 1.5 made songs without saying, and it's picked with the Composer key)
   return songs.map((song) => ({ ...JSON.parse(JSON.stringify(song)), ...(n === 1 ? {} : { composer: n }) }));
 }
 

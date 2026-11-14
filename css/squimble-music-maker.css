@@ -277,9 +277,22 @@ html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in 
 }
 .mm-label input:focus{ outline:none; box-shadow:0 2px 0 currentColor; }
 .mm-label-name input{ font:1000 26px/1.2 var(--mm-ui); font-variation-settings:"CASL" 1; letter-spacing:-.01em; }
-.mm-label-seed{ display:flex; align-items:baseline; gap:8px; }
-.mm-label-seed span{ font:800 12px var(--mm-ui); font-variation-settings:"CASL" 1; opacity:.7; }
+/* under the name: the seed, and which composer wrote the song (on a line of its own if the card's narrow) */
+.mm-label-row{ display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 16px; }
+.mm-label-seed{ display:flex; align-items:baseline; gap:8px; flex:1 1 11em; min-width:0; }
+.mm-label-seed span, .mm-label-composer span{ font:800 12px var(--mm-ui); font-variation-settings:"CASL" 1; opacity:.7; }
 .mm-label-seed input{ font:500 13.5px var(--mm-mono); }
+.mm-label-composer{ display:flex; align-items:baseline; gap:8px; }
+.mm-label-composer select{
+  padding:0 2px;
+  font:500 13.5px var(--mm-mono); font-variation-settings:"MONO" 1, "CASL" 0;
+  color:inherit;
+  background:transparent;
+  border:0; border-radius:4px;
+  cursor:pointer;
+}
+.mm-label-composer select:focus-visible{ outline:2px solid currentColor; outline-offset:2px; }
+.mm-label-composer option{ color:var(--mm-ink); background:var(--mm-butter-hi); }
 .mm-bar-actions{ display:flex; gap:8px; margin-left:auto; }
 
 /* transport: a big play key, the switches, and where the song's got to */

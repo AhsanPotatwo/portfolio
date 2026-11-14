@@ -1,14 +1,16 @@
 // keeps today's composer, for a change that would make saved songs sound different: before the change,
 // moods.js and music.js are copied as they are into kept/composer-n.js (n is COMPOSER), wrapped so none
-// of their names clash with music.js, and the next number goes on COMPOSER_VERSIONS and the Song tab's
-// Composer keys. songs saved until now keep composer n, so they go on playing as they did.
+// of their names clash with music.js, and the next number goes on COMPOSER_VERSIONS and the Composer
+// key's list (COMPOSER_KEYS in maker.js). songs saved until now keep composer n, so they go on playing as
+// they did, and the key can have it write new songs to hear beside today's.
 //
 //   node js/squimble-music-maker/tools/keep-composer.js               the files as they are now
 //   node js/squimble-music-maker/tools/keep-composer.js --from HEAD   as they were at a commit, when
 //                                                                     the change is already made
 //
-// then make the change, describe the kept composer in the Song tab's key (maker.js, "which composer
-// writes the notes") and run tests/saved-songs-check.js --add once the new composer is finished.
+// then make the change, describe the kept composer in its line of COMPOSER_KEYS (maker.js, "which
+// composer writes") and what's new in today's, and run tests/saved-songs-check.js --add once the new
+// composer is finished.
 // (the page fetches kept/composer-n.js by its number when a song made by it opens, so there's no script
 // to add.) it never writes over a kept composer
 const fs = require('fs');
@@ -65,12 +67,12 @@ fs.writeFileSync(keptFile, [
 const musicFile = path.join(dir, 'music.js');
 const live = fs.readFileSync(musicFile, 'utf8');
 fs.writeFileSync(musicFile, live.replace(/^(const COMPOSER_VERSIONS = \[[\d., ]+)\];$/m, `$1, ${next}];`));
-// and the Song tab gets a key for the kept one, above today's
+// and the Composer key's list gets a line for the kept one, above today's
 const makerFile = path.join(dir, 'maker.js');
 const maker = fs.readFileSync(makerFile, 'utf8');
 const today = maker.match(/^( *)\[COMPOSER, "Today's"/m);
 if (today) fs.writeFileSync(makerFile, maker.replace(today[0], `${today[1]}[${n}, 'Up to ${short}', 'The composer up to ${long}. Songs saved then are written by it'],\n${today[0]}`));
 
 console.log(`kept composer ${n} as kept/composer-${n}.js, and today's is composer ${next}.`);
-console.log(`next: make the change, say what composer ${n} was in the Song tab's key (maker.js${today ? '' : ': its key list wasn\'t found, add one by hand'}),`);
+console.log(`next: make the change, say what composer ${n} was in COMPOSER_KEYS (maker.js${today ? '' : ': the list wasn\'t found, add a line by hand'}),`);
 console.log(`and run tests/saved-songs-check.js --add once composer ${next} is finished.`);

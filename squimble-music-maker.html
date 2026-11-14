@@ -68,10 +68,17 @@
               <span class="mm-visually-hidden">Song name</span>
               <input id="mmName" type="text" maxlength="40" autocomplete="off" spellcheck="false" data-tip="The song's name, for your library and the files you download">
             </label>
-            <label class="mm-label-seed">
-              <span>Seed</span>
-              <input id="mmSeed" type="text" maxlength="60" autocomplete="off" spellcheck="false" data-tip="Seed: every random choice comes from this. Type any words and press Enter for the song they make. The same seed and mood always make the same song">
-            </label>
+            <div class="mm-label-row">
+              <label class="mm-label-seed">
+                <span>Seed</span>
+                <input id="mmSeed" type="text" maxlength="60" autocomplete="off" spellcheck="false" data-tip="Seed: every random choice comes from this. Type any words and press Enter for the song they make. The same seed and mood always make the same song">
+              </label>
+              <!-- which version of the composer wrote the song (maker.js fills it in and says what each was) -->
+              <label class="mm-label-composer">
+                <span>Composer</span>
+                <select id="mmComposer" data-tip="Composer: which version of the composer writes the songs"></select>
+              </label>
+            </div>
           </div>
         </div>
         <button type="button" class="mm-key mm-key-go" id="mmNew" data-tip="New song: a new seed in the same mood and style"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="5.2" cy="5.2" r="1.3"/><circle cx="10.8" cy="10.8" r="1.3"/><circle cx="8" cy="8" r="1.3"/></svg>New song</button>
@@ -237,7 +244,7 @@
         <div class="mm-export-row">
           <div>
             <h3>As a link</h3>
-            <p>A short link to paste anywhere: the song's seed, plus anything you've changed.</p>
+            <p>A short link to paste anywhere: the song's seed and the composer that wrote it, plus anything you've changed.</p>
           </div>
           <div class="mm-export-keys">
             <button type="button" class="mm-key mm-key-line" id="mmLink">Copy link</button>
@@ -270,6 +277,7 @@
             <li><b>Learn it.</b> The Learn tab shows any part the way you'd play it: notes falling onto a piano's keys, the tune in your right hand and the bass in your left, or a guitar's or a bass's neck with a dot for each finger over the tab, with a box for every chord shape the part uses. Sheet music works for anything. It follows the song as it plays, Speed slows it down to half while you get the hang of it, and while it's stopped, ← and → step through it one chord at a time. Loop just the section you're stuck on, leave your part out and play along with the band, or turn on Wait for me: the song waits at each note or chord until you play it, on your computer's keys or a MIDI keyboard (the MIDI key by Play), then plays on to the next.</li>
             <li><b>Try it in a game.</b> The Game tab is what the music does while you play. Intensity thins the band down to its quietest parts and brings them back, each on the next bar line, so it never sounds cut. Stingers are little cues for finding something, getting hurt or winning, landing on the beat in whatever chord is playing. Go to moves into this song's fight (or any other style of it) on the next beat, bar or section, the way a game goes from exploring into a battle. And A little different plays a loop with small changes every time round, for music you'll hear for an hour.</li>
             <li><b>Keep it.</b> Save puts it in your library in this browser, notes and all, so it always plays the way it did when you saved it. Open a saved song and Save changes saves over it, with the save before kept in its history, or Save copy keeps both. Forgotten songs wait in the bin. Back up library downloads every song as one file, which Restore opens in any browser. To give someone a song, send them its song file (Download song file, or Download in your library): Add song files puts it in their library, notes and all. You can also download a WAV or copy a short link. For other music software there's a MIDI file of every part's notes, and Stems, every layer as its own WAV.</li>
+            <li><b>Pick a composer.</b> The composer is the part that writes the notes, and it gets better over time. Composer on the song's card says which version wrote the song. A saved song keeps its own, so an update never changes how it sounds. Pick an older version there to hear how it would have written the same seed, then pick today's to hear the difference. New songs are written by whichever you picked, and it's back on today's the next time you open the page.</li>
           </ol>
         </section>
 
@@ -311,6 +319,7 @@
           <summary><b>Writing the music</b></summary>
           <p>It goes through five steps: tonality (key, scale, tempo, time signature, swing), chords, the band, the arrangement and the room. Chord progressions come from progressions that suit each mood, a Markov chain of which chords usually follow which, two chord vamps, or roots wandering chromatically for horror. The chords are written as roman numerals (I V vi IV) so they work in any key and you can type your own.</p>
           <p>Melodies are where I spent the longest. My first version was a random walk and you couldn't remember a single note of it. Now every melody grows from one motif, a short rhythm and shape (a leap and a fall back, an arch, a repeated note), the way game composers like Koji Kondo and Toby Fox write themes. Phrases come in question and answer pairs, the question ends on a note that wants to go somewhere and the answer comes home, and long sections are a whole AABA tune. Strong beats land on chord notes. Solos are built four bars at a time from new ideas and climb to a peak two thirds of the way through.</p>
+          <p>For a long time each section was written on its own, and it showed. Most verses, choruses and bridges started on the same home chord, the tune was no higher in the loudest section than in the quietest, and every section ended as if the song had stopped there. Now a song is planned whole before any notes are written. The chorus and the bridge start on a chord the verse doesn't. Where one section leads into the next over the same chord, its last bar turns to the chord that pulls into it, the way a band plays a turnaround. The tune sits highest in the part of the song that lifts, and steps over the join into the section after. The chorus and bridge are made from the verse's motif (its rhythm with new notes, or its shape slowed down or turned upside down) instead of being new tunes, and the bass comes home on the last bar.</p>
           <p>The biggest change I made was to how the parts are layered. For ages every part sat on one instrument from the first bar to the last, and songs felt flat however good the notes were. Wizard101's world themes, and Toby Fox's, don't work like that: the tune gets passed round. A flute has it, then the strings take it while the flute rests, then everyone plays it together the last time with a glockenspiel on top. So now a layer can play the melody's own line instead of a part of its own, and a separate step decides who carries the tune in each section. The other change came from Hip Shop in Deltarune, where the bass is the hook: a riff of its own on the drums' rhythm that leads into each chord, rather than a root note marking time. There's also a Town style, because game music mostly doesn't end, it goes round.</p>
           <p>The counter melody is real counterpoint. Every candidate note gets a cost (thirds and sixths under the tune are cheap, seconds and parallel fifths are expensive, steps are cheaper than leaps, moving against the tune is cheaper than with it) and the cheapest wins. That's what makes the magic moods' best trick work. Marleybone's theme in Wizard101 brings its tunes in one at a time, a clarinet's and then a cello's over the same chords, then plays them together, drops to a celesta over a harp, and ends on the whole orchestra. Because the second melody is always written against the first, even in a section where the first is resting, it can be a theme of its own and still fit when the two meet. Drums, bass and chord stabs all read one hand-written groove per part, like an old drum machine chart, so the kick and the bass actually land together.</p>
         </details>

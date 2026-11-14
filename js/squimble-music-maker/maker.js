@@ -120,9 +120,39 @@
   }
   let awaitingComposer = false;
 
+  // ---------- which composer writes ----------
+  //
+  // today's, unless the Composer key on the song's card picks an older one (writer), to hear how it
+  // would have written a seed beside how today's does. it lasts until another's picked or the page is
+  // opened again, so a visit always starts on today's. an older composer writes a song picks and all
+  // (generateSong's composer); one that came before the mood, flavour or style hands the song to
+  // today's, and the tip line says so.
+  // every composer, oldest first (tools/keep-composer.js adds the one it keeps above today's):
+  // [number, what the key calls it, what it was]
+  const COMPOSER_KEYS = [
+    [1, 'Up to 21 Oct', 'The composer up to 21 October. Songs saved before the 22nd'],
+    [1.5, '22 Oct, morning', 'The composer of the morning of 22 October, when each flavour got its own way of writing tunes. Songs saved then open as the one before: pick this if one sounds different from how you saved it'],
+    [2, 'Up to 23 Oct', 'The composer of 22 and 23 October, with key changes and longer songs. Songs saved then are written by it'],
+    [3, 'Up to 24 Oct', "The composer of 23 and 24 October, with the magic worlds' themes coming in one at a time and meeting. Songs saved then are written by it"],
+    [4, 'Up to 26 Oct', "The composer of 24 to 26 October, with shoegaze's many kinds and open strings ringing over its chords. Songs saved then are written by it"],
+    [5, 'Up to 13 Nov', "The composer of 26 October to 13 November, whose guitar chords are all shapes a hand can hold. It wrote a song a section at a time. Songs saved then are written by it"],
+    [COMPOSER, "Today's", "Today's composer, which plans a song whole before writing it: chords that lead from one section into the next, a tune that sits highest where the song's loudest, and a bass that comes home at the end. Every new song is written by it"],
+  ];
+  let writer = COMPOSER;
+  const written = (mood, style, seed, mods, flavour) => {
+    if (writer === COMPOSER || composerKnows(writer, mood, style, flavour)) return generateSong(mood, style, seed, mods, flavour, writer);
+    const what = !composerKnows(writer, mood, 'ambient') ? MOODS[mood]?.name : !composerKnows(writer, mood, style) ? STYLES[style] : FLAVOURS[mood]?.kinds[flavour]?.name;
+    // (after whatever the key that was pressed has to say)
+    queueMicrotask(() => say(`Composer ${writer} came before ${what || 'this'}, so today's wrote this one.`));
+    return generateSong(mood, style, seed, mods, flavour);
+  };
+  // a song still just as its composer wrote it from its seed (its name aside), so another composer can
+  // write the seed its own way and nothing made by hand is lost
+  const untouched = (one) => !one.own && JSON.stringify({ ...generateSong(one.mood, one.style, one.seed, one.mods, one.flavour, one.composer || 1), name: '' }) === JSON.stringify({ ...one, name: '' });
+
   // after a change to the notes. panels: rebuild the open tab (not while a slider's being dragged)
   function changed(panels = true) {
-    // (the first song, or one given an older composer in the Song tab, can arrive before its composer:
+    // (the first song, or one given an older composer by the Composer key, can arrive before its composer:
     // it's written by today's for now so there's something to show, and again once it's here. Save waits
     // for it, and a save's own notes play meanwhile, through frozen below)
     if (missingComposer(song) && !awaitingComposer) {
@@ -391,18 +421,64 @@
     if (!seed || seed === song.seed) return;
     remember();
     detach();
-    open(generateSong(song.mood, song.style, seed, song.mods, song.flavour));
+    open(written(song.mood, song.style, seed, song.mods, song.flavour));
     say(`"${seed}" in ${MOODS[song.mood].name.toLowerCase()}.`);
   };
   seedField.addEventListener('change', useSeed);
   seedField.addEventListener('keydown', (event) => { if (event.key === 'Enter') useSeed(); });
+
+  // the Composer key on the card: which composer wrote this song, and (once one's picked) writes the
+  // next ones. picking another has it write this seed its own way, picks and all, when the song's still
+  // just what its seed made (untouched) and isn't a save from the library. a save, a song changed by
+  // hand or a track of your own keeps every setting, and only its notes are written by the other
+  // composer (how a save from the morning of 22 october is put right). a composer that came before the
+  // song's mood can't write it at all (it has no such mood to play)
+  const composerKey = $('#mmComposer');
+  for (const [n, label] of [...COMPOSER_KEYS].reverse()) {
+    const option = make('option', '', `${n} · ${label}`);
+    option.value = n;
+    composerKey.append(option);
+  }
+  let pickingComposer = 0;
+  composerKey.addEventListener('change', async () => {
+    const n = +composerKey.value;
+    const ticket = ++pickingComposer;
+    try {
+      await fetchComposer({ composer: n });
+    } catch {
+      if (ticket === pickingComposer) {
+        renderTop();
+        say(`Couldn't fetch composer ${n}. Check the connection and pick it again.`);
+      }
+      return;
+    }
+    if (ticket !== pickingComposer) return;
+    if (!composerKnows(n, song.mood, song.style, song.flavour)) {
+      const what = !composerKnows(n, song.mood, 'ambient') ? MOODS[song.mood].name : !composerKnows(n, song.mood, song.style) ? STYLES[song.style] : FLAVOURS[song.mood].kinds[song.flavour].name;
+      renderTop();
+      say(`Composer ${n} came before ${what}, so it can't write this song. Pick a mood it had, or a later composer.`);
+      return;
+    }
+    writer = n;
+    if (n === (song.composer || 1)) return;
+    remember();
+    if (!working && untouched(song)) {
+      open(generateSong(song.mood, song.style, song.seed, song.mods, song.flavour, n));
+      say(n === COMPOSER ? `Today's composer wrote "${song.seed}" this time. It writes every new song.` : `Composer ${n} wrote "${song.seed}" its own way. It writes new songs too until you pick another.`);
+    } else {
+      if (n === 1) delete song.composer;
+      else song.composer = n;
+      changed();
+      say(`Composer ${n} writes this song's notes now. Its chords, band and sections are kept as they were${n === COMPOSER ? '' : ', and new songs are written by it until you pick another'}.`);
+    }
+  });
 
   $('#mmNew').addEventListener('click', () => {
     // (the dice roll)
     if (!calm.matches) $('#mmNew svg').animate([{ transform: 'none' }, { transform: 'rotate(200deg) scale(1.35)', offset: 0.45 }, { transform: 'rotate(360deg)' }], { duration: 560, easing: OUT });
     remember();
     detach();
-    open(generateSong(song.mood, song.style, newSeed(randomRng()), song.mods, song.flavour));
+    open(written(song.mood, song.style, newSeed(randomRng()), song.mods, song.flavour));
   });
   $('#mmBlank').addEventListener('click', () => {
     remember();
@@ -508,7 +584,7 @@
     const button = key(mood.name, '', () => paint(button, () => {
       if (song.own) return retune(() => { song.mood = id; delete song.flavour; });
       remember();
-      open(generateSong(id, keeps(song.style) ? song.style : mood.style, song.seed, song.mods));
+      open(written(id, keeps(song.style) ? song.style : mood.style, song.seed, song.mods));
     }), 'mm-mood');
     button.dataset.mood = id;
     button.style.setProperty('--c', mood.colour);
@@ -531,7 +607,7 @@
         });
       } else {
         remember();
-        open(generateSong(song.mood, song.style, song.seed, next, song.flavour));
+        open(written(song.mood, song.style, song.seed, next, song.flavour));
       }
       const words = (song.mods || []).map(modName);
       say(words.length ? `${MOODS[song.mood].name}, ${words.join(', ')}.` : `Just ${MOODS[song.mood].name.toLowerCase()}.`);
@@ -564,7 +640,7 @@
           });
         } else {
           remember();
-          open(generateSong(song.mood, keeps(song.style) ? song.style : kind.style || mood.style, song.seed, song.mods, flavour));
+          open(written(song.mood, keeps(song.style) ? song.style : kind.style || mood.style, song.seed, song.mods, flavour));
         }
         say(`${mood.name}: ${kind.name.toLowerCase()}.`);
       }, 'mm-key-small mm-kind');
@@ -577,7 +653,7 @@
       if (song.style === button.dataset.style) return;
       if (song.own) return retune(() => { song.style = button.dataset.style; });
       remember();
-      open(generateSong(song.mood, button.dataset.style, song.seed, song.mods, song.flavour));
+      open(written(song.mood, button.dataset.style, song.seed, song.mods, song.flavour));
     });
   }
 
@@ -730,6 +806,11 @@
   function renderTop() {
     if (document.activeElement !== nameField) nameField.value = song.name;
     if (document.activeElement !== seedField) seedField.value = song.seed;
+    // (the option's marked in the page too, so the card dealt off the deck, a copy, still shows it)
+    const by = song.composer || 1;
+    for (const option of composerKey.options) option.toggleAttribute('selected', +option.value === by);
+    composerKey.value = by;
+    composerKey.dataset.tip = `Composer ${by}: ${COMPOSER_KEYS.find(([n]) => n === by)[2]}. Pick another to hear this seed the way it would write it. New songs are written by the one you pick, today's until you do`;
     $('#mmUndo').disabled = !undo.length;
     $('#mmRedo').disabled = !redo.length;
     for (const button of moodKeys.children) button.setAttribute('aria-pressed', button.dataset.mood === song.mood);
@@ -1155,27 +1236,10 @@
       field('Each chord', choices(chordBars, () => song.chordBars, (value) => edit(() => { song.chordBars = value; })(), 'Chord length'), 'How long each chord lasts'),
     );
     const chords = section('Chords', top, ...EVERY_PART.filter((part) => song.parts[part]).map(chordRow), fold('How to write chords', make('p', 'mm-hint', 'Chords are roman numerals counting up the scale from the key: I is home, IV and V are the strong ones. Capitals are major (bright), lower case minor (sad). b and # move one a semitone (bVII), ° is diminished and + augmented. Add 7, maj7, 6, sus2, sus4 or add9 for colour (Imaj7). A - holds the last chord for another turn. Click a chord to hear it. Or type chord names off a chord sheet (Am F C G7): they turn into numerals in this key, so they follow it if it changes. Drawn your own tune? Fit my tune finds chords for it.')));
-    // which composer writes the notes (COMPOSER_VERSIONS in music.js). a song keeps the one it was made
-    // with; unstamped ones open as the first. only shown for a song (or the save it came from) made by
-    // an older one, since a new song has nothing to choose
-    const older = (one) => (one?.composer || 1) !== COMPOSER;
-    if (!older(song) && !(working && older(JSON.parse(working.json)))) return [columns, chords];
-    const composers = [
-      [1, 'Up to 21 Oct', 'The composer up to 21 October. Songs saved before the 22nd'],
-      [1.5, '22 Oct, morning', 'The composer of the morning of 22 October, when each flavour got its own way of writing tunes. Songs saved then open as the one before: pick this if one sounds different from how you saved it'],
-      [2, 'Up to 23 Oct', 'The composer of 22 and 23 October, with key changes and longer songs. Songs saved then are written by it'],
-      [3, 'Up to 24 Oct', "The composer of 23 and 24 October, with the magic worlds' themes coming in one at a time and meeting. Songs saved then are written by it"],
-      [4, 'Up to 26 Oct', "The composer of 24 to 26 October, with shoegaze's many kinds and open strings ringing over its chords. Songs saved then are written by it"],
-      [COMPOSER, "Today's", "Today's composer, whose guitar chords are all shapes a hand can hold, so the Learn tab shows them as they're played. Every new song is written by it"],
-    ];
-    const composer = section('Composer',
-      field('Written by', choices(composers, () => song.composer || 1, (value) => edit(() => {
-        if (value === 1) delete song.composer;
-        else song.composer = value;
-      })(), 'Composer'), 'Which version of the composer writes the notes. A song keeps the one it was saved with, so it always sounds the same'),
-      make('p', 'mm-hint', "A song keeps the version of the composer that made it, so it never changes. Songs saved before the afternoon of 22 October don't say which version made them and open as the oldest: if one sounds different from how you saved it, try 22 Oct, morning, then save it."),
-    );
-    return [columns, chords, composer];
+    // (which composer writes the song is the Composer key on the song's card. a song saved before the
+    // afternoon of 22 october doesn't say which made it and opens as the first: this says what to try)
+    if (song.composer) return [columns, chords];
+    return [columns, chords, make('p', 'mm-hint', "This song doesn't say which version of the composer made it, so it plays as the oldest. If it sounds different from how you saved it, pick 1.5 in the Composer key on the song's card at the top, then save it.")];
   }
 
   // one part's chords: a box to type them in, the chords they make (click to hear one), and a key for new ones
@@ -2023,7 +2087,7 @@
       scoreDirty = true;
       renderPanel();
     };
-    const OLD = "This song plays as it was saved, by an older composer, so its layers play their section's part. Pick Today's composer in the Song tab to give a layer a part of its own";
+    const OLD = "This song plays as it was saved, by an older composer, so its layers play their section's part. Pick today's in Composer, on the song's card at the top, to give a layer a part of its own";
 
     const table = make('table', 'mm-arrange');
     const headRow = make('tr');
@@ -2449,7 +2513,8 @@
   function moveTo(style) {
     if (style === song.style) return;
     if (song.own) return say('Your own track has no seed to write another style of it from. The style keys above change how its written parts play.');
-    const next = cleanSong(generateSong(song.mood, style, song.seed, song.mods, song.flavour));
+    // (by the composer that wrote the song playing, so they go together; today's if it never had the style)
+    const next = cleanSong(generateSong(song.mood, style, song.seed, song.mods, song.flavour, song.composer || 1));
     if (!player.playing) {
       remember();
       open(next);
@@ -3683,25 +3748,45 @@
   const pack = async (thing) => toBase64(await squeezeBytes(new TextEncoder().encode(notesJson(thing)), new CompressionStream('deflate-raw')));
   const unpack = async (text) => JSON.parse(new TextDecoder().decode(await squeezeBytes(fromBase64(text), new DecompressionStream('deflate-raw'))));
   const fromOldLink = (text) => JSON.parse(new TextDecoder().decode(fromBase64(text)));
-  // the song a link starts from: the seed's, or a blank track
-  const linkBase = (one) => (one.own ? blankSong() : generateSong(one.mood, one.style, one.seed, one.mods, one.flavour));
+  // a link says which composer wrote its song, after the style (#seed/mood/style/6/modifiers/flavour/
+  // changes, or #/6/changes for a track made by hand), so it goes on opening as the same song when a
+  // newer composer comes along: that composer writes the seed again, picks and all. links made before
+  // they said so were all made by composer 5 or one before it, so they open as 5's
+  const UNSAID_COMPOSER = 5;
+  // the song a link starts from, as a composer wrote it: the seed's, or a blank track
+  const linkBase = (one, by = one.composer || 1) => (one.own ? cleanSong({ ...blankSong(), composer: by }) : generateSong(one.mood, one.style, one.seed, one.mods, one.flavour, by));
   async function songLink(one) {
+    // (its composer has to be here to write the song the changes are counted from)
+    await fetchComposer(one);
+    const by = one.composer || 1;
     const changes = songChanges(linkBase(one), cleanSong(one));
     const tail = changes ? await pack(changes) : '';
-    let fields = [one.seed, one.mood, one.style, (one.mods || []).join('+'), one.flavour || '', tail];
+    let fields = [one.seed, one.mood, one.style, by, (one.mods || []).join('+'), one.flavour || '', tail];
     // (the modifiers, flavour and changes are left off when there are none)
-    while (fields.length > 3 && !fields[fields.length - 1]) fields.pop();
-    if (one.own) fields = ['', tail];
+    while (fields.length > 4 && !fields[fields.length - 1]) fields.pop();
+    if (one.own) fields = ['', by, tail];
     return `${location.origin}${location.pathname}#${fields.map(encodeURIComponent).join('/')}`;
   }
   const isLink = (hash) => hash.startsWith('#song=') || hash.includes('/');
-  // a link's song and its changes, still packed, so the page opens on the song while they unpack
+  // a link's song. standIn: a song to open on straight away. finish: null if that's the song, or a
+  // promise of the real one, once its changes are unpacked and, for a link made by an older composer,
+  // that composer's fetched to write it (the stand in is today's composer's song from the same seed)
   function readLink(hash) {
-    if (hash.startsWith('#song=')) return [cleanSong(fromOldLink(hash.slice(6))), ''];
+    if (hash.startsWith('#song=')) return { standIn: cleanSong(fromOldLink(hash.slice(6))), finish: null };
     const fields = hash.slice(1).split('/').map(decodeURIComponent);
-    if (!fields[0]) return [blankSong(), fields[1] || ''];
-    const [seed, mood, style, mods, flavour, tail] = fields;
-    return [generateSong(mood, style, seed, mods ? mods.split('+') : [], flavour || undefined), tail || ''];
+    const own = !fields[0];
+    // (a number where the modifiers used to be is the composer: no modifier is a number)
+    const said = own ? fields.length > 2 : COMPOSER_VERSIONS.includes(+fields[3]) && /^[0-9.]+$/.test(fields[3]);
+    const by = said ? +fields[own ? 1 : 3] : UNSAID_COMPOSER;
+    const [mods, flavour, tail] = own ? ['', '', fields[said ? 2 : 1]] : fields.slice(said ? 4 : 3);
+    const one = own ? { own: true } : { seed: fields[0], mood: fields[1], style: fields[2], mods: mods ? mods.split('+') : [], flavour: flavour || undefined };
+    const real = async () => {
+      await fetchComposer({ composer: by });
+      const base = linkBase(one, by);
+      return tail ? withChanges(base, await unpack(tail)) : base;
+    };
+    if (missingComposer({ composer: by })) return { standIn: linkBase(one, COMPOSER), finish: real() };
+    return { standIn: linkBase(one, by), finish: tail ? real() : null };
   }
   $('#mmLink').addEventListener('click', async () => {
     let url = '';
@@ -3913,10 +3998,10 @@
   function fromAddress() {
     if (!isLink(location.hash)) return null;
     try {
-      const [linked, tail] = readLink(location.hash);
+      const { standIn, finish } = readLink(location.hash);
       history.replaceState(null, '', location.pathname);
-      if (tail) unpack(tail).then((changes) => { detach(); open(withChanges(linked, changes)); }).catch(() => say("Couldn't read the changes in that link, so this is the song its seed makes."));
-      return linked;
+      if (finish) finish.then((real) => { detach(); open(real); }).catch(() => say("Couldn't read all of that link, so this is the song its seed makes today."));
+      return standIn;
     } catch {
       return null;
     }
@@ -3942,7 +4027,7 @@
   }
   // unstamped songs saved after composer 1.5 was committed (the morning of 22 october) can only be its,
   // so they're marked once (and the draft, if it's one of them), their composer 1 notes dropped. ones
-  // saved before then could be either: the Song tab's Composer picks
+  // saved before then could be either: the Composer key picks
   const MORNING = Date.UTC(2026, 9, 22, 7, 18, 33);
   async function markMorningSongs() {
     try {

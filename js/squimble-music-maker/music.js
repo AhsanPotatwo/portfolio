@@ -44,6 +44,9 @@
 //   - ornaments: slides, bends, graces, falls and shakes, per instrument (ornament())
 //   - orchestration: the tune handed round the band and doubled at its biggest (pickOrchestra, passTune)
 //   - a bass that's a hook: a riff of its own on the drums' rhythm (bassHook)
+//   - one song, not sections in a row: parts that start on different chords (placeProgression), and a
+//     plan every player reads (planSong): a turnaround where a section leads on over one chord, the
+//     tune highest where the song lifts and stepping over the join, the bass home on the last bar
 //
 // ---------- a band that fits ----------
 //
@@ -1152,8 +1155,13 @@ const FX_DEFAULTS = { reverb: 0.4, size: 0.6, tone: 0.5, echo: 0.2, echoTime: 0.
 const ECHO_TIMES = [0.5, 0.75, 1, 1.5, 2];
 
 // mods (MODIFIERS, any order) and flavour (FLAVOURS) don't change the random numbers, so adding "fast"
-// gives the same song, faster, as near as it can. each pick has its own random numbers
-function generateSong(moodId, style, seed, mods = [], flavour) {
+// gives the same song, faster, as near as it can. each pick has its own random numbers.
+// composer: an older composer (COMPOSER_VERSIONS) writes the song its own way, picks and notes, as it
+// would have when it was today's: what the page's Composer key asks for, and a link that says which
+// composer made it. only one that's here (the page fetches it) and knew the mood, flavour and style
+// (composerKnows): anything else is written by today's
+function generateSong(moodId, style, seed, mods = [], flavour, composer = COMPOSER) {
+  if (composer !== COMPOSER && composerKnows(composer, moodId, style, flavour)) return cleanSong({ ...KEPT_COMPOSERS[composer].generateSong(moodId, style, seed, mods, flavour), composer });
   const mood = MOODS[moodId] ? moodId : 'calm';
   const picked = cleanMods(mods);
   const kind = flavour !== plainFlavour(mood) && FLAVOURS[mood]?.kinds[flavour] ? { flavour } : {};
@@ -1287,13 +1295,69 @@ function pickTonality(song, rng) {
 
 const pickMethod = (song, rng) => rng.weighted(songMood(song).methods || { bank: 5, markov: 3, vamp: 1.2 });
 
+// ---------- chords that go somewhere ----------
+//
+// a song's parts used to be picked one at a time, and nine in ten of each started on the home chord:
+// verse, chorus and bridge all began in the same place, so a new section never felt like arriving
+// anywhere. now A is picked as before (it's home) and B and C are picked against it. each takes a few
+// of the mood's own progressions, every way round (a progression is a loop, so it can start from any of
+// its chords: I V vi IV from its third is vi IV I V, the same chords with a different first step), and
+// the ones that suit the song better are likelier (PLACING): a first chord that isn't A's, a chord A
+// hasn't got, and no join where the last chord of one part is the first of the next, since nothing
+// moves there. C, the bridge or break, would rather end on the chord that pulls back home.
+// it only weights the mood's own progressions, so a mood of one chord drones stays one
+
+// a chord as it sounds to the ear at a join: its root and whether it's major or minor
+const chordKey = (chord) => `${chord.root}:${chord.tones[1]}`;
+// every way round a progression can start, each chord keeping its holds ("I - IV -" from its second is
+// "IV - I -"), the way it was written first. a twelve bar blues is one shape, so long ones stay as written
+function turnings(text) {
+  const { slots } = parseProgression(text);
+  const groups = slots.map((slot) => [slot.token, ...Array(slot.slots - 1).fill('-')].join(' '));
+  if (groups.length < 2 || groups.length > 8) return [text];
+  return groups.map((_, k) => [...groups.slice(k), ...groups.slice(0, k)].join(' '));
+}
+// what a way round is worth, as powers of two (2.5: about six times likelier)
+const PLACING = { away: 2.5, awayFromBoth: 0.5, fresh: 1, intoStill: -2, backStill: -2, selfStill: -1.5, pullsHome: 1, turned: -0.75, unsteady: -3 };
+function placeProgression(song, rng, part) {
+  const ends = (text) => {
+    const { slots } = parseProgression(text);
+    return slots.length ? { firstChord: slots[0].chord, first: chordKey(slots[0].chord), last: chordKey(slots[slots.length - 1].chord), lastChord: slots[slots.length - 1].chord, all: new Set(slots.map((slot) => chordKey(slot.chord))), many: slots.length > 1 } : null;
+  };
+  const others = PARTS.filter((one) => song.parts[one]).map((one) => ends(song.parts[one])).filter(Boolean);
+  const home = others[0];
+  const options = [];
+  for (let draw = 0; draw < 4; draw++) {
+    const written = makeProgression(song, rng, part === 'C' ? rng.pick(['vamp', 'markov', 'bank']) : pickMethod(song, rng));
+    for (const text of turnings(written)) {
+      const one = ends(text);
+      if (!one || Object.values(song.parts).includes(text) || options.some(([other]) => other === text)) continue;
+      let worth = text === written ? 0 : PLACING.turned;
+      // (a diminished or augmented chord is no place to start a part: it wants to be somewhere else)
+      if (one.firstChord.tones[2] !== 7) worth += PLACING.unsteady;
+      if (home && one.first !== home.first) worth += PLACING.away;
+      if (others.length > 1 && others.every((other) => one.first !== other.first)) worth += PLACING.awayFromBoth;
+      if ([...one.all].some((chord) => others.every((other) => !other.all.has(chord)))) worth += PLACING.fresh;
+      for (const other of others) {
+        if (other.last === one.first) worth += PLACING.intoStill;
+        if (one.last === other.first) worth += PLACING.backStill * (other === home ? 1 : 0.75);
+      }
+      if (one.many && one.last === one.first) worth += PLACING.selfStill;
+      // (the chords a fifth above home, a tone below it and a semitone above it: V, bVII, bII)
+      if (part === 'C' && [7, 10, 1].includes(one.lastChord.root) && one.lastChord.tones[2] === 7) worth += PLACING.pullsHome;
+      options.push([text, 2 ** worth]);
+    }
+  }
+  return options.length ? rng.weighted(options) : '';
+}
 function pickChords(song, rng) {
   song.parts = {};
   for (const part of PARTS) {
-    // B and C should sound different from A, so try a few times for a different progression
+    // A is home, picked as it always was. B and C are placed against it (and still tried a few times for
+    // a progression no other part has, in a mood with few)
     let chords = '';
     for (let tries = 0; tries < 6 && (!chords || Object.values(song.parts).includes(chords)); tries++) {
-      chords = makeProgression(song, rng, part === 'C' ? rng.pick(['vamp', 'markov', 'bank']) : pickMethod(song, rng));
+      chords = part === 'A' ? makeProgression(song, rng, pickMethod(song, rng)) : placeProgression(song, rng, part) || makeProgression(song, rng, pickMethod(song, rng));
     }
     song.parts[part] = chords;
   }
@@ -2067,10 +2131,19 @@ function mutateSong(song, rng) {
 // the page fetches when a song needs one). a change that makes saved songs sound different keeps this
 // file and moods.js as they were first, with tools/keep-composer.js (README, "Adding things").
 // unstamped songs could be 1 or 1.5 (the morning of 22 october): they play as 1, the page marks ones
-// saved after 1.5 as its (markMorningSongs), and the Song tab picks by hand.
+// saved after 1.5 as its (markMorningSongs), and the page's Composer key picks by hand. the same key
+// has an older composer write new songs (generateSong's composer), to hear it beside today's.
 // every composer there's been, oldest first: the last is today's
-const COMPOSER_VERSIONS = [1, 1.5, 2, 3, 4, 5];
+const COMPOSER_VERSIONS = [1, 1.5, 2, 3, 4, 5, 6];
 const COMPOSER = COMPOSER_VERSIONS[COMPOSER_VERSIONS.length - 1];
+// whether a composer can write a song from scratch: today's always, an older one when it's here
+// (KEPT_COMPOSERS) and had the mood, the flavour and the style (shoegaze's kinds came with 4, the magic
+// worlds with 3)
+function composerKnows(n, moodId, style, flavour) {
+  if (n === COMPOSER) return true;
+  const kept = typeof KEPT_COMPOSERS !== 'undefined' && KEPT_COMPOSERS[n];
+  return !!kept && !!kept.MOODS[moodId] && !!kept.STYLES[style] && (!flavour || flavour === plainFlavour(moodId) || !!kept.FLAVOURS?.[moodId]?.kinds[flavour]);
+}
 // what an older composer can do too: new notes for one part (partSeeds) since 2, a layer on a part of
 // its own (section.use) with settings of its own (byPart) since 4
 const knowsPartSeeds = (song) => (song.composer || 1) >= 2;
@@ -2293,6 +2366,84 @@ function cadence(song, last) {
   Object.assign(chord, { root, tones, pcs: new Set(tones.map((tone) => mod12(root + tone))), name: chordName(root, tones), home: true });
 }
 
+// ---------- the plan: one song, not sections in a row ----------
+//
+// every part used to be written a section at a time, each ending as if the song stopped there: the tune
+// came home at the end of every section, the chords often sat on one chord across the join, and the
+// loudest section's tune was no higher than the quietest's. so before anyone writes a note the song is
+// planned whole (planSong), and every player reads the plan from its section:
+//   leads    the section leads on into the next (into: where it goes, a loop's last back to its first).
+//            one that drops a long way (a chorus into a quiet verse, the outro) closes instead
+//   reach    where the tune sits: 1 in the song's lift (part B when it's at least as loud as A), -1 in
+//            the parts under it, 0 in a song with no lift. tune() gives the lift the top of the range
+//            and keeps the rest out of it, so the song's highest notes are in its loudest part
+//   closes   the song's last section (never a loop's): the bass comes home on its last bar (comeHome)
+// and where a section leads on over a join with the same chord either side, its last bar turns
+// (turnaround): the chord that pulls hardest into the next one takes the end of the bar, the way a band
+// plays a turnaround, and everyone plays it since everyone reads the section's chords. the tune steps
+// onto it (restOn) and, when it has pickups, into the next section's first note (c.entry in composeSong)
+
+// a section closes, rather than leading on, when the next is this much quieter
+const LEAD_DROP = 0.17;
+function planSong(song, sections) {
+  const loud = {};
+  for (const section of sections) loud[section.part] = Math.max(loud[section.part] ?? 0, section.energy ?? 0.75);
+  const lift = loud.A !== undefined && loud.B !== undefined && loud.B >= loud.A ? 'B' : null;
+  const loops = !!LOOPS[song.style];
+  for (const section of sections) {
+    const next = sections[section.index + 1] || (loops ? sections[0] : null);
+    section.reach = !lift ? 0 : section.part === lift ? 1 : -1;
+    section.into = next ? next.index : null;
+    section.leads = !!next && (next.energy ?? 0.75) >= (section.energy ?? 0.75) - LEAD_DROP;
+    if (!next && !loops) section.closes = true;
+  }
+  // (a track made by hand plays the chords as they were typed)
+  if (!song.own) for (const section of sections) if (section.leads) turnaround(song, section, sections[section.into]);
+}
+
+// the chord that leads best into another, from the song's scale: one with the note a semitone under
+// where it's going (a leading note) most of all, then a fifth above it (V to I), a semitone above (a
+// phrygian bII) or a tone below (bVII, the modes' way home), then a fourth above (IV, a plagal amen).
+// never a diminished or augmented chord, and none at all in a scale with only those (whole tone)
+function leadingChord(song, to) {
+  const steps = harmonySteps(song.scale);
+  let best = null;
+  let bestWorth = 1;
+  for (let degree = 0; degree < steps.length; degree++) {
+    const chord = diatonicChord(steps, degree);
+    const root = mod12(song.key + chord.root);
+    const up = mod12(root - to.root);
+    if (!up || chord.tones[2] !== 7 || (chord.tones[1] !== 3 && chord.tones[1] !== 4)) continue;
+    const worth = (chord.tones.some((tone) => mod12(up + tone) === 11) ? 3 : 0) + ({ 7: 2, 1: 2.5, 10: 2, 5: 1 }[up] || 0) + (chord.tones[1] === 4 ? 0.5 : 0);
+    if (worth > bestWorth) [best, bestWorth] = [{ root, tones: chord.tones.slice(), home: chord.root }, worth];
+  }
+  return best;
+}
+
+// a join with the same chord either side: the end of the section's last bar turns to the chord that
+// leads into the next section (the whole bar if the chord's held two or more, half of it if one, or all
+// of a chord shorter than that). not over a key change (the change is the move), nor in a section that
+// sits on one chord all through (a drone's meant to stay)
+function turnaround(song, section, next) {
+  const chords = section.chords;
+  const last = chords[chords.length - 1];
+  const first = next?.chords[0];
+  if (!last || !first || last.root !== first.root || (section.lift || 0) !== (next.lift || 0)) return;
+  if (chords.every((chord) => chord.root === last.root)) return;
+  const lead = leadingChord(song, first);
+  if (!lead) return;
+  const bpb = METERS[song.meter].beats;
+  const length = last.dur >= bpb * 2 - 1e-6 ? bpb : last.dur >= bpb - 1e-6 ? (bpb === 3 ? 3 : Math.max(1, Math.floor(bpb / 2))) : last.dur;
+  // a dominant seventh on a true V, as often as the song's other chords are coloured
+  const tones = lead.home === 7 && lead.tones[1] === 4 && makeRng(song.seed, 'colour', 'turn').chance(song.colour * 0.85) ? [...lead.tones, 10] : lead.tones;
+  const turn = { root: lead.root, tones, pcs: new Set(tones.map((tone) => mod12(lead.root + tone))), name: chordName(lead.root, tones), turn: true };
+  if (length >= last.dur - 1e-6) Object.assign(last, turn);
+  else {
+    last.dur -= length;
+    chords.push({ t: last.t + last.dur, dur: length, ...turn });
+  }
+}
+
 // round: which time round a loop is on (MusicPlayer.vary), when it's played a little differently each
 // time, the way a band never plays a chorus quite the same twice. every part is played as a later take
 // of itself (an ending changed, a phrase decorated, another fill), on that round's own random numbers.
@@ -2317,6 +2468,7 @@ function composeSong(song, round = 0) {
     start += beats;
   }
   cadence(song, sections[sections.length - 1]);
+  planSong(song, sections);
   const scalePcs = new Set(SCALES[song.scale].steps.map((step) => mod12(song.key + step)));
   // melodies first, so counter melodies can answer them, then a layer taking the tune (the tune where
   // the melody rests)
@@ -2355,7 +2507,8 @@ function composeSong(song, round = 0) {
       song, layer, section, meter, scalePcs, mood, weave,
       groove: grooves[section.part] ??= grooveFor(song, section.part),
       prev: mine[section.index - 1] || null,
-      next: mine[section.index + 1] || null,
+      // (a loop's last section leads back into its first, planSong)
+      next: mine[section.index + 1] || (section.into !== null && section.into !== undefined ? mine[section.into] : null),
       bpb: meter.beats, sub: meter.sub, step: gridStep(song.meter),
       start: section.start, end: section.end, bars: section.bars,
       chords: section.chords,
@@ -2370,7 +2523,21 @@ function composeSong(song, round = 0) {
       // plays. written afresh each time, since listen, ornament and feel change notes in place. take: as
       // it went some other time round its part (0, the first)
       line: (take = section.take) => (melodyLayer && melodyLayer !== whole ? write(melodyLayer, raw, { take, lead: null }) : []),
+      // the first note of the tune in the section this one leads into, as it'll sound from here (a key
+      // change moves it), when the melody carries on there from the first beat: what a pickup steps
+      // into. the next section's written to find out (alone: without a pickup of its own, or a loop
+      // would go round for ever)
+      entry: () => {
+        const into = section.leads && !section.alone && whole === melodyLayer ? sections[section.into] : null;
+        if (!into || into.lead || !into.play.includes(whole.id)) return null;
+        const first = write(whole, into, { alone: true })[0];
+        return first && first.t < into.start + 0.26 ? first.midi + (into.lift || 0) - (section.lift || 0) : null;
+      },
     };
+    // the chord after this section's last: the next section's first, as it sounds from here
+    const after = c.next?.chords[0];
+    const moved = after ? (c.next.lift || 0) - (section.lift || 0) : 0;
+    c.after = !after ? null : !moved ? after : { ...after, root: mod12(after.root + moved), pcs: new Set(after.tones.map((tone) => mod12(after.root + moved + tone))) };
     c.tonic = near(song.key, c.center);
     // a solo is its own line, so the part's hand edits don't apply to it
     const leading = section.lead === layer.id;
@@ -3109,7 +3276,9 @@ function grooveFor(song, part) {
 // notes: { t, dur, midi, vel } with t in beats from the song's start
 
 const chordAt = (c, t) => c.chords.find((chord) => t >= chord.t - 1e-6 && t < chord.t + chord.dur - 1e-6) || c.chords[c.chords.length - 1];
-const nextChord = (c, chord) => c.chords[c.chords.indexOf(chord) + 1] || c.chords[0];
+// (after a section's last chord comes the next section's first, c.after: a walking bass walks into
+// that, not back to its own first chord. a song's last section, with nothing after, goes round)
+const nextChord = (c, chord) => c.chords[c.chords.indexOf(chord) + 1] || c.after || c.chords[0];
 
 // scale degrees (0 is the key's home note near the layer's centre, 7 an octave up in a 7 note scale)
 const degreeMidi = (c, degree) => {
@@ -3325,6 +3494,9 @@ function landing(c, degree, chord, closed) {
 const QUESTION_PLANS = [['m', 'm', 'v', 'e'], ['m', 's', 'b', 'e'], ['m', 'b', 'm', 'e'], ['m', 'v', 'b', 'e'], ['m', 's', 's', 'e'], ['m', 'i', 'b', 'e']];
 const ANSWER_PLANS = [['m', 'm', 'b', 'e'], ['m', 's', 'v', 'e'], ['m', 'b', 's', 'e'], ['m', 'v', 'm', 'e'], ['m', 'i', 'm', 'e'], ['m', 's', 'm', 'e']];
 const MIDDLE_PLANS = [['b', 'b', 's', 'e'], ['b', 's', 'b', 'e'], ['v', 'b', 'b', 'e'], ['i', 'i', 'b', 'e'], ['b', 'v', 'b', 'e']];
+// the song's lift (planSong) opens its phrases on the motif twice, or the motif and itself a step on
+const LIFT_QUESTIONS = [['m', 'm', 'v', 'e'], ['m', 'm', 'b', 'e'], ['m', 's', 'm', 'e'], ['m', 'm', 's', 'e']];
+const LIFT_ANSWERS = [['m', 'm', 'b', 'e'], ['m', 'm', 's', 'e'], ['m', 'v', 'm', 'e'], ['m', 's', 'm', 'e']];
 const RIFF_PLANS = [['m', 'm', 'm', 'm'], ['m', 'm', 's', 'm'], ['m', 's', 'm', 's'], ['m', 'm', 'm', 'v']];
 const RIFF_MIDDLES = [['b', 'b', 'm', 'm'], ['b', 'm', 'b', 'm'], ['m', 'b', 'm', 'b']];
 
@@ -3370,6 +3542,18 @@ function sing(c, cells, barStart, low, high, swell = 0, anchor = 0) {
   return out;
 }
 
+// a phrase's long last note with a chord change under it: if the new chord hasn't got the note, it
+// steps onto the nearest one it has as the chord arrives, so a tune resting on the home note steps off
+// it for a turnaround rather than rubbing against it. only where both pieces are a grid step or more
+function restOn(c, barStart, cell) {
+  const from = barStart + cell.t;
+  const next = c.chords[c.chords.indexOf(chordAt(c, from)) + 1];
+  if (!next || next.t < from + c.step - 1e-6 || next.t > from + cell.dur - c.step + 1e-6) return [cell];
+  if (next.pcs.has(mod12(degreeMidi(c, cell.degree)))) return [cell];
+  const first = next.t - from;
+  return [{ ...cell, dur: first, breath: false }, { ...cell, t: cell.t + first, dur: cell.dur - first, degree: chordDegree(c, cell.degree, next) }];
+}
+
 // a passing note: the longest note of a beat or more split in two, the second half a step away
 function decorate(cells, rng, unit) {
   const long = cells.reduce((best, cell) => (cell.dur >= 1 && (!best || cell.dur > best.dur) ? cell : best), null);
@@ -3386,8 +3570,14 @@ const SWELL = [0, 0.03, 0.05, -0.03];
 // own note (home)
 const singerSpan = (c, low, high) => (INSTRUMENTS[c.layer.instrument]?.home ? [Math.max(low, -3), Math.min(high, 4)] : [low, high]);
 function tune(c, { density, low: wide, high: tall, plan4, riff, rests }) {
-  const [low, high] = singerSpan(c, wide, tall);
+  let [low, high] = singerSpan(c, wide, tall);
   const { song, layer, rng } = c;
+  // the plan's register (planSong): the lift has the top of the range and the parts under it keep out
+  // of it, so the tune's highest notes are in the song's loudest part. a singer has less room to give
+  const { reach = 0 } = c.section;
+  const room = INSTRUMENTS[layer.instrument]?.home ? 1 : 2;
+  if (reach > 0) low += room;
+  if (reach < 0) high -= room;
   const { theme, hook, motif: themed } = themeMotif(c, density, riff);
   let motif = themed;
   let variant = makeMotif(theme, c, density, hook, null, motif.rhythm);
@@ -3397,21 +3587,30 @@ function tune(c, { density, low: wide, high: tall, plan4, riff, rests }) {
   // the second idea: its own rhythm, slower than a busy motif and busier than a slow one
   const contrast = density > 0.55 ? density * 0.55 : Math.min(0.95, density + 0.3);
   let second = makeMotif(theme, c, contrast, false);
-  // what this part does with it. A plays it as it is
+  // what this part does with the theme. A plays it as it is, and every other part plays something made
+  // from it, so the whole song is one idea (a part with a brand new motif sounded like another song's):
+  //   B  raise: the motif, higher. echo: its rhythm with a new shape, so it's the theme's rhythm you
+  //      know with notes you don't
+  //   C  slow: its shape at half the pace. turned: upside down. second: the theme's second idea takes
+  //      over, and the motif answers it
   const treat = makeRng(song.seed, partSeed(layer, c.section.part), 'treat', c.section.part);
-  const way = c.section.part === 'B' ? treat.weighted({ raise: 2, own: 2 }) : c.section.part === 'C' ? treat.weighted({ slow: 2, own: 1 }) : 'same';
-  if (way === 'raise') base += treat.int(2, 3);
-  if (way === 'own') motif = makeMotif(treat, c, density, hook);
-  if (way === 'slow') motif = makeMotif(treat, c, density * 0.45, false, motif.contour);
-  if (way === 'own' || way === 'slow') {
-    variant = makeMotif(treat, c, density, false, null, motif.rhythm);
-    second = makeMotif(treat, c, way === 'slow' ? density * 0.7 : contrast, false);
-  }
+  const way = c.section.part === 'B' ? treat.weighted({ raise: 2, echo: 2 }) : c.section.part === 'C' ? treat.weighted({ slow: 2, turned: 1.5, second: 1 }) : 'same';
+  // (only the song's lift is raised: a B that's a quiet bridge stays where the theme is)
+  // (a fourth or a fifth: the anchor then settles on the nearest chord note, which can take a step back)
+  if (way === 'raise' || way === 'echo') base += reach > 0 ? treat.int(3, 4) : treat.int(0, 1);
+  if (way === 'echo') motif = makeMotif(treat, c, density, hook, null, themed.rhythm);
+  if (way === 'slow') motif = makeMotif(treat, c, density * 0.45, false, themed.contour);
+  if (way === 'turned') motif = { ...themed, notes: themed.notes.map((note) => ({ ...note, step: -note.step })) };
+  if (way === 'second') [motif, second] = [second, themed];
+  // (new notes on the motif's rhythm, so a motif with another rhythm needs its own)
+  if (variant.rhythm !== motif.rhythm) variant = makeMotif(treat, c, density, false, null, motif.rhythm);
+  if (way === 'slow') second = makeMotif(treat, c, density * 0.7, false);
 
   const phraseBars = rests ? 2 : c.bars >= 4 && (plan4 || riff || rng.chance(0.75)) ? 4 : Math.min(2, c.bars);
   const phrases = Math.ceil(c.bars / phraseBars);
-  const question = rng.pick(riff ? RIFF_PLANS : QUESTION_PLANS);
-  const answer = riff ? question : rng.pick(ANSWER_PLANS);
+  // (the lift says its motif twice before it goes anywhere: what's repeated is what's remembered)
+  const question = rng.pick(riff ? RIFF_PLANS : reach > 0 ? LIFT_QUESTIONS : QUESTION_PLANS);
+  const answer = riff ? question : rng.pick(reach > 0 ? LIFT_ANSWERS : ANSWER_PLANS);
   const middle = rng.pick(riff ? RIFF_MIDDLES : MIDDLE_PLANS);
   const planFor = (phrase) => {
     // fragments: mostly the motif, the second idea every fourth time
@@ -3424,13 +3623,28 @@ function tune(c, { density, low: wide, high: tall, plan4, riff, rests }) {
   };
   // a later time round a part can change how its last phrase goes (c.vary is per time round)
   const lastPlan = c.section.take > 0 && c.vary.chance(0.5) ? c.vary.pick(riff ? RIFF_PLANS : ANSWER_PLANS).slice(4 - phraseBars) : null;
-  // each phrase starts from an anchor, moved so the ideas' whole span stays inside the range
-  const steps = [...motif.notes, ...variant.notes, ...second.notes].flatMap((n) => [n.step, -n.step]);
-  const top = Math.max(0, ...steps) + Math.max(0, seq * 2);
-  const bottom = Math.min(0, ...steps) + Math.min(0, seq * 2);
+  // each phrase starts from an anchor, moved so the ideas' whole span stays inside the range. the span
+  // is what this section's phrases really play (the motif upside down only if a plan turns it, as far
+  // up as its plans climb): allowing for everything a tune could do left no room to raise the lift
+  const plans = [...Array.from({ length: phrases }, (_, phrase) => planFor(phrase)), ...(lastPlan ? [lastPlan] : [])];
+  const kinds = new Set(plans.flat());
+  const steps = [...motif.notes, ...second.notes, ...(kinds.has('v') ? variant.notes : [])].map((n) => n.step);
+  if (kinds.has('i')) steps.push(...motif.notes.map((n) => -n.step));
+  const climb = seq * Math.max(0, ...plans.map((plan) => plan.filter((kind) => kind === 's').length));
+  const top = Math.max(0, ...steps) + Math.max(0, climb);
+  const bottom = Math.min(0, ...steps) + Math.min(0, climb);
   const fit = (degree) => Math.max(low - bottom, Math.min(high - top, degree));
   const anchorAt = (bar) => chordDegree(c, fit(base), chordAt(c, c.start + bar * c.bpb));
   const unit = 1 / c.sub;
+  // a pickup over the join: where the section leads on and the tune carries on, its last bar steps
+  // into the next section's first note (c.entry). a tune with pickups always does, any other tune a
+  // third of the time, and one that rests between phrases never
+  const over = !rests && c.section.leads && density >= 0.3 && (pickup || makeRng(song.seed, layer.seed, 'into', c.section.index).chance(1 / 3)) ? c.entry?.() ?? null : null;
+  const degreeOf = (midi) => {
+    let best = 0;
+    for (let degree = low - 9; degree <= high + 9; degree++) if (Math.abs(degreeMidi(c, degree) - midi) < Math.abs(degreeMidi(c, best) - midi)) best = degree;
+    return best;
+  };
 
   const notes = [];
   for (let bar = 0; bar < c.bars; bar++) {
@@ -3455,14 +3669,18 @@ function tune(c, { density, low: wide, high: tall, plan4, riff, rests }) {
       // questions and answers: the first of each pair of phrases ends open, the second comes home
       const closed = lastPhrase || (rests ? phrase / 2 : phrase) % 2 >= 1;
       const target = landing(c, cells.length ? cells[cells.length - 1].degree : anchor, chordAt(c, barStart + from), closed);
-      // a pickup: the long note stops short, and a note or two step into the next phrase's first
-      const into = bar + 1 < c.bars && pickup ? anchorAt(bar + 1) : null;
+      // a pickup: the long note stops short, and a note or two step into the next phrase's first (or,
+      // from the section's last bar, the next section's: over)
+      const final = bar + 1 >= c.bars;
+      const into = !final ? (pickup ? anchorAt(bar + 1) : null) : over !== null ? degreeOf(over) : null;
       const lead = into === null ? 0 : c.bpb - from >= 1 + 2 * unit && theme.chance(0.5) ? 2 : c.bpb - from >= 1 + unit ? 1 : 0;
       // with rests it rings into the empty bars, but not past the section's end
-      const ring = rests && bar + 1 < c.bars;
+      const ring = rests && !final;
       const until = ring ? c.bpb * 1.5 : c.bpb - lead * unit;
-      cells.push({ t: from, dur: until - from, degree: target, settled: true, breath: !lead && !ring });
-      const side = seq > 0 ? -1 : 1;
+      const rest = { t: from, dur: until - from, degree: target, settled: true, breath: !lead && !ring };
+      cells.push(...(ring ? [rest] : restOn(c, barStart, rest)));
+      // (over a join it comes from the side the tune's on: up to a higher note, down to a lower one)
+      const side = final && into !== target ? (into > target ? -1 : 1) : seq > 0 ? -1 : 1;
       for (let k = lead; k >= 1; k--) cells.push({ t: c.bpb - k * unit, dur: unit, degree: into + side * k, settled: true, soft: true });
     } else {
       const source = kind === 'v' ? variant : kind === 'b' ? second : motif;
@@ -3516,7 +3734,7 @@ function solo(c) {
         cells = head.map((n) => ({ t: n.t, dur: n.dur, degree: anchor + n.step }));
         const from = head.length ? head[head.length - 1].t + head[head.length - 1].dur : 0;
         const target = landing(c, cells.length ? cells[cells.length - 1].degree : anchor, chordAt(c, barStart + from), final);
-        cells.push({ t: from, dur: c.bpb - from, degree: target, settled: true, breath: true });
+        cells.push(...restOn(c, barStart, { t: from, dur: c.bpb - from, degree: target, settled: true, breath: true }));
       } else cells = [idea, again, next][place].notes.map((n) => ({ t: n.t, dur: n.dur, degree: anchor + n.step }));
       notes.push(...sing(c, cells, barStart, low, high, SWELL[place] + lift * 0.04, anchor));
     }
@@ -3973,10 +4191,26 @@ function bassHook(c) {
       const target = near(coming.root, c.center);
       const run = [];
       for (let midi = target - 1; run.length < perBeat && midi > target - 12; midi--) if (c.scalePcs.has(mod12(midi))) run.unshift(midi);
+      // (a chord that starts on the fill's beat, a turnaround in 6/8, still gets its root first)
+      const starting = c.chords.find((chord) => Math.abs(chord.t - from) < 1e-6);
+      if (starting && run.length) run[0] = near(starting.root, c.center);
       run.forEach((midi, k) => add(from + k * grid, grid * 0.8, midi, k === 0 ? 0.78 : 0.66));
     }
   }
   return notes;
+}
+
+// how a song ends in the bass: on its last bar (or its last chord, if that's shorter) the bass lands on
+// the chord's root, near where it was playing, and holds it to the end. left to its pattern, a walking
+// line stopped on its way somewhere and a syncopated one on a fifth, about one ending in three, and the
+// last chord hung in the air over it
+function comeHome(c, notes) {
+  const chord = c.chords[c.chords.length - 1];
+  const from = Math.max(chord.t, c.end - c.bpb);
+  const before = notes.filter((note) => note.t < from - 1e-6);
+  for (const note of before) note.dur = Math.min(note.dur, from - note.t);
+  const around = before.length ? before[before.length - 1].midi : c.center;
+  return [...before, { t: from, dur: (c.end - from) * 0.98, midi: near(chord.root, Math.max(c.center - 7, Math.min(c.center + 7, around))), vel: 0.8 }];
 }
 
 const COMPOSERS = {
@@ -3993,13 +4227,21 @@ const COMPOSERS = {
     // calls: a bar of tune, its last note held through half the next bar, then room for an answer
     const barOf = (note) => Math.floor((note.t - c.start) / c.bpb + 1e-9);
     const kept = notes.filter((note) => barOf(note) % 2 === 0);
+    const held = [];
     for (let i = 0; i < kept.length; i++) {
       const next = kept[i + 1];
       if (next && barOf(next) === barOf(kept[i])) continue;
       const until = Math.min(c.end, c.start + (barOf(kept[i]) + 1.5) * c.bpb);
-      kept[i].dur = Math.max(kept[i].dur, until - kept[i].t);
+      // (held into a chord that hasn't got the note, a turnaround most of all, it rubbed: it steps onto
+      // the nearest note the chord has as the chord arrives, and that's held instead)
+      const clash = c.chords.find((chord) => chord.t >= kept[i].t + kept[i].dur - 1e-6 && chord.t < until - c.step + 1e-6 && !chord.pcs.has(mod12(kept[i].midi)));
+      const step = clash && [1, -1, 2, -2, 3, -3, 4, -4].find((by) => clash.pcs.has(mod12(kept[i].midi + by)));
+      if (step) {
+        held.push({ t: clash.t, dur: until - clash.t, midi: kept[i].midi + step, vel: kept[i].vel * 0.92 });
+        kept[i].dur = Math.max(kept[i].dur, clash.t - kept[i].t);
+      } else kept[i].dur = Math.max(kept[i].dur, until - kept[i].t);
     }
-    return kept;
+    return [...kept, ...held].sort((a, b) => a.t - b.t);
   },
 
   counter(c) {
@@ -4330,6 +4572,8 @@ const COMPOSERS = {
   },
 
   bass(c) {
+    // (the song's last bar is the home note, held, whatever the bass was in the middle of: comeHome)
+    if (c.section.closes && !c.landing) return comeHome(c, COMPOSERS.bass({ ...c, landing: true }));
     const { pattern, density } = c.layer;
     if (pattern === 'hook') return bassHook(c);
     // doubling the chugging guitar's riff an octave down (or a riff of its own)
@@ -4419,7 +4663,10 @@ const COMPOSERS = {
     const hit = (t, slot, vel) => notes.push({ t, dur: grid, midi: slot, vel: vel * level, ...(tunes[slot] ? { tune: tunes[slot] } : {}) });
     // a fill into a different part: the last beat on the snare (or toms), growing. pulse and sparse
     // never fill: a roll in a calm song made it jump
-    const fill = (LIFTS[pattern] || ROCK[pattern] || FILLS[pattern]) && c.next && c.next.part !== c.section.part && c.vary.chance(0.75);
+    // (three times in four into another part, and always into a louder section, the same part or not:
+    // a fill says something's coming, and half the climbs had none)
+    const rises = !!c.next && (c.next.energy ?? 0.75) > (c.section.energy ?? 0.75) + 0.1;
+    const fill = (LIFTS[pattern] || ROCK[pattern] || FILLS[pattern]) && c.next && ((c.next.part !== c.section.part && c.vary.chance(0.75)) || rises);
     // a rock drummer fills down the toms: the snare for the first half of the beat, the floor tom after
     const fillDrum = (i) => (pattern === 'tribal' || pattern === 'tala' || (ROCK[pattern] && i - (steps - perBeat) >= perBeat / 2) ? 5 : 1);
     // a song that builds rolls through the last bar before its climax and crashes on it (builds), and
