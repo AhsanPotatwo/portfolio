@@ -357,12 +357,12 @@ html:has(.el-page){ scrollbar-color:var(--muted) var(--bg); }
 /* ---------- phones: the picture gets the whole width, the keys go under the bar ---------- */
 @media (max-width:700px){
   .el-screen{ --pic-h:44svh; min-height:0; border-radius:18px; gap:14px; }
-  .el-screen:fullscreen{ --pic-h:calc(100vh - 280px); min-height:100vh; }
-  .el-bottom{ grid-template-columns:1fr auto; }
-  .el-load{ grid-column:1; grid-row:1; }
-  .el-globe{ grid-column:2; grid-row:1; }
-  .el-globe-word{ display:none; }
-  .el-controls{ grid-column:1 / -1; justify-content:center; }
+  .el-screen:fullscreen{ --pic-h:calc(100vh - 340px); min-height:100vh; }
+  /* phone: the globe and its word in a row of their own, then the bar, then the keys */
+  .el-bottom{ grid-template-columns:1fr; gap:14px; }
+  .el-globe{ order:-1; justify-content:center; }
+  .el-globe svg{ width:48px; }
+  .el-controls{ order:1; justify-content:center; }
   .el-key{ width:48px; }
   .el-band-links, .el-band-links .btn{ width:100%; }
 }
