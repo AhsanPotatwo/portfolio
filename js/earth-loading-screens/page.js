@@ -1,6 +1,7 @@
 // earth loading screens: shows TIPS (tips.js) one at a time like a video game's loading screen, in a
-// shuffled order, moving on by itself after long enough to read each one. the loading bar creeps up
-// as they go by and gets to 99%, then the planet "fails to load" and it starts again, reshuffled.
+// shuffled order, moving on by itself after long enough to read each one. there's no loading bar (it
+// made it look like something was waiting at the end), only the spinning globe and a line saying what
+// it's busy doing.
 //
 // pictures come straight from Wikimedia Commons. for each one the Commons API gives a thumbnail of the
 // right size and who made it and its licence, for the credit under the frame. if the API can't be
@@ -10,12 +11,12 @@
 // also here: the theme switch (the colours are all in css/earth-loading-screens.css), the globe's word in
 // languages from round the world, and the music, on from the start: it
 // loads the squimble music maker's composer and band and plays calm
-// songs it writes there and then, a new one every few minutes
+// songs it writes there and then, a new one every few minutes, with only the ambient players kept
 (() => {
   const $ = id => document.getElementById(id);
   const screen = $('screen'), thumb = $('elThumb'), img = $('elImg'), text = $('elText'), caption = $('elCaption');
   const credit = $('elCredit'), enlarge = $('elEnlarge');
-  const statusWords = $('elStatus'), pct = $('elPct'), bar = $('elBar'), fill = $('elFill');
+  const statusWords = $('elStatus');
   const back = $('elBack'), pause = $('elPause'), next = $('elNext'), full = $('elFull'), music = $('elMusic');
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
@@ -31,7 +32,7 @@
   setTheme(document.documentElement.dataset.elTheme || 'white');
 
   // ---------- tips ----------
-  // what the loading bar says it's doing, one per tip
+  // what the loading screen says it's doing, one per tip
   const STATUS = [
     'Loading Earth', 'Filling the oceans', 'Placing mountains', 'Painting the sky blue', 'Waking up the Sun',
     'Teaching birds to sing', 'Untangling rivers', 'Counting the sheep', 'Planting forests', 'Folding the clouds',
@@ -104,10 +105,6 @@
   }
 
   let order = shuffle([...TIPS.keys()]);
-  // the bar fills (and the planet fails to load) once a lap of about a thousand tips, however many tips
-  // there are, going on through the same shuffled order so none comes back until all have been seen
-  const LAP = TIPS.length / Math.max(1, Math.round(TIPS.length / 1000));
-  const lapStart = i => Math.floor(i / LAP) !== Math.floor((i - 1) / LAP);
   let at = -1;          // where in order we are
   let shown = 0;        // how far through this tip's time we are, 0 to 1
   let length = 1;       // this tip's time, in ms
@@ -124,7 +121,7 @@
     if (busy) { wanted = i; return; }
     busy = true;
     if (i >= order.length) {
-      // the end of the list: "fail" to load, and go round again in a new order
+      // the end of the list: go round again in a new order
       order = shuffle([...TIPS.keys()]);
       i = 0;
       loops++;
@@ -157,7 +154,7 @@
     text.innerHTML = linked(tip.text);
     enlarge.href = p.page;
     credit.textContent = p.by ? `Picture: ${p.by}${p.licence ? ', ' + p.licence : ''}` : p.licence ? `Picture: ${p.licence}` : '';
-    statusWords.textContent = lapStart(at) && (loops || at > 0) ? 'Earth failed to load. Trying again' : STATUS[(at + loops) % STATUS.length];
+    statusWords.textContent = STATUS[(at + loops) % STATUS.length];
     // screen readers hear the new caption only when it was asked for, not every few seconds
     caption.setAttribute('aria-live', byHand ? 'polite' : 'off');
     thumb.classList.remove('is-out');
@@ -172,15 +169,6 @@
     return new Promise(r => setTimeout(r, reduceMotion.matches || at < 0 ? 0 : 300));
   }
 
-  // the bar: how many tips have gone by, eased like every loading bar that ever lied, quick at first then
-  // crawling, a fifth of the way after a few tips, halfway after a few dozen, never past 99
-  function draw() {
-    const x = (Math.max(at, 0) % LAP + shown) / LAP;
-    const done = 99 * (1 - (1 - x) ** 4.5);
-    fill.style.width = done + '%';
-    pct.textContent = Math.floor(done) + '%';
-    bar.setAttribute('aria-valuenow', Math.floor(done));
-  }
   let last = performance.now();
   function tick(now) {
     // at most a tenth of a second at a time, so time away from the tab doesn't count
@@ -190,7 +178,6 @@
       shown = Math.min(1, shown + dt / length);
       if (shown >= 1) show(at + 1, false);
     }
-    draw();
     requestAnimationFrame(tick);
   }
 
@@ -226,12 +213,14 @@
 
   // ---------- music ----------
   // the squimble music maker's composer and band (js/squimble-music-maker, in its load order), loaded
-  // once the page is up. songs come from the maker's gentlest moods, a fresh seed each,
+  // once the page is up. songs come from the maker's gentlest moods, a fresh seed each, played by
+  // AMBIENT_ROLES only: no tune, bells, arps, keys or drums, nothing to follow away from the pictures.
   // each time round a little different (vary), and every few minutes the next one takes over at the end
   // of a section, the way the maker's Game tab moves from song to song
   const MAKER = 'js/squimble-music-maker/';
   const CALM = ['calm', 'heavenly', 'nostalgic', 'calm', 'wintry'];
   const SONG_MINUTES = 4;
+  const AMBIENT_ROLES = ['pad', 'drone', 'texture', 'bass'];
   let player = null, nextSong = null, loading = null;
 
   const addScript = src => new Promise((ok, fail) => {
@@ -244,6 +233,15 @@
   function calmSong() {
     const mood = CALM[Math.floor(Math.random() * CALM.length)];
     const song = generateSong(mood, MOODS[mood].style, newSeed(makeRng(Math.random(), Date.now())));
+    const kept = song.layers.filter(layer => AMBIENT_ROLES.includes(layer.role)).map(layer => layer.id);
+    song.layers = song.layers.filter(layer => kept.includes(layer.id));
+    // a section that only had the tune in it gets the pads instead of silence
+    const beds = song.layers.filter(layer => layer.role !== 'bass').map(layer => layer.id);
+    for (const section of song.sections) {
+      section.play = section.play.filter(id => kept.includes(id));
+      if (!section.play.length) section.play = beds;
+      for (const id in section.use || {}) if (!kept.includes(id)) delete section.use[id];
+    }
     // background music: quieter than the maker plays it
     song.fx = { ...song.fx, volume: 0.42 };
     // written is the song as written, for vary to write again; song and comp are what the player plays

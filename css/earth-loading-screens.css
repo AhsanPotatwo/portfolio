@@ -1,6 +1,6 @@
 /* earth loading screens page, loaded on top of styles.css.
    flat colours like the home page. in the middle, a picture framed exactly the way Wikipedia frames one,
-   on a loading screen with a loading bar and a spinning globe. keys sit on a solid darker edge and press
+   on a loading screen with a spinning globe and a line saying what it's doing. keys sit on a solid darker edge and press
    down, headings are Fredoka, round and friendly, and the page ends on a band of colour.
 
    it has three themes, picked under the title and remembered (page.js, and a line in the page's head
@@ -19,7 +19,6 @@
   --screen:#f1f3f5;        --screen-edge:#dfe3e8;
   --key:#ffffff;           --key-edge:#cfd4da;       --key-text:#202122;      --key-hover:#ffffff;
   --key-on:#3366cc;        --key-on-edge:#22468f;    --key-on-text:#ffffff;
-  --track:#dfe3e8;         --fill:#3366cc;           --fill-edge:#2a55ad;     --pct:#3366cc;
   --globe-sea:#5aa5e6;     --globe-land:#6dbf5b;     --globe-rim:#202122;     --globe-night:rgba(0,0,0,.14);
   --band:#3366cc;          --band-text:#ffffff;      --band-edge:none;        --band-focus:#ffffff;
   --btn-a:#ffffff;         --btn-a-edge:#b9c9ea;     --btn-a-text:#202122;
@@ -43,7 +42,6 @@
   --screen:#123f5f;        --screen-edge:#0a2a40;
   --key:#e8f3fa;           --key-edge:#9db9cc;       --key-text:#0d2233;      --key-hover:#ffffff;
   --key-on:#f2d27a;        --key-on-edge:#c49a3a;    --key-on-text:#0d2233;
-  --track:#0a2a40;         --fill:#7cc25b;           --fill-edge:#4f8f37;     --pct:#7cc25b;
   --globe-sea:#3d8fd1;     --globe-land:#7cc25b;     --globe-rim:#0a2a40;     --globe-night:rgba(10,42,64,.32);
   --band:#7cc25b;          --band-text:#0d2233;      --band-edge:url("../assets/earth-loading-screens/coast.svg"); --band-focus:#0d2233;
   --btn-a:#f2d27a;         --btn-a-edge:#c49a3a;     --btn-a-text:#0d2233;
@@ -58,7 +56,6 @@
   --screen:#1b1e23;        --screen-edge:#0a0c0f;
   --key:#2e3238;           --key-edge:#0a0c0f;       --key-text:#eaecf0;      --key-hover:#383d44;
   --key-on:#88a3e8;        --key-on-edge:#4a64a8;    --key-on-text:#101418;
-  --track:#0a0c0f;         --fill:#88a3e8;           --fill-edge:#6681c8;     --pct:#88a3e8;
   --globe-sea:#3a6fa8;     --globe-land:#5b9e4c;     --globe-rim:#0a0c0f;     --globe-night:rgba(0,0,0,.35);
   --band:#1d2d4f;          --band-text:#eaecf0;      --band-edge:none;        --band-focus:#88a3e8;
   --btn-a:#88a3e8;         --btn-a-edge:#4a64a8;     --btn-a-text:#101418;
@@ -224,11 +221,9 @@ html:has(.el-page){ scrollbar-color:var(--muted) var(--bg); }
 }
 .el-thumb.is-out + .el-credit{ opacity:0; }
 
-/* ---------- the bottom row: keys, the loading bar, the globe ---------- */
+/* ---------- the bottom row: keys, what it's doing, the globe ---------- */
 .el-bottom{
-  display:grid;
-  grid-template-columns:auto 1fr auto;
-  align-items:end;
+  display:flex; align-items:center; justify-content:space-between;
   gap:20px clamp(18px,3vw,40px);
 }
 .el-controls{ display:flex; gap:10px; }
@@ -257,35 +252,18 @@ html:has(.el-page){ scrollbar-color:var(--muted) var(--bg); }
 @keyframes el-wait{ to{ opacity:.3; } }
 .el-key[hidden]{ display:none; }
 
-.el-load{ min-width:0; padding-bottom:4px; }
-.el-load-words{
-  display:flex; justify-content:space-between; gap:12px;
-  margin-bottom:8px;
+/* the globe, spinning in the corner, with "Loading" beside it and what it's doing under that */
+.el-globe{ display:flex; align-items:center; gap:14px; min-width:0; }
+.el-globe-text{ width:clamp(230px,22vw,290px); min-width:0; }
+.el-status{
+  margin-top:2px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   font-family:var(--font-round);
   font-weight:600;
-  font-size:clamp(16px,1.4vw,19px);
+  font-size:clamp(15px,1.25vw,17px);
+  color:var(--muted);
 }
-#elStatus{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-#elStatus::after{ content:"…"; }
-#elPct{ flex:none; color:var(--pct); font-variant-numeric:tabular-nums; }
-.el-bar{
-  height:20px;
-  padding:4px;
-  border-radius:999px;
-  background:var(--track);
-}
-.el-bar i{
-  display:block;
-  width:0;
-  height:100%;
-  min-width:12px;
-  border-radius:999px;
-  background:var(--fill);
-  box-shadow:inset 0 -3px 0 var(--fill-edge);
-}
-
-/* the globe, spinning in the corner */
-.el-globe{ display:flex; align-items:center; gap:12px; }
+.el-status::after{ content:"…"; }
 .el-globe svg{ width:clamp(56px,6vw,76px); height:auto; overflow:visible; }
 .el-globe-sea{ fill:var(--globe-sea); }
 .el-globe-rim{ fill:none; stroke:var(--globe-rim); stroke-width:3; }
@@ -293,9 +271,9 @@ html:has(.el-page){ scrollbar-color:var(--muted) var(--bg); }
 .el-globe-night{ fill:var(--globe-night); }
 .el-globe-spin{ animation:el-spin 14s linear infinite; }
 @keyframes el-spin{ to{ transform:translateX(-200px); } }
-/* "Loading" in a different language every few seconds (page.js): the same width whatever the word,
-   so the bar beside it never jumps */
-.el-globe-word{ width:8.6em; white-space:nowrap; font-family:var(--font-round); font-weight:700; font-size:clamp(17px,1.6vw,22px); }
+/* "Loading" in a different language every few seconds (page.js), shrunk to fit a long one, so the
+   globe never shifts whatever the word */
+.el-globe-word{ display:block; white-space:nowrap; font-family:var(--font-round); font-weight:700; font-size:clamp(17px,1.6vw,22px); }
 #elWord{ display:inline-block; transition:opacity .4s; }
 #elWord.is-out{ opacity:0; }
 .el-dots i{ font-style:normal; animation:el-dot 1.5s steps(1) infinite; }
@@ -354,15 +332,19 @@ html:has(.el-page){ scrollbar-color:var(--muted) var(--bg); }
 .el-page .page-back{ padding:clamp(36px,5vw,52px) var(--gutter) 0; }
 .el-page .page-back a:hover{ color:var(--band-text); opacity:.8; }
 
-/* ---------- phones: the picture gets the whole width, the keys go under the bar ---------- */
+/* ---------- phones: the picture gets the whole width, the globe and the keys go under it ---------- */
 @media (max-width:700px){
-  .el-screen{ --pic-h:44svh; min-height:0; border-radius:18px; gap:14px; }
-  .el-screen:fullscreen{ --pic-h:calc(100vh - 340px); min-height:100vh; }
-  /* phone: the globe and its word in a row of their own, then the bar, then the keys */
-  .el-bottom{ grid-template-columns:1fr; gap:14px; }
-  .el-globe{ order:-1; justify-content:center; }
-  .el-globe svg{ width:48px; }
-  .el-controls{ order:1; justify-content:center; }
+  .el-screen{ --pic-h:44svh; min-height:0; border-radius:18px; gap:16px; padding-top:14px; }
+  /* full screen: the picture and the rows under it kept together in the middle, not pulled apart */
+  .el-screen:fullscreen{ --pic-h:calc(100svh - 300px); min-height:100svh; grid-template-rows:auto auto; align-content:center; }
+  .el-middle{ gap:6px; }
+  .el-credit{ font-size:12px; }
+  /* the globe with its two lines, then the keys, each row centred */
+  .el-bottom{ flex-direction:column; gap:14px; }
+  .el-globe{ order:-1; }
+  .el-globe svg{ width:48px; flex:none; }
+  .el-globe-text{ width:200px; }
+  .el-globe-word{ font-size:18px; }
   .el-key{ width:48px; }
   .el-band-links, .el-band-links .btn{ width:100%; }
 }
