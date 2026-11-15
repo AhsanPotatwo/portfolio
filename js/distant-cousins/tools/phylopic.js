@@ -28,9 +28,12 @@ const get = async url => {
     for (const it of items) {
       const node = it._embedded?.specificNode;
       const names = (node?.names || []).map(n => n.filter(p => p.class === 'scientific').map(p => p.text).join(' ')).filter(Boolean);
-      const pbdb = (node?._links?.external || []).map(e => /paleobiodb\.org\/txn\/(\d+)/.exec(e.href)?.[1]).filter(Boolean).map(Number);
-      // [image, licence, who drew it, names, pbdb ids]
-      out.push([it.uuid, it._links.license?.href || '', it.attribution || it._links.contributor?.title || '', names, pbdb]);
+      // the same creature in other databases (gbif, ncbi, paleobiodb, open tree), so build.js can match by id
+      // rather than by name: plenty of beetles share a latin name with a plant
+      // (hrefs look like /resolve/gbif.org/species/4970263?build=562, kept as gbif.org/species/4970263)
+      const ids = (node?._links?.external || []).map(e => /\/resolve\/([^?]+)/.exec(e.href)?.[1]).filter(Boolean);
+      // [image, licence, who drew it, names, ids elsewhere]
+      out.push([it.uuid, it._links.license?.href || '', it.attribution || it._links.contributor?.title || '', names, ids]);
     }
     console.log('page', page, out.length);
     if (!items.length) break;

@@ -1,7 +1,8 @@
 // builds distant cousins' tree out of a wikidata export and the paleobiology database.
 //   node --max-old-space-size=6000 js/distant-cousins/tools/build.js <folder of raw tsvs>
 // the raw folder comes from export.sh (wikidata through the qlever mirror) plus pbdb-taxa.txt from
-// paleobiodb.org/data1.2/taxa/list.txt?base_name=Metazoa&taxon_status=accepted&show=app
+// paleobiodb.org/data1.2/taxa/list.txt?base_name=Metazoa&taxon_status=accepted&show=app, phylopic.json from
+// phylopic.js and media.json from media.js (the pictures in each wikipedia article, see "pictures" below).
 //
 // every animal wikidata knows (2.3 million) goes through here, but only the ones people might have heard of
 // are written out: anything with a wikipedia article, a photo, an english name or a fossil date, and every
@@ -10,6 +11,7 @@
 //
 // out: js/distant-cousins/tree/<qid>.json   one file per slice of the tree, named after the slice's top node
 //      js/distant-cousins/find/<ab>.json    names for the search box, by the first two letters of each word
+//      <raw>/media-wanted.txt               articles whose pictures media.js should fetch before the next build
 
 const fs = require('fs');
 const path = require('path');
@@ -18,7 +20,9 @@ const RAW = process.argv[2];
 const OUT = path.join(__dirname, '..');
 const ROOT = 2382443;          // Biota: all life, the last universal common ancestor
 const ANIMALS = 729;
+const EUKARYOTES = 19088;
 const SLICE = 2500;            // about how many nodes go in one tree file
+const has = f => fs.existsSync(path.join(RAW, f));
 
 // old catch-all groups that aren't real branches of the tree (paraphyletic or retired). nothing hangs off them:
 // their children go to their other parent, or to the group's own parent if they have no other
@@ -67,7 +71,8 @@ const add = (map, k, v) => { const a = map.get(k); a ? a.includes(v) || a.push(v
 console.log('reading');
 each('edges.tsv', ([t, p]) => add(parents, qid(t), qid(p)));
 each('toppar.tsv', ([t, p]) => { if (p) add(parents, qid(t), qid(p)); });
-each('names.tsv', ([t, n]) => name.has(qid(t)) || name.set(qid(t), literal(n)));
+const names = new Map();            // every latin name given: the one that fits the rank is picked below
+each('names.tsv', ([t, n]) => add(names, qid(t), literal(n)));
 each('labels.tsv', ([t, l]) => label.set(qid(t), literal(l)));
 each('links.tsv', ([t, s]) => links.set(qid(t), +literal(s)));
 each('enwiki.tsv', ([t, w]) => wiki.set(qid(t), literal(w)));
@@ -75,9 +80,31 @@ each('images.tsv', ([t, i]) => image.has(qid(t)) || image.set(qid(t), decodeURIC
 each('common.tsv', ([t, c]) => add(common, qid(t), literal(c)));
 each('alt.tsv', ([t, c]) => add(alt, qid(t), literal(c)));
 each('ranks.tsv', ([t, r]) => rank.set(qid(t), qid(r)));
+// a species' name is two words, a subspecies' three, anything else one. the western honey bee has a second,
+// one word "latin name" (Spoderman) that somebody slipped in, which this leaves out
+// when that's its only one (the honey bee's), the english label, if it's the latin name, is used instead
+for (const [q, ns] of names) {
+  const words = { 7432: 2, 68947: 3 }[rank.get(q)] || 1;
+  const fits = n => n && n.split(' ').length === words && /^[A-Z][a-z-]+( [a-z-]+)*$/.test(n);
+  name.set(q, ns.find(fits) || (fits(label.get(q)) ? label.get(q) : ns[0]));
+}
+names.clear();
 each('fossil.tsv', ([t]) => fossil.add(qid(t)));
 each('iucn.tsv', ([t, s]) => iucn.set(qid(t), qid(s)));
 each('pbdb.tsv', ([t, id]) => pbdbId.set(qid(t), +literal(id)));
+// synonyms, misspellings, footprints, eggs and the like (export.sh's junk list) go the way of the retired groups
+if (has('junk.tsv')) each('junk.tsv', ([t]) => RETIRED.add(qid(t)));
+// ids in the databases phylopic links its silhouettes to
+const otherIds = new Map();
+for (const [file, at] of [['gbif.tsv', 'gbif.org/species/'], ['ncbi.tsv', 'ncbi.nlm.nih.gov/taxid/'], ['ott.tsv', 'opentreeoflife.org/taxonomy/']])
+  if (has(file)) each(file, ([t, id]) => add(otherIds, qid(t), at + literal(id)));
+// adult weight in kg: the biggest figure given (the others are usually newborns or eggs)
+const KG = { 41803: 1e-3, 11570: 1, 191118: 1000, 100995: 0.4536, 48013: 0.02835, 3241121: 1e-6 };
+const mass = new Map();
+if (has('mass.tsv')) each('mass.tsv', ([t, v, u]) => {
+  const per = KG[qid(u || '/Q0>')], kg = +literal(v) * per;
+  if (per && kg > 0 && !(mass.get(qid(t)) >= kg)) mass.set(qid(t), kg);
+});
 // the branches near the root: everything hanging off the line from life to animals
 const otherLife = [];
 each('topx.tsv', ([t, p, n, l, s, w, i]) => {
@@ -101,23 +128,11 @@ each('toppar.tsv', ([t, p, n, l, w, i]) => {
   if (i && !image.has(q)) image.set(q, decodeURIComponent(i.slice(i.indexOf('FilePath/') + 9, -1)));
 });
 // pictures that need changing: wikidata's human is a nude drawing, so a family out for a walk instead. two
-// groups near us lose theirs (a nude museum model, an odd old portrait) and show their best known member
+// groups near us lose theirs (a nude museum model, an odd old portrait)
 const SWAP_PICTURE = { 15978631: 'A mixed-race family walking in a park with European flags (P044728-798775).jpg' };
 const NO_PICTURE = [605457 /* Hominina */, 242047 /* Homininae */];
 for (const [q, f] of Object.entries(SWAP_PICTURE)) image.set(+q, f);
 for (const q of NO_PICTURE) image.delete(q);
-
-// silhouettes from phylopic (phylopic.js), for creatures you haven't discovered yet. only the public domain
-// ones, so a mystery card never needs a credit line
-const silByName = new Map(), silByPbdb = new Map();
-if (fs.existsSync(path.join(RAW, 'phylopic.json'))) {
-  for (const [uuid, licence, , names, pbdb] of JSON.parse(fs.readFileSync(path.join(RAW, 'phylopic.json'), 'utf8'))) {
-    if (!/publicdomain/.test(licence)) continue;
-    for (const n of names) if (!silByName.has(n)) silByName.set(n, uuid);
-    for (const id of pbdb) if (!silByPbdb.has(id)) silByPbdb.set(id, uuid);
-  }
-}
-const silhouette = q => silByPbdb.get(pbdbId.get(q)) || silByName.get(name.get(q));
 
 const rankName = new Map();
 each('rankl.tsv', ([r, l]) => rankName.set(qid(r), literal(l)));
@@ -200,29 +215,62 @@ for (const q of parent.keys()) {
   const ok = reaches.get(x);
   for (const t of trail) reaches.set(t, ok);
 }
-for (const [q, p] of parent) if (reaches.get(q)) add(kids, p, q);
-console.log('on the tree', [...reaches.values()].filter(Boolean).length);
+for (const [q, p] of [...parent]) if (reaches.get(q)) add(kids, p, q); else parent.delete(q);
+console.log('on the tree', parent.size + 1);
 
 // ---- names ----
 
-const SPECIES = 7432, SUBSPECIES = 68947;
-const LOW = new Set([SPECIES, SUBSPECIES, 34740 /* genus */, 3238261 /* subgenus */, 279749 /* form */, 767728 /* variety */]);
+const SPECIES = 7432, SUBSPECIES = 68947, GENUS = 34740, SUBGENUS = 3238261;
+const KINGDOM = 36732, PHYLUM = 38348, CLASS = 37517, ORDER = 36602, FAMILY = 35409;
+const LOW = new Set([SPECIES, SUBSPECIES, GENUS, SUBGENUS, 279749 /* form */, 767728 /* variety */]);
+const ONE_KIND = new Set([SPECIES, SUBSPECIES, 279749, 767728]);
 const cap = s => s && s[0].toUpperCase() + s.slice(1);
 const same = (a, b) => a.toLowerCase().replace(/[^a-z]/g, '') === b.toLowerCase().replace(/[^a-z]/g, '');
 // the friendly name: wikidata writes common names in lower case ("lion", "mammal"), so a lower case label is
 // one. failing that a listed common name, then a label that isn't just the latin again with bits on
-// ("Dawsonia Nicholson (1873)", "Odonthornithes")
+// ("Dawsonia Nicholson (1873)", "Odonthornithes"). groups also try their other english labels, where the
+// everyday names often are ("molluscs", "cat family"), and read in the plural: the card is all of them
 const latinish = (l, n) => l.startsWith(n) || /^[A-Z][a-z]+( [a-z]+)?$/.test(l) && l.length >= n.length - 1 && l.slice(0, 4).toLowerCase() === n.slice(0, 4).toLowerCase();
+const RANK_WORD = /\b(sub|super|infra|parv)?(kingdom|phylum|class|order|family|genus|tribe|clade|species|taxon|group)\b/i;
+// names somebody slipped in that the rules below can't catch (Homo erectus as "Caveman")
+const JOKES = /^(caveman|cavemen)$/i;
+const plural = w => /(s|fish|sheep|deer|people|fauna)$/i.test(w) ? w : /(ch|sh|x)$/.test(w) ? w + 'es' : /[^aeiou]y$/.test(w) ? w.slice(0, -1) + 'ies' : w + 's';
 const friendlyOf = new Map();
 const friendly = q => { if (!friendlyOf.has(q)) friendlyOf.set(q, friendlyName(q)); return friendlyOf.get(q); };
 function friendlyName(q) {
   const n = name.get(q) || '', l = label.get(q);
   if (l && !n) return cap(l);
-  if (l && /^[a-z]/.test(l) && !same(l, n)) return cap(l);
-  const c = (common.get(q) || []).find(c => !same(c, n) && !latinish(c, n));
-  if (c) return cap(c);
+  // (a fossil genus is one creature, Iguanodon not "Iguanodonts")
+  const isGroup = (kids.get(q) || []).length && !ONE_KIND.has(rank.get(q)) && !(rank.get(q) === GENUS && extinct.has(q));
+  // short and plain: no lists ("Cuckoo, Carpenter, Digger, Bumble, and Honey Bees"), no ranks, no brackets
+  const plain = s => s && !same(s, n) && !latinish(s, n) && !/[,()\d]/.test(s) && s.split(' ').length <= 4
+    && !RANK_WORD.test(rank.get(q) === FAMILY ? s.replace(/ family$/i, '') : s);
+  if (isGroup) {
+    const pool = [l && /^[a-z]/.test(l) ? l : '', ...(common.get(q) || []), ...(alt.get(q) || []).filter(a => /^[a-z]/.test(a))].filter(plain);
+    const pick = rank.get(q) === FAMILY && pool.find(s => / family$/i.test(s)) || pool.find(s => /[^s]s$/.test(s)) || pool[0];
+    if (pick) return cap(/^[a-z]+$/i.test(pick) ? plural(pick) : pick);
+  } else {
+    // a label none of its other english names back up is somebody's joke (the silkworm was "Don Hugo")
+    const others = [wiki.get(q), ...(common.get(q) || []), ...(alt.get(q) || [])].filter(Boolean);
+    const trusted = l && (others.length < 2 || others.some(o => same(o, l)));
+    if (l && trusted && /^[a-z]/.test(l) && !same(l, n)) return cap(l);
+    // and of its common names, one its other labels back up first (the silkworm's first is "Don Hugo" too)
+    const cs = (common.get(q) || []).filter(c => !same(c, n) && !latinish(c, n) && !JOKES.test(c));
+    const c = cs.find(c => (alt.get(q) || []).some(a => same(a, c))) || cs[0];
+    if (c) return cap(c);
+    if (l && !trusted) return '';
+  }
   return l && !same(l, n) && !latinish(l, n) && !/^[A-Z][a-z]+ [a-z]+$/.test(l) ? l : '';
 }
+// the first few names by hand: they're what everyone meets first, and wikidata's are clumsy ("Arthropod
+// animals", "Octopodes") or missing (the true jellyfish only go by Scyphozoa)
+const NAMES = { [EUKARYOTES]: 'Eukaryotes', [ANIMALS]: 'Animals', 1360: 'Arthropods', 19159: 'Four-limbed animals',
+  128257: 'Cephalopods', 30587689: 'Spiders', 59256: 'Brittle stars', 83483: 'Sea urchins', 209924: 'Calcareous sponges',
+  25309: 'Cockroaches and termites', 28319: 'Butterflies and moths', 127282: 'Ray-finned fishes', 147256: 'Sea anemones',
+  272388: 'Jellyfish', 1650384: 'Ammonites', 18960: 'Sponges', 839350: 'Earthworms and leeches', 276412: 'Seed shrimps',
+  972302: 'Land snails and slugs', 733595: 'Sea slugs', 26371: 'True bugs', 167810: 'Grasshoppers and crickets',
+  1045208: 'Springtails', 5194: 'Water bears', 25371: 'Sharks and rays', 132674: 'Corals and anemones', 40152: 'Octopuses' };
+for (const [q, l] of Object.entries(NAMES)) friendlyOf.set(+q, l);
 
 // ---- who gets written out ----
 
@@ -246,8 +294,12 @@ function ages(q, animal, cap) {
   return first.has(q) ? first.get(q) : cap;
 }
 
-const core = new Set();
 const order = [];                  // root first, so reversed it's children before parents
+const walkDown = () => {
+  order.length = 0;
+  const stack = [ROOT];
+  while (stack.length) { const q = stack.pop(); order.push(q); for (const k of kids.get(q) || []) stack.push(k); }
+};
 {
   const stack = [[ROOT, false, 4200]];
   while (stack.length) {
@@ -257,6 +309,7 @@ const order = [];                  // root first, so reversed it's children befo
     for (const k of kids.get(q) || []) stack.push([k, animal || q === ANIMALS, under]);
   }
 }
+const core = new Set();
 // a group whose members all moved under newer groups is left empty: not a tip of the tree, just an old name
 const empty = q => !(kids.get(q) || []).length && !LOW.has(rank.get(q)) && !first.has(q) && !otherLife.includes(q);
 for (const q of order) {
@@ -267,45 +320,198 @@ for (const q of order) {
 core.add(ROOT);
 console.log('written out', core.size, 'of', order.length);
 
-// counts, pictures and fossil dates, children before parents
+// ---- fewer, better known branches ----
+// wikidata has every clade anyone has named, which put the lion 79 steps from the first life (Neokaryotes,
+// Podiata, Zatheria...). the board keeps the classic ranks (kingdom, phylum, class, order, family, genus,
+// species) and the clades famous enough to have an everyday name (dinosaurs, vertebrates, bees). the rest are
+// folded away, and what hung from them hangs from the next group up. the lion is now 11 steps down
+const CLASSIC = new Set([KINGDOM, PHYLUM, CLASS, ORDER, FAMILY, GENUS, ...ONE_KIND]);
+const FAMOUS = 90;                 // this many wikipedias have a page on it
+const KEEP = new Set([ROOT, EUKARYOTES, ANIMALS]);
+const toAnimals = new Set();
+for (let x = ANIMALS; x !== undefined; x = parent.get(x)) toAnimals.add(x);
+function keeps(q) {
+  if (KEEP.has(q) || otherLife.includes(q)) return true;
+  if (toAnimals.has(q)) return false;
+  if (CLASSIC.has(rank.get(q))) return true;
+  if (!(kids.get(q) || []).some(k => core.has(k))) return true;   // the tip of a branch
+  return (links.get(q) || 0) >= FAMOUS && !!friendly(q);
+}
+const gone = new Set([...core].filter(q => !keeps(q)));
+const folded = new Map();          // a group -> the groups folded into it (page.js asks wikidata for their latin-only members too)
+const absorbed = new Map();        // a lone member -> the groups above it that became it, nearest first
+{
+  const upTo = q => { let p = parent.get(q); while (gone.has(p)) p = parent.get(p); return p; };
+  const moves = [];
+  for (const q of parent.keys()) {
+    if (gone.has(q)) add(folded, upTo(q), q);
+    else if (gone.has(parent.get(q))) moves.push([q, upTo(q)]);
+  }
+  for (const [q, p] of moves) parent.set(q, p);
+  for (const q of gone) parent.delete(q);
+  kids.clear();
+  for (const [q, p] of parent) add(kids, p, q);
+}
+walkDown();
+// a group with one member is that member: a genus of one species is just the species, and the species takes
+// the genus's article, picture and name if it has none (Gigantopithecus is famous, G. blacki isn't). a species
+// with one subspecies listed keeps itself instead. bottom up, so a whole chain of one-member groups goes at once
+{
+  const pass = (k, q) => {
+    for (const x of [q, ...(folded.get(q) || [])]) add(folded, k, x);
+    folded.delete(q);
+    gone.add(q); core.delete(q);
+  };
+  for (let i = order.length - 1; i >= 0; i--) {
+    const q = order[i];
+    if (KEEP.has(q) || otherLife.includes(q) || !core.has(q)) continue;
+    const ks = kids.get(q) || [];
+    if (ks.length !== 1 || !core.has(ks[0])) continue;
+    const k = ks[0];
+    if (ONE_KIND.has(rank.get(q)) && rank.get(k) === SUBSPECIES) {
+      for (const g of kids.get(k) || []) { parent.set(g, q); add(kids, q, g); }
+      kids.set(q, (kids.get(q) || []).filter(x => x !== k));
+      kids.delete(k); parent.delete(k);
+      pass(q, k);
+      continue;
+    }
+    const p = parent.get(q);
+    kids.set(p, kids.get(p).map(x => x === q ? k : x));
+    parent.set(k, p);
+    kids.delete(q); parent.delete(q);
+    add(absorbed, k, q);
+    for (const a of absorbed.get(q) || []) add(absorbed, k, a);
+    absorbed.delete(q);
+    pass(k, q);
+    if (!wiki.has(k) && wiki.has(q)) wiki.set(k, wiki.get(q));
+    if (!image.has(k) && image.has(q)) image.set(k, image.get(q));
+    links.set(k, Math.max(links.get(k) || 0, links.get(q) || 0));
+    if (first.has(q) && !(first.get(k) >= first.get(q))) first.set(k, first.get(q));
+    // its name: the genus's everyday one, else the genus itself when that's the one with the article
+    if (!friendly(k) && rank.get(q) === GENUS) friendlyOf.set(k, friendly(q) || (wiki.get(k) === wiki.get(q) ? name.get(q) : ''));
+  }
+}
+walkDown();
+console.log('folded away', gone.size, 'leaving', core.size);
+
+// ---- silhouettes, from phylopic (phylopic.js) ----
+// for creatures you haven't discovered yet. matched by the ids phylopic links each one to, else by full latin
+// name (two words: a genus name alone is often a plant's or a fossil's too). public domain first, then the
+// ones that only ask for a credit, which goes on the card
+const silById = new Map(), silByName = new Map();
+if (has('phylopic.json')) {
+  const rows = JSON.parse(fs.readFileSync(path.join(RAW, 'phylopic.json'), 'utf8'));
+  const free = l => /publicdomain/.test(l) ? 2 : /licenses\/by(-sa)?\//.test(l) ? 1 : 0;
+  rows.sort((a, b) => free(b[1]) - free(a[1]));
+  for (const [uuid, licence, by, names, ids] of rows) {
+    if (!free(licence)) continue;
+    const sil = { uuid, by: free(licence) === 2 ? '' : `${by}, CC ${/by-sa/.test(licence) ? 'BY-SA' : 'BY'} ${/4\.0/.test(licence) ? '4.0' : '3.0'}` };
+    for (const id of ids) if (!silById.has(id)) silById.set(id, sil);
+    for (const n of names) if (n.includes(' ') && !silByName.has(n)) silByName.set(n, sil);
+  }
+}
+function ownSil(q) {
+  const p = pbdbId.get(q);
+  if (p && silById.has('paleobiodb.org/txn/' + p)) return silById.get('paleobiodb.org/txn/' + p);
+  for (const id of otherIds.get(q) || []) if (silById.has(id)) return silById.get(id);
+  for (const a of absorbed.get(q) || []) for (const id of otherIds.get(a) || []) if (silById.has(id)) return silById.get(id);
+  return silByName.get(name.get(q));
+}
+
+// ---- pictures ----
+// wikidata's picture is often a bone: a jaw for Gigantopithecus, a skull for half the dinosaurs. media.js saves
+// every picture in each article with its caption, and the best one for the card is picked from those and
+// wikidata's: for an extinct animal a life restoration, else anything that isn't bones, a map or a chart. for
+// the living, wikidata's photo unless it's one of those. only pictures that are about the animal count: wikidata's,
+// the article's first, or one whose name or caption says who it is (not the orangutan in the Gigantopithecus article)
+const media = has('media.json') ? JSON.parse(fs.readFileSync(path.join(RAW, 'media.json'), 'utf8')) : {};
+const NEVER = /\b(maps?|range|ranges|distribution|localit(y|ies)|sites?|cladograms?|phylogen\w*|diagram\w*|charts?|lineages?|history|schematic|graphs?|size|scale|stamps?|coins?|logos?|flags?|arms|banknote|outcrop|formation|quarry|excavation|dig|book|cover|title page|signature|plaque|sign|plates?|label|labels|microscop\w*|sem|histolog\w*|section|x-ray|ct scan|comparison|evolution|timeline|figure|fig|g\d{3}[a-z]?|journal|pone|peerj|zookeys|spread\w*|migrat\w*|dispersal|expansion|routes?|genetic|genome|dna|subgroups?|populations?|bite|force|mechanics|muscles?|musculature|anatomy|tails|nests?|eggs?|ootheca|growth|ontogeny|stages)\b|\.(pdf|djvu|tiff?|ogv|webm|ogg|mp3)$/i;
+const BONES = /\b(skulls?|skeletons?|skeletal|fossils?|fossilized|bones?|jaws?|mandibles?|maxilla|teeth|tooth|molars?|holotype|paratype|neotype|specimens?|casts?|vertebrae?|vertebral|cervicals?|dorsals?|caudals?|femur|humerus|tibia|fibula|pes|manus|claws?|ungual|phalan\w*|pelvis|ilium|ischium|pubis|scapula|coracoid|sacrum|dentary|premaxilla|braincase|osteoderms?|quadrate|limbs?|cran(ium|ia)|endocast|footprints?|trackways?|tracks|burrows?|eggs?|coprolites?|scutes?|exoskeleton|moult|shells?|preserved|mount|mounted|slab|imprint|impression)\b/i;
+const LIFE = /\b(restorations?|restored|reconstruct\w*|life|dioramas?|busts?|replicas?|artist'?s?|paleoart|palaeoart|illustrations?|illustrated|models?|sculptures?|statues?|depictions?|depicted|depicting|rendering|render|drawings?|painting|interpretation)\b/i;
+const pictureWanted = new Map();  // article -> how many wikipedias have the creature
+function picture(q, creature) {
+  if (SWAP_PICTURE[q]) return SWAP_PICTURE[q];
+  const who = [q, ...(absorbed.get(q) || [])];
+  // a species without an article of its own is usually in its genus's (T. rex in Tyrannosaurus's), and an
+  // extinct one's own is often a stub with a bone in it while the genus's has the restorations
+  const p = parent.get(q);
+  if ((!wiki.has(q) || extinct.has(q)) && ONE_KIND.has(rank.get(q)) && rank.get(p) === GENUS) who.push(p);
+  const words = [...new Set(who.flatMap(x => [name.get(x), name.get(x)?.split(' ')[0], friendly(x)]).filter(w => w && w.length > 3).map(w => w.toLowerCase()))];
+  // "T. rex" too
+  for (const x of who) { const [g, s] = (name.get(x) || '').split(' '); if (s) words.push(`${g[0]}. ${s}`.toLowerCase()); }
+  const cands = [];
+  for (const x of who) if (image.has(x)) cands.push({ file: image.get(x), text: '', own: 2 });
+  // the articles worth looking through: extinct creatures, and ones with no picture or a poor one. for the
+  // living a drawing counts as poor too: lots of them have a flat "202501 Blue whale.svg", and a photo's better
+  const poor = !cands.length || cands.every(c => NEVER.test(c.file) || BONES.test(c.file) || !extinct.has(q) && /\.svg$/i.test(c.file));
+  for (const x of who) {
+    const w = wiki.get(x);
+    if (!w) continue;
+    if (!media[w]) { if (creature && (poor || extinct.has(q))) pictureWanted.set(w, Math.max(pictureWanted.get(w) || 0, links.get(x) || 0)); continue; }
+    for (const [file, caption, lead] of media[w]) cands.push({ file, text: caption, own: lead ? 1 : 0 });
+  }
+  let best = null, bestScore = -1;
+  cands.forEach((c, i) => {
+    const text = (c.file.replace(/\.[a-z]+$/i, '') + ' ' + c.text).replace(/_/g, ' ');
+    if (NEVER.test(text) || NEVER.test(c.file)) return;
+    const low = text.toLowerCase();
+    if (!c.own && !words.some(w => low.includes(w))) return;
+    // bones first: a "skull model" or a "skeleton reconstruction" is still bones. a drawing (png, svg) with no
+    // words to go on is likely a restoration, but less surely than one that says so
+    const bones = BONES.test(text), life = !bones && LIFE.test(text), drawn = !bones && /\.(svg|png)$/i.test(c.file);
+    const score = (extinct.has(q) ? (life ? 30 : drawn ? 25 : bones ? 10 : 20) : (bones ? 10 : life || drawn ? 20 : 30)) + c.own - i / 1000;
+    if (score > bestScore) { best = c.file; bestScore = score; }
+  });
+  return best;
+}
+
+// ---- counts, pictures and dates, children before parents ----
+
 const species = new Map(), fame = new Map(), pic = new Map(), tail = new Map(), stars = new Map(), sil = new Map();
+const creature = new Set(), chosen = new Map();
 for (let i = order.length - 1; i >= 0; i--) {
   const q = order[i];
   const ks = kids.get(q) || [];
   const r = rank.get(q);
   let n = r === SPECIES || (!ks.length && r !== SUBSPECIES) ? 1 : 0;
-  let f = links.get(q) || 0, best = image.has(q) ? [f, q] : null, fa = first.get(q), oldest;
+  let f = links.get(q) || 0, fa = first.get(q), oldest;
   let t = 0;
   for (const k of ks) {
     n += species.get(k) || 0;
     f = Math.max(f, fame.get(k) || 0);
-    const b = pic.get(k);
-    if (b && (!best || b[0] > best[0])) best = b;
     // a group is at least as old as anything in it (pbdb sometimes has a group younger than its members,
     // when its idea of the group is smaller than wikidata's)
     if (first.has(k) && (oldest === undefined || first.get(k) > oldest)) oldest = first.get(k);
     if (!core.has(k)) t++;
   }
-  // the best known animals somewhere inside, so you can jump from Mammal straight to the lion
+  // a group is gone if everything in it is gone
+  if (ks.length && ks.every(k => extinct.has(k))) extinct.add(q);
+  // one kind of animal, or a group of them. a fossil genus counts as one: that's how people know dinosaurs
+  if (!otherLife.includes(q) && (!ks.length || ONE_KIND.has(r) || (r === GENUS || r === SUBGENUS) && extinct.has(q))) creature.add(q);
+  if (core.has(q)) {
+    const own = q === ROOT ? null : picture(q, creature.has(q));
+    if (own) chosen.set(q, own);
+    let best = own ? [f, q] : null;
+    for (const k of ks) { const b = pic.get(k); if (b && (!best || b[0] > best[0])) best = b; }
+    if (best) pic.set(q, best);
+  }
+  // the best known creatures somewhere inside, so you can jump from Mammals straight to the lion. one from
+  // each branch in turn, best known branch first, so Animals shows a bee and an octopus and not six mammals
   if (core.has(q) && ks.length) {
-    const pool = new Set();
-    for (const k of ks) {
-      if (!core.has(k)) continue;
-      if (friendly(k)) pool.add(k);
-      for (const s of stars.get(k) || []) pool.add(s);
-    }
-    const best = [...pool].sort((a, b) => (links.get(b) || 0) - (links.get(a) || 0)).slice(0, 6);
+    const lists = ks.filter(k => core.has(k)).map(k => [...(friendly(k) && creature.has(k) ? [k] : []), ...(stars.get(k) || [])]).filter(l => l.length);
+    lists.sort((a, b) => (links.get(b[0]) || 0) - (links.get(a[0]) || 0));
+    const best = [];
+    for (let round = 0; best.length < 6 && lists.some(l => l.length > round); round++)
+      for (const l of lists) if (best.length < 6 && l[round] !== undefined && !best.includes(l[round])) best.push(l[round]);
     if (best.length) stars.set(q, best);
   }
-  // the silhouette a group shows: its own, else its best known member's (the kangaroo order shows a kangaroo)
-  let bestSil = silhouette(q) ? [links.get(q) || 0, silhouette(q)] : null;
+  // a group's silhouette is its best known member's, used only by creatures close by that have none
+  const own = core.has(q) ? ownSil(q) : null;
+  let bestSil = own ? [links.get(q) || 0, own] : null;
   if (!bestSil) for (const k of ks) { const s = sil.get(k); if (s && (!bestSil || s[0] > bestSil[0])) bestSil = s; }
   if (bestSil) sil.set(q, bestSil);
   species.set(q, n); fame.set(q, f); tail.set(q, t);
-  if (best) pic.set(q, best);
   if (!FIRST_SEEN[q] && oldest !== undefined && (fa === undefined || oldest > fa)) first.set(q, oldest);
-  // a group is gone if everything in it is gone
-  if (ks.length && ks.every(k => extinct.has(k))) extinct.add(q);
 }
 // and nothing older than the dates set by hand above it (pbdb has sponges before animals, from a disputed find)
 for (const q of order) {
@@ -314,6 +520,18 @@ for (const q of order) {
 }
 // children in the order they're shown: the famous branches first
 for (const ks of kids.values()) ks.sort((a, b) => (fame.get(b) || 0) - (fame.get(a) || 0) || (name.get(a) || '').localeCompare(name.get(b) || ''));
+// a creature with no silhouette of its own borrows a close relative's: its genus's or family's best known
+// member. any further up and it would be a different shape altogether (a lizard for a snake), so it stays a question
+function silFor(q) {
+  if (!creature.has(q)) return null;
+  const own = ownSil(q);
+  if (own) return own;
+  for (let x = parent.get(q), d = 0; x !== undefined && d < 2; x = parent.get(x), d++) {
+    if (sil.has(x)) return sil.get(x)[1];
+    if (!LOW.has(rank.get(x)) && rank.get(x) !== FAMILY) break;
+  }
+  return null;
+}
 
 // ---- slicing the tree into files ----
 
@@ -327,8 +545,9 @@ const sliceOf = new Map();
     let size = 1;
     const sizes = ks.map(k => [k, open.get(k)]).sort((a, b) => b[1] - a[1]);
     for (const [, s] of sizes) size += s;
-    // too big: the biggest branches become their own slices
-    for (const [k, s] of sizes) { if (size <= SLICE) break; sliceOf.set(k, k); size -= s; }
+    // too big: the biggest branches become their own slices. not the little ones, or a family of a thousand
+    // small genera would be a thousand tiny files; it stays one big one instead
+    for (const [k, s] of sizes) { if (size <= SLICE || s < 40) break; sliceOf.set(k, k); size -= s; }
     open.set(q, size);
   }
   sliceOf.set(ROOT, ROOT);
@@ -336,30 +555,41 @@ const sliceOf = new Map();
 }
 
 const round = x => x === undefined ? undefined : x >= 10 ? Math.round(x * 10) / 10 : Math.round(x * 1000) / 1000;
-const ranks = [...new Set([...core].map(q => rank.get(q)).filter(Boolean))];
+const roundKg = kg => +kg.toPrecision(kg < 1 ? 2 : 3);
 // one node as the page reads it. keys left out when empty
 function record(q) {
   const o = { q, n: name.get(q) || label.get(q) || 'Q' + q };
   const f = friendly(q);
   if (f) o.l = f;
+  if (!creature.has(q)) o.g = 1;
   const r = rank.get(q);
   if (r && rankName.has(r)) o.r = rankName.get(r);
-  if (image.has(q)) o.i = image.get(q);
-  else if (pic.has(q)) { const b = pic.get(q)[1]; o.i = image.get(b); o.p = friendly(b) || name.get(b); }
+  // a creature's own picture, or (a fossil genus) its best known species'. a group shows its members instead,
+  // and its own picture only if it has one
+  if (chosen.has(q)) o.i = chosen.get(q);
+  else if (creature.has(q) && pic.has(q)) { const b = pic.get(q)[1]; o.i = chosen.get(b); o.p = friendly(b) || name.get(b); }
   const w = wiki.get(q);
   if (w) o.w = w === o.n ? 1 : w === o.l ? 2 : w;
   if (first.has(q)) o.a = round(first.get(q));
   if (extinct.has(q)) { o.x = 1; if (last.has(q)) o.z = round(last.get(q)); }
+  if (mass.has(q)) o.kg = roundKg(mass.get(q));
   const s = species.get(q);
   if (s > 1 || (kids.get(q) || []).length) o.s = s;
   const ks = (kids.get(q) || []).filter(k => core.has(k));
   if (ks.length) o.k = ks;
-  if (tail.get(q)) o.t = tail.get(q);
-  // famous members, [qid, slice, name], only where there's a choice of branches to skip past
-  if (ks.length > 1 && stars.has(q)) o.m = stars.get(q).map(s => [s, sliceOf.get(s), friendly(s)]);
+  if (tail.get(q)) {
+    o.t = tail.get(q);
+    // the groups folded into this one, whose latin-only members are this one's now
+    if (folded.has(q)) o.v = folded.get(q);
+  }
+  // famous members, [qid, slice, name, picture]
+  if (!creature.has(q) && stars.has(q)) o.m = stars.get(q).map(s => {
+    const p = chosen.get(s) || (pic.has(s) ? chosen.get(pic.get(s)[1]) : undefined);
+    return p ? [s, sliceOf.get(s), friendly(s), p] : [s, sliceOf.get(s), friendly(s)];
+  });
   if (otherLife.includes(q)) o.o = 1;
-  // its silhouette, or its best known member's. a species with neither uses its nearest ancestor's (page.js)
-  if (sil.has(q)) o.si = sil.get(q)[1];
+  const si = silFor(q);
+  if (si) { o.si = si.uuid; if (si.by) o.sb = si.by; }
   if (sliceOf.get(q) === q && q !== ROOT) o.f = q;
   return o;
 }
@@ -375,9 +605,9 @@ for (const [top, qs] of slices) {
   const up = [];
   for (let x = parent.get(top); x !== undefined; x = parent.get(x)) {
     const u = { q: x, n: name.get(x), f: sliceOf.get(x) };
-    if (sil.has(x)) u.si = sil.get(x)[1];
     const fr = friendly(x); if (fr) u.l = fr;
     if (first.has(x)) u.a = round(first.get(x));
+    if (!creature.has(x)) u.g = 1;
     up.unshift(u);
   }
   const nodes = qs.map(record);
@@ -387,26 +617,28 @@ for (const [top, qs] of slices) {
   biggest = Math.max(biggest, json.length);
   fs.writeFileSync(path.join(treeDir, top + '.json'), json);
 }
-// every slice by name (the surprise key picks one), and how many animals there are to meet
-fs.writeFileSync(path.join(treeDir, 'index.json'), JSON.stringify({ count: core.size, species: species.get(ANIMALS), slices: [...slices.keys()] }));
-console.log(slices.size, 'tree files, biggest', Math.round(biggest / 1024), 'KB');
+// every slice by name (the surprise key picks one), and how many creatures there are to meet
+const creatures = [...core].filter(q => creature.has(q)).length;
+fs.writeFileSync(path.join(treeDir, 'index.json'), JSON.stringify({ count: creatures, groups: core.size - creatures, species: species.get(ANIMALS), slices: [...slices.keys()] }));
+console.log(slices.size, 'tree files, biggest', Math.round(biggest / 1024), 'KB,', creatures, 'creatures in', core.size - creatures, 'groups');
 
 // ---- the search box ----
 // every name a node goes by, filed under the first two letters of each word in it
-const plain = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+const plainWords = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 const find = new Map();
 for (const q of core) {
-  const names = [name.get(q), label.get(q), friendly(q), ...(common.get(q) || []), ...(alt.get(q) || [])].filter(Boolean);
+  const who = [q, ...(absorbed.get(q) || [])];
+  const names = [name.get(q), label.get(q), friendly(q), ...who.flatMap(x => [...(common.get(x) || []), ...(x === q ? [] : [name.get(x), label.get(x)]), ...(alt.get(x) || [])])].filter(Boolean);
   const seen = new Set(), terms = [];
-  for (const n of names) { const p = plain(n); if (p && !/^q\d+$/.test(p) && !seen.has(p)) { seen.add(p); terms.push(n); } }
+  for (const n of names) { const p = plainWords(n); if (p && !/^q\d+$/.test(p) && !seen.has(p)) { seen.add(p); terms.push(n); } }
   if (!terms.length) continue;
   // latin-only names under their first two letters, named ones under every word ("elephant" finds African bush elephant)
   terms.length = Math.min(terms.length, 8);
   const keys = new Set();
-  if (terms.length === 1) keys.add(plain(terms[0]).slice(0, 2));
-  else for (const t of terms) for (const w of plain(t).split(' ')) if (w.length >= 2) keys.add(w.slice(0, 2));
-  // [qid, slice, fame, names...]: the first name is the latin one, then what it's called
-  const entry = [q, sliceOf.get(q), links.get(q) || 0, ...terms];
+  if (terms.length === 1) keys.add(plainWords(terms[0]).slice(0, 2));
+  else for (const t of terms) for (const w of plainWords(t).split(' ')) if (w.length >= 2) keys.add(w.slice(0, 2));
+  // [qid, slice, fame, group?, names...]: the first name is the latin one, then what it's called
+  const entry = [q, sliceOf.get(q), links.get(q) || 0, creature.has(q) ? 0 : 1, ...terms];
   for (const k of keys) add(find, k, entry);
 }
 // busy pairs of letters ("ca", "pa") would be a megabyte each, so those go by three letters instead, and
@@ -427,10 +659,14 @@ for (const [k, entries] of find) {
   const three = new Map();
   for (const e of entries) {
     const keys = new Set();
-    for (const t of e.slice(3)) for (const w of plain(t).split(' ')) if (w.startsWith(k) && w.length >= 3) keys.add(w.slice(0, 3));
+    for (const t of e.slice(4)) for (const w of plainWords(t).split(' ')) if (w.startsWith(k) && w.length >= 3) keys.add(w.slice(0, 3));
     for (const k3 of keys) add(three, k3, e);
   }
   for (const [k3, es] of three) write(k3, es);
 }
 fs.writeFileSync(path.join(findDir, 'split.json'), JSON.stringify(split.sort()));
 console.log(files, 'search files,', Math.round(findBytes / 1048576), 'MB,', split.length, 'split by three letters');
+
+// the articles whose pictures haven't been fetched yet: media.js gets them, then build again
+fs.writeFileSync(path.join(RAW, 'media-wanted.txt'), [...pictureWanted].sort((a, b) => b[1] - a[1]).map(([t, n]) => t + '\t' + n).join('\n'));
+console.log(pictureWanted.size, 'articles still to look through for pictures (media-wanted.txt)');

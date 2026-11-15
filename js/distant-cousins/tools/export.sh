@@ -7,7 +7,7 @@
 # query goes through getp, which pages and checks each page ends on a whole line.
 R=${1:?give a folder for the raw files}
 mkdir -p "$R"
-P='PREFIX wd: <http://www.wikidata.org/entity/> PREFIX wdt: <http://www.wikidata.org/prop/direct/> PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> PREFIX schema: <http://schema.org/> PREFIX skos: <http://www.w3.org/2004/02/skos/core#> PREFIX wikibase: <http://wikiba.se/ontology#>'
+P='PREFIX wd: <http://www.wikidata.org/entity/> PREFIX wdt: <http://www.wikidata.org/prop/direct/> PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> PREFIX schema: <http://schema.org/> PREFIX skos: <http://www.w3.org/2004/02/skos/core#> PREFIX wikibase: <http://wikiba.se/ontology#> PREFIX p: <http://www.wikidata.org/prop/> PREFIX psv: <http://www.wikidata.org/prop/statement/value/>'
 A='?t wdt:P171+ wd:Q729 .'
 N=500000
 getp() {
@@ -41,6 +41,15 @@ getp ranks  "SELECT ?t ?r WHERE { $A ?t wdt:P105 ?r } ORDER BY ?t"
 getp fossil "SELECT ?t WHERE { $A ?t wdt:P31 wd:Q23038290 } ORDER BY ?t"
 getp iucn   "SELECT ?t ?s WHERE { $A ?t wdt:P141 ?s } ORDER BY ?t"
 getp pbdb   "SELECT ?t ?id WHERE { $A ?t wdt:P10907 ?id } ORDER BY ?t"
+# entries that aren't creatures: synonyms, misspellings, footprints and eggs (ichno- and ootaxa), dubious names,
+# and words like "fish" or "worm" that aren't branches of the tree
+getp junk   "SELECT DISTINCT ?t WHERE { $A ?t wdt:P31 ?c . VALUES ?c { wd:Q1040689 wd:Q17487588 wd:Q42310380 wd:Q17276484 wd:Q1984758 wd:Q2568288 wd:Q2491016 wd:Q110533142 wd:Q922448 wd:Q59278506 wd:Q14594740 wd:Q7882332 wd:Q59511375 wd:Q6015290 wd:Q844326 wd:Q55983715 } } ORDER BY ?t"
+# the same creature in the databases phylopic links its silhouettes to
+getp gbif   "SELECT ?t ?id WHERE { $A ?t wdt:P846 ?id } ORDER BY ?t"
+getp ncbi   "SELECT ?t ?id WHERE { $A ?t wdt:P685 ?id } ORDER BY ?t"
+getp ott    "SELECT ?t ?id WHERE { $A ?t wdt:P9157 ?id } ORDER BY ?t"
+# how heavy, with its unit, for comparing two creatures
+getp mass   "SELECT ?t ?v ?u WHERE { $A ?t p:P2067/psv:P2067 ?s . ?s wikibase:quantityAmount ?v ; wikibase:quantityUnit ?u } ORDER BY ?t"
 # the line from the first life up to animals, and the other branches off it (plants, bacteria...)
 getp toppar "SELECT ?t ?p ?n ?l ?w ?i WHERE { wd:Q729 wdt:P171* ?t . OPTIONAL { ?t wdt:P171 ?p } OPTIONAL { ?t wdt:P225 ?n } OPTIONAL { ?t rdfs:label ?l . FILTER(LANG(?l)='en') } OPTIONAL { ?a schema:about ?t ; schema:isPartOf <https://en.wikipedia.org/> ; schema:name ?w } OPTIONAL { ?t wdt:P18 ?i } }"
 getp topx   "SELECT ?t ?p ?n ?l ?s ?w ?i WHERE { wd:Q729 wdt:P171* ?p . ?t wdt:P171 ?p . FILTER(?t != wd:Q729) OPTIONAL { ?t wdt:P225 ?n } OPTIONAL { ?t rdfs:label ?l . FILTER(LANG(?l)='en') } OPTIONAL { ?t wikibase:sitelinks ?s } OPTIONAL { ?a schema:about ?t ; schema:isPartOf <https://en.wikipedia.org/> ; schema:name ?w } OPTIONAL { ?t wdt:P18 ?i } }"

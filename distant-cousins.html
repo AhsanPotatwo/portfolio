@@ -68,7 +68,7 @@
         <ul class="dc-found" id="dcFound" role="listbox" aria-label="Creatures found" hidden></ul>
       </div>
 
-      <p class="dc-hint" id="dcHint" hidden>Click a mystery creature to discover it, then click it again to learn about it. Drag to look around, scroll to zoom.</p>
+      <p class="dc-hint" id="dcHint" hidden>Click a mystery card to find out who it is, then click it again to read all about it. Drag to look around, scroll to zoom.</p>
 
       <div class="dc-controls" role="group" aria-label="Board controls">
         <button class="dc-key dc-icon" type="button" id="dcOut" aria-label="Zoom out" title="Zoom out (-)">
@@ -93,7 +93,7 @@
         </button>
       </div>
 
-      <!-- everything about the creature you clicked -->
+      <!-- everything about the creature or group you clicked -->
       <aside class="dc-panel" id="dcPanel" aria-labelledby="dcName" hidden>
         <button class="dc-close" type="button" id="dcClose" aria-label="Close">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -106,18 +106,35 @@
         <h2 class="dc-name" id="dcName" tabindex="-1"></h2>
         <p class="dc-sci" id="dcSci"></p>
         <p class="dc-facts" id="dcFacts"></p>
-        <p class="dc-read" id="dcRead"></p>
-        <div class="dc-time" id="dcTime"></div>
-        <div class="dc-compare" id="dcCompare" hidden></div>
-        <div class="dc-stars" id="dcStars" hidden></div>
+        <div class="dc-members" id="dcMembers" hidden></div>
         <div class="dc-actions">
+          <button class="dc-key dc-vs-key" type="button" id="dcVsOpen">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="7" height="14" rx="2"/><rect x="13.5" y="5" width="7" height="14" rx="2"/></svg>
+            <span>Compare</span>
+          </button>
           <button class="dc-key dc-star" type="button" id="dcStar" aria-pressed="false">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>
             <span id="dcStarText">Make favourite</span>
           </button>
-          <a class="dc-key dc-wiki" id="dcWiki" href="https://en.wikipedia.org/" target="_blank" rel="noopener" hidden>Read more on Wikipedia</a>
         </div>
+        <p class="dc-read" id="dcRead"></p>
+        <nav class="dc-line" id="dcLine" aria-label="Family line" hidden></nav>
+        <div class="dc-time" id="dcTime"></div>
+        <a class="dc-key dc-wiki" id="dcWiki" href="https://en.wikipedia.org/" target="_blank" rel="noopener" hidden>Read more on Wikipedia</a>
       </aside>
+
+      <!-- two side by side: how they're related, when they lived, how heavy -->
+      <div class="dc-vs" id="dcVs" role="dialog" aria-modal="true" aria-labelledby="dcVsTitle" hidden>
+        <div class="dc-vs-card">
+          <div class="dc-vs-head">
+            <h2 class="dc-vs-title" id="dcVsTitle">Side by side</h2>
+            <button class="dc-close" type="button" id="dcVsClose" aria-label="Close">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+          <div id="dcVsBody"></div>
+        </div>
+      </div>
 
       <!-- your favourite, kept in the corner to compare everything else with -->
       <aside class="dc-fav" id="dcFav" aria-label="Your favourite" hidden>
@@ -139,7 +156,7 @@
       <div class="container dc-band-inner">
         <div>
           <h2 class="dc-heading">Where it all comes from</h2>
-          <p>The tree is <a href="https://www.wikidata.org/" target="_blank" rel="noopener">Wikidata</a>'s: every animal it knows and who its parents are, which thousands of people keep up to date. The dates come from the fossils in the <a href="https://paleobiodb.org/" target="_blank" rel="noopener">Paleobiology Database</a>, the words from <a href="https://en.wikipedia.org/" target="_blank" rel="noopener">Wikipedia</a>, the photos from <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a> (credited under each one) and the silhouettes from <a href="https://www.phylopic.org/" target="_blank" rel="noopener">PhyloPic</a>, all public domain. Scientists still argue about plenty of branches, so now and then a creature sits somewhere surprising.</p>
+          <p>The tree is <a href="https://www.wikidata.org/" target="_blank" rel="noopener">Wikidata</a>'s: every animal it knows and who its parents are, which thousands of people keep up to date. The dates come from the fossils in the <a href="https://paleobiodb.org/" target="_blank" rel="noopener">Paleobiology Database</a>, the words from <a href="https://en.wikipedia.org/" target="_blank" rel="noopener">Wikipedia</a>, the pictures from <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a> (credited under each one) and the silhouettes from <a href="https://www.phylopic.org/" target="_blank" rel="noopener">PhyloPic</a> (credited on the card, where the artist asks for it). Scientists have named thousands of in-between groups, so only the well known ones are kept here: the rest are folded into the branch above. Scientists also still argue about plenty of branches, so now and then a creature sits somewhere surprising.</p>
         </div>
       </div>
       <div class="container page-back">

@@ -1,14 +1,16 @@
 // distant cousins: a board you fill in yourself with the family tree of every animal. it starts with the
 // first life on earth. every creature you discover puts out its branches as mystery silhouettes, and the tree
-// grows as far as you take it: drag to look around, scroll to zoom, click one you've found to read about it.
-// what you've found is remembered, so the tree is still there next time.
+// grows as far as you take it: drag to look around, scroll to zoom, click one you've found to read about it,
+// and put any two side by side. what you've found is remembered, so the tree is still there next time.
 //
-// the tree lives in js/distant-cousins/tree/, cut into slices of a couple of thousand animals, each file named
-// after the animal at the bottom of its slice (tools/build.js makes them from wikidata, the paleobiology
-// database and phylopic). a slice also lists its ancestors back to the first life, so one file is enough to put
-// any animal in it on the board. the animals the build left out (about 1.8 million, known only by a latin name)
-// come straight from wikidata when you ask for them. photos and their credits come from the commons api, the
-// few lines about each animal from wikipedia.
+// two kinds of card: creatures (one kind of animal: a lion, a honey bee, Triceratops) with their picture, and
+// groups (mammals, cat family, dinosaurs), drawn as signs on the branches with a few of their best known
+// members. the tree lives in js/distant-cousins/tree/, cut into slices of a couple of thousand, each file named
+// after the node at the bottom of its slice (tools/build.js makes them from wikidata, the paleobiology database,
+// phylopic and wikipedia's pictures). a slice also lists its ancestors back to the first life, so one file is
+// enough to put anything in it on the board. the ones the build left out (known only by a latin name) come
+// straight from wikidata when you ask for them. photos and their credits come from the wikimedia api, the few
+// lines about each from wikipedia.
 (() => {
   const $ = id => document.getElementById(id);
   const TREE = 'js/distant-cousins/tree/', FIND = 'js/distant-cousins/find/';
@@ -51,18 +53,22 @@
     return slices.get(id);
   }
   const trail = q => { const p = []; for (let x = q; x !== undefined; x = parentOf.get(x)) p.unshift(x); return p; };
+  // the first life is one ancestor, not a group, whatever the build says
+const isGroup = n => !!n && !!n.g && n.q !== ROOT;
 
-  // the animals the build left out, asked of wikidata: children of a node, with how many children each has
+  // the ones the build left out, asked of wikidata: children of a node (and of the little-known groups the
+  // build folded into it), with how many children each has
   const live = new Map();
-  function liveKids(q) {
-    if (!live.has(q)) {
-      const sparql = `SELECT ?c ?n (COUNT(?g) AS ?k) WHERE { ?c wdt:P171 wd:Q${q} ; wdt:P225 ?n . OPTIONAL { ?g wdt:P171 ?c } } GROUP BY ?c ?n ORDER BY ?n LIMIT 5000`;
-      live.set(q, fetch('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(sparql))
+  function liveKids(n) {
+    if (!live.has(n.q)) {
+      const under = [n.q, ...(n.v || [])].map(x => 'wd:Q' + x).join(' ');
+      const sparql = `SELECT ?c ?n (COUNT(?g) AS ?k) WHERE { VALUES ?p { ${under} } ?c wdt:P171 ?p ; wdt:P225 ?n . OPTIONAL { ?g wdt:P171 ?c } } GROUP BY ?c ?n ORDER BY ?n LIMIT 5000`;
+      live.set(n.q, fetch('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(sparql))
         .then(r => { if (!r.ok) throw new Error('wikidata ' + r.status); return r.json(); })
         .then(j => j.results.bindings.map(b => ({ q: +b.c.value.split('/Q').pop(), n: b.n.value, s: +b.k.value })))
-        .catch(e => { live.delete(q); throw e; }));
+        .catch(e => { live.delete(n.q); throw e; }));
     }
-    return live.get(q);
+    return live.get(n.q);
   }
 
   // ---------- words ----------
@@ -85,29 +91,44 @@
     if (ma >= 1) return `${fmt(+ma.toFixed(ma < 10 ? 1 : 0))} million years`;
     return `${fmt(Math.max(100, Math.round(ma * 1e6 / 100) * 100))} years`;
   }
-  const RANKS = { species: 'A species', genus: 'A genus', family: 'A family', order: 'An order', class: 'A class', phylum: 'A phylum', kingdom: 'A kingdom', subspecies: 'A subspecies' };
+  const weight = kg => kg >= 1000 ? `${fmt(+(kg / 1000).toPrecision(2))} tonnes` : kg >= 1 ? `${fmt(+kg.toPrecision(2))} kg` : `${fmt(+(kg * 1000).toPrecision(2))} g`;
+  // the nearest group above with an everyday name: "one of the big cats"
+  function kindOf(n) {
+    for (let x = parentOf.get(n.q); x !== undefined; x = parentOf.get(x)) {
+      const p = nodes.get(x);
+      if (p && p.l && x !== ROOT) return / family$/i.test(p.l) ? `A member of the ${p.l.toLowerCase()}` : `One of the ${p.l.toLowerCase()}`;
+    }
+    return 'A creature';
+  }
   function factsOf(n) {
-    if (n.q === ROOT) return 'The last universal common ancestor, LUCA for short: the single-celled life that everything alive today comes from.';
+    if (n.q === ROOT) return 'The last universal common ancestor, LUCA for short: a tiny single cell that everything alive today comes from, from bacteria to blue whales.';
     if (n.o) return 'Life went this way too, but this tree follows the animals, so the branch stops here.';
-    if (n.live) return n.s ? `Known only by its Latin name. ${fmt(n.s)} ${n.s === 1 ? 'branch grows' : 'branches grow'} from it.` : 'Known only by its Latin name: a creature most people will never hear of. You found it anyway.';
-    const what = RANKS[n.r] || (n.k || n.t ? 'A group' : 'An animal');
-    let s = n.s > 1 ? `${what} of ${fmt(n.s)} species` : what;
-    if (n.x) s += n.z !== undefined ? `, gone since ${ago(n.z)}` : ', now extinct';
-    s += '.';
-    if (n.a !== undefined) s += ` ${n.s > 1 ? 'Its first fossils are' : 'The first fossils are'} from ${ago(n.a)}.`;
+    if (n.live) return n.s ? `Known only by its Latin name. ${fmt(n.s)} ${n.s === 1 ? 'branch grows' : 'branches grow'} from it.` : 'Known only by its Latin name: a creature hardly anyone has heard of. You found it anyway.';
+    const was = n.x ? 'was' : 'is';
+    let s;
+    if (isGroup(n)) {
+      s = n.s > 1 ? `A group of ${fmt(n.s)} kinds of animal` : 'A group of animals';
+      s += n.x ? (n.z !== undefined ? `, all gone since ${ago(n.z)}.` : ', all gone now.') : '.';
+      if (n.a !== undefined) s += ` The oldest fossils of any of them are ${ago(n.a).replace(' ago', ' old')}.`;
+    } else {
+      s = `${kindOf(n)}${n.x ? (n.z !== undefined ? `, which died out ${ago(n.z)}.` : ', now extinct.') : ', still around today.'}`;
+      if (n.a !== undefined) s += ` Its first fossils are ${ago(n.a).replace(' ago', ' old')}.`;
+      if (n.kg) s += ` A grown-up ${was} about ${weight(n.kg)}.`;
+    }
     return s;
   }
 
   // ---------- pictures and words from wikimedia, silhouettes from phylopic ----------
 
   const plain = html => { const d = document.createElement('div'); d.innerHTML = html || ''; return d.textContent.trim(); };
-  const pics = new Map();      // commons file -> promise of { src, page, by, licence }
+  const pics = new Map();      // file -> promise of { src, page, by, licence }
   const picReady = new Map();  // the same once it's here
+  // asked of english wikipedia rather than commons: it knows commons' pictures and its own free ones too
   function loadPics(files) {
     const need = [...new Set(files.filter(f => f && !pics.has(f)))];
     for (let i = 0; i < need.length; i += 50) {
       const group = need.slice(i, i + 50);
-      const ask = fetch('https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=url|extmetadata&iiextmetadatafilter=Artist|LicenseShortName&iiurlwidth=500&titles='
+      const ask = fetch('https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=imageinfo&iiprop=url|extmetadata&iiextmetadatafilter=Artist|LicenseShortName&iiurlwidth=500&titles='
         + group.map(f => encodeURIComponent('File:' + f)).join('|'))
         .then(r => r.json()).then(j => {
           const named = new Map((j.query.normalized || []).map(x => [x.to, x.from]));
@@ -133,11 +154,18 @@
   }
   const wikiTitle = n => n.q === ROOT ? 'Last universal common ancestor' : n.w === 1 ? n.n : n.w === 2 ? n.l : n.w;
   const picOf = n => n.q === ROOT ? 'Tree of life by Haeckel.jpg' : n.i;
-  // its own silhouette, or the nearest ancestor's: a lion with none of its own shows a cat
-  const silOf = q => { for (let x = q; x !== undefined; x = parentOf.get(x)) { const n = nodes.get(x); if (n?.si) return n.si; } return null; };
   const silUrl = id => `https://images.phylopic.org/images/${id}/thumbnail/192x192.png`;
   // a plain picture, not a css mask: masks need the file sent with cors, and phylopic's cache sometimes forgets
   const silImg = id => `<img class="dc-sil-img" src="${silUrl(id)}" alt="" loading="lazy" draggable="false">`;
+  const silCredit = n => n.si ? `Silhouette: ${n.sb ? n.sb + ', ' : ''}PhyloPic` : '';
+  // pictures that arrive later go into every <img data-file> waiting for them
+  function fillPics(root) {
+    const imgs = [...root.querySelectorAll('img[data-file]:not([src])')];
+    loadPics(imgs.map(i => i.dataset.file)).then(ps => ps.forEach((p, i) => {
+      if (p) imgs[i].src = p.src;
+      else imgs[i].closest('[data-pic-box]')?.classList.add('is-none');
+    }));
+  }
 
   // ---------- what's on the board, remembered between visits ----------
 
@@ -147,31 +175,32 @@
   const latin = new Map();     // qid -> the latin-only children wikidata gave it
   const liveKept = new Map();  // latin-only creatures on the board: qid -> [qid, name, branches, parent]
   let fav = store.get('distantCousinsFav', null);
-  let total = 553291;
+  let total = 433622;
 
   function save() {
     const keep = [...liveKept.values()].filter(([q]) => found.has(q) || extra.has(q));
     store.set('distantCousinsBoard', { found: [...found], extra: [...extra], open: [...open], latin: [...latin.keys()], live: keep });
   }
   function addLive(c, parent) {
-    if (!nodes.has(c.q)) nodes.set(c.q, { q: c.q, n: c.n, s: c.s, live: 1 });
+    if (!nodes.has(c.q)) nodes.set(c.q, { q: c.q, n: c.n, s: c.s, live: 1, ...(c.s ? { g: 1 } : {}) });
     if (!parentOf.has(c.q)) parentOf.set(c.q, parent);
     liveKept.set(c.q, [c.q, c.n, c.s, parent]);
   }
   async function askLatin(q) {
     if (latin.has(q)) return;
     const n = nodes.get(q);
-    const list = await liveKids(q);
-    const core = new Set(n.k || []);
+    const list = await liveKids(n);
+    const skip = new Set([...(n.k || []), ...(n.v || [])]);
     const qs = [];
-    for (const c of list) if (!core.has(c.q)) { addLive(c, q); qs.push(c.q); }
+    for (const c of list) if (!skip.has(c.q)) { addLive(c, q); qs.push(c.q); }
     latin.set(q, qs);
   }
   const kidsOf = n => (n.k || []).concat(latin.get(n.q) || []);
 
   // ---------- the layout ----------
-  // top down like a family tree on paper: the first life at the top, each generation a row below. every node on the board hangs from its nearest ancestor that's also on the board; when some are skipped
-  // (you searched for something deep in the tree) the line is dotted, with how many are missing on it
+  // top down like a family tree on paper: the first life at the top, each generation a row below. every node on
+  // the board hangs from its nearest ancestor that's also on the board; when some are skipped (you searched for
+  // something deep in the tree) the line is dotted, with how many are missing on it
 
   const WIDTH = { found: 168, unfound: 132, more: 116, latin: 132 };
   const GAP = 22, ROW = 92;
@@ -224,27 +253,32 @@
   const tall = new Map();     // id -> height
   let items = new Map(), selected = null;
 
+  const STAR = '<svg class="dc-node-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>';
   function card(it) {
     const n = nodes.get(it.q);
     if (it.kind === 'more') return `<span class="dc-more-n">+${fmt(it.count)}</span><span>more ${it.count === 1 ? 'branch' : 'branches'}</span>`;
-    if (it.kind === 'latin') return `<span class="dc-more-n">+${fmt(it.count)}</span><span>known only by Latin names</span>`;
-    const latinName = latinOf(n);
-    if (it.kind === 'unfound') {
-      const sil = n.q === ROOT ? null : silOf(it.q);
-      return `<span class="dc-sil${sil ? '' : ' is-blank'}">${sil ? silImg(sil) : '?'}</span><span class="dc-node-name${n.l || n.q === ROOT ? '' : ' is-latin'}">${esc(nameOf(n))}</span>`;
+    if (it.kind === 'latin') return `<span class="dc-more-n">+${fmt(it.count)}</span><span>more with only Latin names</span>`;
+    const name = `<span class="dc-node-name${n.l || n.q === ROOT ? '' : ' is-latin'}">${esc(nameOf(n))}</span>`;
+    const star = fav && fav.q === it.q ? STAR : '';
+    // a group: a sign on the branch saying what's in it, and (once found) a few of its best known members
+    if (isGroup(n)) {
+      const tag = `<span class="dc-group-tag">${n.s > 1 ? `Group of ${fmt(n.s)}` : 'Group'}</span>`;
+      if (it.kind === 'unfound') return tag + name;
+      const faces = (n.m || []).filter(m => m[3]).slice(0, 3);
+      return `${star}${tag}${name}${faces.length ? `<span class="dc-faces">${faces.map(m => `<span class="dc-face" data-pic-box><img data-file="${esc(m[3])}" alt="" draggable="false"></span>`).join('')}</span>` : ''}`;
     }
-    const star = fav && fav.q === it.q ? '<svg class="dc-node-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>' : '';
-    const sil = n.q !== ROOT && silOf(it.q);
-    const pic = picOf(n) ? '<span class="dc-node-pic"><img alt="" draggable="false"></span>' : `<span class="dc-node-pic is-blank">${sil ? silImg(sil) : ''}</span>`;
-    return `${star}${pic}<span class="dc-node-name${n.l || n.q === ROOT ? '' : ' is-latin'}">${esc(nameOf(n))}</span>${latinName ? `<span class="dc-node-sci">${esc(latinName)}</span>` : ''}`;
+    if (it.kind === 'unfound') return `<span class="dc-sil${n.si ? '' : ' is-blank'}">${n.si ? silImg(n.si) : '?'}</span>${name}`;
+    const latinName = latinOf(n);
+    const pic = picOf(n) ? `<span class="dc-node-pic" data-pic-box><img data-file="${esc(picOf(n))}" alt="" draggable="false">${n.si ? silImg(n.si) : ''}</span>` : `<span class="dc-node-pic is-blank">${n.si ? silImg(n.si) : ''}</span>`;
+    return `${star}${pic}${name}${latinName ? `<span class="dc-node-sci">${esc(latinName)}</span>` : ''}`;
   }
 
   function label(it) {
     const n = nodes.get(it.q);
     if (it.kind === 'more') return `Show ${it.count} more branches of ${nameOf(n)}`;
     if (it.kind === 'latin') return `Ask Wikidata for ${it.count} more known only by Latin names`;
-    if (it.kind === 'unfound') return `Discover ${nameOf(n)}`;
-    return `${nameOf(n)}${latinOf(n) ? ', ' + latinOf(n) : ''}. Show details`;
+    if (it.kind === 'unfound') return `Discover ${isGroup(n) ? 'the group ' : ''}${nameOf(n)}`;
+    return `${isGroup(n) ? 'Group: ' : ''}${nameOf(n)}${latinOf(n) ? ', ' + latinOf(n) : ''}. Show details`;
   }
 
   function draw(born) {
@@ -253,7 +287,7 @@
     for (const [id, el] of els) if (!items.has(id)) { el.remove(); els.delete(id); at.delete(id); }
     for (const it of items.values()) {
       const n = nodes.get(it.q);
-      const sig = [it.kind, it.count, fav?.q === it.q, it.kind === 'unfound' && silOf(it.q)].join('|');
+      const sig = [it.kind, it.count, fav?.q === it.q].join('|');
       let el = els.get(it.id);
       if (!el) {
         el = document.createElement('button');
@@ -266,9 +300,10 @@
       if (el.dataset.sig !== sig) {
         el.dataset.sig = sig;
         el.innerHTML = card(it);
-        if (it.kind === 'found') el.dataset.pic = picOf(n) || '';
+        el.title = it.kind === 'unfound' && !isGroup(n) ? silCredit(n) : '';
       }
-      el.className = `dc-node is-${it.kind}${n?.x ? ' is-extinct' : ''}${n?.o ? ' is-other' : ''}${selected === it.q && it.kind === 'found' ? ' is-picked' : ''}${el.classList.contains('is-born') ? ' is-born' : ''}`;
+      const kindClass = it.kind === 'found' || it.kind === 'unfound' ? (isGroup(n) ? ' is-group' : ' is-creature') : '';
+      el.className = `dc-node is-${it.kind}${kindClass}${n?.x ? ' is-extinct' : ''}${n?.o ? ' is-other' : ''}${selected === it.q && it.kind === 'found' ? ' is-picked' : ''}${el.classList.contains('is-born') ? ' is-born' : ''}`;
       el.style.width = WIDTH[it.kind] + 'px';
       el.setAttribute('aria-label', label(it));
     }
@@ -359,14 +394,15 @@
   gapLayer.className = 'dc-gaps';
   world.append(gapLayer);
 
+  // the card's picture: once it's here the silhouette under it goes, and the photo's credit goes on the card
   function loadCardPics() {
-    const want = [];
-    for (const [id, el] of els) if (el.dataset.pic && !el.querySelector('img')?.src) want.push([el, el.dataset.pic]);
-    loadPics(want.map(w => w[1])).then(ps => ps.forEach((p, i) => {
-      const img = want[i][0].querySelector('img');
-      if (!img) return;
-      if (p) { img.src = p.src; img.closest('.dc-node')?.setAttribute('title', [p.by && `Photo: ${p.by.slice(0, 80)}`, p.licence].filter(Boolean).join(', ')); }
-      else img.parentElement.classList.add('is-blank', 'is-none');
+    const imgs = [...layer.querySelectorAll('img[data-file]:not([src])')];
+    loadPics(imgs.map(i => i.dataset.file)).then(ps => ps.forEach((p, i) => {
+      const img = imgs[i], box = img.closest('[data-pic-box]');
+      if (p) {
+        img.src = p.src;
+        if (box?.classList.contains('dc-node-pic')) box.closest('.dc-node')?.setAttribute('title', [p.by && `Picture: ${p.by.slice(0, 80)}`, p.licence].filter(Boolean).join(', '));
+      } else box?.classList.add('is-none');
     }));
   }
 
@@ -504,7 +540,7 @@
     const g = e.target.closest('[data-gap]');
     if (!g || dragged) return;
     // uncover the next few missing ancestors, from the top: they go on the board as mysteries to discover.
-    // a few at a time, or a lion found from the start would hang off a column of seventy
+    // a few at a time, so a long gap doesn't drop a whole column at once
     const it = items.get(isNaN(g.dataset.gap) ? g.dataset.gap : +g.dataset.gap);
     const dug = (it?.via || []).slice(0, 4);
     for (const q of dug) extra.set(q, homeOf.get(q));
@@ -548,9 +584,13 @@
     afterGrow(q);
   }
 
-  // put a creature on the board from anywhere (search, famous members, surprise, your favourite) and go to it
-  async function bring(q, home) {
-    try { await loadSlice(home ?? homeOf.get(q)); } catch (e) { console.warn(e); return; }
+  // put a creature on the board from anywhere (search, members, the family line, surprise, your favourite) and go to it
+  // (name: to find it by if the slice it was in has gone, as a favourite saved before the tree was rebuilt can be)
+  async function bring(q, home, name) {
+    try { await loadSlice(home ?? homeOf.get(q)); } catch (e) {
+      const again = name && await homeFor(q, name);
+      try { if (again === undefined) throw e; await loadSlice(again); } catch (e2) { console.warn(e2); return; }
+    }
     if (!nodes.has(q)) return;
     if (!found.has(q) && q !== ROOT) { found.set(q, homeOf.get(q) ?? null); save(); }
     $('dcHint').hidden = true;
@@ -559,19 +599,21 @@
     pick(q, { go: true });
   }
 
-  // ---------- the panel: everything about one creature ----------
+  // ---------- the panel: everything about one creature or group ----------
 
   const panel = $('dcPanel');
   let current = null;
+  const recent = [];           // the last few looked at, offered when comparing
   function pick(q, opts = {}) {
     const n = nodes.get(q);
     if (!n) return;
     selected = q;
     current = n;
+    if (q !== ROOT) { const i = recent.indexOf(q); if (i >= 0) recent.splice(i, 1); recent.unshift(q); recent.length = Math.min(recent.length, 6); }
     for (const [id, el] of els) el.classList.toggle('is-picked', id === q && items.get(id)?.kind === 'found');
     const wasHidden = panel.hidden;
     panel.hidden = false;
-    renderHere(n, trail(q));
+    renderHere(n);
     panel.scrollTop = 0;
     if (wasHidden || opts.go) $('dcName').focus({ preventScroll: true });
     requestAnimationFrame(() => {
@@ -586,15 +628,39 @@
     board.focus({ preventScroll: true });
   }
   $('dcClose').addEventListener('click', closePanel);
-  addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden && document.activeElement !== input) closePanel(); });
+  addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || document.activeElement === input) return;
+    if (!vs.hidden) closeVs();
+    else if (!panel.hidden) closePanel();
+  });
 
-  function renderHere(n, path) {
+  // a picture with its credit, never cropped
+  function showPicture(n, file, img, box, credit, whose) {
+    box.hidden = !file;
+    credit.textContent = '';
+    const ready = picReady.get(file);
+    if (ready) img.src = ready.src; else img.removeAttribute('src');
+    if (!file) return;
+    loadPics([file]).then(([p]) => {
+      if (whose() !== n) return;
+      if (!p) { box.hidden = true; return; }
+      if (img.src !== p.src) img.src = p.src;
+      img.alt = n.p ? `${n.p}, the best known ${nameOf(n)}` : nameOf(n);
+      const by = [n.p && n.q !== ROOT ? `Pictured: ${n.p}.` : '', p.by && `Picture: ${p.by.slice(0, 80)}`, p.licence].filter(Boolean).join(' ');
+      credit.replaceChildren(Object.assign(document.createElement('a'), { href: p.page, target: '_blank', rel: 'noopener', textContent: by || 'About this picture' }));
+    });
+  }
+
+  function renderHere(n) {
+    const group = isGroup(n);
     panel.classList.toggle('is-extinct', !!n.x);
+    panel.classList.toggle('is-group', group);
     const tags = [];
+    if (group) tags.push(['Group', 'group']);
     if (n.q === ROOT) tags.push(['About 4.2 billion years ago', 'old']);
     else if (n.x) tags.push(['Extinct', 'gone']);
-    else if (!n.o && !n.live) tags.push([n.s > 1 ? 'Still around' : 'Alive today', 'alive']);
-    if (n.r) tags.push([cap(n.r), '']);
+    else if (!n.o && !n.live) tags.push(['Alive today', 'alive']);
+    if (n.r && n.r !== 'species' && n.r !== 'clade') tags.push([cap(n.r), '']);
     $('dcTags').replaceChildren(...tags.map(([t, c]) => Object.assign(document.createElement('span'), { className: 'dc-tag' + (c ? ' dc-tag-' + c : ''), textContent: t })));
     $('dcName').textContent = nameOf(n);
     $('dcName').classList.toggle('is-latin', !n.l && n.q !== ROOT);
@@ -603,23 +669,18 @@
     const kids = kidsOf(n), out = kids.filter(k => found.has(k)).length;
     let facts = factsOf(n);
     const all = kids.length + (latin.has(n.q) || n.live ? 0 : n.t || 0);
-    if (all) facts += ` You've discovered ${fmt(out)} of its ${fmt(all)} ${all === 1 ? 'branch' : 'branches'}.`;
+    if (all && group) facts += ` You've found ${fmt(out)} of its ${fmt(all)} ${all === 1 ? 'branch' : 'branches'}.`;
     $('dcFacts').textContent = facts;
 
-    // the picture, whole: never cropped
-    const img = $('dcHereImg'), credit = $('dcHereCredit'), file = picOf(n), box = $('dcHerePic');
-    box.hidden = !file;
-    credit.textContent = '';
-    const ready = picReady.get(file);
-    if (ready) img.src = ready.src; else img.removeAttribute('src');
-    if (file) loadPics([file]).then(([p]) => {
-      if (current !== n) return;
-      if (!p) { box.hidden = true; return; }
-      if (img.src !== p.src) img.src = p.src;
-      img.alt = n.p ? `${n.p}, one of the ${nameOf(n).toLowerCase()}` : nameOf(n);
-      const by = [n.p && n.q !== ROOT ? `Pictured: ${n.p}.` : '', p.by && `Photo: ${p.by.slice(0, 80)}`, p.licence].filter(Boolean).join(' ');
-      credit.replaceChildren(Object.assign(document.createElement('a'), { href: p.page, target: '_blank', rel: 'noopener', textContent: by || 'About this picture' }));
-    });
+    // a creature's picture. a group shows a few of its best known members instead, each one a way in
+    const members = group ? (n.m || []) : [];
+    const own = members.filter(m => m[3]).length >= 2 ? null : picOf(n);
+    showPicture(n, own, $('dcHereImg'), $('dcHerePic'), $('dcHereCredit'), () => current);
+    const box = $('dcMembers');
+    box.hidden = !members.length;
+    box.innerHTML = members.length ? `<p class="dc-sub">Best known members</p><div class="dc-member-grid">${members.map(([q, , name, file]) =>
+      `<button class="dc-member${found.has(q) ? ' is-met' : ''}" type="button" data-q="${q}"><span class="dc-member-pic${file ? '' : ' is-none'}" data-pic-box>${file ? `<img data-file="${esc(file)}" alt="">` : ''}</span><span class="dc-member-name">${esc(name)}</span></button>`).join('')}</div>` : '';
+    fillPics(box);
 
     // a few lines from wikipedia
     const read = $('dcRead'), wiki = $('dcWiki'), title = wikiTitle(n);
@@ -632,34 +693,35 @@
       wiki.hidden = false;
     });
 
-    // famous members: straight onto the board
-    const stars = $('dcStars');
-    stars.hidden = !n.m;
-    if (n.m) {
-      stars.replaceChildren(Object.assign(document.createElement('span'), { className: 'dc-stars-label', textContent: 'Famous members' }),
-        ...n.m.map(([q, home, name]) => {
-          const b = Object.assign(document.createElement('button'), { type: 'button', className: 'dc-chip' + (found.has(q) ? ' is-met' : ''), textContent: name });
-          b.addEventListener('click', () => bring(q, home));
-          return b;
-        }));
-    }
-
+    renderLine(n);
+    renderTime($('dcTime'), [n]);
     const isFav = fav && fav.q === n.q;
     $('dcStar').setAttribute('aria-pressed', isFav);
     $('dcStarText').textContent = isFav ? 'Your favourite' : 'Make favourite';
-    renderTime(n);
-    renderCompare(n, path);
+    $('dcVsOpen').hidden = n.q === ROOT || !!n.o;
   }
+  $('dcMembers').addEventListener('click', e => {
+    const b = e.target.closest('[data-q]');
+    const m = b && (current?.m || []).find(m => m[0] === +b.dataset.q);
+    if (m) bring(m[0], m[1]);
+  });
+
+  // its family line, from the first life down: every group it belongs to, each one a button
+  function renderLine(n) {
+    const box = $('dcLine');
+    const path = trail(n.q).slice(0, -1);
+    box.hidden = !path.length;
+    box.innerHTML = `<p class="dc-sub">Family line</p><ol>${path.map(q => `<li><button class="dc-step" type="button" data-q="${q}">${esc(nameOf(nodes.get(q)))}</button></li>`).join('')}<li><span class="dc-step is-here">${esc(nameOf(n))}</span></li></ol>`;
+  }
+  $('dcLine').addEventListener('click', e => { const b = e.target.closest('[data-q]'); if (b) bring(+b.dataset.q); });
 
   // ---------- when they lived: a strip of deep time ----------
 
   const ERAS = [[4600, 538.8, 'Precambrian'], [538.8, 251.9, 'Paleozoic'], [251.9, 66, 'Mesozoic'], [66, 0, 'Cenozoic']];
   const PERIODS = [[66, 23.03, 'Paleogene'], [23.03, 2.58, 'Neogene'], [2.58, 0, 'Quaternary']];
   const rangeOf = n => n && n.a !== undefined ? [n.a, n.x ? n.z : 0] : n && !n.x && !n.o && n.q !== ROOT && !n.live ? [undefined, 0] : null;
-  function renderTime(n) {
-    const box = $('dcTime');
-    const rows = [[n, rangeOf(n), 'here']];
-    if (fav && fav.q !== n.q) rows.push([fav, rangeOf(fav), 'fav']);
+  function renderTime(box, who) {
+    const rows = who.map((n, i) => [n, rangeOf(n), i ? 'b' : 'a']);
     const known = rows.filter(r => r[1] && r[1][0] !== undefined);
     if (!known.length) { box.hidden = true; return; }
     box.hidden = false;
@@ -667,62 +729,168 @@
     const top = oldest > 66 ? Math.min(4600, oldest * 1.12) : Math.max(oldest * 1.25, 0.05);
     const x = ma => (1 - ma / top) * 100;
     const bands = (top > 66 ? ERAS : PERIODS).filter(([, b]) => b < top);
-    let html = '<p class="dc-time-head">When they lived</p><div class="dc-time-strip">';
+    let html = `<p class="dc-sub">${who.length > 1 || isGroup(who[0]) ? 'When they lived' : 'When it lived'}</p><div class="dc-time-strip">`;
     for (const [a, b, name] of bands) {
       const l = x(Math.min(a, top)), w = x(b) - l;
       html += `<span class="dc-era" style="left:${l}%;width:${w}%"><span>${w > 16 ? name : ''}</span></span>`;
     }
     html += '</div>';
-    for (const [who, r, cls] of rows) {
+    for (const [n, r, cls] of rows) {
       if (!r) continue;
       const start = r[0] === undefined ? 0 : x(r[0]), end = r[1] === undefined ? start : x(r[1]);
-      const name = cls === 'fav' ? fav.name : nameOf(who);
-      html += `<div class="dc-time-row dc-time-${cls}"><span class="dc-time-bar${r[0] === undefined ? ' is-now' : ''}" style="left:${start}%;width:${Math.max(end - start, 0.6)}%"></span><span class="dc-time-who">${esc(name)}</span></div>`;
+      html += `<div class="dc-time-row dc-time-${cls}"><span class="dc-time-bar${r[0] === undefined ? ' is-now' : ''}" style="left:${start}%;width:${Math.max(end - start, 0.6)}%"></span><span class="dc-time-who">${esc(nameOf(n))}</span></div>`;
     }
     html += `<div class="dc-time-ends"><span>${ago(top)}</span><span>Now</span></div>`;
     box.innerHTML = html;
   }
 
-  // ---------- your favourite next to this one ----------
+  // ---------- side by side: any two, how they're related, when they lived, how big ----------
 
-  const pickOf = n => ({ name: nameOf(n), a: n.a, h: homeOf.get(n.q) });
-  function renderCompare(n, path) {
-    const box = $('dcCompare');
-    if (!fav || fav.q === n.q) { box.hidden = true; return; }
-    const A = fav.path, B = path.map(q => ({ q, ...pickOf(nodes.get(q)) }));
-    let i = 0;
-    while (i < A.length && i < B.length && A[i].q === B[i].q) i++;
-    const meet = B[i - 1];
-    const lines = [];
-    const favName = fav.name, hereName = nameOf(n);
-    if (i === B.length) lines.push(`Your ${esc(favName)} is somewhere inside this branch, ${A.length - i} ${A.length - i === 1 ? 'step' : 'steps'} further down.`);
-    else if (i === A.length) lines.push(`This is inside your ${esc(favName)}'s branch, ${B.length - i} ${B.length - i === 1 ? 'step' : 'steps'} further down.`);
-    else {
-      const steps = (A.length - i) + (B.length - i);
-      lines.push(`Cousins ${steps} branches apart. Their family lines meet at <button class="dc-link" type="button" data-q="${meet.q}" data-h="${meet.h ?? ''}">${esc(meet.name)}</button>.`);
-      const split = Math.max(A[i].a ?? -1, B[i].a ?? -1);
-      if (split > 0) lines.push(`They went their separate ways at least ${ago(split)}.`);
+  const vs = $('dcVs'), vsBody = $('dcVsBody');
+  let vsA = null, vsB = null, vsBack = null;
+  // a few everyone knows, to compare with when nothing else comes to mind
+  const IDEAS = [[15978631, 'Human'], [13098211, 'Tyrannosaurus rex'], [42196, 'Blue whale'], [57818409, 'House cat'], [30034, 'Honey bee'], [651361, 'Common octopus']];
+  function openVs(a, b) {
+    vsBack = document.activeElement;
+    vsA = a; vsB = b && b.q !== a.q ? b : null;
+    vs.hidden = false;
+    document.body.classList.add('dc-vs-open');
+    renderVs();
+    $('dcVsClose').focus({ preventScroll: true });
+  }
+  function closeVs() {
+    vs.hidden = true;
+    document.body.classList.remove('dc-vs-open');
+    vsBack?.focus?.({ preventScroll: true });
+  }
+  $('dcVsOpen').addEventListener('click', () => {
+    if (!current) return;
+    const other = fav && fav.q !== current.q && nodes.get(fav.q);
+    openVs(current, other || null);
+  });
+  $('dcVsClose').addEventListener('click', closeVs);
+  vs.addEventListener('click', e => { if (e.target === vs) closeVs(); });
+  // the tab key stays inside while it's open
+  vs.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const f = [...vs.querySelectorAll('button, input, a[href]')].filter(x => x.offsetParent);
+    if (!f.length) return;
+    if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+  });
+
+  function side(n, which) {
+    const status = n.x ? (n.z !== undefined ? `Died out ${ago(n.z)}` : 'Extinct') : 'Alive today';
+    // a group shows four of its members, so it doesn't look like any one of them
+    const members = isGroup(n) ? (n.m || []).filter(m => m[3]).slice(0, 4) : [];
+    const file = picOf(n);
+    const pic = members.length >= 2 ? `<span class="dc-vs-pic is-collage">${members.map(m => `<span data-pic-box><img data-file="${esc(m[3])}" alt="${esc(m[2])}"></span>`).join('')}</span>`
+      : `<span class="dc-vs-pic" data-pic-box>${file ? `<img data-file="${esc(file)}" alt="${esc(nameOf(n))}">` : n.si ? silImg(n.si) : ''}</span>`;
+    return `<div class="dc-vs-side${n.x ? ' is-extinct' : ''}">
+      ${pic}
+      <h3 class="dc-vs-name${n.l ? '' : ' is-latin'}">${esc(nameOf(n))}</h3>
+      ${latinOf(n) ? `<p class="dc-vs-sci">${esc(latinOf(n))}</p>` : ''}
+      <p class="dc-vs-stats"><span class="dc-tag ${n.x ? 'dc-tag-gone' : 'dc-tag-alive'}">${status}</span>${isGroup(n) ? '<span class="dc-tag dc-tag-group">Group</span>' : ''}${n.kg ? `<span class="dc-tag">About ${weight(n.kg)}</span>` : ''}</p>
+      <p class="dc-vs-keys"><button class="dc-link" type="button" data-go="${which}">Show on the tree</button>${which === 'b' ? ' &middot; <button class="dc-link" type="button" data-change>Pick another</button>' : ''}</p>
+    </div>`;
+  }
+
+  function chooser() {
+    const pool = [];
+    const addIdea = (q, name, home) => { if (q !== vsA.q && !pool.some(p => p[0] === q)) pool.push([q, name, home]); };
+    if (fav) addIdea(fav.q, fav.name, fav.h);
+    for (const q of recent) { const n = nodes.get(q); if (n && !n.o) addIdea(q, nameOf(n), homeOf.get(q)); }
+    for (const [q, name] of IDEAS) addIdea(q, nodes.get(q) ? nameOf(nodes.get(q)) : name);
+    return `<div class="dc-vs-side dc-vs-pick">
+      <h3 class="dc-vs-ask">Compare with...</h3>
+      <div class="dc-find dc-vs-find">
+        <svg class="dc-find-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg>
+        <input id="dcVsFind" type="search" autocomplete="off" spellcheck="false" placeholder="Any creature" role="combobox" aria-expanded="false" aria-controls="dcVsFound" aria-autocomplete="list" aria-label="Compare with">
+        <ul class="dc-found" id="dcVsFound" role="listbox" aria-label="Creatures to compare with" hidden></ul>
+      </div>
+      <p class="dc-sub">Or try</p>
+      <div class="dc-vs-ideas">${pool.slice(0, 8).map(([q, name, home]) => `<button class="dc-chip" type="button" data-idea="${q}" data-h="${home ?? ''}">${esc(name)}</button>`).join('')}</div>
+    </div>`;
+  }
+
+  async function setB(q, home, name) {
+    if (home === undefined || home === null) home = await homeFor(q, name);
+    try { await loadSlice(home); } catch (e) {
+      const again = name && await homeFor(q, name);
+      try { if (again === undefined) throw e; await loadSlice(again); } catch (e2) { console.warn(e2); return; }
     }
-    const ra = rangeOf(fav), rb = rangeOf(n);
+    if (!nodes.has(q)) return;
+    vsB = nodes.get(q);
+    renderVs();
+    $('dcVsClose').focus({ preventScroll: true });
+  }
+
+  function renderVs() {
+    const a = vsA, b = vsB;
+    let html = `<div class="dc-vs-pair">${side(a, 'a')}<span class="dc-vs-and" aria-hidden="true">vs</span>${b ? side(b, 'b') : chooser()}</div>`;
+    if (b) html += `<div class="dc-vs-family">${family(a, b)}</div><div class="dc-time dc-vs-time" id="dcVsTime"></div><ul class="dc-vs-facts">${vsFacts(a, b).map(l => `<li>${l}</li>`).join('')}</ul>`;
+    vsBody.innerHTML = html;
+    if (b) renderTime($('dcVsTime'), [a, b]);
+    fillPics(vsBody);
+    if (!b) finder($('dcVsFind'), $('dcVsFound'), e => setB(e[0], e[1]));
+  }
+  vsBody.addEventListener('click', e => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    if (t.dataset.idea) setB(+t.dataset.idea, t.dataset.h ? +t.dataset.h : undefined, t.textContent);
+    else if (t.hasAttribute('data-change')) { vsB = null; renderVs(); $('dcVsFind').focus(); }
+    else if (t.dataset.go) { const n = t.dataset.go === 'a' ? vsA : vsB; closeVs(); bring(n.q, homeOf.get(n.q)); }
+    else if (t.dataset.q) { closeVs(); bring(+t.dataset.q); }
+  });
+
+  // the two family lines, from the group they share down to each of them. long lines lose their middle
+  function family(a, b) {
+    const A = trail(a.q), B = trail(b.q);
+    let i = 0;
+    while (i < A.length && i < B.length && A[i] === B[i]) i++;
+    const meet = nodes.get(A[i - 1]);
+    const step = q => `<li><button class="dc-step" type="button" data-q="${q}">${esc(nameOf(nodes.get(q)))}</button></li>`;
+    const line = (qs, n) => {
+      const mid = qs.slice(0, -1);
+      const shown = mid.length > 5 ? [...mid.slice(0, 2), null, ...mid.slice(-2)] : mid;
+      return `<ol class="dc-vs-line">${shown.map(q => q === null ? `<li class="dc-vs-skip">${mid.length - 4} more</li>` : step(q)).join('')}<li><span class="dc-step is-here">${esc(nameOf(n))}</span></li></ol>`;
+    };
+    const head = '<p class="dc-sub">How they\'re related</p>';
+    if (i === B.length || i === A.length) {
+      const [inner, outer, rest] = i === B.length ? [a, b, A.slice(i)] : [b, a, B.slice(i)];
+      return `${head}<p class="dc-vs-meet">${esc(nameOf(inner))} is one of the ${esc(nameOf(outer).toLowerCase())}${rest.length > 1 ? `, ${rest.length} ${rest.length === 1 ? 'step' : 'steps'} down` : ''}.</p>
+        <div class="dc-vs-tree is-one"><span class="dc-vs-top">${esc(nameOf(outer))}</span>${line(rest, inner)}</div>`;
+    }
+    const split = Math.max(nodes.get(A[i])?.a ?? -1, nodes.get(B[i])?.a ?? -1);
+    return `${head}<p class="dc-vs-meet">Their family lines meet at <button class="dc-link" type="button" data-q="${meet.q}">${esc(nameOf(meet))}</button>${split > 0 ? `, and went their separate ways at least ${ago(split)}` : ''}.</p>
+      <div class="dc-vs-tree"><span class="dc-vs-top">${esc(nameOf(meet))}</span>
+        <svg class="dc-vs-fork" viewBox="0 0 200 28" preserveAspectRatio="none" aria-hidden="true"><path d="M100 0V10Q100 14 96 14H54Q50 14 50 18V28M100 10Q100 14 104 14H146Q150 14 150 18V28"/></svg>
+        <div class="dc-vs-lines">${line(A.slice(i), a)}${line(B.slice(i), b)}</div>
+      </div>`;
+  }
+
+  function vsFacts(a, b) {
+    const lines = [];
+    const A = esc(nameOf(a)), B = esc(nameOf(b));
+    const ra = rangeOf(a), rb = rangeOf(b);
     if (ra && rb && ra[0] !== undefined && rb[0] !== undefined) {
       const diff = Math.abs(ra[0] - rb[0]);
       if (diff < Math.max(ra[0], rb[0]) * .03) lines.push('They first show up in the fossils at about the same time.');
-      else {
-        const [older, younger] = ra[0] > rb[0] ? [favName, hereName] : [hereName, favName];
-        lines.push(`${esc(cap(older))} came first, ${span(diff)} before ${esc(younger)}.`);
-      }
+      else lines.push(`${ra[0] > rb[0] ? A : B} came first, ${span(diff)} before ${ra[0] > rb[0] ? B : A}.`);
     }
     if (ra && rb && ra[1] !== undefined && rb[1] !== undefined) {
-      if (ra[1] === 0 && rb[1] === 0) lines.push('Both are still alive today, sharing the planet.');
+      if (ra[1] === 0 && rb[1] === 0) lines.push('Both are alive today, sharing the planet.');
       else if (ra[0] !== undefined && rb[0] !== undefined) {
         const overlap = Math.min(ra[0], rb[0]) - Math.max(ra[1], rb[1]);
-        if (overlap > 0) lines.push(`They were alive at the same time, for about ${span(overlap)}.`);
-        else lines.push(`They never met: ${span(-overlap)} apart.`);
+        lines.push(overlap > 0 ? `They were alive at the same time, for about ${span(overlap)}.` : `They never met: ${span(-overlap)} apart.`);
       }
     }
-    box.onclick = e => { const b = e.target.closest('.dc-link'); if (b) bring(+b.dataset.q, b.dataset.h ? +b.dataset.h : undefined); };
-    box.innerHTML = `<p class="dc-compare-head"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg>Next to your ${esc(favName)}</p><ul>${lines.map(l => `<li>${l}</li>`).join('')}</ul>`;
-    box.hidden = false;
+    if (a.kg && b.kg) {
+      const [big, small] = a.kg >= b.kg ? [a, b] : [b, a];
+      const times = big.kg / small.kg;
+      lines.push(times < 1.3 ? 'They weigh about the same.' : `${esc(nameOf(big))} ${big.x ? 'was' : 'is'} about ${times < 10 ? +times.toFixed(1) : fmt(Math.round(times))} times heavier.`);
+    }
+    return lines;
   }
 
   // ---------- the favourite in the corner ----------
@@ -740,100 +908,119 @@
     const n = current;
     if (!n) return;
     if (fav && fav.q === n.q) fav = null;
-    else fav = { q: n.q, h: homeOf.get(n.q), name: nameOf(n), i: picOf(n), a: n.a, z: n.z, x: n.x, o: n.o, path: trail(n.q).map(q => ({ q, ...pickOf(nodes.get(q)) })) };
+    else fav = { q: n.q, h: homeOf.get(n.q), name: nameOf(n), i: picOf(n) || (n.m || []).find(m => m[3])?.[3], path: trail(n.q).map(q => ({ q, h: homeOf.get(q) })) };
     store.set('distantCousinsFav', fav);
-    renderHere(n, trail(n.q));
+    renderHere(n);
     draw(false);
   });
   $('dcFavGo').addEventListener('click', () => {
     if (!fav) return;
     if (found.has(fav.q) || nodes.has(fav.q) && !fav.h) return pick(fav.q, { go: true });
     // one found on wikidata only and not on the board any more: its nearest ancestor that's in the tree
-    const at = [...fav.path].reverse().find(s => s.h !== undefined && s.h !== null);
-    bring(at && at.q !== fav.q ? at.q : fav.q, at?.h);
+    const at = [...(fav.path || [])].reverse().find(s => s.h !== undefined && s.h !== null);
+    if (at && at.q !== fav.q) bring(at.q, at.h);
+    else bring(fav.q, fav.h, fav.name);
   });
 
-  // ---------- the search box ----------
+  // ---------- searching: the box in the corner, and the one for comparing ----------
 
-  const input = $('dcFind'), foundList = $('dcFound');
   const tidy = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const findFiles = new Map();
-  let split = null, chosen = -1, results = [];
+  let split = null;
   const findFile = key => {
     if (!findFiles.has(key)) findFiles.set(key, fetch(FIND + key.replace(/^(aux|con|nul|prn)$/, '$1_') + '.json').then(r => r.ok ? r.json() : []).catch(() => { findFiles.delete(key); return []; }));
     return findFiles.get(key);
   };
-  async function search() {
-    const words = tidy(input.value).split(' ').filter(Boolean);
-    const said = input.value;
-    // names are filed under every word, so the longest word picks the file ("t rex" looks under "re")
+  // the entries filed under the longest word typed ("t rex" looks under "re"), or a note why there are none yet
+  async function entriesFor(words) {
     const key = words.reduce((a, b) => b.length > a.length ? b : a, '');
-    if (key.length < 2) return list([]);
+    if (key.length < 2) return null;
     split ??= await fetch(FIND + 'split.json').then(r => r.json()).then(a => new Set(a)).catch(() => new Set());
     const two = key.slice(0, 2);
-    if (split.has(two) && key.length < 3) return list([], 'Keep typing...');
-    const entries = await findFile(split.has(two) ? key.slice(0, 3) : two);
-    if (input.value !== said) return;
-    const whole = words.join(' ');
-    const hits = [];
-    for (const e of entries) {
-      let best = 0, term = '';
-      for (let t = 3; t < e.length; t++) {
-        const p = tidy(e[t]), ws = p.split(' ');
-        if (!words.every(w => ws.some(x => x.startsWith(w)))) continue;
-        const score = p === whole ? 3 : p.startsWith(whole) ? 2 : 1;
-        if (score > best) { best = score; term = e[t]; }
+    if (split.has(two) && key.length < 3) return 'Keep typing...';
+    return findFile(split.has(two) ? key.slice(0, 3) : two);
+  }
+  // the slice a creature lives in, looked up by its name in the search files
+  async function homeFor(q, name) {
+    if (homeOf.has(q)) return homeOf.get(q);
+    const words = tidy(name || '').split(' ').filter(Boolean);
+    const entries = await entriesFor(words);
+    return Array.isArray(entries) ? entries.find(e => e[0] === q)?.[1] : undefined;
+  }
+  // a search box and its list of results: names are [qid, slice, fame, group?, latin name, other names...]
+  function finder(input, listEl, choose) {
+    let chosen = -1, results = [], typing;
+    async function search() {
+      const said = input.value;
+      const words = tidy(said).split(' ').filter(Boolean);
+      const entries = await entriesFor(words);
+      if (input.value !== said) return;
+      if (entries === null) return list([]);
+      if (typeof entries === 'string') return list([], entries);
+      const whole = words.join(' ');
+      const hits = [];
+      for (const e of entries) {
+        let best = 0, term = '';
+        for (let t = 4; t < e.length; t++) {
+          const p = tidy(e[t]), ws = p.split(' ');
+          if (!words.every(w => ws.some(x => x.startsWith(w)))) continue;
+          const score = p === whole ? 3 : p.startsWith(whole) ? 2 : 1;
+          if (score > best) { best = score; term = e[t]; }
+        }
+        if (best) hits.push({ e, best, term });
+        if (hits.length > 400) break;
       }
-      if (best) hits.push({ e, best, term });
-      if (hits.length > 400) break;
+      hits.sort((a, b) => b.best - a.best || b.e[2] - a.e[2]);
+      list(hits.slice(0, 8), hits.length ? '' : 'Nothing by that name. Try another, or its Latin name');
     }
-    hits.sort((a, b) => b.best - a.best || b.e[2] - a.e[2]);
-    list(hits.slice(0, 8), hits.length ? '' : 'Nothing by that name. Try another, or its Latin name');
+    function list(hits, note = '') {
+      results = hits;
+      chosen = -1;
+      listEl.replaceChildren(...hits.map(({ e, term }, i) => {
+        const li = document.createElement('li');
+        li.id = listEl.id + i;
+        li.setAttribute('role', 'option');
+        const main = term === e[4] && e[5] ? cap(e[5]) : cap(term);
+        const sub = term === e[4] ? e[5] ? e[4] : '' : e[4];
+        li.innerHTML = `<span>${esc(main)}</span>${sub && tidy(sub) !== tidy(main) ? `<i>${esc(sub)}</i>` : ''}${e[3] ? '<b class="dc-found-kind">group</b>' : ''}${found.has(e[0]) ? '<em>found</em>' : ''}`;
+        li.addEventListener('mousedown', ev => { ev.preventDefault(); pickResult(i); });
+        return li;
+      }));
+      if (note) listEl.append(Object.assign(document.createElement('li'), { className: 'dc-found-note', textContent: note }));
+      const isOpen = !!(hits.length || note);
+      listEl.hidden = !isOpen;
+      input.setAttribute('aria-expanded', isOpen);
+      input.removeAttribute('aria-activedescendant');
+    }
+    function pickResult(i) {
+      const r = results[i];
+      if (!r) return;
+      input.value = '';
+      list([]);
+      choose(r.e);
+    }
+    input.addEventListener('input', () => { clearTimeout(typing); typing = setTimeout(search, 120); });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (!results.length) return;
+        e.preventDefault();
+        chosen = (chosen + (e.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length;
+        [...listEl.children].forEach((li, i) => li.setAttribute('aria-selected', i === chosen));
+        input.setAttribute('aria-activedescendant', listEl.id + chosen);
+      } else if (e.key === 'Enter') { e.preventDefault(); pickResult(chosen < 0 ? 0 : chosen); }
+      else if (e.key === 'Escape' && !listEl.hidden) { e.stopPropagation(); list([]); }
+    });
+    input.addEventListener('blur', () => setTimeout(() => list([]), 100));
   }
-  function list(hits, note = '') {
-    results = hits;
-    chosen = -1;
-    foundList.replaceChildren(...hits.map(({ e, term }, i) => {
-      const li = document.createElement('li');
-      li.id = 'dcFound' + i;
-      li.setAttribute('role', 'option');
-      const main = term === e[3] && e[4] ? cap(e[4]) : cap(term);
-      const sub = term === e[3] ? e[4] ? e[3] : '' : e[3];
-      li.innerHTML = `<span>${esc(main)}</span>${sub && tidy(sub) !== tidy(main) ? `<i>${esc(sub)}</i>` : ''}${found.has(e[0]) ? '<em>found</em>' : ''}`;
-      li.addEventListener('mousedown', ev => { ev.preventDefault(); choose(i); });
-      return li;
-    }));
-    if (note) foundList.append(Object.assign(document.createElement('li'), { className: 'dc-found-note', textContent: note }));
-    const isOpen = !!(hits.length || note);
-    foundList.hidden = !isOpen;
-    input.setAttribute('aria-expanded', isOpen);
-    input.removeAttribute('aria-activedescendant');
-  }
-  function choose(i) {
-    const r = results[i];
-    if (!r) return;
-    input.value = '';
-    list([]);
-    input.blur();
-    bring(r.e[0], r.e[1]);
-  }
-  let typing;
-  input.addEventListener('input', () => { clearTimeout(typing); typing = setTimeout(search, 120); });
-  input.addEventListener('keydown', e => {
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      if (!results.length) return;
-      e.preventDefault();
-      chosen = (chosen + (e.key === 'ArrowDown' ? 1 : -1) + results.length) % results.length;
-      [...foundList.children].forEach((li, i) => li.setAttribute('aria-selected', i === chosen));
-      input.setAttribute('aria-activedescendant', 'dcFound' + chosen);
-    } else if (e.key === 'Enter') { e.preventDefault(); choose(chosen < 0 ? 0 : chosen); }
-    else if (e.key === 'Escape') list([]);
-  });
-  input.addEventListener('blur', () => setTimeout(() => list([]), 100));
+  const input = $('dcFind');
+  finder(input, $('dcFound'), e => { input.blur(); bring(e[0], e[1]); });
 
   // ---------- surprise me, light and dark, start again ----------
 
-  const sayMet = () => { $('dcMet').textContent = `${fmt(found.size + 1)} of ${fmt(total)} creatures discovered`; };
+  const sayMet = () => {
+    const met = [...found.keys()].filter(q => nodes.has(q) && !isGroup(nodes.get(q))).length;
+    $('dcMet').textContent = `${fmt(met)} of ${fmt(total)} creatures found`;
+  };
   let index = null;
   const loadIndex = () => index ??= fetch(TREE + 'index.json').then(r => r.json());
   loadIndex().then(i => { total = i.count; sayMet(); }).catch(() => { });
@@ -843,7 +1030,7 @@
     for (let tries = 0; tries < 8; tries++) {
       const s = all[Math.floor(Math.random() * all.length)];
       await loadSlice(s);
-      const pool = [...nodes.values()].filter(n => homeOf.get(n.q) === s && n.i && (tries < 5 ? n.l : n.l || n.w) && !n.p);
+      const pool = [...nodes.values()].filter(n => homeOf.get(n.q) === s && n.i && !n.g && (tries < 5 ? n.l : n.l || n.w) && !n.p);
       const fresh = pool.filter(n => !found.has(n.q));
       const from = fresh.length ? fresh : pool;
       if (from.length) return bring(from[Math.floor(Math.random() * from.length)].q, s);
@@ -863,7 +1050,7 @@
   });
   sayTheme();
   $('dcAgain').addEventListener('click', () => {
-    if (!confirm('Start the tree again from the very first life? Everything you\'ve discovered will be put away (your favourite stays).')) return;
+    if (!confirm('Start the tree again from the very first life? Everything you\'ve found will be put away (your favourite stays).')) return;
     found.clear(); extra.clear(); open.clear(); latin.clear(); liveKept.clear();
     save();
     closePanel();
@@ -888,8 +1075,9 @@
       // a few files at a time, so a big tree doesn't ask for hundreds at once
       const queue = [...homes];
       await Promise.all(Array.from({ length: 6 }, async () => { while (queue.length) await loadSlice(queue.shift()).catch(() => { }); }));
-      for (const [q, h] of saved.found || []) found.set(q, h);
-      for (const [q, h] of saved.extra || []) extra.set(q, h);
+      // a board saved before the tree was tidied up can name groups that aren't on it any more: those go
+      for (const [q, h] of saved.found || []) if (nodes.has(q)) found.set(q, h);
+      for (const [q, h] of saved.extra || []) if (nodes.has(q)) extra.set(q, h);
       for (const [q, c] of saved.open || []) open.set(q, c);
       await Promise.all((saved.latin || []).map(q => nodes.has(q) ? askLatin(q).catch(() => { }) : null));
     }
@@ -897,7 +1085,7 @@
     draw(false);
     if (found.size > 3) fitAll(); else home();
     if (!store.get('distantCousinsHinted', false)) {
-      if (matchMedia('(pointer: coarse)').matches) $('dcHint').textContent = 'Tap a mystery creature to discover it, then tap it again to learn about it. Drag to look around, pinch to zoom.';
+      if (matchMedia('(pointer: coarse)').matches) $('dcHint').textContent = 'Tap a mystery card to find out who it is, then tap it again to read all about it. Drag to look around, pinch to zoom.';
       $('dcHint').hidden = false;
     }
   }
