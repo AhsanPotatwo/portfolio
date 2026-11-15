@@ -100,6 +100,25 @@ each('toppar.tsv', ([t, p, n, l, w, i]) => {
   if (w && !wiki.has(q)) wiki.set(q, literal(w));
   if (i && !image.has(q)) image.set(q, decodeURIComponent(i.slice(i.indexOf('FilePath/') + 9, -1)));
 });
+// pictures that need changing: wikidata's human is a nude drawing, so a family out for a walk instead. two
+// groups near us lose theirs (a nude museum model, an odd old portrait) and show their best known member
+const SWAP_PICTURE = { 15978631: 'A mixed-race family walking in a park with European flags (P044728-798775).jpg' };
+const NO_PICTURE = [605457 /* Hominina */, 242047 /* Homininae */];
+for (const [q, f] of Object.entries(SWAP_PICTURE)) image.set(+q, f);
+for (const q of NO_PICTURE) image.delete(q);
+
+// silhouettes from phylopic (phylopic.js), for creatures you haven't discovered yet. only the public domain
+// ones, so a mystery card never needs a credit line
+const silByName = new Map(), silByPbdb = new Map();
+if (fs.existsSync(path.join(RAW, 'phylopic.json'))) {
+  for (const [uuid, licence, , names, pbdb] of JSON.parse(fs.readFileSync(path.join(RAW, 'phylopic.json'), 'utf8'))) {
+    if (!/publicdomain/.test(licence)) continue;
+    for (const n of names) if (!silByName.has(n)) silByName.set(n, uuid);
+    for (const id of pbdb) if (!silByPbdb.has(id)) silByPbdb.set(id, uuid);
+  }
+}
+const silhouette = q => silByPbdb.get(pbdbId.get(q)) || silByName.get(name.get(q));
+
 const rankName = new Map();
 each('rankl.tsv', ([r, l]) => rankName.set(qid(r), literal(l)));
 
@@ -249,7 +268,7 @@ core.add(ROOT);
 console.log('written out', core.size, 'of', order.length);
 
 // counts, pictures and fossil dates, children before parents
-const species = new Map(), fame = new Map(), pic = new Map(), tail = new Map(), stars = new Map();
+const species = new Map(), fame = new Map(), pic = new Map(), tail = new Map(), stars = new Map(), sil = new Map();
 for (let i = order.length - 1; i >= 0; i--) {
   const q = order[i];
   const ks = kids.get(q) || [];
@@ -278,6 +297,10 @@ for (let i = order.length - 1; i >= 0; i--) {
     const best = [...pool].sort((a, b) => (links.get(b) || 0) - (links.get(a) || 0)).slice(0, 6);
     if (best.length) stars.set(q, best);
   }
+  // the silhouette a group shows: its own, else its best known member's (the kangaroo order shows a kangaroo)
+  let bestSil = silhouette(q) ? [links.get(q) || 0, silhouette(q)] : null;
+  if (!bestSil) for (const k of ks) { const s = sil.get(k); if (s && (!bestSil || s[0] > bestSil[0])) bestSil = s; }
+  if (bestSil) sil.set(q, bestSil);
   species.set(q, n); fame.set(q, f); tail.set(q, t);
   if (best) pic.set(q, best);
   if (!FIRST_SEEN[q] && oldest !== undefined && (fa === undefined || oldest > fa)) first.set(q, oldest);
@@ -335,6 +358,8 @@ function record(q) {
   // famous members, [qid, slice, name], only where there's a choice of branches to skip past
   if (ks.length > 1 && stars.has(q)) o.m = stars.get(q).map(s => [s, sliceOf.get(s), friendly(s)]);
   if (otherLife.includes(q)) o.o = 1;
+  // its silhouette, or its best known member's. a species with neither uses its nearest ancestor's (page.js)
+  if (sil.has(q)) o.si = sil.get(q)[1];
   if (sliceOf.get(q) === q && q !== ROOT) o.f = q;
   return o;
 }
@@ -350,6 +375,7 @@ for (const [top, qs] of slices) {
   const up = [];
   for (let x = parent.get(top); x !== undefined; x = parent.get(x)) {
     const u = { q: x, n: name.get(x), f: sliceOf.get(x) };
+    if (sil.has(x)) u.si = sil.get(x)[1];
     const fr = friendly(x); if (fr) u.l = fr;
     if (first.has(x)) u.a = round(first.get(x));
     up.unshift(u);

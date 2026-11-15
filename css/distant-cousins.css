@@ -1,21 +1,24 @@
 /* distant cousins page, loaded on top of styles.css.
-   a field guide on warm sand: flat peach under a hand-placed tile of fossils (assets/distant-cousins/fossils.svg),
-   cream specimen cards on solid edges that press down, aubergine ink and coral keys. the animal you're on sits
-   at the bottom with its branches growing up out of it, drawn thicker the more species they hold, and its
-   ancestors run down a trunk under it to the first life. the page ends in the soil the tree grows from, roots
-   and all (roots.svg). extinct animals are grey like fossils. Sniglet for headings, round and friendly,
-   Gentium italic for the latin names the way field guides print them. every colour is a token here. */
+   a board of warm sand you fill in with the family tree, like a whiteboard: the fossils pressed into the sand
+   (assets/distant-cousins/fossils.svg) slide and grow with it as you drag and zoom. cream specimen cards on solid
+   edges for the creatures you've found, dashed mystery cards with a silhouette for the ones you haven't, bark
+   lines between them, dotted where ancestors are skipped. the logo sits in the middle at the top with search in
+   the corner, the keys bottom left, and a panel slides in with everything about the creature you click. below
+   the board the page ends in the soil, roots and all (roots.svg). Sniglet for headings, Gentium italic for the
+   latin names the way field guides print them. light and dark are only colours, set at the top. */
 .dc-page{
-  --bg:#fde3cf;            --tile:url("../assets/distant-cousins/fossils.svg");
+  --bg:#fde3cf;            --tile-ink:#f6cdb3;
   --ink:#3b2440;           --muted:#86636b;          --heading-shadow:#f6bfa2;
   --card:#fffaf4;          --card-edge:#e8bf9f;      --card-hover:#ffffff;
+  --mystery:#fdeee3;       --mystery-edge:#e3a98a;   --sil-ink:#5a3d55;
   --peach:#fbd3b9;         --peach-edge:#e3a98a;
-  --coral:#ef6a4c;         --coral-edge:#b6442c;     --coral-text:#ffffff;
+  --coral:#ef6a4c;         --coral-edge:#b6442c;
   --leaf:#4f9d69;          --leaf-soft:#d7eedc;      --leaf-text:#2c6b41;
-  --stone:#ece5df;         --stone-edge:#cbbfb5;     --stone-text:#6f625b;
+  --stone:#ece5df;         --stone-edge:#cbbfb5;
   --star:#ffc53d;          --star-edge:#d0921b;      --star-soft:#fff0c4;
-  --bark:#9a6a52;          --bark-dark:#7c5240;
-  --band:#3b2440;          --band-2:#2c1a30;         --band-text:#fde3cf;      --band-link:#ffb59c;
+  --bark:#9a6a52;          --bark-soft:#d6a98c;
+  --band:#3b2440;          --band-2:#2c1a30;         --band-text:#fde3cf;      --band-link:#ffb59c;  --roots:#56385c;
+  --era-1:#f4c6c0;         --era-2:#cfe3c4;          --era-3:#c9dcef;          --era-4:#f7dfa6;
   --focus:#3b2440;
 
   --font-round:"Sniglet", var(--font-sans);
@@ -23,17 +26,26 @@
   --page-accent:var(--band-text);
   background:var(--bg);
   color:var(--ink);
-  color-scheme:light;
 }
-html:has(.dc-page){ color-scheme:light; scrollbar-color:var(--peach-edge) var(--bg); }
-.dc-page::before{
-  content:"";
-  position:fixed; inset:0;
-  z-index:-1;
-  background:var(--tile) 0 0 / 320px;
-  pointer-events:none;
+/* dark: the same sand at night */
+:root[data-dc-theme="dark"] .dc-page{
+  --bg:#211824;            --tile-ink:#2d2131;
+  --ink:#f6e3d8;           --muted:#b597a0;          --heading-shadow:#4c2f46;
+  --card:#30243a;          --card-edge:#140c17;      --card-hover:#3a2c45;
+  --mystery:#271d2b;       --mystery-edge:#5a4462;   --sil-ink:#c9a9bd;
+  --peach:#44304b;         --peach-edge:#1c121f;
+  --coral:#f07a5e;         --coral-edge:#a8432c;
+  --leaf:#5fb27a;          --leaf-soft:#27402f;      --leaf-text:#9be0ae;
+  --stone:#3a3437;         --stone-edge:#1b1719;
+  --star:#ffc53d;          --star-edge:#a8740c;      --star-soft:#47391c;
+  --bark:#a9816c;          --bark-soft:#5d4552;
+  --band:#160f18;          --band-2:#0e0910;         --band-text:#f6e3d8;      --band-link:#ffb59c;  --roots:#2f2133;
+  --era-1:#6a3c43;         --era-2:#3c5940;          --era-3:#38506a;          --era-4:#6b5728;
+  --focus:#ffc53d;
 }
-.dc-page ::selection{ background:var(--star); color:var(--ink); }
+html:has(.dc-page){ scrollbar-color:var(--peach-edge) var(--bg); }
+:root[data-dc-theme="dark"]:has(.dc-page){ color-scheme:dark; }
+.dc-page ::selection{ background:var(--star); color:#3b2440; }
 .dc-page :focus-visible{ outline-color:var(--focus); }
 
 .dc-page .site-header{ background:var(--bg); backdrop-filter:none; border-bottom:3px solid var(--card-edge); }
@@ -41,7 +53,7 @@ html:has(.dc-page){ color-scheme:light; scrollbar-color:var(--peach-edge) var(--
 .dc-page .brand-bracket{ color:var(--coral); }
 .dc-page .nav-link{ color:var(--ink); }
 .dc-page .nav-link:hover,
-.dc-page .nav-link.is-active{ color:var(--coral-edge); }
+.dc-page .nav-link.is-active{ color:var(--coral); }
 .dc-page .nav-link::after{ background:var(--coral); }
 .dc-page .nav-toggle span{ background:var(--ink); }
 @media (max-width:820px){
@@ -51,32 +63,13 @@ html:has(.dc-page){ color-scheme:light; scrollbar-color:var(--peach-edge) var(--
 }
 .dc-page .site-footer{ border-top:0; background:var(--band-2); color:var(--band-text); font-weight:600; }
 
-.dc-heading{
-  font-family:var(--font-round);
-  font-weight:800;
-  line-height:1;
-}
-
-/* ---------- hero ---------- */
-.dc-hero{
-  display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between;
-  gap:14px 48px;
-  padding-block:32px 22px;
-}
-.dc-hero .dc-heading{ font-size:clamp(40px,5vw,68px); text-shadow:0 5px 0 var(--heading-shadow); }
-.dc-lede{
-  max-width:31em;
-  font-size:clamp(16px,1.3vw,18px);
-  font-weight:600;
-  line-height:1.5;
-  text-wrap:pretty;
-}
+.dc-heading{ font-family:var(--font-round); font-weight:800; line-height:1; }
 
 /* ---------- keys ---------- */
 .dc-key{
   display:inline-flex; align-items:center; justify-content:center; gap:8px;
-  height:48px;
-  padding:0 20px;
+  height:46px;
+  padding:0 18px;
   border:0;
   border-radius:999px;
   background:var(--card);
@@ -89,38 +82,190 @@ html:has(.dc-page){ color-scheme:light; scrollbar-color:var(--peach-edge) var(--
 }
 .dc-key:hover{ background:var(--card-hover); transform:translateY(-2px); box-shadow:0 6px 0 var(--card-edge); }
 .dc-key:active{ transform:translateY(4px); box-shadow:0 0 0 var(--card-edge); }
-.dc-key svg{ width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.dc-key svg{ width:20px; height:20px; flex:none; fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
 .dc-key svg circle[r="1.3"]{ fill:currentColor; stroke:none; }
+.dc-icon{ width:46px; padding:0; }
+.dc-sun, .dc-key[aria-pressed="true"] .dc-moon{ display:none; }
+.dc-key[aria-pressed="true"] .dc-sun{ display:block; }
 
-/* ---------- the bar: search, surprise, start ---------- */
-.dc-explore{ scroll-margin-top:92px; }
-.dc-explore:focus{ outline:0; }
-.dc-bar{
-  position:relative; z-index:5;
-  display:flex; flex-wrap:wrap; align-items:center;
-  gap:12px;
+/* ---------- the stage: the board and everything floating over it ---------- */
+/* the board fills the window under the site header, leaving a strip of the soil showing under it */
+.dc-stage{
+  position:relative;
+  height:max(520px, calc(100svh - 79px - 44px));
+  overflow:hidden;
 }
-.dc-find{ position:relative; flex:1 1 340px; max-width:560px; }
+.dc-board{
+  --tx:0px; --ty:0px; --ts:320px;
+  position:absolute; inset:0;
+  overflow:hidden;
+  background:var(--bg);
+  cursor:grab;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.dc-board::before{
+  content:"";
+  position:absolute; inset:0;
+  background:var(--tile-ink);
+  -webkit-mask:url("../assets/distant-cousins/fossils.svg") var(--tx) var(--ty) / var(--ts) repeat;
+  mask:url("../assets/distant-cousins/fossils.svg") var(--tx) var(--ty) / var(--ts) repeat;
+  pointer-events:none;
+}
+.dc-board.is-dragging{ cursor:grabbing; }
+.dc-board:focus{ outline:0; }
+.dc-board:focus-visible{ outline:3px solid var(--focus); outline-offset:-6px; border-radius:0; }
+.dc-world{ position:absolute; left:0; top:0; transform-origin:0 0; will-change:transform; }
+.dc-edges{ position:absolute; left:0; top:0; width:1px; height:1px; overflow:visible; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+.dc-edge-solid{ stroke:var(--bark); }
+.dc-edge-faint{ stroke:var(--bark-soft); }
+.dc-edge-dotted{ stroke:var(--bark); stroke-dasharray:1 11; }
+.dc-nodes, .dc-gaps{ position:absolute; left:0; top:0; }
+
+/* a creature on the board. its place is its transform (page.js), so lifting it on hover uses translate */
+.dc-node{
+  position:absolute; left:0; top:0;
+  display:flex; flex-direction:column; align-items:center;
+  padding:8px 8px 12px;
+  border:0;
+  border-radius:18px;
+  background:var(--card);
+  box-shadow:0 5px 0 var(--card-edge);
+  color:var(--ink);
+  text-align:center;
+  font:inherit;
+  cursor:pointer;
+  transition:translate .16s var(--ease-out), box-shadow .16s var(--ease-out), background-color .15s ease;
+}
+.dc-node:hover{ translate:0 -3px; box-shadow:0 8px 0 var(--card-edge); background:var(--card-hover); }
+.dc-node:active{ translate:0 4px; box-shadow:0 1px 0 var(--card-edge); }
+.dc-node.is-born{ animation:dc-born .45s var(--ease-out) both; }
+@keyframes dc-born{ from{ scale:.4; opacity:0; } 70%{ scale:1.06; opacity:1; } to{ scale:1; } }
+.dc-node.is-busy{ cursor:progress; animation:dc-busy 1s ease-in-out infinite alternate; }
+@keyframes dc-busy{ to{ opacity:.55; } }
+.dc-node.is-picked{ outline:4px solid var(--coral); outline-offset:3px; border-radius:18px; }
+.dc-node-pic{
+  position:relative;
+  display:block;
+  width:100%; aspect-ratio:4 / 3;
+  margin-bottom:8px;
+  border-radius:12px;
+  overflow:hidden;
+  background:var(--peach);
+}
+/* the whole picture, never cropped: what doesn't fill the box is soft colour either side */
+.dc-node-pic img{ width:100%; height:100%; object-fit:contain; }
+.dc-node-pic img:not([src]){ visibility:hidden; }
+/* silhouettes are black pictures: faded to grey on the sand, turned light on the night board */
+.dc-sil-img{ position:absolute; inset:12%; width:76%; height:76%; object-fit:contain; opacity:.72; }
+:root[data-dc-theme="dark"] .dc-sil-img{ filter:invert(1); opacity:.6; }
+.dc-node-name{ font:400 17px/1.15 var(--font-round); overflow-wrap:anywhere; }
+.dc-node-name.is-latin{ font:italic 400 17px/1.2 var(--font-latin); }
+.dc-node-sci{ margin-top:3px; font:italic 400 14px/1.2 var(--font-latin); color:var(--muted); overflow-wrap:anywhere; }
+.dc-node-star{
+  position:absolute; top:-10px; right:-10px; z-index:1;
+  width:30px; height:30px;
+  padding:4px;
+  border-radius:50%;
+  background:var(--star);
+  box-shadow:0 2px 0 var(--star-edge);
+  fill:#3b2440;
+}
+.dc-node.is-extinct{ background:var(--stone); box-shadow:0 5px 0 var(--stone-edge); }
+.dc-node.is-extinct .dc-node-pic{ background:var(--stone-edge); }
+.dc-node.is-extinct img{ filter:grayscale(1) contrast(.95); }
+.dc-node.is-other{ opacity:.8; }
+
+/* the ones you haven't discovered: a dashed card with a silhouette, or a question mark */
+.dc-node.is-unfound{
+  padding:7px 7px 10px;
+  background:var(--mystery);
+  box-shadow:none;
+  outline:2px dashed var(--mystery-edge);
+  outline-offset:-2px;
+}
+.dc-node.is-unfound:hover{ background:var(--card); box-shadow:none; }
+.dc-node.is-unfound:active{ box-shadow:none; }
+.dc-sil{
+  position:relative;
+  display:grid; place-items:center;
+  width:100%; aspect-ratio:4 / 3;
+  margin-bottom:6px;
+  font:800 40px/1 var(--font-round);
+  color:var(--sil-ink);
+}
+.dc-node.is-unfound .dc-node-name{ font-size:15px; }
+.dc-node.is-unfound .dc-node-name.is-latin{ font-size:15px; }
+/* more branches, and the latin-only ones wikidata has */
+.dc-node.is-more,
+.dc-node.is-latin{
+  padding:12px 10px;
+  background:transparent;
+  box-shadow:none;
+  outline:2px dashed var(--bark-soft);
+  outline-offset:-2px;
+  font:600 13px/1.25 var(--font-sans);
+  color:var(--muted);
+}
+.dc-node.is-more:hover,
+.dc-node.is-latin:hover{ background:var(--mystery); box-shadow:none; }
+.dc-more-n{ font:400 22px/1.1 var(--font-round); color:var(--ink); }
+/* "12 more" on a dotted line: click to uncover the ancestors it skips */
+.dc-gap{
+  position:absolute;
+  translate:-50% -50%;
+  padding:4px 10px;
+  border-radius:999px;
+  background:var(--bg);
+  outline:2px dashed var(--bark);
+  outline-offset:-2px;
+  font:700 12px/1.2 var(--font-sans);
+  color:var(--ink);
+  white-space:nowrap;
+  cursor:pointer;
+}
+.dc-gap:hover{ background:var(--mystery); }
+
+/* ---------- floating over the board ---------- */
+.dc-top{
+  position:absolute; top:12px; left:50%;
+  translate:-50% 0;
+  padding:8px 18px 10px;
+  border-radius:20px;
+  background:var(--bg);
+  text-align:center;
+  pointer-events:none;
+}
+.dc-logo{
+  font:800 clamp(30px,3.2vw,44px)/1 var(--font-round);
+  text-shadow:0 4px 0 var(--heading-shadow);
+  white-space:nowrap;
+}
+.dc-met{ margin-top:8px; font-size:14px; font-weight:700; color:var(--muted); white-space:nowrap; }
+
+.dc-find{ position:absolute; top:18px; right:18px; width:min(300px, 30vw); z-index:3; }
 .dc-find-icon{
-  position:absolute; left:17px; top:15px;
-  width:22px; height:22px;
+  position:absolute; left:16px; top:13px;
+  width:20px; height:20px;
   fill:none; stroke:var(--muted); stroke-width:2.2; stroke-linecap:round;
   pointer-events:none;
 }
 .dc-find input{
-  width:100%; height:52px;
-  padding:0 20px 0 48px;
+  width:100%; height:46px;
+  padding:0 16px 0 44px;
   border:0;
   border-radius:999px;
   background:var(--card);
   box-shadow:0 4px 0 var(--card-edge);
   color:var(--ink);
-  font:600 17px/1 var(--font-sans);
+  font:600 16px/1 var(--font-sans);
 }
 .dc-find input::placeholder{ color:var(--muted); opacity:1; }
 .dc-find input::-webkit-search-cancel-button{ display:none; }
 .dc-found{
-  position:absolute; left:0; right:0; top:62px;
+  position:absolute; right:0; top:56px;
+  width:max(100%, 340px);
   padding:6px;
   border-radius:20px;
   background:var(--card);
@@ -128,181 +273,102 @@ html:has(.dc-page){ color-scheme:light; scrollbar-color:var(--peach-edge) var(--
 }
 .dc-found li{
   display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 10px;
-  padding:10px 14px;
+  padding:9px 12px;
   border-radius:14px;
   font-weight:700;
   cursor:pointer;
 }
-.dc-found li i{ font:italic 400 16px/1.2 var(--font-latin); color:var(--muted); }
+.dc-found li i{ font:italic 400 15px/1.2 var(--font-latin); color:var(--muted); }
+.dc-found li em{ margin-left:auto; font-style:normal; font-size:12px; color:var(--leaf-text); }
 .dc-found li:hover,
 .dc-found li[aria-selected="true"]{ background:var(--peach); }
 .dc-found .dc-found-note{ color:var(--muted); font-weight:600; cursor:default; }
 .dc-found .dc-found-note:hover{ background:none; }
-.dc-met{ margin-left:auto; color:var(--muted); font-weight:700; font-size:15px; }
 
-/* ---------- the branches ---------- */
-.dc-canopy{
-  position:relative;
-  padding:34px 0 96px;
-}
-.dc-canopy.is-bare{ padding-bottom:28px; }
-.dc-canopy.is-bare .dc-branches{ display:none; }
-.dc-branches{
-  position:absolute; inset:0;
-  width:100%; height:100%;
-  fill:none; stroke:var(--bark); stroke-linecap:round;
+.dc-hint{
+  position:absolute; left:50%; bottom:84px;
+  translate:-50% 0;
+  width:max-content; max-width:min(480px, calc(100% - 32px));
+  padding:10px 16px;
+  border-radius:16px;
+  background:var(--card);
+  box-shadow:0 4px 0 var(--card-edge);
+  font-size:15px; font-weight:600; line-height:1.45;
+  text-align:center;
   pointer-events:none;
 }
-.dc-kids{
-  position:relative;
-  display:flex; flex-wrap:wrap; justify-content:center;
-  gap:30px 20px;
-}
-.dc-card{
-  position:relative;
-  display:flex; flex-direction:column; align-items:center;
-  width:178px; height:100%;
-  padding:9px 9px 14px;
+.dc-hint[hidden]{ display:none; }
+.dc-controls{ position:absolute; left:18px; bottom:20px; display:flex; flex-wrap:wrap; gap:8px; }
+
+/* your favourite, top left */
+.dc-fav{ position:absolute; left:18px; top:18px; z-index:2; }
+.dc-fav[hidden]{ display:none; }
+.dc-fav-go{
+  display:flex; align-items:center; gap:10px;
+  max-width:260px;
+  padding:6px 16px 6px 6px;
   border:0;
-  border-radius:20px;
-  background:var(--card);
-  box-shadow:0 5px 0 var(--card-edge);
-  color:var(--ink);
-  text-align:center;
+  border-radius:999px;
+  background:var(--star);
+  box-shadow:0 4px 0 var(--star-edge);
+  color:#3b2440;
+  text-align:left;
   font:inherit;
   cursor:pointer;
-  transition:transform .18s var(--ease-out), box-shadow .18s var(--ease-out), background-color .15s ease;
+  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out);
 }
-.dc-card:hover{ background:var(--card-hover); transform:translateY(-4px) rotate(-1deg); box-shadow:0 9px 0 var(--card-edge); }
-.dc-kids li:nth-child(even) .dc-card:hover{ transform:translateY(-4px) rotate(1deg); }
-.dc-card:active{ transform:translateY(5px); box-shadow:0 0 0 var(--card-edge); }
-.dc-card-pic{
-  display:block;
-  width:100%; aspect-ratio:4 / 3;
-  margin-bottom:10px;
-  border-radius:13px;
-  overflow:hidden;
-  background:var(--peach);
-}
-.dc-card-pic img{ width:100%; height:100%; object-fit:cover; }
-.dc-card-name{ font:400 18px/1.15 var(--font-round); overflow-wrap:anywhere; }
-.dc-card-name.is-latin{ font:italic 400 18px/1.2 var(--font-latin); }
-.dc-card-sci{ margin-top:3px; font:italic 400 15px/1.2 var(--font-latin); color:var(--muted); overflow-wrap:anywhere; }
-.dc-card-meta{ margin-top:6px; font-size:13px; font-weight:700; color:var(--muted); }
-/* extinct ones are grey, like fossils */
-.dc-card.is-extinct{ background:var(--stone); box-shadow:0 5px 0 var(--stone-edge); }
-.dc-card.is-extinct:hover{ box-shadow:0 9px 0 var(--stone-edge); }
-.dc-card.is-extinct .dc-card-pic{ background:var(--stone-edge); }
-.dc-card.is-extinct img{ filter:grayscale(1) contrast(.95); }
-.dc-card.is-other{ opacity:.75; }
-/* a little tick on the ones you've met */
-.dc-card.is-met::after{
-  content:"";
-  position:absolute; top:-7px; right:-7px;
-  width:24px; height:24px;
-  border-radius:50%;
-  background:var(--leaf) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 12.5l3.2 3.2L17 9' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 20px no-repeat;
-  box-shadow:0 2px 0 var(--leaf-text);
-}
-.dc-more{
-  position:relative;
-  display:flex; align-items:center;
-  height:44px;
-  margin:0 auto 26px;
-  padding:0 20px;
-  border:0;
-  border-radius:999px;
-  background:var(--peach);
-  box-shadow:0 4px 0 var(--peach-edge);
-  color:var(--ink);
-  font:400 16px/1 var(--font-round);
-  cursor:pointer;
-}
-.dc-more:active{ transform:translateY(4px); box-shadow:none; }
-.dc-more[hidden]{ display:none; }
+.dc-fav-go:hover{ transform:translateY(-2px); box-shadow:0 6px 0 var(--star-edge); }
+.dc-fav-go:active{ transform:translateY(4px); box-shadow:none; }
+.dc-fav-pic{ flex:none; width:44px; height:44px; border-radius:50%; overflow:hidden; background:var(--star-soft); }
+.dc-fav-pic img{ width:100%; height:100%; object-fit:cover; }
+.dc-fav-pic img:not([src]){ display:none; }
+.dc-fav-words{ display:flex; flex-direction:column; min-width:0; }
+.dc-fav-label{ display:flex; align-items:center; gap:4px; font-size:12px; font-weight:700; }
+.dc-fav-label svg{ width:13px; height:13px; fill:#3b2440; }
+.dc-fav-name{ font:400 17px/1.15 var(--font-round); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
-/* the long tail, latin names only */
-.dc-tail{ position:relative; margin:0 auto 30px; max-width:900px; text-align:center; }
-.dc-tail-open{
-  height:44px; padding:0 20px;
-  border:2px dashed var(--peach-edge);
-  border-radius:999px;
-  background:transparent;
-  color:var(--ink);
-  font:400 16px/1 var(--font-round);
-  cursor:pointer;
-}
-.dc-tail-open:hover{ background:var(--peach); }
-.dc-tail-open:disabled{ cursor:progress; }
-.dc-tail-list{
-  display:flex; flex-wrap:wrap; justify-content:center;
-  gap:10px 8px;
-  max-height:340px;
+/* ---------- the panel ---------- */
+.dc-panel{
+  position:absolute; top:78px; right:14px; bottom:14px; z-index:4;
+  display:flex; flex-direction:column; gap:12px;
+  width:420px;
+  padding:18px 20px 22px;
   overflow:auto;
-  padding:6px 4px 10px;
+  overscroll-behavior:contain;
+  border-radius:24px;
+  background:var(--card);
+  box-shadow:0 6px 0 var(--card-edge);
+  animation:dc-slide .3s var(--ease-out);
 }
-.dc-tail-list:empty{ display:none; }
-.dc-tail-none{ color:var(--muted); font-weight:600; }
-
-/* chips: famous members, latin-only names */
-.dc-chip{
-  display:inline-flex; align-items:center; gap:8px;
-  height:36px;
-  padding:0 14px;
+.dc-panel[hidden]{ display:none; }
+@keyframes dc-slide{ from{ translate:30px 0; opacity:0; } }
+.dc-panel.is-extinct{ background:var(--stone); box-shadow:0 6px 0 var(--stone-edge); }
+.dc-close{
+  position:sticky; top:0; z-index:1;
+  align-self:flex-end;
+  flex:none;
+  width:40px; height:40px;
+  margin-bottom:-52px;
   border:0;
-  border-radius:999px;
+  border-radius:50%;
   background:var(--peach);
   box-shadow:0 3px 0 var(--peach-edge);
   color:var(--ink);
-  font:700 15px/1 var(--font-sans);
   cursor:pointer;
-  transition:transform .12s var(--ease-out), box-shadow .12s var(--ease-out);
 }
-.dc-chip:hover{ transform:translateY(-2px); box-shadow:0 5px 0 var(--peach-edge); }
-.dc-chip:active{ transform:translateY(3px); box-shadow:0 0 0 var(--peach-edge); }
-.dc-chip-latin{ background:var(--card); box-shadow:0 3px 0 var(--card-edge); }
-.dc-chip-latin i{ font:italic 400 16px/1 var(--font-latin); }
-.dc-chip-latin span{ font-size:12px; color:var(--muted); }
-.dc-chip.is-met{ box-shadow:0 3px 0 var(--leaf); }
-
-/* ---------- the animal you're on ---------- */
-.dc-here{
-  position:relative;
-  display:grid; grid-template-columns:minmax(0,360px) minmax(0,1fr);
-  align-items:start;
-  gap:28px;
-  max-width:1040px;
-  margin-inline:auto;
-  padding:22px;
-  border-radius:28px;
-  background:var(--card);
-  box-shadow:0 7px 0 var(--card-edge);
-}
-/* the knot the branches grow out of */
-.dc-here::before{
-  content:"";
-  position:absolute; left:50%; top:-12px;
-  width:26px; height:26px;
-  margin-left:-13px;
-  border-radius:50%;
-  background:var(--bark);
-  box-shadow:0 3px 0 var(--bark-dark);
-}
-.dc-here:has(.dc-here-pic[hidden]){ grid-template-columns:minmax(0,1fr); }
+.dc-close svg{ width:20px; height:20px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; vertical-align:middle; }
+.dc-close:active{ transform:translateY(3px); box-shadow:none; }
 .dc-here-pic{ margin:0; }
+.dc-here-pic[hidden]{ display:none; }
 .dc-here-pic img{
-  width:100%; aspect-ratio:4 / 3;
-  border-radius:18px;
-  object-fit:cover;
+  width:100%; height:250px;
+  border-radius:16px;
+  object-fit:contain;
   background:var(--peach);
 }
-.dc-here-pic img:not([src]){ visibility:visible; }
-.dc-here-pic figcaption{ margin-top:8px; font-size:12px; font-weight:600; line-height:1.4; color:var(--muted); }
+.dc-panel.is-extinct .dc-here-pic img{ filter:grayscale(1) contrast(.95); background:var(--stone-edge); }
+.dc-here-pic figcaption{ margin-top:6px; font-size:12px; font-weight:600; line-height:1.4; color:var(--muted); }
 .dc-here-pic figcaption a{ text-decoration:underline; text-decoration-color:var(--peach-edge); text-underline-offset:2px; }
-.dc-here.is-extinct{ background:var(--stone); box-shadow:0 7px 0 var(--stone-edge); }
-.dc-here.is-extinct .dc-here-pic img{ filter:grayscale(1) contrast(.95); }
-
-.dc-here-text{ display:flex; flex-direction:column; gap:12px; min-width:0; }
 .dc-tags{ display:flex; flex-wrap:wrap; gap:6px; }
 .dc-tag{
   display:inline-flex; align-items:center;
@@ -312,32 +378,32 @@ html:has(.dc-page){ color-scheme:light; scrollbar-color:var(--peach-edge) var(--
   font-size:13px; font-weight:700;
 }
 .dc-tag-alive{ background:var(--leaf-soft); color:var(--leaf-text); }
-.dc-tag-gone{ background:var(--stone-edge); color:var(--ink); }
+.dc-tag-gone{ background:var(--stone-edge); }
 .dc-tag-old{ background:var(--star-soft); }
-.dc-tag-new{ display:none; background:var(--star); }
-.dc-here.is-new .dc-tag-new{ display:inline-flex; animation:dc-pop .5s var(--ease-out); }
-@keyframes dc-pop{ 0%{ transform:scale(.4); } 70%{ transform:scale(1.12); } 100%{ transform:none; } }
-.dc-name{ font-size:clamp(32px,4vw,52px); overflow-wrap:anywhere; }
-.dc-sci{ margin-top:-6px; font:italic 400 clamp(19px,1.6vw,23px)/1.2 var(--font-latin); color:var(--muted); }
-.dc-facts{ font-size:17px; font-weight:700; line-height:1.5; text-wrap:pretty; }
-.dc-read{ font-size:16px; line-height:1.6; text-wrap:pretty; }
+.dc-name{ font:800 clamp(30px,3vw,40px)/1.05 var(--font-round); overflow-wrap:anywhere; outline:0; }
+.dc-name.is-latin{ font:italic 400 clamp(30px,3vw,38px)/1.1 var(--font-latin); }
+.dc-sci{ margin-top:-6px; font:italic 400 20px/1.2 var(--font-latin); color:var(--muted); }
+.dc-sci[hidden]{ display:none; }
+.dc-facts{ font-size:16px; font-weight:700; line-height:1.5; text-wrap:pretty; }
+.dc-read{ font-size:15px; line-height:1.6; text-wrap:pretty; }
 .dc-read:empty{ display:none; }
 
 /* when it lived: the eras, then a bar each for it and your favourite */
-.dc-time{ display:flex; flex-direction:column; gap:4px; margin-top:4px; }
+.dc-time{ display:flex; flex-direction:column; gap:4px; }
 .dc-time[hidden]{ display:none; }
-.dc-time-strip{ position:relative; height:24px; border-radius:8px; overflow:hidden; background:var(--peach); }
+.dc-time-head{ font-size:13px; font-weight:700; color:var(--muted); }
+.dc-time-strip{ position:relative; height:22px; border-radius:8px; overflow:hidden; background:var(--peach); }
 .dc-era{
   position:absolute; top:0; bottom:0;
   display:flex; align-items:center; justify-content:center;
   border-right:2px solid var(--card);
-  font-size:11px; font-weight:700; color:var(--ink);
+  font-size:11px; font-weight:700;
   white-space:nowrap; overflow:hidden;
 }
-.dc-era:nth-child(4n+1){ background:#f4c6c0; }
-.dc-era:nth-child(4n+2){ background:#cfe3c4; }
-.dc-era:nth-child(4n+3){ background:#c9dcef; }
-.dc-era:nth-child(4n){ background:#f7dfa6; }
+.dc-era:nth-child(4n+1){ background:var(--era-1); }
+.dc-era:nth-child(4n+2){ background:var(--era-2); }
+.dc-era:nth-child(4n+3){ background:var(--era-3); }
+.dc-era:nth-child(4n){ background:var(--era-4); }
 .dc-time-row{ position:relative; height:30px; }
 .dc-time-bar{ position:absolute; bottom:2px; height:10px; min-width:10px; border-radius:999px; background:var(--coral); }
 .dc-time-bar.is-now{ left:auto !important; right:0; width:10px !important; }
@@ -345,8 +411,8 @@ html:has(.dc-page){ color-scheme:light; scrollbar-color:var(--peach-edge) var(--
 .dc-time-who{ position:absolute; left:0; top:0; font-size:12px; font-weight:700; color:var(--muted); white-space:nowrap; }
 .dc-time-ends{ display:flex; justify-content:space-between; font-size:12px; font-weight:700; color:var(--muted); }
 
-/* next to your favourite */
-.dc-compare{ padding:14px 16px; border-radius:18px; background:var(--star-soft); }
+.dc-compare{ padding:12px 14px; border-radius:16px; background:var(--star-soft); }
+.dc-compare[hidden]{ display:none; }
 .dc-compare-head{ display:flex; align-items:center; gap:7px; margin-bottom:6px; font:400 17px/1.2 var(--font-round); }
 .dc-compare-head svg{ width:20px; height:20px; fill:var(--star); stroke:var(--star-edge); stroke-width:1.6; stroke-linejoin:round; flex:none; }
 .dc-compare ul{ display:flex; flex-direction:column; gap:5px; }
@@ -354,103 +420,50 @@ html:has(.dc-page){ color-scheme:light; scrollbar-color:var(--peach-edge) var(--
 .dc-compare li::before{ content:""; position:absolute; left:2px; top:.55em; width:6px; height:6px; border-radius:50%; background:var(--star-edge); }
 .dc-link{
   padding:0; border:0; background:none;
-  color:var(--coral-edge);
+  color:var(--coral);
   font:inherit; font-weight:700;
   text-decoration:underline; text-underline-offset:2px;
   cursor:pointer;
 }
-
 .dc-stars{ display:flex; flex-wrap:wrap; align-items:center; gap:10px 8px; }
 .dc-stars[hidden]{ display:none; }
 .dc-stars-label{ width:100%; font-size:13px; font-weight:700; color:var(--muted); }
-.dc-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:4px; }
-.dc-star[aria-pressed="true"]{ background:var(--star); box-shadow:0 4px 0 var(--star-edge); }
-.dc-star[aria-pressed="true"] svg{ fill:var(--ink); }
+.dc-chip{
+  display:inline-flex; align-items:center;
+  height:34px;
+  padding:0 14px;
+  border:0;
+  border-radius:999px;
+  background:var(--peach);
+  box-shadow:0 3px 0 var(--peach-edge);
+  color:var(--ink);
+  font:700 14px/1 var(--font-sans);
+  cursor:pointer;
+  transition:transform .12s var(--ease-out), box-shadow .12s var(--ease-out);
+}
+.dc-chip:hover{ transform:translateY(-2px); box-shadow:0 5px 0 var(--peach-edge); }
+.dc-chip:active{ transform:translateY(3px); box-shadow:none; }
+.dc-chip.is-met{ box-shadow:0 3px 0 var(--leaf); }
+.dc-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:2px; }
+.dc-star[aria-pressed="true"]{ background:var(--star); box-shadow:0 4px 0 var(--star-edge); color:#3b2440; }
+.dc-star[aria-pressed="true"] svg{ fill:#3b2440; }
 .dc-wiki{ background:var(--peach); box-shadow:0 4px 0 var(--peach-edge); }
 .dc-wiki:hover{ background:var(--peach); box-shadow:0 6px 0 var(--peach-edge); }
 .dc-wiki[hidden]{ display:none; }
 
-/* the grow from card to big picture */
-::view-transition-group(dc-grow){ animation-duration:.42s; animation-timing-function:var(--ease-out); }
-::view-transition-old(root),
-::view-transition-new(root){ animation-duration:.25s; }
-
-/* ---------- the trunk ---------- */
-.dc-trunk{
-  position:relative;
-  display:flex; flex-direction:column; align-items:center;
-  gap:12px;
-  padding:26px 0 40px;
-}
-.dc-trunk::before{
-  content:"";
-  position:absolute; left:50%; top:0; bottom:0;
-  width:16px; margin-left:-8px;
-  border-radius:0 0 8px 8px;
-  background:var(--bark);
-}
-.dc-trunk li{ position:relative; }
-.dc-step{
-  display:flex; flex-direction:column; align-items:center;
-  min-width:150px; max-width:min(420px, 86vw);
-  padding:9px 18px;
-  border:0;
-  border-radius:16px;
-  background:var(--card);
-  box-shadow:0 4px 0 var(--card-edge);
-  color:var(--ink);
-  font:400 16px/1.2 var(--font-round);
-  cursor:pointer;
-  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out);
-}
-.dc-step i{ font:italic 400 14px/1.2 var(--font-latin); color:var(--muted); }
-.dc-step:hover{ transform:translateY(-2px); box-shadow:0 6px 0 var(--card-edge); }
-.dc-step:active{ transform:translateY(4px); box-shadow:none; }
-.dc-trunk-fold button{
-  height:38px; padding:0 16px;
-  border:2px dashed var(--bark-dark);
-  border-radius:999px;
-  background:var(--bg);
-  color:var(--ink);
-  font:700 14px/1 var(--font-sans);
-  cursor:pointer;
-}
-
-/* ---------- your favourite, in the corner ---------- */
-.dc-fav{ position:fixed; right:18px; bottom:18px; z-index:40; }
-.dc-fav[hidden]{ display:none; }
-.dc-fav-go{
-  display:flex; align-items:center; gap:12px;
-  max-width:300px;
-  padding:8px 16px 8px 8px;
-  border:0;
-  border-radius:999px;
-  background:var(--star);
-  box-shadow:0 5px 0 var(--star-edge);
-  color:var(--ink);
-  text-align:left;
-  font:inherit;
-  cursor:pointer;
-  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out);
-}
-.dc-fav-go:hover{ transform:translateY(-2px); box-shadow:0 7px 0 var(--star-edge); }
-.dc-fav-go:active{ transform:translateY(5px); box-shadow:none; }
-.dc-fav-pic{ flex:none; width:54px; height:54px; border-radius:50%; overflow:hidden; background:var(--star-soft); }
-.dc-fav-pic img{ width:100%; height:100%; object-fit:cover; }
-.dc-fav-pic img:not([src]){ display:none; }
-.dc-fav-words{ display:flex; flex-direction:column; min-width:0; }
-.dc-fav-label{ display:flex; align-items:center; gap:4px; font-size:12px; font-weight:700; }
-.dc-fav-label svg{ width:14px; height:14px; fill:var(--ink); }
-.dc-fav-name{ font:400 18px/1.15 var(--font-round); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.dc-fav-near{ font-size:13px; font-weight:600; }
-.dc-fav-near:empty{ display:none; }
-
 /* ---------- the soil band ---------- */
 .dc-band{
-  margin-top:40px;
-  padding-top:96px;
-  background:url("../assets/distant-cousins/roots.svg") 0 0 / 240px 56px repeat-x, var(--band);
+  position:relative;
+  padding-top:88px;
+  background:var(--band);
   color:var(--band-text);
+}
+.dc-band::before{
+  content:"";
+  position:absolute; left:0; right:0; top:0; height:56px;
+  background:var(--roots);
+  -webkit-mask:url("../assets/distant-cousins/roots.svg") 0 0 / 240px 56px repeat-x;
+  mask:url("../assets/distant-cousins/roots.svg") 0 0 / 240px 56px repeat-x;
 }
 .dc-band-inner{ max-width:820px; padding-bottom:56px; }
 .dc-band .dc-heading{ font-size:clamp(30px,3.4vw,44px); margin-bottom:16px; }
@@ -459,21 +472,35 @@ html:has(.dc-page){ color-scheme:light; scrollbar-color:var(--peach-edge) var(--
 .dc-band :focus-visible{ outline-color:var(--band-text); }
 .dc-page .page-back a:hover{ color:var(--band-link); }
 
-/* ---------- phones ---------- */
-@media (max-width:760px){
-  .dc-here{ grid-template-columns:minmax(0,1fr); gap:18px; padding:14px; border-radius:24px; }
-  .dc-kids{ gap:24px 12px; }
-  .dc-card{ width:calc(50vw - var(--gutter) - 6px); max-width:200px; }
-  .dc-canopy{ padding:26px 0 76px; }
-  .dc-met{ width:100%; margin-left:0; }
-  .dc-key{ height:44px; padding:0 16px; font-size:16px; }
-  .dc-fav{ left:12px; right:12px; bottom:12px; }
-  .dc-fav-go{ max-width:none; width:100%; }
-  .dc-band{ padding-bottom:84px; }
+/* ---------- smaller screens ---------- */
+@media (max-width:980px){
+  .dc-top{ left:24px; translate:none; text-align:left; }
 }
+@media (max-width:760px){
+  .dc-top{ top:12px; left:50%; translate:-50% 0; text-align:center; }
+  .dc-logo{ font-size:28px; }
+  .dc-met{ margin-top:5px; font-size:13px; }
+  .dc-find{ top:72px; left:12px; right:12px; width:auto; }
+  .dc-found{ width:100%; }
+  .dc-controls{ left:12px; right:12px; bottom:14px; gap:6px; }
+  .dc-key{ height:42px; padding:0 14px; font-size:15px; }
+  .dc-icon{ width:42px; padding:0; }
+  /* surprise me keeps just its dice so the keys fit on one row */
+  #dcSurprise{ width:42px; padding:0; }
+  #dcSurprise span{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .dc-hint{ bottom:68px; font-size:14px; }
+  /* the favourite shrinks to its picture, bottom right */
+  .dc-fav{ left:auto; top:auto; right:12px; bottom:68px; }
+  .dc-fav-go{ padding:4px; }
+  .dc-fav-words{ display:none; }
+  .dc-fav-pic{ width:34px; height:34px; }
+  /* the panel comes up from the bottom */
+  .dc-panel{ top:auto; left:8px; right:8px; bottom:8px; width:auto; max-height:72%; padding:14px 16px 18px; border-radius:22px; animation-name:dc-rise; }
+  .dc-here-pic img{ height:190px; }
+}
+@keyframes dc-rise{ from{ translate:0 40px; opacity:0; } }
 
 @media (prefers-reduced-motion:reduce){
-  .dc-card, .dc-key, .dc-chip, .dc-step, .dc-fav-go{ transition:none; }
-  .dc-card:hover, .dc-kids li:nth-child(even) .dc-card:hover{ transform:none; }
-  .dc-here.is-new .dc-tag-new{ animation:none; }
+  .dc-node, .dc-key, .dc-chip, .dc-fav-go{ transition:none; }
+  .dc-node.is-born, .dc-node.is-busy, .dc-panel{ animation:none; }
 }
