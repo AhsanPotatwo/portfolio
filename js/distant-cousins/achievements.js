@@ -194,13 +194,16 @@
 
   const box = $('dcAch'), body = $('dcAchBody');
   const win = api.dialog(box);
-  // a little line drawing for each section
+  // a little line drawing for each section, and its colour (css: .dc-ach[data-sec])
   const ICONS = {
-    'First steps': '<path d="M6 21V4M6 4.5h11l-2.5 4 2.5 4H6"/>',
+    'First steps': '<path d="M6.5 21V4M6.5 4.5h11l-2.5 4 2.5 4h-11"/>',
     'Collecting': '<path d="M12 21V11M12 11c-4 0-6-3-6-6 3 0 6 2 6 6zM12 14c3 0 5.5-2 5.5-5-3 0-5.5 2-5.5 5z"/>',
-    'All sorts': '<circle cx="7" cy="8" r="2"/><circle cx="12" cy="6" r="2"/><circle cx="17" cy="8" r="2"/><path d="M8 17c0-3 2-5 4-5s4 2 4 5c0 2-2 2-4 2s-4 0-4-2z"/>',
-    'Deep time': '<path d="M5 19l4-4M15 5c2 0 4 2 4 4l-8 8c-2 0-4-2-4-4z"/><circle cx="16" cy="8" r=".8"/>',
-    'Family': '<circle cx="12" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="19" r="2"/><path d="M12 7v5M6 17v-2h12v2M12 12v3"/>',
+    // a paw: all sorts of animal
+    'All sorts': '<path d="M12 12.5c-3 0-5.5 2.6-5.5 4.8 0 1.7 1.3 2.7 2.9 2.7 1 0 1.7-.5 2.6-.5s1.6.5 2.6.5c1.6 0 2.9-1 2.9-2.7 0-2.2-2.5-4.8-5.5-4.8z"/><ellipse cx="5.2" cy="10.4" rx="1.7" ry="2.1"/><ellipse cx="9.3" cy="6.2" rx="1.7" ry="2.2"/><ellipse cx="14.7" cy="6.2" rx="1.7" ry="2.2"/><ellipse cx="18.8" cy="10.4" rx="1.7" ry="2.1"/>',
+    // an ammonite, like the ones pressed into the board
+    'Deep time': '<path d="M10.375 12a1.625 1.625 0 0 1 3.25 0a3.25 3.25 0 0 1-6.5 0a4.875 4.875 0 0 1 9.75 0a6.5 6.5 0 0 1-13 0a8.125 8.125 0 0 1 16.25 0"/>',
+    // a family tree, parent over two children
+    'Family': '<circle cx="12" cy="5.5" r="2.5"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/><path d="M12 8v3.5M5.5 16v-1.5a3 3 0 0 1 3-3h7a3 3 0 0 1 3 3V16"/>',
     'Games': '<path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.4l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/>',
   };
   function sayCount() {
@@ -212,7 +215,8 @@
     const earned = LIST.filter(a => got[a[0]]).length;
     let html = `<div class="dc-ach-sum"><p><b>${earned}</b> of ${LIST.length} earned</p><span class="dc-ach-bar"><i style="width:${(earned / LIST.length * 100).toFixed(1)}%"></i></span></div>`;
     for (const section of SECTIONS) {
-      html += `<h3 class="dc-ach-head"><svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[section]}</svg>${section}</h3><ul class="dc-ach-list">`;
+      const sec = SECTIONS.indexOf(section);
+      html += `<h3 class="dc-ach-head" data-sec="${sec}"><span class="dc-ach-badge" aria-hidden="true"><svg viewBox="0 0 24 24">${ICONS[section]}</svg></span>${section}</h3><ul class="dc-ach-list" data-sec="${sec}">`;
       for (const [id, s, name, how, progress] of LIST) {
         if (s !== section) continue;
         const done = !!got[id];

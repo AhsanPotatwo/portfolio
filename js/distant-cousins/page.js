@@ -79,7 +79,8 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   const cap = s => s && s[0].toUpperCase() + s.slice(1);
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   const nameOf = n => n.q === ROOT ? 'The very first life' : n.l || n.n;
-  const latinOf = n => n.q === ROOT ? 'LUCA' : n.l ? n.n : '';
+  // (a few have no latin name, only the everyday one twice: "Catalan donkey")
+  const latinOf = n => n.q === ROOT ? 'LUCA' : n.l && n.l !== n.n ? n.n : '';
   // million years ago, as words
   function ago(ma) {
     if (ma === 0) return 'today';
@@ -931,8 +932,9 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     const file = picOf(n);
     const pic = members.length >= 2 ? `<span class="dc-vs-pic is-collage">${members.map(m => `<span data-pic-box><img data-file="${esc(m[3])}" alt="${esc(m[2])}"></span>`).join('')}</span>`
       : `<span class="dc-vs-pic" data-pic-box>${file ? `<img data-file="${esc(file)}" alt="${esc(nameOf(n))}">` : n.si ? silImg(n.si) : ''}</span>`;
+    // (the picture's a photo pinned to the page, a bit askew)
     return `<div class="dc-vs-side${n.x ? ' is-extinct' : ''}">
-      ${pic}
+      <span class="dc-vs-photo">${pic}</span>
       <h3 class="dc-vs-name${n.l ? '' : ' is-latin'}">${esc(nameOf(n))}</h3>
       ${latinOf(n) ? `<p class="dc-vs-sci">${esc(latinOf(n))}</p>` : ''}
       <p class="dc-vs-stats"><span class="dc-tag ${n.x ? 'dc-tag-gone' : 'dc-tag-alive'}">${status}</span>${isGroup(n) ? '<span class="dc-tag dc-tag-group">Group</span>' : ''}${n.kg ? `<span class="dc-tag">About ${weight(n.kg)}</span>` : ''}</p>
@@ -975,7 +977,11 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   function renderVs() {
     const a = vsA, b = vsB;
     let html = `<div class="dc-vs-pair">${side(a, 'a')}<span class="dc-vs-and" aria-hidden="true">vs</span>${b ? side(b, 'b') : chooser()}</div>`;
-    if (b) html += `<div class="dc-vs-family">${family(a, b)}</div><div class="dc-time dc-vs-time" id="dcVsTime"></div><ul class="dc-vs-facts">${vsFacts(a, b).map(l => `<li>${l}</li>`).join('')}</ul>`;
+    if (b) {
+      const facts = vsFacts(a, b);
+      if (facts.length) html += `<ul class="dc-vs-facts">${facts.map(([kind, words], i) => `<li class="dc-vs-fact is-${kind}" style="--i:${i}"><span class="dc-vs-fact-icon" aria-hidden="true"><svg viewBox="0 0 24 24">${FACT_ICONS[kind]}</svg></span><span>${words}</span></li>`).join('')}</ul>`;
+      html += `<section class="dc-vs-box dc-vs-family">${family(a, b)}</section><section class="dc-vs-box"><div class="dc-time dc-vs-time" id="dcVsTime"></div></section>`;
+    }
     vsBody.innerHTML = html;
     if (b) renderTime($('dcVsTime'), [a, b]);
     fillPics(vsBody);
@@ -1018,8 +1024,18 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
       </div>`;
   }
 
+  // what each fact is about, as a little drawing: which came first, alive together, never met, both alive, heavier
+  const FACT_ICONS = {
+    first: '<path d="M7 3.5h10M7 20.5h10M8.5 3.5v2.8c0 2.4 3.5 3.6 3.5 5.7s-3.5 3.3-3.5 5.7v2.8M15.5 3.5v2.8c0 2.4-3.5 3.6-3.5 5.7s3.5 3.3 3.5 5.7v2.8"/>',
+    together: '<circle cx="9" cy="12" r="5.5"/><circle cx="15" cy="12" r="5.5"/>',
+    apart: '<circle cx="6" cy="12" r="3.5"/><circle cx="18" cy="12" r="3.5"/><path d="M10.5 12h.01M13.5 12h.01"/>',
+    alive: '<path d="M12 21V11M12 11c-4 0-6-3-6-6 3 0 6 2 6 6zM12 14c3 0 5.5-2 5.5-5-3 0-5.5 2-5.5 5z"/>',
+    heavy: '<circle cx="12" cy="6.5" r="2.5"/><path d="M7.5 10h9l2.5 10h-14z"/>',
+  };
+  // the facts, each [kind, words]
   function vsFacts(a, b) {
     const lines = [];
+    const add = (kind, words) => lines.push([kind, words]);
     const A = esc(nameOf(a)), B = esc(nameOf(b));
     // only what the fossils can actually tell: each date is a stretch of rock (young end, old end), so one
     // came first only if its oldest fossils are older even taking the youngest reading of them, and so on
@@ -1033,21 +1049,23 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     if (wa && wb) {
       const [old, young, O, Y] = wa.from >= wb.from ? [wa, wb, A, B] : [wb, wa, B, A];
       const surely = old.from - young.from2;
-      if (surely > Math.max(0.005, old.from * 0.02)) lines.push(`${O} came first, at least ${span(surely)} before ${Y}.`);
-      else lines.push('Their oldest fossils are from around the same time, so the fossils can\'t say which came first.');
-      if (wa.to === 0 && wb.to === 0) lines.push('Both are alive today, sharing the planet.');
+      if (surely > Math.max(0.005, old.from * 0.02)) add('first', `<b>${O}</b> came first, at least ${span(surely)} before ${Y}.`);
+      else add('first', 'Their oldest fossils are from around the same time, so the fossils can\'t say which came first.');
+      // (alive is what the tree says, not a youngest fossil of "0": the last woolly mammoths are from 4,000
+      // years ago, which rounds to today)
+      if (!a.x && !b.x) add('alive', 'Both are <b>alive today</b>, sharing the planet.');
       else if (old.to !== undefined && young.from2 !== undefined) {
         // apart: the older one's youngest fossils are older than the younger one's oldest, read either way
         const gap = old.to - young.from2;
         const together = Math.min(old.from, young.from) - Math.max(old.to2 ?? 0, young.to2 ?? 0);
-        if (gap > 0) lines.push(`As far as the fossils tell, they never met: at least ${span(gap)} apart.`);
-        else if (together > 0) lines.push(`They were alive at the same time, for at least ${span(together)}.`);
+        if (gap > 0) add('apart', `As far as the fossils tell, they <b>never met</b>: at least ${span(gap)} apart.`);
+        else if (together > 0) add('together', `They were <b>alive at the same time</b>, for at least ${span(together)}.`);
       }
-    }
+    } else if (!a.x && !b.x && !a.o && !b.o && !a.live && !b.live) add('alive', 'Both are <b>alive today</b>, sharing the planet.');
     if (a.kg && b.kg) {
       const [big, small] = a.kg >= b.kg ? [a, b] : [b, a];
       const times = big.kg / small.kg;
-      lines.push(times < 1.3 ? 'They weigh about the same.' : `${esc(nameOf(big))} ${big.x ? 'was' : 'is'} about ${times < 10 ? +times.toFixed(1) : fmt(Math.round(times))} times heavier.`);
+      add('heavy', times < 1.3 ? 'They <b>weigh about the same</b>.' : `<b>${esc(nameOf(big))}</b> ${big.x ? 'was' : 'is'} about ${times < 10 ? +times.toFixed(1) : fmt(Math.round(times))} times heavier.`);
     }
     return lines;
   }
@@ -1152,8 +1170,10 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
         const li = document.createElement('li');
         li.id = listEl.id + i;
         li.setAttribute('role', 'option');
-        const main = term === e[4] && e[5] ? cap(e[5]) : cap(term);
-        const sub = term === e[4] ? e[5] ? e[4] : '' : e[4];
+        // the name the board calls it (the second name, see build.js), so a match on another of its names
+        // doesn't read as something else: "cat" finds the Cat and the Cat family, not two Cats
+        const main = cap(e[5] || e[4]);
+        const sub = e[5] ? e[4] : '';
         li.innerHTML = `<span>${esc(main)}</span>${sub && tidy(sub) !== tidy(main) ? `<i>${esc(sub)}</i>` : ''}${e[3] ? '<b class="dc-found-kind">group</b>' : ''}${found.has(e[0]) ? '<em>found</em>' : ''}`;
         li.addEventListener('mousedown', ev => { ev.preventDefault(); pickResult(i); });
         return li;

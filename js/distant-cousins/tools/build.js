@@ -9,6 +9,9 @@
 // ancestor of those. the rest (mostly beetles and wasps with only a latin name) the page asks wikidata for
 // when you open their branch, so each node just remembers how many of those it has.
 //
+// then always run tools/tidy.js, which settles what the sources contradict each other on (alive or extinct,
+// grams written as kilograms, labels that aren't names) in what this writes.
+//
 // out: js/distant-cousins/tree/<qid>.json   one file per slice of the tree, named after the slice's top node
 //      js/distant-cousins/find/<ab>.json    names for the search box, by the first two letters of each word
 //      <raw>/media-wanted.txt               articles whose pictures media.js should fetch before the next build
