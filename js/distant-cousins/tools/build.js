@@ -425,7 +425,7 @@ function ownSil(q) {
 // the living, wikidata's photo unless it's one of those. only pictures that are about the animal count: wikidata's,
 // the article's first, or one whose name or caption says who it is (not the orangutan in the Gigantopithecus article)
 const media = has('media.json') ? JSON.parse(fs.readFileSync(path.join(RAW, 'media.json'), 'utf8')) : {};
-const NEVER = /\b(maps?|range|ranges|distribution|localit(y|ies)|sites?|cladograms?|phylogen\w*|diagram\w*|charts?|lineages?|history|schematic|graphs?|size|scale|stamps?|coins?|logos?|flags?|arms|banknote|outcrop|formation|quarry|excavation|dig|book|cover|title page|signature|plaque|sign|plates?|label|labels|microscop\w*|sem|histolog\w*|section|x-ray|ct scan|comparison|evolution|timeline|figure|fig|g\d{3}[a-z]?|journal|pone|peerj|zookeys|spread\w*|migrat\w*|dispersal|expansion|routes?|genetic|genome|dna|subgroups?|populations?|bite|force|mechanics|muscles?|musculature|anatomy|tails|nests?|eggs?|ootheca|growth|ontogeny|stages)\b|\.(pdf|djvu|tiff?|ogv|webm|ogg|mp3)$/i;
+const NEVER = /\b(maps?|range|ranges|area|distribution|localit(y|ies)|sites?|cladograms?|phylogen\w*|diagram\w*|charts?|lineages?|history|schematic|graphs?|size|scale|stamps?|coins?|logos?|flags?|arms|banknote|outcrop|formation|quarry|excavation|dig|book|cover|title page|signature|plaque|sign|plates?|label|labels|microscop\w*|sem|histolog\w*|section|x-ray|ct scan|comparison|evolution|timeline|figure|fig|g\d{3}[a-z]?|journal|pone|peerj|zookeys|spread\w*|migrat\w*|dispersal|expansion|routes?|genetic|genome|dna|subgroups?|populations?|bite|force|mechanics|muscles?|musculature|anatomy|tails|nests?|eggs?|ootheca|growth|ontogeny|stages)\b|\.(pdf|djvu|tiff?|ogv|webm|ogg|mp3)$/i;
 const BONES = /\b(skulls?|skeletons?|skeletal|fossils?|fossilized|bones?|jaws?|mandibles?|maxilla|teeth|tooth|molars?|holotype|paratype|neotype|specimens?|casts?|vertebrae?|vertebral|cervicals?|dorsals?|caudals?|femur|humerus|tibia|fibula|pes|manus|claws?|ungual|phalan\w*|pelvis|ilium|ischium|pubis|scapula|coracoid|sacrum|dentary|premaxilla|braincase|osteoderms?|quadrate|limbs?|cran(ium|ia)|endocast|footprints?|trackways?|tracks|burrows?|eggs?|coprolites?|scutes?|exoskeleton|moult|shells?|preserved|mount|mounted|slab|imprint|impression)\b/i;
 const LIFE = /\b(restorations?|restored|reconstruct\w*|life|dioramas?|busts?|replicas?|artist'?s?|paleoart|palaeoart|illustrations?|illustrated|models?|sculptures?|statues?|depictions?|depicted|depicting|rendering|render|drawings?|painting|interpretation)\b/i;
 const pictureWanted = new Map();  // article -> how many wikipedias have the creature
@@ -435,12 +435,15 @@ function picture(q, creature) {
   // a species without an article of its own is usually in its genus's (T. rex in Tyrannosaurus's), and an
   // extinct one's own is often a stub with a bone in it while the genus's has the restorations
   const p = parent.get(q);
-  if ((!wiki.has(q) || extinct.has(q)) && ONE_KIND.has(rank.get(q)) && rank.get(p) === GENUS) who.push(p);
+  // (not a genus with living members: its pictures are of those, a living tapir for an extinct one)
+  if ((!wiki.has(q) || extinct.has(q) && extinct.has(p)) && ONE_KIND.has(rank.get(q)) && rank.get(p) === GENUS) who.push(p);
   const words = [...new Set(who.flatMap(x => [name.get(x), name.get(x)?.split(' ')[0], friendly(x)]).filter(w => w && w.length > 3).map(w => w.toLowerCase()))];
   // "T. rex" too
   for (const x of who) { const [g, s] = (name.get(x) || '').split(' '); if (s) words.push(`${g[0]}. ${s}`.toLowerCase()); }
   const cands = [];
-  for (const x of who) if (image.has(x)) cands.push({ file: image.get(x), text: '', own: 2 });
+  // the genus's own picture is of some other species in it (a living tapir for an extinct one), so a borrowed
+  // one has to name who it shows like any other
+  for (const x of who) if (image.has(x)) cands.push({ file: image.get(x), text: '', own: x === p && !absorbed.get(q)?.includes(p) ? 0 : 2 });
   // the articles worth looking through: extinct creatures, and ones with no picture or a poor one. for the
   // living a drawing counts as poor too: lots of them have a flat "202501 Blue whale.svg", and a photo's better
   const poor = !cands.length || cands.every(c => NEVER.test(c.file) || BONES.test(c.file) || !extinct.has(q) && /\.svg$/i.test(c.file));
