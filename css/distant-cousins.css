@@ -20,7 +20,7 @@
   --sign:#7d4f3e;          --sign-edge:#56321f;      --sign-ink:#fff4ea;       --sign-muted:#f2c9ad;
   --band:#3b2440;         --band-2:#2c1a30;         --band-text:#fde3cf;      --band-link:#ffb59c;  --roots:#56385c;
   --era-1:#f4c6c0;         --era-2:#cfe3c4;          --era-3:#c9dcef;          --era-4:#f7dfa6;
-  --focus:#3b2440;
+  --focus:#3b2440;         --mote:#fffaf4;
 
   --font-round:"Sniglet", var(--font-sans);
   --font-latin:"Gentium Book Plus", Georgia, serif;
@@ -43,7 +43,7 @@
   --sign:#6b4637;          --sign-edge:#2e1b14;      --sign-ink:#fbe9dc;       --sign-muted:#e0b39a;
   --band:#160f18;         --band-2:#0e0910;         --band-text:#f6e3d8;      --band-link:#ffb59c;  --roots:#2f2133;
   --era-1:#6a3c43;         --era-2:#3c5940;          --era-3:#38506a;          --era-4:#6b5728;
-  --focus:#ffc53d;
+  --focus:#ffc53d;         --mote:#ffe28a;
 }
 html:has(.dc-page){ scrollbar-color:var(--peach-edge) var(--bg); }
 :root[data-dc-theme="dark"]:has(.dc-page){ color-scheme:dark; }
@@ -89,6 +89,11 @@ html:has(.dc-page){ scrollbar-color:var(--peach-edge) var(--bg); }
 .dc-icon{ width:46px; padding:0; }
 .dc-sun, .dc-key[aria-pressed="true"] .dc-moon{ display:none; }
 .dc-key[aria-pressed="true"] .dc-sun{ display:block; }
+#dcSound .dc-loud, #dcSound[aria-pressed="true"] .dc-hush{ display:none; }
+#dcSound[aria-pressed="true"] .dc-loud{ display:block; }
+#dcSound.is-waiting svg{ animation:dc-busy .8s ease-in-out infinite alternate; }
+#dcSurprise.is-rolling svg{ animation:dc-roll .6s var(--ease-out); }
+@keyframes dc-roll{ from{ rotate:-220deg; scale:.7; } }
 
 /* ---------- the stage: the board and everything floating over it ---------- */
 /* the board fills the window under the site header, leaving a strip of the soil showing under it */
@@ -142,8 +147,19 @@ html:has(.dc-page){ scrollbar-color:var(--peach-edge) var(--bg); }
 }
 .dc-node:hover{ translate:0 -3px; box-shadow:0 8px 0 var(--card-edge); background:var(--card-hover); }
 .dc-node:active{ translate:0 4px; box-shadow:0 1px 0 var(--card-edge); }
-.dc-node.is-born{ animation:dc-born .45s var(--ease-out) both; }
+/* new branches pop out one after another (--i, page.js draw()). page.js sets transform-origin to the card's
+   own top middle, so popping, flipping and swinging all happen about the card */
+.dc-node.is-born{ animation:dc-born .45s var(--ease-out) both; animation-delay:calc(min(var(--i, 0), 14) * 45ms); }
 @keyframes dc-born{ from{ scale:.4; opacity:0; } 70%{ scale:1.06; opacity:1; } to{ scale:1; } }
+/* a creature found: the mystery card turns over to show who it is */
+.dc-node.is-revealed{ animation:dc-reveal .6s var(--ease-out); }
+@keyframes dc-reveal{ from{ rotate:y 90deg; filter:brightness(1.3); } 55%{ rotate:y 0deg; scale:1.07; } to{ scale:1; filter:none; } }
+/* a group found: its sign swings on the branch */
+.dc-node.is-hung{ animation:dc-swing .9s ease-out; }
+@keyframes dc-swing{ 0%{ rotate:-8deg; } 25%{ rotate:6deg; } 50%{ rotate:-3.5deg; } 75%{ rotate:1.5deg; } to{ rotate:0deg; } }
+/* a mystery's silhouette fidgets when you point at it */
+.dc-node.is-unfound:hover .dc-sil{ animation:dc-wiggle .6s ease-in-out; }
+@keyframes dc-wiggle{ 25%{ rotate:-6deg; } 50%{ rotate:5deg; } 75%{ rotate:-2deg; } }
 .dc-node.is-busy{ cursor:progress; animation:dc-busy 1s ease-in-out infinite alternate; }
 @keyframes dc-busy{ to{ opacity:.55; } }
 .dc-node.is-picked{ outline:4px solid var(--coral); outline-offset:3px; border-radius:18px; }
@@ -250,6 +266,53 @@ html:has(.dc-page){ scrollbar-color:var(--peach-edge) var(--bg); }
 }
 .dc-gap:hover{ background:var(--mystery); }
 
+/* a puff of little shapes from something just found (page.js burst()): leaves for the living, stone chips
+   that fall for the extinct, stars for a favourite, confetti for a milestone */
+.dc-bursts{ position:absolute; left:0; top:0; pointer-events:none; }
+.dc-burst{ position:absolute; width:0; height:0; pointer-events:none; }
+.dc-stage > .dc-burst{ z-index:7; }
+.dc-burst i{
+  position:absolute; left:-5px; top:-3px;
+  width:10px; height:6px;
+  border-radius:0 80% 0 80%;
+  background:var(--leaf);
+  animation:dc-puff 1.1s cubic-bezier(.2,.7,.3,1) var(--d) both;
+}
+.dc-burst i:nth-child(3n+1){ background:var(--star); }
+.dc-burst i:nth-child(3n+2){ background:var(--coral); }
+@keyframes dc-puff{
+  from{ translate:0 0; rotate:0deg; scale:.4; opacity:1; }
+  65%{ opacity:1; }
+  to{ translate:var(--dx) var(--dy); rotate:var(--r); scale:1; opacity:0; }
+}
+.dc-burst.is-stone i{ width:7px; height:7px; border-radius:2px; background:var(--stone-edge); animation-timing-function:cubic-bezier(.3,.5,.6,1); }
+.dc-burst.is-stone i:nth-child(3n+1){ background:var(--bark-soft); }
+.dc-burst.is-stone i:nth-child(3n+2){ background:var(--muted); }
+.dc-burst.is-star i{
+  left:-6px; top:-6px; width:12px; height:12px; border-radius:0;
+  background:var(--star);
+  clip-path:polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+.dc-burst.is-confetti i{ left:-4px; top:-6px; width:8px; height:12px; border-radius:2px; animation-duration:1.5s; }
+.dc-burst.is-confetti i:nth-child(4n){ background:var(--era-3); }
+
+/* the air over the board: pollen by day, fireflies at night (page.js makeMotes()) */
+.dc-motes{ position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+.dc-motes i{
+  position:absolute;
+  width:var(--s); height:var(--s);
+  border-radius:50%;
+  background:var(--mote);
+  opacity:.55;
+  animation:dc-drift var(--t) ease-in-out var(--d) infinite alternate;
+}
+@keyframes dc-drift{ to{ translate:var(--dx) var(--dy); } }
+:root[data-dc-theme="dark"] .dc-motes i{
+  box-shadow:0 0 6px 2px color-mix(in srgb, var(--mote) 55%, transparent);
+  animation:dc-drift var(--t) ease-in-out var(--d) infinite alternate, dc-glow var(--b) ease-in-out var(--d) infinite alternate;
+}
+@keyframes dc-glow{ from{ opacity:.08; } to{ opacity:.9; } }
+
 /* ---------- floating over the board ---------- */
 .dc-top{
   position:absolute; top:12px; left:50%;
@@ -266,6 +329,23 @@ html:has(.dc-page){ scrollbar-color:var(--peach-edge) var(--bg); }
   white-space:nowrap;
 }
 .dc-met{ margin-top:8px; font-size:14px; font-weight:700; color:var(--muted); white-space:nowrap; }
+/* the count hops up with each find */
+.dc-met.is-up{ animation:dc-hop .5s var(--ease-out); }
+@keyframes dc-hop{ 35%{ scale:1.12; color:var(--leaf-text); } }
+/* every so often, a cheer under it */
+.dc-cheer{
+  width:max-content; max-width:min(420px, calc(100vw - 48px));
+  margin:10px auto 0;
+  padding:8px 18px;
+  border-radius:999px;
+  background:var(--star);
+  box-shadow:0 4px 0 var(--star-edge);
+  color:#3b2440;
+  font:400 17px/1.25 var(--font-round);
+  animation:dc-cheer-in .5s var(--ease-out);
+}
+.dc-cheer[hidden]{ display:none; }
+@keyframes dc-cheer-in{ from{ scale:.6; opacity:0; } 60%{ scale:1.06; opacity:1; } }
 
 /* above the panel, so what you type is never hidden behind it */
 .dc-find{ position:absolute; top:18px; right:18px; width:min(300px, 30vw); z-index:6; }
@@ -542,7 +622,8 @@ body.dc-vs-open{ overflow:hidden; }
 .dc-vs-title{ font:800 22px/1.1 var(--font-round); }
 .dc-vs-head .dc-close{ position:static; margin:0; }
 .dc-vs-pair{ display:grid; grid-template-columns:1fr auto 1fr; align-items:start; gap:14px; }
-.dc-vs-and{ align-self:center; margin-top:-40px; font:800 30px/1 var(--font-round); color:var(--coral); }
+.dc-vs-and{ align-self:center; margin-top:-40px; font:800 30px/1 var(--font-round); color:var(--coral); animation:dc-vs-pop .5s .1s var(--ease-out) both; }
+@keyframes dc-vs-pop{ from{ scale:0; rotate:-30deg; } 60%{ scale:1.25; } }
 .dc-vs-side{ display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0; text-align:center; }
 .dc-vs-pic{ position:relative; display:block; width:100%; aspect-ratio:4 / 3; border-radius:16px; overflow:hidden; background:var(--peach); }
 .dc-vs-side.is-extinct .dc-vs-pic{ background:var(--stone-edge); }
@@ -568,6 +649,11 @@ body.dc-vs-open{ overflow:hidden; }
 .dc-vs-top{ padding:6px 16px; border-radius:12px; background:var(--sign); color:var(--sign-ink); font:400 17px/1.2 var(--font-round); }
 .dc-vs-fork{ width:100%; height:28px; overflow:visible; fill:none; stroke:var(--bark); stroke-width:3; stroke-linecap:round; vector-effect:non-scaling-stroke; }
 .dc-vs-fork path{ vector-effect:non-scaling-stroke; }
+/* the two family lines grow down from where they meet, a step at a time */
+.dc-vs-fork{ animation:dc-grow .45s .15s var(--ease-out) both; }
+@keyframes dc-grow{ from{ clip-path:inset(-4px -4px 100% -4px); } to{ clip-path:inset(-4px); } }
+.dc-vs-line > li{ animation:dc-step-in .35s var(--ease-out) both; animation-delay:calc(.3s + var(--i, 0) * 70ms); }
+@keyframes dc-step-in{ from{ opacity:0; translate:0 -6px; } }
 .dc-vs-lines{ display:grid; grid-template-columns:1fr 1fr; width:100%; }
 .dc-vs-line{ display:flex; flex-direction:column; align-items:center; gap:6px; }
 .dc-vs-line li{ position:relative; display:flex; flex-direction:column; align-items:center; }
@@ -611,6 +697,8 @@ body.dc-vs-open{ overflow:hidden; }
   .dc-logo{ font-size:28px; }
   .dc-met{ margin-top:5px; font-size:13px; }
   .dc-find{ top:72px; left:12px; right:12px; width:auto; }
+  /* the cheer comes under the search box */
+  .dc-cheer{ position:absolute; top:120px; left:50%; translate:-50% 0; margin:0; border-radius:18px; font-size:15px; }
   .dc-found{ width:100%; }
   .dc-controls{ left:12px; right:12px; bottom:14px; gap:6px; }
   .dc-key{ height:42px; padding:0 14px; font-size:15px; }
@@ -640,5 +728,8 @@ body.dc-vs-open{ overflow:hidden; }
 
 @media (prefers-reduced-motion:reduce){
   .dc-node, .dc-key, .dc-chip, .dc-fav-go, .dc-member{ transition:none; }
-  .dc-node.is-born, .dc-node.is-busy, .dc-panel, .dc-vs, .dc-vs-card{ animation:none; }
+  .dc-node.is-born, .dc-node.is-busy, .dc-panel, .dc-vs, .dc-vs-card,
+  .dc-node.is-revealed, .dc-node.is-hung, .dc-node.is-unfound:hover .dc-sil, .dc-met.is-up, .dc-cheer,
+  #dcSurprise.is-rolling svg, .dc-vs-and, .dc-vs-fork, .dc-vs-line > li{ animation:none; }
+  .dc-motes{ display:none; }
 }

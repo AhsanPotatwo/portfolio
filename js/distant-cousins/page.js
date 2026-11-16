@@ -281,8 +281,10 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     return `${isGroup(n) ? 'Group: ' : ''}${nameOf(n)}${latinOf(n) ? ', ' + latinOf(n) : ''}. Show details`;
   }
 
+  let lastBorn = 0;            // how many cards the last draw brought out
   function draw(born) {
     items = plan();
+    lastBorn = 0;
     // the elements: new ones, changed ones, gone ones
     for (const [id, el] of els) if (!items.has(id)) { el.remove(); els.delete(id); at.delete(id); }
     for (const it of items.values()) {
@@ -295,7 +297,8 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
         el.dataset.id = it.id;
         layer.append(el);
         els.set(it.id, el);
-        if (born !== false) el.classList.add('is-born');
+        // new branches pop out one after another (--i staggers them, and the sound's plucks with them)
+        if (born !== false) { el.classList.add('is-born'); el.style.setProperty('--i', lastBorn++); }
       }
       if (el.dataset.sig !== sig) {
         el.dataset.sig = sig;
@@ -303,7 +306,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
         el.title = it.kind === 'unfound' && !isGroup(n) ? silCredit(n) : '';
       }
       const kindClass = it.kind === 'found' || it.kind === 'unfound' ? (isGroup(n) ? ' is-group' : ' is-creature') : '';
-      el.className = `dc-node is-${it.kind}${kindClass}${n?.x ? ' is-extinct' : ''}${n?.o ? ' is-other' : ''}${selected === it.q && it.kind === 'found' ? ' is-picked' : ''}${el.classList.contains('is-born') ? ' is-born' : ''}`;
+      el.className = `dc-node is-${it.kind}${kindClass}${n?.x ? ' is-extinct' : ''}${n?.o ? ' is-other' : ''}${selected === it.q && it.kind === 'found' ? ' is-picked' : ''}${['is-born', 'is-revealed', 'is-hung'].filter(c => el.classList.contains(c)).map(c => ' ' + c).join('')}`;
       el.style.width = WIDTH[it.kind] + 'px';
       el.setAttribute('aria-label', label(it));
     }
@@ -357,7 +360,6 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
       }
       paint();
       if (k < 1) tweenFrame = requestAnimationFrame(step);
-      else for (const el of els.values()) el.classList.remove('is-born');
     };
     tweenFrame = requestAnimationFrame(step);
   }
@@ -367,7 +369,10 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   function paint() {
     for (const [id, el] of els) {
       const p = at.get(id);
-      if (p) el.style.transform = `translate(${p.x - WIDTH[items.get(id).kind] / 2}px, ${p.y}px)`;
+      if (!p) continue;
+      el.style.transform = `translate(${p.x - WIDTH[items.get(id).kind] / 2}px, ${p.y}px)`;
+      // popping, flipping and swinging happen about the card's own top middle, wherever it is
+      el.style.transformOrigin = `${p.x}px ${p.y}px`;
     }
     let solid = '', faint = '', dotted = '', labels = '';
     for (const it of items.values()) {
@@ -393,6 +398,50 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   const gapLayer = document.createElement('div');
   gapLayer.className = 'dc-gaps';
   world.append(gapLayer);
+  const burstLayer = document.createElement('div');
+  burstLayer.className = 'dc-bursts';
+  world.append(burstLayer);
+  // a card's done popping, flipping or swinging
+  layer.addEventListener('animationend', e => { if (e.target.matches('.dc-node')) e.target.classList.remove('is-born', 'is-revealed', 'is-hung'); });
+
+  // ---------- the moment of finding something ----------
+
+  // a puff of little shapes out of a point: leaves for the living, stone chips for the long gone (which fall),
+  // confetti for a milestone. into box (the board's world, or the stage over it), at x, y in its units
+  function burst(box, x, y, kind, count = 14, reach = 90) {
+    if (!motion()) return;
+    const b = document.createElement('div');
+    b.className = 'dc-burst is-' + kind;
+    b.style.cssText = `left:${x}px;top:${y}px`;
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2 + Math.random() * 0.5, r = reach * (0.6 + Math.random() * 0.6);
+      const s = document.createElement('i');
+      const fall = kind === 'stone' ? 40 + Math.random() * 30 : kind === 'confetti' ? 60 : 0;
+      s.style.cssText = `--dx:${(Math.cos(a) * r).toFixed(0)}px;--dy:${(Math.sin(a) * r * (kind === 'stone' ? 0.5 : 1) + fall).toFixed(0)}px;--r:${Math.floor(Math.random() * 360)}deg;--d:${Math.floor(Math.random() * 90)}ms`;
+      b.append(s);
+    }
+    box.append(b);
+    setTimeout(() => b.remove(), 1600);
+  }
+  // a card you've just found: a creature's turns over to show who it is, a group's sign swings on its
+  // branch, and the sound says which (and plucks a note for each branch coming out of it)
+  function celebrate(q, born) {
+    const n = nodes.get(q), el = els.get(q), g = goal.get(q);
+    if (!n || !el) return;
+    if (isGroup(n)) {
+      el.classList.add('is-hung');
+      dcSound.play(born ? 'sprout' : 'tap', { count: born });
+      return;
+    }
+    el.classList.add('is-revealed');
+    if (g) {
+      burst(burstLayer, g.x, g.y + (tall.get(q) || 0) / 2, n.x ? 'stone' : 'leaf');
+      // zoomed out, the puff shrinks less than the board does, so it's still there to see
+      burstLayer.lastChild?.style.setProperty('scale', Math.min(2.2, 1 / Math.sqrt(cam.s)).toFixed(2));
+    }
+    dcSound.play('found', { extinct: !!n.x });
+    if (born) dcSound.play('sprout', { count: born, after: 0.4 });
+  }
 
   // the card's picture: once it's here the silhouette under it goes, and the photo's credit goes on the card
   function loadCardPics() {
@@ -532,8 +581,8 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     const it = items.get(isNaN(el.dataset.id) ? el.dataset.id : +el.dataset.id);
     if (!it) return;
     if (it.kind === 'unfound') discover(it.q, el);
-    else if (it.kind === 'found') pick(it.q);
-    else if (it.kind === 'more') { open.set(it.q, (open.get(it.q) ?? PAGE) + PAGE * 2); save(); draw(); afterGrow(it.q); }
+    else if (it.kind === 'found') { pick(it.q); dcSound.play('tap'); }
+    else if (it.kind === 'more') { open.set(it.q, (open.get(it.q) ?? PAGE) + PAGE * 2); save(); draw(); dcSound.play('sprout', { count: lastBorn }); afterGrow(it.q); }
     else if (it.kind === 'latin') latinFor(it.q, el);
   });
   gapLayer.addEventListener('click', e => {
@@ -546,6 +595,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     for (const q of dug) extra.set(q, homeOf.get(q));
     save();
     draw();
+    dcSound.play('sparkle');
     show(boxOf([it.parent, ...dug, it.id]));
   });
 
@@ -566,6 +616,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     store.set('distantCousinsHinted', true);
     save();
     draw();
+    celebrate(q, lastBorn);
     afterGrow(q);
   }
   // bring the new branches into view
@@ -581,6 +632,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     open.set(q, (open.get(q) ?? PAGE) + PAGE);
     save();
     draw();
+    dcSound.play('sprout', { count: lastBorn });
     afterGrow(q);
   }
 
@@ -592,11 +644,15 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
       try { if (again === undefined) throw e; await loadSlice(again); } catch (e2) { console.warn(e2); return; }
     }
     if (!nodes.has(q)) return;
-    if (!found.has(q) && q !== ROOT) { found.set(q, homeOf.get(q) ?? null); save(); }
+    const fresh = !found.has(q) && q !== ROOT;
+    if (fresh) { found.set(q, homeOf.get(q) ?? null); save(); }
     $('dcHint').hidden = true;
     store.set('distantCousinsHinted', true);
     draw();
     pick(q, { go: true });
+    // a new find is celebrated once the board's flown to it
+    if (fresh) setTimeout(() => celebrate(q, 0), motion() ? 480 : 0);
+    else dcSound.play('tap');
   }
 
   // ---------- the panel: everything about one creature or group ----------
@@ -756,6 +812,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     vs.hidden = false;
     document.body.classList.add('dc-vs-open');
     renderVs();
+    if (vsB) dcSound.play('meet');
     $('dcVsClose').focus({ preventScroll: true });
   }
   function closeVs() {
@@ -822,6 +879,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     if (!nodes.has(q)) return;
     vsB = nodes.get(q);
     renderVs();
+    dcSound.play('meet');
     $('dcVsClose').focus({ preventScroll: true });
   }
 
@@ -849,11 +907,12 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     let i = 0;
     while (i < A.length && i < B.length && A[i] === B[i]) i++;
     const meet = nodes.get(A[i - 1]);
-    const step = q => `<li><button class="dc-step" type="button" data-q="${q}">${esc(nameOf(nodes.get(q)))}</button></li>`;
+    // (--i: each step comes in after the one above it, down from where they meet)
+    const step = (q, i) => `<li style="--i:${i}"><button class="dc-step" type="button" data-q="${q}">${esc(nameOf(nodes.get(q)))}</button></li>`;
     const line = (qs, n) => {
       const mid = qs.slice(0, -1);
       const shown = mid.length > 5 ? [...mid.slice(0, 2), null, ...mid.slice(-2)] : mid;
-      return `<ol class="dc-vs-line">${shown.map(q => q === null ? `<li class="dc-vs-skip">${mid.length - 4} more</li>` : step(q)).join('')}<li><span class="dc-step is-here">${esc(nameOf(n))}</span></li></ol>`;
+      return `<ol class="dc-vs-line">${shown.map((q, i) => q === null ? `<li class="dc-vs-skip" style="--i:${i}">${mid.length - 4} more</li>` : step(q, i)).join('')}<li style="--i:${shown.length}"><span class="dc-step is-here">${esc(nameOf(n))}</span></li></ol>`;
     };
     const head = '<p class="dc-sub">How they\'re related</p>';
     if (i === B.length || i === A.length) {
@@ -912,6 +971,11 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     store.set('distantCousinsFav', fav);
     renderHere(n);
     draw(false);
+    if (fav) {
+      dcSound.play('star');
+      const r = $('dcStar').getBoundingClientRect(), s = $('dcStage').getBoundingClientRect();
+      burst($('dcStage'), r.left - s.left + 24, r.top - s.top + r.height / 2, 'star', 9, 50);
+    }
   });
   $('dcFavGo').addEventListener('click', () => {
     if (!fav) return;
@@ -1017,14 +1081,43 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
 
   // ---------- surprise me, light and dark, start again ----------
 
+  // the count under the logo hops up with each find, and every so often there's a cheer
+  const MILESTONES = { 5: 'Five creatures found. Your tree is taking root!', 10: 'Ten creatures found! The branches are spreading.', 25: '25 creatures found. That\'s a proper family tree.', 50: '50 creatures found! Quite the naturalist.', 100: 'A hundred distant cousins found!' };
+  const MORE_MILESTONES = [250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000];
+  let metBefore = null, cheerTimer = 0;
   const sayMet = () => {
     const met = [...found.keys()].filter(q => nodes.has(q) && !isGroup(nodes.get(q))).length;
-    $('dcMet').textContent = `${fmt(met)} of ${fmt(total)} creatures found`;
+    const el = $('dcMet');
+    el.textContent = `${fmt(met)} of ${fmt(total)} creatures found`;
+    if (metBefore !== null && met > metBefore) {
+      el.classList.remove('is-up');
+      void el.offsetWidth;
+      el.classList.add('is-up');
+      const passed = [...Object.keys(MILESTONES).map(Number), ...MORE_MILESTONES].filter(m => m > metBefore && m <= met).pop();
+      // (once the find's own sound has had its moment)
+      if (passed) setTimeout(() => cheer(MILESTONES[passed] || `${fmt(passed)} creatures found!`), 650);
+    }
+    metBefore = met;
   };
+  function cheer(words) {
+    const c = $('dcCheer');
+    c.textContent = words;
+    c.hidden = false;
+    clearTimeout(cheerTimer);
+    cheerTimer = setTimeout(() => { c.hidden = true; }, 4500);
+    dcSound.play('hooray');
+    const s = $('dcStage').getBoundingClientRect(), r = c.getBoundingClientRect();
+    burst($('dcStage'), r.left - s.left + r.width / 2, r.top - s.top + r.height / 2, 'confetti', 28, 160);
+  }
   let index = null;
   const loadIndex = () => index ??= fetch(TREE + 'index.json').then(r => r.json());
   loadIndex().then(i => { total = i.count; sayMet(); }).catch(() => { });
-  $('dcSurprise').addEventListener('click', async () => {
+  $('dcSurprise').addEventListener('click', async e => {
+    const dice = e.currentTarget;
+    dice.classList.remove('is-rolling');
+    void dice.offsetWidth;
+    dice.classList.add('is-rolling');
+    dcSound.play('shuffle');
     const { slices: all } = await loadIndex();
     // most slices are beetles and moths, so the first few goes only take somebody with a common name
     for (let tries = 0; tries < 8; tries++) {
@@ -1047,14 +1140,51 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     document.documentElement.dataset.dcTheme = next;
     try { localStorage.setItem('distantCousinsTheme', next); } catch { }
     sayTheme();
+    makeMotes();
+    dcSound.theme();
   });
   sayTheme();
+
+  // ---------- the air over the board ----------
+  // a few specks drifting about: pollen in the daytime, fireflies at night. over the board, under everything
+  // else, never in the way of a click (and not there at all for anyone who'd rather things kept still)
+  function makeMotes() {
+    const box = $('dcMotes');
+    const dark = document.documentElement.dataset.dcTheme === 'dark';
+    box.replaceChildren(...Array.from({ length: dark ? 16 : 22 }, () => {
+      const m = document.createElement('i');
+      const r = () => Math.random();
+      m.style.cssText = `left:${(r() * 100).toFixed(1)}%;top:${(r() * 100).toFixed(1)}%;--s:${(2 + r() * (dark ? 3 : 4)).toFixed(1)}px;--dx:${((r() - 0.5) * 160).toFixed(0)}px;--dy:${(-40 - r() * 120).toFixed(0)}px;--t:${(14 + r() * 16).toFixed(1)}s;--d:-${(r() * 30).toFixed(1)}s;--b:${(2.5 + r() * 4).toFixed(1)}s`;
+      return m;
+    }));
+  }
+  makeMotes();
+
+  // ---------- music and sounds (sound.js) ----------
+  // on from the start unless turned off last time. browsers hold sound back until the page is first
+  // clicked or a key pressed, so it's ready and waiting and starts then
+  const soundKey = $('dcSound');
+  async function setSound(want) {
+    soundKey.setAttribute('aria-pressed', want);
+    soundKey.title = want ? 'Turn the sound off (M)' : 'Turn the sound on (M)';
+    store.set('distantCousinsSound', want);
+    soundKey.classList.toggle('is-waiting', want);
+    const ok = await dcSound.set(want);
+    soundKey.classList.remove('is-waiting');
+    if (!ok) { soundKey.setAttribute('aria-pressed', false); soundKey.title = "The music couldn't load. Try again"; }
+  }
+  soundKey.addEventListener('click', () => setSound(soundKey.getAttribute('aria-pressed') !== 'true'));
+  board.addEventListener('keydown', e => { if (e.key === 'm' || e.key === 'M') setSound(soundKey.getAttribute('aria-pressed') !== 'true'); });
+  addEventListener('pointerup', () => dcSound.wake());
+  addEventListener('keydown', () => dcSound.wake());
+  setSound(store.get('distantCousinsSound', true));
   $('dcAgain').addEventListener('click', () => {
     if (!confirm('Start the tree again from the very first life? Everything you\'ve found will be put away (your favourite stays).')) return;
     found.clear(); extra.clear(); open.clear(); latin.clear(); liveKept.clear();
     save();
     closePanel();
     draw();
+    dcSound.play('sparkle');
     home();
   });
   // the start of the tree, near the top of the board
