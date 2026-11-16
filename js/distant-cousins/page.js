@@ -2,6 +2,8 @@
 // first life on earth. every creature you discover puts out its branches as mystery silhouettes, and the tree
 // grows as far as you take it: drag to look around, scroll to zoom, click one you've found to read about it,
 // and put any two side by side. what you've found is remembered, so the tree is still there next time.
+// sound.js plays the music and the sounds, achievements.js keeps the achievements and games.js has the games:
+// they hear what happens here through dc: events (emit) and reach in through window.dcApi.
 //
 // two kinds of card: creatures (one kind of animal: a lion, a honey bee, Triceratops) with their picture, and
 // groups (mammals, cat family, dinosaurs), drawn as signs on the branches with a few of their best known
@@ -19,7 +21,7 @@
   const motion = () => !matchMedia('(prefers-reduced-motion: reduce)').matches;
   const store = {
     get(k, fallback) { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } },
-    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
   };
 
   // ---------- the tree ----------
@@ -92,6 +94,32 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     return `${fmt(Math.max(100, Math.round(ma * 1e6 / 100) * 100))} years`;
   }
   const weight = kg => kg >= 1000 ? `${fmt(+(kg / 1000).toPrecision(2))} tonnes` : kg >= 1 ? `${fmt(+kg.toPrecision(2))} kg` : `${fmt(+(kg * 1000).toPrecision(2))} g`;
+  // a big count, as about how many: wikidata's counts are of every name anyone's given, so not exact
+  const roughly = n => n < 100 ? fmt(n) : fmt(+n.toPrecision(2));
+  // fossil dates are a stretch of rock, not a year: a is the young end of the oldest fossil's, a2 the old end
+  // (z and z2 the same for the youngest). a narrow stretch reads as "about", a wide one says so
+  // (the holocene, the last 11,700 years: 0.012 once the build's rounded it)
+  const HOLOCENE = 0.0125;
+  // two ages as a stretch, the unit said once: "between 129,000 and 12,000 years old"
+  function between(hi, lo) {
+    const a = ago(hi).replace(' ago', ''), b = ago(lo).replace(' ago', '');
+    const unit = b.replace(/^[\d.,]+ /, '');
+    return `between ${a.endsWith(' ' + unit) ? a.slice(0, -unit.length - 1) : a} and ${b} old`;
+  }
+  const tight = (lo, hi) => !hi || hi <= lo * 1.25 + 0.002;
+  function oldestFossils(n) {
+    if (n.a === undefined || n.q === ROOT) return '';
+    return tight(n.a, n.a2) ? ` ${n.g ? 'The oldest fossils of any of them are' : 'Its oldest fossils are'} about ${ago(n.a).replace(' ago', ' old')}.`
+      : ` ${n.g ? 'The oldest fossils of any of them are' : 'Its oldest fossils are'} at least ${ago(n.a).replace(' ago', ' old')}.`;
+  }
+  // when it died out, as far as the fossils say: "about 66 million years ago", "within the last 12,000
+  // years", or the stretch its youngest fossils are from
+  function diedOut(n) {
+    if (n.z === undefined) return '';
+    if ((n.z2 ?? n.z) <= HOLOCENE) return 'within the last 12,000 years';
+    if (tight(n.z, n.z2)) return `about ${ago(n.z)}`;
+    return null;
+  }
   // the nearest group above with an everyday name: "one of the big cats"
   function kindOf(n) {
     for (let x = parentOf.get(n.q); x !== undefined; x = parentOf.get(x)) {
@@ -104,16 +132,17 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     if (n.q === ROOT) return 'The last universal common ancestor, LUCA for short: a tiny single cell that everything alive today comes from, from bacteria to blue whales.';
     if (n.o) return 'Life went this way too, but this tree follows the animals, so the branch stops here.';
     if (n.live) return n.s ? `Known only by its Latin name. ${fmt(n.s)} ${n.s === 1 ? 'branch grows' : 'branches grow'} from it.` : 'Known only by its Latin name: a creature hardly anyone has heard of. You found it anyway.';
-    const was = n.x ? 'was' : 'is';
+    const died = diedOut(n);
+    const youngest = died === null ? ` Its youngest fossils are ${between(n.z2, n.z)}.` : '';
     let s;
     if (isGroup(n)) {
-      s = n.s > 1 ? `A group of ${fmt(n.s)} kinds of animal` : 'A group of animals';
-      s += n.x ? (n.z !== undefined ? `, all gone since ${ago(n.z)}.` : ', all gone now.') : '.';
-      if (n.a !== undefined) s += ` The oldest fossils of any of them are ${ago(n.a).replace(' ago', ' old')}.`;
+      s = n.s > 1 ? `About ${roughly(n.s)} kinds of animal have been named in this group, living and extinct` : 'A group of animals';
+      s += n.x ? (died ? `. All of them died out ${died}.` : '. All of them have died out.') : '.';
+      s += oldestFossils(n) + youngest.replace('Its', 'The');
     } else {
-      s = `${kindOf(n)}${n.x ? (n.z !== undefined ? `, which died out ${ago(n.z)}.` : ', now extinct.') : ', still around today.'}`;
-      if (n.a !== undefined) s += ` Its first fossils are ${ago(n.a).replace(' ago', ' old')}.`;
-      if (n.kg) s += ` A grown-up ${was} about ${weight(n.kg)}.`;
+      s = `${kindOf(n)}${n.x ? (died ? `, which died out ${died}.` : ', now extinct.') : ', still around today.'}`;
+      s += oldestFossils(n) + youngest;
+      if (n.kg) s += ` A grown-up ${n.x ? 'weighed' : 'weighs'} about ${weight(n.kg)}.`;
     }
     return s;
   }
@@ -177,9 +206,42 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   let fav = store.get('distantCousinsFav', null);
   let total = 433622;
 
+  // what happens on the board, for achievements.js and games.js to hear: find, open, compare, favourite,
+  // surprise, gap, latin, more, search, theme, ready
+  const emit = (type, detail = {}) => document.dispatchEvent(new CustomEvent('dc:' + type, { detail }));
+  // a hunt (games.js) in progress: it has a board of its own, which is never saved. it can keep the right
+  // branch in view (keep), mark cards on or off the trail (mark), and hears each find (found)
+  let hunt = null;
+  // ---------- your trees, like saves in a game ----------
+  // each one's board is kept under its own key (the first under the one there was before there were more,
+  // distantCousinsBoard), and distantCousinsTrees lists them: { now: the one on the board, list: [{ id, name,
+  // made }] }. achievements and the favourite belong to you, not to a tree
+  const boardKey = id => id === 'first' ? 'distantCousinsBoard' : 'distantCousinsBoard-' + id;
+  const trees = store.get('distantCousinsTrees', null) || { now: 'first', list: [{ id: 'first', name: 'My first tree', made: Date.now() }] };
+  if (!trees.list.some(t => t.id === trees.now)) trees.now = trees.list[0]?.id ?? 'first';
+  if (!trees.list.length) trees.list.push({ id: 'first', name: 'My first tree', made: Date.now() });
+  const treeNow = () => trees.list.find(t => t.id === trees.now);
+  // a save only ever adds to what's saved: it's merged with the board already there, so nothing found is lost
+  // to a tree file or wikidata not answering this time (it wasn't put back on the board, but it's still
+  // saved), or to another tab writing over this one. and nothing's written until the board's loaded (loaded).
+  // only deleting a tree takes finds away
+  let loaded = false, warned = false;
   function save() {
+    if (hunt || !loaded) return;
     const keep = [...liveKept.values()].filter(([q]) => found.has(q) || extra.has(q));
-    store.set('distantCousinsBoard', { found: [...found], extra: [...extra], open: [...open], latin: [...latin.keys()], live: keep });
+    const board = { found: [...found], extra: [...extra], open: [...open], latin: [...latin.keys()], live: keep };
+    const before = store.get(boardKey(trees.now), null);
+    if (before) for (const k of Object.keys(board)) {
+      const have = new Set(board[k].map(e => Array.isArray(e) ? e[0] : e));
+      for (const e of before[k] || []) if (!have.has(Array.isArray(e) ? e[0] : e)) board[k].push(e);
+    }
+    // (another tab may have taken this tree off the list: it goes back on, never lost)
+    const fresh = store.get('distantCousinsTrees', null);
+    if (fresh && !fresh.list.some(t => t.id === trees.now)) { fresh.list.push(treeNow()); store.set('distantCousinsTrees', fresh); }
+    if (!store.set(boardKey(trees.now), board) && !warned) {
+      warned = true;
+      $('dcMet').textContent = "Your browser won't let this page save any more, so new finds won't be remembered. Deleting a tree you don't need makes room.";
+    }
   }
   function addLive(c, parent) {
     if (!nodes.has(c.q)) nodes.set(c.q, { q: c.q, n: c.n, s: c.s, live: 1, ...(c.s ? { g: 1 } : {}) });
@@ -213,7 +275,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
       const n = nodes.get(q);
       if (!n) continue;
       const ks = kidsOf(n), want = open.get(q) ?? PAGE;
-      for (let i = 0; i < ks.length && i < want; i++) if (nodes.has(ks[i])) vis.add(ks[i]);
+      for (let i = 0; i < ks.length; i++) if (nodes.has(ks[i]) && (i < want || hunt?.keep?.(ks[i]))) vis.add(ks[i]);
     }
     const items = new Map();   // id -> { id, q, kind, kids: [], via, parent }
     for (const q of vis) items.set(q, { id: q, q, kind: found.has(q) || q === ROOT ? 'found' : 'unfound', kids: [] });
@@ -262,7 +324,9 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     const star = fav && fav.q === it.q ? STAR : '';
     // a group: a sign on the branch saying what's in it, and (once found) a few of its best known members
     if (isGroup(n)) {
-      const tag = `<span class="dc-group-tag">${n.s > 1 ? `Group of ${fmt(n.s)}` : 'Group'}</span>`;
+      // (short enough for the smallest card: "About 2 million kinds", "36 kinds")
+      const size = n.s >= 1e6 ? `About ${+(n.s / 1e6).toPrecision(2)} million kinds` : n.s >= 100 ? `About ${roughly(n.s)} kinds` : n.s > 1 ? `${n.s} kinds` : 'Group';
+      const tag = `<span class="dc-group-tag">${size}</span>`;
       if (it.kind === 'unfound') return tag + name;
       const faces = (n.m || []).filter(m => m[3]).slice(0, 3);
       return `${star}${tag}${name}${faces.length ? `<span class="dc-faces">${faces.map(m => `<span class="dc-face" data-pic-box><img data-file="${esc(m[3])}" alt="" draggable="false"></span>`).join('')}</span>` : ''}`;
@@ -306,7 +370,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
         el.title = it.kind === 'unfound' && !isGroup(n) ? silCredit(n) : '';
       }
       const kindClass = it.kind === 'found' || it.kind === 'unfound' ? (isGroup(n) ? ' is-group' : ' is-creature') : '';
-      el.className = `dc-node is-${it.kind}${kindClass}${n?.x ? ' is-extinct' : ''}${n?.o ? ' is-other' : ''}${selected === it.q && it.kind === 'found' ? ' is-picked' : ''}${['is-born', 'is-revealed', 'is-hung'].filter(c => el.classList.contains(c)).map(c => ' ' + c).join('')}`;
+      el.className = `dc-node is-${it.kind}${kindClass}${n?.x ? ' is-extinct' : ''}${n?.o ? ' is-other' : ''}${selected === it.q && it.kind === 'found' ? ' is-picked' : ''}${hunt?.mark?.(it) || ''}${['is-born', 'is-revealed', 'is-hung'].filter(c => el.classList.contains(c)).map(c => ' ' + c).join('')}`;
       el.style.width = WIDTH[it.kind] + 'px';
       el.setAttribute('aria-label', label(it));
     }
@@ -581,8 +645,8 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     const it = items.get(isNaN(el.dataset.id) ? el.dataset.id : +el.dataset.id);
     if (!it) return;
     if (it.kind === 'unfound') discover(it.q, el);
-    else if (it.kind === 'found') { pick(it.q); dcSound.play('tap'); }
-    else if (it.kind === 'more') { open.set(it.q, (open.get(it.q) ?? PAGE) + PAGE * 2); save(); draw(); dcSound.play('sprout', { count: lastBorn }); afterGrow(it.q); }
+    else if (it.kind === 'found') { pick(it.q); dcSound.play('tap'); emit('open', { q: it.q }); }
+    else if (it.kind === 'more') { open.set(it.q, (open.get(it.q) ?? PAGE) + PAGE * 2); save(); draw(); dcSound.play('sprout', { count: lastBorn }); afterGrow(it.q); emit('more', { q: it.q }); }
     else if (it.kind === 'latin') latinFor(it.q, el);
   });
   gapLayer.addEventListener('click', e => {
@@ -596,6 +660,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     save();
     draw();
     dcSound.play('sparkle');
+    emit('gap');
     show(boxOf([it.parent, ...dug, it.id]));
   });
 
@@ -618,6 +683,8 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     draw();
     celebrate(q, lastBorn);
     afterGrow(q);
+    emit('find', { q, hunting: !!hunt });
+    hunt?.found?.(q);
   }
   // bring the new branches into view
   function afterGrow(q) {
@@ -634,11 +701,14 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     draw();
     dcSound.play('sprout', { count: lastBorn });
     afterGrow(q);
+    emit('latin', { q });
   }
 
   // put a creature on the board from anywhere (search, members, the family line, surprise, your favourite) and go to it
   // (name: to find it by if the slice it was in has gone, as a favourite saved before the tree was rebuilt can be)
   async function bring(q, home, name) {
+    // (no jumping straight there in the middle of a hunt)
+    if (hunt) return;
     try { await loadSlice(home ?? homeOf.get(q)); } catch (e) {
       const again = name && await homeFor(q, name);
       try { if (again === undefined) throw e; await loadSlice(again); } catch (e2) { console.warn(e2); return; }
@@ -651,7 +721,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     draw();
     pick(q, { go: true });
     // a new find is celebrated once the board's flown to it
-    if (fresh) setTimeout(() => celebrate(q, 0), motion() ? 480 : 0);
+    if (fresh) { setTimeout(() => celebrate(q, 0), motion() ? 480 : 0); emit('find', { q }); }
     else dcSound.play('tap');
   }
 
@@ -685,10 +755,43 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   }
   $('dcClose').addEventListener('click', closePanel);
   addEventListener('keydown', e => {
-    if (e.key !== 'Escape' || document.activeElement === input) return;
-    if (!vs.hidden) closeVs();
-    else if (!panel.hidden) closePanel();
+    if (e.key !== 'Escape' || document.activeElement === input || document.querySelector('.dc-vs:not([hidden])')) return;
+    if (!panel.hidden) closePanel();
   });
+
+  // ---------- windows over everything: side by side, achievements, games ----------
+  // a window over the whole page (a .dc-vs with its card inside): opens with focus on its close key, keeps
+  // the tab key inside, and shuts on escape, its close key or a click outside, giving focus back
+  function dialog(el, onClose) {
+    let back = null;
+    const d = {
+      get open() { return !el.hidden; },
+      show() {
+        if (el.hidden) back = document.activeElement;
+        el.hidden = false;
+        document.body.classList.add('dc-vs-open');
+        el.querySelector('.dc-close')?.focus({ preventScroll: true });
+      },
+      close() {
+        if (el.hidden) return;
+        el.hidden = true;
+        if (!document.querySelector('.dc-vs:not([hidden])')) document.body.classList.remove('dc-vs-open');
+        onClose?.();
+        back?.focus?.({ preventScroll: true });
+      },
+    };
+    el.querySelector('.dc-close')?.addEventListener('click', d.close);
+    el.addEventListener('click', e => { if (e.target === el) d.close(); });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && !e.defaultPrevented) { e.stopPropagation(); d.close(); }
+      if (e.key !== 'Tab') return;
+      const f = [...el.querySelectorAll('button, input, a[href]')].filter(x => x.offsetParent);
+      if (!f.length) return;
+      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+    });
+    return d;
+  }
 
   // a picture with its credit, never cropped
   function showPicture(n, file, img, box, credit, whose) {
@@ -803,41 +906,26 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   // ---------- side by side: any two, how they're related, when they lived, how big ----------
 
   const vs = $('dcVs'), vsBody = $('dcVsBody');
-  let vsA = null, vsB = null, vsBack = null;
+  let vsA = null, vsB = null;
+  const vsWindow = dialog(vs);
   // a few everyone knows, to compare with when nothing else comes to mind
   const IDEAS = [[15978631, 'Human'], [13098211, 'Tyrannosaurus rex'], [42196, 'Blue whale'], [57818409, 'House cat'], [30034, 'Honey bee'], [651361, 'Common octopus']];
   function openVs(a, b) {
-    vsBack = document.activeElement;
     vsA = a; vsB = b && b.q !== a.q ? b : null;
-    vs.hidden = false;
-    document.body.classList.add('dc-vs-open');
     renderVs();
-    if (vsB) dcSound.play('meet');
-    $('dcVsClose').focus({ preventScroll: true });
+    vsWindow.show();
+    if (vsB) { dcSound.play('meet'); emit('compare', { a: vsA.q, b: vsB.q }); }
   }
-  function closeVs() {
-    vs.hidden = true;
-    document.body.classList.remove('dc-vs-open');
-    vsBack?.focus?.({ preventScroll: true });
-  }
+  const closeVs = () => vsWindow.close();
   $('dcVsOpen').addEventListener('click', () => {
     if (!current) return;
     const other = fav && fav.q !== current.q && nodes.get(fav.q);
     openVs(current, other || null);
   });
-  $('dcVsClose').addEventListener('click', closeVs);
-  vs.addEventListener('click', e => { if (e.target === vs) closeVs(); });
-  // the tab key stays inside while it's open
-  vs.addEventListener('keydown', e => {
-    if (e.key !== 'Tab') return;
-    const f = [...vs.querySelectorAll('button, input, a[href]')].filter(x => x.offsetParent);
-    if (!f.length) return;
-    if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
-    else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
-  });
 
   function side(n, which) {
-    const status = n.x ? (n.z !== undefined ? `Died out ${ago(n.z)}` : 'Extinct') : 'Alive today';
+    const died = n.x && diedOut(n);
+    const status = n.x ? (died ? `Died out ${died}` : 'Extinct') : 'Alive today';
     // a group shows four of its members, so it doesn't look like any one of them
     const members = isGroup(n) ? (n.m || []).filter(m => m[3]).slice(0, 4) : [];
     const file = picOf(n);
@@ -880,6 +968,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     vsB = nodes.get(q);
     renderVs();
     dcSound.play('meet');
+    emit('compare', { a: vsA.q, b: vsB.q });
     $('dcVsClose').focus({ preventScroll: true });
   }
 
@@ -920,8 +1009,9 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
       return `${head}<p class="dc-vs-meet">${esc(nameOf(inner))} is one of the ${esc(nameOf(outer).toLowerCase())}${rest.length > 1 ? `, ${rest.length} ${rest.length === 1 ? 'step' : 'steps'} down` : ''}.</p>
         <div class="dc-vs-tree is-one"><span class="dc-vs-top">${esc(nameOf(outer))}</span>${line(rest, inner)}</div>`;
     }
+    // (the oldest fossil of either branch: they'd already split by then)
     const split = Math.max(nodes.get(A[i])?.a ?? -1, nodes.get(B[i])?.a ?? -1);
-    return `${head}<p class="dc-vs-meet">Their family lines meet at <button class="dc-link" type="button" data-q="${meet.q}">${esc(nameOf(meet))}</button>${split > 0 ? `, and went their separate ways at least ${ago(split)}` : ''}.</p>
+    return `${head}<p class="dc-vs-meet">Their family lines meet at <button class="dc-link" type="button" data-q="${meet.q}">${esc(nameOf(meet))}</button>${split > HOLOCENE ? `, and had gone their separate ways at least ${ago(split)}` : ''}.</p>
       <div class="dc-vs-tree"><span class="dc-vs-top">${esc(nameOf(meet))}</span>
         <svg class="dc-vs-fork" viewBox="0 0 200 28" preserveAspectRatio="none" aria-hidden="true"><path d="M100 0V10Q100 14 96 14H54Q50 14 50 18V28M100 10Q100 14 104 14H146Q150 14 150 18V28"/></svg>
         <div class="dc-vs-lines">${line(A.slice(i), a)}${line(B.slice(i), b)}</div>
@@ -931,17 +1021,27 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   function vsFacts(a, b) {
     const lines = [];
     const A = esc(nameOf(a)), B = esc(nameOf(b));
-    const ra = rangeOf(a), rb = rangeOf(b);
-    if (ra && rb && ra[0] !== undefined && rb[0] !== undefined) {
-      const diff = Math.abs(ra[0] - rb[0]);
-      if (diff < Math.max(ra[0], rb[0]) * .03) lines.push('They first show up in the fossils at about the same time.');
-      else lines.push(`${ra[0] > rb[0] ? A : B} came first, ${span(diff)} before ${ra[0] > rb[0] ? B : A}.`);
-    }
-    if (ra && rb && ra[1] !== undefined && rb[1] !== undefined) {
-      if (ra[1] === 0 && rb[1] === 0) lines.push('Both are alive today, sharing the planet.');
-      else if (ra[0] !== undefined && rb[0] !== undefined) {
-        const overlap = Math.min(ra[0], rb[0]) - Math.max(ra[1], rb[1]);
-        lines.push(overlap > 0 ? `They were alive at the same time, for about ${span(overlap)}.` : `They never met: ${span(-overlap)} apart.`);
+    // only what the fossils can actually tell: each date is a stretch of rock (young end, old end), so one
+    // came first only if its oldest fossils are older even taking the youngest reading of them, and so on
+    const when = n => {
+      const r = rangeOf(n);
+      if (!r || r[0] === undefined) return null;
+      const alive = !n.x;
+      return { from: r[0], from2: n.a2 ?? r[0], to: alive ? 0 : n.z, to2: alive ? 0 : n.z2 ?? n.z };
+    };
+    const wa = when(a), wb = when(b);
+    if (wa && wb) {
+      const [old, young, O, Y] = wa.from >= wb.from ? [wa, wb, A, B] : [wb, wa, B, A];
+      const surely = old.from - young.from2;
+      if (surely > Math.max(0.005, old.from * 0.02)) lines.push(`${O} came first, at least ${span(surely)} before ${Y}.`);
+      else lines.push('Their oldest fossils are from around the same time, so the fossils can\'t say which came first.');
+      if (wa.to === 0 && wb.to === 0) lines.push('Both are alive today, sharing the planet.');
+      else if (old.to !== undefined && young.from2 !== undefined) {
+        // apart: the older one's youngest fossils are older than the younger one's oldest, read either way
+        const gap = old.to - young.from2;
+        const together = Math.min(old.from, young.from) - Math.max(old.to2 ?? 0, young.to2 ?? 0);
+        if (gap > 0) lines.push(`As far as the fossils tell, they never met: at least ${span(gap)} apart.`);
+        else if (together > 0) lines.push(`They were alive at the same time, for at least ${span(together)}.`);
       }
     }
     if (a.kg && b.kg) {
@@ -972,6 +1072,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     renderHere(n);
     draw(false);
     if (fav) {
+      emit('favourite', { q: n.q });
       dcSound.play('star');
       const r = $('dcStar').getBoundingClientRect(), s = $('dcStage').getBoundingClientRect();
       burst($('dcStage'), r.left - s.left + 24, r.top - s.top + r.height / 2, 'star', 9, 50);
@@ -989,6 +1090,9 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   // ---------- searching: the box in the corner, and the one for comparing ----------
 
   const tidy = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  // a word in the singular, near enough: butterflies, wolves, foxes, geese
+  const IRREGULAR = { geese: 'goose', mice: 'mouse', lice: 'louse', oxen: 'ox', teeth: 'tooth', feet: 'foot', people: 'person' };
+  const stem = w => IRREGULAR[w] || (w.length < 4 ? w : w.replace(/ies$/, 'y').replace(/([lr])ves$/, '$1f').replace(/(ch|sh|x|ss)es$/, '$1').replace(/([^su])s$/, '$1'));
   const findFiles = new Map();
   let split = null;
   const findFile = key => {
@@ -1021,17 +1125,21 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
       if (input.value !== said) return;
       if (entries === null) return list([]);
       if (typeof entries === 'string') return list([], entries);
-      const whole = words.join(' ');
+      // words matched in the singular ("butterfly" finds butterflies, "goose" geese). best first: the name
+      // itself, a name starting with it, one with every word whole, any with the words' starts; and between
+      // the middle ones the better known wins ("moth" is the butterflies and moths before the moth flies)
+      const ws0 = words.map(stem), whole = ws0.join(' ');
       const hits = [];
       for (const e of entries) {
         let best = 0, term = '';
         for (let t = 4; t < e.length; t++) {
-          const p = tidy(e[t]), ws = p.split(' ');
-          if (!words.every(w => ws.some(x => x.startsWith(w)))) continue;
-          const score = p === whole ? 3 : p.startsWith(whole) ? 2 : 1;
+          const ws = tidy(e[t]).split(' ').map(stem), p = ws.join(' ');
+          if (!ws0.every(w => ws.some(x => x.startsWith(w)))) continue;
+          // (the name exactly: a creature before a group, "cat" is the cat, then the cat family)
+          const score = p === whole ? (e[3] ? 10000 : 11000) : p.startsWith(whole) ? 350 : ws0.every(w => ws.includes(w)) ? 300 : 1;
           if (score > best) { best = score; term = e[t]; }
         }
-        if (best) hits.push({ e, best, term });
+        if (best) hits.push({ e, best: best + (best > 1 && best < 1000 ? e[2] : 0), term });
         if (hits.length > 400) break;
       }
       hits.sort((a, b) => b.best - a.best || b.e[2] - a.e[2]);
@@ -1077,37 +1185,47 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     input.addEventListener('blur', () => setTimeout(() => list([]), 100));
   }
   const input = $('dcFind');
-  finder(input, $('dcFound'), e => { input.blur(); bring(e[0], e[1]); });
+  finder(input, $('dcFound'), e => { input.blur(); bring(e[0], e[1]); emit('search', { q: e[0] }); });
 
   // ---------- surprise me, light and dark, start again ----------
 
-  // the count under the logo hops up with each find, and every so often there's a cheer
-  const MILESTONES = { 5: 'Five creatures found. Your tree is taking root!', 10: 'Ten creatures found! The branches are spreading.', 25: '25 creatures found. That\'s a proper family tree.', 50: '50 creatures found! Quite the naturalist.', 100: 'A hundred distant cousins found!' };
-  const MORE_MILESTONES = [250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000];
-  let metBefore = null, cheerTimer = 0;
+  // the count under the logo hops up with each find (not a hunt's: that's a board of its own)
+  let metBefore = null;
   const sayMet = () => {
+    if (hunt) return;
     const met = [...found.keys()].filter(q => nodes.has(q) && !isGroup(nodes.get(q))).length;
     const el = $('dcMet');
-    el.textContent = `${fmt(met)} of ${fmt(total)} creatures found`;
+    // (with more than one tree, which one this is)
+    el.textContent = `${trees.list.length > 1 ? treeNow().name + ': ' : ''}${fmt(met)} of ${fmt(total)} creatures found`;
     if (metBefore !== null && met > metBefore) {
       el.classList.remove('is-up');
       void el.offsetWidth;
       el.classList.add('is-up');
-      const passed = [...Object.keys(MILESTONES).map(Number), ...MORE_MILESTONES].filter(m => m > metBefore && m <= met).pop();
-      // (once the find's own sound has had its moment)
-      if (passed) setTimeout(() => cheer(MILESTONES[passed] || `${fmt(passed)} creatures found!`), 650);
     }
     metBefore = met;
   };
-  function cheer(words) {
+  // a cheer under the logo, with a fanfare and confetti (an achievement, a hunt won). one at a time: any
+  // that come together wait their turn
+  const cheers = [];
+  let cheering = false;
+  function cheer(title, words = '') {
+    cheers.push([title, words]);
+    if (!cheering) nextCheer();
+  }
+  function nextCheer() {
     const c = $('dcCheer');
-    c.textContent = words;
+    const next = cheers.shift();
+    if (!next) { cheering = false; c.hidden = true; return; }
+    cheering = true;
+    c.replaceChildren(Object.assign(document.createElement('b'), { textContent: next[0] }), ...(next[1] ? [Object.assign(document.createElement('span'), { textContent: next[1] })] : []));
     c.hidden = false;
-    clearTimeout(cheerTimer);
-    cheerTimer = setTimeout(() => { c.hidden = true; }, 4500);
+    c.style.animation = 'none';
+    void c.offsetWidth;
+    c.style.animation = '';
     dcSound.play('hooray');
     const s = $('dcStage').getBoundingClientRect(), r = c.getBoundingClientRect();
     burst($('dcStage'), r.left - s.left + r.width / 2, r.top - s.top + r.height / 2, 'confetti', 28, 160);
+    setTimeout(nextCheer, cheers.length ? 2800 : 4500);
   }
   let index = null;
   const loadIndex = () => index ??= fetch(TREE + 'index.json').then(r => r.json());
@@ -1118,6 +1236,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     void dice.offsetWidth;
     dice.classList.add('is-rolling');
     dcSound.play('shuffle');
+    emit('surprise');
     const { slices: all } = await loadIndex();
     // most slices are beetles and moths, so the first few goes only take somebody with a common name
     for (let tries = 0; tries < 8; tries++) {
@@ -1142,6 +1261,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     sayTheme();
     makeMotes();
     dcSound.theme();
+    emit('theme', { dark: next === 'dark' });
   });
   sayTheme();
 
@@ -1178,14 +1298,103 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   addEventListener('pointerup', () => dcSound.wake());
   addEventListener('keydown', () => dcSound.wake());
   setSound(store.get('distantCousinsSound', true));
-  $('dcAgain').addEventListener('click', () => {
-    if (!confirm('Start the tree again from the very first life? Everything you\'ve found will be put away (your favourite stays).')) return;
-    found.clear(); extra.clear(); open.clear(); latin.clear(); liveKept.clear();
+  // the trees window: each tree with how much is on it, open one, rename it, delete one you're not on, or
+  // start a new one (the one you were on stays just as it is)
+  const treesBox = $('dcTrees'), treesWin = dialog(treesBox);
+  const countOf = id => { const b = store.get(boardKey(id), null); return b ? (b.found || []).length : 0; };
+  const day = t => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  function renderTrees(say = '') {
+    // (another tab may have added one)
+    const fresh = store.get('distantCousinsTrees', null);
+    if (fresh) for (const t of fresh.list) if (!trees.list.some(x => x.id === t.id)) trees.list.push(t);
+    $('dcTreesBody').innerHTML = `
+      <p class="dc-trees-say">Each tree is kept on its own, like saves in a game: start a new one and this one stays just as it is. Your achievements and favourite go with you to every tree.</p>
+      <ul class="dc-trees">${trees.list.map(t => {
+        const here = t.id === trees.now, n = here ? found.size : countOf(t.id);
+        return `<li class="dc-tree${here ? ' is-here' : ''}" data-tree="${esc(t.id)}">
+          <span class="dc-tree-words"><b class="dc-tree-name">${esc(t.name)}</b>
+            <span>${here ? 'On the board now · ' : ''}${fmt(n)} ${n === 1 ? 'find' : 'finds'} · started ${day(t.made)}</span></span>
+          <span class="dc-tree-keys">
+            ${here ? '' : `<button class="dc-key dc-vs-key" type="button" data-open>Open</button>`}
+            <button class="dc-key" type="button" data-rename>Rename</button>
+            ${here ? '' : `<button class="dc-key dc-tree-bin" type="button" data-delete aria-label="Delete ${esc(t.name)}">Delete</button>`}
+          </span></li>`;
+      }).join('')}</ul>
+      <button class="dc-key dc-vs-key dc-tree-new" type="button" data-new>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Start a new tree</span></button>
+      <p class="dc-trees-note" aria-live="polite">${esc(say)}</p>`;
+  }
+  const storeTrees = () => store.set('distantCousinsTrees', trees);
+  async function openTree(id) {
+    await ready;
+    if (hunt) return;
     save();
+    trees.now = id;
+    storeTrees();
+    loaded = false;
+    ready = new Promise(ok => { readyNow = ok; });
+    for (const m of [found, extra, open, latin, liveKept]) m.clear();
     closePanel();
-    draw();
+    treesWin.close();
+    metBefore = null;
+    draw(false);
+    await loadBoard(store.get(boardKey(id), null)).catch(e => console.warn(e));
+    loaded = true;
+    readyNow();
+    draw(false);
+    if (found.size > 3) fitAll(); else home();
     dcSound.play('sparkle');
-    home();
+    emit('tree', { id });
+  }
+  $('dcTreesOpen').addEventListener('click', async () => {
+    await ready;
+    renderTrees();
+    treesWin.show();
+  });
+  treesBox.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    const li = b?.closest('[data-tree]');
+    const t = li && trees.list.find(x => x.id === li.dataset.tree);
+    if (!b) return;
+    if (b.hasAttribute('data-new')) {
+      const id = Date.now().toString(36);
+      let n = trees.list.length + 1;
+      while (trees.list.some(x => x.name === `Tree ${n}`)) n++;
+      trees.list.push({ id, name: `Tree ${n}`, made: Date.now() });
+      openTree(id).then(() => emit('tree-new'));
+    } else if (b.hasAttribute('data-open') && t) openTree(t.id);
+    else if (b.hasAttribute('data-delete') && t && t.id !== trees.now) {
+      const n = countOf(t.id);
+      if (!confirm(`Delete "${t.name}"? ${n ? `Its ${fmt(n)} ${n === 1 ? 'find' : 'finds'} will be gone for good.` : 'It has nothing on it yet.'}`)) return;
+      trees.list = trees.list.filter(x => x !== t);
+      storeTrees();
+      try { localStorage.removeItem(boardKey(t.id)); } catch { }
+      renderTrees(`"${t.name}" has been deleted.`);
+      treesBox.querySelector('.dc-tree-new').focus({ preventScroll: true });
+    } else if (b.hasAttribute('data-rename') && t) {
+      const name = li.querySelector('.dc-tree-name');
+      const field = Object.assign(document.createElement('input'), { value: t.name, maxLength: 40, className: 'dc-tree-field', ariaLabel: 'Name of the tree' });
+      name.replaceWith(field);
+      field.focus();
+      field.select();
+      // (put back in place, not the whole list drawn again: a click on another tree's key is what took the
+      // focus away, and it has to land)
+      let over = false;
+      const done = (keep, refocus) => {
+        if (over) return;
+        over = true;
+        const v = field.value.trim();
+        if (keep && v) { t.name = v; storeTrees(); sayMet(); }
+        field.replaceWith(Object.assign(document.createElement('b'), { className: 'dc-tree-name', textContent: t.name }));
+        if (refocus) b.focus({ preventScroll: true });
+      };
+      field.addEventListener('keydown', ev => {
+        // (and the enter mustn't press the rename key it hands the focus back to)
+        if (ev.key === 'Enter') { ev.preventDefault(); done(true, true); }
+        if (ev.key === 'Escape') { ev.preventDefault(); done(false, true); }
+      });
+      field.addEventListener('blur', () => done(true));
+    }
   });
   // the start of the tree, near the top of the board
   function home() {
@@ -1194,26 +1403,68 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     fly({ x: (v.left + v.right) / 2, y: v.top + 20, s });
   }
 
+  // ---------- for achievements.js and games.js ----------
+  // a hunt plays on an empty board: yours is put away while it lasts and comes back after, with the creature
+  // you were hunting added to it if you found it
+  let stash = null;
+  // (the saved board is on before anything can be put away: a hunt started while it was still loading would
+  // put away half of it)
+  let readyNow;
+  let ready = new Promise(ok => { readyNow = ok; });
+  function enterHunt(h) {
+    if (!hunt) stash = [found, extra, open, latin, liveKept].map(m => new Map(m));
+    for (const m of [found, extra, open]) m.clear();
+    hunt = h;
+    closePanel();
+    document.body.classList.add('dc-hunting');
+    draw(false);
+    home();
+  }
+  function leaveHunt(won) {
+    if (!hunt) return;
+    hunt = null;
+    document.body.classList.remove('dc-hunting');
+    [found, extra, open, latin, liveKept].forEach((m, i) => { m.clear(); for (const [k, v] of stash[i]) m.set(k, v); });
+    stash = null;
+    if (won !== undefined && nodes.has(won)) found.set(won, homeOf.get(won) ?? null);
+    save();
+    closePanel();
+    metBefore = null;
+    draw(false);
+    if (won !== undefined && nodes.has(won)) pick(won, { go: true }); else if (found.size > 3) fitAll(); else home();
+  }
+  window.dcApi = {
+    ROOT, nodes, parentOf, homeOf, found, trail, kidsOf, isGroup, nameOf, latinOf, picOf, loadSlice, loadPics, fillPics,
+    fmt, esc, ago, span, weight, roughly, motion, store, emit, cheer, burst, dialog, draw, els, goal, get items() { return items; },
+    get hunting() { return hunt; }, enterHunt, leaveHunt, show, boxOf, pick, get selected() { return selected; }, get ready() { return ready; },
+  };
+
   // ---------- off we go ----------
 
+  // puts a saved board on (adding to what's there: a find made while it loads stays)
+  async function loadBoard(saved) {
+    if (!saved) return;
+    for (const [q, name, s, parent] of saved.live || []) addLive({ q, n: name, s }, parent);
+    const homes = new Set([...(saved.found || []), ...(saved.extra || [])].map(([, h]) => h).filter(h => h !== null && h !== undefined));
+    // a few files at a time, so a big tree doesn't ask for hundreds at once
+    const queue = [...homes];
+    await Promise.all(Array.from({ length: 6 }, async () => { while (queue.length) await loadSlice(queue.shift()).catch(() => { }); }));
+    // a board saved before the tree was tidied up can name groups that aren't on it any more: those stay off
+    for (const [q, h] of saved.found || []) if (nodes.has(q)) found.set(q, h);
+    for (const [q, h] of saved.extra || []) if (nodes.has(q)) extra.set(q, h);
+    for (const [q, c] of saved.open || []) open.set(q, c);
+    await Promise.all((saved.latin || []).map(q => nodes.has(q) ? askLatin(q).catch(() => { }) : null));
+  }
   async function restore() {
-    const saved = store.get('distantCousinsBoard', null);
     await loadSlice(ROOT);
-    if (saved) {
-      for (const [q, name, s, parent] of saved.live || []) addLive({ q, n: name, s }, parent);
-      const homes = new Set([...(saved.found || []), ...(saved.extra || [])].map(([, h]) => h).filter(h => h !== null && h !== undefined));
-      // a few files at a time, so a big tree doesn't ask for hundreds at once
-      const queue = [...homes];
-      await Promise.all(Array.from({ length: 6 }, async () => { while (queue.length) await loadSlice(queue.shift()).catch(() => { }); }));
-      // a board saved before the tree was tidied up can name groups that aren't on it any more: those go
-      for (const [q, h] of saved.found || []) if (nodes.has(q)) found.set(q, h);
-      for (const [q, h] of saved.extra || []) if (nodes.has(q)) extra.set(q, h);
-      for (const [q, c] of saved.open || []) open.set(q, c);
-      await Promise.all((saved.latin || []).map(q => nodes.has(q) ? askLatin(q).catch(() => { }) : null));
-    }
+    if (!store.get('distantCousinsTrees', null)) store.set('distantCousinsTrees', trees);
+    await loadBoard(store.get(boardKey(trees.now), null));
+    loaded = true;
     look();
     draw(false);
     if (found.size > 3) fitAll(); else home();
+    emit('ready');
+    readyNow();
     if (!store.get('distantCousinsHinted', false)) {
       if (matchMedia('(pointer: coarse)').matches) $('dcHint').textContent = 'Tap a mystery card to find out who it is, then tap it again to read all about it. Drag to look around, pinch to zoom.';
       $('dcHint').hidden = false;

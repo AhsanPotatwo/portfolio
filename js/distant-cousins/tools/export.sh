@@ -7,7 +7,7 @@
 # query goes through getp, which pages and checks each page ends on a whole line.
 R=${1:?give a folder for the raw files}
 mkdir -p "$R"
-P='PREFIX wd: <http://www.wikidata.org/entity/> PREFIX wdt: <http://www.wikidata.org/prop/direct/> PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> PREFIX schema: <http://schema.org/> PREFIX skos: <http://www.w3.org/2004/02/skos/core#> PREFIX wikibase: <http://wikiba.se/ontology#> PREFIX p: <http://www.wikidata.org/prop/> PREFIX psv: <http://www.wikidata.org/prop/statement/value/>'
+P='PREFIX wd: <http://www.wikidata.org/entity/> PREFIX wdt: <http://www.wikidata.org/prop/direct/> PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#> PREFIX schema: <http://schema.org/> PREFIX skos: <http://www.w3.org/2004/02/skos/core#> PREFIX wikibase: <http://wikiba.se/ontology#> PREFIX p: <http://www.wikidata.org/prop/> PREFIX psv: <http://www.wikidata.org/prop/statement/value/> PREFIX pq: <http://www.wikidata.org/prop/qualifier/>'
 A='?t wdt:P171+ wd:Q729 .'
 N=500000
 getp() {
@@ -43,13 +43,16 @@ getp iucn   "SELECT ?t ?s WHERE { $A ?t wdt:P141 ?s } ORDER BY ?t"
 getp pbdb   "SELECT ?t ?id WHERE { $A ?t wdt:P10907 ?id } ORDER BY ?t"
 # entries that aren't creatures: synonyms, misspellings, footprints and eggs (ichno- and ootaxa), dubious names,
 # and words like "fish" or "worm" that aren't branches of the tree
-getp junk   "SELECT DISTINCT ?t WHERE { $A ?t wdt:P31 ?c . VALUES ?c { wd:Q1040689 wd:Q17487588 wd:Q42310380 wd:Q17276484 wd:Q1984758 wd:Q2568288 wd:Q2491016 wd:Q110533142 wd:Q922448 wd:Q59278506 wd:Q14594740 wd:Q7882332 wd:Q59511375 wd:Q6015290 wd:Q844326 wd:Q55983715 } } ORDER BY ?t"
+# ("known by a common name" only when it isn't also a taxon: birds are both, and the whole bird class, the
+# chicken, herons, falcons, dingoes and mink went missing when it counted alone)
+getp junk2  "SELECT DISTINCT ?t WHERE { $A { ?t wdt:P31 ?c . VALUES ?c { wd:Q1040689 wd:Q17487588 wd:Q42310380 wd:Q17276484 wd:Q1984758 wd:Q2568288 wd:Q2491016 wd:Q110533142 wd:Q922448 wd:Q59278506 wd:Q14594740 wd:Q7882332 wd:Q59511375 wd:Q6015290 wd:Q844326 } } UNION { ?t wdt:P31 wd:Q55983715 . FILTER NOT EXISTS { ?t wdt:P31 wd:Q16521 } } } ORDER BY ?t"
 # the same creature in the databases phylopic links its silhouettes to
 getp gbif   "SELECT ?t ?id WHERE { $A ?t wdt:P846 ?id } ORDER BY ?t"
 getp ncbi   "SELECT ?t ?id WHERE { $A ?t wdt:P685 ?id } ORDER BY ?t"
 getp ott    "SELECT ?t ?id WHERE { $A ?t wdt:P9157 ?id } ORDER BY ?t"
-# how heavy, with its unit, for comparing two creatures
-getp mass   "SELECT ?t ?v ?u WHERE { $A ?t p:P2067/psv:P2067 ?s . ?s wikibase:quantityAmount ?v ; wikibase:quantityUnit ?u } ORDER BY ?t"
+# how heavy, with its unit and what the figure's of: a grown-up, a newborn, the smallest... (the qualifiers
+# "object has role", "applies to part" and "sex"), so a birth weight is never taken for a grown-up's
+getp weights "SELECT ?t ?v ?u ?role ?part ?sex ?how WHERE { $A ?t p:P2067 ?s . ?s psv:P2067 ?sv . ?sv wikibase:quantityAmount ?v ; wikibase:quantityUnit ?u . OPTIONAL { ?s pq:P3831 ?role } OPTIONAL { ?s pq:P518 ?part } OPTIONAL { ?s pq:P21 ?sex } OPTIONAL { ?s pq:P1480 ?how } } ORDER BY ?t"
 # the line from the first life up to animals, and the other branches off it (plants, bacteria...)
 getp toppar "SELECT ?t ?p ?n ?l ?w ?i WHERE { wd:Q729 wdt:P171* ?t . OPTIONAL { ?t wdt:P171 ?p } OPTIONAL { ?t wdt:P225 ?n } OPTIONAL { ?t rdfs:label ?l . FILTER(LANG(?l)='en') } OPTIONAL { ?a schema:about ?t ; schema:isPartOf <https://en.wikipedia.org/> ; schema:name ?w } OPTIONAL { ?t wdt:P18 ?i } }"
 getp topx   "SELECT ?t ?p ?n ?l ?s ?w ?i WHERE { wd:Q729 wdt:P171* ?p . ?t wdt:P171 ?p . FILTER(?t != wd:Q729) OPTIONAL { ?t wdt:P225 ?n } OPTIONAL { ?t rdfs:label ?l . FILTER(LANG(?l)='en') } OPTIONAL { ?t wikibase:sitelinks ?s } OPTIONAL { ?a schema:about ?t ; schema:isPartOf <https://en.wikipedia.org/> ; schema:name ?w } OPTIONAL { ?t wdt:P18 ?i } }"
@@ -57,3 +60,6 @@ getp rankl  "SELECT DISTINCT ?r ?l WHERE { ?x wdt:P105 ?r . ?r rdfs:label ?l . F
 # fossil dates for every accepted animal name
 [ -s "$R/pbdb-taxa.txt" ] || curl -s --compressed --fail 'https://paleobiodb.org/data1.2/taxa/list.txt?base_name=Metazoa&taxon_status=accepted&show=app' -o "$R/pbdb-taxa.txt"
 echo "pbdb: $(wc -l < "$R/pbdb-taxa.txt") lines"
+# every animal fossil, so build.js can work out the ranges without the doubtful ones (a few minutes, ~300 MB)
+[ -s "$R/pbdb-occs.txt" ] || curl -s --compressed --fail 'https://paleobiodb.org/data1.2/occs/list.txt?base_name=Metazoa&vocab=pbdb' -o "$R/pbdb-occs.txt"
+echo "pbdb fossils: $(wc -l < "$R/pbdb-occs.txt") lines"

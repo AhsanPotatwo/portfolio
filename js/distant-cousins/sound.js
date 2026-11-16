@@ -21,12 +21,13 @@ const dcSound = (() => {
   const MAKER = 'js/squimble-music-maker/';
   const MOODS_BY = { light: ['calm', 'heavenly', 'nostalgic', 'calm'], dark: ['calm', 'nostalgic', 'underwater', 'wintry'] };
   const SCENERY = { light: ['birds', 'stream', 'leaves', 'birds'], dark: ['crickets', 'owl', 'frogs', 'crickets'] };
-  const BEDS = ['pad', 'drone', 'texture', 'bass'];
+  const BEDS = ['pad', 'texture', 'bass'];
   const SONG_MINUTES = 5;
-  // how loud it all is: the music under the board, and the sounds over it (the maker's 0 to 1)
-  const VOLUME = 0.4, CHIME = 0.62, PLUCK = 0.5;
+  // how loud it all is: the music under the board, the soft broken chords in it, and the sounds over it
+  // (the maker's 0 to 1)
+  const VOLUME = 0.4, KEYS = 0.5, CHIME = 0.62, PLUCK = 0.5;
   // the music's intensity at rest, and how much each find brings in
-  const REST = 0.4, LIFT = 0.15, SETTLE_AFTER = 45000;
+  const REST = 0.5, LIFT = 0.25, SETTLE_AFTER = 45000;
 
   let player = null, loading = null, now = null, nextSong = null, settle = null, on = false;
   const theme = () => document.documentElement.dataset.dcTheme === 'dark' ? 'dark' : 'light';
@@ -45,6 +46,16 @@ const dcSound = (() => {
     const rng = makeRng(Math.random(), Date.now());
     const song = generateSong(mood, MOODS[mood].style, newSeed(rng));
     song.layers = song.layers.filter(layer => BEDS.includes(layer.role));
+    // always the same three, so the intensity ladder is always pad (0), the soft broken chords (0.5) and
+    // the bass (1): at rest the pads and the keys play, and finds bring the bass in. (a drone used to be
+    // kept too, and the ladder put it first, so at rest it was often one held note on its own for minutes)
+    // (the pad and keys in every section, so they tie on the ladder and the bass is always last)
+    const all = layer => { for (const section of song.sections) if (!section.play.includes(layer.id)) section.play.push(layer.id); return layer; };
+    all(song.layers.find(layer => layer.role === 'pad') || addLayer(song, 'pad', rng));
+    if (!song.layers.some(layer => layer.role === 'bass')) all(addLayer(song, 'bass', rng));
+    const keys = all(addLayer(song, 'keys', rng));
+    keys.pattern = 'broken';
+    keys.volume = Math.min(keys.volume, KEYS);
     // the time of day's own scenery, in every section
     let scenery = song.layers.find(layer => layer.role === 'texture');
     if (!scenery) {
@@ -200,6 +211,8 @@ const dcSound = (() => {
       playNotes([0, 1, 2, 3].map(i => ({ layer: p, s: i * 0.06, dur: 0.25, midi: pick(notes), vel: 0.35 })));
     },
     hooray: () => stinger('hooray'),
+    // a wrong answer in a quiz: two falling notes, soft
+    ouch: () => stinger('ouch'),
   };
 
   // the band grows with each find, and settles once you've stopped for a while

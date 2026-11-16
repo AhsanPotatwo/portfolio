@@ -319,6 +319,7 @@ html:has(.dc-page){ scrollbar-color:var(--peach-edge) var(--bg); }
   translate:-50% 0;
   padding:8px 18px 10px;
   border-radius:20px;
+  z-index:6;
   background:var(--bg);
   text-align:center;
   pointer-events:none;
@@ -337,13 +338,15 @@ html:has(.dc-page){ scrollbar-color:var(--peach-edge) var(--bg); }
   width:max-content; max-width:min(420px, calc(100vw - 48px));
   margin:10px auto 0;
   padding:8px 18px;
-  border-radius:999px;
+  border-radius:20px;
   background:var(--star);
   box-shadow:0 4px 0 var(--star-edge);
   color:#3b2440;
   font:400 17px/1.25 var(--font-round);
   animation:dc-cheer-in .5s var(--ease-out);
 }
+.dc-cheer b{ display:block; font-weight:400; }
+.dc-cheer span{ display:block; margin-top:2px; font:600 13px/1.3 var(--font-sans); }
 .dc-cheer[hidden]{ display:none; }
 @keyframes dc-cheer-in{ from{ scale:.6; opacity:0; } 60%{ scale:1.06; opacity:1; } }
 
@@ -384,6 +387,7 @@ html:has(.dc-page){ scrollbar-color:var(--peach-edge) var(--bg); }
 }
 .dc-found li i{ font:italic 400 15px/1.2 var(--font-latin); color:var(--muted); }
 .dc-found li em{ margin-left:auto; font-style:normal; font-size:12px; color:var(--leaf-text); }
+.dc-found-kind{ padding:2px 8px; border-radius:999px; background:var(--sign); color:var(--sign-ink); font-size:11px; font-weight:700; }
 .dc-found li:hover,
 .dc-found li[aria-selected="true"]{ background:var(--peach); }
 .dc-found .dc-found-note{ color:var(--muted); font-weight:600; cursor:default; }
@@ -639,7 +643,8 @@ body.dc-vs-open{ overflow:hidden; }
 .dc-vs-keys{ font-size:14px; color:var(--muted); }
 .dc-vs-pick{ align-self:stretch; justify-content:center; gap:10px; padding:16px; border-radius:16px; outline:2px dashed var(--mystery-edge); outline-offset:-2px; background:var(--mystery); }
 .dc-vs-ask{ font:800 24px/1.1 var(--font-round); }
-.dc-vs-find{ position:relative; top:auto; right:auto; width:100%; z-index:2; }
+/* (both classes, so the phone's rule for the corner search box can't move this one over the chips) */
+.dc-find.dc-vs-find{ position:relative; top:auto; left:auto; right:auto; width:100%; z-index:2; }
 .dc-vs-find .dc-found{ left:0; right:auto; width:100%; text-align:left; }
 .dc-vs-ideas{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
 
@@ -666,6 +671,165 @@ body.dc-vs-open{ overflow:hidden; }
 .dc-vs-facts li{ position:relative; padding-left:18px; font-size:16px; font-weight:600; line-height:1.45; }
 .dc-vs-facts li::before{ content:""; position:absolute; left:3px; top:.55em; width:7px; height:7px; border-radius:50%; background:var(--coral); }
 .dc-vs-facts:empty{ display:none; }
+
+/* only for screen readers */
+.dc-sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+
+/* ---------- things to do: surprise, games, achievements (bottom right) ---------- */
+.dc-play{ position:absolute; right:18px; bottom:20px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; transition:right .3s var(--ease-out); }
+/* (beside the panel while it's open, not under it) */
+@media (min-width:761px){ .dc-stage:has(.dc-panel:not([hidden])) .dc-play{ right:452px; } }
+#dcGamesOpen{ background:var(--leaf); box-shadow:0 4px 0 color-mix(in srgb, var(--leaf) 60%, #000); color:#fff; }
+#dcGamesOpen:hover{ background:var(--leaf); box-shadow:0 6px 0 color-mix(in srgb, var(--leaf) 60%, #000); }
+#dcAchOpen{ background:var(--star); box-shadow:0 4px 0 var(--star-edge); color:#3b2440; }
+#dcAchOpen:hover{ background:var(--star); box-shadow:0 6px 0 var(--star-edge); }
+.dc-count{ padding:3px 8px; border-radius:999px; background:#3b2440; color:var(--star); font:700 12px/1 var(--font-sans); }
+.dc-count:empty{ display:none; }
+
+/* ---------- the hunt ---------- */
+/* who you're looking for, at the top where the logo was (cheers come under it) */
+.dc-hunting .dc-logo{ display:none; }
+.dc-hunting .dc-top{ top:118px; padding:0; background:none; }
+.dc-hunt{
+  position:absolute; top:12px; left:50%; z-index:5;
+  translate:-50% 0;
+  display:flex; align-items:center; gap:14px;
+  width:min(640px, calc(100% - 32px));
+  padding:10px 12px 10px 10px;
+  border-radius:22px;
+  background:var(--card);
+  box-shadow:0 5px 0 var(--card-edge);
+  animation:dc-cheer-in .45s var(--ease-out);
+}
+.dc-hunt[hidden]{ display:none; }
+.dc-hunt-pic{ flex:none; width:84px; aspect-ratio:4 / 3; border-radius:14px; overflow:hidden; background:var(--peach); }
+.dc-hunt-pic img{ width:100%; height:100%; object-fit:contain; }
+.dc-hunt-pic img:not([src]){ visibility:hidden; }
+.dc-hunt-words{ display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+.dc-hunt-kicker{ font-size:12px; font-weight:700; color:var(--leaf-text); }
+.dc-hunt-words b{ font:400 21px/1.15 var(--font-round); overflow-wrap:anywhere; }
+.dc-hunt-words b.is-latin{ font:italic 400 21px/1.2 var(--font-latin); }
+.dc-hunt-say{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:14px; font-weight:600; color:var(--muted); }
+.dc-hunt-path{ font-size:14px; font-weight:700; line-height:1.5; }
+.dc-hunt-keys{ display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; }
+.dc-hunt .dc-key{ height:40px; padding:0 14px; font-size:15px; }
+.dc-stars{ display:inline-flex; gap:2px; }
+.dc-stars svg{ width:20px; height:20px; fill:var(--stone-edge); }
+.dc-stars svg.is-on{ fill:var(--star); }
+/* cards on the way there and off it, and the one a hint points at */
+.dc-node.is-trail{ outline:3px solid var(--leaf); outline-offset:3px; }
+.dc-node.is-astray{ opacity:.45; filter:saturate(.4); }
+.dc-node.is-hinted{ outline:3px dashed var(--star-edge); background:var(--star-soft); animation:dc-glow-card 1.2s ease-in-out infinite alternate; }
+@keyframes dc-glow-card{ to{ box-shadow:0 0 0 8px color-mix(in srgb, var(--star) 35%, transparent); } }
+/* a hunt is played without the shortcuts: no search, no jumping about, no starting again */
+.dc-hunting .dc-find, .dc-hunting .dc-play, .dc-hunting .dc-fav, .dc-hunting #dcTreesOpen, .dc-hunting .dc-met,
+.dc-hunting .dc-members, .dc-hunting .dc-line, .dc-hunting .dc-actions, .dc-hunting .dc-hint{ display:none !important; }
+
+/* ---------- windows: games, achievements, quizzes ---------- */
+.dc-game{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:16px; border-radius:18px; background:var(--mystery); }
+.dc-game + .dc-game, .dc-game-pair{ margin-top:12px; }
+.dc-game h3{ font:800 22px/1.1 var(--font-round); }
+.dc-game p{ font-size:15px; font-weight:600; line-height:1.5; color:var(--muted); text-wrap:pretty; }
+.dc-game-pair{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.dc-game-pair .dc-game{ margin:0; }
+.dc-game-pair .dc-game p{ flex:1; }
+.dc-game-best{ font-size:13px; font-weight:700; color:var(--leaf-text); }
+.dc-levels{ display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; width:100%; margin-top:4px; }
+.dc-level{
+  display:flex; flex-direction:column; align-items:flex-start; gap:4px;
+  padding:12px 12px 14px;
+  border:0;
+  border-radius:16px;
+  background:var(--card);
+  box-shadow:0 4px 0 var(--card-edge);
+  color:var(--ink);
+  text-align:left;
+  font:inherit;
+  cursor:pointer;
+  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out);
+}
+.dc-level:hover{ transform:translateY(-2px); box-shadow:0 6px 0 var(--card-edge); }
+.dc-level:active{ transform:translateY(4px); box-shadow:none; }
+.dc-level b{ font:400 19px/1.1 var(--font-round); }
+.dc-level span{ font-size:13px; font-weight:600; line-height:1.4; color:var(--muted); }
+.dc-level:nth-child(1) b{ color:var(--leaf-text); }
+.dc-level:nth-child(4) b{ color:var(--coral); }
+/* (the quizzes' levels sit two by two in their half of the window) */
+.dc-quiz-levels{ grid-template-columns:1fr 1fr; gap:8px; }
+.dc-quiz-levels .dc-level{ padding:10px 12px 12px; }
+.dc-quiz-levels .dc-level b{ font-size:17px; }
+
+/* your trees */
+.dc-trees-say{ font-size:15px; font-weight:600; line-height:1.5; color:var(--muted); text-wrap:pretty; }
+.dc-trees{ display:flex; flex-direction:column; gap:8px; margin:14px 0; padding:0; list-style:none; }
+.dc-tree{ display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:16px; background:var(--mystery); }
+.dc-tree.is-here{ background:var(--leaf-soft); box-shadow:inset 0 0 0 2px var(--leaf); }
+.dc-tree-words{ display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+.dc-tree-name{ font:400 19px/1.2 var(--font-round); overflow-wrap:anywhere; }
+.dc-tree-words > span{ font-size:13px; font-weight:600; color:var(--muted); }
+.dc-tree-keys{ display:flex; gap:6px; flex:none; }
+.dc-tree-keys .dc-key{ height:36px; padding:0 12px; font-size:14px; }
+.dc-tree-bin{ color:var(--coral); }
+.dc-tree-field{ font:400 19px/1.2 var(--font-round); width:100%; padding:4px 8px; border:2px solid var(--leaf); border-radius:10px; background:var(--card); color:var(--ink); }
+.dc-tree-new svg{ width:20px; height:20px; }
+.dc-trees-note{ min-height:1.4em; margin-top:8px; font-size:14px; font-weight:600; color:var(--muted); }
+
+.dc-ach-sum{ display:flex; align-items:center; gap:14px; margin-bottom:6px; font-size:16px; font-weight:700; }
+.dc-ach-sum b{ font:400 26px/1 var(--font-round); }
+.dc-ach-sum .dc-ach-bar{ flex:1; height:12px; }
+.dc-ach-bar{ display:block; height:8px; border-radius:999px; overflow:hidden; background:var(--peach); }
+.dc-ach-bar i{ display:block; height:100%; border-radius:inherit; background:var(--leaf); }
+.dc-ach-head{ display:flex; align-items:center; gap:8px; margin:18px 0 8px; font:800 18px/1.1 var(--font-round); }
+.dc-ach-head svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.dc-ach-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:8px; }
+.dc-ach{ display:flex; align-items:flex-start; gap:10px; padding:10px 12px; border-radius:14px; background:var(--mystery); outline:2px dashed var(--mystery-edge); outline-offset:-2px; }
+.dc-ach.is-done{ background:var(--star-soft); outline:0; box-shadow:0 3px 0 var(--star-edge); }
+.dc-ach-badge{ flex:none; display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:var(--stone); color:var(--muted); }
+.dc-ach.is-done .dc-ach-badge{ background:var(--star); color:#3b2440; }
+.dc-ach-badge svg{ width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.dc-ach-words{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.dc-ach-words b{ font:400 16px/1.2 var(--font-round); }
+.dc-ach:not(.is-done) .dc-ach-words b{ color:var(--muted); }
+.dc-ach-words > span{ font-size:13px; font-weight:600; line-height:1.35; color:var(--muted); }
+.dc-ach-progress{ display:flex; align-items:center; gap:8px; margin-top:4px; font-size:12px; font-weight:700; color:var(--muted); }
+.dc-ach-progress .dc-ach-bar{ flex:1; }
+
+.dc-quiz-count{ font-size:13px; font-weight:700; color:var(--muted); }
+.dc-quiz-ask, .dc-quiz-target h3{ margin:8px 0 14px; font:800 clamp(22px,2.6vw,28px)/1.15 var(--font-round); text-align:center; text-wrap:balance; }
+.dc-quiz-target{ display:flex; flex-direction:column; align-items:center; }
+.dc-quiz-target .dc-quiz-pic{ width:min(240px, 60%); }
+.dc-quiz-picks{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:12px; }
+.dc-quiz-picks .dc-vs-and{ margin:0; font-size:22px; }
+.dc-quiz-pick{
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+  padding:8px 8px 12px;
+  border:0;
+  border-radius:18px;
+  background:var(--card);
+  box-shadow:0 5px 0 var(--card-edge);
+  outline:2px solid var(--card-edge);
+  outline-offset:-2px;
+  color:var(--ink);
+  font:inherit;
+  cursor:pointer;
+  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out);
+}
+.dc-quiz-pick:hover:not(:disabled){ transform:translateY(-3px); box-shadow:0 8px 0 var(--card-edge); }
+.dc-quiz-pick:active:not(:disabled){ transform:translateY(4px); box-shadow:none; }
+.dc-quiz-pick:disabled{ cursor:default; }
+.dc-quiz-pick b{ font:400 19px/1.15 var(--font-round); }
+.dc-quiz-pick.is-right{ outline:4px solid var(--leaf); background:var(--leaf-soft); animation:dc-hop .5s var(--ease-out); }
+.dc-quiz-pick.is-wrong{ outline:4px solid var(--coral); }
+.dc-quiz-pick.is-other{ opacity:.55; }
+.dc-quiz-pic{ display:block; width:100%; aspect-ratio:4 / 3; border-radius:14px; overflow:hidden; background:var(--peach); }
+.dc-quiz-pic img{ width:100%; height:100%; object-fit:contain; }
+.dc-quiz-pic img:not([src]){ visibility:hidden; }
+.dc-quiz-why{ min-height:1.5em; margin-top:14px; font-size:16px; font-weight:600; line-height:1.5; text-align:center; text-wrap:pretty; }
+.dc-quiz-next{ display:flex; justify-content:center; margin-top:12px; }
+.dc-quiz-next[hidden]{ display:none; }
+.dc-quiz-end{ display:flex; flex-direction:column; align-items:center; gap:10px; padding:10px 0; text-align:center; font-size:17px; font-weight:600; }
+.dc-quiz-score{ font-size:20px; }
+.dc-quiz-score b{ font:800 64px/1 var(--font-round); color:var(--coral); }
 
 /* ---------- the soil band ---------- */
 .dc-band{
@@ -703,12 +867,30 @@ body.dc-vs-open{ overflow:hidden; }
   .dc-controls{ left:12px; right:12px; bottom:14px; gap:6px; }
   .dc-key{ height:42px; padding:0 14px; font-size:15px; }
   .dc-icon{ width:42px; padding:0; }
-  /* surprise me keeps just its dice so the keys fit on one row */
-  #dcSurprise{ width:42px; padding:0; }
-  #dcSurprise span{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
-  .dc-hint{ bottom:68px; font-size:14px; }
-  /* the favourite shrinks to its picture, bottom right */
-  .dc-fav{ left:auto; top:auto; right:12px; bottom:68px; }
+  /* surprise, games and achievements keep just their pictures, in a column on the right */
+  .dc-play{ right:12px; bottom:68px; flex-direction:column; align-items:flex-end; gap:6px; }
+  .dc-play .dc-key{ position:relative; width:42px; padding:0; }
+  .dc-play .dc-key span:not(.dc-count){ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .dc-count{ position:absolute; top:-6px; right:-8px; padding:2px 5px; font-size:10px; }
+  .dc-hint{ top:128px; bottom:auto; font-size:14px; }
+  /* the favourite shrinks to its picture, bottom left */
+  .dc-fav{ left:12px; top:auto; right:auto; bottom:68px; }
+  /* the hunt sits where the search was */
+  .dc-hunt{ top:12px; flex-wrap:wrap; gap:8px 10px; padding:8px; }
+  .dc-hunting .dc-top{ top:150px; }
+  .dc-hunting .dc-cheer{ top:0; }
+  .dc-hunt-pic{ width:60px; }
+  .dc-hunt-words b, .dc-hunt-words b.is-latin{ font-size:18px; }
+  .dc-hunt-keys{ width:100%; }
+  .dc-hunt .dc-key{ flex:1; height:36px; }
+  .dc-levels{ grid-template-columns:1fr 1fr; }
+  .dc-game-pair{ grid-template-columns:1fr; }
+  .dc-quiz-picks{ gap:6px; }
+  .dc-quiz-pick b{ font-size:16px; }
+  .dc-ach-list{ grid-template-columns:1fr; }
+  .dc-tree{ flex-wrap:wrap; }
+  .dc-tree-keys{ width:100%; }
+  .dc-tree-keys .dc-key{ flex:1; }
   .dc-fav-go{ padding:4px; }
   .dc-fav-words{ display:none; }
   .dc-fav-pic{ width:34px; height:34px; }
@@ -730,6 +912,7 @@ body.dc-vs-open{ overflow:hidden; }
   .dc-node, .dc-key, .dc-chip, .dc-fav-go, .dc-member{ transition:none; }
   .dc-node.is-born, .dc-node.is-busy, .dc-panel, .dc-vs, .dc-vs-card,
   .dc-node.is-revealed, .dc-node.is-hung, .dc-node.is-unfound:hover .dc-sil, .dc-met.is-up, .dc-cheer,
-  #dcSurprise.is-rolling svg, .dc-vs-and, .dc-vs-fork, .dc-vs-line > li{ animation:none; }
+  #dcSurprise.is-rolling svg, .dc-vs-and, .dc-vs-fork, .dc-vs-line > li, .dc-hunt, .dc-node.is-hinted, .dc-quiz-pick.is-right{ animation:none; }
+  .dc-level, .dc-quiz-pick{ transition:none; }
   .dc-motes{ display:none; }
 }
