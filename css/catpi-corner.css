@@ -335,7 +335,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
 .cc-name > span:first-child, .cc-slide > span{ font-size:20px; font-weight:700; }
 .cc-name{ display:grid; gap:4px; min-width:0; }
 .cc-name-row{ display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:8px; }
-.cc-name input{
+.cc-name input, .cc-name-row input{
   width:100%; min-width:0;
   height:42px;
   padding:0 12px;
@@ -490,6 +490,106 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
 .cc-hatch-go .cc-new{ margin-left:0; }
 .cc-bye{ margin-right:auto; color:var(--bye); }
 
+/* ---------- the notice board: cork in a wooden frame, notes pinned up at a slant (board.js) ---------- */
+.cc-board{ margin-top:clamp(40px,5vw,60px); }
+.cc-board-top{ display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:14px 28px; margin-bottom:22px; }
+.cc-board-title{ margin:0; font-size:clamp(36px,3.8vw,50px); line-height:1; }
+.cc-board-lede{ max-width:30em; margin:6px 0 0; font-size:clamp(19px,1.5vw,22px); font-weight:700; color:var(--muted); }
+.cc-board-keys{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+.cc-board-keys .cc-new{ margin-left:0; }
+.cc-small:disabled, .cc-new:disabled{ opacity:.5; cursor:default; transform:none; }
+.cc-cork{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:30px 26px;
+  min-height:240px;
+  margin:0; padding:40px 34px 34px;
+  list-style:none;
+  border:3px solid var(--ink);
+  border-radius:8px 14px 10px 16px / 14px 8px 16px 10px;
+  background-color:#d6a06b;
+  background-image:
+    radial-gradient(circle, rgba(122, 72, 34, .45) 0 1.3px, transparent 1.8px),
+    radial-gradient(circle, rgba(255, 228, 186, .4) 0 1.1px, transparent 1.6px),
+    radial-gradient(circle, rgba(98, 56, 24, .3) 0 .9px, transparent 1.4px);
+  background-size:13px 11px, 17px 19px, 7px 9px;
+  background-position:0 0, 5px 8px, 3px 2px;
+  box-shadow:inset 0 0 0 14px #a4693a, inset 0 0 0 17px var(--ink), inset 0 6px 0 17px rgba(0,0,0,.12), 6px 7px 0 var(--ink);
+}
+.cc-pinned{ position:relative; rotate:var(--r, 0deg); transition:rotate .25s var(--ease-out), scale .25s var(--ease-out); }
+.cc-pinned:hover, .cc-pinned:focus-within{ rotate:0deg; scale:1.04; z-index:1; }
+/* a drawing pin, in a random colour, pushed in at the top */
+.cc-pinned::before{
+  content:"";
+  position:absolute; left:50%; top:-7px; z-index:1;
+  width:20px; height:20px;
+  translate:-50% 0;
+  border:2.5px solid var(--ink);
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 35%, rgba(255,255,255,.75) 0 3px, transparent 3.5px), var(--pin);
+  box-shadow:2px 3px 0 rgba(58,48,52,.35);
+  pointer-events:none;
+}
+.cc-pinned-look{ display:block; width:100%; padding:0; border:0; background:none; cursor:zoom-in; }
+.cc-pinned canvas{ display:block; width:100%; height:auto; aspect-ratio:1; filter:drop-shadow(4px 5px 0 rgba(58,48,52,.35)); }
+/* yours, not pinned yet: taped on instead, with a label */
+.cc-pinned.is-waiting::before{ top:-10px; width:74px; height:24px; border:0; border-radius:2px; background:var(--tape); box-shadow:none; rotate:-4deg; }
+.cc-pinned.is-waiting canvas{ opacity:.82; }
+.cc-pinned-wait{
+  position:absolute; right:-6px; bottom:-12px;
+  padding:3px 10px;
+  border:2px solid var(--ink);
+  border-radius:var(--wobble-2);
+  background:var(--card); color:var(--text);
+  font-size:17px; font-weight:700;
+  rotate:3deg;
+}
+.cc-board-say{ margin:16px 0 0; font-size:21px; font-weight:700; }
+.cc-board-say:empty{ display:none; }
+.cc-cork.is-empty{ min-height:120px; }
+.cc-mod-open{ margin-top:18px; text-decoration:none; }
+
+/* ---------- leaving a note, looking closer, and the mod panel: paper dialogs like the hatch one ---------- */
+.cc-write form{ grid-template-columns:minmax(280px, 440px) 1fr; }
+.cc-write .cc-hatch-main > *{ flex-shrink:0; }
+.cc-hatch .cc-pad{ aspect-ratio:1; border-radius:0; background:none; touch-action:none; cursor:crosshair; }
+.cc-held{ display:flex; flex-wrap:wrap; gap:6px; }
+.cc-held .cc-small{ min-height:36px; padding:0 10px; }
+.cc-held .cc-small:has(svg){ width:40px; padding:0; }
+.cc-held .cc-small svg{ width:20px; height:20px; }
+.cc-paper::before{ content:""; width:16px; height:16px; border-radius:4px 6px 3px 5px; background:var(--dot); box-shadow:0 0 0 2px var(--ink); }
+.cc-width{ display:inline-flex; align-items:center; gap:8px; }
+.cc-width::before{ content:""; width:var(--w); height:var(--w); border-radius:50%; background:currentColor; }
+#ccWidths{ margin-top:4px; }
+.cc-stickers{ display:grid; grid-template-columns:repeat(auto-fill, minmax(58px, 1fr)); gap:6px; }
+.cc-sticker, .cc-catpi-pick{
+  display:grid; justify-items:center; gap:2px;
+  padding:6px 2px 4px;
+  border:2.5px solid transparent;
+  border-radius:var(--wobble-2);
+  background:none; color:var(--text);
+  font:700 15px/1 var(--font-hand);
+  cursor:pointer;
+  transition:transform .15s var(--ease-out), background-color .15s ease, border-color .15s ease;
+}
+.cc-sticker img{ width:46px; height:46px; }
+.cc-sticker:hover, .cc-catpi-pick:hover{ transform:rotate(-4deg) scale(1.06); border-color:var(--ink); background:var(--card); }
+.cc-my-catpis{ grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); }
+.cc-hatch .cc-catpi-pick canvas{ width:100px; height:auto; aspect-ratio:4 / 3; border-radius:0; background:none; }
+.cc-catpi-pick span{ font-size:17px; }
+.cc-write-rules{ margin:8px 0 0; padding:8px 12px; border:2.5px dashed var(--ink); border-radius:var(--wobble-2); font-size:18px; font-weight:700; }
+.cc-write-say{ flex:1 1 100%; margin:0; font-size:19px; font-weight:700; color:var(--bye); text-align:right; }
+.cc-write-say:empty{ display:none; }
+
+.cc-look{ width:min(620px, calc(100% - 24px)); padding:48px 18px 18px; }
+.cc-look canvas{ display:block; aspect-ratio:1; border-radius:0; background:none; }
+.cc-look .cc-says{ margin:8px 4px 0; }
+.cc-look .cc-card-x{ z-index:1; }
+.cc-look-mod{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:12px 4px 0; padding-top:12px; border-top:2.5px dashed var(--ink); font-size:20px; font-weight:700; }
+.cc-look-mod[hidden]{ display:none; }
+.cc-look-mod .cc-bye{ margin-right:0; }
+.cc-mod-say{ flex:1 1 100%; margin:0; font-size:19px; font-weight:700; color:var(--bye); }
+.cc-mod-say:empty{ display:none; }
+
+
 /* ---------- scrollbars: a groove in the paper and a crayon to drag (chrome and safari draw the custom
    ones only where scrollbar-color isn't set, firefox takes the colours) ---------- */
 html:has(.cc-page), .cc-hatch, .cc-hatch-main{ scrollbar-color:auto; }
@@ -555,8 +655,12 @@ html:has(.cc-page)::-webkit-scrollbar-corner, .cc-hatch ::-webkit-scrollbar-corn
   .cc-hatch{ overflow:auto; }
   .cc-crayon{ width:22px; height:50px; }
   .cc-band-links, .cc-band-links .btn{ width:100%; }
+  .cc-cork{ grid-template-columns:repeat(auto-fill, minmax(128px, 1fr)); gap:22px 16px; padding:32px 24px 26px; }
+  .cc-board-keys, .cc-board-keys .cc-new{ width:100%; justify-content:center; }
+  .cc-write form{ grid-template-columns:1fr; }
 }
 
 @media (prefers-reduced-motion:reduce){
   .cc-stage.is-turning, .cc-card, .cc-hatch[open], .cc-news li{ animation:none; }
+  .cc-pinned{ transition:none; }
 }

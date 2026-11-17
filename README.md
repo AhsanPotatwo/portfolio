@@ -18,13 +18,20 @@ npx serve .
 
 `server/` is a Cloudflare Worker that runs online Wizard Battles (Play a friend). Each room is a Durable Object that holds the duel and rolls the dice, using the same `rules.js` as the page.
 
+It also runs Catpi Corner's notice board. Notes are kept in a D1 database and wait there until a mod pins them up. Every note is checked by `notes.js`, the same file the page uses.
+
+Mods sign in on `mod.html` with their own key. The owner's key makes and removes mods and picks which projects each one looks after.
+
 ```bash
 cd server
 npm install
+npx wrangler d1 migrations apply catpi-board --local
 npm run dev      # local server on :8787, the page uses it when opened from localhost
-npm test         # plays a battle through it
+npm test         # plays a battle and runs the board through it (keys in .dev.vars)
 npm run deploy
 ```
+
+`.dev.vars` holds `BOSS_KEY` (the owner's mod key) and `SALT` for local runs. Online they're secrets (`npx wrangler secret put BOSS_KEY`).
 
 ## Contact
 

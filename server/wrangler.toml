@@ -10,3 +10,10 @@ class_name = "Room"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Room"]
+
+# catpi corner's notice board and the site's mods
+[[d1_databases]]
+binding = "DB"
+database_name = "catpi-board"
+database_id = "85df8de3-c4d8-489c-8a9c-788c8f8335a7"
+migrations_dir = "migrations"

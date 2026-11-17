@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mod page - Ahsan</title>
+  <meta name="robots" content="noindex">
+  <!-- keys get typed here, so only this site's own scripts may run, and only the server may be talked to -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://portfolio-server.portfolio-server.workers.dev http://127.0.0.1:8787; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Gaegu:wght@400;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/mod.css">
+</head>
+
+<body class="mod-page">
+
+  <a class="skip-link" href="#modMain">Skip to the mod page</a>
+
+  <header class="site-header" id="header">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html#home"><span class="brand-bracket">[</span>Ahsan<span class="brand-bracket">]</span></a>
+
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="nav" id="primaryNav" aria-label="Primary">
+        <a href="index.html#home" class="nav-link">Home</a>
+        <a href="index.html#about" class="nav-link">About</a>
+        <a href="index.html#skills" class="nav-link">Skills</a>
+        <a href="index.html#projects" class="nav-link">Projects</a>
+        <a href="index.html#contact" class="nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container mod-main" id="modMain">
+    <h1 class="mod-title">Mod page</h1>
+    <p class="mod-lede" id="modLede">For the people who keep the shared corners of this site kind. Sign in with the key you were given.</p>
+
+    <form class="mod-card mod-sign" id="modSignIn">
+      <label for="modKey">Your mod key</label>
+      <div class="mod-row">
+        <input id="modKey" type="password" autocomplete="off" spellcheck="false">
+        <button class="mod-btn is-go" type="submit">Sign in</button>
+      </div>
+      <p class="mod-hint">It's remembered in this browser until you sign out.</p>
+    </form>
+    <p class="mod-say" id="modSay" role="status"></p>
+
+    <div class="mod-in" id="modIn" hidden>
+      <div class="mod-bar">
+        <p id="modYou"></p>
+        <button class="mod-btn" type="button" id="modOut">Sign out</button>
+      </div>
+      <div class="mod-tabs" role="tablist" aria-label="What to look after" id="modTabs"></div>
+      <section class="mod-panel" id="modPanel" role="tabpanel" aria-labelledby="modTabs"></section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Made in <span id="year">2026</span> by pondering my crystal orb ~ Ahsan, Full Stack Wizard</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <!-- catpi corner's drawing kit and catpis, to draw the notice board's notes -->
+  <script src="js/catpi-corner/crayon.js"></script>
+  <script src="js/catpi-corner/catpis.js"></script>
+  <script src="js/catpi-corner/notes.js"></script>
+  <script src="js/catpi-corner/art.js"></script>
+  <script src="js/mod.js"></script>
+</body>
+
+</html>

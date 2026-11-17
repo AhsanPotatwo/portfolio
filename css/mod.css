@@ -1,0 +1,116 @@
+/* the mod page, loaded on top of styles.css. the home page's night sky and flat keys, kept plain: it's a
+   tool. notes from catpi corner sit on it as they do on the board, paper on a dark desk */
+.mod-page{
+  --night:      #1f1a33;
+  --night-2:    #29223f;
+  --night-3:    #352c52;
+  --edge:       #140f22;
+  --paper:      #f6f0e4;
+  --paper-dim:  #b9b0cc;
+  --butter:     #ffd166;
+  --butter-edge:#c9962a;
+  --lilac:      #b49cff;
+  --rose:       #ff8f8f;
+  background:var(--night);
+  color:var(--paper);
+}
+html:has(.mod-page){ scrollbar-color:var(--night-3) var(--night); }
+.mod-page ::selection{ background:var(--butter); color:var(--night); }
+.mod-page :focus-visible{ outline:3px solid var(--butter); outline-offset:3px; }
+.mod-page .site-header{ background:var(--night); backdrop-filter:none; border-bottom:2px solid var(--night-2); }
+.mod-page .brand{ color:var(--butter); }
+.mod-page .brand-bracket{ color:var(--lilac); }
+.mod-page .nav-link::after{ background:var(--butter); }
+.mod-page .site-footer{ background:var(--night-2); border-top:0; color:var(--paper-dim); }
+.mod-page [hidden]{ display:none !important; }
+
+.mod-main{ max-width:1100px; min-height:70vh; padding-block:clamp(36px,5vw,64px) var(--section-pad); }
+.mod-title{ margin:0; font:400 clamp(44px,6vw,72px)/1 var(--font-display); color:var(--butter); }
+.mod-lede{ max-width:36em; margin:14px 0 0; font-size:var(--text-body); color:var(--paper-dim); }
+
+.mod-card{ padding:18px 20px; border-radius:18px; background:var(--night-2); }
+.mod-sign{ display:grid; gap:8px; max-width:520px; margin-top:28px; }
+.mod-sign label, .mod-add label{ font-weight:700; font-size:18px; }
+.mod-row{ display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:10px; }
+.mod-page input:not([type=checkbox]){
+  width:100%; min-width:0; height:46px;
+  padding:0 14px;
+  border:2px solid var(--night-3);
+  border-radius:12px;
+  background:var(--night);
+  color:var(--paper);
+  font:600 17px var(--font-sans);
+}
+.mod-page input[readonly]{ font:600 15px var(--font-mono); }
+.mod-hint{ margin:0; color:var(--paper-dim); font-size:16px; }
+.mod-small{ margin:12px 0 6px; font-size:15px; font-weight:700; color:var(--paper-dim); }
+.mod-say{ margin:14px 0 0; font-weight:700; color:var(--rose); }
+.mod-say:empty{ display:none; }
+
+/* small flat keys */
+.mod-btn{
+  --k:var(--edge);
+  height:42px;
+  padding:0 16px;
+  border:0;
+  border-radius:11px;
+  background:var(--night-3);
+  box-shadow:0 4px 0 var(--k);
+  color:var(--paper);
+  font:700 15px var(--font-sans);
+  cursor:pointer;
+  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out), background-color .15s ease;
+}
+.mod-btn:hover{ transform:translateY(-1px); box-shadow:0 5px 0 var(--k); background:#3f3561; }
+.mod-btn:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--k); }
+.mod-btn:disabled{ opacity:.5; cursor:default; transform:none; }
+.mod-btn.is-go{ --k:var(--butter-edge); background:var(--butter); color:var(--night); }
+.mod-btn.is-go:hover{ background:#ffdb85; }
+.mod-btn.is-bye{ color:var(--rose); }
+
+.mod-in{ margin-top:22px; }
+.mod-bar{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 20px; }
+.mod-bar p{ margin:0; font-weight:600; }
+.mod-tabs{ display:flex; flex-wrap:wrap; gap:6px; margin:24px 0 0; border-bottom:2px solid var(--night-3); }
+.mod-tab{
+  padding:12px 18px;
+  border:0; border-radius:12px 12px 0 0;
+  background:transparent; color:var(--paper-dim);
+  font:700 17px var(--font-sans);
+  cursor:pointer;
+}
+.mod-tab:hover{ color:var(--paper); background:var(--night-2); }
+.mod-tab[aria-selected="true"]{ background:var(--night-3); color:var(--butter); }
+.mod-panel{ display:grid; gap:28px; padding-top:22px; }
+
+.mod-h{ margin:0 0 14px; font-size:24px; }
+.mod-notes{ display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:22px; margin:0; padding:0; list-style:none; }
+.mod-note{ display:grid; gap:8px; align-content:start; }
+.mod-note canvas{ display:block; width:100%; height:auto; aspect-ratio:1; }
+.mod-note .mod-hint{ font-size:14px; }
+.mod-row-btns{ display:flex; flex-wrap:wrap; gap:6px; }
+.mod-row-btns .mod-btn{ height:38px; padding:0 12px; font-size:14px; }
+
+.mod-list{ display:grid; gap:12px; margin:0; padding:0; list-style:none; }
+.mod-person-head{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px 16px; }
+.mod-person strong{ display:block; font-size:20px; }
+.mod-ticks{ display:flex; flex-wrap:wrap; gap:8px; }
+.mod-tick{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 12px;
+  border-radius:10px;
+  background:var(--night-3);
+  font-weight:600; font-size:15px;
+  cursor:pointer;
+  transition:background-color .3s ease;
+}
+.mod-tick input{ width:18px; height:18px; accent-color:var(--butter); }
+.mod-tick.is-saved{ background:#3d5a3a; }
+.mod-add{ display:grid; gap:8px; max-width:620px; }
+.mod-newkey{ margin-top:14px; padding:14px 16px; border:2px dashed var(--butter); border-radius:14px; }
+.mod-newkey p{ margin:0 0 10px; }
+
+@media (max-width:600px){
+  .mod-notes{ grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:16px; }
+  .mod-row{ grid-template-columns:1fr; }
+}

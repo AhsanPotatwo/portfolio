@@ -120,124 +120,9 @@
     p.translate(s, s);
     p.scale(s / 40, s / 40);
     C.wobble(name.length * 13);
-    icon(p, name);
+    Art.icon(p, name);
     C.paper(p, 80, 80, 0.3);
     return (pics[name] = c);
-  }
-  // an icon drawn in a box from -40 to 40
-  function icon(p, name) {
-    const INK = PLACES.INK;
-    const heart = (fill) => C.shape(p, [[0, 30], [-26, 6], [-30, -10], [-22, -24], [-8, -24], [0, -12], [8, -24], [22, -24], [30, -10], [26, 6]], fill, { shade: '#e5466e', width: 3 });
-    switch (name) {
-      case 'leaf':
-        C.shape(p, [[-30, 26], [-26, -6], [-6, -26], [26, -30], [24, 0], [6, 22]], '#8fd660', { shade: '#5fa83e', width: 3 });
-        C.stroke(p, [[-30, 28], [-8, 4], [18, -20]], '#4e8a33', 3);
-        break;
-      case 'berry':
-        C.shape(p, [[0, 30], [-22, 6], [-24, -12], [-12, -20], [0, -18], [12, -20], [24, -12], [22, 6]], '#f2554f', { shade: '#c9322f', width: 3 });
-        for (const [x, y] of [[-10, -4], [8, -6], [0, 8], [-6, 18], [10, 12]]) { p.fillStyle = '#ffe680'; p.fillRect(x - 2, y - 2, 4, 5); }
-        C.shape(p, [[-16, -20], [0, -30], [16, -20], [0, -14]], '#6dbb53', { width: 2.5 });
-        break;
-      case 'fish':
-        C.shape(p, [[-30, 0], [-12, -16], [12, -14], [22, -4], [36, -16], [34, 14], [22, 4], [12, 14], [-12, 16]], '#8fb8d8', { shade: '#5f8fb8', width: 3 });
-        p.fillStyle = INK; p.beginPath(); p.arc(-16, -3, 3.5, 0, 7); p.fill();
-        C.stroke(p, [[-4, -10], [0, 0], [-4, 10]], '#5f8fb8', 2.5);
-        break;
-      case 'cake':
-        C.shape(p, [[-30, 20], [-30, -4], [26, -24], [30, -6], [30, 20]], '#ffe3a8', { shade: '#f2c879', width: 3 });
-        C.shape(p, [[-30, -4], [26, -24], [30, -6], [-30, 8]], '#ff9fbf', { shade: '#ef6f9c', width: 2.5 });
-        C.shape(p, C.blob(18, -30, 7, 7, 0.1, 8), '#e5383b', { width: 2 });
-        break;
-      case 'ball':
-        C.shape(p, C.blob(0, 0, 30, 30, 0.03), '#ffd84f', { shade: '#f2a516', width: 3 });
-        C.stroke(p, [[-28, -8], [-6, -2], [10, 6], [28, 12]], '#e5383b', 7);
-        C.stroke(p, [[-14, -22], [-6, -26]], '#ffffff', 4);
-        break;
-      case 'heart': heart('#ff7f9e'); break;
-      case 'note':
-        C.stroke(p, [[-8, 22], [-8, -24], [20, -30], [20, 14]], INK, 4);
-        C.shape(p, C.blob(-16, 22, 10, 8, 0.1, 10), INK, { outline: false });
-        C.shape(p, C.blob(12, 14, 10, 8, 0.1, 10), INK, { outline: false });
-        break;
-      case 'star':
-        C.shape(p, Array.from({ length: 10 }, (_, i) => { const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 13 : 30; return [Math.cos(a) * r, Math.sin(a) * r]; }), '#ffd84f', { shade: '#f2a516', width: 3 });
-        break;
-      case 'sun':
-        for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; C.stroke(p, [[Math.cos(a) * 22, Math.sin(a) * 22], [Math.cos(a) * 34, Math.sin(a) * 34]], '#f2a516', 4); }
-        C.shape(p, C.blob(0, 0, 17, 17, 0.05), '#ffd84f', { shade: '#f2a516', width: 3 });
-        break;
-      case 'moon':
-        C.shape(p, [[6, -28], [-14, -20], [-22, 0], [-14, 20], [6, 28], [22, 22], [6, 14], [-2, 0], [6, -14], [22, -22]], '#fff0a8', { shade: '#efcf5a', width: 3 });
-        break;
-      case 'flower':
-        for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; C.shape(p, C.blob(Math.cos(a) * 16, Math.sin(a) * 16, 12, 12, 0.1, 10), '#c59cf4', { width: 2.5 }); }
-        C.shape(p, C.blob(0, 0, 10, 10, 0.1, 10), '#ffd84f', { width: 2.5 });
-        break;
-      case 'rain':
-        for (const [x, y] of [[-14, -10], [12, -18], [2, 12]]) C.shape(p, [[x, y - 14], [x - 8, y + 2], [x, y + 9], [x + 8, y + 2]], '#8fc8f2', { shade: '#4f9fe0', width: 2.5 });
-        break;
-      case 'question':
-        p.font = '700 64px Gaegu, sans-serif'; p.textAlign = 'center'; p.textBaseline = 'middle'; p.fillStyle = INK; p.fillText('?', 0, 4);
-        break;
-      case 'exclaim':
-        p.font = '700 64px Gaegu, sans-serif'; p.textAlign = 'center'; p.textBaseline = 'middle'; p.fillStyle = '#e5383b'; p.fillText('!', 0, 4);
-        break;
-      case 'dots':
-        for (const x of [-18, 0, 18]) { p.fillStyle = INK; p.beginPath(); p.arc(x, 4, 5, 0, 7); p.fill(); }
-        break;
-      case 'yuck':
-        C.stroke(p, [[-28, -6], [-18, -16], [-8, -4], [2, -16], [12, -4], [22, -16], [30, -6]], '#7aa83a', 5);
-        C.stroke(p, [[-24, 14], [-12, 4], [0, 16], [12, 4], [24, 14]], '#7aa83a', 5);
-        break;
-      case 'dizzy':
-        C.stroke(p, Array.from({ length: 24 }, (_, i) => { const a = i * 0.55, r = 3 + i * 1.2; return [Math.cos(a) * r, Math.sin(a) * r]; }), INK, 3.5);
-        break;
-      // the cursor's tools
-      case 'hand': {
-        // a little open hand, fingers spread: thick round lines for the fingers and thumb on a round palm
-        const fingers = [[-17, 4, -20, -22], [-6, 2, -6, -31], [6, 2, 6, -29], [17, 4, 19, -19], [-19, 18, -33, 0]];
-        const line = (x1, y1, x2, y2, w, colour) => { p.strokeStyle = colour; p.lineWidth = w; p.lineCap = 'round'; p.beginPath(); p.moveTo(x1, y1); p.lineTo(x2, y2); p.stroke(); };
-        // drawn a little smaller and nudged to the middle so the fingertips don't touch the picture's edge
-        p.save(); p.translate(4, 0); p.scale(0.84, 0.84);
-        const palm = C.blob(0, 15, 23, 20, 0.03, 18);
-        for (const [x1, y1, x2, y2] of fingers) line(x1, y1, x2, y2, 17, INK);
-        p.strokeStyle = INK; p.lineWidth = 6; C.trace(p, palm); p.stroke();
-        for (const [x1, y1, x2, y2] of fingers) line(x1, y1, x2, y2, 11, '#ffdcbf');
-        p.fillStyle = '#ffdcbf'; C.trace(p, palm); p.fill();
-        C.scribble(p, C.blob(4, 22, 18, 11, 0.04), '#f5b48c', { angle: 0.4, gap: 5, width: 3, alpha: 0.6 });
-        line(-8, 20, 4, 14, 2.5, '#d98d66');
-        p.restore();
-        break;
-      }
-      case 'can': {
-        // a watering can: handle, body, a long spout with a sprinkler on the end
-        const line = (pts, w, colour) => { p.strokeStyle = colour; p.lineWidth = w; p.lineCap = p.lineJoin = 'round'; C.trace(p, pts, false); p.stroke(); };
-        p.save(); p.translate(-5, 1); p.scale(0.8, 0.8);
-        const handle = [[-26, 0], [-24, -24], [-2, -26], [6, -4]];
-        const spout = [[8, 16], [24, 0], [33, -14]];
-        line(handle, 10, INK);
-        line(spout, 12, INK);
-        line(handle, 4, '#4f9fe0');
-        const body = [[-30, -6], [12, -6], [16, 30], [-34, 30]];
-        C.shape(p, body, '#7fc3e8', { shade: '#4f9fe0', angle: 1.4, gap: 6, sharp: true, width: 3.5 });
-        line(spout, 6, '#7fc3e8');
-        p.save(); p.translate(35, -17); p.rotate(-0.7);
-        C.shape(p, C.blob(0, 0, 7, 11, 0.04, 14), '#4f9fe0', { width: 3 });
-        for (const y of [-5, 0, 5]) { p.fillStyle = '#d6eefb'; p.beginPath(); p.arc(1, y, 1.6, 0, 7); p.fill(); }
-        p.restore();
-        p.strokeStyle = '#d6eefb'; p.lineWidth = 3; p.beginPath(); p.moveTo(-22, 2); p.lineTo(-22, 20); p.stroke();
-        p.restore();
-        break;
-      }
-      case 'soap':
-        C.shape(p, C.box(-28, -10, 56, 32, 10), '#ffc9e0', { shade: '#f59ac0', width: 3 });
-        for (const [x, y, r] of [[-14, -20, 8], [4, -26, 10], [20, -18, 6]]) C.pencil(p, C.blob(x, y, r, r, 0.05, 10), { color: '#7fb2cc', width: 2.5 });
-        break;
-      case 'cocoon':
-        C.shape(p, C.blob(0, 0, 22, 34, 0.06), '#f6e6c4', { shade: '#d9be8a', width: 3 });
-        for (const y of [-18, -6, 6, 18]) C.stroke(p, [[-20, y], [20, y + 4]], '#c9a66b', 2.5);
-        break;
-    }
   }
   const FOOD_FOR = { leaf: 'leaf', berry: 'berry', fish: 'fish', cake: 'cake' };
 
@@ -1000,7 +885,9 @@
   window.addEventListener('pagehide', store);
   setInterval(() => { if (ready) { store(); counts(); } }, 4000);
 
-  (async () => {
+  // the notice board (board.js) borrows your catpis and the news line, once the drawing's loaded
+  window.CornerPage = { news, catpis: () => catpis };
+  CornerPage.ready = (async () => {
     await Promise.all([document.fonts.load('700 30px Gaegu'), document.fonts.load('400 20px Gaegu'), Catpis.load()]);
     size();
     catpis = restore();

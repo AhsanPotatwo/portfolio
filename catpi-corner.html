@@ -144,6 +144,29 @@
         <h2 class="cc-news-title">Corner news</h2>
         <ol id="ccNews" aria-live="polite"></ol>
       </div>
+
+      <!-- the notice board: notes visitors left, a different handful each time (board.js) -->
+      <section class="cc-board" aria-labelledby="ccBoardTitle">
+        <div class="cc-board-top">
+          <div>
+            <h2 class="cc-board-title" id="ccBoardTitle">The notice board</h2>
+            <p class="cc-board-lede">Notes left by people who popped into the corner. A different handful every time you look.</p>
+          </div>
+          <div class="cc-board-keys">
+            <button class="cc-small" type="button" id="ccShuffle">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7h4c4 0 5 10 9 10h4M17.5 14l3 3-3 3M3.5 17h4c1.6 0 2.7-1.6 3.6-3.4M13 9.4C13.9 7.6 15 7 16.5 7h4M17.5 4l3 3-3 3"/></svg>
+              Shuffle
+            </button>
+            <button class="cc-new" type="button" id="ccWriteOpen">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v11l-5 5H5z"/><path d="M14 20v-5h5"/><path d="M8.5 9h7M8.5 12.5h4"/></svg>
+              Leave a note
+            </button>
+          </div>
+        </div>
+        <ul class="cc-cork" id="ccCork" aria-label="Notes on the board"></ul>
+        <p class="cc-board-say" id="ccBoardSay" aria-live="polite"></p>
+        <a class="cc-small cc-mod-open" id="ccModOpen" href="mod.html" hidden>Mod page</a>
+      </section>
     </div>
 
     <!-- make a new catpi, or change one -->
@@ -201,6 +224,68 @@
       </form>
     </dialog>
 
+    <!-- leave a note on the board -->
+    <dialog class="cc-hatch cc-write" id="ccWrite" aria-labelledby="ccWriteTitle">
+      <form id="ccWriteForm" method="dialog">
+        <div class="cc-hatch-side">
+          <h2 id="ccWriteTitle">Leave a note</h2>
+          <canvas class="cc-pad" id="ccPad" width="800" height="800" tabindex="0" aria-label="Your note. Draw on it with a crayon, and drag what you've stuck on it. With something picked, arrow keys move it, plus and minus resize it, the square brackets turn it and delete takes it off."></canvas>
+          <div class="cc-held" id="ccHeld" role="group" aria-label="The thing you picked">
+            <button class="cc-small" type="button" data-do="smaller" aria-label="Smaller" title="Smaller"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button>
+            <button class="cc-small" type="button" data-do="bigger" aria-label="Bigger" title="Bigger"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg></button>
+            <button class="cc-small" type="button" data-do="left" aria-label="Turn left" title="Turn left"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5 4.5 9 8 12.5"/><path d="M4.5 9H14a5.5 5.5 0 0 1 0 11h-3"/></svg></button>
+            <button class="cc-small" type="button" data-do="right" aria-label="Turn right" title="Turn right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5.5 19.5 9 16 12.5"/><path d="M19.5 9H10a5.5 5.5 0 0 0 0 11h3"/></svg></button>
+            <button class="cc-small" type="button" data-do="front">To the front</button>
+            <button class="cc-small cc-bye" type="button" data-do="off">Take off</button>
+          </div>
+          <div class="cc-held">
+            <button class="cc-small" type="button" id="ccUndo">Undo</button>
+            <button class="cc-small" type="button" id="ccWipe">Wipe it clean</button>
+          </div>
+        </div>
+        <div class="cc-hatch-main">
+          <h3 class="cc-group">Paper</h3>
+          <div class="cc-chips cc-pencils" id="ccPapers"></div>
+          <h3 class="cc-group">Crayons</h3>
+          <p class="cc-says">Draw anywhere on the note that's not a sticker.</p>
+          <div class="cc-crayons" id="ccInks"></div>
+          <div class="cc-chips" id="ccWidths" role="group" aria-label="How thick"></div>
+          <h3 class="cc-group">Stickers</h3>
+          <div class="cc-stickers" id="ccStickers"></div>
+          <h3 class="cc-group">Words</h3>
+          <div class="cc-name-row">
+            <input id="ccWords" maxlength="60" autocomplete="off" aria-label="Words to stick on, in the crayon colour" placeholder="Say hello...">
+            <button class="cc-small" type="button" id="ccWordsGo">Stick it on</button>
+          </div>
+          <h3 class="cc-group">Your catpis</h3>
+          <p class="cc-says" id="ccNoCatpis" hidden>Hatch a catpi first and they can go on your note too.</p>
+          <div class="cc-stickers cc-my-catpis" id="ccMyCatpis"></div>
+          <p class="cc-write-rules">A mod reads every note before it goes on the board, so be kind. No names, addresses or anything you'd want back.</p>
+          <div class="cc-hatch-go">
+            <p class="cc-write-say" id="ccWriteSay" role="status"></p>
+            <button class="cc-small" type="button" id="ccWriteCancel">Not now</button>
+            <button class="cc-new" type="submit" id="ccWriteGo">Pin it up</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- one note, bigger -->
+    <dialog class="cc-hatch cc-look" id="ccLook" aria-labelledby="ccLookSays">
+      <button class="cc-card-x" type="button" id="ccLookClose" aria-label="Close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+      <canvas id="ccLookPic" width="800" height="800" aria-hidden="true"></canvas>
+      <p class="cc-says" id="ccLookSays"></p>
+      <!-- for mods signed in on this browser -->
+      <div class="cc-look-mod" id="ccLookMod" hidden>
+        <span>Mod:</span>
+        <button class="cc-small" type="button" id="ccLookArchive">Archive it</button>
+        <button class="cc-small cc-bye" type="button" id="ccLookBin">Remove it</button>
+        <p class="cc-mod-say" id="ccLookModSay" role="status"></p>
+      </div>
+    </dialog>
+
     <!-- the page ends in the grass -->
     <section class="cc-band">
       <div class="container cc-band-inner">
@@ -240,12 +325,16 @@
   <script src="js/squimble-quest/utils.js"></script>
   <script src="js/squimble-quest/datafiles.js"></script>
   <script src="js/squimble-quest/sound.js"></script>
-  <!-- the drawing kit, the places, the catpis, their sounds, then the page -->
+  <!-- the drawing kit, the places, the catpis, their sounds, then the page and its notice board -->
   <script src="js/catpi-corner/crayon.js"></script>
   <script src="js/catpi-corner/places.js"></script>
   <script src="js/catpi-corner/catpis.js"></script>
   <script src="js/catpi-corner/sounds.js"></script>
+  <!-- what a note on the board is (shared with the server), and the little pictures, notes included -->
+  <script src="js/catpi-corner/notes.js"></script>
+  <script src="js/catpi-corner/art.js"></script>
   <script src="js/catpi-corner/page.js"></script>
+  <script src="js/catpi-corner/board.js"></script>
 </body>
 
 </html>
