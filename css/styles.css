@@ -932,65 +932,132 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
   pointer-events:none;
 }
 
-/* wizard battles card: its page's table. the wood with runes scratched faintly into it (runes.svg), the page's
-   magic circle turning slowly on the right, and the name a wizard to a line in Crimson Pro, blue shadow under
-   one and red under the other, with the title's twinkles. on hover the words take turns lunging, like the
-   duel, and the circle speeds up */
+/* wizard battles card: the game's toy theatre. its own dusk backdrop and the two cut-out puppets, drawn by the
+   game (js/wizard-battles/duel.js) and saved as images in assets/wizard-battles/card, so they're exactly the
+   ones you play with. curtains drawn back at the sides, the pelmet along the top, footlights along the bottom,
+   and the name on a playbill hanging from strings between the two wizards. resting, they bob on their rods.
+   on hover they duel, a turn each like the game: blue throws fire and red wobbles, then red throws water back.
+   every position is in cqi worked out from the game's own: 1 game px is .125cqi, the puppets at .9 of that */
 .project-card-wizard{
   position:relative;
   overflow:hidden;
-  background:#3d2a23 url("../assets/wizard-battles/runes.svg") 0 0 / 300px;
+  background:#3a2c48;
 }
-.project-card-wizard:hover,
-.project-card-wizard:focus-within{ background-color:#46302a; }
-.project-card-wizard .project-card-link{ justify-items:start; }
-.wizard-ring{
-  position:absolute;
-  right:-4cqi; top:50%;
-  width:46cqi; height:46cqi;
-  margin-top:-23cqi;
-  animation:wizard-turn 60s linear infinite;
-}
-.project-card-wizard:hover .wizard-ring,
-.project-card-wizard:focus-within .wizard-ring{ animation-duration:9s; }
-@keyframes wizard-turn{ to{ rotate:360deg; } }
-.wizard-title{
-  position:relative; z-index:1;
-  margin-left:9cqi;
+.project-card-wizard .project-card-link{ display:block; }
+.wizard-stage{ position:absolute; inset:0; overflow:hidden; border-radius:inherit; }
+.wizard-backdrop{ position:absolute; inset:0; width:100%; height:100%; transition:filter .2s ease; }
+.project-card-wizard:is(:hover, :focus-within) .wizard-backdrop{ filter:brightness(1.08); }
+.wizard-theatre{ position:absolute; inset:0; width:100%; height:100%; }
+.wizard-puppet{ position:absolute; bottom:1.25cqi; animation:wizard-bob 3s ease-in-out infinite; }
+.wizard-puppet img{ display:block; width:100%; height:auto; transform-origin:50% 100%; }
+.wizard-puppet-you{ left:12cqi; width:11.7cqi; }
+.wizard-puppet-foe{ right:12cqi; width:13.3cqi; animation-delay:-1.5s; }
+@keyframes wizard-bob{ 50%{ translate:0 -.3cqi; } }
+
+/* the playbill */
+.wizard-sign{
+  position:absolute; left:50%; top:7.5cqi; z-index:2;
+  padding:1.3cqi 3cqi 1.5cqi;
+  border-radius:.8cqi;
+  background:#f1e2c2;
+  box-shadow:0 .8cqi 0 #c4a774, 1cqi 1.8cqi 0 rgba(28,18,14,.28);
+  translate:-50% 0;
+  rotate:-2deg;
   font-family:"Crimson Pro", var(--font-sans);
   font-weight:700;
-  font-size:12.5cqi;
-  line-height:.86;
-  letter-spacing:-.01em;
-  color:#ffc9ac;
+  font-size:8.4cqi;
+  line-height:.9;
+  text-align:center;
+  color:#362521;
+  transition:rotate .35s var(--ease-out);
 }
-.wizard-title > span{ display:block; }
-.wizard-you{ text-shadow:.035em .045em 0 #3f6dc0; }
-.wizard-foe{ margin-left:.6em; text-shadow:.035em .045em 0 #b83a40; }
-/* a turn each: the caster leans into the spell and its shadow throws further, then it's the other's go */
-.project-card-wizard:hover .wizard-you,
-.project-card-wizard:focus-within .wizard-you{ animation:wizard-you 1.6s cubic-bezier(.3,1.4,.5,1) infinite; }
-.project-card-wizard:hover .wizard-foe,
-.project-card-wizard:focus-within .wizard-foe{ animation:wizard-foe 1.6s cubic-bezier(.3,1.4,.5,1) infinite; }
-@keyframes wizard-you{
-  0%, 40%, 100%{ translate:0 0; text-shadow:.035em .045em 0 #3f6dc0; }
-  12%{ translate:.06em 0; text-shadow:.09em .07em 0 #3f6dc0; }
+.project-card-wizard:is(:hover, :focus-within) .wizard-sign{ rotate:1deg; }
+/* the two strings up to the pelmet */
+.wizard-sign::before{
+  content:"";
+  position:absolute; left:20%; right:20%; top:-4cqi;
+  height:4cqi;
+  border-inline:.25cqi solid #d9b77a;
 }
-@keyframes wizard-foe{
-  0%, 50%, 90%, 100%{ translate:0 0; text-shadow:.035em .045em 0 #b83a40; }
-  62%{ translate:-.06em 0; text-shadow:-.02em .07em 0 #b83a40; }
+.wizard-sign > span{ display:block; }
+.wizard-sign .wizard-you{ text-shadow:.04em .05em 0 #98c1ff; }
+.wizard-sign .wizard-foe{ text-shadow:.04em .05em 0 #ff6b6b; }
+
+/* the duel, 3.2s round: blue casts at 0%, fire lands at 30%, red casts at 50%, water lands at 80% */
+/* behind the playbill, like a prop passing behind the scenery, so the name always reads */
+.wizard-spell{ position:absolute; z-index:1; width:7cqi; opacity:0; }
+.wizard-spell svg{ display:block; width:100%; height:auto; overflow:visible; }
+.wizard-spell-fire{ left:16.2cqi; top:11.3cqi; }
+.wizard-spell-water{ left:75.1cqi; top:9cqi; }
+.wizard-spell-water svg{ scale:-1 1; }
+.wizard-slip{
+  position:absolute; z-index:3;
+  padding:.3cqi 1.2cqi .2cqi;
+  border-radius:.8cqi;
+  background:#f6ead6;
+  box-shadow:0 .5cqi 0 #c4a774;
+  font:700 4.2cqi/1 "Crimson Pro", var(--font-sans);
+  color:#b83a40;
+  opacity:0;
 }
-.wizard-twinkle{
-  position:absolute;
-  fill:currentColor;
-  animation:wizard-twinkle 5s ease-in-out infinite;
+.wizard-slip-foe{ left:84cqi; top:9cqi; rotate:5deg; }
+.wizard-slip-you{ left:23cqi; top:12cqi; rotate:-5deg; }
+.project-card-wizard:is(:hover, :focus-within) .wizard-puppet{ animation:none; }
+.project-card-wizard:is(:hover, :focus-within) .wizard-puppet-you img{ animation:wizard-you-turn 3.2s linear infinite; }
+.project-card-wizard:is(:hover, :focus-within) .wizard-puppet-foe img{ animation:wizard-foe-turn 3.2s linear infinite; }
+.project-card-wizard:is(:hover, :focus-within) .wizard-spell-fire{ animation:wizard-fire-x 3.2s linear infinite; }
+.project-card-wizard:is(:hover, :focus-within) .wizard-spell-fire svg{ animation:wizard-fire-y 3.2s linear infinite; }
+.project-card-wizard:is(:hover, :focus-within) .wizard-spell-water{ animation:wizard-water-x 3.2s linear infinite; }
+.project-card-wizard:is(:hover, :focus-within) .wizard-spell-water svg{ animation:wizard-water-y 3.2s linear infinite; }
+.project-card-wizard:is(:hover, :focus-within) .wizard-slip-foe{ animation:wizard-slip 3.2s linear infinite; }
+.project-card-wizard:is(:hover, :focus-within) .wizard-slip-you{ animation:wizard-slip 3.2s linear -1.6s infinite; }
+/* lunge to cast, then knocked back and wobbling on the rod when hit, flashing for a moment */
+@keyframes wizard-you-turn{
+  0%, 16%, 78%, 93%, 100%{ transform:none; filter:none; }
+  6%{ transform:translateX(1.2cqi) rotate(5deg); }
+  80%{ transform:translateX(-1.4cqi) rotate(-8deg); filter:brightness(1.9); }
+  82%{ filter:none; }
+  84%{ transform:translateX(-.6cqi) rotate(5deg); }
+  88%{ transform:rotate(-3deg); }
 }
-.wizard-twinkle-a{ left:46cqi; top:6cqi; width:3.4cqi; color:#f6c96b; }
-.wizard-twinkle-b{ left:5cqi; top:26cqi; width:2.2cqi; color:#98c1ff; animation-delay:-1.7s; }
-.wizard-twinkle-c{ left:62cqi; top:27cqi; width:2cqi; color:#ff6b6b; animation-delay:-3.3s; }
-@keyframes wizard-twinkle{
-  0%, 100%{ opacity:1; scale:1; }
-  50%{ opacity:.45; scale:.75; }
+@keyframes wizard-foe-turn{
+  0%, 28%, 43%, 46%, 66%, 100%{ transform:none; filter:none; }
+  30%{ transform:translateX(1.4cqi) rotate(8deg); filter:brightness(1.9); }
+  32%{ filter:none; }
+  34%{ transform:translateX(.6cqi) rotate(-5deg); }
+  38%{ transform:rotate(3deg); }
+  56%{ transform:translateX(-1.2cqi) rotate(-5deg); }
+}
+/* each spell flies across at an even speed while it rises and falls, so it arcs */
+@keyframes wizard-fire-x{
+  0%, 7%{ opacity:0; transform:none; }
+  7.1%{ opacity:1; transform:none; }
+  29.9%{ opacity:1; transform:translateX(60.7cqi); }
+  30%, 100%{ opacity:0; transform:translateX(60.7cqi); }
+}
+@keyframes wizard-fire-y{
+  0%, 7%{ transform:rotate(-14deg); animation-timing-function:ease-out; }
+  18.5%{ transform:translateY(-4cqi); animation-timing-function:ease-in; }
+  30%, 100%{ transform:translateY(7.6cqi) rotate(16deg); }
+}
+@keyframes wizard-water-x{
+  0%, 57%{ opacity:0; transform:none; }
+  57.1%{ opacity:1; transform:none; }
+  79.9%{ opacity:1; transform:translateX(-60cqi); }
+  80%, 100%{ opacity:0; transform:translateX(-60cqi); }
+}
+@keyframes wizard-water-y{
+  0%, 57%{ transform:rotate(14deg); animation-timing-function:ease-out; }
+  68.5%{ transform:translateY(-3.5cqi); animation-timing-function:ease-in; }
+  80%, 100%{ transform:translateY(11cqi) rotate(-18deg); }
+}
+/* the paper slip for a hit: pops up, drifts, fades */
+@keyframes wizard-slip{
+  0%, 29.9%{ opacity:0; transform:scale(.4); }
+  31.5%{ opacity:1; transform:scale(1.15); }
+  33%{ opacity:1; transform:scale(1); }
+  45%{ opacity:1; transform:translateY(-1.4cqi); }
+  49%, 100%{ opacity:0; transform:translateY(-1.8cqi); }
 }
 
 /* cli battleships card: its page's board, the sea.svg tile in squares on the dark green screen, laid so four
@@ -1825,7 +1892,7 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
   .reveal{ opacity:1; transform:none; }
   .bg-nebula-1, .bg-nebula-2, .bg-nebula-3, .shooting-star{ animation:none; }
   .design-viewer[open]{ animation:none; }
-  .wizard-ring, .wizard-you, .wizard-foe, .wizard-twinkle{ animation:none !important; }
+  .wizard-puppet, .wizard-puppet img, .wizard-spell, .wizard-spell svg, .wizard-slip{ animation:none !important; }
   .cli-caret{ animation:none; }
   .studio-wave i, .studio-playhead{ animation:none; }
   .project-card-music, .music-paint, .music-notes i, .music-swatches i, .music-title, .music-word span{ animation:none !important; }
