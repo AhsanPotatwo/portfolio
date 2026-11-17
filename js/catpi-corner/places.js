@@ -78,6 +78,11 @@ const PLACES = (() => {
     C.trace(g, C.blob(x, y, 2.6 * s, 2.6 * s, 0.1, 8));
     g.fill();
   };
+  const edges = (corners, rough = 1.4) => corners.flatMap(([x0, y0], i) => {
+    const [x1, y1] = corners[(i + 1) % corners.length];
+    const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / 40));
+    return Array.from({ length: n }, (_, k) => [x0 + ((x1 - x0) * k) / n + (k ? C.j(rough) : 0), y0 + ((y1 - y0) * k) / n + (k ? C.j(rough) : 0)]);
+  });
   const tuft = (g, x, y, s = 1, colour = K.tuft) => {
     for (const d of [-6, -2, 3, 7]) C.stroke(g, [[x + d * s, y], [x + d * 1.6 * s + C.j(2), y - (10 + Math.abs(C.j(6))) * s]], colour, 2, 0.8);
   };
@@ -118,20 +123,28 @@ const PLACES = (() => {
       C.shape(g, [[wx - 24, 206], [wx - 22, 192], [wx - 12, 180], [wx, 176], [wx + 12, 180], [wx + 22, 192], [wx + 24, 206]], K.roof, { shade: K.roofShade, angle: 1.4, gap: 5, sharp: true });
       // the grass, from the hills down
       C.shape(g, [[-10, 336], [W * 0.3, 330], [W * 0.7, 338], [W + 10, 332], [W + 10, 730], [-10, 730]], K.grass, { shade: K.grassShade, alpha: 0.35, angle: -0.15, gap: 11, stroke: 5, outline: false, sharp: true });
-      // the barn and silo
+      // the silo, behind the barn: a round tower with a dome, metal bands that curve round it, a ladder
       const bx = W * 0.07, by = 352;
-      C.shape(g, C.box(bx + 232, by - 170, 66, 170, 4), K.silo, { shade: K.siloShade, angle: 1.45, gap: 6 });
-      C.shape(g, Array.from({ length: 13 }, (_, i) => { const a = Math.PI + (i / 12) * Math.PI; return [bx + 265 + Math.cos(a) * 35, by - 170 + Math.sin(a) * 26]; }), K.siloShade, { shade: '#7d8fa3', angle: 0.4, gap: 5, sharp: true });
-      for (let y = by - 140; y < by; y += 34) C.stroke(g, [[bx + 234, y], [bx + 296, y + 2]], '#7d8fa3', 2, 0.6);
-      C.shape(g, C.poly([[bx, by], [bx, by - 120], [bx + 125, by - 196], [bx + 250, by - 120], [bx + 250, by]]), K.barn, { shade: K.barnShade, angle: 1.5, gap: 7, alpha: 0.5 });
-      C.shape(g, C.poly([[bx - 14, by - 112], [bx + 125, by - 206], [bx + 264, by - 112], [bx + 250, by - 104], [bx + 125, by - 188], [bx, by - 104]]), K.roof, { shade: K.roofShade });
+      const sx = bx + 232, sw = 66, st = by - 160;
+      C.shape(g, edges([[sx, st], [sx + sw, st], [sx + sw, by + 4], [sx, by + 4]]), K.silo, { shade: K.siloShade, angle: 1.5, gap: 6, sharp: true });
+      C.scribble(g, edges([[sx + sw * 0.66, st], [sx + sw, st], [sx + sw, by], [sx + sw * 0.66, by]]), K.siloShade, { angle: 1.5, gap: 4, width: 4, alpha: 0.7, sharp: true });
+      for (let y = st + 26; y < by; y += 28) C.stroke(g, Array.from({ length: 5 }, (_, i) => [sx + 2 + (i / 4) * (sw - 4), y + Math.sin((i / 4) * Math.PI) * 5]), '#7d8fa3', 2.5, 0.8);
+      for (const x of [sx + 10, sx + 22]) C.stroke(g, [[x, st + 8], [x, by]], '#6f7f92', 2.5);
+      for (let y = st + 18; y < by; y += 14) C.stroke(g, [[sx + 10, y], [sx + 22, y]], '#6f7f92', 2);
+      C.shape(g, Array.from({ length: 15 }, (_, i) => { const t = Math.PI + (i / 14) * Math.PI; return [sx + sw / 2 + Math.cos(t) * (sw / 2 + 3), st + 2 + Math.sin(t) * 34]; }), K.siloShade, { shade: '#7d8fa3', angle: 0.5, gap: 5, sharp: true });
+      C.stroke(g, [[sx + 14, st - 18], [sx + 22, st - 26]], '#d6e0ea', 3);
+      C.shape(g, C.box(sx + sw / 2 - 7, st - 40, 14, 9, 3), '#7d8fa3', { width: 2 });
+      // the barn: a gambrel-ish house shape with real corners, and a roof that hangs over its walls
+      C.shape(g, edges([[bx, by], [bx, by - 120], [bx + 125, by - 196], [bx + 250, by - 120], [bx + 250, by]]), K.barn, { shade: K.barnShade, angle: 1.5, gap: 7, alpha: 0.5, sharp: true });
+      for (let x = bx + 30; x < bx + 240; x += 30) if (x < bx + 66 || x > bx + 184) C.stroke(g, [[x, by - 100], [x, by - 4]], K.barnShade, 2, 0.6);
+      C.shape(g, edges([[bx - 14, by - 112], [bx + 125, by - 208], [bx + 264, by - 112], [bx + 252, by - 102], [bx + 125, by - 188], [bx - 2, by - 102]], 1), K.roof, { shade: K.roofShade, sharp: true });
       // the big door with its white cross, and the hay loft
       const door = C.box(bx + 70, by - 104, 110, 104, 2);
-      C.shape(g, door, K.barnShade, { shade: '#a83525', alpha: 0.4, angle: 1.5 });
+      C.shape(g, door, K.barnShade, { shade: '#a83525', alpha: 0.4, angle: 1.5, sharp: true });
       C.stroke(g, [[bx + 72, by - 102], [bx + 178, by - 2]], K.trim, 5);
       C.stroke(g, [[bx + 178, by - 102], [bx + 72, by - 2]], K.trim, 5);
       C.pencil(g, door, { color: K.trim, width: 5, passes: 1 });
-      C.shape(g, C.box(bx + 104, by - 160, 42, 36, 2), '#5a2a22', { line: K.trim, width: 4 });
+      C.shape(g, C.box(bx + 104, by - 160, 42, 36, 2), '#5a2a22', { line: K.trim, width: 4, sharp: true });
       for (let i = 0; i < 4; i++) C.stroke(g, [[bx + 108 + i * 10, by - 128], [bx + 112 + i * 9, by - 140 - (i % 2) * 6]], K.hay, 3);
       // the fence along the back of the pen
       const fy = 372;
@@ -166,9 +179,14 @@ const PLACES = (() => {
     },
     props: (W) => [
       { x: W * 0.17, y: 478, w: 150, h: 100, ax: 75, ay: 92, draw(g) {
-        C.shape(g, C.box(-64, -78, 128, 74, 14), K.hay, { shade: K.hayShade, angle: 0.1, gap: 5, alpha: 0.55 });
-        for (const x of [-30, 28]) C.stroke(g, [[x, -76], [x + 2, -6]], '#a8781a', 4);
-        for (let i = 0; i < 9; i++) C.stroke(g, [[-58 + i * 14, -80], [-62 + i * 14 + C.j(4), -88 - Math.abs(C.j(5))]], K.hayShade, 2.5);
+        const front = edges([[-66, -56], [50, -56], [50, -4], [-66, -4]]);
+        const top = edges([[-66, -56], [-48, -80], [68, -80], [50, -56]]);
+        const side = edges([[50, -56], [68, -80], [68, -28], [50, -4]]);
+        C.shape(g, front, K.hay, { shade: K.hayShade, angle: 0.08, gap: 5, alpha: 0.55, sharp: true });
+        C.shape(g, top, '#fbe58f', { shade: K.hay, angle: 0.5, gap: 5, alpha: 0.6, sharp: true });
+        C.shape(g, side, K.hayShade, { shade: '#c0901e', angle: 1.2, gap: 4, alpha: 0.6, sharp: true });
+        for (const x of [-34, 14]) C.stroke(g, [[x, -4], [x, -56], [x + 18, -80]], '#a8781a', 3.5);
+        for (const [x, y, dx, dy] of [[-58, -60, -8, -6], [-40, -78, -4, -10], [-6, -80, 2, -10], [30, -80, 6, -9], [62, -74, 9, -6], [66, -46, 10, 2], [-66, -30, -10, 1], [-20, -4, -3, 8], [36, -4, 4, 8]]) C.stroke(g, [[x - dx * 0.4, y - dy * 0.4], [x + dx, y + dy]], '#c9971f', 2.5);
       } },
       // a wooden water trough, seen a little from above
       { x: W * 0.6, y: 446, w: 200, h: 90, ax: 100, ay: 80, draw(g) {
@@ -214,7 +232,7 @@ const PLACES = (() => {
   // ---------- crumbs café ----------
   const cafe = {
     id: 'cafe', name: 'Crumbs Cafe', says: 'the cafe',
-    ground: (W) => ({ top: 452, bottom: 692, left: Math.min(W * 0.24, 230), right: W - 40 }),
+    ground: (W) => ({ top: 480, bottom: 692, left: 40, right: W - 40 }),
     water: () => [],
     spots: (W) => [{ x: W * 0.43, y: 112, r: 46, name: 'clock' }, { x: Math.min(W * 0.22, 220) * 0.52, y: 274, r: 30, name: 'bell' }],
     sky(g, W) {
@@ -256,8 +274,9 @@ const PLACES = (() => {
       }
       // the counter, with a cake under a glass and the coffee machine
       const cw = Math.min(W * 0.22, 220);
-      C.shape(g, C.box(-12, 288, cw + 12, 22, 4), '#8a5a31', { shade: '#6d4523', angle: 0 });
-      C.shape(g, C.box(-12, 308, cw, 160, 4), '#f6c3cc', { shade: '#e597a6', angle: 1.5, gap: 8 });
+      C.shape(g, edges([[-12, 308], [cw - 4, 308], [cw - 4, 470], [-12, 470]]), '#f6c3cc', { shade: '#e597a6', angle: 1.5, gap: 8, sharp: true });
+      C.shape(g, edges([[-12, 456], [cw - 4, 456], [cw - 4, 470], [-12, 470]]), '#e597a6', { width: 2, sharp: true });
+      C.shape(g, edges([[-12, 288], [cw + 8, 288], [cw + 8, 309], [-12, 309]]), '#8a5a31', { shade: '#6d4523', angle: 0, sharp: true });
       for (let x = 14; x < cw - 10; x += 34) C.stroke(g, [[x, 320], [x, 456]], '#e597a6', 3, 0.8);
       const mx2 = cw * 0.8;
       // the coffee machine: a body, its top, a dial, the spout, and a cup waiting under it
@@ -291,12 +310,7 @@ const PLACES = (() => {
         C.shape(g, C.poly([[W * f - 26, 70], [W * f - 12, 40], [W * f + 12, 40], [W * f + 26, 70]]), '#ffd84f', { shade: '#ffb42e', angle: 1.5, gap: 5 });
       }
     },
-    front(g, W) {
-      // the counter's end, in front of everything
-      const cw = Math.min(W * 0.22, 220);
-      C.shape(g, C.box(-12, 470, cw * 0.55, 260, 4), '#f6c3cc', { shade: '#e597a6', angle: 1.5, gap: 8 });
-      C.shape(g, C.box(-12, 458, cw * 0.55 + 10, 18, 4), '#8a5a31', { outline: false });
-    },
+    front() {},
     props: (W) => {
       const table = (x, y) => ({ x, y, w: 200, h: 170, ax: 100, ay: 160, draw(g) {
         C.shape(g, C.box(-8, -112, 16, 108, 3), '#8a5a31', { shade: '#6d4523', angle: 1.5, gap: 4 });
@@ -409,10 +423,15 @@ const PLACES = (() => {
     props: (W) => [
       // a bench
       { x: W * 0.3, y: 480, w: 220, h: 110, ax: 110, ay: 100, draw(g) {
-        for (const x of [-80, 72]) C.shape(g, C.box(x, -46, 10, 46, 2), '#5f5a60', { outline: false });
-        C.shape(g, C.box(-96, -56, 192, 14, 4), K.wood, { shade: K.woodShade, angle: 0, gap: 4 });
-        C.shape(g, C.box(-96, -92, 192, 12, 4), K.wood, { shade: K.woodShade, angle: 0, gap: 4 });
-        C.shape(g, C.box(-96, -74, 192, 12, 4), K.wood, { shade: K.woodShade, angle: 0, gap: 4 });
+        const iron = '#4d5560';
+        for (const x of [-80, 74]) C.shape(g, edges([[x, -100], [x + 7, -100], [x + 7, -48], [x, -48]], 0.6), iron, { width: 2, sharp: true });
+        for (const y of [-98, -80]) C.shape(g, edges([[-96, y], [96, y], [96, y + 13], [-96, y + 13]]), K.wood, { shade: K.woodShade, angle: 0, gap: 4, sharp: true });
+        C.shape(g, edges([[-96, -56], [96, -56], [104, -42], [-88, -42]]), '#d9a066', { shade: K.wood, angle: 0, gap: 4, sharp: true });
+        C.shape(g, edges([[-88, -42], [104, -42], [104, -34], [-88, -34]]), K.woodShade, { width: 2, sharp: true });
+        for (const x of [-82, 82]) {
+          C.stroke(g, [[x, -34], [x - 4, 0]], iron, 6);
+          C.stroke(g, [[x + 10, -34], [x + 14, -6]], iron, 5);
+        }
       } },
       // the lamppost
       { x: W * 0.64, y: 470, w: 90, h: 330, ax: 45, ay: 320, draw(g) {

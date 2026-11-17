@@ -100,9 +100,11 @@ const Catpis = (() => {
     g.drawImage(parts, 0, 0);
     const d = g.getImageData(0, 0, ART.w, ART.h);
     const [br, bg, bb] = C.hex(body), [ar, ag, ab] = C.hex(accent);
-    for (let i = 0; i < d.data.length; i += 4) {
-      if (!d.data[i + 3]) continue;
-      if (d.data[i] > 128) d.data.set([br, bg, bb], i); else d.data.set([ar, ag, ab], i);
+    const px = d.data;
+    for (let i = 0; i < px.length; i += 4) {
+      if (!px[i + 3]) continue;
+      const hi = px[i] > 128;
+      px[i] = hi ? br : ar; px[i + 1] = hi ? bg : ag; px[i + 2] = hi ? bb : ab;
     }
     g.putImageData(d, 0, 0);
     // the pattern and shading go on a sheet of their own, trimmed to the body

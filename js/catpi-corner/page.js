@@ -197,6 +197,8 @@
         // a little open hand, fingers spread: thick round lines for the fingers and thumb on a round palm
         const fingers = [[-17, 4, -20, -22], [-6, 2, -6, -31], [6, 2, 6, -29], [17, 4, 19, -19], [-19, 18, -33, 0]];
         const line = (x1, y1, x2, y2, w, colour) => { p.strokeStyle = colour; p.lineWidth = w; p.lineCap = 'round'; p.beginPath(); p.moveTo(x1, y1); p.lineTo(x2, y2); p.stroke(); };
+        // drawn a little smaller and nudged to the middle so the fingertips don't touch the picture's edge
+        p.save(); p.translate(4, 0); p.scale(0.84, 0.84);
         const palm = C.blob(0, 15, 23, 20, 0.03, 18);
         for (const [x1, y1, x2, y2] of fingers) line(x1, y1, x2, y2, 17, INK);
         p.strokeStyle = INK; p.lineWidth = 6; C.trace(p, palm); p.stroke();
@@ -204,11 +206,13 @@
         p.fillStyle = '#ffdcbf'; C.trace(p, palm); p.fill();
         C.scribble(p, C.blob(4, 22, 18, 11, 0.04), '#f5b48c', { angle: 0.4, gap: 5, width: 3, alpha: 0.6 });
         line(-8, 20, 4, 14, 2.5, '#d98d66');
+        p.restore();
         break;
       }
       case 'can': {
         // a watering can: handle, body, a long spout with a sprinkler on the end
         const line = (pts, w, colour) => { p.strokeStyle = colour; p.lineWidth = w; p.lineCap = p.lineJoin = 'round'; C.trace(p, pts, false); p.stroke(); };
+        p.save(); p.translate(-5, 1); p.scale(0.8, 0.8);
         const handle = [[-26, 0], [-24, -24], [-2, -26], [6, -4]];
         const spout = [[8, 16], [24, 0], [33, -14]];
         line(handle, 10, INK);
@@ -222,6 +226,7 @@
         for (const y of [-5, 0, 5]) { p.fillStyle = '#d6eefb'; p.beginPath(); p.arc(1, y, 1.6, 0, 7); p.fill(); }
         p.restore();
         p.strokeStyle = '#d6eefb'; p.lineWidth = 3; p.beginPath(); p.moveTo(-22, 2); p.lineTo(-22, 20); p.stroke();
+        p.restore();
         break;
       }
       case 'soap':
@@ -733,16 +738,85 @@
       b.addEventListener('click', () => choose(key, name));
       el.append(b);
     }
-    const mix = document.createElement('label');
+    const mix = document.createElement('button');
+    mix.type = 'button';
     mix.className = 'cc-crayon cc-crayon-mix';
     mix.title = 'Mix your own';
-    const input = document.createElement('input');
-    input.type = 'color';
-    input.setAttribute('aria-label', 'Mix your own colour');
-    input.addEventListener('input', () => { draft.look[key] = input.value; redraft(); });
-    input.addEventListener('change', tap);
-    mix.append(input);
+    mix.setAttribute('aria-label', 'Mix your own colour');
+    mix.setAttribute('aria-expanded', false);
     el.append(mix);
+    el.after(mixer(key, mix));
+  }
+
+  // the mixing palette under a crayon row: a pad for how light and how strong, a rainbow slider for which
+  // colour, and the colour's code for anyone who knows the one they want
+  const hsv2hex = (h, s, v) => '#' + [5, 3, 1].map((n) => { const k = (n + h / 60) % 6; return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1)))).toString(16).padStart(2, '0'); }).join('');
+  function hex2hsv(hex) {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+    const max = Math.max(r, g, b), d = max - Math.min(r, g, b);
+    const h = !d ? 0 : max === r ? 60 * (((g - b) / d + 6) % 6) : max === g ? 60 * ((b - r) / d + 2) : 60 * ((r - g) / d + 4);
+    return [h, max ? d / max : 0, max];
+  }
+  // painting the catpi takes a while, so a drag repaints at most once a frame
+  let queued = false;
+  const later = () => { if (!queued) { queued = true; requestAnimationFrame(() => { queued = false; redraft(); }); } };
+  function mixer(key, mix) {
+    const box = document.createElement('div');
+    box.className = 'cc-mixer';
+    box.hidden = true;
+    box.innerHTML = `<div class="cc-mixer-pad" tabindex="0" role="slider" aria-label="How light and how strong"><i></i></div>
+      <div class="cc-mixer-side">
+        <input class="cc-range cc-range-hue" type="range" min="0" max="359" aria-label="Which colour">
+        <label class="cc-mixer-code"><span class="cc-mixer-swatch"></span><input type="text" maxlength="7" spellcheck="false" aria-label="Colour code"></label>
+        <button class="cc-small" type="button">Done</button>
+      </div>`;
+    const pad = box.querySelector('.cc-mixer-pad'), hue = box.querySelector('.cc-range-hue'), code = box.querySelector('input[type=text]');
+    let h = 0, s = 0, v = 0;
+    const show = (typed) => {
+      const hex = hsv2hex(h, s, v);
+      box.style.setProperty('--h', h);
+      box.style.setProperty('--c', hex);
+      pad.firstChild.style.cssText = `left:${s * 100}%; top:${(1 - v) * 100}%`;
+      pad.setAttribute('aria-valuetext', `${Math.round(s * 100)}% strong, ${Math.round(v * 100)}% light`);
+      hue.value = h;
+      if (!typed) code.value = hex;
+      return hex;
+    };
+    const set = (typed) => { draft.look[key] = show(typed); later(); };
+    box.open = () => {
+      for (const other of document.querySelectorAll('.cc-mixer')) if (other !== box) other.close();
+      const now = draft.look[key];
+      [h, s, v] = hex2hsv(now?.[0] === '#' ? now : Catpis.CRAYONS[now] || '#a8ec44');
+      box.hidden = false;
+      mix.setAttribute('aria-expanded', true);
+      set();
+    };
+    box.close = () => { box.hidden = true; mix.setAttribute('aria-expanded', false); };
+    mix.addEventListener('click', () => { if (box.hidden) box.open(); else box.close(); tap(); });
+    const drag = (e) => {
+      const r = pad.getBoundingClientRect();
+      s = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+      v = 1 - Math.min(1, Math.max(0, (e.clientY - r.top) / r.height));
+      set();
+    };
+    pad.addEventListener('pointerdown', (e) => { pad.setPointerCapture(e.pointerId); drag(e); });
+    pad.addEventListener('pointermove', (e) => { if (pad.hasPointerCapture(e.pointerId)) drag(e); });
+    pad.addEventListener('pointerup', tap);
+    pad.addEventListener('keydown', (e) => {
+      const step = { ArrowLeft: [-0.05, 0], ArrowRight: [0.05, 0], ArrowUp: [0, 0.05], ArrowDown: [0, -0.05] }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      s = Math.min(1, Math.max(0, s + step[0]));
+      v = Math.min(1, Math.max(0, v + step[1]));
+      set();
+    });
+    hue.addEventListener('input', () => { h = +hue.value; set(); });
+    code.addEventListener('input', () => {
+      const typed = code.value.trim().replace(/^#?/, '#');
+      if (/^#[0-9a-f]{6}$/i.test(typed)) { [h, s, v] = hex2hsv(typed.toLowerCase()); set(true); }
+    });
+    box.querySelector('.cc-small').addEventListener('click', () => { box.close(); mix.focus(); });
+    return box;
   }
   function chipRow(el, list, key, words = (x) => x) {
     el.innerHTML = '';
@@ -801,6 +875,7 @@
     $('#ccSize').value = draft.size;
     $('#ccVoice').value = draft.pitch;
     sliders.forEach(slid);
+    for (const m of document.querySelectorAll('.cc-mixer')) m.close();
     $('#ccHatchTitle').textContent = c ? `Change ${c.name}` : 'Hatch a catpi';
     $('#ccHatchGo').textContent = c ? 'Save' : 'Hatch';
     $('#ccBye').hidden = !c;
@@ -817,8 +892,8 @@
         if (b.classList.contains('cc-crayon-mix')) {
           const mixed = typeof value === 'string' && value[0] === '#';
           b.setAttribute('aria-pressed', mixed);
+          if (!mixed) b.parentElement.nextElementSibling.close();
           b.style.setProperty('--c', mixed ? value : 'transparent');
-          if (mixed) b.querySelector('input').value = value;
         } else b.setAttribute('aria-pressed', b.dataset.value === value);
       }
     }
