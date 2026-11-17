@@ -108,7 +108,8 @@
                  out at 800x600 and scaled as one -->
             <div class="wb-duel" id="duel" data-screen="title">
               <canvas class="wb-duel-canvas" width="800" height="430" role="img" aria-label="A toy theatre stage with a blue wizard puppet on the left and a red wizard puppet on the right"></canvas>
-              <svg class="wb-tour-arrow" viewBox="0 0 800 600" aria-hidden="true"><path/><path/></svg>
+              <!-- how to play: the stage dims and a spotlight falls on what the note is about -->
+              <svg class="wb-tour" viewBox="0 0 800 600" aria-hidden="true"><path class="wb-tour-veil"/><path class="wb-tour-veil2"/><path class="wb-tour-under"/><path class="wb-tour-line"/><path class="wb-tour-heads"/></svg>
 
               <button class="wb-chip wb-back" type="button" data-act="back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5 7.5 12l7 7"/></svg>Back</button>
               <button class="wb-chip wb-mute" type="button" data-act="mute" aria-label="Sound" aria-pressed="true">
@@ -155,7 +156,7 @@
                   <div class="wb-spellkeys" role="group" aria-label="Moves">
                     <button class="wb-key wb-spellkey" type="button" data-type="Attack" style="--face:#ff6b6b;--edge-c:#b83a40"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2.5 5 13.5h6.5l-1 8 8.5-11h-6.5z"/></svg>Attack</button>
                     <button class="wb-key wb-spellkey" type="button" data-type="Defend" style="--face:#98c1ff;--edge-c:#3f6dc0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/></svg>Defend</button>
-                    <button class="wb-key wb-spellkey" type="button" data-type="Heal" style="--face:#8fdc8a;--edge-c:#3d763a"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M12 9.5v5m-2.5-2.5h5"/></svg>Heal</button>
+                    <button class="wb-key wb-spellkey" type="button" data-type="Heal" style="--face:#8fdc8a;--edge-c:#3d763a"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21C6 16.6 2.5 13.4 2.5 9A4.6 4.6 0 0 1 7.1 4.4c2 0 3.8 1.1 4.9 2.8 1.1-1.7 2.9-2.8 4.9-2.8A4.6 4.6 0 0 1 21.5 9c0 4.4-3.5 7.6-9.5 12z"/><path stroke-width="2.1" d="M12 10.9v4.2M9.9 13h4.2"/></svg>Heal</button>
                   </div>
 
                   <div class="wb-tiercol" role="group" aria-label="Strength">
@@ -167,8 +168,9 @@
 
                   <div class="wb-elcol" role="group" aria-label="Element">
                     <!-- each arrow points at the element it beats -->
-                    <svg class="wb-el-arrows" viewBox="0 0 240 142" aria-hidden="true">
-                      <path d="M92 30Q62 44 56 80M49 72l7 8 5-10"/><path d="M84 124Q120 140 156 124M146 120l10 4-5 9"/><path d="M184 80Q178 44 148 30M159 28l-11 2 5 9"/>
+                    <svg class="wb-el-arrows" viewBox="0 0 240 150" aria-hidden="true">
+                      <path d="M52.1 35.3A58 58 0 0 0 24.9 74.9M53.9 135.7A58 58 0 0 0 101.8 139.5M140 84A58 58 0 0 0 119.3 40.6"/>
+                      <path class="wb-el-heads" d="M24 84L20.1 70.7L30.8 73.2ZM110.1 135.7L100.6 145.7L97.3 135.2ZM111.9 35.3L125.3 38.6L117.8 46.6Z"/>
                     </svg>
                     <button class="wb-el" type="button" data-el="Fire" style="--face:#c93232;--edge-c:#7a1d1d"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.6 3.6 5 5.2 5 10a5 5 0 0 1-10 0c0-2.6 1.3-4 2.4-5.2.3 1.8 1 2.8 2.1 3.2-.3-3 .2-5.6.5-8z"/></svg>Fire</button>
                     <button class="wb-el" type="button" data-el="Earth" style="--face:#40a027;--edge-c:#235a15"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 6.5 10.5h3L5.5 16h13l-4-5.5h3z"/><path d="M12 16v4.5"/></svg>Earth</button>

@@ -86,8 +86,8 @@ const WizardDuel = (() => {
     out.addPath(p, matrix);
     return out;
   }
-  // the page's four pointed star (the crystal ball's sparkle), or more points for bursts
-  function star(x, y, r, points = 4, inner = 0.36, turn = 0) {
+  // a five pointed star, or more points for bursts
+  function star(x, y, r, points = 5, inner = 0.45, turn = 0) {
     const pts = [];
     for (let i = 0; i < points * 2; i++) {
       const a = turn + (i * Math.PI) / points - Math.PI / 2;
@@ -198,7 +198,7 @@ const WizardDuel = (() => {
     for (const [x, y, r] of [[388, 108, 7], [414, 130, 9], [392, 136, 4], [418, 104, 4]]) g.fill(circle(x, y, r));
     // tiny pinned stars
     g.fillStyle = 'rgba(246,234,214,.55)';
-    for (const [x, y, r] of [[60, 70, 4], [200, 150, 3], [268, 66, 3.5], [520, 150, 3], [600, 56, 4], [760, 140, 3], [470, 196, 2.5], [150, 196, 2.5]]) g.fill(star(x, y, r * 2));
+    for (const [x, y, r] of [[60, 70, 4], [200, 150, 3], [268, 66, 3.5], [520, 150, 3], [600, 56, 4], [760, 140, 3], [470, 196, 2.5], [150, 196, 2.5]]) g.fill(star(x, y, r * 1.6));
     // the far hills, with the enemy's tower on them
     smoothHills(g, [[0, 286], [70, 262], [160, 276], [250, 252], [360, 270], [470, 248], [560, 262], [660, 240], [740, 254], [800, 246]], C.hillBack);
     g.fillStyle = C.hillBack;
@@ -274,7 +274,7 @@ const WizardDuel = (() => {
     g.fillStyle = C.wood;
     g.fillRect(0, 0, 30, H);
     g.fillRect(770, 0, 30, H);
-    g.fillRect(0, 0, W, 30);
+    g.fillRect(0, 0, W, 38);
     // inlay down the pillars
     g.strokeStyle = C.tanEdge;
     g.lineWidth = 2;
@@ -282,17 +282,17 @@ const WizardDuel = (() => {
     g.strokeRect(779, 74, 12, 300);
     g.fillStyle = C.gold;
     for (const x of [15, 785]) {
-      g.fill(star(x, 54, 9));
+      g.fill(star(x, 62, 8));
       g.fill(circle(x, 224, 3));
     }
     // the pelmet: scallops with a fringe and tassels
     const n = 9;
     const w = 740 / n;
     const pelmet = new Path2D();
-    pelmet.moveTo(30, 28);
-    pelmet.lineTo(770, 28);
-    pelmet.lineTo(770, 42);
-    for (let i = n - 1; i >= 0; i--) pelmet.quadraticCurveTo(30 + i * w + w / 2, 66, 30 + i * w, 42);
+    pelmet.moveTo(30, 36);
+    pelmet.lineTo(770, 36);
+    pelmet.lineTo(770, 50);
+    for (let i = n - 1; i >= 0; i--) pelmet.quadraticCurveTo(30 + i * w + w / 2, 74, 30 + i * w, 50);
     pelmet.closePath();
     g.fillStyle = 'rgba(0,0,0,.22)';
     g.save();
@@ -304,15 +304,15 @@ const WizardDuel = (() => {
     g.strokeStyle = C.tanLight;
     g.lineWidth = 3;
     g.beginPath();
-    g.moveTo(770, 42);
-    for (let i = n - 1; i >= 0; i--) g.quadraticCurveTo(30 + i * w + w / 2, 66, 30 + i * w, 42);
+    g.moveTo(770, 50);
+    for (let i = n - 1; i >= 0; i--) g.quadraticCurveTo(30 + i * w + w / 2, 74, 30 + i * w, 50);
     g.stroke();
     g.fillStyle = C.gold;
-    for (let i = 1; i < n; i++) g.fill(poly([[30 + i * w - 4, 42], [30 + i * w + 4, 42], [30 + i * w, 54]]));
+    for (let i = 1; i < n; i++) g.fill(poly([[30 + i * w - 4, 50], [30 + i * w + 4, 50], [30 + i * w, 62]]));
     g.fillStyle = C.wood;
-    g.fillRect(0, 22, W, 8);
+    g.fillRect(0, 30, W, 8);
     g.fillStyle = C.woodDeep;
-    g.fillRect(0, 28, W, 2);
+    g.fillRect(0, 36, W, 2);
 
     // the front of the stage
     g.fillStyle = C.woodDark;
@@ -709,7 +709,7 @@ const WizardDuel = (() => {
       actx.fillStyle = '#6e5236';
       actx.fill(circle(4, 6, 3));
     } else if (el === 'Neutral') {
-      cut(star(0, 0, 18, 4, 0.36, t / 120), c.main, 5, C.tan);
+      cut(star(0, 0, 18, 5, 0.45, t / 120), c.main, 5, C.tan);
       actx.fillStyle = c.mid;
       actx.fill(circle(0, 0, 3.5));
     } else {
@@ -841,19 +841,19 @@ const WizardDuel = (() => {
     for (const [x, len, r, ph] of HANGING) {
       const a = reduceMotion ? 0 : Math.sin(now / 1400 + ph) * 0.09;
       const sx = x + Math.sin(a) * len;
-      const sy = 30 + Math.cos(a) * len;
+      const sy = 38 + Math.cos(a) * len;
       ctx.strokeStyle = 'rgba(246,234,214,.5)';
       ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.moveTo(x, 30);
+      ctx.moveTo(x, 38);
       ctx.lineTo(sx, sy - r);
       ctx.stroke();
       ctx.fillStyle = 'rgba(0,0,0,.25)';
-      ctx.fill(star(sx + 3, sy + 4, r * 1.6, 4, 0.4, a * 2));
+      ctx.fill(star(sx + 3, sy + 4, r * 1.6, 5, 0.45, a * 2));
       ctx.lineWidth = 4;
       ctx.lineJoin = 'round';
       ctx.strokeStyle = C.paper;
-      const s = star(sx, sy, r * 1.6, 4, 0.4, a * 2);
+      const s = star(sx, sy, r * 1.6, 5, 0.45, a * 2);
       ctx.stroke(s);
       ctx.fillStyle = C.gold;
       ctx.fill(s);
@@ -872,7 +872,7 @@ const WizardDuel = (() => {
     const jolt = since(p.ev.hit) < 900 ? Math.exp(-since(p.ev.hit) / 250) * Math.sin(since(p.ev.hit) / 70) * 0.06 : 0;
     const swing = (reduceMotion ? 0 : Math.sin(now / 1100 + cx) * 0.012) + jolt;
     ctx.save();
-    ctx.translate(cx, 44);
+    ctx.translate(cx, 52);
     ctx.rotate(swing);
     ctx.strokeStyle = C.tanLight;
     ctx.lineWidth = 1.5;
@@ -926,15 +926,15 @@ const WizardDuel = (() => {
   }
   function drawSceneTag() {
     ctx.fillStyle = C.parchEdge;
-    ctx.fill(rrect(352, 8, 96, 26, 8));
+    ctx.fill(rrect(352, 7, 96, 26, 8));
     ctx.fillStyle = C.parch;
-    ctx.fill(rrect(352, 5, 96, 26, 8));
+    ctx.fill(rrect(352, 4, 96, 26, 8));
     ctx.fillStyle = C.ink;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = 'italic 600 17px "Crimson Pro", Georgia, serif';
     // the scene being played out, or the one you're choosing for
-    ctx.fillText(`Scene ${busy ? battle.moveNum - 1 : battle.moveNum}`, 400, 18.5);
+    ctx.fillText(`Scene ${busy ? battle.moveNum - 1 : battle.moveNum}`, 400, 17.5);
   }
 
   // ---------- each frame ----------
@@ -1270,20 +1270,48 @@ const WizardDuel = (() => {
   }
 
   // ---------- how to play ----------
-  // the uni version's slides, one note at a time, pointing at the real thing
+  // the uni version's slides, one note at a time. the theatre dims and a spotlight falls on what the note is
+  // about, with an arrow to it. a spot is a circle [x, y, r] or a box [x, y, w, h]
+  const YOU_SPOT = [236, 256, 106];
+  const FOE_SPOT = [566, 246, 118];
   const TOUR = [
-    { title: 'Welcome to Epic Wizard Battle!', text: 'You have only one goal: defeat the evil wizard.', at: [260, 128] },
-    { title: 'This is you', text: 'The blue wizard on the left.', at: [430, 120], point: [[262, 240]] },
-    { title: 'This is the enemy', text: 'The evil red wizard on the right.', at: [90, 120], point: [[536, 232]] },
-    { title: 'Health', text: 'You both have a health meter. Get the enemy\'s to 0 before they do the same to yours.', at: [260, 150], point: [[160, 104], [640, 104]] },
-    { title: 'Three main options', text: 'Each scene you pick Attack, Defend or Heal. The enemy picks at the same time, then both moves play out.', at: [255, 120], point: [[132, 446]] },
-    { title: 'Attacks', text: 'They go from weak to strong. Weak attacks do less damage, strong attacks are less likely to land. If you miss, nothing happens.', at: [255, 110], point: [[400, 446]], demo: { type: 'Attack' } },
-    { title: 'Elements', text: 'An attack can have an element too. If yours beats the enemy\'s it does double damage, if it loses it does half. Neutral always does normal damage.', at: [230, 96], point: [[664, 446]], demo: { type: 'Attack', tier: 1 } },
-    { title: 'Defend', text: 'Cuts the damage you take this scene by a percentage, if it works.', at: [255, 140], point: [[400, 446]], demo: { type: 'Defend' } },
-    { title: 'Heal', text: 'Gives you health back. But a heal that works makes your next move less likely to land, and the bigger the heal, the bigger the penalty.', at: [255, 110], point: [[400, 446]], demo: { type: 'Heal' } },
-    { title: 'Berserk Strike', text: 'If your health drops below 15% you get a desperate move. It does huge damage but it\'s hard to land, and a miss hurts you. It\'s optional.', at: [255, 160], point: [[400, 134]], demo: { berserk: true } },
-    { title: 'Beware', text: 'The evil wizard is stronger and more experienced than you, with 200 health. Can you defeat him?', at: [90, 136], point: [[536, 232]] },
+    { title: 'Welcome to Epic Wizard Battle!', text: 'You have only one goal: defeat the evil wizard.', at: [255, 130] },
+    { title: 'This is you', text: 'The blue wizard on the left.', at: [420, 140], spots: [YOU_SPOT] },
+    { title: 'This is the enemy', text: 'The evil red wizard on the right.', at: [96, 140], spots: [FOE_SPOT] },
+    { title: 'Health', text: 'You both have a health meter. Get the enemy\'s to 0 before they do the same to yours.', at: [255, 180], spots: [[108, 56, 168, 66], [524, 56, 168, 66]] },
+    { title: 'Three main options', text: 'Each scene you pick Attack, Defend or Heal. The enemy picks at the same time, then both moves play out.', at: [300, 150], spots: [[8, 436, 254, 148]] },
+    { title: 'Attacks', text: 'They go from weak to strong. Weak attacks do less damage, strong attacks are less likely to land. If you miss, nothing happens.', at: [255, 110], spots: [[256, 436, 288, 148]], demo: { type: 'Attack' } },
+    { title: 'Elements', text: 'An attack can have an element too. If yours beats the enemy\'s it does double damage, if it loses it does half. Neutral always does normal damage.', at: [190, 104], spots: [[540, 436, 254, 152]], demo: { type: 'Attack', tier: 1 } },
+    { title: 'Defend', text: 'Cuts the damage you take this scene by a percentage, if it works.', at: [255, 150], spots: [[256, 436, 288, 148]], demo: { type: 'Defend' } },
+    { title: 'Heal', text: 'Gives you health back. But a heal that works makes your next move less likely to land, and the bigger the heal, the bigger the penalty.', at: [255, 110], spots: [[256, 436, 288, 148]], demo: { type: 'Heal' } },
+    { title: 'Berserk Strike', text: 'If your health drops below 15% you get a desperate move. It does huge damage but it\'s hard to land, and a miss hurts you. It\'s optional.', at: [255, 196], spots: [[286, 50, 228, 102]], demo: { berserk: true } },
+    { title: 'Beware', text: 'The evil wizard is stronger and more experienced than you, with 200 health. Can you defeat him?', at: [96, 150], spots: [FOE_SPOT] },
   ];
+  const f1 = (n) => n.toFixed(1);
+  // the path of a spot, to cut out of the veil
+  function spotPath(s, grow = 0) {
+    if (s.length === 3) {
+      const [x, y] = s;
+      const r = s[2] + grow;
+      return `M${x - r} ${y}a${r} ${r} 0 1 0 ${r * 2} 0a${r} ${r} 0 1 0 ${-r * 2} 0Z`;
+    }
+    const [x, y, w, h] = [s[0] - grow, s[1] - grow, s[2] + grow * 2, s[3] + grow * 2];
+    const r = 16 + grow;
+    return `M${x + r} ${y}h${w - 2 * r}a${r} ${r} 0 0 1 ${r} ${r}v${h - 2 * r}a${r} ${r} 0 0 1 ${-r} ${r}h${2 * r - w}a${r} ${r} 0 0 1 ${-r} ${-r}v${2 * r - h}a${r} ${r} 0 0 1 ${r} ${-r}Z`;
+  }
+  const clampTo = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  // where an arrow from the note box lands on a spot: just outside its edge, on the side facing the note
+  function spotEdge(s, box) {
+    const cx = s.length === 3 ? s[0] : s[0] + s[2] / 2;
+    const cy = s.length === 3 ? s[1] : s[1] + s[3] / 2;
+    const nx = clampTo(cx, box.x, box.x + box.w);
+    const ny = clampTo(cy, box.y, box.y + box.h);
+    if (s.length === 3) {
+      const len = Math.hypot(nx - cx, ny - cy) || 1;
+      return { x: cx + ((nx - cx) / len) * (s[2] + 10), y: cy + ((ny - cy) / len) * (s[2] + 10) };
+    }
+    return { x: clampTo(nx, s[0] - 10, s[0] + s[2] + 10), y: clampTo(ny, s[1] - 10, s[1] + s[3] + 10) };
+  }
   function showTour(i) {
     tourPage = Math.max(0, Math.min(TOUR.length - 1, i));
     const page = TOUR[tourPage];
@@ -1296,29 +1324,36 @@ const WizardDuel = (() => {
     note.style.left = `${page.at[0]}px`;
     note.style.top = `${page.at[1]}px`;
     renderDesk();
-    // arrows from the note to what it's about
+    // the veil with the spotlights cut out, and an arrow from the note to each one
+    const spots = page.spots || [];
     const box = { x: page.at[0], y: page.at[1], w: note.offsetWidth, h: note.offsetHeight };
     let shafts = '';
     let heads = '';
-    for (const [tx, ty] of page.point || []) {
-      const sx = Math.max(box.x, Math.min(box.x + box.w, tx));
-      const sy = Math.max(box.y, Math.min(box.y + box.h, ty));
-      const dx = tx - sx;
-      const dy = ty - sy;
+    for (const spot of spots) {
+      const end = spotEdge(spot, box);
+      const sx = clampTo(end.x, box.x, box.x + box.w);
+      const sy = clampTo(end.y, box.y, box.y + box.h);
+      const dx = end.x - sx;
+      const dy = end.y - sy;
       const len = Math.hypot(dx, dy) || 1;
-      const start = { x: sx + (dx / len) * 10, y: sy + (dy / len) * 10 };
-      const ctrl = { x: (start.x + tx) / 2 - (dy / len) * len * 0.22, y: (start.y + ty) / 2 + (dx / len) * len * 0.22 };
-      const ex = tx - ((tx - ctrl.x) / Math.hypot(tx - ctrl.x, ty - ctrl.y)) * 6;
-      const ey = ty - ((ty - ctrl.y) / Math.hypot(tx - ctrl.x, ty - ctrl.y)) * 6;
-      shafts += `M${start.x.toFixed(1)} ${start.y.toFixed(1)}Q${ctrl.x.toFixed(1)} ${ctrl.y.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`;
-      const a = Math.atan2(ey - ctrl.y, ex - ctrl.x);
-      const hx = (b) => (ex - Math.cos(a + b) * 13).toFixed(1);
-      const hy = (b) => (ey - Math.sin(a + b) * 13).toFixed(1);
-      heads += `M${hx(0.5)} ${hy(0.5)}L${ex.toFixed(1)} ${ey.toFixed(1)}L${hx(-0.5)} ${hy(-0.5)}`;
+      const start = { x: sx + (dx / len) * 8, y: sy + (dy / len) * 8 };
+      // a gentle bend, always the same way
+      const ctrl = { x: (start.x + end.x) / 2 - (dy / len) * len * 0.18, y: (start.y + end.y) / 2 + (dx / len) * len * 0.18 };
+      const a = Math.atan2(end.y - ctrl.y, end.x - ctrl.x);
+      // the line stops inside the head so its round end doesn't poke out of the point
+      const lx = end.x - Math.cos(a) * 9;
+      const ly = end.y - Math.sin(a) * 9;
+      shafts += `M${f1(start.x)} ${f1(start.y)}Q${f1(ctrl.x)} ${f1(ctrl.y)} ${f1(lx)} ${f1(ly)}`;
+      const hx = (b) => f1(end.x - Math.cos(a + b) * 16);
+      const hy = (b) => f1(end.y - Math.sin(a + b) * 16);
+      heads += `M${f1(end.x)} ${f1(end.y)}L${hx(0.45)} ${hy(0.45)}L${hx(-0.45)} ${hy(-0.45)}Z`;
     }
-    const [shaft, head] = root.querySelectorAll('.wb-tour-arrow path');
-    shaft.setAttribute('d', shafts);
-    head.setAttribute('d', heads);
+    // two veils, the outer one with bigger holes, so the light has a soft stepped edge like a real spotlight
+    $('.wb-tour-veil').setAttribute('d', spots.length ? `M0 0H800V600H0Z${spots.map((p) => spotPath(p)).join('')}` : '');
+    $('.wb-tour-veil2').setAttribute('d', spots.length ? `M0 0H800V600H0Z${spots.map((p) => spotPath(p, 14)).join('')}` : '');
+    $('.wb-tour-under').setAttribute('d', shafts);
+    $('.wb-tour-line').setAttribute('d', shafts);
+    $('.wb-tour-heads').setAttribute('d', heads);
   }
 
   // ---------- the desk ----------

@@ -327,26 +327,28 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
 .wb-key-round:disabled{ box-shadow:0 4px 0 var(--edge-c); }
 .wb-key-round svg{ width:20px; height:20px; }
 
-/* back and sound, small keys on the proscenium */
+/* back and sound: parchment tickets on the theatre's top board, the same as the scene number between them */
 .wb-chip{
-  position:absolute; top:4px;
-  display:flex; align-items:center; gap:4px;
-  height:28px;
-  padding:0 11px 0 7px;
-  border-radius:9px;
-  background:var(--tan);
-  box-shadow:0 3px 0 var(--tan-edge);
-  font-size:14px;
+  position:absolute; top:4px; z-index:3;
+  display:flex; align-items:center; gap:3px;
+  height:26px;
+  padding:0 12px 0 7px;
+  border-radius:8px;
+  background:var(--parch);
+  box-shadow:0 3px 0 var(--parch-edge);
+  font-family:var(--font-book);
+  font-size:17px;
   font-weight:700;
+  line-height:1;
   color:var(--ink);
-  transition:transform .12s var(--ease-out), box-shadow .12s var(--ease-out);
+  transition:transform .12s var(--ease-out), box-shadow .12s var(--ease-out), background-color .12s;
 }
-.wb-chip:hover{ transform:translateY(-1px); box-shadow:0 4px 0 var(--tan-edge); }
-.wb-chip:active{ transform:translateY(3px); box-shadow:0 0 0 var(--tan-edge); }
-.wb-chip svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+.wb-chip:hover{ background:#fff3d9; transform:translateY(-1px); box-shadow:0 4px 0 var(--parch-edge); }
+.wb-chip:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); }
+.wb-chip svg{ width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
 .wb-back{ left:36px; }
-.wb-mute{ right:36px; padding:0 6px; }
-.wb-mute svg{ width:20px; }
+.wb-mute{ right:36px; padding:0 7px; }
+.wb-mute svg{ width:19px; height:19px; }
 .wb-mute[aria-pressed="true"] .wb-mute-off,
 .wb-mute[aria-pressed="false"] .wb-mute-on{ display:none; }
 .wb-duel[data-screen="title"] .wb-back,
@@ -400,8 +402,14 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
 .wb-bill-cast i{ font-family:var(--font-book); font-weight:600; font-size:19px; color:var(--red-deep); }
 
 /* how to play: a note on the stage with an arrow to what it's about */
-.wb-tour-arrow{ position:absolute; inset:0; z-index:2; width:800px; height:600px; pointer-events:none; overflow:visible; display:none; }
-.wb-tour-arrow path{ fill:none; stroke:#fff6e4; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+.wb-tour{ position:absolute; inset:0; z-index:2; width:800px; height:600px; pointer-events:none; overflow:visible; display:none; }
+.wb-tour path{ stroke-linecap:round; stroke-linejoin:round; }
+/* the whole theatre dims except where the spotlights fall */
+.wb-tour-veil, .wb-tour-veil2{ fill:rgba(24,14,12,.3); fill-rule:evenodd; }
+/* a gold arrow with a dark edge, so it never gets lost against the puppets' paper edges */
+.wb-tour-under{ fill:none; stroke:var(--table); stroke-width:9; }
+.wb-tour-line{ fill:none; stroke:#f6c96b; stroke-width:4; }
+.wb-tour-heads{ fill:#f6c96b; stroke:var(--table); stroke-width:3; paint-order:stroke; }
 .wb-note{
   position:absolute;
   z-index:2;
@@ -413,7 +421,7 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
   display:none;
 }
 .wb-duel[data-screen="tour"] .wb-note,
-.wb-duel[data-screen="tour"] .wb-tour-arrow{ display:block; }
+.wb-duel[data-screen="tour"] .wb-tour{ display:block; }
 .wb-note-title{ font-family:var(--font-book); font-weight:700; font-size:25px; line-height:1.05; }
 .wb-note-text{ margin-top:6px; font-size:14.5px; line-height:1.45; color:#4a3527; }
 .wb-note-nav{ display:flex; align-items:center; justify-content:space-between; margin-top:12px; }
@@ -421,7 +429,7 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
 
 /* berserk strike drops in from above the stage */
 .wb-berserk-sign{
-  position:absolute; left:50%; top:46px;
+  position:absolute; left:50%; top:56px;
   display:none;
   translate:-50% 0;
   text-align:center;
@@ -552,30 +560,32 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
 
 /* the elements in their circle, each arrow pointing at the one it beats */
 .wb-elcol{ position:relative; }
-.wb-el-arrows{ position:absolute; inset:0; width:100%; height:142px; overflow:visible; }
-.wb-el-arrows{ color:var(--table-3); }
-.wb-el-arrows path{ fill:none; stroke:currentColor; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+/* drawn on a ring through the three elements, made in one go so every arrow is the same */
+.wb-el-arrows{ position:absolute; top:0; left:38px; width:240px; height:150px; overflow:visible; color:var(--table-3); }
+.wb-el-arrows path{ fill:none; stroke:currentColor; stroke-width:3; stroke-linecap:round; }
+.wb-el-arrows .wb-el-heads{ fill:currentColor; stroke-width:1.5; stroke-linejoin:round; }
 .wb-duel[data-element="1"] .wb-el-arrows{ color:var(--tan-light); }
 .wb-el{
   position:absolute;
   display:grid; place-items:center; align-content:center; gap:1px;
-  width:58px; height:58px;
+  width:50px; height:50px;
   border-radius:50%;
   background:var(--face);
   box-shadow:0 4px 0 var(--edge-c);
-  font-size:9.5px;
+  font-size:8.5px;
   font-weight:700;
   letter-spacing:.04em;
   text-transform:uppercase;
   color:#fff6e4;
   transition:transform .12s var(--ease-out), box-shadow .12s var(--ease-out), opacity .2s;
 }
-.wb-el svg{ width:24px; height:24px; fill:none; stroke:#fff6e4; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
-.wb-el[data-el="Fire"]{ left:calc(50% - 29px); top:0; }
-.wb-el[data-el="Earth"]{ left:calc(50% - 107px); top:80px; }
-.wb-el[data-el="Water"]{ left:calc(50% + 49px); top:80px; }
-.wb-el-neutral{ left:calc(50% - 25px); top:66px; width:50px; height:50px; font-size:8.5px; }
-.wb-el-neutral svg{ width:18px; height:18px; }
+.wb-el svg{ width:21px; height:21px; fill:none; stroke:#fff6e4; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+/* centres on a ring of 58 round (120, 85), fire at the top, and neutral in the middle like the uni version */
+.wb-el[data-el="Fire"]{ left:95px; top:2px; }
+.wb-el[data-el="Earth"]{ left:44.8px; top:89px; }
+.wb-el[data-el="Water"]{ left:145.2px; top:89px; }
+.wb-el-neutral{ left:97px; top:62px; width:46px; height:46px; font-size:7.5px; }
+.wb-el-neutral svg{ width:17px; height:17px; }
 .wb-el:hover:not(:disabled){ transform:translateY(-2px); box-shadow:0 6px 0 var(--edge-c); }
 .wb-el:active:not(:disabled){ transform:translateY(4px); box-shadow:0 0 0 var(--edge-c); }
 .wb-el:disabled{ opacity:.28; cursor:default; }
