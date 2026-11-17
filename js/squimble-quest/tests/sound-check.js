@@ -7,8 +7,8 @@
 //
 // it runs sound.js in node with just enough faked (constrain() from p5, TILE, UIElement), so it can
 // only check the maths. it doesn't play anything, and doesn't touch the browser's audio, sound blocks
-// or the sound editor's screen. those were checked by playing the game in Chrome through playwright (README "Checking
-// changes"). it's slow-ish (15 to 20 seconds, most of it the make one buttons) because node's vm
+// or the sound editor's screen. those were checked by playing the game in Chrome through playwright (README "Checks").
+// it's slow-ish (15 to 20 seconds, most of it the make one buttons) because node's vm
 // makes globals slow, not because the synthesiser is
 const fs = require('fs');
 const vm = require('vm');

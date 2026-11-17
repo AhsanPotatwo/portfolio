@@ -1,4 +1,4 @@
-// the death screen. ponytail: a placeholder for trying out what dying should do (README known issues):
+// the death screen. shortcut: a placeholder for trying out what dying should do (README known issues):
 // when this computer's player dies they disappear (or leave their deathImage, PLAYER in config.js),
 // the world carries on without them, the screen darkens and says so, and after a moment Respawn (the
 // button, or E) brings them back.

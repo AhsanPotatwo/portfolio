@@ -99,11 +99,11 @@
 // walls and buildings would match the picture exactly since they're tiles. shadows from characters
 // and items come from the drawn pixels, so for gameplay those would have to be rough boxes
 //
-// ponytail: one shader at a time. stacking them (lighting then bloom) needs the passes to draw into
+// shortcut: one shader at a time. stacking them (lighting then bloom) needs the passes to draw into
 // textures in turn (framebuffers), which would go in apply() once a real look is picked
-// ponytail: torch shadows are hard edged and a whole tile at a time, since they're worked out on the
+// shortcut: torch shadows are hard edged and a whole tile at a time, since they're worked out on the
 // tile grid. softer ones would sample a few spots round each light
-// ponytail: lights only come from things already in the game. placed ones would come from the
+// shortcut: lights only come from things already in the game. placed ones would come from the
 // editor's Lights tab (empty for now, editor.js) into lights()
 
 // what gives off light. radius in world px, colour 0 to 1 red, green, blue, strength how bright it is
@@ -398,14 +398,14 @@ vec3 effect() {
     // a thing's own outline isn't shaded by things, or each one would shade itself, and wall tops are
     // always in the sun.
     //
-    // ponytail: objects (furniture) are drawn with the ground, before capture('ground'), so they
+    // shortcut: objects (furniture) are drawn with the ground, before capture('ground'), so they
     // don't cast. they'd need drawing between the captures, or a height setting and a texture like
     // the walls'
-    // ponytail: things only cast while they're on screen (thingAt() reads the canvas), so a long
+    // shortcut: things only cast while they're on screen (thingAt() reads the canvas), so a long
     // shadow can pop in at the edge. walls reach past it (walls())
-    // ponytail: one foot per thing, so a long arrow pointing up the screen counts its back end as
+    // shortcut: one foot per thing, so a long arrow pointing up the screen counts its back end as
     // higher than its tip
-    // ponytail: every pixel looks up to wallHeight * longest px back for walls, about 100 steps at
+    // shortcut: every pixel looks up to wallHeight * longest px back for walls, about 100 steps at
     // sunrise, and through every caster near it. if it's slow on a real screen, work it out once per
     // art pixel into a small texture first
     name: 'sun', label: 'Sun', note: 'rises on the left, sets on the right, walls and things cast pixel shadows from where they stand',

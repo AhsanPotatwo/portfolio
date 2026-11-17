@@ -48,8 +48,8 @@ function makeBlankMap(cols, rows, fillWith) {
 
 const FALLBACK_MAP = 'no-maps-loaded';
 
-// a small blank map so the game still runs, like when there's no local server ("Running the game
-// locally" in the maps README). a message shows while you're on it
+// a small blank map so the game still runs, like when there's no local server ("Running locally"
+// in the maps README). a message shows while you're on it
 function buildFallbackMap() {
   return makeBlankMap(30, 18, 'blank');
 }

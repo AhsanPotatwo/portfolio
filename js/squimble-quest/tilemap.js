@@ -64,7 +64,7 @@ class TileMap {
     this.drops = [];
     // items placed in the editor, each { type, col, row, id }: an item's name, the tile it lies on and
     // takeId()'s id (addItem()). this is design, saved by Export, and Drops.restock() puts them in drops.
-    // picking one up takes it out of drops, never out of here (README "Placed items and chests")
+    // picking one up takes it out of drops, never out of here (see Drops.restock() in inventory.js)
     this.items = [];
     // how many things had to be given a new id when this was built from its file (mapFromData() in
     // mapfile.js): ones from before ids, or two with the same one. above 0, the editor counts the map as
@@ -316,7 +316,7 @@ class TileMap {
       }
       if (Object.keys(kept).length > 0) spawn.stats = kept;
     }
-    // ponytail: only checks it's an object. a missing part is just left out when it's drawn (lookImage())
+    // shortcut: only checks it's an object. a missing part is just left out when it's drawn (lookImage())
     if (kind === 'npc' && look && typeof look === 'object') spawn.look = look;
     spawn.id = this.takeId(id);
     this[info.list].push(spawn);

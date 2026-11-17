@@ -1508,7 +1508,7 @@ class EditorMinimap extends UIElement {
     return (world / TILE - first) * this.scale;
   }
 
-  // ponytail: draws every tile again every redrawEvery seconds instead of noticing changes. a 500 x 500
+  // shortcut: draws every tile again every redrawEvery seconds instead of noticing changes. a 500 x 500
   // map is 250,000 tiles, a few ms; EditHistory's designKey() could say when if it ever shows
   redraw(map) {
     this.canvas.width = map.cols;

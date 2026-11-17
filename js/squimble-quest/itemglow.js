@@ -12,7 +12,7 @@
 //             it should be a soft blob on a see-through background. it gets stretched to the glow's
 //             size and still pulses
 //
-// ponytail: still glow pictures only. an animated one (sprite sheet) would go in drawGlowHalo()
+// shortcut: still glow pictures only. an animated one (sprite sheet) would go in drawGlowHalo()
 
 // shared by every rarity
 const ITEM_GLOW = {

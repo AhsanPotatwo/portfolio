@@ -30,7 +30,7 @@
 //
 // there can be thousands at once (weather, hits, weapons, footsteps...), so drawing is built to make
 // as few canvas calls as it can: colour buckets, rectangles, no save/restore (see beginDrawing() for
-// why, and the Particles notes in README.md for the numbers), flying ones keep a sorted list between frames (sortFlying()), and things that
+// why, and the comment above ParticleSystem.beginDrawing() for the numbers), flying ones keep a sorted list between frames (sortFlying()), and things that
 // make them nonstop turn down on computers that can't keep up (PARTICLE_EMITTERS)
 
 // every setting an effect has, which is also its row in the particle editor: which tab it's on, the
@@ -424,7 +424,7 @@ class ParticleSystem {
       // x and then y, so it bounces off the side of a wall it hits at an angle. empty and off-map
       // tiles are solid, so they stay on the map. one that's inside something solid (a campfire's
       // flames start inside the solid campfire) ignores walls, or it'd bounce about in there forever.
-      // ponytail: walls are as tall as the sky, so a bit flying over a wall still bounces off it.
+      // shortcut: walls are as tall as the sky, so a bit flying over a wall still bounces off it.
       // giving tiles a height would fix it
       // a fast one goes in steps of at most a tile, so it can't skip over a thin wall
       const walls = e.hitsWalls && map && !map.isSolid(map.colAt(p.x), map.rowAt(p.y));

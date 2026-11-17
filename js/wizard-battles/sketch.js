@@ -1442,29 +1442,6 @@ function buttonFunctionality() {
   }
 }
 
-function downloadCSV(data, filename) {
-  fetch("/save-csv", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      filename: filename,
-      content: data,
-    }),
-  })
-    .then((res) => {
-      if (res.ok) {
-        console.log(`CSV saved to /sessions/${filename}`);
-      } else {
-        console.error("Failed to save CSV");
-      }
-    })
-    .catch((err) => {
-      console.error("Error:", err);
-    });
-}
-
 function exportGameDataCSV() {
   let csv = "PlayerID,MoveNum,Role,MoveType,MoveTier,Element,Outcome,Value,Success\n";
 

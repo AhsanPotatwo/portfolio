@@ -61,7 +61,7 @@
 //   debug.js      dev mode (` or Ctrl + D)
 //
 // every spot that'd get in the way of multiplayer is marked with a "multiplayer:" comment, so search
-// for that to find them all (README.md, "Multiplayer, maybe")
+// for that to find them all
 
 // multiplayer: one player and one running map. these globals are this computer's player and the map
 // it's on, and lots of files read them directly (worldMap in weapons.js, player.js, warps.js...). with

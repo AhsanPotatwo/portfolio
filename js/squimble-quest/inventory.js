@@ -614,7 +614,7 @@ const THROW_HEIGHT = 24;
 // items on the ground. each map keeps its own in map.drops (tilemap.js) until you reload. they're
 // progress like map.characters, so Export never saves map.drops. items placed in the editor are design
 // as well: each is also in map.items, which Export saves, and Drops.restock() puts them on the ground
-// (README "Placed items and chests").
+// (restock() below).
 // each one is { item, x, y, ready, from, flight, placed }. x, y is where it is or where it'll land.
 // ready is false until the player has been outside PICKUP_RANGE, so you don't pick drops straight back
 // up and "inventory full" only shows once each time you walk up to it, not every frame. from is where
@@ -655,7 +655,7 @@ const Drops = {
   // ground, and Check for problems lists it (mapcheck.js). called when a map's built from its file,
   // when the editor opens (so it shows the whole design, like enemies) and when one's placed
   //
-  // ponytail: one picked up comes back on a reload or when the editor opens, since there's no saving.
+  // shortcut: one picked up comes back on a reload or when the editor opens, since there's no saving.
   // with a save game, skip the entries it says were taken here: this is the only way they reach the
   // ground
   restock(map) {
@@ -788,7 +788,7 @@ const StorageObjects = {
   // right clicking it in the editor (storageeditor.js). TileMap.addObject() does it when the map's
   // built from its file, so like placed items (Drops.restock()) what was taken is back after a reload
   //
-  // ponytail: no saving, so a chest is always full again after a reload. with a save game, its saved
+  // shortcut: no saving, so a chest is always full again after a reload. with a save game, its saved
   // slots would go in instead of these
   fill(obj) {
     const slots = obj.inventory.slots;

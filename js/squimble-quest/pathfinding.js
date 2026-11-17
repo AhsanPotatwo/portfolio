@@ -131,7 +131,7 @@
 //
 // ---------- known limits ----------
 //
-//   - push and slippery tiles aren't planned for, they just get walked on (see the ponytail note below)
+//   - push and slippery tiles aren't planned for, they just get walked on (see the shortcut note below)
 //   - they don't go looking for healing tiles, and time spent standing still (like queueing on spikes)
 //     isn't counted
 //   - in a one tile wide corridor only the one at the front can fight. the rest queue up or find
@@ -144,7 +144,7 @@
 //     it can't fit through. planPath() would need to know its size
 //   - sight ignores objects (furniture is low) and is just one line from feet to feet
 //   - plan, chasing and yieldTo point straight at objects. that's fine with one map running, but a
-//     multiplayer server would want ids (README "Multiplayer, maybe")
+//     multiplayer server would want ids
 //   - speed: a plan takes up to a few ms when the search runs out. replans are spread out (each plan
 //     starts part of the way through PATH_REPLAN_TIME), and 25 grunts add about 0.6 ms a frame
 //
@@ -161,7 +161,7 @@
 //     (bigger costs more), the route is green going orange to red where it hurts (with the hp), the
 //     goal is circled, and the label shows the ai, what it's doing, the route's seconds and hp, and fear
 //
-// ponytail: push and slippery tiles aren't in stepCost(). add them if enemies start getting swept off
+// shortcut: push and slippery tiles aren't in stepCost(). add them if enemies start getting swept off
 // their routes
 
 // the most tiles one plan is allowed to search, so a player that's far away or can't be reached

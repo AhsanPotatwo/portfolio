@@ -214,7 +214,7 @@ function recolourSwaps(recolour, picked) {
 const RECOLOURED = new Map();
 const LOOK_IMAGES = new Map();
 
-// ponytail: dragging round the colour picker makes a new picture every frame, so a cache gets emptied
+// shortcut: dragging round the colour picker makes a new picture every frame, so a cache gets emptied
 // every 200 rather than keeping track of which are still used
 function cached(cache, key, make) {
   if (!cache.has(key)) {

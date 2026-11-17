@@ -333,7 +333,7 @@ const SoundBlocks = {
 // tiles are the type's soundSpots closest ones in range of the listener, closest first, each
 // { key: 'col,row', x, y, away } (its middle, and how far that is, in world px). it only looks at
 // tiles close enough to hear.
-// ponytail: scans a square as wide as the longest range every frame, 101 x 101 tiles at the most
+// shortcut: scans a square as wide as the longest range every frame, 101 x 101 tiles at the most
 // (50). fine for a few tile sounds, keep a list of each kind's tiles per map if it ever shows up
 function tileSoundSpots(map, listener) {
   const groups = new Map();

@@ -684,7 +684,7 @@ class Character {
 
   // the body, what it's wearing and which way it's facing, in world positions (inside camera.begin/end).
   //
-  // ponytail: the placeholder rectangle is its hitbox (bodyBox()), so you see exactly what attacks hit,
+  // shortcut: the placeholder rectangle is its hitbox (bodyBox()), so you see exactly what attacks hit,
   // squashed while rolling. a picture is drawn at its own size instead (drawCharacter()), so with one
   // you can't see the hitbox. a dev mode overlay could show it (DEV_OVERLAYS, debug.js)
   //

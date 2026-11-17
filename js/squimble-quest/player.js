@@ -51,7 +51,7 @@ class Player extends Character {
 
   // back to full health somewhere safe, from the death screen (deathscreen.js).
   //
-  // ponytail: I haven't decided where you should respawn yet (README.md known issues). for now it's
+  // shortcut: I haven't decided where you should respawn yet (README.md known issues). for now it's
   // the current map's spawn. it's all in this function, so this is the only thing that needs to
   // change. the options:
   //   - the current map's spawn (what it does now). dying in the hut puts you in the hut

@@ -484,7 +484,7 @@ class MeleeSwing {
   // the blade, drawn back past the start of the arc and brightening. world positions (inside
   // camera.begin/end)
   //
-  // ponytail: the swoosh is the swing's real reach and arc (what reaches() hits), there to see its range
+  // shortcut: the swoosh is the swing's real reach and arc (what reaches() hits), there to see its range
   // until weapons have sprites. nothing reads it, so a weapon sprite can replace this, or go on top with
   // the swoosh moved behind a dev mode overlay (DEV_OVERLAYS, debug.js)
   draw() {
@@ -589,7 +589,7 @@ class Jab extends MeleeSwing {
   // the way out to the point, both bolder for harder hits. while winding up it's the blade brightening,
   // pulled back. world positions (inside camera.begin/end)
   //
-  // ponytail: like the swing's swoosh, the band is the jab's real reach and width (what hitTargets()
+  // shortcut: like the swing's swoosh, the band is the jab's real reach and width (what hitTargets()
   // checks), there to see its range until weapons have sprites. a spear sprite would be drawn along it
   // here, or on top with the band moved behind a dev mode overlay (DEV_OVERLAYS, debug.js)
   draw() {
@@ -739,7 +739,7 @@ class Arrow {
 
 // ---------- an arrow's shadow (temporary) ----------
 //
-// ponytail: a stand-in until there's a proper shadow system. to take it out, delete this section and
+// shortcut: a stand-in until there's a proper shadow system. to take it out, delete this section and
 // its one call in Arrow.draw().
 //
 // it's a dash on the floor under the middle of the arrow. the arrow is drawn height px up the screen

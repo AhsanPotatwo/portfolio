@@ -12,7 +12,7 @@
 // matrices, so they multiply into one (colourBlindMatrix()). strength fades it in from none, like
 // fortnite's slider: some people like a lighter touch.
 //
-// ponytail: protanopia, deuteranopia and tritanopia only, the three games usually offer. no
+// shortcut: protanopia, deuteranopia and tritanopia only, the three games usually offer. no
 // achromatopsia (seeing no colour), which a filter can't help: the game itself would need shapes and
 // patterns as well as colours
 

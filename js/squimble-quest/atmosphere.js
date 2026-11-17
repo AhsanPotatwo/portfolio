@@ -44,7 +44,7 @@
 //   - wobble (underwater, heat haze) moves pixels around, which needs the shader pipeline
 //     (shaders.js) to be on for real rather than dev mode only
 //   - an atmosphere setting the shaders' sun and darkness, so caves and space are dark and torches
-//     matter (see the Shaders ideas in README.md)
+//     matter (see the plans atop shaders.js)
 //   - areas that move (a storm cloud drifting over), or shapes you paint tile by tile
 //   - more than two sheets, if two ever runs out
 
@@ -289,7 +289,7 @@ function atmosphereTexture(pattern, colour, cover, softness, bands) {
     pixels.data[i * 4 + 3] = Math.round(255 * coverAlpha(field[i], cover, softness, bands));
   }
   ctx.putImageData(pixels, 0, 0);
-  // ponytail: keeps the last 16, plenty for a map and the editor's sliders. count by size if
+  // shortcut: keeps the last 16, plenty for a map and the editor's sliders. count by size if
   // ATMOSPHERE_TEXTURE ever gets big
   if (AtmosphereTextures.size >= 16) AtmosphereTextures.delete(AtmosphereTextures.keys().next().value);
   AtmosphereTextures.set(key, canvas);

@@ -271,7 +271,7 @@
 const SOUND_FILE_FOLDER = 'assets/squimble-quest/sounds/files/';
 
 // how loud everything is overall (0 to 1). raw waves are really loud, so this keeps them comfortable.
-// ponytail: one fixed number. a volume setting or mute key would change this (and the gain of every
+// shortcut: one fixed number. a volume setting or mute key would change this (and the gain of every
 // playing voice), or better, go through one gain node every voice connects to
 const SOUND_MASTER_VOLUME = 0.35;
 
@@ -1098,7 +1098,7 @@ function voiceMouth(sound) {
 
 // a word's syllables for talking: { at (which letter it starts on), letters, vowel (0 to 4 for ah, eh,
 // ee, oh, oo, or null for a word without one, like "hmm"), notes (how far up or down it goes) }.
-// ponytail: a rough English guess (each group of vowels is a syllable, starting from the consonants
+// shortcut: a rough English guess (each group of vowels is a syllable, starting from the consonants
 // before it, and a silent e on the end doesn't count). it's for babble, not real speech, so "queue"
 // or "rhythm" coming out a bit wrong doesn't matter
 function speechSyllables(text, expression) {
@@ -1320,7 +1320,7 @@ const Sound = {
       this.rendered.delete(key);
     } else {
       result = say === null ? renderSound(sound, loop, pitch) : renderSpeech(sound, say, pitch);
-      // ponytail: keeps the last 30 (Map keeps insertion order, so the first key is the oldest).
+      // shortcut: keeps the last 30 (Map keeps insertion order, so the first key is the oldest).
       // plenty for one map and the editor. if lots of long sounds come along, keep fewer or count
       // the samples instead
       if (this.rendered.size >= 30) this.rendered.delete(this.rendered.keys().next().value);
@@ -1515,7 +1515,7 @@ function loadAudioFile(fileName) {
 // decoding converts the file to the context's sample rate (SOUND_RATE), so rate always comes out as
 // 44100 really, but renderSound() reads it anyway in case that changes. which formats work is up to
 // the browser: mp3 and wav are the safest, ogg works in most but older Safari can't play it.
-// ponytail: stereo files become mono here, and the stereo comes back from panning. a stereo music
+// shortcut: stereo files become mono here, and the stereo comes back from panning. a stereo music
 // track would lose its width, so music might want its own path one day
 function decodeAudio(bytes) {
   return new OfflineAudioContext(1, 1, SOUND_RATE).decodeAudioData(bytes).then((buffer) => {
@@ -1574,7 +1574,7 @@ function soundOverview(sound, columns, say = null) {
       overview[c * 2] = lowest;
       overview[c * 2 + 1] = highest;
     }
-    // ponytail: never shrinks past 500, about 1 MB, fine for an editor
+    // shortcut: never shrinks past 500, about 1 MB, fine for an editor
     if (soundOverviews.size >= 500) soundOverviews.delete(soundOverviews.keys().next().value);
     soundOverviews.set(key, overview);
   }

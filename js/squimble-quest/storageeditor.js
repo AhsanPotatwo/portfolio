@@ -7,7 +7,7 @@
 //   - drag one out of the chest (anywhere off its slots) or right click it to take it out
 //   - the wheel over the list scrolls it, when a category has more than fit
 // it changes a copy, so Cancel leaves the chest as it was. Save keeps it as the chest's items, which
-// the map file saves (README "Placed items and chests"), and fills the chest now, replacing whatever
+// the map file saves (see Drops.restock() in inventory.js), and fills the chest now, replacing whatever
 // was put in it while playing (StorageObjects.fill() in inventory.js)
 
 // in screen px: the list's slots (smaller than the chest's) and how many go across, the category

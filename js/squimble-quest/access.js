@@ -12,9 +12,9 @@
 // left out: npcs talking (the dialogue box already shows the words), the editors' previews, sounds too
 // far away to hear, and your own (right where you are: your steps and swings), which would always be up
 //
-// ponytail: captions are one line each, in a fixed size. a text size setting would scale these, the
+// shortcut: captions are one line each, in a fixed size. a text size setting would scale these, the
 // dialogue box and messages together
-// ponytail: SOUND_CAPTIONS is here by name. once there are lots of sounds, a caption setting in each
+// shortcut: SOUND_CAPTIONS is here by name. once there are lots of sounds, a caption setting in each
 // sound's file (with a row in the sound editor) would keep it with the sound
 
 const SOUND_CAPTIONS = {

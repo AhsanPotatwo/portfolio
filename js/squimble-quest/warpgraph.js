@@ -75,7 +75,7 @@ function warpFamily(mapName, warpName) {
   };
 
   const startKey = add(mapName, warpName);
-  // ponytail: builds every map to read its warps, same as checkAllWarps() in warps.js
+  // shortcut: builds every map to read its warps, same as checkAllWarps() in warps.js
   for (const map of Object.keys(MAPS)) {
     for (const warp of getMap(map).warps) {
       const from = add(map, warp.name);

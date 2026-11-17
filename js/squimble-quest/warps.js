@@ -201,7 +201,7 @@ function warpNamesOn(mapName) {
 }
 
 // console warnings for every broken warp on every map. runs once after the maps load (sketch.js).
-// ponytail: builds every map to read its warps, fine until there are lots of big maps
+// shortcut: builds every map to read its warps, fine until there are lots of big maps
 function checkAllWarps() {
   for (const name of Object.keys(MAPS)) {
     for (const warp of getMap(name).warps) {
