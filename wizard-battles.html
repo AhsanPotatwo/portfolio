@@ -135,6 +135,20 @@
                 <div class="wb-swatches" data-part="trim" role="group" aria-label="Trim colour"><span>Trim</span></div>
                 <div class="wb-swatches" data-part="band" role="group" aria-label="Star colour"><span>Stars</span></div>
                 <div class="wb-swatches" data-part="beard" role="group" aria-label="Beard colour"><span>Beard</span></div>
+                <!-- mixing your own colour: a pad for how light and how strong, a rainbow for which colour, and its code -->
+                <div class="wb-mixer">
+                  <p class="wb-mixer-title" id="mixerTitle"></p>
+                  <div class="wb-mixer-body">
+                    <div class="wb-mixer-pad" tabindex="0" role="slider" aria-label="How light and how strong">
+                      <svg class="wb-mixer-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.0 1.6L14.9 8.6L22.5 9.2L16.7 14.1L18.5 21.5L12.0 17.5L5.5 21.5L7.3 14.1L1.5 9.2L9.1 8.6Z"/></svg>
+                    </div>
+                    <div class="wb-mixer-side">
+                      <input class="wb-mixer-hue" type="range" min="0" max="359" aria-label="Which colour">
+                      <label class="wb-mixer-code"><span></span><input type="text" maxlength="7" spellcheck="false" aria-label="Colour code"></label>
+                      <button class="wb-key wb-key-gold wb-mixer-done" type="button" data-act="mixdone">Done</button>
+                    </div>
+                  </div>
+                </div>
               </form>
               <!-- playing a friend: the room's playbill while you wait for them (duel.js, goOnline) -->
               <div class="wb-bill wb-bill-lobby" aria-live="polite">

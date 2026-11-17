@@ -460,6 +460,89 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
 :where(.wb-duel) button.wb-swatch{ border:3px solid #fff6e4; background:var(--swatch); }
 .wb-swatch:hover{ transform:translateY(-2px); }
 .wb-swatch[aria-pressed="true"]{ transform:scale(1.14); box-shadow:0 0 0 2.5px var(--ink); }
+/* mix your own: a little colour wheel, with the mixed colour in the middle once there is one */
+:where(.wb-duel) button.wb-swatch-mix{
+  background:conic-gradient(from 90deg, #e2574c, #e8b04a, #8fcf5a, #4fb3c9, #5b6fd6, #b062c9, #e2574c);
+}
+:where(.wb-duel) button.wb-swatch-mix[aria-pressed="true"]{
+  background:radial-gradient(circle, var(--swatch) 0 46%, transparent 48%), conic-gradient(from 90deg, #e2574c, #e8b04a, #8fcf5a, #4fb3c9, #5b6fd6, #b062c9, #e2574c);
+}
+
+/* the mixer takes over the card while it's open */
+.wb-mixer{ display:none; }
+.wb-setup.is-mixing > .wb-setup-name,
+.wb-setup.is-mixing > .wb-swatches{ display:none; }
+.wb-setup.is-mixing .wb-mixer{ display:block; }
+.wb-mixer-title{ margin-bottom:10px; font-family:var(--font-book); font-size:22px; font-weight:700; line-height:1.1; color:var(--ink); }
+.wb-mixer-body{ display:grid; grid-template-columns:186px 1fr; gap:16px; }
+/* how strong across, how light up and down, on the rainbow's colour. all gradients, nothing drawn by script */
+.wb-mixer-pad{
+  position:relative;
+  height:132px;
+  border:3px solid #fff6e4;
+  border-radius:8px;
+  background:linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, hsl(var(--h, 0) 100% 50%));
+  box-shadow:0 4px 0 var(--parch-edge);
+  cursor:crosshair;
+  touch-action:none;
+}
+.wb-mixer-pad:focus-visible{ outline:3px solid var(--peach); outline-offset:3px; }
+/* the star you drag about, filled with the colour under it */
+.wb-mixer-star{
+  position:absolute;
+  width:26px; height:26px;
+  translate:-50% -50%;
+  fill:var(--c);
+  stroke:#fff6e4;
+  stroke-width:2.6;
+  stroke-linejoin:round;
+  paint-order:stroke;
+  filter:drop-shadow(0 1.5px 0 var(--ink));
+  pointer-events:none;
+}
+.wb-mixer-side{ display:flex; flex-direction:column; justify-content:space-between; gap:10px; }
+.wb-mixer-hue{
+  -webkit-appearance:none; appearance:none;
+  width:100%; height:16px;
+  margin:6px 0 4px;
+  border-radius:8px;
+  background:linear-gradient(to right, hsl(0 85% 55%), hsl(60 85% 55%), hsl(120 85% 55%), hsl(180 85% 55%), hsl(240 85% 55%), hsl(300 85% 55%), hsl(360 85% 55%));
+  box-shadow:0 3px 0 var(--parch-edge);
+  cursor:pointer;
+}
+.wb-mixer-hue::-webkit-slider-thumb{
+  -webkit-appearance:none; appearance:none;
+  width:22px; height:22px;
+  border:3px solid #fff6e4;
+  border-radius:50%;
+  background:hsl(var(--h, 0) 100% 50%);
+  box-shadow:0 0 0 2px var(--ink);
+}
+.wb-mixer-hue::-moz-range-thumb{
+  width:16px; height:16px;
+  border:3px solid #fff6e4;
+  border-radius:50%;
+  background:hsl(var(--h, 0) 100% 50%);
+  box-shadow:0 0 0 2px var(--ink);
+}
+.wb-mixer-hue:focus-visible{ outline:3px solid var(--peach); outline-offset:4px; }
+.wb-mixer-code{ display:flex; align-items:center; gap:8px; }
+.wb-mixer-code span{ width:30px; height:30px; flex:none; border:3px solid #fff6e4; border-radius:50%; background:var(--c); box-shadow:0 2px 0 var(--parch-edge); }
+.wb-mixer-code input{
+  width:100%; min-width:0;
+  height:34px;
+  padding:0 8px;
+  border:2px solid var(--parch-edge);
+  border-radius:8px;
+  background:#fff6e4;
+  font-family:var(--font-sans);
+  font-size:15px;
+  font-weight:700;
+  color:var(--ink);
+  text-transform:lowercase;
+}
+.wb-mixer-code input:focus-visible{ outline:3px solid var(--peach); outline-offset:1px; }
+.wb-mixer-done{ padding:7px 0 6px; font-family:var(--font-book); font-size:21px; }
 
 /* the desk under it: the starting healths (only for whoever makes the room) and the way in */
 .wb-desk-setup{ display:none; height:100%; align-items:center; justify-content:space-between; gap:20px; padding:0 18px 6px; }

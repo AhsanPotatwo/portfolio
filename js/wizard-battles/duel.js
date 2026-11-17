@@ -1586,6 +1586,13 @@ const WizardDuel = (() => {
       you.ev.hop = now;
       sfx('token');
       renderSetup();
+    } else if (name === 'mix') {
+      sfx('card');
+      openMixer(btn.parentElement.dataset.part);
+    } else if (name === 'mixdone') {
+      sfx('key');
+      you.ev.hop = now;
+      closeMixer();
     } else if (name === 'step') {
       const who = btn.closest('.wb-stepper').dataset.who;
       setup.health[who] = Math.max(25, Math.min(500, setup.health[who] + Number(btn.dataset.step) * 25));
@@ -1751,10 +1758,108 @@ const WizardDuel = (() => {
       b.setAttribute('aria-label', label);
       row.append(b);
     }
+    const mix = tagged('button', '');
+    Object.assign(mix, { type: 'button', className: 'wb-swatch wb-swatch-mix', title: 'Mix your own' });
+    mix.dataset.act = 'mix';
+    mix.setAttribute('aria-label', `Mix your own ${row.dataset.part === 'band' ? 'star' : row.dataset.part} colour`);
+    row.append(mix);
   }
-  $('#duelSetup').addEventListener('submit', (e) => {
+  // enter in the name joins, enter in the colour code is done mixing (a form with two boxes won't submit itself)
+  $('#duelSetup').addEventListener('submit', (e) => e.preventDefault());
+  $('#duelSetup').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target.type !== 'text') return;
     e.preventDefault();
-    act('enter');
+    act(mixing ? 'mixdone' : 'enter');
+  });
+
+  // ---------- mixing your own colour ----------
+  // the pad and rainbow are css gradients, so dragging only moves the star and changes a colour: the puppet is
+  // drawn every frame anyway, and the rest of the card is brought up to date at most once a frame
+  const hsv2hex = (h, s, v) => `#${[5, 3, 1].map((n) => { const k = (n + h / 60) % 6; return Math.round(255 * (v - v * s * Math.max(0, Math.min(k, 4 - k, 1)))).toString(16).padStart(2, '0'); }).join('')}`;
+  function hex2hsv(hex) {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+    const max = Math.max(r, g, b);
+    const d = max - Math.min(r, g, b);
+    const h = !d ? 0 : max === r ? 60 * (((g - b) / d + 6) % 6) : max === g ? 60 * ((b - r) / d + 2) : 60 * ((r - g) / d + 4);
+    return [h, max ? d / max : 0, max];
+  }
+  const mixer = $('.wb-mixer');
+  const pad = $('.wb-mixer-pad');
+  const hueRange = $('.wb-mixer-hue');
+  const code = $('.wb-mixer-code input');
+  let mixing = null;
+  let hsv = [0, 0, 0];
+  let typed = false;
+  let mixQueued = false;
+
+  function openMixer(part) {
+    mixing = part;
+    hsv = hex2hsv(setup.look[part]);
+    $('#mixerTitle').textContent = `Mix your ${part === 'band' ? 'star' : part} colour`;
+    $('#duelSetup').classList.add('is-mixing');
+    showMix();
+    pad.focus();
+  }
+  function closeMixer() {
+    if (!mixing) return;
+    const row = $(`.wb-swatches[data-part="${mixing}"]`);
+    mixing = null;
+    $('#duelSetup').classList.remove('is-mixing');
+    renderSetup();
+    row.querySelector('.wb-swatch-mix').focus();
+  }
+  // a new colour from the pad, the rainbow or the code box
+  function mixed(fromCode = false) {
+    typed = fromCode;
+    setup.look[mixing] = hsv2hex(...hsv);
+    if (mixQueued) return;
+    mixQueued = true;
+    requestAnimationFrame(() => {
+      mixQueued = false;
+      if (!setup || !mixing) return;
+      dress(you, setup.look);
+      showMix();
+    });
+  }
+  function showMix() {
+    const [h, s, v] = hsv;
+    const hex = setup.look[mixing];
+    mixer.style.setProperty('--h', h.toFixed(1));
+    mixer.style.setProperty('--c', hex);
+    pad.firstElementChild.style.cssText = `left:${(s * 100).toFixed(2)}%; top:${((1 - v) * 100).toFixed(2)}%`;
+    pad.setAttribute('aria-valuetext', `${Math.round(s * 100)}% strong, ${Math.round(v * 100)}% light`);
+    hueRange.value = Math.round(h);
+    if (!typed) code.value = hex;
+  }
+  function dragPad(e) {
+    const r = pad.getBoundingClientRect();
+    hsv[1] = clamp01((e.clientX - r.left) / r.width);
+    hsv[2] = 1 - clamp01((e.clientY - r.top) / r.height);
+    mixed();
+  }
+  pad.addEventListener('pointerdown', (e) => {
+    pad.setPointerCapture(e.pointerId);
+    dragPad(e);
+  });
+  pad.addEventListener('pointermove', (e) => { if (pad.hasPointerCapture(e.pointerId)) dragPad(e); });
+  pad.addEventListener('pointerup', () => sfx('token'));
+  pad.addEventListener('keydown', (e) => {
+    const step = { ArrowLeft: [-0.05, 0], ArrowRight: [0.05, 0], ArrowUp: [0, 0.05], ArrowDown: [0, -0.05] }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    hsv[1] = clamp01(hsv[1] + step[0]);
+    hsv[2] = clamp01(hsv[2] + step[1]);
+    mixed();
+  });
+  hueRange.addEventListener('input', () => {
+    hsv[0] = Number(hueRange.value);
+    mixed();
+  });
+  code.addEventListener('input', () => {
+    const hex = code.value.trim().replace(/^#?/, '#').toLowerCase();
+    if (!/^#[0-9a-f]{6}$/.test(hex)) return;
+    hsv = hex2hsv(hex);
+    mixed(true);
   });
 
   function showSetup(code, host) {
@@ -1769,6 +1874,8 @@ const WizardDuel = (() => {
     $('#setupName').value = typeof saved.name === 'string' && saved.name ? saved.name : pick(WIZARD_NAMES);
     $('#setupGo').textContent = host ? 'Open the room' : 'Join the duel';
     $('#setupRoom').textContent = host ? '' : `Room ${code}. Whoever made it picks the health.`;
+    mixing = null;
+    $('#duelSetup').classList.remove('is-mixing');
     queue.length = 0;
     newGame();
     dress(you, setup.look);
@@ -1780,8 +1887,18 @@ const WizardDuel = (() => {
   }
 
   function renderSetup() {
+    // a colour that isn't one of the swatches is a mixed one, shown in the middle of the mixing swatch
     for (const row of $$('.wb-swatches')) {
-      for (const b of row.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.colour === setup.look[row.dataset.part]));
+      const now = setup.look[row.dataset.part].toLowerCase();
+      let found = false;
+      for (const b of row.querySelectorAll('[data-colour]')) {
+        const on = b.dataset.colour.toLowerCase() === now;
+        found = found || on;
+        b.setAttribute('aria-pressed', String(on));
+      }
+      const mix = row.querySelector('.wb-swatch-mix');
+      mix.setAttribute('aria-pressed', String(!found));
+      mix.style.setProperty('--swatch', now);
     }
     $('.wb-setup-rules').hidden = !setup.host;
     if (!setup.host) return;
