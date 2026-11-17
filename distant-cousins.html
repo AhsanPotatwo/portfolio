@@ -56,6 +56,11 @@
         </div>
       </div>
 
+      <!-- all of time down the left edge, coloured like the board's ages: drag along it to travel through time -->
+      <div class="dc-ruler" id="dcRuler" role="slider" tabindex="0" aria-label="Travel through time" aria-orientation="vertical" title="Drag to travel through time">
+        <span class="dc-ruler-view"></span>
+      </div>
+
       <div class="dc-top">
         <h1 class="dc-logo">Distant Cousins</h1>
         <p class="dc-met" id="dcMet" aria-live="polite"></p>
@@ -70,7 +75,7 @@
         <ul class="dc-found" id="dcFound" role="listbox" aria-label="Creatures found" hidden></ul>
       </div>
 
-      <p class="dc-hint" id="dcHint" hidden>Click a mystery card to find out who it is, then click it again to read all about it. Drag to look around, scroll to zoom.</p>
+      <p class="dc-hint" id="dcHint" hidden>Click a mystery card to find out who it is, then click it again to read all about it. Time runs down the board, from the first life to today. Drag to look around, scroll to zoom.</p>
 
       <div class="dc-controls" role="group" aria-label="Board controls">
         <button class="dc-key dc-icon" type="button" id="dcOut" aria-label="Zoom out" title="Zoom out (-)">
@@ -128,6 +133,7 @@
         <h2 class="dc-name" id="dcName" tabindex="-1"></h2>
         <p class="dc-sci" id="dcSci"></p>
         <p class="dc-facts" id="dcFacts"></p>
+        <div class="dc-share" id="dcShare" hidden><p class="dc-sub" id="dcShareHead"></p><p id="dcShareText"></p></div>
         <div class="dc-members" id="dcMembers" hidden></div>
         <div class="dc-actions">
           <button class="dc-key dc-vs-key" type="button" id="dcVsOpen">
@@ -236,6 +242,7 @@
 
   <script src="js/main.js"></script>
   <script src="js/distant-cousins/sound.js"></script>
+  <script src="js/distant-cousins/traits.js"></script>
   <script src="js/distant-cousins/page.js"></script>
   <script src="js/distant-cousins/achievements.js"></script>
   <script src="js/distant-cousins/games.js"></script>

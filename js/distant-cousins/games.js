@@ -9,6 +9,8 @@
 //     family lines (a whale is closer to a hippo than to a shark). both quizzes come in the hunt's four levels,
 //     each asking about more creatures and closer calls (QUIZ_LEVELS, CLOSER, WHICH)
 //   which one?: ten quick questions about two creatures: which has the older fossils, which is heavier, which is still alive
+//   mystery cousin: we think of a creature, you guess any creature, and each guess says how long ago its line and
+//     the mystery one's parted. lower is warmer. levels: who it might be, and how many hints (MYSTERY_LEVELS)
 // the creatures come from games.json (tools/build.js): who to hunt at each level, and the best known 1,650 with
 // their family lines and facts, so the quizzes need no tree files
 (() => {
@@ -55,6 +57,13 @@
     hard: { name: 'Hard', who: 'Closer calls', pool: Infinity },
     expert: { name: 'Expert', who: 'Only just', pool: Infinity },
   };
+  // mystery cousin's levels: who the mystery one might be (the best known 150, 600 or all 1,650), and how much help
+  const MYSTERY_LEVELS = {
+    easy: { name: 'Easy', who: 'Famous animals, its silhouette to go on, and hints whenever you like', pool: 150, hints: Infinity, outline: true },
+    normal: { name: 'Normal', who: 'Well known creatures, and three hints', pool: 600, hints: 3 },
+    hard: { name: 'Hard', who: 'Any of 1,650 creatures, and one hint', pool: Infinity, hints: 1 },
+    expert: { name: 'Expert', who: 'Any of them, and no hints at all', pool: Infinity, hints: 0 },
+  };
   const best = store.get('distantCousinsBest', {});
   // (the best scores from before there were levels were normal ones)
   for (const game of ['closer', 'which']) if (best[game] !== undefined) { best[game + '-normal'] ??= best[game]; delete best[game]; store.set('distantCousinsBest', best); }
@@ -72,6 +81,9 @@
     { id: 'which', name: 'Which one?', say: 'Ten quick questions about two creatures: which has the older fossils, which is heavier, which is still around.',
       levels: QUIZ_LEVELS, tone: ['--g-sky', '--sky'], start: k => startQuiz('which', k),
       best: k => best['which-' + k] !== undefined ? `Your best: ${best['which-' + k]}/10` : '' },
+    { id: 'mystery', name: 'Mystery cousin', say: 'We think of a creature. Guess any animal and we\'ll say how long ago it shared an ancestor with ours. Lower is warmer.',
+      levels: MYSTERY_LEVELS, tone: ['--coral', '--peach'], start: k => startMystery(k),
+      best: k => best['mystery-' + k] ? `Your best: ${best['mystery-' + k]} ${best['mystery-' + k] === 1 ? 'guess' : 'guesses'}` : '' },
   ];
   const KEYS = ['easy', 'normal', 'hard', 'expert'];
   // little line drawings in the board's style: cards with faces, a game colour (f-sec), the page's card colour
@@ -100,6 +112,15 @@
       <g transform="rotate(-8 46 68)"><rect class="f-sec" x="26" y="53" width="40" height="30" rx="9"/>${face(46, 66)}</g>
       <g transform="rotate(-8 154 51)"><rect class="f-card" x="136" y="38" width="36" height="26" rx="9"/>${face(154, 49)}</g>
       <g class="move"><circle class="f-star" cx="100" cy="28" r="15"/><text x="100" y="35">?</text></g>`,
+    // a thermometer warming up as the guesses get closer to the mystery card
+    // (glass and bulb one outline, the red inside it and rising when you point at the game)
+    mystery: `<path class="f-card" d="M37 76.25V19a7 7 0 0 1 14 0V76.25A12 12 0 1 1 37 76.25z"/>
+      <path d="M56 30h5M56 42h5M56 54h5M56 66h5" stroke-width="2"/>
+      <circle class="f-merc" cx="44" cy="86" r="7.5"/>
+      <rect class="f-merc rise" x="41" y="40" width="6" height="46" rx="3"/>
+      <path class="trail" d="M66 60H118"/>
+      <rect class="f-card" x="70" y="16" width="30" height="24" rx="7"/>${face(85, 27)}
+      <rect class="f-sec" x="124" y="28" width="46" height="58" rx="11"/><text x="147" y="66">?</text>`,
   };
   const picked = store.get('distantCousinsGameLevels', {});
   function renderMenu() {
@@ -310,7 +331,7 @@
 
   // ---------- the quizzes ----------
 
-  const qbox = $('dcQuiz'), qwin = api.dialog(qbox, () => { quiz = null; });
+  const qbox = $('dcQuiz'), qwin = api.dialog(qbox, () => { quiz = null; myst = null; });
   let quiz = null;
   const ROUNDS = 10;
   async function startQuiz(game, level = 'normal') {
@@ -459,5 +480,151 @@
     else if (b.hasAttribute('data-next')) nextRound();
     else if (b.hasAttribute('data-again')) startQuiz(quiz.game, quiz.level);
     else if (b.hasAttribute('data-games')) { qwin.close(); renderMenu(); win.show(); }
+  });
+
+  // ---------- mystery cousin ----------
+  // we think of a creature (from games.json, as the quizzes do) and you guess any creature at all. each guess
+  // says where its family line meets the mystery one's, and how long ago that was: the smaller the number, the
+  // warmer. the part of the mystery one's family line you've worked out so far is shown as you go, and a hint
+  // gives away the next group down it. in the window the quizzes use
+  let myst = null;
+  const deepest = () => myst.guesses.reduce((d, g) => Math.max(d, g.at), myst.hinted);
+  async function startMystery(level = 'normal') {
+    let g;
+    try { g = await load(); } catch (e) { console.warn(e); return; }
+    const L = MYSTERY_LEVELS[level];
+    const recent = store.get('distantCousinsMysteries', []);
+    const pool = g.quiz.slice(0, L.pool);
+    let t = null;
+    for (let tries = 0; tries < 6 && !t; tries++) {
+      const fresh = pool.filter(e => !recent.includes(e[0]));
+      const e = pick(fresh.length ? fresh : pool);
+      try { await api.loadSlice(e[1]); } catch { continue; }
+      if (api.nodes.has(e[0])) t = e;
+    }
+    if (!t) return;
+    store.set('distantCousinsMysteries', [t[0], ...recent].slice(0, 30));
+    // its family line, and how long ago each group on it began (as the fossils have it: at least that long, and
+    // never younger than a group further down)
+    const line = api.trail(t[0]), ages = [];
+    line.forEach((q, i) => { const a = api.nodes.get(q)?.a; ages[i] = Math.min(a ?? Infinity, i ? ages[i - 1] : 4200); });
+    myst = { level, L, t, n: api.nodes.get(t[0]), line, ages, guesses: [], hinted: 0, hints: 0 };
+    quiz = null;
+    $('dcQuizTitle').textContent = `Mystery cousin · ${L.name}`;
+    renderMystery();
+    qwin.show();
+    $('dcMystFind').focus({ preventScroll: true });
+  }
+  function renderMystery() {
+    const m = myst, n = m.n;
+    $('dcQuizBody').innerHTML = `
+      <div class="dc-myst-top">
+        <span class="dc-myst-card">${m.L.outline && n.si ? `<img src="${api.silUrl(n.si)}" alt="Its silhouette">` : '<b>?</b>'}</span>
+        <p>Guess any creature. We'll say how long ago it shared an ancestor with the mystery one. <b>The smaller the number, the closer you are.</b></p>
+      </div>
+      <ol class="dc-myst-line" aria-label="What you know of its family line"></ol>
+      <div class="dc-find dc-vs-find">
+        <svg class="dc-find-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/></svg>
+        <input id="dcMystFind" type="search" autocomplete="off" spellcheck="false" placeholder="Guess a creature" role="combobox" aria-expanded="false" aria-controls="dcMystFound" aria-autocomplete="list" aria-label="Guess a creature">
+        <ul class="dc-found" id="dcMystFound" role="listbox" aria-label="Creatures to guess" hidden></ul>
+      </div>
+      <p class="dc-myst-say" aria-live="polite"></p>
+      <ol class="dc-myst-guesses"></ol>
+      <div class="dc-actions dc-myst-keys"></div>`;
+    api.finder($('dcMystFind'), $('dcMystFound'), e => guess(e));
+    sayMystery();
+  }
+  // the family line as far as you know it, the guesses closest first, and the keys
+  function sayMystery(words = '') {
+    const m = myst, known = deepest();
+    const body = $('dcQuizBody');
+    const steps = m.line.slice(1, Math.min(known, m.line.length - 2) + 1).map(q => `<li>${esc(api.nameOf(api.nodes.get(q)))}</li>`).join('');
+    body.querySelector('.dc-myst-line').innerHTML = `${steps}<li class="is-mystery"><span>${m.done ? esc(api.nameOf(m.n)) : '?'}</span></li>`;
+    if (words) body.querySelector('.dc-myst-say').innerHTML = words;
+    const rows = [...m.guesses].sort((a, b) => b.at - a.at || b.when - a.when);
+    const top = Math.log1p(4200);
+    body.querySelector('.dc-myst-guesses').innerHTML = rows.map(g => {
+      const warm = g.right ? 1 : Math.max(0.04, 1 - Math.log1p(g.years) / top);
+      return `<li class="${g.right ? 'is-right' : ''}${g.when === m.guesses.length ? ' is-new' : ''}" style="--warm:${warm.toFixed(3)}">
+        <span class="dc-myst-pic" data-pic-box>${g.pic ? `<img data-myst-pic="${esc(g.pic)}" alt="">` : ''}</span>
+        <span class="dc-myst-who"><b>${esc(g.name)}</b><span>${g.right ? 'That\'s the one!' : g.inside ? `It's one of the ${esc(g.meet.toLowerCase())}!` : `Meets it at ${esc(g.meet)}`}</span></span>
+        <span class="dc-myst-years">${g.right ? '<b class="is-got">Got it!</b>' : g.years >= 1000 ? `<b>${+(g.years / 1000).toFixed(1)}</b><small>billion years ago</small>` : g.years >= 1 ? `<b>${api.fmt(Math.round(g.years))}</b><small>million years ago</small>` : `<b>${api.fmt(Math.max(1, Math.round(g.years * 1000)))}</b><small>thousand years ago</small>`}</span>
+        <span class="dc-myst-bar" aria-hidden="true"></span>
+      </li>`;
+    }).join('');
+    for (const img of body.querySelectorAll('img[data-myst-pic]')) picture(img, img.dataset.mystPic);
+    const keys = body.querySelector('.dc-myst-keys');
+    if (m.done) keys.innerHTML = `<button class="dc-key dc-vs-key" type="button" data-m-again>Play again</button><button class="dc-key" type="button" data-m-tree>Show it on my tree</button><button class="dc-key" type="button" data-m-games>Other games</button>`;
+    else {
+      const left = m.L.hints - m.hints, canHint = left > 0 && known < m.line.length - 2;
+      keys.innerHTML = `${m.L.hints ? `<button class="dc-key" type="button" data-m-hint${canHint ? '' : ' disabled'}>Hint${left === Infinity ? '' : ` (${left} left)`}</button>` : ''}<button class="dc-key" type="button" data-m-give>Give up</button>`;
+    }
+  }
+  async function guess(e) {
+    const m = myst;
+    if (!m || m.done) return;
+    const q = e[0];
+    if (m.guesses.some(g => g.q === q)) return sayMystery('You\'ve guessed that one already.');
+    try { await api.loadSlice(e[1]); } catch { return sayMystery('That one wouldn\'t load. Try another?'); }
+    if (myst !== m || !api.nodes.has(q)) return;
+    const n = api.nodes.get(q), gl = api.trail(q);
+    let i = 0;
+    while (i < gl.length && i < m.line.length && gl[i] === m.line[i]) i++;
+    const at = i - 1, before = deepest();
+    // (the mystery one itself, or one of its own kinds: a breed of it)
+    const right = at === m.line.length - 1;
+    const g = { q, name: api.nameOf(n), pic: api.picOf(n) || (n.m || []).find(x => x[3])?.[3], at, meet: api.nameOf(api.nodes.get(m.line[at])), years: m.ages[at], inside: i === gl.length && !right, right, when: m.guesses.length + 1 };
+    m.guesses.push(g);
+    if (right) return solved();
+    const say = m.guesses.length === 1 && !m.hinted ? 'Your first guess. Now try to get the number smaller.'
+      : at > before ? `<b>Warmer!</b> ${esc(g.name)} is the closest yet.`
+      : at === before ? '<b>As warm as your closest.</b> Same branch: look further down it.'
+      : `<b>Colder.</b> ${esc(g.name)} is further away than your closest.`;
+    dcSound.play(at > before ? 'sparkle' : 'tap');
+    sayMystery(say);
+  }
+  function mysteryHint() {
+    const m = myst, known = deepest();
+    if (m.hints >= m.L.hints || known >= m.line.length - 2) return;
+    m.hints++;
+    m.hinted = known + 1;
+    dcSound.play('sparkle');
+    sayMystery(`Hint: it's one of the <b>${esc(api.nameOf(api.nodes.get(m.line[known + 1])).toLowerCase())}</b>.`);
+  }
+  function solved() {
+    const m = myst, count = m.guesses.length;
+    m.done = true;
+    const key = 'mystery-' + m.level;
+    if (!(best[key] <= count)) { best[key] = count; store.set('distantCousinsBest', best); }
+    api.emit('mystery-won', { level: m.level, guesses: count, hints: m.hints });
+    dcSound.play('hooray');
+    sayMystery(`<b>You got it in ${count} ${count === 1 ? 'guess' : 'guesses'}!</b> It was ${esc(the(api.nameOf(m.n), m.t[9]))}. Your best at ${m.L.name.toLowerCase()}: ${best[key]}.`);
+    reveal();
+  }
+  function mysteryGiveUp() {
+    const m = myst;
+    m.done = true;
+    m.hinted = m.line.length - 2;
+    sayMystery(`It was <b>${esc(the(api.nameOf(m.n), m.t[9]))}</b>. Here's its family line, all the way down.`);
+    reveal();
+  }
+  // the mystery card turns over to show who it was
+  function reveal() {
+    const card = $('dcQuizBody').querySelector('.dc-myst-card');
+    const file = api.picOf(myst.n);
+    card.classList.add('is-shown');
+    card.setAttribute('data-pic-box', '');
+    card.innerHTML = file ? '<img alt="">' : `<b>${esc(api.nameOf(myst.n))}</b>`;
+    if (file) picture(card.querySelector('img'), file);
+    $('dcQuizBody').querySelector('[data-m-again]')?.focus({ preventScroll: true });
+  }
+  qbox.addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b || !myst) return;
+    if (b.hasAttribute('data-m-hint')) mysteryHint();
+    else if (b.hasAttribute('data-m-give')) mysteryGiveUp();
+    else if (b.hasAttribute('data-m-again')) startMystery(myst.level);
+    else if (b.hasAttribute('data-m-games')) { qwin.close(); renderMenu(); win.show(); }
+    else if (b.hasAttribute('data-m-tree')) { const q = myst.t[0]; qwin.close(); api.bring(q); }
   });
 })();

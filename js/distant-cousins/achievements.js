@@ -90,6 +90,7 @@
     ['sizes', 'All sorts', 'Great and small', 'Discover a creature over a tonne and one under a gram', t => [+!!t.tonne + +!!t.tiny, 2]],
 
     ['fossil', 'Deep time', 'Fossil hunter', 'Discover a creature that has died out', count('extinct', 1)],
+    ['travel', 'Deep time', 'Time traveller', 'Travel back more than 2.5 billion years on the strip down the left of the board', stat('travelledBack', 1)],
     ['extinct10', 'Deep time', 'Into the past', 'Discover 10 creatures that have died out', count('extinct', 10)],
     ['extinct50', 'Deep time', 'Palaeontologist', 'Discover 50 creatures that have died out', count('extinct', 50)],
     ['dino', 'Deep time', 'Dinosaur hunter', 'Discover 5 dinosaurs that have died out (birds don\'t count)', count('dinos', 5)],
@@ -122,6 +123,9 @@
     ['which10', 'Games', 'Know-it-all', 'Score 10 out of 10 in Which one?', stat('whichBest10', 1)],
     ['quizHard', 'Games', 'Sharp eye', 'Score 8 or more in a hard or expert quiz', stat('quizHard8', 1)],
     ['quizExpert', 'Games', 'Peer reviewed', 'Score 8 or more in an expert quiz', stat('quizExpert8', 1)],
+    ['mystery', 'Games', 'Cousin detective', 'Work out a Mystery cousin', stat('mysteriesSolved', 1)],
+    ['mysteryQuick', 'Games', 'Warm from the start', 'Work out a Mystery cousin in 5 guesses or fewer', stat('mysteryQuick', 1)],
+    ['mysteryExpert', 'Games', 'Sixth sense', 'Work out an expert Mystery cousin', stat('mystery-expert', 1)],
   ];
   LIST.push(['thirty', 'Games', 'Overachiever', 'Earn 30 other achievements', () => [Math.min(Object.keys(got).filter(id => id !== 'thirty').length, 30), 30]]);
   const SECTIONS = ['First steps', 'Collecting', 'All sorts', 'Deep time', 'Family', 'Games'];
@@ -183,6 +187,8 @@
     if (score >= 8 && (level === 'hard' || level === 'expert')) bump('quizHard8');
     if (score >= 8 && level === 'expert') bump('quizExpert8');
   });
+  on('mystery-won', ({ level, guesses }) => { bump('mysteriesSolved'); bump('mystery-' + level); if (guesses <= 5) bump('mysteryQuick'); });
+  on('travel', ({ ma }) => { if (ma >= 2500) bump('travelledBack'); });
   // what you'd already done before there were achievements is earned quietly, once the tree's loaded
   document.addEventListener('dc:ready', () => {
     // (already exploring at night counts too)

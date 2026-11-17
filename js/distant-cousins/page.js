@@ -2,6 +2,8 @@
 // first life on earth. every creature you discover puts out its branches as mystery silhouettes, and the tree
 // grows as far as you take it: drag to look around, scroll to zoom, click one you've found to read about it,
 // and put any two side by side. what you've found is remembered, so the tree is still there next time.
+// down the board is time, from the first life at the top to today along the bottom, with the ages of the earth
+// coloured in behind (the layout, and the ages behind the board). traits.js says what each big group shares.
 // sound.js plays the music and the sounds, achievements.js keeps the achievements and games.js has the games:
 // they hear what happens here through dc: events (emit) and reach in through window.dcApi.
 //
@@ -150,6 +152,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
 
   // ---------- pictures and words from wikimedia, silhouettes from phylopic ----------
 
+  const TRAITS = window.dcTraits || {};
   const plain = html => { const d = document.createElement('div'); d.innerHTML = html || ''; return d.textContent.trim(); };
   const pics = new Map();      // file -> promise of { src, page, by, licence }
   const picReady = new Map();  // the same once it's here
@@ -261,12 +264,80 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   const kidsOf = n => (n.k || []).concat(latin.get(n.q) || []);
 
   // ---------- the layout ----------
-  // top down like a family tree on paper: the first life at the top, each generation a row below. every node on
-  // the board hangs from its nearest ancestor that's also on the board; when some are skipped (you searched for
-  // something deep in the tree) the line is dotted, with how many are missing on it
+  // an evolution tree: across is who's related to whom, and down is time. every node on the board hangs from its
+  // nearest ancestor that's also on the board; when some are skipped (you searched for something deep in the
+  // tree) the line is dotted, with how many are missing on it. lines part just under the group they come from
+  // and run down side by side, so the higher up two lines join, the longer ago they went their own ways
 
   const WIDTH = { found: 168, unfound: 132, more: 116, latin: 132 };
-  const GAP = 22, ROW = 92;
+  const GAP = 22;
+
+  // ---------- time runs down the board ----------
+  // the first life at the top, today along the bottom. a group's sign sits where its oldest fossils are, a
+  // creature's card where it died out, or along the bottom if it's still around. time is squeezed the further
+  // back it goes (the last 66 million years get as much room as the 4 billion before them: lg), and stretched
+  // wherever cards need the room, for the whole board at once, so the colours of the ages behind stay true.
+  // the clock is that stretched time: lg values (ls, oldest first) and where each is down the board (ys)
+  const PX = 220, SPLIT = 20, MIN = 46;
+  const lg = ma => Math.log1p(Math.max(0, ma));
+  let clock = { ls: [lg(4200)], ys: [0] };
+  function yOf(ma) {
+    const l = lg(ma), { ls, ys } = clock, last = ls.length - 1;
+    if (l >= ls[0]) return ys[0] - (l - ls[0]) * PX;
+    for (let i = 1; i <= last; i++) if (l >= ls[i]) return ys[i - 1] + (ys[i] - ys[i - 1]) * (ls[i - 1] - l) / (ls[i - 1] - ls[i]);
+    return ys[last] + (ls[last] - l) * PX;
+  }
+  function maAt(y) {
+    const { ls, ys } = clock, last = ls.length - 1;
+    let l;
+    if (y <= ys[0]) l = ls[0] + (ys[0] - y) / PX;
+    else if (y >= ys[last]) l = ls[last] - (y - ys[last]) / PX;
+    else for (let i = 1; i <= last; i++) if (y <= ys[i]) { l = ls[i - 1] - (ls[i - 1] - ls[i]) * (y - ys[i - 1]) / (ys[i] - ys[i - 1] || 1); break; }
+    return Math.max(0, Math.expm1(l));
+  }
+  // where each card goes down the board (id -> y): its own time, but always far enough below its parent
+  function timeline(root) {
+    const lOf = new Map();
+    const walk = (it, lp) => {
+      const n = nodes.get(it.q);
+      let l;
+      if (it.q === ROOT) l = lg(n.a ?? 4200);
+      else {
+        const below = lp * 0.985;
+        let own;
+        // (a creature's own branches, its breeds and kinds, go just under it, below today if it's still around)
+        if (it.kind === 'found' || it.kind === 'unfound') own = isGroup(n) || n.o ? n.a : n.x ? n.z ?? n.a : 0;
+        l = own === undefined ? (it.kind === 'found' || it.kind === 'unfound' ? lp * 0.92 : below) : Math.min(lg(own), below);
+      }
+      lOf.set(it.id, l);
+      for (const k of it.kids) walk(k, l);
+    };
+    walk(root, 0);
+    // stretch the time between each card and its parent until the card fits under it, nearest pairs first
+    // (stretching only ever adds room, so a pair that fits keeps fitting)
+    const ls = [...new Set(lOf.values())].sort((a, b) => b - a);
+    const index = new Map(ls.map((l, i) => [l, i]));
+    const gap = ls.slice(1).map((l, i) => (ls[i] - l) * PX);
+    const pairs = [];
+    for (const it of items.values()) if (it.parent !== undefined && lOf.has(it.id)) pairs.push([index.get(lOf.get(it.parent)), index.get(lOf.get(it.id)), (tall.get(it.parent) || 0) + MIN]);
+    pairs.sort((a, b) => (a[1] - a[0]) - (b[1] - b[0]));
+    for (const [i, j, need] of pairs) {
+      let s = 0;
+      for (let k = i; k < j; k++) s += gap[k];
+      if (s > 0 && s < need) for (let k = i; k < j; k++) gap[k] *= need / s;
+    }
+    const ys = [0];
+    for (const g of gap) ys.push(ys[ys.length - 1] + g);
+    clock = { ls, ys };
+    const out = new Map();
+    const put = (it, least) => {
+      const y = Math.max(ys[index.get(lOf.get(it.id))], least);
+      out.set(it.id, y);
+      for (const k of it.kids) put(k, y + (tall.get(it.id) || 0) + MIN);
+    };
+    put(root, -Infinity);
+    return out;
+  }
 
   function plan() {
     const vis = new Set([ROOT]);
@@ -278,6 +349,17 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
       const ks = kidsOf(n), want = open.get(q) ?? PAGE;
       for (let i = 0; i < ks.length; i++) if (nodes.has(ks[i]) && (i < want || hunt?.keep?.(ks[i]))) vis.add(ks[i]);
     }
+    // where two lines on the board meet in a group that isn't on it (a t. rex and a chicken you searched for,
+    // meeting at the theropods), that group goes on as a mystery, so you can see where they part
+    const via = new Map();
+    for (const q of vis) {
+      let below = q;
+      for (let p = parentOf.get(q); p !== undefined && !vis.has(p); below = p, p = parentOf.get(p)) {
+        if (!via.has(p)) via.set(p, new Set());
+        via.get(p).add(below);
+      }
+    }
+    for (const [p, ways] of via) if (ways.size > 1 && nodes.has(p)) vis.add(p);
     const items = new Map();   // id -> { id, q, kind, kids: [], via, parent }
     for (const q of vis) items.set(q, { id: q, q, kind: found.has(q) || q === ROOT ? 'found' : 'unfound', kids: [] });
     for (const q of vis) {
@@ -375,7 +457,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
       el.style.width = WIDTH[it.kind] + 'px';
       el.setAttribute('aria-label', label(it));
     }
-    // sizes, then places: each node over the middle of its children, rows as tall as their tallest card
+    // sizes, then places: each node over the middle of its children, and down the board at its time
     for (const [id, el] of els) tall.set(id, el.offsetHeight);
     const span = new Map();
     const measure = it => {
@@ -387,14 +469,9 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     };
     const root = items.get(ROOT);
     measure(root);
-    const rowH = [];
-    const depthOf = new Map();
-    const walk = (it, d) => { depthOf.set(it.id, d); rowH[d] = Math.max(rowH[d] || 0, tall.get(it.id) || 0); for (const k of it.kids) walk(k, d + 1); };
-    walk(root, 0);
-    const rowY = [0];
-    for (let d = 1; d < rowH.length; d++) rowY[d] = rowY[d - 1] + rowH[d - 1] + ROW;
+    const yAt = timeline(root);
     const place = (it, x) => {
-      goal.set(it.id, { x, y: rowY[depthOf.get(it.id)] });
+      goal.set(it.id, { x, y: yAt.get(it.id) });
       const inner = it.kids.reduce((s, k) => s + span.get(k.id) + GAP, -GAP);
       let left = x - inner / 2;
       for (const k of it.kids) { place(k, left + span.get(k.id) / 2); left += span.get(k.id) + GAP; }
@@ -406,6 +483,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
       at.set(it.id, { ...(motion() ? from : goal.get(it.id)) });
     }
     tween();
+    paintAges();
     loadCardPics();
     sayMet();
     renderFav();
@@ -429,8 +507,9 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     tweenFrame = requestAnimationFrame(step);
   }
 
-  // cards to their places, then the lines between them: down from the parent, along, and down into the child.
-  // thicker the more species a branch holds; dotted where ancestors are missing
+  // cards to their places, then the lines between them: a step down from the parent, along to above the child,
+  // and down to it. thicker the more species a branch holds; dotted where ancestors are missing; and the line of
+  // the one you've clicked, from it all the way up to the first life, picked out
   function paint() {
     for (const [id, el] of els) {
       const p = at.get(id);
@@ -439,25 +518,28 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
       // popping, flipping and swinging happen about the card's own top middle, wherever it is
       el.style.transformOrigin = `${p.x}px ${p.y}px`;
     }
-    let solid = '', faint = '', dotted = '', labels = '';
+    const line = new Set();
+    for (let id = selected; id !== undefined && items.has(id); id = items.get(id).parent) line.add(id);
+    let solid = '', faint = '', dotted = '', lit = '', labels = '';
     for (const it of items.values()) {
       if (it.parent === undefined) continue;
       const a = at.get(it.parent), b = at.get(it.id);
       if (!a || !b) continue;
-      const x1 = a.x, y1 = a.y + (tall.get(it.parent) || 0), x2 = b.x, y2 = b.y;
-      const mid = y2 - ROW / 2, r = Math.min(14, Math.abs(x2 - x1) / 2, (y2 - y1) / 4);
+      const x1 = a.x, y1 = a.y + (tall.get(it.parent) || 0), x2 = b.x, y2 = Math.max(b.y, y1 + 1);
+      const fork = Math.min(y1 + SPLIT, (y1 + y2) / 2), r = Math.min(14, Math.abs(x2 - x1) / 2, (y2 - fork) / 2, fork - y1);
       const dir = Math.sign(x2 - x1);
-      const d = Math.abs(x2 - x1) < 1 ? `M${x1} ${y1}V${y2}` : `M${x1} ${y1}V${mid - r}Q${x1} ${mid} ${x1 + dir * r} ${mid}H${x2 - dir * r}Q${x2} ${mid} ${x2} ${mid + r}V${y2}`;
+      const d = Math.abs(x2 - x1) < 1 ? `M${x1} ${y1}V${y2}` : `M${x1} ${y1}V${fork - r}Q${x1} ${fork} ${x1 + dir * r} ${fork}H${x2 - dir * r}Q${x2} ${fork} ${x2} ${fork + r}V${y2}`;
       const n = nodes.get(it.q);
       const w = it.kind === 'more' || it.kind === 'latin' ? 2.5 : Math.min(10, 2.5 + 1.6 * Math.log10((n?.s || 1) + 1));
       const path = `<path d="${d}" stroke-width="${w.toFixed(1)}"/>`;
+      if (line.has(it.id)) lit += path;
       if (it.via?.length) {
         dotted += path;
-        labels += `<span class="dc-gap" style="left:${x2}px;top:${mid + (y2 - mid) / 2}px" data-gap="${it.id}">${it.via.length} more</span>`;
+        labels += `<span class="dc-gap" style="left:${x2}px;top:${(fork + y2) / 2}px" data-gap="${it.id}">${it.via.length} more</span>`;
       } else if (it.kind === 'found') solid += path;
       else faint += path;
     }
-    edges.innerHTML = `<g class="dc-edge-faint">${faint}</g><g class="dc-edge-dotted">${dotted}</g><g class="dc-edge-solid">${solid}</g>`;
+    edges.innerHTML = `<g class="dc-edge-faint">${faint}</g><g class="dc-edge-dotted">${dotted}</g><g class="dc-edge-solid">${solid}</g><g class="dc-edge-lit">${lit}</g>`;
     gapLayer.innerHTML = labels;
   }
   const gapLayer = document.createElement('div');
@@ -520,6 +602,141 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     }));
   }
 
+  // ---------- the ages behind the board ----------
+  // the ages of the earth, each one named on the left where it starts (the name stays in view while you're in
+  // it), and the five great extinctions marked across the board. the strip down the left edge is all of time at
+  // once, each age a colour (css --age-0 to --age-16): drag along it to travel through time, and everything that
+  // came after the moment you're at fades away. (the board itself stays plain sand: coloured, it lost its feel)
+  const AGES = [
+    [4600, 'Hadean', 'The young Earth, where the first cells began'],
+    [4000, 'Archean', 'Only single cells, and no oxygen in the air yet'],
+    [2500, 'Proterozoic', 'Oxygen fills the air, and cells with a nucleus appear'],
+    [635, 'Ediacaran', 'The first animals: soft, strange and on the sea floor'],
+    [538.8, 'Cambrian', 'Animals everywhere in the sea, with eyes, shells and legs'],
+    [485.4, 'Ordovician', 'Seas full of life, and the first little plants on land'],
+    [443.8, 'Silurian', 'Fish with jaws, and the first creepy-crawlies on land'],
+    [419.2, 'Devonian', 'The age of fishes, the first forests and the first legs'],
+    [358.9, 'Carboniferous', 'Swampy forests, giant insects, and eggs laid on land'],
+    [298.9, 'Permian', 'One great supercontinent, until most life died out'],
+    [251.9, 'Triassic', 'The first dinosaurs, and the first mammals'],
+    [201.4, 'Jurassic', 'Giant dinosaurs, and the first birds'],
+    [145, 'Cretaceous', 'The first flowers, until an asteroid hit'],
+    [66, 'Paleogene', 'The big dinosaurs are gone, and mammals take over'],
+    [23.03, 'Neogene', 'Grasslands spread, and apes walk on two legs'],
+    [2.58, 'Pleistocene', 'Ice ages, mammoths, and the first people like us'],
+    [0.0117, 'Today', ''],
+  ];
+  const DYINGS = [
+    [443.8, 'An ice age', 'most kinds of sea life die out'],
+    [372, 'The Late Devonian extinction', 'reefs and many fish die out'],
+    [251.9, 'The Great Dying', 'the worst of all, when most kinds of life die out'],
+    [201.4, 'The end-Triassic extinction', 'which leaves the world to the dinosaurs'],
+    [66, 'The asteroid', 'the dinosaurs die out, all but the birds'],
+  ];
+  // "4.6 to 4 billion years ago", "2.6 million to 11,700 years ago"
+  function fromTo(hi, lo) {
+    const a = ago(hi).replace(' ago', ''), b = ago(lo), unit = b.replace(/^[\d.,]+ /, '').replace(' ago', '');
+    return `${a.endsWith(' ' + unit) ? a.slice(0, -unit.length - 1) : a} to ${b}`;
+  }
+  const ageAt = ma => AGES.findIndex((a, i) => ma >= (AGES[i + 1]?.[0] ?? -1));
+  const agesBox = document.createElement('div');
+  agesBox.className = 'dc-ages';
+  agesBox.setAttribute('aria-hidden', 'true');
+  agesBox.innerHTML = AGES.map(([ma, name, say], i) => `<p class="dc-age"><b>${name}</b><span>${i + 1 < AGES.length ? fromTo(ma, AGES[i + 1][0]) : 'The last 12,000 years'}</span>${say ? `<i>${say}</i>` : ''}</p>`).join('')
+    + DYINGS.map(([ma, name, say]) => `<p class="dc-dying"><span><b>${name}</b>, ${ago(ma)}<i>: ${say}</i></span></p>`).join('');
+  board.insertBefore(agesBox, world);
+  const ageEls = [...agesBox.querySelectorAll('.dc-age')], dyingEls = [...agesBox.querySelectorAll('.dc-dying')];
+  const ageTall = [];
+  // travelling through time: the line you're at, and the veil over everything after it
+  const later = Object.assign(document.createElement('div'), { className: 'dc-later' });
+  const nowLine = Object.assign(document.createElement('div'), { className: 'dc-now', innerHTML: '<span></span>' });
+  board.append(later, nowLine);
+  later.setAttribute('aria-hidden', 'true');
+  nowLine.setAttribute('aria-hidden', 'true');
+  const ruler = $('dcRuler'), rulerView = ruler.querySelector('.dc-ruler-view');
+  let timeAt = null;           // where you've travelled to, down the board, while you're travelling
+  // all of time down the board, for the strip: from the earth's start to just under today's cards
+  const allTime = () => [yOf(4600), yOf(0) + 170];
+
+  function paintAges() {
+    const v = view(), sy = y => cam.y + y * cam.s;
+    const starts = AGES.map(([ma]) => sy(yOf(ma)));
+    // each age's name where it starts, held in view while you're in it, until the next one pushes it out
+    ageEls.forEach((el, i) => {
+      const top = starts[i], bottom = starts[i + 1] ?? Infinity;
+      const h = ageTall[i] ||= el.offsetHeight;
+      const y = Math.min(Math.max(top + 10, v.top), bottom - h - 10);
+      el.style.transform = `translateY(${y.toFixed(0)}px)`;
+      el.classList.toggle('is-off', bottom - top < h + 24 || y + h < 0 || y > v.h);
+    });
+    // (one too near the one above it says nothing: zoomed right out they'd pile up)
+    let above = -Infinity;
+    dyingEls.forEach((el, i) => {
+      const y = sy(yOf(DYINGS[i][0])), crowded = y - above < 48 || cam.s < 0.3;
+      el.style.transform = `translateY(${y.toFixed(0)}px)`;
+      el.classList.toggle('is-off', y < 0 || y > v.h);
+      el.classList.toggle('is-quiet', crowded);
+      if (!crowded) above = y;
+    });
+    // the strip: the ages as bands, and a window round the part you can see
+    const [y0, y1] = allTime(), f = y => ((y - y0) / (y1 - y0) * 100).toFixed(2) + '%';
+    ruler.style.backgroundImage = `linear-gradient(${AGES.map(([ma], i) => `var(--age-${i}) ${f(yOf(ma))} ${f(i + 1 < AGES.length ? yOf(AGES[i + 1][0]) : y1)}`).join(',')})`;
+    const wTop = Math.max(0, Math.min(1, ((v.top - cam.y) / cam.s - y0) / (y1 - y0)));
+    const wBottom = Math.max(0, Math.min(1, ((v.bottom - cam.y) / cam.s - y0) / (y1 - y0)));
+    rulerView.style.top = (wTop * 100).toFixed(2) + '%';
+    rulerView.style.height = (Math.max(0.01, wBottom - wTop) * 100).toFixed(2) + '%';
+    if (timeAt !== null) {
+      const y = sy(timeAt), ma = maAt(timeAt), age = AGES[Math.max(0, ageAt(ma))];
+      later.style.top = nowLine.style.top = y.toFixed(0) + 'px';
+      const when = ma < 0.0117 ? 'Today' : `${ago(ma).replace(/^\w/, c => c.toUpperCase())} · ${age[1]}`;
+      if (nowLine.firstChild.textContent !== when) nowLine.firstChild.textContent = when;
+      ruler.setAttribute('aria-valuetext', when);
+    }
+  }
+  // travel to the moment at this height on the strip: the board slides so that moment is level with your finger
+  let travelAge = -1, fadeTimer = 0;
+  function travel(clientY) {
+    const r = ruler.getBoundingClientRect(), b = board.getBoundingClientRect();
+    const k = Math.min(1, Math.max(0, (clientY - r.top) / r.height));
+    const [y0, y1] = allTime();
+    timeAt = y0 + k * (y1 - y0);
+    cancelAnimationFrame(camFrame);
+    cam.y = r.top + k * r.height - b.top - timeAt * cam.s;
+    clearTimeout(fadeTimer);
+    later.classList.add('is-on');
+    nowLine.classList.add('is-on');
+    look();
+    const age = ageAt(maAt(timeAt));
+    if (age !== travelAge && travelAge !== -1) dcSound.play('tap');
+    travelAge = age;
+  }
+  function arrive() {
+    clearTimeout(fadeTimer);
+    fadeTimer = setTimeout(() => { later.classList.remove('is-on'); nowLine.classList.remove('is-on'); }, 900);
+    if (timeAt !== null) emit('travel', { ma: maAt(timeAt) });
+    travelAge = -1;
+  }
+  ruler.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    ruler.setPointerCapture(e.pointerId);
+    ruler.classList.add('is-held');
+    travel(e.clientY);
+  });
+  ruler.addEventListener('pointermove', e => { if (ruler.hasPointerCapture(e.pointerId)) travel(e.clientY); });
+  const letGo = e => { if (!ruler.classList.contains('is-held')) return; ruler.classList.remove('is-held'); arrive(); };
+  ruler.addEventListener('pointerup', letGo);
+  ruler.addEventListener('pointercancel', letGo);
+  ruler.addEventListener('keydown', e => {
+    const step = { ArrowUp: -1, ArrowDown: 1, PageUp: -6, PageDown: 6, Home: -100, End: 100 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const r = ruler.getBoundingClientRect(), [y0, y1] = allTime();
+    const k = timeAt === null ? ((view().top + view().bottom) / 2 - cam.y) / cam.s : timeAt;
+    travel(r.top + Math.min(1, Math.max(0, (k - y0) / (y1 - y0) + step * 0.015)) * r.height);
+    arrive();
+  });
+
   // ---------- looking around: drag, scroll, pinch ----------
 
   const cam = { x: 0, y: 0, s: 1 };
@@ -529,6 +746,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     board.style.setProperty('--tx', cam.x + 'px');
     board.style.setProperty('--ty', cam.y + 'px');
     board.style.setProperty('--ts', 320 * cam.s + 'px');
+    paintAges();
   }
   const clampS = s => Math.min(2.2, Math.max(0.06, s));
   function zoomAt(px, py, s) {
@@ -555,7 +773,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   function view() {
     const r = board.getBoundingClientRect();
     const panelOpen = !$('dcPanel').hidden && innerWidth > 760;
-    return { left: 24, top: innerWidth > 760 ? 110 : 150, right: r.width - (panelOpen ? 448 : 24), bottom: r.height - 84, w: r.width, h: r.height };
+    return { left: 48, top: innerWidth > 760 ? 110 : 150, right: r.width - (panelOpen ? 448 : 24), bottom: r.height - 84, w: r.width, h: r.height };
   }
   // a box of the board (world units) into view: left alone if it's already there, slid in if it fits, else zoomed out to fit
   function show(box, opts = {}) {
@@ -738,6 +956,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     current = n;
     if (q !== ROOT) { const i = recent.indexOf(q); if (i >= 0) recent.splice(i, 1); recent.unshift(q); recent.length = Math.min(recent.length, 6); }
     for (const [id, el] of els) el.classList.toggle('is-picked', id === q && items.get(id)?.kind === 'found');
+    paint();
     const wasHidden = panel.hidden;
     panel.hidden = false;
     renderHere(n);
@@ -752,6 +971,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     panel.hidden = true;
     selected = null;
     for (const el of els.values()) el.classList.remove('is-picked');
+    paint();
     board.focus({ preventScroll: true });
   }
   $('dcClose').addEventListener('click', closePanel);
@@ -831,6 +1051,14 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     const all = kids.length + (latin.has(n.q) || n.live ? 0 : n.t || 0);
     if (all && group) facts += ` You've found ${fmt(out)} of its ${fmt(all)} ${all === 1 ? 'branch' : 'branches'}.`;
     $('dcFacts').textContent = facts;
+    // what makes a group a group (traits.js): its own, or for a creature its nearest group's that has one
+    const owner = group ? (TRAITS[n.q] ? n : null) : trail(n.q).reverse().map(q => nodes.get(q)).find(p => p && TRAITS[p.q] && p.q !== n.q);
+    $('dcShare').hidden = !owner;
+    if (owner) {
+      const its = owner.l ? nameOf(owner).toLowerCase() : nameOf(owner);
+      $('dcShareHead').textContent = group ? 'What they all share' : / family$/.test(its) ? `Like everyone in the ${its}` : `Like all ${its}`;
+      $('dcShareText').textContent = TRAITS[owner.q];
+    }
 
     // a creature's picture. a group shows a few of its best known members instead, each one a way in
     const members = group ? (n.m || []) : [];
@@ -1017,7 +1245,9 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     }
     // (the oldest fossil of either branch: they'd already split by then)
     const split = Math.max(nodes.get(A[i])?.a ?? -1, nodes.get(B[i])?.a ?? -1);
+    // (and what everyone in the group where they meet has, if traits.js knows: what the two have in common)
     return `${head}<p class="dc-vs-meet">Their family lines meet at <button class="dc-link" type="button" data-q="${meet.q}">${esc(nameOf(meet))}</button>${split > HOLOCENE ? `, and had gone their separate ways at least ${ago(split)}` : ''}.</p>
+      ${TRAITS[meet.q] && meet.q !== ROOT ? `<p class="dc-vs-share"><b>What they have in common:</b> ${esc(TRAITS[meet.q])}</p>` : ''}
       <div class="dc-vs-tree"><span class="dc-vs-top">${esc(nameOf(meet))}</span>
         <svg class="dc-vs-fork" viewBox="0 0 200 28" preserveAspectRatio="none" aria-hidden="true"><path d="M100 0V10Q100 14 96 14H54Q50 14 50 18V28M100 10Q100 14 104 14H146Q150 14 150 18V28"/></svg>
         <div class="dc-vs-lines">${line(A.slice(i), a)}${line(B.slice(i), b)}</div>
@@ -1457,6 +1687,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     ROOT, nodes, parentOf, homeOf, found, trail, kidsOf, isGroup, nameOf, latinOf, picOf, loadSlice, loadPics, fillPics,
     fmt, esc, ago, span, weight, roughly, motion, store, emit, cheer, burst, dialog, draw, els, goal, get items() { return items; },
     get hunting() { return hunt; }, enterHunt, leaveHunt, show, boxOf, pick, get selected() { return selected; }, get ready() { return ready; },
+    finder, bring, silUrl, traits: TRAITS,
   };
 
   // ---------- off we go ----------
@@ -1486,7 +1717,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     emit('ready');
     readyNow();
     if (!store.get('distantCousinsHinted', false)) {
-      if (matchMedia('(pointer: coarse)').matches) $('dcHint').textContent = 'Tap a mystery card to find out who it is, then tap it again to read all about it. Drag to look around, pinch to zoom.';
+      if (matchMedia('(pointer: coarse)').matches) $('dcHint').textContent = 'Tap a mystery card to find out who it is, then tap it again to read all about it. Time runs down the board, from the first life to today. Drag to look around, pinch to zoom.';
       $('dcHint').hidden = false;
     }
   }

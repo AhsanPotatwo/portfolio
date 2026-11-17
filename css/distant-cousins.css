@@ -25,6 +25,12 @@
   --scroll:#e3a98a;        --scroll-hover:#9a6a52;
   --g-rose:#d9607f;        --g-sky:#4a86c5;
   --sky:#cfe4f5;           --sky-ink:#2f5d86;        --rose:#fbd0d6;           --rose-ink:#9c3550;
+  /* the ages of the earth on the time strip, oldest first: the young earth's warm glow, the long ages of the sea,
+     swamp forests, red deserts, fern forests, grassland, ice, and today's sand */
+  --age-0:#f9dbcf;  --age-1:#f2dddb;  --age-2:#ebdee0;  --age-3:#e7e1e1;  --age-4:#e5e4e0;  --age-5:#e4e6db;
+  --age-6:#e7e7d7;  --age-7:#eae7d1;  --age-8:#e7e4c9;  --age-9:#f6e1c6;  --age-10:#f9dac5; --age-11:#ece7cb;
+  --age-12:#f4e5c9; --age-13:#efe6cd; --age-14:#f9e5c4; --age-15:#ece8e3; --age-16:var(--bg);
+  --fossil:rgba(160, 70, 30, .09);
 
   --font-round:"Sniglet", var(--font-sans);
   --font-latin:"Gentium Book Plus", Georgia, serif;
@@ -51,6 +57,10 @@
   --stone-pic:#29242a;     --stone-tag:#4a4148;      --stone-ink:#e4d6d0;
   --scroll:#5a4462;        --scroll-hover:#a9816c;
   --sky:#2d4256;           --sky-ink:#a9d1f2;        --rose:#4d2a38;           --rose-ink:#f5a9bb;
+  --age-0:#291923;  --age-1:#261928;  --age-2:#211a2b;  --age-3:#1d1c2c;  --age-4:#1b1f2a;  --age-5:#1a2126;
+  --age-6:#1b2222;  --age-7:#1e221f;  --age-8:#1c211d;  --age-9:#271f1d;  --age-10:#291b1d; --age-11:#20211d;
+  --age-12:#25201e; --age-13:#22201e; --age-14:#27201d; --age-15:#1e1f28; --age-16:var(--bg);
+  --fossil:rgba(255, 225, 245, .05);
 }
 
 /* scrollbars: a round pebble of a thumb floating in the card, nothing behind it. chrome and safari take the
@@ -139,7 +149,8 @@ html:has(.dc-page){ scrollbar-color:auto; }
 .dc-board::before{
   content:"";
   position:absolute; inset:0;
-  background:var(--tile-ink);
+  /* (see-through, so the fossils show on every age's colour) */
+  background:var(--fossil);
   -webkit-mask:url("../assets/distant-cousins/fossils.svg") var(--tx) var(--ty) / var(--ts) repeat;
   mask:url("../assets/distant-cousins/fossils.svg") var(--tx) var(--ty) / var(--ts) repeat;
   pointer-events:none;
@@ -153,6 +164,81 @@ html:has(.dc-page){ scrollbar-color:auto; }
 .dc-edge-faint{ stroke:var(--bark-soft); }
 .dc-edge-dotted{ stroke:var(--bark); stroke-dasharray:1 11; }
 .dc-nodes, .dc-gaps{ position:absolute; left:0; top:0; }
+/* the line of the one you've clicked, all the way up to the first life */
+.dc-edge-lit{ stroke:var(--coral); opacity:.85; }
+
+/* ---------- the ages behind the board (page.js paintAges) ---------- */
+.dc-ages{ position:absolute; inset:0; pointer-events:none; }
+.dc-age{
+  position:absolute; left:34px; top:0;
+  display:flex; flex-direction:column; gap:1px;
+  max-width:250px;
+  margin:0;
+  padding:7px 12px 8px;
+  border-radius:14px;
+  background:color-mix(in srgb, var(--bg) 82%, transparent);
+  color:var(--ink);
+  font-size:12.5px; line-height:1.3;
+  transition:opacity .25s ease;
+}
+.dc-age b{ font:400 17px/1.15 var(--font-round); }
+.dc-age span{ color:var(--muted); font-weight:700; }
+.dc-age i{ margin-top:2px; color:var(--muted); font-style:normal; }
+.dc-age.is-off, .dc-dying.is-off{ opacity:0; }
+/* a great extinction: a broken line right across, and what happened */
+.dc-dying{
+  position:absolute; left:0; right:0; top:0;
+  margin:0;
+  border-top:2px dashed color-mix(in srgb, var(--ink) 22%, transparent);
+  transition:opacity .25s ease;
+}
+.dc-dying span{
+  position:absolute; right:18px; top:-13px;
+  max-width:min(420px, 60vw);
+  padding:3px 11px;
+  border-radius:999px;
+  background:var(--bg);
+  color:var(--muted); font-size:12.5px; line-height:1.4; text-align:right;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.dc-dying b{ color:var(--ink); font-weight:700; }
+.dc-dying i{ font-style:normal; }
+.dc-dying.is-quiet span{ display:none; }
+@media (max-width:1100px){ .dc-dying i{ display:none; } }
+
+/* the strip down the left edge: all of time, with a window round what you can see */
+.dc-ruler{
+  position:absolute; left:10px; top:96px; bottom:92px; z-index:3;
+  width:14px;
+  border-radius:999px;
+  box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--ink) 14%, transparent);
+  cursor:ns-resize;
+  touch-action:none;
+}
+.dc-ruler::after{ content:""; position:absolute; inset:-6px -10px; }
+.dc-ruler-view{
+  position:absolute; left:-3px; right:-3px;
+  min-height:8px;
+  border:2px solid var(--ink);
+  border-radius:999px;
+  opacity:.55;
+  pointer-events:none;
+}
+.dc-ruler:hover .dc-ruler-view, .dc-ruler.is-held .dc-ruler-view, .dc-ruler:focus-visible .dc-ruler-view{ opacity:1; }
+.dc-ruler:focus-visible{ outline:3px solid var(--focus); outline-offset:3px; }
+/* travelling: the moment you're at, right across, and everything after it faded */
+.dc-later, .dc-now{ position:absolute; left:0; right:0; pointer-events:none; opacity:0; transition:opacity .5s ease; }
+.dc-later{ bottom:0; background:color-mix(in srgb, var(--bg) 72%, transparent); }
+.dc-now{ height:0; border-top:3px solid var(--coral); }
+.dc-now span{
+  position:absolute; left:34px; top:-15px;
+  padding:4px 12px;
+  border-radius:999px;
+  background:var(--coral); color:#fff;
+  font:400 15px/1.3 var(--font-round);
+  white-space:nowrap;
+}
+.dc-later.is-on, .dc-now.is-on{ opacity:1; transition-duration:.12s; }
 
 /* a creature on the board. its place is its transform (page.js), so lifting it on hover uses translate */
 .dc-node{
@@ -264,7 +350,8 @@ html:has(.dc-page){ scrollbar-color:auto; }
 .dc-node.is-more,
 .dc-node.is-latin{
   padding:12px 10px;
-  background:transparent;
+  /* (the sand behind it, so the extinctions' labels don't show through) */
+  background:var(--bg);
   box-shadow:none;
   outline:2px dashed var(--bark-soft);
   outline-offset:-2px;
@@ -519,6 +606,13 @@ html:has(.dc-page){ scrollbar-color:auto; }
 .dc-sci[hidden]{ display:none; }
 .dc-facts{ font-size:16px; font-weight:700; line-height:1.5; text-wrap:pretty; }
 .dc-read{ font-size:15px; line-height:1.6; text-wrap:pretty; }
+/* what makes the group a group (traits.js): a leaf-green note */
+.dc-share{ display:flex; flex-direction:column; gap:4px; padding:10px 14px 12px; border-radius:16px; background:var(--leaf-soft); }
+.dc-share[hidden]{ display:none; }
+.dc-share .dc-sub{ color:var(--leaf-text); }
+.dc-share p:last-child{ font-size:15px; line-height:1.5; text-wrap:pretty; }
+.dc-vs-share{ margin:-6px 0 14px; padding:10px 14px; border-radius:16px; background:var(--leaf-soft); font-size:15px; line-height:1.5; text-wrap:pretty; }
+.dc-vs-share b{ color:var(--leaf-text); }
 .dc-read:empty{ display:none; }
 
 /* small headings over each part of the panel and the comparison */
@@ -802,7 +896,7 @@ body.dc-vs-open{ overflow:hidden; }
 /* ---------- windows: games, achievements, quizzes ---------- */
 /* the games: a card each, all the same size however many there are (games.js GAMES). each has its colour
    (--sec) and the soft one behind its picture (--soft), a slider for how hard, and one key to play */
-.dc-games{ display:grid; grid-template-columns:repeat(auto-fill, minmax(232px, 1fr)); column-gap:12px; row-gap:0; margin-top:14px; }
+.dc-games{ display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); column-gap:12px; row-gap:0; margin-top:14px; }
 .dc-games > .dc-game{ margin-bottom:12px; }
 /* (each card a subgrid of the list's rows, so pictures, names, sliders and keys line up across a row of
    games whatever the length of the words) */
@@ -821,6 +915,11 @@ body.dc-vs-open{ overflow:hidden; }
 .dc-game-art text{ fill:var(--ink); stroke:none; font:800 15px/1 var(--font-round); text-anchor:middle; }
 .dc-game-art .move{ transform-box:fill-box; transform-origin:50% 50%; }
 .dc-game:hover .dc-game-art .move{ animation:dc-wiggle .7s ease-in-out; }
+/* the thermometer's red, inside the glass, rising and settling when you point at the game */
+.dc-game-art .f-merc{ fill:var(--sec); stroke:none; }
+.dc-game-art .rise{ transform-box:fill-box; transform-origin:50% 100%; }
+.dc-game:hover .dc-game-art .rise{ animation:dc-merc .9s ease-in-out; }
+@keyframes dc-merc{ 40%{ scale:1 1.45; } 70%{ scale:1 .9; } }
 .dc-game h3{ margin:4px 6px 0; font:800 22px/1.1 var(--font-round); }
 .dc-game-say{ margin:0 6px; font-size:14px; font-weight:600; line-height:1.45; color:var(--muted); text-wrap:pretty; }
 
@@ -983,6 +1082,56 @@ body.dc-vs-open{ overflow:hidden; }
 .dc-quiz-score{ font-size:20px; }
 .dc-quiz-score b{ font:800 64px/1 var(--font-round); color:var(--coral); }
 
+/* mystery cousin (games.js): the mystery card, its family line so far, a box to guess in, the guesses closest
+   first with a bar that warms from sky blue to coral the closer each one got */
+.dc-myst-top{ display:flex; align-items:center; gap:16px; margin-bottom:12px; }
+.dc-myst-top p{ margin:0; font-size:16px; line-height:1.5; text-wrap:pretty; }
+.dc-myst-card{
+  flex:none; display:grid; place-items:center;
+  width:96px; height:96px;
+  border-radius:20px;
+  background:var(--mystery);
+  outline:3px dashed var(--mystery-edge); outline-offset:-3px;
+  overflow:hidden;
+}
+.dc-myst-card > b{ font:800 46px/1 var(--font-round); color:var(--muted); }
+.dc-myst-card img{ width:80%; height:80%; object-fit:contain; }
+:root[data-dc-theme="dark"] .dc-myst-card:not(.is-shown) img{ filter:invert(1); opacity:.7; }
+.dc-myst-card.is-shown{ outline:4px solid var(--leaf); background:var(--leaf-soft); animation:dc-hop .5s var(--ease-out); }
+.dc-myst-card.is-shown img{ width:100%; height:100%; }
+.dc-myst-card.is-shown > b{ padding:6px; font-size:15px; text-align:center; color:var(--ink); }
+.dc-myst-line{ display:flex; flex-wrap:wrap; gap:4px 0; margin:0 0 12px; padding:0; list-style:none; font-size:13px; font-weight:700; color:var(--muted); }
+.dc-myst-line li{ display:flex; align-items:center; }
+.dc-myst-line li + li::before{ content:""; width:14px; height:2px; margin:0 4px; background:var(--bark-soft); }
+.dc-myst-line li.is-mystery span{ padding:2px 10px; border-radius:999px; background:var(--coral); color:#fff; }
+.dc-myst-say{ min-height:1.5em; margin:12px 0 8px; font-size:16px; line-height:1.5; text-wrap:pretty; }
+.dc-myst-say b{ color:var(--coral); }
+.dc-myst-guesses{ display:flex; flex-direction:column; gap:8px; margin:0 0 14px; padding:0; list-style:none; }
+.dc-myst-guesses li{
+  position:relative;
+  display:grid; grid-template-columns:52px 1fr auto; align-items:center; gap:12px;
+  padding:8px 14px 14px 8px;
+  border-radius:16px;
+  background:var(--card);
+  box-shadow:0 3px 0 var(--card-edge);
+  overflow:hidden;
+}
+.dc-myst-guesses li.is-new{ animation:dc-hop .45s var(--ease-out); }
+.dc-myst-guesses li.is-right{ outline:3px solid var(--leaf); }
+.dc-myst-pic{ width:52px; height:42px; border-radius:10px; overflow:hidden; background:var(--peach); }
+.dc-myst-pic img{ width:100%; height:100%; object-fit:contain; }
+.dc-myst-pic img:not([src]){ visibility:hidden; }
+.dc-myst-who{ display:flex; flex-direction:column; min-width:0; }
+.dc-myst-who b{ font:400 18px/1.2 var(--font-round); }
+.dc-myst-who span{ font-size:13.5px; color:var(--muted); }
+.dc-myst-years{ display:flex; flex-direction:column; align-items:flex-end; line-height:1.05; }
+.dc-myst-years b{ font:800 26px/1 var(--font-round); color:color-mix(in oklab, var(--coral) calc(var(--warm) * 100%), var(--g-sky)); }
+.dc-myst-years b.is-got{ font-size:20px; color:var(--leaf-text); }
+.dc-myst-years small{ font-size:11.5px; font-weight:700; color:var(--muted); }
+.dc-myst-bar{ position:absolute; left:0; bottom:0; height:6px; width:calc(var(--warm) * 100%); border-radius:0 6px 6px 0; background:color-mix(in oklab, var(--coral) calc(var(--warm) * 100%), var(--g-sky)); }
+.dc-myst-keys{ justify-content:center; flex-wrap:wrap; }
+.dc-myst-keys .dc-key:disabled{ opacity:.5; cursor:default; transform:none; }
+
 /* ---------- the soil band ---------- */
 .dc-band{
   position:relative;
@@ -1025,6 +1174,12 @@ body.dc-vs-open{ overflow:hidden; }
   .dc-play .dc-key span:not(.dc-count){ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
   .dc-count{ position:absolute; top:-6px; right:-8px; padding:2px 5px; font-size:10px; }
   .dc-hint{ top:128px; bottom:auto; font-size:14px; }
+  /* the ages: just their names and years, and the strip between the search and the keys */
+  .dc-ruler{ left:6px; top:132px; bottom:118px; width:12px; }
+  .dc-age{ left:24px; padding:3px 9px 4px; }
+  .dc-age b{ font-size:13.5px; }
+  .dc-age span, .dc-age i, .dc-dying span{ display:none; }
+  .dc-now span{ left:26px; font-size:13px; }
   /* the favourite shrinks to its picture, bottom left */
   .dc-fav{ left:12px; top:auto; right:auto; bottom:68px; }
   /* the hunt sits where the search was */
@@ -1063,9 +1218,9 @@ body.dc-vs-open{ overflow:hidden; }
   .dc-node, .dc-key, .dc-chip, .dc-fav-go, .dc-member{ transition:none; }
   .dc-node.is-born, .dc-node.is-busy, .dc-panel, .dc-vs, .dc-vs-card,
   .dc-node.is-revealed, .dc-node.is-hung, .dc-node.is-unfound:hover .dc-sil, .dc-met.is-up, .dc-cheer,
-  #dcSurprise.is-rolling svg, .dc-vs-and, .dc-vs-fork, .dc-vs-line > li, .dc-vs-fact, .dc-ach.is-done .dc-ach-badge, .dc-hunt, .dc-node.is-hinted, .dc-quiz-pick.is-right{ animation:none; }
+  #dcSurprise.is-rolling svg, .dc-vs-and, .dc-vs-fork, .dc-vs-line > li, .dc-vs-fact, .dc-ach.is-done .dc-ach-badge, .dc-hunt, .dc-node.is-hinted, .dc-quiz-pick.is-right, .dc-myst-card.is-shown, .dc-myst-guesses li.is-new{ animation:none; }
   .dc-quiz-pick{ transition:none; }
-  .dc-game:hover .dc-game-art .move, .dc-thumb.is-off{ animation:none; }
+  .dc-game:hover .dc-game-art .move, .dc-game:hover .dc-game-art .rise, .dc-thumb.is-off{ animation:none; }
   .dc-game, .dc-thumb, .dc-thumb-mouth, .dc-ticks span, .dc-stops i, .dc-game-level > p, .dc-game-level > p.is-on{ transition:none; }
   .dc-motes{ display:none; }
 }
