@@ -94,7 +94,7 @@
         </aside>
       </div>
 
-      <!-- the game on its board. page.js scales the game to fit -->
+      <!-- the game on its board. page.js scales the game to fit and swaps in the uni original -->
       <div class="container">
         <div class="wb-board">
           <div class="wb-board-bar">
@@ -103,8 +103,102 @@
             <p class="wb-side wb-side-foe">Enemy wizard <b>200 HP</b></p>
           </div>
           <div class="wb-game-stage" id="gameStage">
-            <div id="canvas-wrapper"></div>
+
+            <!-- the revamp: a toy theatre (the canvas, duel.js) over a desk of keys. everything in here is laid
+                 out at 800x600 and scaled as one -->
+            <div class="wb-duel" id="duel" data-screen="title">
+              <canvas class="wb-duel-canvas" width="800" height="430" role="img" aria-label="A toy theatre stage with a blue wizard puppet on the left and a red wizard puppet on the right"></canvas>
+              <svg class="wb-tour-arrow" viewBox="0 0 800 600" aria-hidden="true"><path/><path/></svg>
+
+              <button class="wb-chip wb-back" type="button" data-act="back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5 7.5 12l7 7"/></svg>Back</button>
+              <button class="wb-chip wb-mute" type="button" data-act="mute" aria-label="Sound" aria-pressed="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5L12 18V6L7.5 9.5z"/><path class="wb-mute-on" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11"/><path class="wb-mute-off" d="m16 9.5 5 5m0-5-5 5"/></svg>
+              </button>
+
+              <!-- the playbill pinned to the curtain -->
+              <div class="wb-bill wb-bill-title">
+                <p class="wb-bill-kicker">Tonight, for one night only</p>
+                <h2 class="wb-bill-title-text"><span class="wb-title-you">Epic Wizard</span> <span class="wb-title-foe">Battle!</span></h2>
+                <p class="wb-bill-cast">The blue wizard <i>vs</i> the evil red wizard</p>
+              </div>
+              <div class="wb-bill wb-bill-end" aria-live="polite">
+                <p class="wb-bill-kicker" id="duelEndKicker"></p>
+                <h2 class="wb-bill-title-text" id="duelEndTitle"></h2>
+                <p class="wb-bill-cast" id="duelEndLine"></p>
+              </div>
+              <!-- how to play: a note on the stage pointing at things -->
+              <div class="wb-note" id="duelNote" aria-live="polite">
+                <h3 class="wb-note-title"></h3>
+                <p class="wb-note-text"></p>
+                <div class="wb-note-nav">
+                  <button class="wb-key wb-key-round wb-key-tan" type="button" data-act="prev" aria-label="Previous page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5 7.5 12l7 7"/></svg></button>
+                  <p class="wb-note-count"></p>
+                  <button class="wb-key wb-key-round wb-key-tan" type="button" data-act="next" aria-label="Next page"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5 7 7-7 7"/></svg></button>
+                </div>
+              </div>
+
+              <!-- the desperation move drops in from above the stage at 15% health -->
+              <div class="wb-berserk-sign">
+                <button class="wb-berserk-key" type="button" data-act="berserk">Berserk Strike<small>60 damage &middot; 35% accuracy</small></button>
+                <p>Take 10 damage on miss</p>
+              </div>
+
+              <div class="wb-desk">
+                <div class="wb-desk-menu">
+                  <button class="wb-key wb-key-big wb-key-gold" type="button" data-act="start">Start game</button>
+                  <button class="wb-key wb-key-big wb-key-parch" type="button" data-act="tutorial">How to play</button>
+                  <button class="wb-key wb-key-big wb-key-gold" type="button" data-act="again">Play again</button>
+                  <button class="wb-key wb-key-big wb-key-parch" type="button" data-act="title">Back to the title</button>
+                </div>
+
+                <div class="wb-desk-battle">
+                  <div class="wb-spellkeys" role="group" aria-label="Moves">
+                    <button class="wb-key wb-spellkey" type="button" data-type="Attack" style="--face:#ff6b6b;--edge-c:#b83a40"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2.5 5 13.5h6.5l-1 8 8.5-11h-6.5z"/></svg>Attack</button>
+                    <button class="wb-key wb-spellkey" type="button" data-type="Defend" style="--face:#98c1ff;--edge-c:#3f6dc0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/></svg>Defend</button>
+                    <button class="wb-key wb-spellkey" type="button" data-type="Heal" style="--face:#8fdc8a;--edge-c:#3d763a"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/><path d="M12 9.5v5m-2.5-2.5h5"/></svg>Heal</button>
+                  </div>
+
+                  <div class="wb-tiercol" role="group" aria-label="Strength">
+                    <p class="wb-desk-hint">Pick a move, then how strong</p>
+                    <button class="wb-tiercard" type="button" data-tier="0"></button>
+                    <button class="wb-tiercard" type="button" data-tier="1"></button>
+                    <button class="wb-tiercard" type="button" data-tier="2"></button>
+                  </div>
+
+                  <div class="wb-elcol" role="group" aria-label="Element">
+                    <!-- each arrow points at the element it beats -->
+                    <svg class="wb-el-arrows" viewBox="0 0 240 142" aria-hidden="true">
+                      <path d="M92 30Q62 44 56 80M49 72l7 8 5-10"/><path d="M84 124Q120 140 156 124M146 120l10 4-5 9"/><path d="M184 80Q178 44 148 30M159 28l-11 2 5 9"/>
+                    </svg>
+                    <button class="wb-el" type="button" data-el="Fire" style="--face:#c93232;--edge-c:#7a1d1d"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c.6 3.6 5 5.2 5 10a5 5 0 0 1-10 0c0-2.6 1.3-4 2.4-5.2.3 1.8 1 2.8 2.1 3.2-.3-3 .2-5.6.5-8z"/></svg>Fire</button>
+                    <button class="wb-el" type="button" data-el="Earth" style="--face:#40a027;--edge-c:#235a15"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 6.5 10.5h3L5.5 16h13l-4-5.5h3z"/><path d="M12 16v4.5"/></svg>Earth</button>
+                    <button class="wb-el" type="button" data-el="Water" style="--face:#29a1d4;--edge-c:#13607f"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5s5.5 6.4 5.5 10.2a5.5 5.5 0 0 1-11 0C6.5 9.9 12 3.5 12 3.5z"/></svg>Water</button>
+                    <button class="wb-el wb-el-neutral" type="button" data-el="Neutral" style="--face:#8f8a84;--edge-c:#4d4844"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/></svg>Neutral</button>
+                    <p class="wb-penalty"></p>
+                  </div>
+
+                  <!-- what happened this scene, written up like a script while it plays -->
+                  <div class="wb-script" aria-live="polite">
+                    <p class="wb-script-scene"></p>
+                    <p class="wb-script-line" data-who="you"></p>
+                    <p class="wb-script-line" data-who="foe"></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- the uni original, made when you switch to it (wizard-battles-classic.html) -->
+            <div class="wb-classic" id="classic" hidden></div>
           </div>
+        </div>
+
+        <div class="wb-version" role="group" aria-label="Which version to play">
+          <span class="wb-version-label">Version</span>
+          <div class="wb-version-switch">
+            <button type="button" data-version="new" aria-pressed="true">Revamped</button>
+            <button type="button" data-version="uni" aria-pressed="false">Uni original</button>
+          </div>
+          <p class="wb-version-note">The original is the game exactly as I handed it in for my dissertation, before the revamp. Same rules, same enemy.</p>
         </div>
       </div>
     </section>
@@ -344,12 +438,12 @@
           <div class="wb-band-item">
             <h2>Build the project for yourself</h2>
             <p>Download the project from GitHub and run it on your own machine.</p>
-            <a class="btn wb-key" href="https://github.com/AhsanPotatwo/Wizard-battles" target="_blank" rel="noopener">Get it on GitHub</a>
+            <a class="btn wb-band-btn" href="https://github.com/AhsanPotatwo/Wizard-battles" target="_blank" rel="noopener">Get it on GitHub</a>
           </div>
           <div class="wb-band-item">
             <h2>Read the report for the project</h2>
             <p>Read the dissertation document which outlines details about this project.</p>
-            <a class="btn wb-key" href="assets/wizard-battles/downloads/Wizard-Battles-Dissertation-Report.pdf" target="_blank" rel="noopener">Read the dissertation</a>
+            <a class="btn wb-band-btn" href="assets/wizard-battles/downloads/Wizard-Battles-Dissertation-Report.pdf" target="_blank" rel="noopener">Read the dissertation</a>
           </div>
         </div>
       </div>
@@ -368,9 +462,20 @@
   </footer>
 
   <script src="js/main.js"></script>
-  <script src="js/wizard-battles/p5.min.js"></script>
-  <script src="js/wizard-battles/sketch.js"></script>
-  <!-- has to load after sketch.js -->
+  <!-- squimble quest's synthesiser, unchanged. it was written for p5, so these are the only bits of p5 and the
+       game it needs (the same fakes as catpi-corner.html) -->
+  <script>
+    class UIElement {}
+    const TILE = 32;
+    const millis = () => performance.now();
+    const constrain = (value, low, high) => Math.min(high, Math.max(low, value));
+  </script>
+  <script src="js/squimble-quest/utils.js"></script>
+  <script src="js/squimble-quest/datafiles.js"></script>
+  <script src="js/squimble-quest/sound.js"></script>
+  <script src="js/wizard-battles/rules.js"></script>
+  <script src="js/wizard-battles/sounds.js"></script>
+  <script src="js/wizard-battles/duel.js"></script>
   <script src="js/wizard-battles/page.js"></script>
   <script src="js/wizard-battles/eyes.js"></script>
 </body>

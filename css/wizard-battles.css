@@ -239,18 +239,385 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
   width:100%;
   aspect-ratio:800/600;
 }
-#canvas-wrapper{
-  /* so the sketch's button positions end up relative to the canvas */
+/* both versions are laid out at 800x600 and scaled as one (page.js sets --wb-scale) */
+.wb-duel,
+.wb-classic{
   position:absolute;
   top:0; left:0;
   width:800px;
   height:600px;
   transform:scale(var(--wb-scale,1));
   transform-origin:0 0;
+  border-radius:12px;
+  overflow:hidden;
 }
-#canvas-wrapper canvas{ display:block; border-radius:12px; }
-/* stops a quick double tap on a game button zooming the page on phones */
-#canvas-wrapper > button{ touch-action:manipulation; }
+.wb-duel[hidden],
+.wb-classic[hidden]{ display:none; }
+.wb-classic iframe{ display:block; width:800px; height:600px; border:0; }
+
+/* which version: a two key switch under the board */
+.wb-version{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
+  gap:10px 14px;
+  max-width:828px;
+  margin:26px auto 0;
+}
+.wb-version-label{ font-family:var(--font-book); font-style:italic; font-weight:600; font-size:20px; color:var(--tan-light); }
+.wb-version-switch{
+  display:flex;
+  padding:5px;
+  border-radius:14px;
+  background:var(--table-2);
+  box-shadow:inset 0 3px 0 var(--edge);
+}
+.wb-version-switch button{
+  padding:9px 16px 8px;
+  border-radius:10px;
+  font-size:15px;
+  font-weight:700;
+  color:var(--dim);
+  transition:background-color .15s, color .15s, transform .15s var(--ease-out), box-shadow .15s var(--ease-out);
+}
+.wb-version-switch button:hover{ color:var(--cream); }
+.wb-version-switch [aria-pressed="true"]{
+  background:var(--tan);
+  color:var(--ink);
+  box-shadow:0 3px 0 var(--tan-edge);
+  transform:translateY(-2px);
+}
+.wb-version-note{ flex-basis:100%; max-width:52ch; text-align:center; font-size:15px; line-height:1.5; color:var(--dim); }
+
+/* ================= the revamp: a toy theatre over a desk of keys =================
+   the canvas is the top 430px (duel.js), everything else here is html laid over it */
+.wb-duel{
+  --face:var(--tan);
+  --edge-c:var(--tan-edge);
+  background:var(--table);
+  color:var(--ink);
+  font-family:var(--font-sans);
+  user-select:none;
+  -webkit-user-select:none;
+}
+:where(.wb-duel, .wb-version) button{ padding:0; border:0; background:none; font:inherit; color:inherit; cursor:pointer; touch-action:manipulation; }
+.wb-duel :focus-visible{ outline:3px solid var(--peach); outline-offset:3px; }
+.wb-duel-canvas{ position:absolute; top:0; left:0; display:block; width:800px; height:430px; }
+
+/* every key sits on a solid darker edge and presses down into it, like the page's */
+.wb-key{
+  display:grid; place-items:center;
+  border-radius:14px;
+  background:var(--face);
+  box-shadow:0 6px 0 var(--edge-c);
+  color:var(--ink);
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .12s var(--ease-out), box-shadow .12s var(--ease-out), opacity .2s, filter .15s;
+}
+.wb-key:hover{ transform:translateY(-2px); box-shadow:0 8px 0 var(--edge-c); }
+.wb-key:active{ transform:translateY(6px); box-shadow:0 0 0 var(--edge-c); transition-duration:.05s; }
+.wb-key[aria-pressed="true"]{ transform:translateY(4px); box-shadow:0 2px 0 var(--edge-c), inset 0 0 0 3px #fff6e4; }
+.wb-key:disabled{ opacity:.35; cursor:default; transform:none; box-shadow:0 6px 0 var(--edge-c); }
+.wb-key svg{ fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+.wb-key-gold{ --face:#f6c96b; --edge-c:#a8782c; }
+.wb-key-parch{ --face:var(--parch); --edge-c:var(--parch-edge); }
+.wb-key-tan{ --face:var(--tan); --edge-c:var(--tan-edge); }
+.wb-key-big{ min-width:210px; padding:16px 26px 14px; font-family:var(--font-book); font-size:30px; line-height:1; }
+.wb-key-round{ width:38px; height:38px; padding:0; border-radius:50%; box-shadow:0 4px 0 var(--edge-c); }
+.wb-key-round:hover{ box-shadow:0 6px 0 var(--edge-c); }
+.wb-key-round:disabled{ box-shadow:0 4px 0 var(--edge-c); }
+.wb-key-round svg{ width:20px; height:20px; }
+
+/* back and sound, small keys on the proscenium */
+.wb-chip{
+  position:absolute; top:4px;
+  display:flex; align-items:center; gap:4px;
+  height:28px;
+  padding:0 11px 0 7px;
+  border-radius:9px;
+  background:var(--tan);
+  box-shadow:0 3px 0 var(--tan-edge);
+  font-size:14px;
+  font-weight:700;
+  color:var(--ink);
+  transition:transform .12s var(--ease-out), box-shadow .12s var(--ease-out);
+}
+.wb-chip:hover{ transform:translateY(-1px); box-shadow:0 4px 0 var(--tan-edge); }
+.wb-chip:active{ transform:translateY(3px); box-shadow:0 0 0 var(--tan-edge); }
+.wb-chip svg{ width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+.wb-back{ left:36px; }
+.wb-mute{ right:36px; padding:0 6px; }
+.wb-mute svg{ width:20px; }
+.wb-mute[aria-pressed="true"] .wb-mute-off,
+.wb-mute[aria-pressed="false"] .wb-mute-on{ display:none; }
+.wb-duel[data-screen="title"] .wb-back,
+.wb-duel[data-screen="end"] .wb-back,
+.wb-duel[data-busy="1"] .wb-back{ display:none; }
+
+/* playbills pinned to the curtain */
+.wb-bill{
+  position:absolute; left:50%; top:96px;
+  width:460px;
+  padding:22px 28px 24px;
+  border-radius:6px;
+  background:var(--parch);
+  box-shadow:0 6px 0 var(--parch-edge), 6px 12px 0 rgba(28,18,14,.28);
+  text-align:center;
+  translate:-50% 0;
+  rotate:-1.5deg;
+  visibility:hidden;
+  opacity:0;
+  scale:.9;
+  transition:opacity .35s, scale .45s cubic-bezier(.3,1.5,.5,1), visibility 0s .35s;
+}
+/* two pins */
+.wb-bill::before,
+.wb-bill::after{
+  content:"";
+  position:absolute; top:10px;
+  width:12px; height:12px;
+  border-radius:50%;
+  background:var(--red-deep);
+  box-shadow:0 2px 0 #6e1f24;
+}
+.wb-bill::before{ left:14px; }
+.wb-bill::after{ right:14px; }
+.wb-duel[data-screen="title"] .wb-bill-title,
+.wb-duel[data-screen="end"] .wb-bill-end{ visibility:visible; opacity:1; scale:1; transition-delay:.25s, .25s, 0s; }
+.wb-bill-kicker{ font-family:var(--font-book); font-style:italic; font-weight:600; font-size:19px; color:#8a6a45; }
+.wb-bill-title-text{
+  margin:6px 0 12px;
+  font-family:var(--font-book);
+  font-weight:700;
+  font-size:62px;
+  line-height:.92;
+  color:var(--ink);
+}
+.wb-bill-title-text > span{ display:block; }
+.wb-bill .wb-title-you{ text-shadow:.04em .05em 0 var(--blue); }
+.wb-bill .wb-title-foe{ text-shadow:.04em .05em 0 var(--red); }
+.wb-bill-end .wb-bill-title-text{ margin-bottom:10px; text-shadow:.04em .05em 0 var(--tan-light); }
+.wb-bill-cast{ font-size:16px; font-weight:600; color:#5a4232; }
+.wb-bill-cast i{ font-family:var(--font-book); font-weight:600; font-size:19px; color:var(--red-deep); }
+
+/* how to play: a note on the stage with an arrow to what it's about */
+.wb-tour-arrow{ position:absolute; inset:0; z-index:2; width:800px; height:600px; pointer-events:none; overflow:visible; display:none; }
+.wb-tour-arrow path{ fill:none; stroke:#fff6e4; stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+.wb-note{
+  position:absolute;
+  z-index:2;
+  width:290px;
+  padding:16px 18px 14px;
+  border-radius:12px;
+  background:var(--parch);
+  box-shadow:0 5px 0 var(--parch-edge), 6px 12px 0 rgba(28,18,14,.28);
+  display:none;
+}
+.wb-duel[data-screen="tour"] .wb-note,
+.wb-duel[data-screen="tour"] .wb-tour-arrow{ display:block; }
+.wb-note-title{ font-family:var(--font-book); font-weight:700; font-size:25px; line-height:1.05; }
+.wb-note-text{ margin-top:6px; font-size:14.5px; line-height:1.45; color:#4a3527; }
+.wb-note-nav{ display:flex; align-items:center; justify-content:space-between; margin-top:12px; }
+.wb-note-count{ font-family:var(--font-book); font-style:italic; font-weight:600; font-size:17px; color:#8a6a45; }
+
+/* berserk strike drops in from above the stage */
+.wb-berserk-sign{
+  position:absolute; left:50%; top:46px;
+  display:none;
+  translate:-50% 0;
+  text-align:center;
+  animation:wb-drop .6s cubic-bezier(.3,1.45,.5,1) both;
+}
+.wb-duel[data-berserk="1"] .wb-berserk-sign{ display:block; }
+@keyframes wb-drop{ from{ transform:translateY(-150px); } }
+.wb-berserk-sign::before{
+  content:"";
+  position:absolute; left:18%; right:18%; top:-20px;
+  height:22px;
+  border-inline:2px solid var(--tan-light);
+}
+.wb-berserk-key{
+  --face:#5c1c20;
+  --edge-c:#2e0c0f;
+  display:block;
+  padding:9px 22px 8px;
+  border-radius:12px;
+  background:var(--face);
+  box-shadow:0 5px 0 var(--edge-c);
+  font-family:var(--font-book);
+  font-weight:700;
+  font-size:24px;
+  line-height:1.05;
+  color:#ffe1dc;
+  transition:transform .12s var(--ease-out), box-shadow .12s var(--ease-out);
+}
+.wb-berserk-key small{ display:block; margin-top:2px; font-family:var(--font-sans); font-size:12px; font-weight:700; color:#ffb3a8; }
+.wb-berserk-key:hover{ transform:translateY(-2px); box-shadow:0 7px 0 var(--edge-c); }
+.wb-berserk-key:active{ transform:translateY(5px); box-shadow:0 0 0 var(--edge-c); }
+.wb-berserk-key[aria-pressed="true"]{ --face:#c93232; transform:translateY(3px); box-shadow:0 2px 0 var(--edge-c), inset 0 0 0 3px #ffe1dc; }
+.wb-berserk-sign p{
+  display:inline-block;
+  margin-top:9px;
+  padding:2px 9px;
+  border-radius:6px;
+  background:#ffe1dc;
+  font-size:11.5px;
+  font-weight:700;
+  font-style:italic;
+  color:#9c2f36;
+}
+
+/* ---------- the desk ---------- */
+.wb-desk{
+  position:absolute; left:0; top:430px;
+  width:800px; height:170px;
+  padding:14px 16px;
+  background:var(--table);
+  border-top:3px solid var(--table-3);
+}
+.wb-desk-menu{ display:none; height:100%; align-items:center; justify-content:center; gap:22px; padding-bottom:6px; }
+.wb-desk-menu .wb-key{ display:none; }
+.wb-duel[data-screen="title"] .wb-desk-menu,
+.wb-duel[data-screen="end"] .wb-desk-menu{ display:flex; }
+.wb-duel[data-screen="title"] [data-act="start"],
+.wb-duel[data-screen="title"] [data-act="tutorial"],
+.wb-duel[data-screen="end"] [data-act="again"],
+.wb-duel[data-screen="end"] [data-act="title"]{ display:grid; }
+.wb-desk-battle{
+  position:relative;
+  display:none;
+  grid-template-columns:236px 268px 1fr;
+  gap:12px;
+  height:100%;
+}
+.wb-duel[data-screen="battle"] .wb-desk-battle,
+.wb-duel[data-screen="tour"] .wb-desk-battle{ display:grid; }
+
+.wb-spellkeys{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding-bottom:6px; }
+.wb-spellkey{ align-content:center; gap:6px; font-size:16px; }
+.wb-spellkey svg{ width:32px; height:32px; }
+
+.wb-tiercol{ display:grid; grid-template-rows:repeat(3,1fr); gap:9px; padding-bottom:4px; }
+.wb-desk-hint{
+  grid-row:1 / -1;
+  display:grid; place-items:center;
+  padding:0 20px;
+  border:2px dashed var(--table-3);
+  border-radius:14px;
+  font-family:var(--font-book);
+  font-style:italic;
+  font-weight:600;
+  font-size:20px;
+  line-height:1.15;
+  text-align:center;
+  color:var(--dim);
+}
+.wb-desk-hint[hidden], .wb-tiercard[hidden]{ display:none; }
+.wb-tiercard{
+  --face:var(--parch);
+  --edge-c:var(--parch-edge);
+  position:relative;
+  display:grid;
+  grid-template-columns:1fr auto 76px;
+  align-items:center;
+  gap:12px;
+  padding:0 12px 0 20px;
+  border-radius:10px;
+  background:var(--face);
+  box-shadow:0 4px 0 var(--edge-c);
+  text-align:left;
+  font-size:13px;
+  font-weight:700;
+  color:var(--ink);
+  transition:transform .12s var(--ease-out), box-shadow .12s var(--ease-out);
+}
+/* the strength in a stripe down the left, green to red like the uni version's words */
+.wb-tiercard::before{
+  content:"";
+  position:absolute; left:7px; top:8px; bottom:8px;
+  width:5px;
+  border-radius:3px;
+  background:#3d763a;
+}
+.wb-tiercard[data-tier="1"]::before{ background:#d99a1e; }
+.wb-tiercard[data-tier="2"]::before{ background:#a93a30; }
+.wb-tiercard:hover{ transform:translateY(-2px); box-shadow:0 6px 0 var(--edge-c); }
+.wb-tiercard:active{ transform:translateY(4px); box-shadow:0 0 0 var(--edge-c); transition-duration:.05s; }
+.wb-tiercard[aria-pressed="true"]{ --face:#ffcf6b; --edge-c:#b07f2a; transform:translateY(3px); box-shadow:0 1px 0 var(--edge-c); }
+.wb-tc-name{ font-family:var(--font-book); font-size:19px; font-weight:700; white-space:nowrap; }
+.wb-tc-effect{ white-space:nowrap; }
+.wb-tc-odds{ display:flex; align-items:center; gap:6px; font-variant-numeric:tabular-nums; }
+.wb-tc-bar{ flex:1; height:8px; border-radius:4px; background:var(--parch-2); overflow:hidden; }
+.wb-tc-bar i{ display:block; height:100%; border-radius:inherit; background:var(--tan-edge); }
+.wb-tc-odds s{ position:absolute; right:12px; bottom:1px; font-size:9.5px; color:#a93a30; }
+
+/* the elements in their circle, each arrow pointing at the one it beats */
+.wb-elcol{ position:relative; }
+.wb-el-arrows{ position:absolute; inset:0; width:100%; height:142px; overflow:visible; }
+.wb-el-arrows{ color:var(--table-3); }
+.wb-el-arrows path{ fill:none; stroke:currentColor; stroke-width:2.5; stroke-linecap:round; stroke-linejoin:round; }
+.wb-duel[data-element="1"] .wb-el-arrows{ color:var(--tan-light); }
+.wb-el{
+  position:absolute;
+  display:grid; place-items:center; align-content:center; gap:1px;
+  width:58px; height:58px;
+  border-radius:50%;
+  background:var(--face);
+  box-shadow:0 4px 0 var(--edge-c);
+  font-size:9.5px;
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:#fff6e4;
+  transition:transform .12s var(--ease-out), box-shadow .12s var(--ease-out), opacity .2s;
+}
+.wb-el svg{ width:24px; height:24px; fill:none; stroke:#fff6e4; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+.wb-el[data-el="Fire"]{ left:calc(50% - 29px); top:0; }
+.wb-el[data-el="Earth"]{ left:calc(50% - 107px); top:80px; }
+.wb-el[data-el="Water"]{ left:calc(50% + 49px); top:80px; }
+.wb-el-neutral{ left:calc(50% - 25px); top:66px; width:50px; height:50px; font-size:8.5px; }
+.wb-el-neutral svg{ width:18px; height:18px; }
+.wb-el:hover:not(:disabled){ transform:translateY(-2px); box-shadow:0 6px 0 var(--edge-c); }
+.wb-el:active:not(:disabled){ transform:translateY(4px); box-shadow:0 0 0 var(--edge-c); }
+.wb-el:disabled{ opacity:.28; cursor:default; }
+.wb-duel[data-element="1"] .wb-el{ animation:wb-el-ready .4s cubic-bezier(.3,1.6,.5,1) both; }
+.wb-duel[data-element="1"] .wb-el:nth-of-type(2){ animation-delay:.04s; }
+.wb-duel[data-element="1"] .wb-el:nth-of-type(3){ animation-delay:.08s; }
+.wb-duel[data-element="1"] .wb-el:nth-of-type(4){ animation-delay:.12s; }
+@keyframes wb-el-ready{ from{ scale:.7; } }
+.wb-penalty{
+  position:absolute; inset:18px 8px 24px;
+  display:grid; place-items:center;
+  padding:10px 16px;
+  border-radius:10px;
+  background:#ffe1dc;
+  box-shadow:0 4px 0 #e8b8ad;
+  font-family:var(--font-book);
+  font-weight:700;
+  font-size:21px;
+  line-height:1.15;
+  text-align:center;
+  color:#9c2f36;
+}
+.wb-penalty[hidden]{ display:none; }
+
+/* while a scene plays out, what happened is written up like a script over the desk */
+.wb-script{
+  position:absolute; top:0; bottom:6px; left:248px; right:0;
+  display:none;
+  padding:8px 20px;
+  border-radius:12px;
+  background:var(--parch);
+  box-shadow:0 5px 0 var(--parch-edge);
+}
+.wb-duel[data-busy="1"][data-screen="battle"] .wb-script{ display:block; }
+.wb-duel[data-busy="1"] .wb-spellkey{ opacity:.35; }
+.wb-script-scene{ position:absolute; top:9px; right:16px; font-family:var(--font-book); font-style:italic; font-weight:600; font-size:17px; line-height:1.2; color:#8a6a45; }
+.wb-script-line{ min-height:2.8em; margin-top:6px; font-size:15px; line-height:1.35; color:#5a4232; }
+.wb-script-line b{ display:inline-block; min-width:58px; font-family:var(--font-book); font-size:19px; color:var(--ink); }
+.wb-script-line[data-who="you"] b{ color:var(--blue-deep); }
+.wb-script-line[data-who="foe"] b{ color:var(--red-deep); }
+.wb-script-line strong{ display:block; margin-left:62px; color:var(--ink); animation:wb-ink .35s var(--ease-out) both; }
+@keyframes wb-ink{ from{ opacity:0; translate:-6px 0; } }
 
 /* ---------- intro + crystal ball ---------- */
 .wb-intro-inner{
@@ -584,45 +951,13 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
 }
 .wb-band-item p{ max-width:30em; margin:12px 0 26px; font-size:var(--text-body); font-weight:600; line-height:1.5; }
 /* .btn from styles.css, inked */
-.wb-key{ background:var(--ink); color:var(--parch); }
-.wb-key:hover{ background:#46302a; }
+.wb-band-btn{ background:var(--ink); color:var(--parch); }
+.wb-band-btn:hover{ background:#46302a; }
 
 .wizard-page .page-back{ padding-block:clamp(40px,5vw,56px); }
 .wizard-page .page-back a:hover{ color:var(--cream); }
 .wizard-page .site-footer{ border-top:2px solid var(--table-2); color:var(--dim); }
 .wizard-page .site-footer p{ font-family:var(--font-book); font-style:italic; font-size:19px; }
-
-/* ================= game buttons =================
-   classes come from sketch.js. it sets colours inline so hover uses filter/shadow instead */
-.hoverColor1, .hoverColor2,
-.attackButton, .defendButton, .healButton,
-.fireHover, .waterHover, .earthHover, .neutralHover{
-  /* don't change the font, quicksand is wider and breaks the button sizes */
-  cursor:pointer;
-  transition:filter .15s ease, transform .15s ease, box-shadow .15s ease;
-}
-/* the original project's stylesheet made these 85x85, sketch.js doesn't set a size */
-.attackButton, .defendButton, .healButton{
-  box-sizing:border-box;
-  width:85px;
-  height:85px;
-  margin:0;
-  padding:0;
-}
-.hoverColor1:hover, .hoverColor1:focus-visible{
-  filter:brightness(1.22);
-  transform:translateY(-2px);
-}
-.hoverColor2:hover, .hoverColor2:focus-visible,
-.attackButton:hover, .attackButton:focus-visible,
-.defendButton:hover, .defendButton:focus-visible,
-.healButton:hover, .healButton:focus-visible{
-  filter:brightness(1.15);
-}
-.fireHover:hover, .fireHover:focus-visible{ filter:brightness(1.25); box-shadow:0 0 14px 3px rgba(255,90,60,.55); }
-.waterHover:hover, .waterHover:focus-visible{ filter:brightness(1.25); box-shadow:0 0 14px 3px rgba(70,180,255,.55); }
-.earthHover:hover, .earthHover:focus-visible{ filter:brightness(1.25); box-shadow:0 0 14px 3px rgba(90,200,80,.55); }
-.neutralHover:hover, .neutralHover:focus-visible{ filter:brightness(1.3); box-shadow:0 0 14px 3px rgba(220,220,220,.5); }
 
 /* ================= responsive ================= */
 @media (max-width:1000px){
@@ -659,7 +994,7 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
   .wb-side{ gap:6px; font-size:13px; }
   .wb-side b{ padding:2px 7px; font-size:12px; }
   .wb-vs{ font-size:18px; }
-  #canvas-wrapper canvas{ border-radius:10px; }
+  .wb-duel, .wb-classic{ border-radius:10px; }
   .wb-crystal-ball-cluster{ width:min(160px,44%); translate:-8% 0; }
   .wb-intro-art{ padding-top:56px; }
   .wb-cb-ring{ width:min(300px,92%); }
@@ -675,4 +1010,6 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
   /* the question mark just stays in the ball */
   .wb-cb-question{ animation:none; rotate:-10deg; }
   .wb-tier-bar i{ transition:none; }
+  .wb-berserk-sign, .wb-el, .wb-script-line strong{ animation:none !important; }
+  .wb-bill{ transition:none; }
 }

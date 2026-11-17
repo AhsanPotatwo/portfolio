@@ -1,37 +1,42 @@
-// scales the game to fit the screen without touching sketch.js.
-// the sketch is a fixed 800x600 and puts its buttons on <body>, so after setup()
-// they get moved into #canvas-wrapper and the whole thing is scaled with css
+// scales the game to fit the board, and swaps between the revamp (duel.js) and the uni original. both are laid
+// out at a fixed 800x600 and scaled down with css (--wb-scale). the original runs in a frame
+// (wizard-battles-classic.html) so its p5 globals can't clash with anything; it's only made when you switch to
+// it, and thrown away when you switch back so it starts fresh next time.
 (function () {
   'use strict';
 
   var stage = document.getElementById('gameStage');
-  var wrapper = document.getElementById('canvas-wrapper');
-  if (!stage || !wrapper) return;
-
-  var GAME_W = 800;
+  var classic = document.getElementById('classic');
+  var duel = document.getElementById('duel');
+  if (!stage || !classic || !duel) return;
 
   function fit() {
-    var scale = Math.min(1, stage.clientWidth / GAME_W);
-    wrapper.style.setProperty('--wb-scale', scale);
+    stage.style.setProperty('--wb-scale', Math.min(1, stage.clientWidth / 800));
   }
-
   fit();
-  if ('ResizeObserver' in window) {
-    new ResizeObserver(fit).observe(stage);
-  } else {
-    window.addEventListener('resize', fit);
-  }
+  new ResizeObserver(fit).observe(stage);
 
-  // p5 doesn't call setup until the page loads so wrapping it here still works
-  var sketchSetup = window.setup;
-  if (typeof sketchSetup !== 'function') return;
-
-  window.setup = function () {
-    sketchSetup.apply(this, arguments);
-    // only the sketch puts buttons directly on body
-    var buttons = document.querySelectorAll('body > button');
+  var buttons = document.querySelectorAll('.wb-version [data-version]');
+  function show(version) {
+    var uni = version === 'uni';
     for (var i = 0; i < buttons.length; i++) {
-      wrapper.appendChild(buttons[i]);
+      buttons[i].setAttribute('aria-pressed', String(buttons[i].dataset.version === version));
     }
-  };
+    duel.hidden = uni;
+    classic.hidden = !uni;
+    if (typeof WizardDuel !== 'undefined' && WizardDuel) WizardDuel.pause(uni);
+    if (uni) {
+      var frame = document.createElement('iframe');
+      frame.src = 'wizard-battles-classic.html';
+      frame.title = 'Wizard Battles, the uni original';
+      classic.appendChild(frame);
+    } else {
+      classic.textContent = '';
+    }
+  }
+  for (var i = 0; i < buttons.length; i++) {
+    buttons[i].addEventListener('click', function () {
+      if (this.getAttribute('aria-pressed') !== 'true') show(this.dataset.version);
+    });
+  }
 })();
