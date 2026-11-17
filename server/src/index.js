@@ -29,8 +29,18 @@ export default {
   },
 };
 
-// one wizard battle between two people. the page sends { type: 'move', moveType, move, element } and
-// { type: 'again' }, and gets back waiting, full, start, picked, turn, again and left.
+// what each player sends to say who they are, checked here because it ends up on the other player's screen.
+// names are drawn as plain text on the page too, never as html
+const cleanName = name => typeof name === 'string' ? name.replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 12) : '';
+const HEX = /^#[0-9a-f]{6}$/i;
+const cleanLook = look => look && ['robe', 'trim', 'band', 'beard'].every(k => HEX.test(look[k]))
+  ? { robe: look.robe, trim: look.trim, band: look.band, beard: look.beard } : null;
+const cleanHealth = h => Number.isInteger(h) && h >= 25 && h <= 500 ? h : 100;
+
+// one wizard battle between two people. the page sends { type: 'hello', name, look, rules } once it's in,
+// then { type: 'move', moveType, move, element } and { type: 'again' }. it gets back waiting, full, start,
+// picked, turn, again and left. rules ({ you, friend }, the starting healths) only come from whoever made the
+// room, and go when they do.
 // the room rolls the dice and checks every move, so nobody can cheat by editing the page. the duel is saved
 // after every change because the room can be put to sleep between messages (the sockets stay open while it
 // sleeps, the hibernation api), which is also what keeps it free
@@ -53,10 +63,18 @@ export class Room extends DurableObject {
     await this.ctx.storage.put('game', this.game);
   }
 
+  // a new duel between the two people who've said hello, on the room maker's healths (100 each if they've gone)
   async start() {
-    this.game = { duel: newDuel(), picks: [null, null], again: [false, false] };
+    const [a, b] = this.players().map(ws => ({ ws, ...ws.deserializeAttachment() }));
+    const host = [a, b].find(p => p.rules);
+    const health = p => host ? (p === host ? host.rules.you : host.rules.friend) : 100;
+    const healths = [];
+    for (const p of [a, b]) healths[p.seat] = health(p);
+    this.game = { duel: newDuel(healths), picks: [null, null], again: [false, false] };
     await this.save();
-    for (const ws of this.players()) this.send(ws, { type: 'start' });
+    const info = p => ({ name: p.name, look: p.look, health: health(p) });
+    this.send(a.ws, { type: 'start', you: info(a), foe: info(b) });
+    this.send(b.ws, { type: 'start', you: info(b), foe: info(a) });
   }
 
   async fetch() {
@@ -69,19 +87,30 @@ export class Room extends DurableObject {
       ws.close(4000, 'room is full');
     } else {
       ws.serializeAttachment({ seat: taken.includes(0) ? 1 : 0 });
-      if (taken.length === 1) await this.start();
-      else this.send(ws, { type: 'waiting' });
     }
     return new Response(null, { status: 101, webSocket: pair[0] });
   }
 
   async webSocketMessage(ws, raw) {
-    const seat = ws.deserializeAttachment()?.seat;
-    if (seat == null || typeof raw !== 'string' || raw.length > 500) return;
+    const me = ws.deserializeAttachment();
+    const seat = me?.seat;
+    if (seat == null || typeof raw !== 'string' || raw.length > 600) return;
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
+    if (!msg) return;
+
+    // who you are, once. the duel starts when you're both in
+    if (msg.type === 'hello') {
+      if (me.name) return;
+      const rules = msg.rules && { you: cleanHealth(msg.rules.you), friend: cleanHealth(msg.rules.friend) };
+      ws.serializeAttachment({ seat, name: cleanName(msg.name) || 'Wizard', look: cleanLook(msg.look), rules });
+      if (this.players(ws).some(p => p.deserializeAttachment().name)) await this.start();
+      else this.send(ws, { type: 'waiting' });
+      return;
+    }
+    if (!me.name) return;
     const game = await this.load();
-    if (!game || !msg) return;
+    if (!game) return;
     const other = this.players(ws)[0];
 
     if (msg.type === 'move') {
@@ -109,7 +138,7 @@ export class Room extends DurableObject {
   // someone leaving ends the duel. whoever's left waits in the room, and a new one starts when someone joins
   async webSocketClose(ws) {
     try { ws.close(); } catch {}
-    if (ws.deserializeAttachment()?.seat == null) return;
+    if (!ws.deserializeAttachment()?.name) return;
     this.game = null;
     await this.ctx.storage.delete('game');
     for (const p of this.players(ws)) this.send(p, { type: 'left' });

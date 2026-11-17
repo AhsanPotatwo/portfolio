@@ -417,6 +417,72 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
   user-select:all;
 }
 
+/* playing a friend: a card pinned on the right of the stage while your wizard tries things on on the left */
+.wb-setup{
+  position:absolute; left:352px; top:60px; z-index:1;
+  width:404px;
+  padding:14px 28px 16px;
+  border-radius:8px;
+  background:var(--parch);
+  box-shadow:0 6px 0 var(--parch-edge), 6px 12px 0 rgba(28,18,14,.28);
+  rotate:1deg;
+  display:none;
+}
+.wb-duel[data-screen="setup"] .wb-setup{ display:block; animation:wb-drop .6s cubic-bezier(.3,1.45,.5,1) both; }
+.wb-setup .wb-bill-kicker{ margin-bottom:8px; text-align:center; }
+.wb-setup-name,
+.wb-swatches{ display:flex; align-items:center; gap:6px; }
+.wb-swatches{ margin-top:9px; }
+.wb-setup-name > span,
+.wb-swatches > span{ width:70px; flex:none; font-family:var(--font-book); font-size:18px; font-weight:700; color:var(--ink); }
+.wb-setup-name input{
+  flex:1; min-width:0;
+  height:40px;
+  padding:0 12px;
+  border:2px solid var(--parch-edge);
+  border-radius:8px;
+  background:#fff6e4;
+  font-family:var(--font-book);
+  font-size:23px;
+  font-weight:700;
+  color:var(--ink);
+}
+.wb-setup-name input:focus-visible{ outline:3px solid var(--peach); outline-offset:1px; }
+.wb-swatch{
+  width:25px; height:25px;
+  flex:none;
+  border:3px solid #fff6e4;
+  border-radius:50%;
+  background:var(--swatch);
+  box-shadow:0 2px 0 var(--parch-edge);
+  transition:transform .12s var(--ease-out), box-shadow .12s var(--ease-out);
+}
+:where(.wb-duel) button.wb-swatch{ border:3px solid #fff6e4; background:var(--swatch); }
+.wb-swatch:hover{ transform:translateY(-2px); }
+.wb-swatch[aria-pressed="true"]{ transform:scale(1.14); box-shadow:0 0 0 2.5px var(--ink); }
+
+/* the desk under it: the starting healths (only for whoever makes the room) and the way in */
+.wb-desk-setup{ display:none; height:100%; align-items:center; justify-content:space-between; gap:20px; padding:0 18px 6px; }
+.wb-duel[data-screen="setup"] .wb-desk-setup{ display:flex; }
+.wb-setup-rules{ display:flex; gap:28px; }
+.wb-setup-rules[hidden]{ display:none; }
+.wb-stepper{ display:grid; grid-template-columns:auto auto auto; align-items:center; justify-items:center; gap:8px 10px; }
+.wb-stepper > span{ grid-column:1 / -1; font-family:var(--font-book); font-size:19px; font-weight:700; color:var(--parch); }
+.wb-stepper output{
+  min-width:66px;
+  padding:3px 8px 2px;
+  border-radius:8px;
+  background:var(--parch);
+  box-shadow:0 4px 0 var(--parch-edge);
+  text-align:center;
+  font-family:var(--font-book);
+  font-size:26px;
+  font-weight:700;
+  line-height:1.1;
+  color:var(--ink);
+}
+.wb-setup-room{ flex:1; font-family:var(--font-book); font-size:20px; font-style:italic; font-weight:600; color:var(--parch); }
+
 /* how to play: a note on the stage with an arrow to what it's about */
 .wb-tour{ position:absolute; inset:0; z-index:2; width:800px; height:600px; pointer-events:none; overflow:visible; display:none; }
 .wb-tour path{ stroke-linecap:round; stroke-linejoin:round; }
@@ -644,8 +710,9 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
 .wb-script-scene{ position:absolute; top:9px; right:16px; font-family:var(--font-book); font-style:italic; font-weight:600; font-size:17px; line-height:1.2; color:#8a6a45; }
 .wb-script-line{ min-height:2.8em; margin-top:6px; font-size:15px; line-height:1.35; color:#5a4232; }
 .wb-script-line b{ display:inline-block; min-width:58px; font-family:var(--font-book); font-size:19px; color:var(--ink); }
-.wb-script-line[data-who="you"] b{ color:var(--blue-deep); }
-.wb-script-line[data-who="foe"] b{ color:var(--red-deep); }
+/* online the names are in each wizard's robe colour (duel.js, setCast) */
+.wb-script-line[data-who="you"] b{ color:var(--you-ink, var(--blue-deep)); }
+.wb-script-line[data-who="foe"] b{ color:var(--foe-ink, var(--red-deep)); }
 .wb-script-line strong{ display:block; margin-left:62px; color:var(--ink); animation:wb-ink .35s var(--ease-out) both; }
 @keyframes wb-ink{ from{ opacity:0; translate:-6px 0; } }
 

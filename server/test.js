@@ -1,5 +1,6 @@
-// plays a quick wizard battle through the server: two players join a room, a third is turned away, cheating
-// moves are ignored, both sides see the same scenes until someone wins, and leaving tells the other player
+// plays a quick wizard battle through the server: two players join a room and say who they are, the room
+// maker's healths are used, a third is turned away, cheating moves are ignored, both sides see the same scenes
+// until someone wins, and leaving tells the other player
 // node test.js                 (against wrangler dev)
 // node test.js https://...     (against the live server)
 import assert from 'node:assert';
@@ -32,11 +33,22 @@ const quiet = async (s) => { await assert.rejects(s.next(600)); };
 
 assert((await fetch(`${base}/health`).then(r => r.json())).ok);
 
+const blue = { robe: '#3f6dc0', trim: '#98c1ff', band: '#f6c96b', beard: '#f6ead6' };
 const a = await join();
+a.say({ type: 'move', moveType: 'Defend', move: 'Low Defend', element: 'n/a' }); // nothing counts before hello
+a.say({ type: 'hello', name: 'Bramble', look: blue, rules: { you: 150, friend: 75 } });
 assert.equal((await a.next()).type, 'waiting');
 const b = await join();
-assert.equal((await a.next()).type, 'start');
-assert.equal((await b.next()).type, 'start');
+// a name with junk in it is cleaned up, a look that isn't colours is dropped, and rules from the joiner are
+// only theirs to lose (the room maker's are already in)
+b.say({ type: 'hello', name: '  Pip\u0007<b>the very long</b>  ', look: { robe: 'red;', trim: 1 } });
+const [sa, sb] = [await a.next(), await b.next()];
+assert.equal(sa.type, 'start');
+assert.deepEqual(sa.you, { name: 'Bramble', look: blue, health: 150 });
+assert.deepEqual(sa.foe, { name: 'Pip<b>the ve', look: null, health: 75 });
+assert.deepEqual(sb.you, sa.foe);
+b.say({ type: 'hello', name: 'Again' }); // only once
+await quiet(a);
 
 const c = await join();
 assert.equal((await c.next()).type, 'full');
@@ -70,7 +82,9 @@ assert.deepEqual(end.sort(), ['lose', 'win']);
 a.say({ type: 'again' });
 assert.equal((await b.next()).type, 'again');
 b.say({ type: 'again' });
-assert.equal((await a.next()).type, 'start');
+const again = await a.next();
+assert.equal(again.type, 'start');
+assert.equal(again.you.health, 150);
 assert.equal((await b.next()).type, 'start');
 
 a.close();

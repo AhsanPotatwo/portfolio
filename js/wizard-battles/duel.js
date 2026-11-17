@@ -111,8 +111,8 @@ const WizardDuel = (() => {
   // ---------- the game's state ----------
   const FLOOR_Y = 348;
   const SLOT_Y = 376;
-  const you = makePuppet({ x: 232, dir: 1, size: 0.86, robe: '#3f6dc0', trim: '#98c1ff', hat: '#355fae', band: C.gold, beard: '#f6ead6', gem: '#98c1ff', tip: -16, brows: 'kind', name: 'You' });
-  const foe = makePuppet({ x: 570, dir: -1, size: 0.98, robe: '#b83a40', trim: '#ff6b6b', hat: '#8e2a30', band: '#2e1f1a', beard: '#c2ab95', gem: '#ff6b6b', tip: -30, brows: 'cross', name: 'Enemy' });
+  const you = makePuppet({ x: 232, dir: 1, size: 0.86, robe: '#3f6dc0', trim: '#98c1ff', hat: '#355fae', band: C.gold, beard: '#f6ead6', gem: '#98c1ff', shield: '#98c1ff', tip: -16, brows: 'kind', name: 'You' });
+  const foe = makePuppet({ x: 570, dir: -1, size: 0.98, robe: '#b83a40', trim: '#ff6b6b', hat: '#8e2a30', band: '#2e1f1a', beard: '#c2ab95', gem: '#ff6b6b', shield: '#ff8f8f', tip: -30, brows: 'cross', name: 'Enemy' });
   function makePuppet(def) {
     return { def, ev: {}, shield: null, gem: null, hp: { target: 0, fill: 0, ghost: 0, max: 0, at: -1e9, dir: 0 }, tip: { x: def.x, y: 180 } };
   }
@@ -896,14 +896,20 @@ const WizardDuel = (() => {
     ctx.fill(circle(-52, 15, 2.5));
     ctx.fill(circle(52, 15, 2.5));
     ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = C.ink;
-    ctx.textAlign = 'left';
-    ctx.font = '700 17px "Crimson Pro", Georgia, serif';
-    ctx.fillText(p.def.name, -64, 34);
     ctx.textAlign = 'right';
     ctx.font = '700 12.5px Quicksand, sans-serif';
     ctx.fillStyle = '#5a4232';
-    ctx.fillText(`${Math.round(hp.target)}/${hp.max}`, 64, 33);
+    const hpText = `${Math.round(hp.target)}/${hp.max}`;
+    ctx.fillText(hpText, 64, 33);
+    // a friend's name can be long, so it shrinks to fit beside the health
+    const name = screen === 'setup' && p === you ? setupName() : p.def.name;
+    const room = 120 - ctx.measureText(hpText).width;
+    ctx.font = '700 17px "Crimson Pro", Georgia, serif';
+    const size = Math.max(10, Math.min(17, (17 * room) / ctx.measureText(name).width));
+    ctx.font = `700 ${size.toFixed(1)}px "Crimson Pro", Georgia, serif`;
+    ctx.fillStyle = C.ink;
+    ctx.textAlign = 'left';
+    ctx.fillText(name, -64, 34);
     const bw = 128;
     const frac = (v) => clamp01(v / hp.max) * bw;
     ctx.fillStyle = C.parch2;
@@ -1005,7 +1011,8 @@ const WizardDuel = (() => {
     // nothing on the stage needs drawing while the curtains are shut
     if (curtainOpen() > 0.001) {
       drawPuppet(you);
-      drawPuppet(foe);
+      // dressing your wizard for a friend, you've the stage to yourself
+      if (screen !== 'setup') drawPuppet(foe);
       drawShield(you);
       drawShield(foe);
       for (const pr of props) drawProp(pr);
@@ -1045,9 +1052,9 @@ const WizardDuel = (() => {
     drawCurtains(curtainOpen());
     drawLamps();
     ctx.drawImage(frameLayer, 0, 0, W, H);
-    if (battle && (screen === 'battle' || screen === 'tour')) {
+    if (battle && (screen === 'battle' || screen === 'tour' || screen === 'setup')) {
       drawPlaque(you, 192);
-      drawPlaque(foe, 608);
+      if (screen !== 'setup') drawPlaque(foe, 608);
       if (screen === 'battle') drawSceneTag();
     }
   }
@@ -1186,7 +1193,7 @@ const WizardDuel = (() => {
     return '';
   }
   function raiseShield(p, size, ok) {
-    p.shield = { t0: now, size, ok, down: null, hitAt: null, colour: p === you ? '#98c1ff' : '#ff8f8f' };
+    p.shield = { t0: now, size, ok, down: null, hitAt: null, colour: p.def.shield };
     sfx('shield');
     const x = p.def.x + p.def.dir * 66;
     if (ok) later(160, () => tag(x, FLOOR_Y - 160, `${size * 100}% shield`, '#3f6dc0'));
@@ -1285,11 +1292,14 @@ const WizardDuel = (() => {
     }
   }
 
-  // one line of the script under the stage: who, what they did, and how it went once it's landed
+  // one line of the script under the stage: who, what they did, and how it went once it's landed. built as
+  // text, never html, because a friend's name goes in it
+  const tagged = (tag, text) => Object.assign(document.createElement(tag), { textContent: text });
   function writeLine(line, who, move, el, outcome) {
-    line.innerHTML = `<b>${who}</b> <span>${moveName(move, el)}</span>${outcome ? ` <strong>${outcome}</strong>` : ''}`;
+    line.replaceChildren(tagged('b', who), ' ', tagged('span', moveName(move, el)));
+    if (outcome) line.append(' ', tagged('strong', outcome));
   }
-  const foeName = () => (online ? 'Friend' : 'Enemy');
+  const foeName = () => (online ? online.foeName : 'Enemy');
 
   function playTurn(t, before) {
     busy = true;
@@ -1387,10 +1397,10 @@ const WizardDuel = (() => {
       sfx(draw ? 'lose' : result);
       const scenes = battle.moveNum - 1;
       const after = `${scenes} scene${scenes === 1 ? '' : 's'}`;
-      $('#duelEndKicker').textContent = online && online.foeAgain ? 'Your friend wants a rematch!' : 'The curtain falls';
+      $('#duelEndKicker').textContent = online && online.foeAgain ? `${foeName()} wants a rematch!` : 'The curtain falls';
       $('#duelEndTitle').textContent = won ? 'You win!' : draw ? 'A draw!' : 'Game over!';
       $('#duelEndLine').textContent = online
-        ? (won ? `Your friend is beaten after ${after}.` : draw ? `You both went down together after ${after}.` : `Your friend wins this time, after ${after}.`)
+        ? (won ? `${foeName()} is beaten after ${after}.` : draw ? `You both went down together after ${after}.` : `${foeName()} wins this time, after ${after}.`)
         : (won ? `The evil wizard is beaten after ${after}.` : `The evil wizard wins this time, after ${after}.`);
       busy = false;
       setScreen('end');
@@ -1518,7 +1528,7 @@ const WizardDuel = (() => {
     for (const key of spellKeys) key.setAttribute('aria-pressed', String(key.dataset.type === state.type));
     hint.hidden = !!state.type;
     hint.textContent = state.berserk ? 'Berserk Strike! Now pick an element'
-      : online && online.foePicked ? 'Your friend has picked. Your move!' : 'Pick a move, then how strong';
+      : online && online.foePicked ? `${foeName()} has picked. Your move!` : 'Pick a move, then how strong';
     tierCards.forEach((card, i) => {
       card.hidden = !state.type;
       if (!state.type) return;
@@ -1544,7 +1554,7 @@ const WizardDuel = (() => {
     renderDesk();
   }
 
-  function act(name) {
+  function act(name, btn) {
     if (name === 'start') {
       if (!battle) newGame();
       sfx('curtain');
@@ -1564,16 +1574,35 @@ const WizardDuel = (() => {
       sfx('curtain');
       curtainTo(0, 900);
       choice = { type: null, tier: null, berserk: false };
-      if (online) {
-        leaveOnline();
-        queue.length = 0;
-        newGame();
-      }
+      if (online || setup) toSolo();
       if (screen === 'end') newGame();
       setScreen('title');
     } else if (name === 'friend') {
       sfx('key');
-      goOnline(newCode());
+      showSetup(newCode(), true);
+    } else if (name === 'swatch') {
+      setup.look[btn.parentElement.dataset.part] = btn.dataset.colour;
+      dress(you, setup.look);
+      you.ev.hop = now;
+      sfx('token');
+      renderSetup();
+    } else if (name === 'step') {
+      const who = btn.closest('.wb-stepper').dataset.who;
+      setup.health[who] = Math.max(25, Math.min(500, setup.health[who] + Number(btn.dataset.step) * 25));
+      if (who === 'you') fullHealth(you, setup.health.you);
+      sfx('card');
+      renderSetup();
+    } else if (name === 'enter') {
+      if (!setup) return;
+      const me = { name: setupName(pick(WIZARD_NAMES)), look: setup.look };
+      $('#setupName').value = me.name;
+      try { localStorage.setItem('wizardBattlesMe', JSON.stringify(me)); } catch { }
+      if (setup.host) {
+        me.rules = { ...setup.health };
+        try { sessionStorage.setItem('wizardBattlesHost', JSON.stringify({ code: setup.code, health: setup.health })); } catch { }
+      }
+      sfx('key');
+      goOnline(setup.code, me);
     } else if (name === 'copy') {
       if (!online) return;
       sfx('key');
@@ -1584,7 +1613,7 @@ const WizardDuel = (() => {
     } else if (name === 'again' && online) {
       online.say({ type: 'again' });
       online.again = true;
-      $('#duelEndKicker').textContent = 'Waiting for your friend...';
+      $('#duelEndKicker').textContent = `Waiting for ${foeName()}...`;
       renderDesk();
     } else if (name === 'again') {
       newGame();
@@ -1607,7 +1636,7 @@ const WizardDuel = (() => {
   root.addEventListener('click', (e) => {
     const btn = e.target.closest('button');
     if (!btn || btn.disabled) return;
-    if (btn.dataset.act) return act(btn.dataset.act);
+    if (btn.dataset.act) return act(btn.dataset.act, btn);
     if (busy || screen !== 'battle') return;
     if (btn.dataset.type) {
       sfx('key');
@@ -1656,34 +1685,131 @@ const WizardDuel = (() => {
   const newCode = () => Array.from({ length: 4 }, () => pick([...'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'])).join('');
 
   // the same shape as rules.js's battle, kept up to date from what the server sends
-  function onlineBattle() {
-    const b = { player: { health: 100, maxHealth: 100 }, enemy: { health: 100, maxHealth: 100 }, accPenalty: 0, moveNum: 1, result: null,
+  function onlineBattle(youHealth = 100, foeHealth = 100) {
+    const b = { player: { health: youHealth, maxHealth: youHealth }, enemy: { health: foeHealth, maxHealth: foeHealth }, accPenalty: 0, moveNum: 1, result: null,
       get desperate() { return b.player.health / b.player.maxHealth <= 0.15; } };
     return b;
   }
+  function fullHealth(p, max) {
+    p.hp = { target: max, fill: max, ghost: max, max, at: -1e9, dir: 0 };
+  }
+
+  // what you can dress your wizard in. stars are the band round the hat and the stars on the robe
+  const LOOKS = {
+    robe: [['Blue', '#3f6dc0'], ['Red', '#b83a40'], ['Green', '#3d8a4a'], ['Purple', '#6b4aa8'], ['Teal', '#2a8a8a'], ['Orange', '#d2702f'], ['Pink', '#c2558a'], ['Charcoal', '#3b3b4a']],
+    trim: [['Sky', '#98c1ff'], ['Coral', '#ff6b6b'], ['Mint', '#8fdc8a'], ['Lilac', '#c9a8ff'], ['Sea', '#7fe0d6'], ['Gold', '#f6c96b'], ['Rose', '#ffb3d1'], ['Cream', '#f6ead6']],
+    band: [['Gold', C.gold], ['Silver', '#d9d4cc'], ['Ink', '#2e1f1a'], ['Ruby', '#c93232']],
+    beard: [['White', '#f6ead6'], ['Grey', '#c2ab95'], ['Brown', '#7a5236'], ['Ginger', '#d9823b'], ['Black', '#3a2a26']],
+  };
+  const PARTS = Object.keys(LOOKS);
+  // the uni version's two wizards, put back when you stop playing a friend
+  const SOLO = { you: { ...you.def }, foe: { ...foe.def } };
+  const lookOf = (def) => Object.fromEntries(PARTS.map((k) => [k, def[k]]));
+  const isLook = (look) => !!look && PARTS.every((k) => /^#[0-9a-f]{6}$/i.test(look[k]));
+  const shade = (hex, k) => `#${[16, 8, 0].map((s) => Math.round(((parseInt(hex.slice(1), 16) >> s) & 255) * k).toString(16).padStart(2, '0')).join('')}`;
+  // the hat is a darker robe, and the gem and shield match the trim
+  function dress(p, look) {
+    Object.assign(p.def, look, { hat: shade(look.robe, 0.82), gem: look.trim, shield: look.trim });
+  }
+  // a name to start you off, which you can change
+  const WIZARD_NAMES = ['Bramble', 'Pip', 'Thistle', 'Mortimer', 'Fennel', 'Grizelda', 'Barnaby', 'Juniper', 'Rumbold', 'Wobble'];
 
   const lobby = (text) => { $('#duelLobbyLine').textContent = text; };
-  // the name on the red wizard's plaque, and the board's name tags above the theatre
-  function setSides() {
-    foe.def.name = online ? 'Friend' : 'Enemy';
-    const tag = document.querySelector('.wb-side-foe');
-    if (tag) tag.innerHTML = online ? 'Your friend <b>100 HP</b>' : 'Enemy wizard <b>200 HP</b>';
+  const setupName = (blank = 'You') => $('#setupName').value.replace(/\s+/g, ' ').trim().slice(0, 12) || blank;
+
+  // names, colours and healths: from the server's start message online, the uni version's wizards offline
+  function setCast(start) {
+    Object.assign(you.def, SOLO.you);
+    Object.assign(foe.def, SOLO.foe);
+    if (start) {
+      dress(you, start.you.look || online.me.look);
+      dress(foe, start.foe.look || lookOf(SOLO.foe));
+      foe.def.name = start.foe.name;
+    }
+    // the board's name tags above the theatre, and the script's names, in the robes' colours
+    const [youTag, foeTag] = document.querySelectorAll('.wb-board-bar .wb-side');
+    youTag.replaceChildren('You ', tagged('b', `${start ? start.you.health : 100} HP`));
+    foeTag.replaceChildren(start ? start.foe.name : 'Enemy wizard', ' ', tagged('b', `${start ? start.foe.health : 200} HP`));
+    for (const [tag, p] of [[youTag, you], [foeTag, foe]]) tag.querySelector('b').style.background = start ? p.def.robe : '';
+    root.style.setProperty('--you-ink', start ? you.def.robe : '');
+    root.style.setProperty('--foe-ink', start ? foe.def.robe : '');
   }
   function showFriendPick() {
-    $('.wb-script [data-who="foe"]').innerHTML = online.foePicked ? '<b>Friend</b> <strong>Ready</strong>' : '<b>Friend</b> <span>is choosing...</span>';
+    $('.wb-script [data-who="foe"]').replaceChildren(tagged('b', foeName()), ' ', online.foePicked ? tagged('strong', 'Ready') : tagged('span', 'is choosing...'));
   }
 
-  function goOnline(code) {
+  // ---------- dressing your wizard ----------
+  // before you go online: the curtain opens on your wizard, alone on the stage, and changes as you pick.
+  // whoever makes the room picks the starting healths on the desk. setup is null the rest of the time
+  let setup = null;
+  for (const row of $$('.wb-swatches')) {
+    for (const [label, colour] of LOOKS[row.dataset.part]) {
+      const b = tagged('button', '');
+      Object.assign(b, { type: 'button', className: 'wb-swatch', title: label });
+      Object.assign(b.dataset, { act: 'swatch', colour });
+      b.style.setProperty('--swatch', colour);
+      b.setAttribute('aria-label', label);
+      row.append(b);
+    }
+  }
+  $('#duelSetup').addEventListener('submit', (e) => {
+    e.preventDefault();
+    act('enter');
+  });
+
+  function showSetup(code, host) {
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem('wizardBattlesMe')) || {}; } catch { }
+    // whoever made a room keeps its healths for this tab, so a refresh doesn't lose them
+    let hosted = null;
+    try { hosted = JSON.parse(sessionStorage.getItem('wizardBattlesHost')); } catch { }
+    if (!hosted || hosted.code !== code) hosted = null;
+    setup = { code, host, look: isLook(saved.look) ? saved.look : lookOf(host ? SOLO.you : SOLO.foe),
+      health: host ? (hosted ? hosted.health : { you: 100, friend: 100 }) : null };
+    $('#setupName').value = typeof saved.name === 'string' && saved.name ? saved.name : pick(WIZARD_NAMES);
+    $('#setupGo').textContent = host ? 'Open the room' : 'Join the duel';
+    $('#setupRoom').textContent = host ? '' : `Room ${code}. Whoever made it picks the health.`;
+    queue.length = 0;
+    newGame();
+    dress(you, setup.look);
+    fullHealth(you, host ? setup.health.you : 100);
+    renderSetup();
+    sfx('curtain');
+    curtainTo(1, 1000);
+    setScreen('setup');
+  }
+
+  function renderSetup() {
+    for (const row of $$('.wb-swatches')) {
+      for (const b of row.querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.colour === setup.look[row.dataset.part]));
+    }
+    $('.wb-setup-rules').hidden = !setup.host;
+    if (!setup.host) return;
+    for (const stepper of $$('.wb-stepper')) {
+      const h = setup.health[stepper.dataset.who];
+      stepper.querySelector('output').textContent = h;
+      stepper.querySelector('[data-step="-1"]').disabled = h <= 25;
+      stepper.querySelector('[data-step="1"]').disabled = h >= 500;
+    }
+  }
+
+  // ---------- the room ----------
+  // me: { name, look, rules }, said to the room as soon as you're in
+  function goOnline(code, me) {
     leaveOnline();
     const ws = new WebSocket(`${SERVER}/room/${code}`);
-    online = { ws, code, link: `${location.origin}${location.pathname}?room=${code}#game`, waiting: false, foePicked: false, again: false, foeAgain: false,
+    online = { ws, code, me, foeName: 'Your friend', link: `${location.origin}${location.pathname}?room=${code}#game`,
+      waiting: false, foePicked: false, again: false, foeAgain: false,
       say: (msg) => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg)) };
+    setup = null;
     history.replaceState(null, '', `?room=${code}#game`);
     $('#duelRoom').textContent = `Room ${code}`;
     $('#duelLink').textContent = online.link;
     lobby('Opening the theatre doors...');
-    setSides();
+    sfx('curtain');
+    curtainTo(0, 900);
     setScreen('lobby');
+    ws.onopen = () => { if (online && online.ws === ws) online.say({ type: 'hello', ...me }); };
     ws.onmessage = (e) => { if (online && online.ws === ws) onServer(JSON.parse(e.data)); };
     ws.onclose = () => {
       if (!online || online.ws !== ws) return;
@@ -1697,8 +1823,16 @@ const WizardDuel = (() => {
     const { ws } = online;
     online = null;
     ws.close();
+  }
+
+  // back to playing the enemy, from anywhere online
+  function toSolo() {
+    leaveOnline();
+    setup = null;
     history.replaceState(null, '', `${location.pathname}#game`);
-    setSides();
+    queue.length = 0;
+    setCast(null);
+    newGame();
   }
 
   // back to the playbill to wait, wherever the duel was up to
@@ -1720,7 +1854,9 @@ const WizardDuel = (() => {
       online.full = true;
     } else if (msg.type === 'start') {
       queue.length = 0;
-      newGame(onlineBattle());
+      online.foeName = msg.foe.name;
+      setCast(msg);
+      newGame(onlineBattle(msg.you.health, msg.foe.health));
       Object.assign(online, { waiting: false, foePicked: false, again: false, foeAgain: false });
       sfx('curtain');
       curtainTo(1, 1200);
@@ -1740,9 +1876,9 @@ const WizardDuel = (() => {
       playTurn(msg.t, before);
     } else if (msg.type === 'again') {
       online.foeAgain = true;
-      if (screen === 'end' && !online.again) $('#duelEndKicker').textContent = 'Your friend wants a rematch!';
+      if (screen === 'end' && !online.again) $('#duelEndKicker').textContent = `${foeName()} wants a rematch!`;
     } else if (msg.type === 'left') {
-      toLobby('Your friend left the theatre. Send them the link to play again.');
+      toLobby(`${foeName()} left the theatre. Send them the link to play again.`);
     }
   }
 
@@ -1780,9 +1916,13 @@ const WizardDuel = (() => {
   drawFrame();
   newGame();
   renderDesk();
-  // a friend's link drops you straight into their room
+  // a friend's link opens on dressing your wizard for their room. the room maker refreshing gets theirs back
   const room = new URLSearchParams(location.search).get('room');
-  if (room && /^[A-Za-z0-9]{4,8}$/.test(room)) goOnline(room.toUpperCase());
+  if (room && /^[A-Za-z0-9]{4,8}$/.test(room)) {
+    let hosted = null;
+    try { hosted = JSON.parse(sessionStorage.getItem('wizardBattlesHost')); } catch { }
+    showSetup(room.toUpperCase(), !!hosted && hosted.code === room.toUpperCase());
+  }
   // the canvas text uses the page's fonts, so it's drawn again once they're in
   document.fonts.load('700 17px "Crimson Pro"').then(update, update);
   update();

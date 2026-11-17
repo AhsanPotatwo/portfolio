@@ -270,17 +270,18 @@ const WizardRules = (() => {
   // ---------- the online duel ----------
   // two players picking at the same time. the server (server/src/index.js) runs this and the page only acts out
   // what it sends. each side plays by the player's rules above (same moves, odds, heal penalty and berserk
-  // strike), both start on 100, heals land before attacks, and if both drop to 0 in the same scene it's a draw.
+  // strike), both start on 100 unless the room says otherwise, heals land before attacks, and if both drop to 0 in the same scene it's a draw.
   // the state is plain data so the server can save it between messages.
   // a pick is { moveType: 'Attack', move: 'Mid Attack', element: 'Fire' }, element 'n/a' for defends and heals
   const BY_NAME = { 'Berserk Strike': BERSERK };
   for (const list of Object.values(MOVES)) for (const m of list) BY_NAME[m.move] = m;
   const beats = { Fire: 'Earth', Water: 'Fire', Earth: 'Water' };
 
-  function newDuel() {
-    const wizard = () => ({ health: 100, maxHealth: 100, accPenalty: 0 });
+  // healths: what each seat starts on (whoever makes the room picks them)
+  function newDuel(healths = [100, 100]) {
+    const wizard = (health) => ({ health, maxHealth: health, accPenalty: 0 });
     // winner: null while it's on, then 0 or 1 (the seat that won) or 'draw'
-    return { wizards: [wizard(), wizard()], moveNum: 1, winner: null };
+    return { wizards: healths.map(wizard), moveNum: 1, winner: null };
   }
 
   function legalPick(d, seat, p) {

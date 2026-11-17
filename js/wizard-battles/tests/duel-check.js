@@ -48,6 +48,14 @@ assert(legalPick(d, 0, berserk));
 duelTurn(d, [berserk, pick('Defend', 'Low')], miss);
 assert.equal(d.wizards[0].health, 5);
 
+// healths set by the room: berserk is 15% of your own, so 30 out of 200
+d = newDuel([50, 200]);
+assert.deepEqual(d.wizards.map((w) => w.maxHealth), [50, 200]);
+d.wizards[1].health = 31;
+assert(!legalPick(d, 1, berserk));
+d.wizards[1].health = 30;
+assert(legalPick(d, 1, berserk));
+
 // nonsense from a player is turned away
 d = newDuel();
 for (const bad of [null, {}, atk('Huge', 'Fire'), atk('Low', 'Lava'), { ...pick('Defend', 'Low'), element: 'Fire' },

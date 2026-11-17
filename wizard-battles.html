@@ -127,6 +127,15 @@
                 <h2 class="wb-bill-title-text" id="duelEndTitle"></h2>
                 <p class="wb-bill-cast" id="duelEndLine"></p>
               </div>
+              <!-- playing a friend: dressing your wizard first (duel.js, showSetup), the swatches are added there -->
+              <form class="wb-setup" id="duelSetup" autocomplete="off">
+                <p class="wb-bill-kicker">Dress your wizard</p>
+                <label class="wb-setup-name"><span>Name</span><input id="setupName" maxlength="12" spellcheck="false" enterkeyhint="go"></label>
+                <div class="wb-swatches" data-part="robe" role="group" aria-label="Robe colour"><span>Robe</span></div>
+                <div class="wb-swatches" data-part="trim" role="group" aria-label="Trim colour"><span>Trim</span></div>
+                <div class="wb-swatches" data-part="band" role="group" aria-label="Star colour"><span>Stars</span></div>
+                <div class="wb-swatches" data-part="beard" role="group" aria-label="Beard colour"><span>Beard</span></div>
+              </form>
               <!-- playing a friend: the room's playbill while you wait for them (duel.js, goOnline) -->
               <div class="wb-bill wb-bill-lobby" aria-live="polite">
                 <p class="wb-bill-kicker">A duel between friends</p>
@@ -159,6 +168,26 @@
                   <button class="wb-key wb-key-big wb-key-gold" type="button" data-act="copy">Copy link</button>
                   <button class="wb-key wb-key-big wb-key-gold" type="button" data-act="again">Play again</button>
                   <button class="wb-key wb-key-big wb-key-parch" type="button" data-act="title">Back to the title</button>
+                </div>
+
+                <!-- whoever makes the room picks the starting healths -->
+                <div class="wb-desk-setup">
+                  <div class="wb-setup-rules" role="group" aria-label="Starting health">
+                    <div class="wb-stepper" data-who="you">
+                      <span>Your health</span>
+                      <button class="wb-key wb-key-round wb-key-tan" type="button" data-act="step" data-step="-1" aria-label="Less health for you"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button>
+                      <output aria-live="polite">100</output>
+                      <button class="wb-key wb-key-round wb-key-tan" type="button" data-act="step" data-step="1" aria-label="More health for you"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg></button>
+                    </div>
+                    <div class="wb-stepper" data-who="friend">
+                      <span>Friend's health</span>
+                      <button class="wb-key wb-key-round wb-key-tan" type="button" data-act="step" data-step="-1" aria-label="Less health for your friend"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button>
+                      <output aria-live="polite">100</output>
+                      <button class="wb-key wb-key-round wb-key-tan" type="button" data-act="step" data-step="1" aria-label="More health for your friend"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg></button>
+                    </div>
+                  </div>
+                  <p class="wb-setup-room" id="setupRoom"></p>
+                  <button class="wb-key wb-key-big wb-key-gold" type="button" data-act="enter" id="setupGo">Open the room</button>
                 </div>
 
                 <div class="wb-desk-battle">
