@@ -131,6 +131,9 @@ const WizardDuel = (() => {
   const spells = [];
   const bursts = [];
   const tags = [];
+  // the audience: what they throw at the end (in the air), and what's landed on the stage
+  const thrown = [];
+  const props = [];
 
   function newGame() {
     battle = newBattle();
@@ -143,7 +146,7 @@ const WizardDuel = (() => {
       p.gem = null;
       p.hp = { target: max, fill: max, ghost: max, max, at: -1e9, dir: 0 };
     }
-    parts.length = spells.length = bursts.length = tags.length = 0;
+    parts.length = spells.length = bursts.length = tags.length = thrown.length = props.length = 0;
     choice = { type: null, tier: null, berserk: false };
     busy = false;
   }
@@ -950,6 +953,9 @@ const WizardDuel = (() => {
       q.y += q.vy * s;
       q.rot += q.vr * s;
     }
+    for (let i = thrown.length - 1; i >= 0; i--) {
+      if (now - thrown[i].t0 >= thrown[i].dur) land(thrown.splice(i, 1)[0]);
+    }
     for (let i = spells.length - 1; i >= 0; i--) {
       const sp = spells[i];
       const k = (now - sp.t0) / sp.dur;
@@ -999,7 +1005,9 @@ const WizardDuel = (() => {
       drawPuppet(foe);
       drawShield(you);
       drawShield(foe);
+      for (const pr of props) drawProp(pr);
       for (const q of parts) drawPart(q);
+      for (const th of thrown) drawThrown(th);
       for (const sp of spells) {
         const k = (now - sp.t0) / sp.dur;
         const pos = spellPos(sp, k);
@@ -1039,6 +1047,120 @@ const WizardDuel = (() => {
       drawPlaque(foe, 608);
       if (screen === 'battle') drawSceneTag();
     }
+  }
+
+  // ---------- the audience ----------
+  // something thrown from the seats below the stage, arcing up over the footlights. a tomato for the body lands
+  // on the fallen puppet, everything else lands on the floor round them
+  function throwAt(kind, p, atBody) {
+    let to;
+    if (atBody) {
+      // where the fallen puppet's middle is, tipped over on its rod
+      const h = 75 * p.def.size;
+      to = { x: p.def.x - p.def.dir * 0.95 * h + rnd(-14, 14), y: FLOOR_Y - 0.25 * h + rnd(-10, 6) };
+    } else {
+      to = { x: p.def.x + rnd(-130, 130), y: rnd(336, 386) };
+    }
+    const from = { x: to.x + rnd(-160, 160), y: 470 };
+    thrown.push({ kind, from, to, t0: now, dur: rnd(650, 900), peak: rnd(150, 230), spin: rnd(-12, 12), atBody });
+  }
+  function thrownPos(th) {
+    const k = clamp01((now - th.t0) / th.dur);
+    return { x: lerp(th.from.x, th.to.x, k), y: lerp(th.from.y, th.to.y, k) - th.peak * 4 * k * (1 - k), rot: th.spin * k };
+  }
+  function land(th) {
+    const { x, y } = th.to;
+    if (th.kind === 'tomato') {
+      sfx('splat', { rate: rnd(0.85, 1.15) });
+      // a splat: a blob with a few drops round it, worked out once so it keeps its shape
+      const blobs = [[0, 0, rnd(9, 12)]];
+      for (let i = 0; i < 6; i++) {
+        const a = rnd(0, Math.PI * 2);
+        const d = rnd(9, 18);
+        blobs.push([Math.cos(a) * d, Math.sin(a) * d * 0.55, rnd(2.5, 6)]);
+      }
+      props.push({ kind: 'splat', x, y, blobs });
+      for (let i = 0; i < 8; i++) part({ x, y, vx: rnd(-140, 140), vy: rnd(-200, -60), g: 700, size: rnd(3, 6), color: pick(['#c93232', '#e05555', '#9c2f36']), shape: 'circle', life: rnd(350, 600) });
+      // a little jolt when one hits you
+      if (th.atBody) you.ev.hit = now - 300;
+    } else {
+      sfx('petal', { rate: rnd(0.9, 1.2) });
+      props.push({ kind: 'rose', x, y, rot: rnd(-0.6, 0.6) + (Math.random() < 0.5 ? Math.PI : 0) });
+      for (let i = 0; i < 3; i++) part({ x, y: y - 4, vx: rnd(-50, 50), vy: rnd(-90, -30), g: 260, size: rnd(4, 6), color: pick(['#c93232', '#e05555']), shape: 'leaf', life: rnd(500, 800), vr: rnd(-6, 6) });
+    }
+  }
+  function tomato() {
+    cut(circle(0, 0, 9), '#d33a32', 4);
+    actx.fillStyle = '#ff8f7a';
+    actx.fill(circle(-3, -3, 2.6));
+    actx.fillStyle = '#3d763a';
+    actx.fill(star(0, -8, 5, 5, 0.42));
+  }
+  // a rose lying along x: stem, a leaf, and the flower at the right hand end
+  function rose() {
+    const stem = poly([[-17, -1.3], [9, -1.3], [9, 1.3], [-17, 1.3]]);
+    const leaf = new Path2D();
+    leaf.moveTo(-6, 0);
+    leaf.quadraticCurveTo(-1, -9, 4, -7);
+    leaf.quadraticCurveTo(0, -1, -6, 0);
+    const head = circle(13, 0, 7);
+    for (const g of [actx, sctx]) {
+      g.lineJoin = 'round';
+      g.lineWidth = 4;
+    }
+    actx.strokeStyle = C.paper;
+    for (const shape of [stem, leaf, head]) {
+      actx.stroke(shape);
+      sctx.stroke(shape);
+      sctx.fill(shape);
+    }
+    actx.fillStyle = '#3d763a';
+    actx.fill(stem);
+    actx.fillStyle = '#5fae4f';
+    actx.fill(leaf);
+    actx.fillStyle = '#c93232';
+    actx.fill(head);
+    // the petals curling in
+    actx.strokeStyle = '#8e2a30';
+    actx.lineWidth = 1.6;
+    actx.lineCap = 'round';
+    actx.beginPath();
+    actx.arc(13, 0, 4.2, 0.4, 3.6);
+    actx.moveTo(15, 0);
+    actx.arc(13, 0, 2, 0, 3.4);
+    actx.stroke();
+    actx.fillStyle = '#e05555';
+    actx.fill(circle(10.5, -3.5, 1.8));
+  }
+  function drawThrown(th) {
+    const pos = thrownPos(th);
+    both((g) => {
+      g.save();
+      g.translate(pos.x, pos.y);
+      g.rotate(pos.rot);
+      if (th.kind === 'rose') g.scale(1.3, 1.3);
+    });
+    if (th.kind === 'tomato') tomato();
+    else rose();
+    both((g) => g.restore());
+  }
+  function drawProp(pr) {
+    if (pr.kind === 'splat') {
+      // flat on whatever it hit, so no paper edge or shadow
+      actx.fillStyle = '#b8302b';
+      for (const [bx, by, r] of pr.blobs) actx.fill(circle(pr.x + bx, pr.y + by, r));
+      actx.fillStyle = '#d94a3f';
+      actx.fill(circle(pr.x - 2, pr.y - 2, pr.blobs[0][2] * 0.5));
+      return;
+    }
+    both((g) => {
+      g.save();
+      g.translate(pr.x, pr.y);
+      g.rotate(pr.rot);
+      g.scale(1.3, 1.04);
+    });
+    rose();
+    both((g) => g.restore());
   }
 
   // ---------- acting out a turn ----------
@@ -1240,13 +1362,12 @@ const WizardDuel = (() => {
     loser.ev.fall = now;
     later(250, () => sfx('fall'));
     for (let i = 0; i < 3; i++) later(500 + i * 420, () => { winner.ev.hop = now; });
-    if (result === 'win') {
-      later(600, () => {
-        for (let i = 0; i < 40; i++) part({ x: rnd(80, 720), y: rnd(40, 80), vx: rnd(-30, 30), vy: rnd(0, 60), g: 90, size: rnd(5, 9), color: pick([C.gold, '#98c1ff', C.paper, '#ff8a3d', '#8fdc8a']), shape: pick(['square', 'star', 'tri']), life: rnd(1600, 2400), vr: rnd(-6, 6) });
-      });
-    }
-    later(1700, () => { curtainTo(0, 1100); sfx('curtain'); });
-    later(2700, () => {
+    // the audience has its say: roses for you if you win, tomatoes at you if you lose
+    const won = result === 'win';
+    later(450, () => sfx(won ? 'applause' : 'boo'));
+    for (let i = 0; i < 16; i++) later(500 + i * 95 + rnd(0, 70), () => throwAt(won ? 'rose' : 'tomato', you, !won && i % 3 === 1));
+    later(2900, () => { curtainTo(0, 1100); sfx('curtain'); });
+    later(3900, () => {
       sfx(result);
       const scenes = battle.moveNum - 1;
       $('#duelEndKicker').textContent = 'The curtain falls';

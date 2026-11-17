@@ -34,6 +34,11 @@ const WizardSfx = (() => {
 
     // the end of the show
     win:      S({ wave: 'square', pulseWidth: 30, pitch: 392, repeats: 6, gap: 26, melody: 4, scale: 0, contour: 0, attack: 4, sustain: 80, decay: 120, lastNote: 4, lowPass: 45, reverb: 20, volume: 20 }),
+    // the audience: clapping and a boo, a tomato landing, a rose landing
+    applause: S({ wave: 'pink', pitch: 2200, crackle: 80, crackleLength: 22, crackleDepth: 92, attack: 160, sustain: 1700, decay: 800, highPass: 18, lowPass: 68, volume: 80 }),
+    boo:      S({ wave: 'voice', pitch: 130, vowel: 4, voices: 6, detune: 45, slide: -6, attack: 220, sustain: 900, decay: 600, mouth: 112, breath: 30, lowPass: 38, reverb: 20, volume: 46 }),
+    splat:    S({ wave: 'noise', pitch: 500, drop: 8, dropTime: 20, crackle: 200, crackleLength: 6, crackleDepth: 50, attack: 0, sustain: 35, decay: 120, lowPass: 32, volume: 75 }),
+    petal:    S({ wave: 'triangle', pitch: 330, drop: 4, dropTime: 10, attack: 0, sustain: 5, decay: 70, lowPass: 40, volume: 18 }),
     lose:     S({ wave: 'triangle', pitch: 330, repeats: 5, gap: 40, melody: 9, scale: 1, contour: 1, attack: 6, sustain: 110, decay: 160, lastNote: 4, lowPass: 50, reverb: 20, volume: 26 }),
   };
 
