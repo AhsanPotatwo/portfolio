@@ -267,7 +267,110 @@ const WizardRules = (() => {
     return out;
   }
 
-  return { MOVES, BERSERK, ELEMENTS, newBattle, csv };
+  // ---------- the online duel ----------
+  // two players picking at the same time. the server (server/src/index.js) runs this and the page only acts out
+  // what it sends. each side plays by the player's rules above (same moves, odds, heal penalty and berserk
+  // strike), both start on 100, heals land before attacks, and if both drop to 0 in the same scene it's a draw.
+  // the state is plain data so the server can save it between messages.
+  // a pick is { moveType: 'Attack', move: 'Mid Attack', element: 'Fire' }, element 'n/a' for defends and heals
+  const BY_NAME = { 'Berserk Strike': BERSERK };
+  for (const list of Object.values(MOVES)) for (const m of list) BY_NAME[m.move] = m;
+  const beats = { Fire: 'Earth', Water: 'Fire', Earth: 'Water' };
+
+  function newDuel() {
+    const wizard = () => ({ health: 100, maxHealth: 100, accPenalty: 0 });
+    // winner: null while it's on, then 0 or 1 (the seat that won) or 'draw'
+    return { wizards: [wizard(), wizard()], moveNum: 1, winner: null };
+  }
+
+  function legalPick(d, seat, p) {
+    if (!p || d.winner != null) return false;
+    if (p.move === 'Berserk Strike') {
+      const w = d.wizards[seat];
+      return p.moveType === 'Attack' && ELEMENTS.includes(p.element) && w.health / w.maxHealth <= 0.15;
+    }
+    if (!Object.hasOwn(MOVES, p.moveType) || !MOVES[p.moveType].includes(BY_NAME[p.move])) return false;
+    return p.moveType === 'Attack' ? ELEMENTS.includes(p.element) : p.element === 'n/a';
+  }
+
+  // works out a scene from both picks (already checked with legalPick). changes d, returns what each side did
+  function duelTurn(d, picks, rand = Math.random) {
+    const sides = picks.map((p, i) => {
+      const w = d.wizards[i];
+      const m = BY_NAME[p.move];
+      const s = { ...p, success: false, defense: 0, mult: 1, damage: 0, heal: 0, selfDamage: 0, outcome: '' };
+      // heals ignore the last heal's penalty and set the next one, everything else feels it and clears it
+      if (p.moveType === 'Heal') {
+        s.success = rand() * 100 < m.chance;
+        w.accPenalty = s.success ? m.penalty : 0;
+      } else {
+        s.success = rand() * 100 < m.chance - w.accPenalty;
+        w.accPenalty = 0;
+      }
+      if (p.moveType === 'Defend') {
+        s.defense = s.success ? m.amount / 100 : 0;
+        s.outcome = s.success ? `Applied ${m.amount}% defense` : 'Defense failed!';
+      }
+      return s;
+    });
+
+    const [a, b] = sides;
+    if (beats[a.element] && beats[b.element]) {
+      if (beats[a.element] === b.element) { a.mult = 2; b.mult = 0.5; }
+      if (beats[b.element] === a.element) { b.mult = 2; a.mult = 0.5; }
+    }
+
+    sides.forEach((s, i) => {
+      if (s.moveType !== 'Heal') return;
+      const w = d.wizards[i];
+      if (s.success) {
+        s.heal = BY_NAME[s.move].amount;
+        w.health = Math.min(w.maxHealth, w.health + s.heal);
+        s.outcome = `Healed for ${s.heal}`;
+      } else {
+        s.outcome = 'Heal failed';
+      }
+    });
+    sides.forEach((s, i) => {
+      if (s.moveType !== 'Attack') return;
+      const w = d.wizards[i];
+      const them = d.wizards[1 - i];
+      if (s.success) {
+        s.damage = Math.round(Math.round(BY_NAME[s.move].amount * s.mult) * (1 - sides[1 - i].defense));
+        them.health = Math.max(0, them.health - s.damage);
+        s.outcome = `Hit for ${s.damage} damage`;
+      } else {
+        s.outcome = 'Missed';
+        if (s.move === 'Berserk Strike') {
+          s.selfDamage = BERSERK.selfDamage;
+          w.health = Math.max(0, w.health - s.selfDamage);
+        }
+      }
+    });
+
+    const [downA, downB] = d.wizards.map((w) => w.health <= 0);
+    d.winner = downA && downB ? 'draw' : downA ? 1 : downB ? 0 : null;
+    d.moveNum++;
+    return sides;
+  }
+
+  // a scene from one seat's side, in the same shape as turn() above so the page acts it out the same way
+  function duelView(d, sides, seat) {
+    const me = sides[seat];
+    const them = sides[1 - seat];
+    const t = {
+      moveType: me.moveType, move: me.move, moveElement: me.element, moveNum: d.moveNum - 1,
+      playerSuccess: me.success, enemySuccess: them.success, playerDefense: me.defense, enemyDefense: them.defense,
+      elementMultiplierPlayer: me.mult, elementMultiplierEnemy: them.mult,
+      damageEnemy: me.damage, healPlayer: me.heal, selfDamage: me.selfDamage, moveOutcome: me.outcome,
+      enemyType: them.moveType.toLowerCase(), enemyMove: them.move, enemyElement: them.element,
+      damagePlayer: them.damage, healEnemy: them.heal, enemySelfDamage: them.selfDamage, enemyMoveOutcome: them.outcome,
+    };
+    const result = d.winner == null ? null : d.winner === 'draw' ? 'draw' : d.winner === seat ? 'win' : 'lose';
+    return { t, you: d.wizards[seat], foe: d.wizards[1 - seat], result };
+  }
+
+  return { MOVES, BERSERK, ELEMENTS, newBattle, csv, newDuel, legalPick, duelTurn, duelView };
 })();
 
 if (typeof module !== 'undefined') module.exports = WizardRules;

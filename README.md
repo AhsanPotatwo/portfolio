@@ -14,6 +14,18 @@ Open `index.html`, or serve the folder (some pages fetch files, so they need a s
 npx serve .
 ```
 
+## Server
+
+`server/` is a Cloudflare Worker that runs online Wizard Battles (Play a friend). Each room is a Durable Object that holds the duel and rolls the dice, using the same `rules.js` as the page.
+
+```bash
+cd server
+npm install
+npm run dev      # local server on :8787, the page uses it when opened from localhost
+npm test         # plays a battle through it
+npm run deploy
+```
+
 ## Contact
 
 - Email: ahsansid10@hotmail.com

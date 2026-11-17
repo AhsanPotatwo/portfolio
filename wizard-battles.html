@@ -127,6 +127,13 @@
                 <h2 class="wb-bill-title-text" id="duelEndTitle"></h2>
                 <p class="wb-bill-cast" id="duelEndLine"></p>
               </div>
+              <!-- playing a friend: the room's playbill while you wait for them (duel.js, goOnline) -->
+              <div class="wb-bill wb-bill-lobby" aria-live="polite">
+                <p class="wb-bill-kicker">A duel between friends</p>
+                <h2 class="wb-bill-title-text" id="duelRoom"></h2>
+                <p class="wb-bill-cast" id="duelLobbyLine"></p>
+                <p class="wb-bill-link" id="duelLink"></p>
+              </div>
               <!-- how to play: a note on the stage pointing at things -->
               <div class="wb-note" id="duelNote" aria-live="polite">
                 <h3 class="wb-note-title"></h3>
@@ -147,7 +154,9 @@
               <div class="wb-desk">
                 <div class="wb-desk-menu">
                   <button class="wb-key wb-key-big wb-key-gold" type="button" data-act="start">Start game</button>
+                  <button class="wb-key wb-key-big wb-key-blue" type="button" data-act="friend">Play a friend</button>
                   <button class="wb-key wb-key-big wb-key-parch" type="button" data-act="tutorial">How to play</button>
+                  <button class="wb-key wb-key-big wb-key-gold" type="button" data-act="copy">Copy link</button>
                   <button class="wb-key wb-key-big wb-key-gold" type="button" data-act="again">Play again</button>
                   <button class="wb-key wb-key-big wb-key-parch" type="button" data-act="title">Back to the title</button>
                 </div>

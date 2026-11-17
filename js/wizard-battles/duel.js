@@ -125,6 +125,8 @@ const WizardDuel = (() => {
   // what's chosen on the desk so far, like the uni version's atkBtn/atkBtnLow/berserk booleans
   let choice = { type: null, tier: null, berserk: false };
   let tourPage = 0;
+  // playing a friend: the connection to the room and where it's up to (see goOnline), null against the enemy
+  let online = null;
   let curtain = { from: 0, to: 0, t0: -1e9, dur: 1 };
   let shake = { at: -1e9, amp: 0 };
   const parts = [];
@@ -135,8 +137,9 @@ const WizardDuel = (() => {
   const thrown = [];
   const props = [];
 
-  function newGame() {
-    battle = newBattle();
+  // b is the battle to play: rules.js's against the enemy, or onlineBattle() against a friend
+  function newGame(b = newBattle()) {
+    battle = b;
     playerID = generateID();
     exported = false;
     for (const p of [you, foe]) {
@@ -937,7 +940,7 @@ const WizardDuel = (() => {
     ctx.textBaseline = 'middle';
     ctx.font = 'italic 600 17px "Crimson Pro", Georgia, serif';
     // the scene being played out, or the one you're choosing for
-    ctx.fillText(`Scene ${busy ? battle.moveNum - 1 : battle.moveNum}`, 400, 17.5);
+    ctx.fillText(`Scene ${busy && !(online && online.waiting) ? battle.moveNum - 1 : battle.moveNum}`, 400, 17.5);
   }
 
   // ---------- each frame ----------
@@ -1282,6 +1285,12 @@ const WizardDuel = (() => {
     }
   }
 
+  // one line of the script under the stage: who, what they did, and how it went once it's landed
+  function writeLine(line, who, move, el, outcome) {
+    line.innerHTML = `<b>${who}</b> <span>${moveName(move, el)}</span>${outcome ? ` <strong>${outcome}</strong>` : ''}`;
+  }
+  const foeName = () => (online ? 'Friend' : 'Enemy');
+
   function playTurn(t, before) {
     busy = true;
     renderDesk();
@@ -1289,50 +1298,41 @@ const WizardDuel = (() => {
     script.querySelector('.wb-script-scene').textContent = `Scene ${t.moveNum}`;
     const youLine = script.querySelector('[data-who="you"]');
     const foeLine = script.querySelector('[data-who="foe"]');
-    const write = (line, who, move, el, outcome) => {
-      line.innerHTML = `<b>${who}</b> <span>${moveName(move, el)}</span>${outcome ? ` <strong>${outcome}</strong>` : ''}`;
-    };
     youLine.textContent = '';
     foeLine.textContent = '';
 
+    // both halves of the scene the same way round, so a friend can do anything you can (berserk too)
+    const sides = [
+      { p: you, other: foe, line: youLine, who: 'You', type: t.moveType.toLowerCase(), move: t.move, el: t.moveElement, theirEl: t.enemyElement,
+        ok: t.playerSuccess, damage: t.damageEnemy, heal: t.healPlayer, mult: t.elementMultiplierPlayer, outcome: t.moveOutcome },
+      { p: foe, other: you, line: foeLine, who: foeName(), type: t.enemyType, move: t.enemyMove, el: t.enemyElement, theirEl: t.moveElement,
+        ok: t.enemySuccess, damage: t.damagePlayer, heal: t.healEnemy, mult: t.elementMultiplierEnemy, outcome: t.enemyMoveOutcome },
+    ];
     // the healths after each half, worked out from the turn so the plaques change when things land
-    let youHp = before.you;
-    let foeHp = before.foe;
+    const hp = new Map([[you, before.you], [foe, before.foe]]);
     let at = 150;
-    const youDefends = t.moveType === 'Defend';
-    const foeDefends = t.enemyType === 'defend';
-    if (youDefends) later(at, () => { raiseShield(you, DEFENCE[t.move], t.playerSuccess); write(youLine, 'You', t.move, 'n/a', t.moveOutcome); });
-    if (foeDefends) later(at + 220, () => { raiseShield(foe, DEFENCE[t.enemyMove], t.enemySuccess); write(foeLine, 'Enemy', t.enemyMove, 'n/a', t.enemyMoveOutcome); });
-    if (youDefends || foeDefends) at += 900;
+    sides.forEach((s, i) => {
+      if (s.type === 'defend') later(at + i * 220, () => { raiseShield(s.p, DEFENCE[s.move], s.ok); writeLine(s.line, s.who, s.move, 'n/a', s.outcome); });
+    });
+    if (sides.some((s) => s.type === 'defend')) at += 900;
 
-    // your move
-    if (t.moveType === 'Attack') {
-      const berserk = t.move === 'Berserk Strike';
-      if (t.playerSuccess) foeHp = Math.max(0, foeHp - t.damageEnemy);
-      if (berserk && !t.playerSuccess) youHp = Math.max(0, youHp - 10);
-      const o = { el: t.moveElement, success: t.playerSuccess, damage: t.damageEnemy, berserk, hpAfter: foeHp, selfHp: youHp,
-        note: multiplierNote(t.elementMultiplierPlayer, t.moveElement, t.enemyElement), onLand: () => write(youLine, 'You', t.move, t.moveElement, t.moveOutcome) };
-      later(at, () => { write(youLine, 'You', t.move, t.moveElement); castAttack(you, foe, o); });
-      at += berserk && !t.playerSuccess ? 1500 : 1200;
-    } else if (t.moveType === 'Heal') {
-      if (t.playerSuccess) youHp = Math.min(battle.player.maxHealth, youHp + t.healPlayer);
-      const hpAfter = youHp;
-      later(at, () => { write(youLine, 'You', t.move, 'n/a'); castHeal(you, t.playerSuccess, t.healPlayer, hpAfter, () => write(youLine, 'You', t.move, 'n/a', t.moveOutcome)); });
-      at += 1000;
-    }
-
-    // the enemy's
-    if (t.enemyType === 'attack') {
-      if (t.enemySuccess) youHp = Math.max(0, youHp - t.damagePlayer);
-      const o = { el: t.enemyElement, success: t.enemySuccess, damage: t.damagePlayer, hpAfter: youHp,
-        note: multiplierNote(t.elementMultiplierEnemy, t.enemyElement, t.moveElement), onLand: () => write(foeLine, 'Enemy', t.enemyMove, t.enemyElement, t.enemyMoveOutcome) };
-      later(at, () => { write(foeLine, 'Enemy', t.enemyMove, t.enemyElement); castAttack(foe, you, o); });
-      at += 1200;
-    } else if (t.enemyType === 'heal') {
-      if (t.enemySuccess) foeHp = Math.min(battle.enemy.maxHealth, foeHp + t.healEnemy);
-      const hpAfter = foeHp;
-      later(at, () => { write(foeLine, 'Enemy', t.enemyMove, 'n/a'); castHeal(foe, t.enemySuccess, t.healEnemy, hpAfter, () => write(foeLine, 'Enemy', t.enemyMove, 'n/a', t.enemyMoveOutcome)); });
-      at += 1000;
+    // against the enemy you go first, like the uni version. online the server lands heals before attacks
+    const order = online ? [...sides.filter((s) => s.type === 'heal'), ...sides.filter((s) => s.type === 'attack')] : sides;
+    for (const s of order) {
+      if (s.type === 'attack') {
+        const berserk = s.move === 'Berserk Strike';
+        if (s.ok) hp.set(s.other, Math.max(0, hp.get(s.other) - s.damage));
+        if (berserk && !s.ok) hp.set(s.p, Math.max(0, hp.get(s.p) - 10));
+        const o = { el: s.el, success: s.ok, damage: s.damage, berserk, hpAfter: hp.get(s.other), selfHp: hp.get(s.p),
+          note: multiplierNote(s.mult, s.el, s.theirEl), onLand: () => writeLine(s.line, s.who, s.move, s.el, s.outcome) };
+        later(at, () => { writeLine(s.line, s.who, s.move, s.el); castAttack(s.p, s.other, o); });
+        at += berserk && !s.ok ? 1500 : 1200;
+      } else if (s.type === 'heal') {
+        if (s.ok) hp.set(s.p, Math.min(s.p.hp.max, hp.get(s.p) + s.heal));
+        const hpAfter = hp.get(s.p);
+        later(at, () => { writeLine(s.line, s.who, s.move, 'n/a'); castHeal(s.p, s.ok, s.heal, hpAfter, () => writeLine(s.line, s.who, s.move, 'n/a', s.outcome)); });
+        at += 1000;
+      }
     }
 
     later(at + 250, () => {
@@ -1350,35 +1350,52 @@ const WizardDuel = (() => {
   // you choosing a move: the uni version's moveRegister()
   function register(type, move, element) {
     if (busy || screen !== 'battle') return;
+    choice = { type: null, tier: null, berserk: false };
+    // online the server works the turn out once you've both picked, and sends it back (onServer)
+    if (online) {
+      online.say({ type: 'move', moveType: type, move, element });
+      online.waiting = true;
+      busy = true;
+      renderDesk();
+      const script = $('.wb-script');
+      script.querySelector('.wb-script-scene').textContent = `Scene ${battle.moveNum}`;
+      writeLine(script.querySelector('[data-who="you"]'), 'You', move, element, 'Ready');
+      showFriendPick();
+      return;
+    }
     const before = { you: battle.player.health, foe: battle.enemy.health };
     const t = battle.turn(type, move, element);
-    choice = { type: null, tier: null, berserk: false };
     playTurn(t, before);
   }
 
+  // result: win, lose, or draw (online only, when you both go down in the same scene)
   function finish(result) {
-    const loser = result === 'win' ? foe : you;
-    const winner = result === 'win' ? you : foe;
-    loser.ev.fall = now;
-    later(250, () => sfx('fall'));
-    for (let i = 0; i < 3; i++) later(500 + i * 420, () => { winner.ev.hop = now; });
-    // the audience has its say: roses for you if you win, tomatoes at you if you lose
     const won = result === 'win';
+    const draw = result === 'draw';
+    const fallen = draw ? [you, foe] : [won ? foe : you];
+    for (const p of fallen) p.ev.fall = now;
+    later(250, () => sfx('fall'));
+    if (!draw) for (let i = 0; i < 3; i++) later(500 + i * 420, () => { (won ? you : foe).ev.hop = now; });
+    // the audience has its say: roses for you if you win, tomatoes at you if you lose, and a bit of both for a draw
     later(450, () => sfx(won ? 'applause' : 'boo'));
-    for (let i = 0; i < 16; i++) later(500 + i * 95 + rnd(0, 70), () => throwAt(won ? 'rose' : 'tomato', you, !won && i % 3 === 1));
+    for (let i = 0; i < 16; i++) {
+      const kind = draw ? (i % 2 ? 'rose' : 'tomato') : won ? 'rose' : 'tomato';
+      later(500 + i * 95 + rnd(0, 70), () => throwAt(kind, draw ? pick([you, foe]) : you, kind === 'tomato' && i % 3 === 1));
+    }
     later(2900, () => { curtainTo(0, 1100); sfx('curtain'); });
     later(3900, () => {
-      sfx(result);
+      sfx(draw ? 'lose' : result);
       const scenes = battle.moveNum - 1;
-      $('#duelEndKicker').textContent = 'The curtain falls';
-      $('#duelEndTitle').textContent = result === 'win' ? 'You win!' : 'Game over!';
-      $('#duelEndLine').textContent = result === 'win'
-        ? `The evil wizard is beaten after ${scenes} scene${scenes === 1 ? '' : 's'}.`
-        : `The evil wizard wins this time, after ${scenes} scene${scenes === 1 ? '' : 's'}.`;
+      const after = `${scenes} scene${scenes === 1 ? '' : 's'}`;
+      $('#duelEndKicker').textContent = online && online.foeAgain ? 'Your friend wants a rematch!' : 'The curtain falls';
+      $('#duelEndTitle').textContent = won ? 'You win!' : draw ? 'A draw!' : 'Game over!';
+      $('#duelEndLine').textContent = online
+        ? (won ? `Your friend is beaten after ${after}.` : draw ? `You both went down together after ${after}.` : `Your friend wins this time, after ${after}.`)
+        : (won ? `The evil wizard is beaten after ${after}.` : `The evil wizard wins this time, after ${after}.`);
       busy = false;
       setScreen('end');
     });
-    if (!exported) {
+    if (!exported && !online) {
       exported = true;
       // the uni version sent every session to its server as a csv. the site has no server, so this only
       // does anything when it's run with the original project's server.js
@@ -1492,12 +1509,16 @@ const WizardDuel = (() => {
     const penalty = screen === 'battle' && battle ? battle.accPenalty : 0;
     const desperate = demo ? state.berserk : screen === 'battle' && battle && battle.desperate && !busy;
     root.dataset.berserk = desperate ? '1' : '';
+    // waiting on a friend's pick you can still leave
+    root.dataset.waiting = online && online.waiting ? '1' : '';
+    $('[data-act="again"]').disabled = !!(online && online.again);
     $('.wb-berserk-key').setAttribute('aria-pressed', String(state.berserk));
     $('.wb-desk').inert = screen === 'tour' || busy;
 
     for (const key of spellKeys) key.setAttribute('aria-pressed', String(key.dataset.type === state.type));
     hint.hidden = !!state.type;
-    hint.textContent = state.berserk ? 'Berserk Strike! Now pick an element' : 'Pick a move, then how strong';
+    hint.textContent = state.berserk ? 'Berserk Strike! Now pick an element'
+      : online && online.foePicked ? 'Your friend has picked. Your move!' : 'Pick a move, then how strong';
     tierCards.forEach((card, i) => {
       card.hidden = !state.type;
       if (!state.type) return;
@@ -1539,12 +1560,32 @@ const WizardDuel = (() => {
       sfx('page');
       showTour(tourPage + (name === 'next' ? 1 : -1));
     } else if (name === 'back' || name === 'title') {
-      if (busy) return;
+      if (busy && !(online && online.waiting)) return;
       sfx('curtain');
       curtainTo(0, 900);
       choice = { type: null, tier: null, berserk: false };
+      if (online) {
+        leaveOnline();
+        queue.length = 0;
+        newGame();
+      }
       if (screen === 'end') newGame();
       setScreen('title');
+    } else if (name === 'friend') {
+      sfx('key');
+      goOnline(newCode());
+    } else if (name === 'copy') {
+      if (!online) return;
+      sfx('key');
+      navigator.clipboard.writeText(online.link).then(
+        () => lobby('Link copied! Send it to your friend, the curtain goes up when they open it.'),
+        () => lobby('Copy the link above and send it to your friend.'),
+      );
+    } else if (name === 'again' && online) {
+      online.say({ type: 'again' });
+      online.again = true;
+      $('#duelEndKicker').textContent = 'Waiting for your friend...';
+      renderDesk();
     } else if (name === 'again') {
       newGame();
       sfx('curtain');
@@ -1604,6 +1645,107 @@ const WizardDuel = (() => {
   }
   $('.wb-mute').setAttribute('aria-pressed', String(hasSfx && !WizardSfx.muted));
 
+  // ---------- playing a friend online ----------
+  // the server (server/ in the repo, on cloudflare workers) holds each room's duel and rolls the dice, so
+  // neither side can cheat by editing the page. it sends each player the scene from their own side, in the
+  // same shape as rules.js's turn(), so playTurn() acts it out like any other. the room code rides in the
+  // link (?room=ABCD), so opening the link is all a friend has to do
+  const SERVER = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+    ? 'ws://127.0.0.1:8787' : 'wss://portfolio-server.portfolio-server.workers.dev';
+  // no 0/O or 1/I, so a code read out loud can't go wrong
+  const newCode = () => Array.from({ length: 4 }, () => pick([...'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'])).join('');
+
+  // the same shape as rules.js's battle, kept up to date from what the server sends
+  function onlineBattle() {
+    const b = { player: { health: 100, maxHealth: 100 }, enemy: { health: 100, maxHealth: 100 }, accPenalty: 0, moveNum: 1, result: null,
+      get desperate() { return b.player.health / b.player.maxHealth <= 0.15; } };
+    return b;
+  }
+
+  const lobby = (text) => { $('#duelLobbyLine').textContent = text; };
+  // the name on the red wizard's plaque, and the board's name tags above the theatre
+  function setSides() {
+    foe.def.name = online ? 'Friend' : 'Enemy';
+    const tag = document.querySelector('.wb-side-foe');
+    if (tag) tag.innerHTML = online ? 'Your friend <b>100 HP</b>' : 'Enemy wizard <b>200 HP</b>';
+  }
+  function showFriendPick() {
+    $('.wb-script [data-who="foe"]').innerHTML = online.foePicked ? '<b>Friend</b> <strong>Ready</strong>' : '<b>Friend</b> <span>is choosing...</span>';
+  }
+
+  function goOnline(code) {
+    leaveOnline();
+    const ws = new WebSocket(`${SERVER}/room/${code}`);
+    online = { ws, code, link: `${location.origin}${location.pathname}?room=${code}#game`, waiting: false, foePicked: false, again: false, foeAgain: false,
+      say: (msg) => ws.readyState === WebSocket.OPEN && ws.send(JSON.stringify(msg)) };
+    history.replaceState(null, '', `?room=${code}#game`);
+    $('#duelRoom').textContent = `Room ${code}`;
+    $('#duelLink').textContent = online.link;
+    lobby('Opening the theatre doors...');
+    setSides();
+    setScreen('lobby');
+    ws.onmessage = (e) => { if (online && online.ws === ws) onServer(JSON.parse(e.data)); };
+    ws.onclose = () => {
+      if (!online || online.ws !== ws) return;
+      toLobby(online.full ? 'That room already has two wizards in it. Ask your friend for a new link.'
+        : 'Lost the connection to the theatre. Check your internet, then open the link again.');
+    };
+  }
+
+  function leaveOnline() {
+    if (!online) return;
+    const { ws } = online;
+    online = null;
+    ws.close();
+    history.replaceState(null, '', `${location.pathname}#game`);
+    setSides();
+  }
+
+  // back to the playbill to wait, wherever the duel was up to
+  function toLobby(text) {
+    queue.length = 0;
+    newGame(onlineBattle());
+    if (screen !== 'lobby' && screen !== 'title') {
+      sfx('curtain');
+      curtainTo(0, 900);
+    }
+    setScreen('lobby');
+    lobby(text);
+  }
+
+  function onServer(msg) {
+    if (msg.type === 'waiting') {
+      lobby('Send your friend the link. The curtain goes up as soon as they open it.');
+    } else if (msg.type === 'full') {
+      online.full = true;
+    } else if (msg.type === 'start') {
+      queue.length = 0;
+      newGame(onlineBattle());
+      Object.assign(online, { waiting: false, foePicked: false, again: false, foeAgain: false });
+      sfx('curtain');
+      curtainTo(1, 1200);
+      setScreen('battle');
+    } else if (msg.type === 'picked') {
+      online.foePicked = true;
+      if (online.waiting) showFriendPick();
+      else renderDesk();
+    } else if (msg.type === 'turn' && screen === 'battle') {
+      const before = { you: battle.player.health, foe: battle.enemy.health };
+      battle.player.health = msg.you.health;
+      battle.enemy.health = msg.foe.health;
+      battle.accPenalty = msg.you.accPenalty;
+      battle.result = msg.result;
+      battle.moveNum++;
+      online.waiting = online.foePicked = false;
+      playTurn(msg.t, before);
+    } else if (msg.type === 'again') {
+      online.foeAgain = true;
+      if (screen === 'end' && !online.again) $('#duelEndKicker').textContent = 'Your friend wants a rematch!';
+    } else if (msg.type === 'left') {
+      toLobby('Your friend left the theatre. Send them the link to play again.');
+    }
+  }
+
   // ---------- running ----------
   let running = false;
   let onScreen = true;
@@ -1638,6 +1780,9 @@ const WizardDuel = (() => {
   drawFrame();
   newGame();
   renderDesk();
+  // a friend's link drops you straight into their room
+  const room = new URLSearchParams(location.search).get('room');
+  if (room && /^[A-Za-z0-9]{4,8}$/.test(room)) goOnline(room.toUpperCase());
   // the canvas text uses the page's fonts, so it's drawn again once they're in
   document.fonts.load('700 17px "Crimson Pro"').then(update, update);
   update();

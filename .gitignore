@@ -7,3 +7,7 @@ Thumbs.db
 
 # the music maker report's source, kept out of the repo until it goes public
 js/squimble-music-maker/report/
+
+# server bits that stay local
+.wrangler/
+.dev.vars

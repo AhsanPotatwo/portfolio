@@ -321,6 +321,7 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
 .wb-key-gold{ --face:#f6c96b; --edge-c:#a8782c; }
 .wb-key-parch{ --face:var(--parch); --edge-c:var(--parch-edge); }
 .wb-key-tan{ --face:var(--tan); --edge-c:var(--tan-edge); }
+.wb-key-blue{ --face:#98c1ff; --edge-c:#3f6dc0; }
 .wb-key-big{ min-width:210px; padding:16px 26px 14px; font-family:var(--font-book); font-size:30px; line-height:1; }
 .wb-key-round{ width:38px; height:38px; padding:0; border-radius:50%; box-shadow:0 4px 0 var(--edge-c); }
 .wb-key-round:hover{ box-shadow:0 6px 0 var(--edge-c); }
@@ -354,6 +355,7 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
 .wb-duel[data-screen="title"] .wb-back,
 .wb-duel[data-screen="end"] .wb-back,
 .wb-duel[data-busy="1"] .wb-back{ display:none; }
+.wb-duel[data-waiting="1"] .wb-back{ display:flex; }
 
 /* playbills pinned to the curtain */
 .wb-bill{
@@ -384,7 +386,8 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
 .wb-bill::before{ left:14px; }
 .wb-bill::after{ right:14px; }
 .wb-duel[data-screen="title"] .wb-bill-title,
-.wb-duel[data-screen="end"] .wb-bill-end{ visibility:visible; opacity:1; scale:1; transition-delay:.25s, .25s, 0s; }
+.wb-duel[data-screen="end"] .wb-bill-end,
+.wb-duel[data-screen="lobby"] .wb-bill-lobby{ visibility:visible; opacity:1; scale:1; transition-delay:.25s, .25s, 0s; }
 .wb-bill-kicker{ font-family:var(--font-book); font-style:italic; font-weight:600; font-size:19px; color:#8a6a45; }
 .wb-bill-title-text{
   margin:6px 0 12px;
@@ -400,6 +403,19 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
 .wb-bill-end .wb-bill-title-text{ margin-bottom:10px; text-shadow:.04em .05em 0 var(--tan-light); }
 .wb-bill-cast{ font-size:16px; font-weight:600; color:#5a4232; }
 .wb-bill-cast i{ font-family:var(--font-book); font-weight:600; font-size:19px; color:var(--red-deep); }
+.wb-bill-lobby .wb-bill-title-text{ font-size:54px; text-shadow:.04em .05em 0 var(--blue); }
+/* the link to send, all selected in one click in case copying doesn't work */
+.wb-bill-link{
+  margin-top:12px;
+  padding:7px 10px;
+  border-radius:6px;
+  background:#fff6e4;
+  font-size:13px;
+  font-weight:700;
+  color:#5a4232;
+  overflow-wrap:anywhere;
+  user-select:all;
+}
 
 /* how to play: a note on the stage with an arrow to what it's about */
 .wb-tour{ position:absolute; inset:0; z-index:2; width:800px; height:600px; pointer-events:none; overflow:visible; display:none; }
@@ -485,11 +501,15 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
 .wb-desk-menu{ display:none; height:100%; align-items:center; justify-content:center; gap:22px; padding-bottom:6px; }
 .wb-desk-menu .wb-key{ display:none; }
 .wb-duel[data-screen="title"] .wb-desk-menu,
-.wb-duel[data-screen="end"] .wb-desk-menu{ display:flex; }
+.wb-duel[data-screen="end"] .wb-desk-menu,
+.wb-duel[data-screen="lobby"] .wb-desk-menu{ display:flex; }
 .wb-duel[data-screen="title"] [data-act="start"],
+.wb-duel[data-screen="title"] [data-act="friend"],
 .wb-duel[data-screen="title"] [data-act="tutorial"],
 .wb-duel[data-screen="end"] [data-act="again"],
-.wb-duel[data-screen="end"] [data-act="title"]{ display:grid; }
+.wb-duel[data-screen="end"] [data-act="title"],
+.wb-duel[data-screen="lobby"] [data-act="copy"],
+.wb-duel[data-screen="lobby"] [data-act="title"]{ display:grid; }
 .wb-desk-battle{
   position:relative;
   display:none;
