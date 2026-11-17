@@ -1493,6 +1493,52 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
   text-shadow:0 .7cqi 0 #f6bfa2;
 }
 
+/* catpi corner card: the page's cream drawing paper and doodles, a catpi in the green it was first drawn in,
+   and the title in crayon colours with a pencil outline. on hover the catpi hops, squashing as it lands, and
+   a heart floats up */
+.project-card-catpi{
+  position:relative;
+  overflow:hidden;
+  background:#fbf5e6 url("../assets/catpi-corner/doodles.svg") 0 0 / 180px;
+}
+.project-card-catpi:hover,
+.project-card-catpi:focus-within{ background-color:#fffaf0; }
+.project-card-catpi .project-card-link{
+  display:flex; align-items:center; justify-content:center;
+  gap:4cqi;
+}
+.catpi-hop{ position:relative; flex:none; width:30cqi; transform-origin:50% 100%; }
+.catpi-hop img{ display:block; width:100%; height:auto; }
+.catpi-hop i{
+  position:absolute; left:30%; top:-6cqi;
+  width:7cqi; height:7cqi;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21C6 16 2 12 3.5 7.5 5 4 9.5 4 12 8c2.5-4 7-4 8.5-.5C22 12 18 16 12 21z' fill='%23ff7f9e' stroke='%233a3034' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E") 0 0 / contain no-repeat;
+  opacity:0;
+}
+.project-card-catpi:hover .catpi-hop,
+.project-card-catpi:focus-within .catpi-hop{ animation:catpi-hop .7s var(--ease-out) infinite; }
+.project-card-catpi:hover .catpi-hop i,
+.project-card-catpi:focus-within .catpi-hop i{ animation:catpi-heart 1.4s ease-out infinite; }
+@keyframes catpi-hop{
+  0%,100%{ transform:none; }
+  15%{ transform:scale(1.08,.88); }
+  45%{ transform:translateY(-14%) scale(.94,1.08) rotate(-5deg); }
+  80%{ transform:scale(1.1,.9); }
+}
+@keyframes catpi-heart{ 0%{ opacity:0; translate:0 0; } 20%{ opacity:1; } 100%{ opacity:0; translate:-2cqi -9cqi; } }
+.catpi-title{
+  display:flex; flex-direction:column;
+  font-family:"Gaegu", var(--font-sans);
+  font-weight:700;
+  font-size:10.5cqi;
+  line-height:.85;
+  letter-spacing:-.02em;
+  color:#a8ec44;
+  -webkit-text-stroke:.55cqi #3a3034;
+  paint-order:stroke fill;
+}
+.catpi-title span + span{ color:#ffb6d2; margin-left:4cqi; }
+
 /* contact: the page ends on a flat butter band, with one big night-coloured star in the corner */
 .contact{
   position:relative;

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catpi Corner — Ahsan</title>
+  <meta name="description"
+    content="Catpi Corner — a little farm, a café and a street corner full of catpis, half caterpillar and half cat, drawn by noranges. Pet them, feed them, give them a bath, throw them a ball, or hatch a new one.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/catpi-corner.css">
+  <!-- lights on or off from last time, before anything's drawn so it never flashes light first (page.js) -->
+  <script>try { document.documentElement.dataset.ccTheme = localStorage.getItem('catpiCornerTheme') || 'light'; } catch { }</script>
+</head>
+
+<body class="cc-page">
+
+  <a class="skip-link" href="#ccStage">Skip to the catpis</a>
+
+  <header class="site-header" id="header">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html#home"><span class="brand-bracket">[</span>Ahsan<span class="brand-bracket">]</span></a>
+
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="primaryNav" aria-label="Open menu">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="nav" id="primaryNav" aria-label="Primary">
+        <a href="index.html#home" class="nav-link">Home</a>
+        <a href="index.html#about" class="nav-link">About</a>
+        <a href="index.html#skills" class="nav-link">Skills</a>
+        <a href="index.html#projects" class="nav-link is-active">Projects</a>
+        <a href="index.html#contact" class="nav-link">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <div class="container cc-hero">
+      <!-- the title in crayon, each letter its own colour and a bit crooked -->
+      <h1 class="cc-title">
+        <span class="sr-only">Catpi Corner</span>
+        <svg viewBox="0 0 600 124" aria-hidden="true">
+          <text x="6" y="92" rotate="-6 4 -3 5 -2" class="cc-title-a"><tspan fill="#a8ec44">C</tspan><tspan fill="#ffa64d">a</tspan><tspan fill="#a6d8ff">t</tspan><tspan fill="#ffb6d2">p</tspan><tspan fill="#ffe47e">i</tspan></text>
+          <text x="262" y="100" rotate="3 -4 5 -2 4 -5" class="cc-title-b"><tspan fill="#e1c8ff">C</tspan><tspan fill="#45c9b3">o</tspan><tspan fill="#f2625a">r</tspan><tspan fill="#a8ec44">n</tspan><tspan fill="#ffa64d">e</tspan><tspan fill="#a6d8ff">r</tspan></text>
+        </svg>
+      </h1>
+      <div class="cc-hero-side">
+        <p class="cc-lede">A little corner of the world where catpis live. Half caterpillar, half cat, all wiggle. Give them a pat, feed them, give them a bath, throw them a ball, or hatch a brand new one.</p>
+        <!-- dark paper for the page round the stage. the catpis' own day and night is the sun key by the stage -->
+        <button class="cc-small cc-lights" type="button" id="ccLights" aria-pressed="false">
+          <svg class="cc-bulb" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5h6M9.5 20.5h5M12 3.5a5.5 5.5 0 0 0-3.2 10c.6.5.9 1.2.9 2v.5h4.6V15.5c0-.8.3-1.5.9-2A5.5 5.5 0 0 0 12 3.5z"/></svg>
+          <svg class="cc-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3.5a8.5 8.5 0 1 0 5.5 13.5A7 7 0 0 1 15 3.5z"/></svg>
+          <span>Lights off</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- where they live. page.js keeps the counts up to date -->
+      <div class="cc-top">
+        <div class="cc-tabs" role="tablist" aria-label="Places">
+          <button class="cc-tab" role="tab" type="button" data-place="farm" aria-selected="true" aria-controls="ccStage">The Pen <span class="cc-tab-count">0</span></button>
+          <button class="cc-tab" role="tab" type="button" data-place="cafe" aria-selected="false" aria-controls="ccStage">Crumbs Cafe <span class="cc-tab-count">0</span></button>
+          <button class="cc-tab" role="tab" type="button" data-place="street" aria-selected="false" aria-controls="ccStage">Puddle Corner <span class="cc-tab-count">0</span></button>
+        </div>
+        <div class="cc-keys">
+          <button class="cc-key" type="button" id="ccSky" aria-pressed="false" aria-label="Night" title="Make it night">
+            <svg class="cc-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M2.5 12H5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></svg>
+            <svg class="cc-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 3.5a8.5 8.5 0 1 0 5.5 13.5A7 7 0 0 1 15 3.5z"/></svg>
+          </button>
+          <button class="cc-key" type="button" id="ccSound" aria-pressed="true" aria-label="Sound" title="Sound">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="cc-on" d="M15.5 9c1.2 1.6 1.2 4.4 0 6M18.5 6.5c2.6 3.2 2.6 7.8 0 11"/><path class="cc-off" d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="cc-frame">
+        <canvas class="cc-stage" id="ccStage" role="img" aria-label="The Pen, a farm full of catpis" tabindex="-1" data-tool="hand"></canvas>
+
+        <!-- a catpi's card, when you click one -->
+        <section class="cc-card" id="ccCard" hidden aria-live="polite">
+          <button class="cc-card-x" type="button" id="ccCardClose" aria-label="Close">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+          <canvas id="ccCardPic" width="220" height="150" aria-hidden="true"></canvas>
+          <h2 class="cc-card-name" id="ccCardName"></h2>
+          <p class="cc-card-doing" id="ccCardDoing"></p>
+          <p class="cc-card-trait" id="ccCardTrait"></p>
+          <p class="cc-card-likes" id="ccCardLikes"></p>
+          <dl class="cc-bars">
+            <div><dt>Tummy</dt><dd><i data-bar="tummy"></i></dd></div>
+            <div><dt>Happy</dt><dd><i data-bar="joy"></i></dd></div>
+            <div><dt>Clean</dt><dd><i data-bar="clean"></i></dd></div>
+            <div><dt>Energy</dt><dd><i data-bar="energy"></i></dd></div>
+          </dl>
+          <button class="cc-small" type="button" id="ccCardEdit">Change their look</button>
+        </section>
+      </div>
+
+      <!-- the tools: one at a time, or press 1 to 5 -->
+      <div class="cc-tools" role="toolbar" aria-label="Tools">
+        <div class="cc-toolset">
+          <button class="cc-tool" type="button" data-tool="hand" aria-pressed="true">
+            <img class="cc-tool-pic" alt="" width="44" height="44">
+            <span>Pat <kbd>1</kbd></span>
+          </button>
+          <button class="cc-tool" type="button" data-tool="food" aria-pressed="false">
+            <img class="cc-tool-pic" alt="" width="44" height="44">
+            <span>Feed <kbd>2</kbd></span>
+          </button>
+          <button class="cc-tool" type="button" data-tool="water" aria-pressed="false">
+            <img class="cc-tool-pic" alt="" width="44" height="44">
+            <span>Bath <kbd>3</kbd></span>
+          </button>
+          <button class="cc-tool" type="button" data-tool="soap" aria-pressed="false">
+            <img class="cc-tool-pic" alt="" width="44" height="44">
+            <span>Soap <kbd>4</kbd></span>
+          </button>
+          <button class="cc-tool" type="button" data-tool="ball" aria-pressed="false">
+            <img class="cc-tool-pic" alt="" width="44" height="44">
+            <span>Ball <kbd>5</kbd></span>
+          </button>
+        </div>
+        <div class="cc-foods" id="ccFoods" hidden role="group" aria-label="Which food">
+          <button class="cc-food" type="button" data-food="leaf" aria-pressed="true"><img alt="" width="26" height="26">Leaf</button>
+          <button class="cc-food" type="button" data-food="berry" aria-pressed="false"><img alt="" width="26" height="26">Berry</button>
+          <button class="cc-food" type="button" data-food="fish" aria-pressed="false"><img alt="" width="26" height="26">Fish</button>
+          <button class="cc-food" type="button" data-food="cake" aria-pressed="false"><img alt="" width="26" height="26">Cake</button>
+        </div>
+        <button class="cc-new" type="button" id="ccNew">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3c4.5 0 6.5 5 6.5 10S15.5 21 12 21s-6.5-3-6.5-8S7.5 3 12 3z"/><path d="M8.5 9.5l7 1M8 13.5l8 1M9 17l6 .5"/></svg>
+          Hatch a catpi
+        </button>
+      </div>
+
+      <!-- what's going on, newest first -->
+      <div class="cc-news">
+        <h2 class="cc-news-title">Corner news</h2>
+        <ol id="ccNews" aria-live="polite"></ol>
+      </div>
+    </div>
+
+    <!-- make a new catpi, or change one -->
+    <dialog class="cc-hatch" id="ccHatch" aria-labelledby="ccHatchTitle">
+      <form id="ccHatchForm" method="dialog">
+        <div class="cc-hatch-side">
+          <h2 id="ccHatchTitle">Hatch a catpi</h2>
+          <canvas id="ccHatchPic" width="360" height="240" aria-hidden="true"></canvas>
+          <label class="cc-name">
+            <span>Name</span>
+            <span class="cc-name-row">
+              <input id="ccHatchName" maxlength="20" autocomplete="off" required>
+              <button class="cc-small" type="button" id="ccDice" aria-label="Pick a name for me" title="Pick a name for me">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="9" cy="9" r="1.2"/><circle cx="15" cy="15" r="1.2"/><circle cx="15" cy="9" r="1.2"/><circle cx="9" cy="15" r="1.2"/></svg>
+              </button>
+            </span>
+          </label>
+          <!-- two drawn sliders: a little catpi that grows as you slide it, and a note that climbs -->
+          <div class="cc-slide">
+            <label for="ccSize">Size</label>
+            <div class="cc-slide-row"><span aria-hidden="true">tiny</span><input class="cc-range cc-range-size" type="range" id="ccSize" min="0.7" max="1.15" step="0.01"><span aria-hidden="true">big</span></div>
+          </div>
+          <div class="cc-slide">
+            <label for="ccVoice">Voice</label>
+            <div class="cc-slide-row"><span aria-hidden="true">low</span><input class="cc-range cc-range-voice" type="range" id="ccVoice" min="220" max="460" step="5"><span aria-hidden="true">high</span></div>
+            <button class="cc-small" type="button" id="ccHear">Hear it</button>
+          </div>
+          <button class="cc-small" type="button" id="ccSurprise">Surprise me</button>
+        </div>
+        <div class="cc-hatch-main">
+          <h3 class="cc-group">Colours</h3>
+          <fieldset><legend>Body</legend><div class="cc-crayons" id="ccBody"></div></fieldset>
+          <fieldset><legend>Ears and tail</legend><div class="cc-crayons" id="ccAccent"></div></fieldset>
+          <fieldset><legend>Pattern</legend><div class="cc-chips" id="ccPattern"></div></fieldset>
+          <fieldset id="ccDotRow"><legend>Pattern colour</legend><div class="cc-crayons" id="ccDot"></div></fieldset>
+          <h3 class="cc-group">Face</h3>
+          <fieldset><legend>Eyes</legend><div class="cc-chips" id="ccEyes"></div></fieldset>
+          <fieldset><legend>Mouth</legend><div class="cc-chips" id="ccMouth"></div></fieldset>
+          <fieldset><legend>Cheeks</legend><div class="cc-chips" id="ccCheeks"></div></fieldset>
+          <fieldset><legend>Whiskers</legend><div class="cc-chips" id="ccWhiskers"></div></fieldset>
+          <fieldset><legend>Drawn in</legend><div class="cc-chips" id="ccLines"></div></fieldset>
+          <h3 class="cc-group">Things to wear</h3>
+          <fieldset><legend>On their head</legend><div class="cc-chips" id="ccHat"></div></fieldset>
+          <fieldset><legend>On their face</legend><div class="cc-chips" id="ccFace"></div></fieldset>
+          <fieldset><legend>On their back</legend><div class="cc-chips" id="ccBack"></div></fieldset>
+          <h3 class="cc-group">Who they are</h3>
+          <fieldset><legend>What they're like</legend><div class="cc-chips" id="ccTrait"></div><p class="cc-says" id="ccTraitSays"></p></fieldset>
+          <fieldset><legend>Favourite food</legend><div class="cc-chips" id="ccLikes"></div></fieldset>
+          <div class="cc-hatch-go">
+            <button class="cc-small cc-bye" type="button" id="ccBye" hidden>Say goodbye</button>
+            <button class="cc-small" type="button" id="ccHatchCancel">Never mind</button>
+            <button class="cc-new" type="submit" id="ccHatchGo">Hatch</button>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- the page ends in the grass -->
+    <section class="cc-band">
+      <div class="container cc-band-inner">
+        <div>
+          <h2 class="cc-band-title">Who are the catpis?</h2>
+          <p>The catpi was dreamed up and drawn by my friend <a href="https://cupofjuice.co.uk" target="_blank" rel="noopener">noranges</a>: a caterpillar who is also a cat, or a cat who is also a caterpillar. Nobody is quite sure. Every catpi here is her drawing, coloured in by the page with a different box of crayons.</p>
+          <p>Their mews and chirps come from the synthesiser in <a href="squimble-sound-studio.html">Squimble Sound Studio</a>, each in a voice of its own, and they remember you in this browser.</p>
+        </div>
+        <div class="cc-band-links">
+          <a class="btn cc-btn-b" href="https://cupofjuice.co.uk" target="_blank" rel="noopener">noranges' website</a>
+          <a class="btn cc-btn-a" href="https://www.youtube.com/@cupofjuiceuk" target="_blank" rel="noopener">Her YouTube</a>
+          <button class="btn cc-btn-a" type="button" id="ccReset">Start the corner again</button>
+        </div>
+      </div>
+      <div class="container page-back">
+        <a href="index.html#projects"><span aria-hidden="true">&larr;</span> Back to all projects</a>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Made in <span id="year">2026</span> by pondering my crystal orb ~ Ahsan, Full Stack Wizard</p>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <!-- squimble quest's synthesiser, unchanged. it was written for p5, so these are the only bits of p5 and the
+       game it needs (the same fakes as squimble-sound-studio.html) -->
+  <script>
+    class UIElement {}
+    const TILE = 32;
+    const millis = () => performance.now();
+    const constrain = (value, low, high) => Math.min(high, Math.max(low, value));
+  </script>
+  <script src="js/squimble-quest/utils.js"></script>
+  <script src="js/squimble-quest/datafiles.js"></script>
+  <script src="js/squimble-quest/sound.js"></script>
+  <!-- the drawing kit, the places, the catpis, their sounds, then the page -->
+  <script src="js/catpi-corner/crayon.js"></script>
+  <script src="js/catpi-corner/places.js"></script>
+  <script src="js/catpi-corner/catpis.js"></script>
+  <script src="js/catpi-corner/sounds.js"></script>
+  <script src="js/catpi-corner/page.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,508 @@
+/* catpi corner page, loaded on top of styles.css.
+   a sheet of cream drawing paper with crayon doodles in the margins (assets/catpi-corner/doodles.svg). the
+   stage is a drawing taped to it, and everything you press is cut out of paper: wobbly corners (border-radius
+   with a different curve on every corner), a pencil line round it, and a flat shadow that it presses down
+   into. icons are pencil lines pushed about by a little noise (#ccRough in the page). Gaegu for every word,
+   since it looks written. the catpi's own two greens are the page's colours, and it ends in the grass. */
+.cc-page{
+  --paper:#fbf5e6;         --paper-2:#f4ead2;        --ink:#3a3034;           --muted:#7a6b66;
+  --leaf:#a8ec44;          --leaf-edge:#6aa82a;      --fern:#20b974;          --fern-edge:#147a4c;
+  --card:#fffdf6;          --tape:rgba(255, 228, 126, .75);
+  --sky:#d3ecf8;           --sun:#ffd84f;            --pink:#ffb6d2;
+  --band:#8fd660;          --band-2:#6dbb53;         --band-text:#253a1b;
+  --text:#3a3034;          --on:#3a3034;             --hover:#ffffff;         --field:#ffffff;
+  --preview:#eaf6db;       --rule:#cfe3ef;           --doing:#147a4c;         --bye:#a8323a;
+  --tile:url("../assets/catpi-corner/doodles.svg");
+  --wobble:18px 26px 16px 30px / 28px 16px 30px 18px;
+  --wobble-2:26px 14px 28px 16px / 16px 28px 14px 26px;
+  --font-hand:"Gaegu", "Comic Sans MS", var(--font-sans);
+  --page-accent:var(--band-text);
+  background:var(--paper) var(--tile) 0 0 / 360px;
+  color:var(--text);
+  font-family:var(--font-hand);
+  letter-spacing:-.02em;
+}
+/* lights off: the same page on dark paper, easier on the eyes. only the page round the stage changes, the
+   catpis' world keeps its own colours (its day and night are the sun and moon key). picked in page.js and
+   remembered, and set in the page's head before anything's drawn so it never flashes light first */
+:root[data-cc-theme="dark"] .cc-page{
+  --paper:#1f1b24;         --paper-2:#2b2631;        --ink:#0c090e;           --muted:#b2a49b;
+  --card:#2e2836;          --tape:rgba(255, 228, 126, .32);
+  --text:#f1e6d4;          --hover:#38313f;          --field:#38313f;         --preview:#263423;
+  --rule:#3d3646;          --doing:#8be0ad;          --bye:#ff9b9b;
+  --band:#3a6a30;          --band-2:#2c5224;         --band-text:#eaf5dc;
+  --tile:url("../assets/catpi-corner/doodles-dark.svg");
+}
+/* the scrollbars' colours live on html, since the page's own scrollbar belongs to it */
+html:has(.cc-page){ --sb-groove:#f4ead2; --sb-line:#3a3034; --sb-a:#a8ec44; --sb-b:#6aa82a; --sb-hover:#b8f25c; }
+html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e; background:#1f1b24; }
+.cc-page ::selection{ background:var(--leaf); color:var(--text); }
+.cc-page :focus-visible{ outline:3px dashed var(--ink); outline-offset:4px; }
+.cc-defs{ position:absolute; width:0; height:0; }
+.cc-page .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+
+.cc-page .site-header{ background:var(--paper); backdrop-filter:none; border-bottom:3px solid var(--ink); border-radius:0 0 4px 12px / 0 0 6px 3px; }
+.cc-page .brand{ color:var(--text); font-family:var(--font-hand); font-size:28px; }
+.cc-page .brand-bracket{ color:var(--fern); }
+.cc-page .nav-link{ color:var(--text); font-family:var(--font-hand); font-size:21px; font-weight:700; }
+.cc-page .nav-link:hover,
+.cc-page .nav-link.is-active{ color:var(--fern); }
+.cc-page .nav-link::after{ background:var(--fern); }
+.cc-page .nav-toggle span{ background:var(--text); }
+@media (max-width:820px){
+  .cc-page .nav{ background:var(--paper); border-bottom:3px solid var(--ink); }
+  .cc-page .nav .nav-link + .nav-link{ border-top-color:var(--paper-2); }
+  .cc-page .nav .nav-link.is-active{ background:var(--paper-2); border-left-color:var(--fern); }
+}
+.cc-page .site-footer{ border-top:0; background:var(--band-2); color:var(--band-text); font-size:19px; font-weight:700; }
+
+/* ---------- hero: the crayon title and a line about it ---------- */
+.cc-hero{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+  gap:6px 40px;
+  padding-block:22px 10px;
+}
+.cc-title{ margin:0; width:min(540px, 100%); line-height:0; }
+.cc-title svg{ width:100%; height:auto; overflow:visible; }
+.cc-title text{
+  font:700 112px/1 var(--font-hand);
+  letter-spacing:-2px;
+  stroke:var(--ink); stroke-width:7px; stroke-linejoin:round;
+  paint-order:stroke fill;
+}
+.cc-hero-side{ display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
+.cc-lights .cc-moon, .cc-lights[aria-pressed="true"] .cc-bulb{ display:none; }
+.cc-lights[aria-pressed="true"] .cc-moon{ display:block; }
+.cc-lede{
+  max-width:27em;
+  margin:0;
+  font-size:clamp(20px,1.7vw,23px);
+  font-weight:700;
+  line-height:1.2;
+  text-wrap:pretty;
+}
+
+/* ---------- above the stage: the places, and the night and sound keys ---------- */
+.cc-top{ display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:10px; margin-top:10px; }
+.cc-tabs{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:6px; padding-left:18px; }
+/* paper tabs sticking up from the top of the drawing */
+.cc-tab{
+  position:relative;
+  display:inline-flex; align-items:center; gap:8px;
+  height:42px;
+  padding:0 16px 2px;
+  border:3px solid var(--ink); border-bottom:0;
+  border-radius:16px 22px 0 0 / 18px 14px 0 0;
+  background:var(--paper-2);
+  color:var(--text);
+  font:700 22px/1 var(--font-hand);
+  cursor:pointer;
+  transition:height .2s var(--ease-out), background-color .15s ease;
+}
+.cc-tab:hover{ height:46px; background:var(--card); }
+.cc-tab[aria-selected="true"]{ color:var(--on); background:var(--leaf); height:50px; }
+.cc-tab:nth-child(2)[aria-selected="true"]{ background:var(--pink); }
+.cc-tab:nth-child(3)[aria-selected="true"]{ background:var(--sky); }
+/* how many are there, in a little drawn circle */
+.cc-tab-count{
+  display:grid; place-items:center;
+  min-width:26px; height:26px;
+  padding:0 5px;
+  border:2px solid var(--ink);
+  border-radius:50% 45% 52% 48%;
+  background:var(--card);
+  color:var(--text);
+  font-size:18px;
+}
+.cc-keys{ display:flex; gap:8px; padding-bottom:8px; }
+.cc-key{
+  display:grid; place-items:center;
+  width:44px; height:44px;
+  border:3px solid var(--ink);
+  border-radius:var(--wobble-2);
+  background:var(--card);
+  box-shadow:0 4px 0 var(--ink);
+  color:var(--text);
+  cursor:pointer;
+  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out);
+}
+.cc-key:hover{ transform:translateY(-2px); box-shadow:0 6px 0 var(--ink); }
+.cc-key:active{ transform:translateY(3px); box-shadow:0 1px 0 var(--ink); }
+.cc-key svg, .cc-tool svg, .cc-new svg, .cc-small svg, .cc-card-x svg{
+  width:24px; height:24px;
+  fill:none; stroke:currentColor; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round;
+}
+#ccSky .cc-moon, #ccSky[aria-pressed="true"] .cc-sun{ display:none; }
+#ccSky[aria-pressed="true"] .cc-moon{ display:block; }
+#ccSky[aria-pressed="true"]{ background:#3d4785; color:#fff3bf; }
+#ccSky .cc-sun{ color:#c98a16; }
+#ccSound .cc-off, #ccSound[aria-pressed="false"] .cc-on{ display:none; }
+#ccSound[aria-pressed="false"] .cc-off{ display:block; }
+
+/* ---------- the stage: a drawing taped to the page ---------- */
+.cc-frame{ position:relative; }
+.cc-stage{
+  display:block;
+  width:100%;
+  height:min(70vh, 660px); height:min(70svh, 660px);
+  min-height:420px;
+  border:3px solid var(--ink);
+  border-radius:8px 14px 10px 16px / 14px 8px 16px 10px;
+  background:var(--card);
+  box-shadow:6px 7px 0 var(--ink);
+  cursor:none;
+  touch-action:none;
+  opacity:0;
+  transition:opacity .4s ease;
+}
+.cc-stage.is-ready{ opacity:1; }
+/* switching place: a quick shuffle, like turning to another drawing */
+.cc-stage.is-turning{ animation:cc-turn .35s var(--ease-out); }
+@keyframes cc-turn{ 0%{ opacity:.2; transform:translateX(14px) rotate(.6deg); } 100%{ opacity:1; transform:none; } }
+/* tape on two corners */
+.cc-frame::before, .cc-frame::after{
+  content:"";
+  position:absolute; z-index:2;
+  width:110px; height:30px;
+  background:var(--tape);
+  pointer-events:none;
+}
+.cc-frame::before{ left:-30px; bottom:-6px; rotate:28deg; }
+.cc-frame::after{ right:-30px; bottom:-6px; rotate:-26deg; }
+
+/* ---------- a catpi's card, pinned over the corner of the stage ---------- */
+.cc-card{
+  position:absolute; left:16px; top:16px; z-index:3;
+  width:min(260px, calc(100% - 32px));
+  padding:12px 16px 16px;
+  border:3px solid var(--ink);
+  border-radius:var(--wobble);
+  background:var(--card);
+  box-shadow:5px 5px 0 var(--ink);
+  rotate:-1.5deg;
+  animation:cc-card-in .35s var(--ease-out);
+}
+@keyframes cc-card-in{ from{ opacity:0; transform:translateY(-14px) rotate(-4deg); } }
+.cc-card.is-right{ left:auto; right:16px; rotate:1.5deg; }
+.cc-card[hidden]{ display:none; }
+.cc-card::before{
+  content:"";
+  position:absolute; left:50%; top:-14px;
+  width:84px; height:26px;
+  translate:-50% 0; rotate:3deg;
+  background:var(--tape);
+}
+.cc-card canvas{ display:block; width:100%; height:auto; aspect-ratio:220 / 150; }
+.cc-card-x{
+  position:absolute; right:8px; top:8px;
+  display:grid; place-items:center;
+  width:34px; height:34px;
+  border:0; border-radius:50%;
+  background:transparent; color:var(--text);
+  cursor:pointer;
+}
+.cc-card-x:hover{ background:var(--paper-2); }
+.cc-card-name{ margin:2px 0 0; font-size:32px; line-height:1; }
+.cc-card-doing{ margin:2px 0 6px; color:var(--doing); font-size:19px; font-weight:700; }
+.cc-card-trait, .cc-card-likes{ margin:0; font-size:18px; line-height:1.1; }
+.cc-card-likes{ margin-top:4px; color:var(--muted); }
+/* how they're feeling, as crayon scribbled bars */
+.cc-bars{ display:grid; gap:4px; margin:10px 0 12px; }
+.cc-bars div{ display:grid; grid-template-columns:62px 1fr; align-items:center; gap:8px; }
+.cc-bars dt{ font-size:18px; font-weight:700; }
+.cc-bars dd{ height:14px; margin:0; border:2px solid var(--ink); border-radius:10px 6px 9px 5px; overflow:hidden; background:var(--paper); }
+.cc-bars i{
+  display:block; height:100%; width:var(--v, 50%);
+  background:repeating-linear-gradient(-60deg, var(--c) 0 5px, color-mix(in srgb, var(--c) 70%, #fff) 5px 7px);
+  transition:width .6s var(--ease-out);
+}
+.cc-bars [data-bar="tummy"]{ --c:#ffa64d; }
+.cc-bars [data-bar="joy"]{ --c:#ff8fab; }
+.cc-bars [data-bar="clean"]{ --c:#7fc3e8; }
+.cc-bars [data-bar="energy"]{ --c:#a8ec44; }
+
+/* ---------- buttons cut out of paper ---------- */
+.cc-small, .cc-food{
+  display:inline-flex; align-items:center; justify-content:center; gap:6px;
+  min-height:38px;
+  padding:0 14px;
+  border:2.5px solid var(--ink);
+  border-radius:var(--wobble-2);
+  background:var(--card);
+  box-shadow:0 3px 0 var(--ink);
+  color:var(--text);
+  font:700 19px/1 var(--font-hand);
+  cursor:pointer;
+  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out), background-color .15s ease;
+}
+.cc-small[hidden]{ display:none; }
+.cc-small:hover, .cc-food:hover{ transform:translateY(-1px); box-shadow:0 4px 0 var(--ink); background:var(--hover); }
+.cc-small:active, .cc-food:active{ transform:translateY(3px); box-shadow:0 0 0 var(--ink); }
+.cc-food[aria-pressed="true"]{ background:var(--sun); color:var(--on); }
+
+/* ---------- the tools under the stage ---------- */
+.cc-tools{
+  display:flex; flex-wrap:wrap; align-items:center;
+  gap:12px 14px;
+  margin-top:22px;
+}
+.cc-toolset{ display:flex; flex-wrap:wrap; gap:10px; }
+.cc-tool{
+  display:inline-flex; flex-direction:column; align-items:center; gap:2px;
+  min-width:78px;
+  padding:8px 10px 6px;
+  border:3px solid var(--ink);
+  border-radius:var(--wobble);
+  background:var(--card);
+  box-shadow:0 5px 0 var(--ink);
+  color:var(--text);
+  font:700 20px/1 var(--font-hand);
+  cursor:pointer;
+  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out), background-color .15s ease;
+}
+.cc-tool-pic{ display:block; width:44px; height:44px; transition:transform .2s var(--ease-out); }
+.cc-tool:hover .cc-tool-pic{ transform:rotate(-8deg) scale(1.08); }
+.cc-tool[aria-pressed="true"] .cc-tool-pic{ transform:rotate(6deg) scale(1.1); }
+.cc-food img{ width:26px; height:26px; }
+.cc-tool:hover{ transform:translateY(-2px) rotate(-2deg); box-shadow:0 7px 0 var(--ink); }
+.cc-tool:active{ transform:translateY(4px); box-shadow:0 1px 0 var(--ink); }
+.cc-tool[aria-pressed="true"]{ color:var(--on); background:var(--leaf); transform:translateY(3px); box-shadow:0 2px 0 var(--ink); }
+.cc-tool:nth-child(2)[aria-pressed="true"]{ background:#ffcda8; }
+.cc-tool:nth-child(3)[aria-pressed="true"]{ background:var(--sky); }
+.cc-tool:nth-child(4)[aria-pressed="true"]{ background:var(--pink); }
+.cc-tool:nth-child(5)[aria-pressed="true"]{ background:var(--sun); }
+.cc-tool kbd{ font:inherit; font-size:15px; color:var(--muted); }
+.cc-foods{ display:flex; flex-wrap:wrap; gap:8px; padding:6px 12px; border:2.5px dashed var(--ink); border-radius:var(--wobble-2); }
+.cc-foods[hidden]{ display:none; }
+/* the hatch button: the catpi's own green */
+.cc-new{
+  display:inline-flex; align-items:center; gap:8px;
+  height:58px;
+  margin-left:auto;
+  padding:0 22px;
+  border:3px solid var(--ink);
+  border-radius:var(--wobble-2);
+  background:var(--leaf);
+  box-shadow:0 5px 0 var(--fern-edge), 0 5px 0 3px var(--ink);
+  color:var(--on);
+  font:700 25px/1 var(--font-hand);
+  cursor:pointer;
+  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out);
+}
+.cc-new svg{ width:30px; height:30px; }
+.cc-new:hover{ transform:translateY(-2px) rotate(1deg); }
+.cc-new:active{ transform:translateY(4px); box-shadow:0 1px 0 var(--fern-edge), 0 1px 0 3px var(--ink); }
+
+/* ---------- the news: a strip of lined notebook paper ---------- */
+.cc-news{
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 20px;
+  margin:26px 0 0;
+  padding:10px 18px;
+  border-left:4px solid #f29b8f;
+  background:repeating-linear-gradient(var(--card) 0 31px, var(--rule) 31px 33px);
+  rotate:.3deg;
+}
+.cc-news-title{ margin:0; font-size:24px; }
+.cc-news ol{ display:grid; flex:1 1 300px; gap:0; margin:0; padding:0; list-style:none; }
+.cc-news li{ font-size:21px; line-height:33px; animation:cc-news .5s var(--ease-out); }
+.cc-news li + li{ color:var(--muted); }
+.cc-news li:nth-child(3){ opacity:.6; }
+@keyframes cc-news{ from{ opacity:0; translate:-12px 0; } }
+
+/* ---------- hatch a catpi ---------- */
+.cc-hatch{
+  width:min(980px, calc(100% - 24px));
+  max-height:calc(100dvh - 24px);
+  padding:0;
+  border:3px solid var(--ink);
+  border-radius:12px 18px 14px 20px / 18px 12px 20px 14px;
+  background:var(--paper) var(--tile) 0 0 / 360px;
+  box-shadow:8px 9px 0 var(--ink);
+  color:var(--text);
+  font-family:var(--font-hand);
+}
+.cc-hatch::backdrop{ background:rgba(58, 48, 52, .45); }
+.cc-hatch[open]{ animation:cc-card-in .35s var(--ease-out); }
+.cc-hatch form{ display:grid; grid-template-columns:minmax(260px, 340px) 1fr; }
+.cc-hatch-side{
+  display:flex; flex-direction:column; gap:12px;
+  padding:22px;
+  border-right:3px dashed var(--ink);
+  background:var(--card);
+}
+.cc-hatch h2{ margin:0; font-size:36px; line-height:1; }
+.cc-hatch canvas{ width:100%; height:auto; aspect-ratio:3 / 2; border-radius:12px; background:var(--preview); }
+.cc-name > span:first-child, .cc-slide > span{ font-size:20px; font-weight:700; }
+.cc-name{ display:grid; gap:4px; min-width:0; }
+.cc-name-row{ display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:8px; }
+.cc-name input{
+  width:100%; min-width:0;
+  height:42px;
+  padding:0 12px;
+  border:2.5px solid var(--ink);
+  border-radius:var(--wobble-2);
+  background:var(--field);
+  color:var(--text);
+  font:700 24px/1 var(--font-hand);
+}
+/* the sliders: a pencil track that fills with crayon up to the thumb, and a paper thumb with a picture on
+   it: for size a catpi that grows as you go, for the voice a note */
+.cc-slide{ display:grid; grid-template-columns:auto 1fr; align-items:center; gap:4px 10px; }
+.cc-slide > label{ font-size:20px; font-weight:700; }
+.cc-slide .cc-small{ grid-column:2; justify-self:start; }
+.cc-slide-row{ display:flex; align-items:center; gap:8px; font-size:16px; color:var(--muted); }
+.cc-range{
+  --p:50%; --k:.5;
+  flex:1; min-width:0;
+  height:40px;
+  margin:0;
+  background:transparent;
+  appearance:none; -webkit-appearance:none;
+  cursor:pointer;
+}
+.cc-range:focus-visible{ outline-offset:2px; }
+.cc-range::-webkit-slider-runnable-track{
+  height:16px;
+  border:2.5px solid var(--ink);
+  border-radius:10px 6px 9px 7px;
+  background:repeating-linear-gradient(-60deg, var(--leaf) 0 6px, var(--leaf-edge) 6px 8px) 0 0 / var(--p) 100% no-repeat, var(--card);
+}
+.cc-range::-moz-range-track{ height:12px; border:2.5px solid var(--ink); border-radius:10px 6px 9px 7px; background:var(--card); }
+.cc-range::-moz-range-progress{ height:12px; border-radius:8px 0 0 6px; background:repeating-linear-gradient(-60deg, var(--leaf) 0 6px, var(--leaf-edge) 6px 8px); }
+.cc-range::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:38px; height:38px;
+  margin-top:-13px;
+  border:2.5px solid var(--ink);
+  border-radius:50% 46% 52% 48%;
+  background:#fffdf6 var(--pic) center / var(--pic-size, 24px) no-repeat;
+  box-shadow:0 3px 0 var(--ink);
+  transition:transform .15s var(--ease-out);
+}
+.cc-range::-moz-range-thumb{
+  width:34px; height:34px;
+  border:2.5px solid var(--ink);
+  border-radius:50% 46% 52% 48%;
+  background:#fffdf6 var(--pic) center / var(--pic-size, 24px) no-repeat;
+  box-shadow:0 3px 0 var(--ink);
+}
+.cc-range:hover::-webkit-slider-thumb{ transform:rotate(-8deg) scale(1.05); }
+.cc-range:active::-webkit-slider-thumb{ transform:rotate(6deg) scale(.96); }
+.cc-range-size{ --pic-size:calc(16px + var(--k) * 14px) auto; --pic:url("../assets/catpi-corner/catpi-green.png"); }
+.cc-range-voice{ --pic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M9 18V5l10-2v12' fill='none' stroke='%233a3034' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cellipse cx='6.5' cy='18' rx='3.5' ry='2.8' fill='%23ffb6d2' stroke='%233a3034' stroke-width='2'/%3E%3Cellipse cx='16.5' cy='15.5' rx='3.5' ry='2.8' fill='%23ffb6d2' stroke='%233a3034' stroke-width='2'/%3E%3C/svg%3E"); }
+.cc-hatch-main{ display:flex; flex-direction:column; gap:12px; padding:18px 22px 22px; overflow:auto; max-height:calc(100dvh - 30px); }
+.cc-hatch fieldset{ margin:0; padding:0; border:0; }
+.cc-hatch fieldset[hidden]{ display:none; }
+.cc-hatch legend{ padding:0; margin-bottom:6px; font-size:21px; font-weight:700; }
+.cc-group{ margin:10px 0 -2px; padding-bottom:4px; border-bottom:2.5px dashed var(--ink); font-size:26px; line-height:1; }
+.cc-group:first-child{ margin-top:0; }
+.cc-pencils .cc-chip{ display:inline-flex; align-items:center; gap:7px; }
+.cc-pencils .cc-chip::before{ content:""; width:13px; height:13px; border-radius:50%; background:var(--dot); box-shadow:0 0 0 2px var(--card), 0 0 0 3.5px var(--ink); }
+.cc-says{ margin:6px 0 0; font-size:19px; color:var(--muted); }
+/* the crayon box: each crayon a stick with a pointed tip, the one in use pulled up */
+.cc-crayons{ display:flex; flex-wrap:wrap; gap:4px 3px; }
+.cc-crayon{
+  width:26px; height:58px;
+  padding:0;
+  border:0;
+  background:var(--c);
+  clip-path:polygon(30% 0, 70% 0, 100% 24%, 100% 100%, 0 100%, 0 24%);
+  box-shadow:inset 0 -14px 0 rgba(0,0,0,.14), inset 0 -18px 0 rgba(255,255,255,.35), inset 0 -2px 0 rgba(0,0,0,.25), inset 2px 0 0 rgba(0,0,0,.15), inset -2px 0 0 rgba(0,0,0,.15);
+  cursor:pointer;
+  translate:0 10px;
+  transition:translate .2s var(--ease-out);
+}
+.cc-crayon:hover{ translate:0 4px; }
+.cc-crayon-mix{ position:relative; display:block; background:conic-gradient(from 90deg, #ff8a8a, #ffd27a, #c4f07a, #7fe0d2, #8cb8ff, #d39cff, #ff8a8a); }
+.cc-crayon-mix[aria-pressed="true"]{ background:var(--c); translate:0 -2px; }
+.cc-crayon-mix input{ position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+.cc-crayon[aria-pressed="true"]{ translate:0 -2px; }
+.cc-crayons{ padding-bottom:2px; overflow:hidden; border-bottom:3px solid var(--ink); }
+.cc-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.cc-chip{
+  min-height:36px;
+  padding:0 12px;
+  border:2.5px solid var(--ink);
+  border-radius:var(--wobble-2);
+  background:var(--card);
+  color:var(--text);
+  font:700 19px/1 var(--font-hand);
+  cursor:pointer;
+  transition:transform .15s var(--ease-out), background-color .15s ease;
+}
+.cc-chip:hover{ transform:rotate(-2deg); background:var(--hover); }
+.cc-chip[aria-pressed="true"]{ background:var(--leaf); color:var(--on); }
+.cc-hatch-go{ display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:10px; margin-top:6px; }
+.cc-hatch-go .cc-new{ margin-left:0; }
+.cc-bye{ margin-right:auto; color:var(--bye); }
+
+/* ---------- scrollbars: a groove in the paper and a crayon to drag (chrome and safari draw the custom
+   ones only where scrollbar-color isn't set, firefox takes the colours) ---------- */
+html:has(.cc-page), .cc-hatch, .cc-hatch-main{ scrollbar-color:auto; }
+@supports not selector(::-webkit-scrollbar){
+  html:has(.cc-page), .cc-hatch, .cc-hatch-main{ scrollbar-color:var(--sb-b) var(--sb-groove); }
+}
+html:has(.cc-page)::-webkit-scrollbar, .cc-hatch ::-webkit-scrollbar, .cc-hatch::-webkit-scrollbar{ width:16px; height:16px; }
+html:has(.cc-page)::-webkit-scrollbar-track, .cc-hatch ::-webkit-scrollbar-track, .cc-hatch::-webkit-scrollbar-track{
+  background:var(--sb-groove);
+  border-left:2.5px dashed color-mix(in srgb, var(--sb-line) 45%, transparent);
+}
+html:has(.cc-page)::-webkit-scrollbar-thumb, .cc-hatch ::-webkit-scrollbar-thumb, .cc-hatch::-webkit-scrollbar-thumb{
+  border:2.5px solid var(--sb-line);
+  border-radius:9px 6px 10px 7px;
+  background:repeating-linear-gradient(-60deg, var(--sb-a) 0 6px, var(--sb-b) 6px 8px);
+}
+html:has(.cc-page)::-webkit-scrollbar-thumb:hover, .cc-hatch ::-webkit-scrollbar-thumb:hover{ background:repeating-linear-gradient(-60deg, var(--sb-hover) 0 6px, var(--sb-b) 6px 8px); }
+html:has(.cc-page)::-webkit-scrollbar-corner, .cc-hatch ::-webkit-scrollbar-corner{ background:var(--sb-groove); }
+
+/* ---------- the band at the end: grass ---------- */
+.cc-band{
+  position:relative;
+  margin-top:calc(var(--section-pad) + 20px);
+  padding:clamp(40px,5vw,64px) 0 0;
+  background:var(--band);
+  color:var(--band-text);
+}
+.cc-band::before{
+  content:"";
+  position:absolute; left:0; right:0; bottom:calc(100% - 2px);
+  height:40px;
+  background:var(--band);
+  -webkit-mask:url("../assets/catpi-corner/grass.svg") 0 0 / 400px 40px repeat-x;
+  mask:url("../assets/catpi-corner/grass.svg") 0 0 / 400px 40px repeat-x;
+}
+.cc-band-inner{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:28px 48px; }
+.cc-band-title{ margin:0; font-size:clamp(38px,4.4vw,58px); line-height:1; }
+.cc-band p{ max-width:34em; margin:12px 0 0; font-size:clamp(20px,1.6vw,23px); font-weight:700; line-height:1.25; }
+.cc-band p a{ color:inherit; text-decoration:underline; text-decoration-style:wavy; text-underline-offset:4px; }
+.cc-band-links{ display:flex; flex-wrap:wrap; gap:16px; }
+.cc-page .btn{ border:3px solid var(--ink); border-radius:var(--wobble-2); font-family:var(--font-hand); font-size:23px; cursor:pointer; }
+.cc-btn-a{ --k:var(--ink); background:var(--card); color:var(--text); }
+.cc-btn-b{ --k:var(--ink); background:var(--sun); color:var(--on); }
+.cc-page .page-back{ padding:clamp(36px,5vw,52px) var(--gutter) clamp(36px,5vw,52px); }
+.cc-page .page-back a{ font-size:22px; font-weight:700; }
+.cc-page .page-back a:hover{ color:var(--band-text); opacity:.8; }
+
+/* ---------- phones ---------- */
+@media (max-width:760px){
+  .cc-hero{ padding-top:14px; }
+  .cc-tab{ height:42px; padding-inline:11px; font-size:19px; }
+  .cc-stage{ height:62svh; min-height:360px; }
+  .cc-frame::before, .cc-frame::after{ width:80px; }
+  .cc-tool{ min-width:0; flex:1 1 56px; padding-inline:4px; font-size:18px; }
+  .cc-tool kbd{ display:none; }
+  .cc-toolset{ width:100%; gap:6px; }
+  .cc-new{ width:100%; justify-content:center; margin-left:0; }
+  .cc-card{ width:210px; left:8px; top:8px; padding:8px 12px 12px; }
+  .cc-card canvas{ display:none; }
+  .cc-hatch form{ grid-template-columns:1fr; }
+  .cc-hatch-side{ border-right:0; border-bottom:3px dashed var(--ink); }
+  .cc-hatch-main{ max-height:none; overflow:visible; }
+  .cc-hatch{ overflow:auto; }
+  .cc-crayon{ width:22px; height:50px; }
+  .cc-band-links, .cc-band-links .btn{ width:100%; }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .cc-stage.is-turning, .cc-card, .cc-hatch[open], .cc-news li{ animation:none; }
+}
