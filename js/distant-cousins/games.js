@@ -58,33 +58,114 @@
   const best = store.get('distantCousinsBest', {});
   // (the best scores from before there were levels were normal ones)
   for (const game of ['closer', 'which']) if (best[game] !== undefined) { best[game + '-normal'] ??= best[game]; delete best[game]; store.set('distantCousinsBest', best); }
+  // ---------- the games, a card each ----------
+  // a new game is one more entry: its name, a line about it, its four levels (easy to expert, keyed as LEVELS
+  // is), how to start one, what to say about your best at a level, its colour and the colour behind its
+  // picture (css custom properties), and its picture (ART, same id)
+  const GAMES = [
+    { id: 'hunt', name: 'The hunt', say: 'We pick a creature. Start from the very first life and find your way down the tree to it.',
+      levels: LEVELS, tone: ['--leaf', '--leaf-soft'], start: k => startHunt(k),
+      best: k => best['hunt-' + k] ? `Won ${fmt(best['hunt-' + k])} ${best['hunt-' + k] === 1 ? 'time' : 'times'}` : '' },
+    { id: 'closer', name: 'Closer cousins', say: 'Which of two creatures is the closer relative of a third? Ten rounds, and some answers are surprising.',
+      levels: QUIZ_LEVELS, tone: ['--g-rose', '--rose'], start: k => startQuiz('closer', k),
+      best: k => best['closer-' + k] !== undefined ? `Your best: ${best['closer-' + k]}/10` : '' },
+    { id: 'which', name: 'Which one?', say: 'Ten quick questions about two creatures: which has the older fossils, which is heavier, which is still around.',
+      levels: QUIZ_LEVELS, tone: ['--g-sky', '--sky'], start: k => startQuiz('which', k),
+      best: k => best['which-' + k] !== undefined ? `Your best: ${best['which-' + k]}/10` : '' },
+  ];
+  const KEYS = ['easy', 'normal', 'hard', 'expert'];
+  // little line drawings in the board's style: cards with faces, a game colour (f-sec), the page's card colour
+  // (f-card), dotted trails. the bits with class "move" fidget when you point at the game
+  const face = (x, y) => `<circle class="f-ink" cx="${x - 4}" cy="${y}" r="1.8"/><circle class="f-ink" cx="${x + 4}" cy="${y}" r="1.8"/><path d="M${x - 3} ${y + 5}q3 2.5 6 0"/>`;
+  const ART = {
+    // the tree from the first life down, mystery cards on the wrong branches, a magnifying glass on the right one
+    hunt: `<path d="M100 25v11M60 52v-9a6 6 0 0 1 6-6h68a6 6 0 0 1 6 6v9M100 37v15"/>
+      <circle class="f-card" cx="100" cy="16" r="9"/>
+      <rect class="f-card" x="47" y="52" width="26" height="20" rx="6"/><text x="60" y="67">?</text>
+      <rect class="f-card" x="87" y="52" width="26" height="20" rx="6"/><text x="100" y="67">?</text>
+      <rect class="f-sec" x="127" y="52" width="26" height="20" rx="6"/>
+      <path class="trail" d="M140 72v8"/>
+      <g class="move"><circle class="f-glass" cx="140" cy="92" r="13"/><path d="M149.5 101l11 9"/>
+      <path class="f-star" d="M140 85.5l2 4.1 4.5.6-3.3 3.1.8 4.5-4-2.2-4 2.2.8-4.5-3.3-3.1 4.5-.6z"/></g>`,
+    // a creature and two others: one close (a short solid branch, a heart on it), one far (a long dotted one)
+    closer: `<path class="line-sec" d="M90 38C82 52 62 50 52 66"/>
+      <path class="trail" d="M110 38C120 54 140 50 150 66"/>
+      <rect class="f-card" x="82" y="10" width="36" height="28" rx="9"/>${face(100, 22)}
+      <rect class="f-sec" x="32" y="66" width="38" height="30" rx="9"/>${face(51, 79)}
+      <rect class="f-card" x="132" y="66" width="38" height="30" rx="9"/>${face(151, 79)}
+      <path class="f-heart move" d="M69 52.5c-2.6-2.6-6.5.2-4.4 3.2L69 60.5l4.4-4.8c2.1-3-1.8-5.8-4.4-3.2z"/>`,
+    // two on a see-saw, the heavier one down, a question over them
+    which: `<path class="f-soft2" d="M100 76L88 97h24z"/>
+      <path d="M34 86L166 67"/>
+      <g transform="rotate(-8 46 68)"><rect class="f-sec" x="26" y="53" width="40" height="30" rx="9"/>${face(46, 66)}</g>
+      <g transform="rotate(-8 154 51)"><rect class="f-card" x="136" y="38" width="36" height="26" rx="9"/>${face(154, 49)}</g>
+      <g class="move"><circle class="f-star" cx="100" cy="28" r="15"/><text x="100" y="35">?</text></g>`,
+  };
+  const picked = store.get('distantCousinsGameLevels', {});
   function renderMenu() {
-    const won = k => best['hunt-' + k] ? `<span class="dc-game-best">Won ${best['hunt-' + k]}</span>` : '';
-    const levels = game => `<div class="dc-levels dc-quiz-levels">${Object.entries(QUIZ_LEVELS).map(([k, l]) => `<button class="dc-level" type="button" data-quiz="${game}" data-level="${k}"><b>${l.name}</b><span>${best[game + '-' + k] !== undefined ? `Best: ${best[game + '-' + k]}/10` : l.who}</span></button>`).join('')}</div>`;
-    $('dcGamesBody').innerHTML = `
-      <section class="dc-game">
-        <h3>The hunt</h3>
-        <p>We pick a creature. Start from the very first life and find your way down the tree to it.</p>
-        <div class="dc-levels">${Object.entries(LEVELS).map(([k, l]) => `<button class="dc-level" type="button" data-hunt="${k}"><b>${l.name}</b><span>${l.who}</span>${won(k)}</button>`).join('')}</div>
-      </section>
-      <div class="dc-game-pair">
-        <section class="dc-game">
-          <h3>Closer cousins</h3>
-          <p>Which of two creatures is the closer relative of a third? Ten rounds, and some answers are surprising.</p>
-          ${levels('closer')}
-        </section>
-        <section class="dc-game">
-          <h3>Which one?</h3>
-          <p>Ten quick questions about two creatures: which has the older fossils, which is heavier, which is still around.</p>
-          ${levels('which')}
-        </section>
-      </div>`;
+    $('dcGamesBody').innerHTML = `<p class="dc-trees-say">Pick a game, slide to how hard you'd like it, and play. Your own tree is kept safe while you do.</p>
+      <div class="dc-games">${GAMES.map(g => {
+        const at = Math.max(0, KEYS.indexOf(picked[g.id] || 'normal'));
+        return `<section class="dc-game" data-game="${g.id}" style="--sec:var(${g.tone[0]});--soft:var(${g.tone[1]})">
+          <div class="dc-game-art" aria-hidden="true"><svg viewBox="0 0 200 112">${ART[g.id] || ''}</svg></div>
+          <h3>${esc(g.name)}</h3>
+          <p class="dc-game-say">${esc(g.say)}</p>
+          <div class="dc-level-pick">
+            <input type="range" min="0" max="3" step="1" value="${at}" data-level-of="${g.id}" aria-label="How hard: ${esc(g.name)}">
+            <span class="dc-stops" aria-hidden="true">${KEYS.map((k, i) => `<i data-stop="${i}"></i>`).join('')}</span>
+            ${THUMB}
+            <div class="dc-ticks" aria-hidden="true">${KEYS.map((k, i) => `<span data-tick="${i}">${g.levels[k].name}</span>`).join('')}</div>
+          </div>
+          <div class="dc-game-level">${KEYS.map((k, i) => {
+            const l = g.levels[k], b = g.best(k);
+            return `<p data-say="${i}"><b>${esc(l.name)}</b><span>${esc(l.who)}</span>${b ? `<span class="dc-game-best">${esc(b)}</span>` : ''}</p>`;
+          }).join('')}</div>
+          <button class="dc-key dc-game-play" type="button" data-play="${g.id}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg><span>Play</span></button>
+        </section>`;
+      }).join('')}</div>`;
+    for (const input of $('dcGamesBody').querySelectorAll('[data-level-of]')) sayLevel(input, true);
+  }
+  // the slider's own thumb is see-through (it still does the dragging and the keys): this one is drawn over it
+  // and glides to each stop (css transitions --at). it has a face that gets more worried the harder it gets
+  const THUMB = `<span class="dc-thumb" aria-hidden="true"><svg viewBox="0 0 20 20"><circle cx="7" cy="8.5" r="1.5"/><circle cx="13" cy="8.5" r="1.5"/><path class="dc-thumb-mouth" d="M6.5 12.5Q8 14.5 10 14.5Q12 14.5 13.5 12.5"/></svg></span>`;
+  // the slider's level, in words under it, and remembered for next time. all four levels' words are there
+  // at once, on top of each other, so the card is always as tall as the longest and never jumps
+  function sayLevel(input, quiet) {
+    const g = GAMES.find(x => x.id === input.dataset.levelOf), at = +input.value, k = KEYS[at], l = g.levels[k];
+    const card = input.closest('.dc-game');
+    card.style.setProperty('--at', at / 3);
+    if (!quiet && card.dataset.level !== k) {
+      // (a squash as it sets off)
+      const thumb = card.querySelector('.dc-thumb');
+      thumb.classList.remove('is-off');
+      void thumb.offsetWidth;
+      thumb.classList.add('is-off');
+    }
+    card.dataset.level = k;
+    input.setAttribute('aria-valuetext', `${l.name}: ${l.who}`);
+    for (const t of card.querySelectorAll('[data-tick]')) t.classList.toggle('is-on', +t.dataset.tick === at);
+    for (const s of card.querySelectorAll('[data-stop]')) s.classList.toggle('is-past', +s.dataset.stop <= at);
+    for (const p of card.querySelectorAll('[data-say]')) p.classList.toggle('is-on', +p.dataset.say === at);
+    card.querySelector('[data-play]').setAttribute('aria-label', `Play ${g.name}, ${l.name.toLowerCase()}`);
+    picked[g.id] = k;
+    store.set('distantCousinsGameLevels', picked);
   }
   $('dcGamesOpen').addEventListener('click', () => { renderMenu(); win.show(); });
+  box.addEventListener('input', e => { if (e.target.dataset.levelOf) sayLevel(e.target); });
   box.addEventListener('click', e => {
-    const b = e.target.closest('button');
-    if (b?.dataset.hunt) { win.close(); startHunt(b.dataset.hunt); }
-    else if (b?.dataset.quiz) { win.close(); startQuiz(b.dataset.quiz, b.dataset.level); }
+    // (a level's name under the slider moves it there too)
+    const tick = e.target.closest('[data-tick]');
+    if (tick) {
+      const input = tick.closest('.dc-level-pick').querySelector('input');
+      input.value = tick.dataset.tick;
+      sayLevel(input);
+      input.focus();
+      return;
+    }
+    const b = e.target.closest('[data-play]');
+    const g = b && GAMES.find(x => x.id === b.dataset.play);
+    if (g) { win.close(); g.start(b.closest('.dc-game').dataset.level); }
   });
 
   // ---------- the hunt ----------

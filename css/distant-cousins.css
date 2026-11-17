@@ -23,6 +23,7 @@
   --focus:#3b2440;         --mote:#fffaf4;
   --stone-pic:#ddd3ca;     --stone-tag:#d9cec5;      --stone-ink:#5b4d50;
   --scroll:#e3a98a;        --scroll-hover:#9a6a52;
+  --g-rose:#d9607f;        --g-sky:#4a86c5;
   --sky:#cfe4f5;           --sky-ink:#2f5d86;        --rose:#fbd0d6;           --rose-ink:#9c3550;
 
   --font-round:"Sniglet", var(--font-sans);
@@ -799,38 +800,106 @@ body.dc-vs-open{ overflow:hidden; }
 .dc-hunting .dc-members, .dc-hunting .dc-line, .dc-hunting .dc-actions, .dc-hunting .dc-hint{ display:none !important; }
 
 /* ---------- windows: games, achievements, quizzes ---------- */
-.dc-game{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:16px; border-radius:18px; background:var(--mystery); }
-.dc-game + .dc-game, .dc-game-pair{ margin-top:12px; }
-.dc-game h3{ font:800 22px/1.1 var(--font-round); }
-.dc-game p{ font-size:15px; font-weight:600; line-height:1.5; color:var(--muted); text-wrap:pretty; }
-.dc-game-pair{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.dc-game-pair .dc-game{ margin:0; }
-.dc-game-pair .dc-game p{ flex:1; }
-.dc-game-best{ font-size:13px; font-weight:700; color:var(--leaf-text); }
-.dc-levels{ display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; width:100%; margin-top:4px; }
-.dc-level{
-  display:flex; flex-direction:column; align-items:flex-start; gap:4px;
-  padding:12px 12px 14px;
-  border:0;
-  border-radius:16px;
-  background:var(--card);
-  box-shadow:0 4px 0 var(--card-edge);
-  color:var(--ink);
-  text-align:left;
-  font:inherit;
-  cursor:pointer;
-  transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out);
+/* the games: a card each, all the same size however many there are (games.js GAMES). each has its colour
+   (--sec) and the soft one behind its picture (--soft), a slider for how hard, and one key to play */
+.dc-games{ display:grid; grid-template-columns:repeat(auto-fill, minmax(232px, 1fr)); column-gap:12px; row-gap:0; margin-top:14px; }
+.dc-games > .dc-game{ margin-bottom:12px; }
+/* (each card a subgrid of the list's rows, so pictures, names, sliders and keys line up across a row of
+   games whatever the length of the words) */
+.dc-game{ display:grid; grid-row:span 6; grid-template-rows:subgrid; row-gap:8px; padding:10px 10px 14px; border-radius:22px; background:var(--mystery); }
+.dc-game-art{ height:122px; padding:6px 0; border-radius:16px; background:var(--soft); overflow:hidden; }
+.dc-game-art svg{ display:block; width:100%; height:100%; overflow:visible; fill:none; stroke:var(--ink); stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+.dc-game-art .f-card{ fill:var(--card-hover); }
+.dc-game-art .f-sec{ fill:var(--sec); }
+.dc-game-art .f-ink{ fill:var(--ink); stroke:none; }
+.dc-game-art .f-star{ fill:var(--star); }
+.dc-game-art .f-heart{ fill:var(--coral); stroke-width:2; }
+.dc-game-art .f-glass{ fill:color-mix(in srgb, var(--card-hover) 55%, transparent); }
+.dc-game-art .f-soft2{ fill:var(--card); }
+.dc-game-art .trail{ stroke:var(--bark); stroke-dasharray:1 8; }
+.dc-game-art .line-sec{ stroke:var(--sec); stroke-width:5; }
+.dc-game-art text{ fill:var(--ink); stroke:none; font:800 15px/1 var(--font-round); text-anchor:middle; }
+.dc-game-art .move{ transform-box:fill-box; transform-origin:50% 50%; }
+.dc-game:hover .dc-game-art .move{ animation:dc-wiggle .7s ease-in-out; }
+.dc-game h3{ margin:4px 6px 0; font:800 22px/1.1 var(--font-round); }
+.dc-game-say{ margin:0 6px; font-size:14px; font-weight:600; line-height:1.45; color:var(--muted); text-wrap:pretty; }
+
+/* how hard: a slider with the four levels named under it (each name moves it there too). the real slider's
+   thumb is see-through and does the dragging; the one you see (.dc-thumb) glides after it with a little
+   spring, along a track that fills behind it. --at is 0 (easy) to 1 (expert), registered so it can be
+   animated. 14px is half the thumb: the thumb's middle travels from 14px in at one end to 14px in at the other */
+@property --at{ syntax:"<number>"; inherits:true; initial-value:0; }
+.dc-game{ --at:0; transition:--at .42s cubic-bezier(.34,1.5,.5,1); }
+.dc-level-pick{ position:relative; margin:4px 6px 0; --stop:calc(14px + (100% - 28px) * var(--at)); }
+.dc-level-pick input{ position:relative; z-index:2; display:block; width:100%; height:30px; margin:0; background:transparent; cursor:grab; opacity:0; -webkit-appearance:none; appearance:none; }
+.dc-level-pick input:active{ cursor:grabbing; }
+.dc-level-pick input::-webkit-slider-thumb{ -webkit-appearance:none; appearance:none; width:28px; height:30px; }
+.dc-level-pick input::-moz-range-thumb{ width:28px; height:30px; border:0; }
+/* the track, filled up to the thumb */
+.dc-level-pick::before{
+  content:""; position:absolute; left:0; right:0; top:9px; height:12px;
+  border-radius:999px;
+  background:linear-gradient(to right, var(--sec) var(--stop), var(--card) var(--stop));
+  box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--sec) 35%, transparent);
 }
-.dc-level:hover{ transform:translateY(-2px); box-shadow:0 6px 0 var(--card-edge); }
-.dc-level:active{ transform:translateY(4px); box-shadow:none; }
-.dc-level b{ font:400 19px/1.1 var(--font-round); }
-.dc-level span{ font-size:13px; font-weight:600; line-height:1.4; color:var(--muted); }
-.dc-level:nth-child(1) b{ color:var(--leaf-text); }
-.dc-level:nth-child(4) b{ color:var(--coral); }
-/* (the quizzes' levels sit two by two in their half of the window) */
-.dc-quiz-levels{ grid-template-columns:1fr 1fr; gap:8px; }
-.dc-quiz-levels .dc-level{ padding:10px 12px 12px; }
-.dc-quiz-levels .dc-level b{ font-size:17px; }
+/* a dot at each stop, lit once the thumb's at or past it */
+.dc-stops i{
+  position:absolute; top:12px; width:6px; height:6px; translate:-50% 0;
+  border-radius:50%;
+  background:color-mix(in srgb, var(--sec) 45%, transparent);
+  transition:background-color .2s, scale .3s var(--ease-out);
+}
+.dc-stops i:nth-child(1){ left:14px; }
+.dc-stops i:nth-child(2){ left:calc(14px + (100% - 28px) / 3); }
+.dc-stops i:nth-child(3){ left:calc(14px + (100% - 28px) * 2 / 3); }
+.dc-stops i:nth-child(4){ left:calc(100% - 14px); }
+.dc-stops i.is-past{ background:var(--card-hover); scale:1.15; }
+/* the thumb: a coin in the game's colour with a face, which squashes as it sets off and leans into the move */
+.dc-thumb{
+  position:absolute; z-index:1; top:1px; left:var(--stop);
+  width:28px; height:28px; translate:-50% 0;
+  border-radius:50%;
+  background:var(--sec);
+  box-shadow:0 3px 0 color-mix(in srgb, var(--sec) 60%, #000), inset 0 0 0 3px color-mix(in srgb, #fff 30%, var(--sec));
+  pointer-events:none;
+  transition:scale .2s var(--ease-out);
+}
+.dc-thumb svg{ display:block; width:100%; height:100%; fill:#fff; stroke:#fff; stroke-width:1.6; stroke-linecap:round; }
+.dc-thumb circle{ stroke:none; }
+.dc-thumb-mouth{ fill:none; transition:d .35s var(--ease-out); }
+/* happier the easier: a big smile, a smile, a straight face, a nervous wobble */
+.dc-game[data-level="easy"] .dc-thumb-mouth{ d:path("M6 11.5Q8 15.5 10 15.5Q12 15.5 14 11.5"); }
+.dc-game[data-level="normal"] .dc-thumb-mouth{ d:path("M6.5 12.5Q8 14.5 10 14.5Q12 14.5 13.5 12.5"); }
+.dc-game[data-level="hard"] .dc-thumb-mouth{ d:path("M6.5 13.5Q8 13.5 10 13.5Q12 13.5 13.5 13.5"); }
+.dc-game[data-level="expert"] .dc-thumb-mouth{ d:path("M6.5 14Q8 12 10 13.5Q12 15 13.5 13"); }
+.dc-thumb.is-off{ animation:dc-thumb-off .45s var(--ease-out); }
+@keyframes dc-thumb-off{ 0%{ scale:1; } 25%{ scale:1.25 .8; } 60%{ scale:.92 1.08; } 100%{ scale:1; } }
+.dc-level-pick:hover .dc-thumb{ scale:1.1; }
+.dc-level-pick:has(input:active) .dc-thumb{ scale:1.18; }
+.dc-level-pick:has(input:focus-visible) .dc-thumb{ outline:3px solid var(--focus); outline-offset:2px; }
+/* the names sit under where the thumb stops */
+.dc-ticks{ position:relative; height:18px; }
+.dc-ticks span{
+  position:absolute; top:0; translate:-50% 0;
+  font-size:12px; font-weight:700; color:var(--muted); white-space:nowrap; cursor:pointer;
+  transition:color .2s, scale .3s var(--ease-out);
+}
+.dc-ticks span:nth-child(1){ left:14px; translate:-14px 0; transform-origin:14px 0; }
+.dc-ticks span:nth-child(2){ left:calc(14px + (100% - 28px) / 3); }
+.dc-ticks span:nth-child(3){ left:calc(14px + (100% - 28px) * 2 / 3); }
+.dc-ticks span:nth-child(4){ left:calc(100% - 14px); translate:calc(-100% + 14px) 0; transform-origin:calc(100% - 14px) 0; }
+.dc-ticks span:hover{ color:var(--ink); }
+.dc-ticks span.is-on{ color:var(--ink); scale:1.08; }
+/* what the level means: all four in the same place, one showing, so the card is as tall as the longest and
+   doesn't jump about as you slide. they cross over */
+.dc-game-level{ display:grid; margin:0 6px; font-size:13px; font-weight:600; line-height:1.4; color:var(--muted); }
+.dc-game-level > p{ grid-area:1 / 1; display:flex; flex-direction:column; gap:2px; opacity:0; visibility:hidden; translate:0 4px; transition:opacity .2s, translate .25s var(--ease-out), visibility 0s .25s; }
+.dc-game-level > p.is-on{ opacity:1; visibility:visible; translate:0 0; transition:opacity .25s .05s, translate .3s .05s var(--ease-out), visibility 0s; }
+.dc-game-level b{ font:400 17px/1.2 var(--font-round); color:var(--ink); }
+.dc-game-best{ font-size:13px; font-weight:700; color:var(--leaf-text); }
+.dc-game-play{ align-self:end; margin:0 6px; background:var(--sec); box-shadow:0 4px 0 color-mix(in srgb, var(--sec) 60%, #000); color:#fff; }
+.dc-game-play:hover{ background:var(--sec); box-shadow:0 6px 0 color-mix(in srgb, var(--sec) 60%, #000); }
+.dc-game-play svg{ fill:currentColor; stroke:none; }
 
 /* your trees */
 .dc-trees-say{ font-size:15px; font-weight:600; line-height:1.5; color:var(--muted); text-wrap:pretty; }
@@ -966,8 +1035,7 @@ body.dc-vs-open{ overflow:hidden; }
   .dc-hunt-words b, .dc-hunt-words b.is-latin{ font-size:18px; }
   .dc-hunt-keys{ width:100%; }
   .dc-hunt .dc-key{ flex:1; height:36px; }
-  .dc-levels{ grid-template-columns:1fr 1fr; }
-  .dc-game-pair{ grid-template-columns:1fr; }
+  .dc-game-art{ height:100px; }
   .dc-quiz-picks{ gap:6px; }
   .dc-quiz-pick b{ font-size:16px; }
   .dc-ach-list{ grid-template-columns:1fr; }
@@ -996,6 +1064,8 @@ body.dc-vs-open{ overflow:hidden; }
   .dc-node.is-born, .dc-node.is-busy, .dc-panel, .dc-vs, .dc-vs-card,
   .dc-node.is-revealed, .dc-node.is-hung, .dc-node.is-unfound:hover .dc-sil, .dc-met.is-up, .dc-cheer,
   #dcSurprise.is-rolling svg, .dc-vs-and, .dc-vs-fork, .dc-vs-line > li, .dc-vs-fact, .dc-ach.is-done .dc-ach-badge, .dc-hunt, .dc-node.is-hinted, .dc-quiz-pick.is-right{ animation:none; }
-  .dc-level, .dc-quiz-pick{ transition:none; }
+  .dc-quiz-pick{ transition:none; }
+  .dc-game:hover .dc-game-art .move, .dc-thumb.is-off{ animation:none; }
+  .dc-game, .dc-thumb, .dc-thumb-mouth, .dc-ticks span, .dc-stops i, .dc-game-level > p, .dc-game-level > p.is-on{ transition:none; }
   .dc-motes{ display:none; }
 }
