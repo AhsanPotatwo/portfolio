@@ -1138,62 +1138,112 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
 }
 @keyframes cli-blink{ 50%{ opacity:0; } }
 
-/* pantry wizard card: a shelf in the pantry, flat violet from the app's own blue to purple. the crystal ball
-   that keeps count sits at one end with the food along the shelf, and the title above. on hover the orb
-   takes stock: each food hops in turn as it's counted */
+/* pantry wizard card: the pantry wizard page in small. its pegboard wall, the violet shelf with the facts on
+   shelf-edge tickets, and the app on a phone standing on the shelf beside the crystal ball and the food. the
+   title is the app's own, two lines of Quicksand Bold. on hover the phone buzzes and reads out what it
+   counted, and each food hops in turn as it's counted. the card is 36.25cqi tall, the shelf's lip at 29.5cqi */
 .project-card-pantry{
   position:relative;
   overflow:hidden;
-  background:#7357f2;
+  background:#241b4d;
 }
 .project-card-pantry:hover,
-.project-card-pantry:focus-within{ background:#7b60f6; }
+.project-card-pantry:focus-within{ background:#2a2056; }
+/* the pegboard, on the link since cqi on the card itself would measure the card's parent */
+.project-card-pantry .project-card-link{ background:radial-gradient(circle, #1b1440 0 .62cqi, transparent .72cqi) 1.2cqi 1.2cqi / 6cqi 6cqi; }
 .project-card-pantry .project-card-link > *{ position:absolute; }
-/* the shelf's lip, and its front down to the bottom of the card */
+/* the shelf: its lip, its front down to the bottom of the card, and four tickets clipped on */
 .pantry-shelf{
-  left:0; right:0; top:29cqi; bottom:0;
+  left:0; right:0; top:29.5cqi; bottom:0;
+  display:flex; gap:1.6cqi;
+  padding:.9cqi 0 0 5cqi;
   background:#4b33c4;
   border-top:1.8cqi solid #a08cff;
 }
+/* each ticket: a coloured stripe and two printed lines */
+.pantry-shelf i{
+  width:6.4cqi; height:3.4cqi;
+  border-radius:.4cqi;
+  background:
+    linear-gradient(#4b33c4 0 0) 2cqi .9cqi / 3.4cqi .5cqi no-repeat,
+    linear-gradient(#b8aed0 0 0) 2cqi 2cqi / 2.4cqi .4cqi no-repeat,
+    linear-gradient(90deg, var(--s) .8cqi, #fbf6ea .8cqi);
+}
+.pantry-title{
+  left:5cqi; top:4.2cqi;
+  font-family:var(--font-sans);
+  font-weight:700;
+  font-size:11.6cqi;
+  line-height:.86;
+  letter-spacing:-.02em;
+  color:#f4efff;
+  text-shadow:0 .06em 0 #120c2e;
+  white-space:nowrap;
+}
+/* everything on the shelf stands with its feet in the lip */
+.pantry-orb, .pantry-phone, .pantry-food{ bottom:calc(100% - 30.4cqi); filter:drop-shadow(.8cqi .6cqi 0 #150f33); }
 .pantry-orb{
-  left:4.5cqi; top:4.4cqi;
-  width:25cqi; height:25cqi;
+  left:44.5cqi;
+  width:10cqi; height:10cqi;
   animation:pantry-float 4s ease-in-out infinite;
 }
 @keyframes pantry-float{
   0%, 100%{ translate:0 0; }
-  50%{ translate:0 -1cqi; }
+  50%{ translate:0 -.8cqi; }
 }
-.pantry-food{ bottom:calc(100% - 29.6cqi); transform-origin:50% 100%; }
-/* (bread.svg has more empty space under it than the others, so it sits lower to rest on the shelf too) */
-.pantry-food-bread{ left:36cqi; width:13cqi; bottom:calc(100% - 30.8cqi); }
-.pantry-food-drumstick{ left:52cqi; width:13.5cqi; }
-.pantry-food-kiwi{ left:69cqi; width:12cqi; }
-.pantry-food-apple{ left:84cqi; width:11.5cqi; }
+.pantry-phone{
+  left:56cqi;
+  width:12.6cqi;
+  aspect-ratio:430/935;
+  padding:.45cqi;
+  border-radius:2.2cqi;
+  background:#120c26;
+}
+.pantry-phone img{ width:100%; height:100%; border-radius:1.8cqi; }
+.pantry-food{ transform-origin:50% 100%; }
+/* (bread.svg has more empty space under it than the others, so it sits lower) */
+.pantry-food-bread{ left:70.5cqi; width:7cqi; bottom:calc(100% - 31.2cqi); }
+.pantry-food-drumstick{ left:77.8cqi; width:7cqi; }
+.pantry-food-kiwi{ left:85.4cqi; width:5.6cqi; }
+.pantry-food-apple{ left:91.6cqi; width:5.8cqi; }
+/* what the phone says, on a paper bubble that pops up off its corner on hover */
+.pantry-bubble{
+  left:64cqi; top:4.4cqi;
+  display:flex; align-items:center; gap:.8cqi;
+  padding:.9cqi 1.6cqi .9cqi 1.2cqi;
+  border-radius:1.6cqi 1.6cqi 1.6cqi .4cqi;
+  background:#fbf6ea;
+  box-shadow:.8cqi .8cqi 0 #150f33;
+  color:#2b2443;
+  font:700 3cqi/1 var(--font-sans);
+  white-space:nowrap;
+  transform-origin:0 100%;
+  scale:0;
+  transition:scale .3s cubic-bezier(.3,1.5,.5,1);
+}
+.pantry-bubble svg{ width:3.2cqi; height:3.2cqi; fill:none; stroke:#7357f2; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.project-card-pantry:hover .pantry-bubble,
+.project-card-pantry:focus-within .pantry-bubble{ scale:1; transition-delay:.15s; }
+.project-card-pantry:hover .pantry-phone,
+.project-card-pantry:focus-within .pantry-phone{ animation:pantry-buzz 2.4s linear infinite; }
+@keyframes pantry-buzz{
+  0%, 14%, 100%{ translate:0 0; }
+  2%, 8%{ translate:-.5cqi 0; }
+  5%, 11%{ translate:.5cqi 0; }
+}
 .project-card-pantry:hover .pantry-orb,
 .project-card-pantry:focus-within .pantry-orb{ animation:pantry-look 2.4s ease-in-out infinite; }
 @keyframes pantry-look{
   0%, 100%{ rotate:0deg; }
-  25%{ rotate:-4deg; }
-  70%{ rotate:5deg; }
+  25%{ rotate:-5deg; }
+  70%{ rotate:6deg; }
 }
 .project-card-pantry:hover .pantry-food,
-.project-card-pantry:focus-within .pantry-food{ animation:pantry-count 2.4s cubic-bezier(.3,1.3,.5,1) calc(var(--i) * .3s) infinite; }
+.project-card-pantry:focus-within .pantry-food{ animation:pantry-count 2.4s cubic-bezier(.3,1.3,.5,1) calc(.4s + var(--i) * .3s) infinite; }
 @keyframes pantry-count{
   0%, 22%, 100%{ translate:0 0; scale:1; }
   4%{ translate:0 0; scale:1.08 .9; }
-  11%{ translate:0 -3.4cqi; scale:.96 1.05; }
-}
-.pantry-title{
-  left:32cqi; right:3cqi; top:4.6cqi;
-  font-family:var(--font-sans);
-  font-weight:700;
-  font-size:8.6cqi;
-  line-height:1;
-  text-align:center;
-  color:#fff;
-  text-shadow:0 .07em 0 #3a2591;
-  white-space:nowrap;
+  11%{ translate:0 -3cqi; scale:.96 1.05; }
 }
 
 /* squimble quest card: the squimble quest page's meadow, its logo, and the shore it ends on. everything
@@ -1897,7 +1947,8 @@ html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
   .studio-wave i, .studio-playhead{ animation:none; }
   .project-card-music, .music-paint, .music-notes i, .music-swatches i, .music-title, .music-word span{ animation:none !important; }
   .osc-tail, .osc-head{ animation:none; opacity:0; }
-  .pantry-orb, .pantry-food{ animation:none !important; }
+  .pantry-orb, .pantry-food, .pantry-phone{ animation:none !important; }
+  .pantry-bubble{ transition:none; }
   .earth-spin, .earth-bar i{ animation:none !important; }
   .cousins-leaf{ animation:none !important; }
   .catpi-mate img, .catpi-mate i, .catpi-sleepy b, .catpi-ball{ animation:none !important; }

@@ -33,8 +33,13 @@
     var msg = document.createElement('span');
     msg.className = 'pw-log-msg';
     msg.textContent = message;
+    // printed on the till roll, so each line gets the time
+    var time = document.createElement('span');
+    time.className = 'pw-log-time';
+    time.textContent = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
     li.appendChild(tag);
     li.appendChild(msg);
+    li.appendChild(time);
     if (api) {
       var code = document.createElement('code');
       code.textContent = api;
@@ -232,10 +237,10 @@
 
   // starter items
   var items = [
-    { name: 'Apples', qty: '6', type: 'pieces', img: 'assets/pantry-apple.svg', added: daysFromToday(-3), exp: daysFromToday(16), loc: '📍 Manchester' },
-    { name: 'Bread', qty: '800', type: 'g', img: 'assets/pantry-bread.svg', added: daysFromToday(-1), exp: daysFromToday(5), loc: '📍 Manchester' },
-    { name: 'Chicken drumsticks', qty: '1', type: 'kg', img: 'assets/pantry-drumstick.svg', added: daysFromToday(-2), exp: daysFromToday(3), loc: '📍 Manchester' },
-    { name: 'Kiwis', qty: '5', type: 'pieces', img: 'assets/pantry-kiwi.svg', added: daysFromToday(-6), exp: daysFromToday(10), loc: '📍 Manchester' }
+    { name: 'Apples', qty: '6', type: 'pieces', img: 'assets/pantry-apple.svg', added: daysFromToday(-3), exp: daysFromToday(16), loc: 'Manchester' },
+    { name: 'Bread', qty: '800', type: 'g', img: 'assets/pantry-bread.svg', added: daysFromToday(-1), exp: daysFromToday(5), loc: 'Manchester' },
+    { name: 'Chicken drumsticks', qty: '1', type: 'kg', img: 'assets/pantry-drumstick.svg', added: daysFromToday(-2), exp: daysFromToday(3), loc: 'Manchester' },
+    { name: 'Kiwis', qty: '5', type: 'pieces', img: 'assets/pantry-kiwi.svg', added: daysFromToday(-6), exp: daysFromToday(10), loc: 'Manchester' }
   ].map(function (item) { item.id = nextId++; return item; });
 
   function describe(item) {
@@ -279,7 +284,8 @@
       date.className = 'pw-item-date';
       date.textContent = formatAdded(item.added);
       var loc = document.createElement('span');
-      loc.className = 'pw-item-loc';
+      // the app writes a pin before a known place, drawn by the css here
+      loc.className = 'pw-item-loc' + (item.loc === UNKNOWN_LOCATION ? '' : ' has-pin');
       loc.textContent = item.loc;
       loc.title = item.loc;
       var exp = document.createElement('span');
@@ -571,7 +577,7 @@
       locStatus.textContent = 'Asking for permission…';
       log('gps', 'Asking for location permission', 'Permissions.RequestAsync<LocationWhenInUse>');
       navigator.geolocation.getCurrentPosition(function (pos) {
-        itemLocation = '📍 ' + pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4);
+        itemLocation = pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4);
         locStatus.textContent = 'New items get ' + itemLocation + '. The app would also look up the city name with Google.';
         locBtn.lastChild.textContent = 'Location on';
         log('gps', 'Got a fix: ' + itemLocation, 'Geolocation.GetLocationAsync');

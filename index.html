@@ -210,15 +210,20 @@
           <li class="project" id="pantry-wizard">
             <div class="project-card project-card-pantry">
               <a class="project-card-link" href="pantry-wizard.html" aria-describedby="pj-pantry">
-                <!-- a shelf in the pantry: the crystal ball that keeps count at one end and the food along the shelf.
-                     on hover the orb takes stock, and each food hops in turn as it's counted -->
-                <span class="pantry-shelf" aria-hidden="true"></span>
+                <!-- the pantry wizard page in small: its pegboard wall and shelf, the facts on shelf-edge tickets, and
+                     the app on a phone standing on the shelf with the crystal ball and the food. on hover the phone buzzes
+                     and reads out what it counted, and each food hops in turn as it's counted -->
+                <span class="pantry-shelf" aria-hidden="true">
+                  <i style="--s:#8ee263"></i><i style="--s:#f2a73b"></i><i style="--s:#5e7fff"></i><i style="--s:#e46fb6"></i>
+                </span>
                 <img class="pantry-orb" src="assets/pantry-crystalball.svg" alt="" draggable="false">
+                <span class="pantry-phone" aria-hidden="true"><img src="assets/pantry-wizard/card/phone.webp" alt="" draggable="false"></span>
+                <span class="pantry-bubble" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg>Added apples</span>
                 <img class="pantry-food pantry-food-bread" style="--i:0" src="assets/pantry-bread.svg" alt="" draggable="false">
                 <img class="pantry-food pantry-food-drumstick" style="--i:1" src="assets/pantry-drumstick.svg" alt="" draggable="false">
                 <img class="pantry-food pantry-food-kiwi" style="--i:2" src="assets/pantry-kiwi.svg" alt="" draggable="false">
                 <img class="pantry-food pantry-food-apple" style="--i:3" src="assets/pantry-apple.svg" alt="" draggable="false">
-                <span class="pantry-title">Pantry Wizard</span>
+                <span class="pantry-title">Pantry<br>Wizard</span>
               </a>
             </div>
             <div class="project-info" id="pj-pantry">
