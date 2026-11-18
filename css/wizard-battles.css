@@ -100,7 +100,6 @@ html:has(.wizard-page){ scrollbar-color:var(--house-3) var(--house); }
 .wb-head p + p,
 .wb-split-copy > p + p,
 .wb-research-copy p + p{ margin-top:14px; }
-.wb-section strong{ color:var(--gold); }
 /* zero size instead of display:none, some browsers drop symbols otherwise */
 .wb-svg-defs{ position:absolute; width:0; height:0; overflow:hidden; }
 
@@ -197,28 +196,11 @@ html:has(.wizard-page){ scrollbar-color:var(--house-3) var(--house); }
 .wb-sign-you{ text-shadow:.04em .05em 0 var(--blue); }
 .wb-sign-foe{ text-shadow:.04em .05em 0 var(--red); }
 
-.wb-hero-copy{ padding-bottom:6px; }
-.wb-kicker{
-  font-family:var(--font-book);
-  font-style:italic;
-  font-weight:600;
-  font-size:clamp(21px,1.8vw,25px);
-  color:var(--gold);
-}
-.wb-lede{
+.wb-hero-copy{
   max-width:46ch;
-  margin-top:10px;
+  padding-bottom:10px;
   font-size:var(--text-body);
   line-height:var(--lh-body);
-}
-.wb-tags{ display:flex; flex-wrap:wrap; gap:8px; margin-top:20px; }
-.wb-tags li{
-  padding:4px 12px;
-  border-radius:8px;
-  background:var(--house-2);
-  font-size:14px;
-  font-weight:700;
-  color:var(--muted);
 }
 
 /* ---------- the board ----------
@@ -835,7 +817,6 @@ html:has(.wizard-page){ scrollbar-color:var(--house-3) var(--house); }
   grid-template-columns:repeat(2,minmax(0,1fr));
   gap:28px 0;
   padding:clamp(36px,4.4vw,56px) 0 clamp(32px,4vw,48px);
-  rotate:-.5deg;
 }
 .wb-programme-col{ padding-inline:clamp(26px,4vw,52px); }
 .wb-programme-col + .wb-programme-col{ border-left:2px dashed rgba(54,37,33,.2); }
@@ -853,17 +834,13 @@ html:has(.wizard-page){ scrollbar-color:var(--house-3) var(--house); }
 
 /* ---------- how it works ---------- */
 .wb-head{ max-width:880px; }
-.wb-head b{ font-weight:700; }
-.wb-word-attack{ color:var(--red); }
-.wb-word-defend{ color:var(--blue); }
-.wb-word-heal{ color:var(--green); }
 
 /* the three moves, printed side by side on one sheet, each under a key like the desk's */
 .wb-moves{
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
   margin-top:clamp(32px,4vw,48px);
-  padding:clamp(24px,3vw,34px) 0 0;
+  padding:clamp(24px,3vw,34px) 0 clamp(22px,2.6vw,30px);
 }
 .wb-move{ padding:0 clamp(20px,2.6vw,34px) 4px; }
 .wb-move + .wb-move{ border-left:2px dashed rgba(54,37,33,.2); }
@@ -899,79 +876,128 @@ html:has(.wizard-page){ scrollbar-color:var(--house-3) var(--house); }
 .reveal:not(.is-visible) .wb-tier-bar i{ width:0; }
 .wb-tier-chance{ grid-area:2 / 2 / 3 / 3; text-align:right; font-weight:700; font-size:15px; }
 .wb-move-note{ margin-top:20px; font-size:15px; line-height:1.5; color:var(--ink-soft); }
-.wb-moves-key{
-  grid-column:1 / -1;
-  margin-top:26px;
-  padding:12px 20px 14px;
-  border-top:2px dashed rgba(54,37,33,.2);
-  font-family:var(--font-book);
-  font-style:italic;
-  font-weight:600;
-  font-size:18px;
-  text-align:center;
-  color:var(--ink-note);
-}
 
 /* elements and berserk strike, under the sheet */
 .wb-extras{
   display:grid;
-  grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);
+  grid-template-columns:minmax(0,1.75fr) minmax(0,1fr);
   align-items:start;
   gap:56px clamp(40px,6vw,96px);
   margin-top:clamp(64px,7vw,96px);
 }
 .wb-elements{
   display:grid;
-  grid-template-columns:minmax(0,1fr) minmax(0,300px);
+  grid-template-columns:minmax(0,1fr) auto;
   align-items:center;
   gap:28px 36px;
 }
-.wb-cycle{ display:block; width:100%; overflow:visible; }
-.wb-cycle-x2 text{ font-family:var(--font-sans); font-weight:700; font-size:17px; fill:var(--gold); }
-.wb-cycle-disc circle{ fill:var(--c); stroke:var(--paper); stroke-width:4; }
-.wb-cycle-disc .wb-cycle-shadow{ fill:var(--drop); stroke:none; }
-.wb-cycle-disc text{ font-family:var(--font-sans); font-weight:700; font-size:14px; fill:#fff6e4; text-anchor:middle; }
-.wb-cycle-neutral text{ font-size:11.5px; }
-.wb-cycle-icon{ fill:none; stroke:#fff6e4; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+/* the desk's element keys and arrows, in the game's own units (a 160x146 box), scaled up as one */
+.wb-elwheel{ justify-self:center; }
+.wb-elwheel-box{
+  --k:1.5;
+  position:relative;
+  width:calc(160px * var(--k)); height:calc(146px * var(--k));
+}
+.wb-elwheel-arrows{
+  position:absolute; left:calc(-2px * var(--k)); top:0;
+  width:calc(240px * var(--k)); height:calc(150px * var(--k));
+  overflow:visible;
+  color:var(--tan-light);
+}
+.wb-elwheel-arrows path{ fill:none; stroke:currentColor; stroke-width:3; stroke-linecap:round; }
+.wb-elwheel-arrows .wb-elwheel-heads{ fill:currentColor; stroke-width:1.5; stroke-linejoin:round; }
+.wb-elwheel-el{
+  position:absolute; left:calc(var(--x) * var(--k)); top:calc(var(--y) * var(--k));
+  display:grid; place-items:center; align-content:center; gap:calc(1px * var(--k));
+  width:calc(var(--d, 50px) * var(--k)); height:calc(var(--d, 50px) * var(--k));
+  border-radius:50%;
+  background:var(--face);
+  box-shadow:0 calc(4px * var(--k)) 0 var(--edge-c);
+  font-size:calc(var(--f, 8.5px) * var(--k));
+  font-weight:700;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  color:#fff6e4;
+}
+.wb-elwheel-el svg{
+  width:calc(var(--i, 21px) * var(--k)); height:calc(var(--i, 21px) * var(--k));
+  fill:none; stroke:#fff6e4; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round;
+}
+/* the desk's positions, moved 40 left: a ring of 58 round (80, 85), fire at the top, neutral in the middle */
+.wb-elwheel-el[data-el="Fire"]{ --x:55px; --y:2px; }
+.wb-elwheel-el[data-el="Earth"]{ --x:4.8px; --y:89px; }
+.wb-elwheel-el[data-el="Water"]{ --x:105.2px; --y:89px; }
+.wb-elwheel-el[data-el="Neutral"]{ --x:57px; --y:62px; --d:46px; --f:7.5px; --i:17px; }
+.wb-elwheel figcaption{
+  margin-top:14px;
+  text-wrap:balance;
+  font-family:var(--font-book);
+  font-style:italic;
+  font-weight:600;
+  font-size:18px;
+  text-align:center;
+  color:var(--tan-light);
+}
 
-/* berserk strike: the game's red sign, hanging off a batten on two strings */
-.wb-berserk{ position:relative; padding-top:64px; }
-.wb-berserk::before{
+/* berserk strike: the game's red sign and its pink slip, hanging off a batten on two strings. it swings like
+   a sign on two strings does: the strings lean and the sign moves across, still level. the rig is skewed so
+   the strings lean from where they're tied on, and the sign is skewed back so it stays square */
+.wb-berserk-rig{ position:relative; padding-top:5px; }
+.wb-berserk-rig::before{
   content:"";
-  position:absolute; top:0; left:0;
-  width:min(100%,290px); height:10px;
+  position:absolute; top:0; left:0; z-index:1;
+  width:min(100%,300px); height:10px;
   border-radius:5px;
   background:var(--table-3);
   box-shadow:0 3px 0 var(--edge);
 }
-.wb-berserk-board{
+.wb-berserk-swing{
   position:relative;
   display:inline-block;
-  margin-left:24px;
-  padding:12px 26px 12px;
-  border-radius:12px;
-  background:#5c1c20;
-  box-shadow:0 5px 0 #2e0c0f, 10px 16px 0 var(--drop);
-  text-align:center;
-  rotate:2deg;
-  transform-origin:50% -64px;
+  margin-left:30px;
+  padding-top:58px;
+  transform-origin:50% 0;
+  animation:wb-swing 3.6s ease-in-out infinite alternate;
 }
-.wb-berserk-board::before{
+.wb-berserk-swing::before{
   content:"";
-  position:absolute; left:18%; right:18%; bottom:100%;
-  height:64px;
+  position:absolute; left:18%; right:18%; top:0;
+  height:58px;
   border-inline:2px solid var(--tan-light);
 }
-.wb-berserk:hover .wb-berserk-board{ animation:wb-rattle .7s ease-out; }
-@keyframes wb-rattle{
-  0%, 100%{ rotate:2deg; }
-  20%{ rotate:-5deg; }
-  45%{ rotate:6deg; }
-  70%{ rotate:-2deg; }
+.wb-berserk-hang{
+  text-align:center;
+  transform-origin:50% 0;
+  animation:wb-swing-back 3.6s ease-in-out infinite alternate;
 }
-.wb-berserk-board h3{ font-family:var(--font-book); font-weight:700; font-size:30px; line-height:1.05; color:#ffe1dc; }
-.wb-berserk-board p{ margin-top:3px; font-size:14px; font-weight:700; color:#ffb3a8; }
-.wb-berserk > p{ margin-top:30px; }
+@keyframes wb-swing{ from{ transform:skewX(-4deg); } to{ transform:skewX(4deg); } }
+@keyframes wb-swing-back{ from{ transform:skewX(4deg); } to{ transform:skewX(-4deg); } }
+/* the same as .wb-berserk-key and the slip under it in the game */
+.wb-berserk-board{
+  display:block;
+  padding:9px 22px 8px;
+  border-radius:12px;
+  background:#5c1c20;
+  box-shadow:0 5px 0 #2e0c0f;
+  font-family:var(--font-book);
+  font-weight:700;
+  font-size:27px;
+  line-height:1.05;
+  color:#ffe1dc;
+}
+.wb-berserk-board small{ display:block; margin-top:3px; font-family:var(--font-sans); font-size:13px; font-weight:700; color:#ffb3a8; }
+.wb-berserk-slip{
+  display:inline-block;
+  margin-top:10px;
+  padding:2px 10px;
+  border-radius:6px;
+  background:#ffe1dc;
+  font-size:13px;
+  font-weight:700;
+  font-style:italic;
+  color:#9c2f36;
+}
+.wb-berserk > p{ margin-top:26px; }
 
 /* ---------- words beside a picture (the enemy, playing a friend) ---------- */
 .wb-split{
@@ -984,26 +1010,23 @@ html:has(.wizard-page){ scrollbar-color:var(--house-3) var(--house); }
 .wb-split-flip > .wb-split-copy{ order:2; }
 .wb-split-copy b{ font-weight:700; color:var(--paper); }
 
-/* the enemy's rules, numbered on little red keys */
-.wb-rules{ display:grid; gap:14px; max-width:40em; margin:26px 0; counter-reset:rule; }
+/* the order the enemy checks things in */
+.wb-rules{ display:grid; gap:12px; max-width:40em; margin:22px 0; counter-reset:rule; }
+.wb-rules + p{ margin-top:0; }
 .wb-rules li{
   position:relative;
-  padding-left:48px;
+  padding-left:36px;
   font-size:var(--text-body);
   line-height:1.5;
   counter-increment:rule;
 }
 .wb-rules li::before{
-  content:counter(rule);
-  position:absolute; left:0; top:.05em;
-  display:grid; place-items:center;
-  width:32px; height:29px;
-  border-radius:8px;
-  background:var(--red);
-  box-shadow:0 3px 0 var(--red-deep);
-  font-size:15px;
+  content:counter(rule) ".";
+  position:absolute; left:0; top:-.08em;
+  font-family:var(--font-book);
   font-weight:700;
-  color:var(--ink);
+  font-size:1.25em;
+  color:var(--red);
 }
 .wb-split-copy > .wb-aside{
   font-family:var(--font-book);
@@ -1014,25 +1037,27 @@ html:has(.wizard-page){ scrollbar-color:var(--house-3) var(--house); }
   color:var(--tan-light);
 }
 
-/* the evil wizard on a bit of the stage floor, rocking on his rod */
-.wb-floor{ position:relative; justify-self:center; width:min(380px,100%); }
+/* a bit of the stage floor with puppets standing in its slot. they only ever slide along the slot, the way
+   the game moves them, so the rod never leaves it. the images are drawn by the game at the same scale, so
+   one --pup scales them all the same */
+.wb-floor{ --pup:.7; position:relative; justify-self:center; width:min(380px,100%); }
+.wb-floor-two{ width:min(520px,100%); }
 .wb-floor-puppet{
   position:relative; z-index:1;
   display:block;
-  width:clamp(130px,13vw,170px); height:auto;
-  margin:0 auto -40px;
-  transform-origin:50% 100%;
-  animation:wb-rock 4.5s ease-in-out infinite alternate;
+  height:auto;
+  /* the rod ends in the slot (the image has the shadow under it too) */
+  margin:0 auto -46px;
+  animation:wb-slide 6s ease-in-out infinite alternate;
 }
-.wb-floor:hover .wb-floor-puppet{ animation:wb-hop .7s cubic-bezier(.3,1.5,.5,1); }
-@keyframes wb-rock{
-  from{ rotate:-2deg; }
-  to{ rotate:2deg; }
-}
-@keyframes wb-hop{
-  0%{ translate:0 0; rotate:0deg; }
-  35%{ translate:0 -26px; rotate:-6deg; }
-  100%{ translate:0 0; rotate:0deg; }
+.wb-floor-foe{ width:calc(236px * var(--pup)); }
+.wb-floor-two{ display:grid; grid-template-columns:1fr 1fr; align-items:end; }
+.wb-floor-two::after{ grid-column:1 / -1; }
+.wb-floor-left{ width:calc(208px * var(--pup)); --from:-16px; --to:10px; animation-duration:4.6s; }
+.wb-floor-right{ width:calc(236px * var(--pup)); --from:14px; --to:-10px; animation-duration:5.4s; animation-delay:-1.8s; }
+@keyframes wb-slide{
+  from{ translate:var(--from, -48px) 0; }
+  to{ translate:var(--to, 48px) 0; }
 }
 /* the planks, the slot the rod runs in, and the front of the stage with two footlight shells */
 .wb-floor::after{
@@ -1049,32 +1074,6 @@ html:has(.wizard-page){ scrollbar-color:var(--house-3) var(--house); }
   border-top:5px solid #5f3e2c;
 }
 
-/* playing a friend: the wardrobe's hats hanging off a rail */
-/* the strings run up behind the rail and stop at its top edge */
-.wb-rail{ position:relative; display:flex; clip-path:inset(0 -60px -60px -60px); justify-content:center; gap:clamp(6px,1.6vw,20px); padding-top:58px; }
-.wb-rail::before{
-  content:"";
-  position:absolute; top:0; left:0; right:0;
-  height:11px;
-  border-radius:6px;
-  background:var(--table-3);
-  box-shadow:0 3px 0 var(--edge);
-}
-.wb-hat{
-  flex:none;
-  width:clamp(58px,6.4vw,84px);
-  aspect-ratio:100/112;
-  overflow:visible;
-  transform-origin:60% -40%;
-  animation:wb-sway 4.8s ease-in-out var(--d) infinite alternate;
-  filter:drop-shadow(3px 4px 0 var(--drop));
-}
-.wb-hat:nth-child(even){ margin-top:22px; }
-.wb-hat-string{ fill:none; stroke:var(--tan-light); stroke-width:2; }
-.wb-hat-cone,
-.wb-hat-brim{ fill:var(--hat); stroke:var(--paper); stroke-width:5; stroke-linejoin:round; paint-order:stroke; }
-.wb-hat-band{ fill:var(--band); }
-.wb-hat-star{ fill:var(--gold); }
 
 /* ---------- collecting the data ---------- */
 .wb-research{
@@ -1084,18 +1083,29 @@ html:has(.wizard-page){ scrollbar-color:var(--house-3) var(--house); }
   gap:48px clamp(40px,6vw,96px);
 }
 
-/* the participant's ticket: a stub you'd tear off, then the ticket */
+/* the participant's ticket: a stub you'd tear off, then the ticket. the holder casts the paper edge and the
+   shadow (drop-shadow follows the ticket's shape), and the ticket has two notches cut out of it with a mask,
+   so they show the wall through the shadow too */
+.wb-ticket-holder{
+  justify-self:center;
+  width:100%; max-width:420px;
+  filter:drop-shadow(0 6px 0 var(--parch-edge)) drop-shadow(12px 20px 0 var(--drop));
+}
 .wb-ticket{
+  --notch:11px;
   display:grid;
   grid-template-columns:50px minmax(0,1fr);
   border-radius:12px;
   background:var(--parch);
   color:var(--ink);
-  box-shadow:0 6px 0 var(--parch-edge), 12px 20px 0 var(--drop);
   rotate:1.5deg;
-  transition:rotate .5s cubic-bezier(.3,1.7,.5,1);
+  -webkit-mask:
+    radial-gradient(circle var(--notch) at 51px 0, #0000 98%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 51px 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
+  mask:
+    radial-gradient(circle var(--notch) at 51px 0, #0000 98%, #000) top / 100% 51% no-repeat,
+    radial-gradient(circle var(--notch) at 51px 100%, #0000 98%, #000) bottom / 100% 51% no-repeat;
 }
-.wb-ticket:hover{ rotate:-.5deg; }
 .wb-ticket-stub{
   display:grid; place-items:center;
   border-radius:12px 0 0 12px;
@@ -1109,18 +1119,8 @@ html:has(.wizard-page){ scrollbar-color:var(--house-3) var(--house); }
   color:var(--ink);
 }
 .wb-ticket-stub::first-letter{ text-transform:uppercase; }
-/* the tear: dashes with a notch bitten out of each end */
+/* the tear */
 .wb-ticket-main{ position:relative; padding:20px 24px 24px; border-left:2px dashed rgba(54,37,33,.35); }
-.wb-ticket-main::before,
-.wb-ticket-main::after{
-  content:"";
-  position:absolute; left:-12px;
-  width:22px; height:22px;
-  border-radius:50%;
-  background:var(--house);
-}
-.wb-ticket-main::before{ top:-12px; }
-.wb-ticket-main::after{ bottom:-12px; }
 .wb-ticket-label{ font-size:13px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-note); }
 .wb-ticket-id{
   margin-top:4px;
@@ -1217,7 +1217,6 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
   .wb-split-flip{ grid-template-columns:minmax(0,1fr); }
   .wb-split-flip > .wb-split-copy{ order:0; }
   .wb-research{ grid-template-columns:minmax(0,1fr); }
-  .wb-ticket{ max-width:440px; }
 }
 
 @media (max-width:900px){
@@ -1249,14 +1248,14 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
   .wb-peek{ right:8%; }
   .wb-programme-sheet{ rotate:0deg; }
   .wb-elements{ grid-template-columns:minmax(0,1fr); }
-  .wb-cycle{ max-width:270px; justify-self:center; }
-  .wb-hat:nth-child(5){ display:none; }
+  .wb-elwheel-box{ --k:1.35; }
+  .wb-floor{ --pup:.6; }
   .wb-curtain .btn{ width:100%; }
   .wb-version-note{ text-align:center; }
 }
 
 @media (prefers-reduced-motion:reduce){
-  .wb-hang, .wb-hat, .wb-floor-puppet{ animation:none !important; }
+  .wb-hang, .wb-floor-puppet, .wb-berserk-swing, .wb-berserk-hang{ animation:none !important; }
   .wb-tier-bar i{ transition:none; }
   .wb-berserk-sign, .wb-el, .wb-script-line strong{ animation:none !important; }
   .wb-bill{ transition:none; }

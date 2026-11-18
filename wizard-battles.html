@@ -19,17 +19,10 @@
 
 <body class="wizard-page">
 
-  <!-- shared svgs: a five pointed star, and a wizard's hat for the wardrobe -->
+  <!-- a five pointed star for the things hanging off the pelmet -->
   <svg class="wb-svg-defs" aria-hidden="true" focusable="false">
     <defs>
       <symbol id="wbStar" viewBox="-10 -10 20 20" overflow="visible"><path d="M0-10 2.6-3.6 9.5-3.1 4.3 1.4 5.9 8.1 0 4.5-5.9 8.1-4.3 1.4-9.5-3.1-2.6-3.6Z"/></symbol>
-      <symbol id="wbHat" viewBox="0 0 100 112" overflow="visible">
-        <path class="wb-hat-string" d="M60 2V-160"/>
-        <path class="wb-hat-cone" d="M24 92C34 66 42 36 50 12 54 3 66 2 74 12 66 11 61 16 60 24 63 48 68 70 76 92Z"/>
-        <path class="wb-hat-band" d="M28.5 80H71.5L74.5 90H25.5Z"/>
-        <path class="wb-hat-star" d="M53 50 54.6 54.1 59 54.4 55.6 57.2 56.7 61.5 53 59.2 49.3 61.5 50.4 57.2 47 54.4 51.4 54.1Z"/>
-        <ellipse class="wb-hat-brim" cx="50" cy="96" rx="46" ry="11"/>
-      </symbol>
     </defs>
   </svg>
 
@@ -69,15 +62,7 @@
 
       <div class="container wb-hero-head">
         <h1 class="wb-sign"><span class="wb-sign-you">Wizard</span> <span class="wb-sign-foe">Battles</span></h1>
-        <div class="wb-hero-copy">
-          <p class="wb-kicker">A turn-based psychological experiment</p>
-          <p class="wb-lede">A duel between two wizards that I made for my dissertation, to measure how much risk people take when they play. It's all right here: press start and pick your moves on the desk under the stage.</p>
-          <ul class="wb-tags" aria-label="Built with">
-            <li>p5.js</li>
-            <li>Node.js &amp; Express</li>
-            <li>Cloudflare Workers</li>
-          </ul>
-        </div>
+        <p class="wb-hero-copy">A turn-based psychological experiment: a duel between two wizards that I made for my dissertation, to measure how much risk people take when they play. It's all here to play. Press start, then pick your moves on the desk under the stage.</p>
       </div>
 
       <!-- the game in its box. page.js scales the game to fit and swaps in the uni original -->
@@ -261,8 +246,8 @@
       <div class="container">
         <header class="wb-head" data-reveal>
           <h2 class="wb-h2">How it works</h2>
-          <p>Each scene you pick a move, <b class="wb-word-attack">Attack</b>, <b class="wb-word-defend">Defend</b> or <b class="wb-word-heal">Heal</b>, and then how strong to make it. Stronger moves do more but are less likely to work. Every risk is optional, so the game records how much risk each player chooses to take.</p>
-          <p>The enemy picks its move at the same time, then both play out. You start with <strong>100</strong> health and the evil wizard has <strong>200</strong>. First to 0 loses.</p>
+          <p>Each scene you pick a move, Attack, Defend or Heal, and then how strong to make it. Stronger moves do more but are less likely to work. Every risk is optional, so the game records how much risk each player chooses to take. The bars below show how likely each move is to work.</p>
+          <p>The enemy picks its move at the same time, then both play out. You start with 100 health and the evil wizard has 200. First to 0 loses.</p>
         </header>
 
         <div class="wb-moves" data-reveal>
@@ -293,62 +278,43 @@
             </ul>
             <p class="wb-move-note">A heal that works makes your next move 10, 20 or 30% less likely to land.</p>
           </section>
-          <p class="wb-moves-key">The bar is the chance the move works.</p>
         </div>
 
         <div class="wb-extras">
           <article class="wb-elements" data-reveal>
             <div>
               <h3 class="wb-h3">Elements</h3>
-              <p>Every attack also gets an element. Hit the element yours beats and it does <strong>double</strong> damage; hit the one that beats yours and it does <strong>half</strong>. Neutral is never better or worse, and the enemy's attacks follow the same rules.</p>
+              <p>Every attack also gets an element. Hit the element yours beats and it does double damage; hit the one that beats yours and it does half. Neutral is never better or worse, and the enemy's attacks follow the same rules.</p>
             </div>
-            <!-- fire beats earth, earth beats water, water beats fire. the colours are the desk's element keys -->
-            <svg class="wb-cycle" viewBox="0 0 300 260" role="img" aria-labelledby="wbCycleTitle">
-              <title id="wbCycleTitle">Fire beats Earth, Earth beats Water, and Water beats Fire. Neutral, in the middle, beats nothing and loses to nothing.</title>
-              <defs>
-                <marker id="wbArrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                  <path d="M0 0L10 5L0 10z" fill="#d9b77a"/>
-                </marker>
-              </defs>
-              <g fill="none" stroke="#d9b77a" stroke-width="3" stroke-linecap="round" marker-end="url(#wbArrow)">
-                <path d="M186 58Q226 84 238 140"/>
-                <path d="M204 210Q150 238 96 210"/>
-                <path d="M62 140Q74 84 114 58"/>
-              </g>
-              <g class="wb-cycle-x2" text-anchor="middle">
-                <text x="238" y="86">&#215;2</text>
-                <text x="150" y="252">&#215;2</text>
-                <text x="62" y="86">&#215;2</text>
-              </g>
-              <g class="wb-cycle-disc" style="--c:#c93232" transform="translate(150 42)">
-                <circle class="wb-cycle-shadow" r="33" cx="3" cy="4"/><circle r="33"/>
-                <path class="wb-cycle-icon" transform="translate(-12 -27) scale(1)" d="M12 3c.6 3.6 5 5.2 5 10a5 5 0 0 1-10 0c0-2.6 1.3-4 2.4-5.2.3 1.8 1 2.8 2.1 3.2-.3-3 .2-5.6.5-8z"/>
-                <text y="18">Fire</text>
-              </g>
-              <g class="wb-cycle-disc" style="--c:#40a027" transform="translate(244 188)">
-                <circle class="wb-cycle-shadow" r="33" cx="3" cy="4"/><circle r="33"/>
-                <path class="wb-cycle-icon" transform="translate(-12 -27) scale(1)" d="M12 3 6.5 10.5h3L5.5 16h13l-4-5.5h3zM12 16v4.5"/>
-                <text y="18">Earth</text>
-              </g>
-              <g class="wb-cycle-disc" style="--c:#29a1d4" transform="translate(56 188)">
-                <circle class="wb-cycle-shadow" r="33" cx="3" cy="4"/><circle r="33"/>
-                <path class="wb-cycle-icon" transform="translate(-12 -27) scale(1)" d="M12 3.5s5.5 6.4 5.5 10.2a5.5 5.5 0 0 1-11 0C6.5 9.9 12 3.5 12 3.5z"/>
-                <text y="18">Water</text>
-              </g>
-              <g class="wb-cycle-disc wb-cycle-neutral" style="--c:#8f8a84" transform="translate(150 146)">
-                <circle class="wb-cycle-shadow" r="27" cx="3" cy="4"/><circle r="27"/>
-                <text y="5">Neutral</text>
-              </g>
-            </svg>
+            <!-- the same element keys and arrows as the desk under the stage (css: the elements in their circle),
+                 laid out in the game's units and scaled up as one -->
+            <figure class="wb-elwheel">
+              <div class="wb-elwheel-box" role="img" aria-label="Fire beats Earth, Earth beats Water, and Water beats Fire. Neutral, in the middle, beats nothing and loses to nothing.">
+                <svg class="wb-elwheel-arrows" viewBox="0 0 240 150" aria-hidden="true">
+                  <path d="M52.1 35.3A58 58 0 0 0 24.9 74.9M53.9 135.7A58 58 0 0 0 101.8 139.5M140 84A58 58 0 0 0 119.3 40.6"/>
+                  <path class="wb-elwheel-heads" d="M24 84L20.1 70.7L30.8 73.2ZM110.1 135.7L100.6 145.7L97.3 135.2ZM111.9 35.3L125.3 38.6L117.8 46.6Z"/>
+                </svg>
+                <span class="wb-elwheel-el" data-el="Fire" style="--face:#c93232;--edge-c:#7a1d1d" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3c.6 3.6 5 5.2 5 10a5 5 0 0 1-10 0c0-2.6 1.3-4 2.4-5.2.3 1.8 1 2.8 2.1 3.2-.3-3 .2-5.6.5-8z"/></svg>Fire</span>
+                <span class="wb-elwheel-el" data-el="Earth" style="--face:#40a027;--edge-c:#235a15" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 6.5 10.5h3L5.5 16h13l-4-5.5h3z"/><path d="M12 16v4.5"/></svg>Earth</span>
+                <span class="wb-elwheel-el" data-el="Water" style="--face:#29a1d4;--edge-c:#13607f" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5s5.5 6.4 5.5 10.2a5.5 5.5 0 0 1-11 0C6.5 9.9 12 3.5 12 3.5z"/></svg>Water</span>
+                <span class="wb-elwheel-el" data-el="Neutral" style="--face:#8f8a84;--edge-c:#4d4844" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.5"/></svg>Neutral</span>
+              </div>
+              <figcaption>Each arrow points at the element it beats.</figcaption>
+            </figure>
           </article>
 
-          <!-- berserk strike hangs on strings, the same as it drops onto the stage in the game -->
+          <!-- berserk strike, the sign that drops onto the stage in the game, hanging off a batten. it swings on its
+               strings rather than turning, so they stay tied on -->
           <article class="wb-berserk" data-reveal>
-            <div class="wb-berserk-board">
-              <h3>Berserk Strike</h3>
-              <p>60 damage &middot; 35% chance</p>
+            <div class="wb-berserk-rig">
+              <div class="wb-berserk-swing">
+                <div class="wb-berserk-hang">
+                  <h3 class="wb-berserk-board">Berserk Strike<small>60 damage &middot; 35% accuracy</small></h3>
+                  <p class="wb-berserk-slip">Take 10 damage on miss</p>
+                </div>
+              </div>
             </div>
-            <p>A desperation move. Once you're down to <strong>15%</strong> health a red sign drops onto the stage, and you can gamble on one huge hit. A miss costs you 10 health of your own, and you never have to use it.</p>
+            <p>A desperation move. Once you're down to 15% health this sign drops onto the stage, and you can gamble on one huge hit. A miss costs you 10 health of your own, and you never have to use it.</p>
           </article>
         </div>
       </div>
@@ -359,23 +325,24 @@
       <div class="container wb-split">
         <div class="wb-split-copy" data-reveal>
           <h2 class="wb-h2">How the AI enemy works</h2>
-          <p>The evil wizard doesn't cheat: it never sees your move before it picks its own. It reads the state of the battle and your last few choices, then picks the move a sensible wizard would.</p>
+          <p>The evil wizard doesn't cheat: it never sees your move before it picks its own. It reads the state of the battle and your last few choices, then picks the move a sensible wizard would. It goes down this list and does the first thing that fits.</p>
           <ol class="wb-rules">
-            <li>Below <strong>35%</strong> health it usually heals, and below 20% it goes for its biggest heal.</li>
-            <li>If you keep <strong>playing it safe</strong> (three Minor moves in your last five) it often defends.</li>
-            <li>If you're under <strong>25%</strong> health, or you've healed twice in your last five moves, it usually keeps attacking, often with its stronger attacks.</li>
-            <li>Otherwise it attacks <strong>60%</strong> of the time and defends the rest.</li>
-            <li>It remembers the elements of your <strong>last 10 attacks</strong>, and two times in three it picks the element that beats your favourite.</li>
+            <li>Below 35% health it usually heals, and below 20% it goes for its biggest heal.</li>
+            <li>If you keep playing it safe (three Minor moves in your last five) it often defends.</li>
+            <li>If you're under 25% health, or you've healed twice in your last five moves, it usually keeps attacking, often with its stronger attacks.</li>
+            <li>Otherwise it attacks 60% of the time and defends the rest.</li>
           </ol>
+          <p>Whenever it attacks, it looks back at the elements of your last 10 attacks, and two times in three it picks the element that beats your favourite.</p>
           <p class="wb-aside">It's tougher than you, too. As well as its 200 health, its attacks do 20, 35 or 55 damage and its heals give 20, 35 or 50, at the same odds as yours.</p>
         </div>
         <div class="wb-floor" aria-hidden="true">
-          <img class="wb-floor-puppet" src="assets/wizard-battles/card/foe.webp" alt="" width="236" height="513" loading="lazy">
+          <img class="wb-floor-puppet wb-floor-foe" src="assets/wizard-battles/card/foe.webp" alt="" width="236" height="513" loading="lazy">
         </div>
       </div>
     </section>
 
-    <!-- playing a friend, with the wardrobe's hats hung on a rail -->
+    <!-- playing a friend: two wizards dressed from the game's wardrobe, drawn by the game (duel.js) and saved as
+         images in assets/wizard-battles/friends. your friend plays on the enemy's puppet, so he still scowls -->
     <section class="wb-section">
       <div class="container wb-split wb-split-flip">
         <div class="wb-split-copy" data-reveal>
@@ -383,12 +350,9 @@
           <p>The revamp adds a second way to play. Press <b>Play a friend</b>, dress your wizard (a name, plus colours for the robe, trim, stars and beard, or mix your own) and send your friend the link. Whoever opens the room picks how much health you each start with.</p>
           <p>You both pick at the same time, with the same moves and odds as above. Heals land before attacks, and if you both drop to 0 in the same scene it's a draw. Each room is a tiny server of its own on Cloudflare Workers that rolls the dice and checks every move, so nobody can cheat by editing the page.</p>
         </div>
-        <div class="wb-rail" aria-hidden="true">
-          <svg class="wb-hat" style="--hat:#355fae;--band:#f6c96b;--d:-.4s"><use href="#wbHat"/></svg>
-          <svg class="wb-hat" style="--hat:#327139;--band:#d9d4cc;--d:-2.1s"><use href="#wbHat"/></svg>
-          <svg class="wb-hat" style="--hat:#583d8a;--band:#f6c96b;--d:-1.3s"><use href="#wbHat"/></svg>
-          <svg class="wb-hat" style="--hat:#ac5c27;--band:#2e1f1a;--d:-3.4s"><use href="#wbHat"/></svg>
-          <svg class="wb-hat" style="--hat:#9f4671;--band:#c93232;--d:-2.7s"><use href="#wbHat"/></svg>
+        <div class="wb-floor wb-floor-two" aria-hidden="true">
+          <img class="wb-floor-puppet wb-floor-left" src="assets/wizard-battles/friends/green.webp" alt="" width="208" height="459" loading="lazy">
+          <img class="wb-floor-puppet wb-floor-right" src="assets/wizard-battles/friends/purple.webp" alt="" width="236" height="514" loading="lazy">
         </div>
       </div>
     </section>
@@ -404,7 +368,8 @@
           </div>
 
           <!-- the participant's ticket. duel.js writes the id into #player-id -->
-          <aside class="wb-ticket" aria-labelledby="wbTicketLabel" data-reveal>
+          <div class="wb-ticket-holder" data-reveal>
+          <aside class="wb-ticket" aria-labelledby="wbTicketLabel">
             <p class="wb-ticket-stub" aria-hidden="true">Admit one</p>
             <div class="wb-ticket-main">
               <p class="wb-ticket-label" id="wbTicketLabel">Your participant ID</p>
@@ -417,6 +382,7 @@
               </ul>
             </div>
           </aside>
+          </div>
         </div>
 
         <figure class="wb-session" data-reveal>
