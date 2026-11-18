@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Wizard Battles - Ahsan</title>
   <meta name="description"
-    content="Wizard Battles - a turn-based p5.js game built as a psychology dissertation project, measuring risk-taking behaviour through a gamified battle system.">
+    content="Wizard Battles - a turn-based duel built as a psychology dissertation project, measuring how much risk players take. Play it in the browser as a paper toy theatre.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,24 +19,16 @@
 
 <body class="wizard-page">
 
-  <!-- shared svgs. the eye is reused 4 times, eyes.js moves the iris with --ex/--ey -->
+  <!-- shared svgs: a five pointed star, and a wizard's hat for the wardrobe -->
   <svg class="wb-svg-defs" aria-hidden="true" focusable="false">
     <defs>
-      <clipPath id="wbEyeClip"><path d="M60.3258 2.19345e-05C65.4755 2.19345e-05 70.6253 0.614494 75.6524 1.96634C80.6796 3.31819 85.4615 5.28451 90.1208 7.61952C94.7801 10.0774 99.1942 13.0269 103.24 16.3451C107.287 19.7861 110.842 23.473 114.03 27.5285C114.521 28.0201 115.134 28.8804 115.87 29.8635C116.605 30.8467 117.218 31.8299 117.954 32.9359C118.69 34.042 119.303 35.148 119.793 36.2541C120.284 37.3602 120.529 38.2204 120.529 38.8349C120.529 39.4494 120.284 40.4325 119.793 41.4157C119.303 42.5217 118.69 43.6278 117.954 44.7339C117.218 45.717 116.605 46.8231 115.87 47.8062C115.134 48.7894 114.521 49.6497 114.03 50.1413C110.842 54.1968 107.287 57.8836 103.24 61.3247C99.1942 64.6429 94.7801 67.5924 90.2434 70.0503C85.5841 72.3853 80.6796 74.3516 75.6524 75.5806C70.6253 76.9324 65.4755 77.6698 60.3258 77.6698C54.8082 77.6698 49.4132 76.9324 44.1408 75.4577C38.8684 73.9829 33.8413 71.8937 29.0594 69.3129C24.2774 66.6092 19.8634 63.5368 15.6945 59.85C11.6483 56.286 7.96987 52.2305 4.78192 47.9291C4.41408 47.4376 3.92363 46.8231 3.43318 45.9628C2.94272 45.2254 2.45227 44.3652 1.8392 43.5049C1.34875 42.6446 0.980908 41.7844 0.613068 40.9241C0.245228 40.0638 0 39.3265 0 38.8349C0 38.2204 0.245228 37.483 0.613068 36.7457C0.980908 35.8854 1.34875 35.0251 1.8392 34.1649C2.32965 33.3046 2.94272 32.4443 3.43318 31.707C3.92363 30.8467 4.41408 30.2322 4.78192 29.7407C7.96987 25.4393 11.6483 21.3838 15.6945 17.8198C19.8634 14.133 24.2774 10.9377 29.0594 8.3569C33.8413 5.6532 38.8684 3.68688 44.1408 2.21214C49.4132 0.737394 54.8082 2.19345e-05 60.3258 2.19345e-05Z"/></clipPath>
-      <symbol id="wbEye" viewBox="0 0 120.529 77.6698" overflow="visible">
-        <path d="M60.3258 2.19345e-05C65.4755 2.19345e-05 70.6253 0.614494 75.6524 1.96634C80.6796 3.31819 85.4615 5.28451 90.1208 7.61952C94.7801 10.0774 99.1942 13.0269 103.24 16.3451C107.287 19.7861 110.842 23.473 114.03 27.5285C114.521 28.0201 115.134 28.8804 115.87 29.8635C116.605 30.8467 117.218 31.8299 117.954 32.9359C118.69 34.042 119.303 35.148 119.793 36.2541C120.284 37.3602 120.529 38.2204 120.529 38.8349C120.529 39.4494 120.284 40.4325 119.793 41.4157C119.303 42.5217 118.69 43.6278 117.954 44.7339C117.218 45.717 116.605 46.8231 115.87 47.8062C115.134 48.7894 114.521 49.6497 114.03 50.1413C110.842 54.1968 107.287 57.8836 103.24 61.3247C99.1942 64.6429 94.7801 67.5924 90.2434 70.0503C85.5841 72.3853 80.6796 74.3516 75.6524 75.5806C70.6253 76.9324 65.4755 77.6698 60.3258 77.6698C54.8082 77.6698 49.4132 76.9324 44.1408 75.4577C38.8684 73.9829 33.8413 71.8937 29.0594 69.3129C24.2774 66.6092 19.8634 63.5368 15.6945 59.85C11.6483 56.286 7.96987 52.2305 4.78192 47.9291C4.41408 47.4376 3.92363 46.8231 3.43318 45.9628C2.94272 45.2254 2.45227 44.3652 1.8392 43.5049C1.34875 42.6446 0.980908 41.7844 0.613068 40.9241C0.245228 40.0638 0 39.3265 0 38.8349C0 38.2204 0.245228 37.483 0.613068 36.7457C0.980908 35.8854 1.34875 35.0251 1.8392 34.1649C2.32965 33.3046 2.94272 32.4443 3.43318 31.707C3.92363 30.8467 4.41408 30.2322 4.78192 29.7407C7.96987 25.4393 11.6483 21.3838 15.6945 17.8198C19.8634 14.133 24.2774 10.9377 29.0594 8.3569C33.8413 5.6532 38.8684 3.68688 44.1408 2.21214C49.4132 0.737394 54.8082 2.19345e-05 60.3258 2.19345e-05Z" fill="white"/>
-        <g clip-path="url(#wbEyeClip)">
-          <g style="transform:translate(calc(var(--ex,0) * 1px),calc(var(--ey,0) * 1px))">
-            <path d="M60.3258 8.60268C64.372 8.60268 68.2957 9.46295 71.9741 11.0606C75.6525 12.5353 78.8404 14.7474 81.5379 17.4511C84.2354 20.2777 86.4424 23.473 88.0364 27.037C89.6304 30.7238 90.3661 34.6565 90.3661 38.8349C90.3661 43.0133 89.6304 46.946 88.0364 50.5099C86.4424 54.1968 84.2354 57.3921 81.5379 60.2187C78.8404 62.9224 75.6525 65.0116 71.9741 66.6092C68.2957 68.2068 64.372 69.0671 60.3258 69.0671C56.1569 69.0671 52.2333 68.2068 48.5549 66.6092C44.8765 65.0116 41.6886 62.9224 38.9911 60.2187C36.2936 57.515 34.0865 54.3197 32.4925 50.6328C30.8986 46.946 30.1629 43.0133 30.1629 38.8349C30.1629 34.6565 30.8986 30.7238 32.4925 27.037C34.0865 23.473 36.2936 20.2777 38.9911 17.4511C41.6886 14.7474 44.8765 12.5353 48.5549 11.0606C52.2333 9.46295 56.1569 8.60268 60.3258 8.60268ZM73.4454 27.5285C74.1811 27.5285 74.9168 27.2828 75.6524 27.037C76.2655 26.7912 76.8786 26.2996 77.369 25.808C77.8595 25.3164 78.3499 24.702 78.5952 24.0875C78.963 23.3501 79.0856 22.6127 79.0856 21.8754C79.0856 21.138 78.963 20.4006 78.5952 19.6632C78.3499 18.9259 77.8595 18.3114 77.369 17.8198C76.8786 17.3282 76.2655 16.9596 75.6524 16.7138C74.9168 16.3451 74.1811 16.2222 73.4454 16.2222C72.5871 16.2222 71.8514 16.3451 71.2384 16.7138C70.5027 16.9596 70.0122 17.3282 69.3992 17.8198C68.9087 18.3114 68.5409 18.9259 68.2956 19.6632C67.9278 20.4006 67.8052 21.138 67.8052 21.8754C67.8052 22.6127 67.9278 23.3501 68.2956 24.0875C68.5409 24.702 68.9087 25.3164 69.3992 25.808C70.0122 26.2996 70.5027 26.7912 71.2384 27.037C71.8514 27.2828 72.5871 27.5285 73.4454 27.5285Z" fill="#7C330C"/>
-            <path d="M75.4072 38.8349C75.4072 40.9241 74.9168 42.8904 74.1811 44.7339C73.3228 46.5773 72.3419 48.1749 70.8705 49.5268C69.5218 50.8786 67.9278 51.9847 66.0886 52.7221C64.2494 53.5823 62.2876 53.951 60.3258 53.951C58.2414 53.951 56.2795 53.5823 54.4403 52.7221C52.6011 51.9847 51.0072 50.8786 49.6584 49.5268C48.3097 48.1749 47.2062 46.5773 46.3479 44.7339C45.6122 42.8904 45.1217 40.9241 45.1217 38.8349C45.1217 36.7457 45.6122 34.7794 46.3479 32.9359C47.2062 31.0925 48.3097 29.4949 49.6584 28.143C51.0072 26.7912 52.6011 25.6851 54.4403 24.9477C56.2795 24.0875 58.2414 23.7188 60.3258 23.7188C62.2876 23.7188 64.2494 24.0875 66.0886 24.9477C67.9278 25.6851 69.5218 26.7912 70.8705 28.143C72.3419 29.4949 73.3228 31.0925 74.1811 32.9359C74.9168 34.7794 75.4072 36.7457 75.4072 38.8349Z" fill="black"/>
-          </g>
-        </g>
-      </symbol>
-      <symbol id="wbQuestion" viewBox="0 0 104.875 183.633">
-        <path d="M52.4373 0C59.5285 0 66.433 1.309 72.7778 4.11398C79.1225 6.91897 84.7208 10.659 89.3861 15.3339C94.2379 20.1959 97.9701 25.6189 100.769 32.1638C103.382 38.5218 104.875 45.2538 104.875 52.3598C104.875 57.0347 104.315 61.1487 103.382 65.0757C102.262 69.0027 100.956 72.7427 99.0898 76.2956C97.2237 79.6616 94.9843 83.0276 92.3718 86.2066C89.7593 89.3856 86.9601 92.3776 83.7878 95.3695C80.9886 97.8005 78.5627 100.419 76.3234 103.037C74.084 105.654 72.218 108.272 70.5385 111.264C68.859 114.069 67.7393 117.248 66.8063 120.427C65.8732 123.793 65.5 127.346 65.5 131.086H39.3746C39.3746 125.102 39.9345 119.679 41.2407 114.63C42.547 109.394 44.4131 104.532 46.839 100.045C49.265 95.5565 52.0641 91.2556 55.6097 87.1416C58.9687 83.0276 62.7009 79.1006 66.9929 75.1736C70.3519 71.9947 73.151 68.6287 75.3903 65.0757C77.443 61.5227 78.5627 57.4087 78.5627 52.3598C78.5627 48.8068 77.8162 45.4408 76.51 42.2618C75.0171 39.0828 73.151 36.2778 70.9117 33.8468C68.4858 31.6028 65.6866 29.7329 62.5142 28.2369C59.3419 26.9279 55.9829 26.1799 52.4373 26.1799C48.8917 26.1799 45.3462 26.9279 42.1738 28.2369C39.0014 29.5459 36.2023 31.4159 33.7764 33.8468C31.537 36.2778 29.6709 38.8958 28.1781 42.2618C26.8718 45.4408 26.1254 48.8068 26.1254 52.3598H0C0 45.2538 1.49288 38.5218 4.29202 32.1638C6.90456 25.6189 10.6368 20.1959 15.4886 15.3339C20.1538 10.659 25.7521 6.91897 32.0969 4.11398C38.4416 1.309 45.1595 0 52.4373 0ZM68.6724 167.364C68.6724 169.608 68.2991 171.665 67.5527 173.722C66.6197 175.592 65.5 177.462 64.0071 178.958C62.5142 180.267 60.8348 181.576 58.7821 182.324C56.7293 183.259 54.6766 183.633 52.4373 183.633C50.198 183.633 48.1453 183.259 46.0926 182.324C44.0399 181.576 42.3604 180.267 40.8675 178.958C39.3746 177.462 38.255 175.592 37.3219 173.722C36.3889 171.665 36.0157 169.608 36.0157 167.364C36.0157 165.12 36.3889 162.876 37.3219 161.006C38.255 158.949 39.3746 157.079 40.8675 155.583C42.3604 154.274 44.0399 152.965 46.0926 152.217C47.9587 151.282 50.198 150.908 52.4373 150.908C54.6766 150.908 56.7293 151.282 58.7821 152.217C60.8348 152.965 62.5142 154.274 64.0071 155.583C65.5 157.079 66.6197 158.949 67.5527 161.006C68.2991 162.876 68.6724 165.12 68.6724 167.364Z" fill="#fff6e4"/>
-      </symbol>
-      <symbol id="wbSparkle" viewBox="0 0 84.349 84.349">
-        <path d="M0 41.975L27.983 27.983L41.974 0L55.966 27.983L84.349 41.975L55.966 55.966L41.974 84.349L27.983 55.966Z" fill="currentColor"/>
+      <symbol id="wbStar" viewBox="-10 -10 20 20" overflow="visible"><path d="M0-10 2.6-3.6 9.5-3.1 4.3 1.4 5.9 8.1 0 4.5-5.9 8.1-4.3 1.4-9.5-3.1-2.6-3.6Z"/></symbol>
+      <symbol id="wbHat" viewBox="0 0 100 112" overflow="visible">
+        <path class="wb-hat-string" d="M60 2V-160"/>
+        <path class="wb-hat-cone" d="M24 92C34 66 42 36 50 12 54 3 66 2 74 12 66 11 61 16 60 24 63 48 68 70 76 92Z"/>
+        <path class="wb-hat-band" d="M28.5 80H71.5L74.5 90H25.5Z"/>
+        <path class="wb-hat-star" d="M53 50 54.6 54.1 59 54.4 55.6 57.2 56.7 61.5 53 59.2 49.3 61.5 50.4 57.2 47 54.4 51.4 54.1Z"/>
+        <ellipse class="wb-hat-brim" cx="50" cy="96" rx="46" ry="11"/>
       </symbol>
     </defs>
   </svg>
@@ -64,44 +56,33 @@
 
   <main>
 
+    <!-- the page is the theatre the game is played in: a pelmet across the top with the name and a few stars
+         hanging off it, then the stage itself -->
     <section class="wb-hero" id="game">
-      <div class="container wb-hero-top">
+      <div class="wb-pelmet" aria-hidden="true"></div>
+      <div class="wb-hangers" aria-hidden="true">
+        <span class="wb-hang wb-hang-wide" style="--x:35%;--len:44px;--s:22px;--d:-4s"><svg><use href="#wbStar"/></svg></span>
+        <span class="wb-hang wb-hang-moon" style="--x:84%;--len:58px;--s:66px;--d:-2.6s"><i></i></span>
+        <span class="wb-hang wb-hang-wide" style="--x:79%;--len:196px;--s:20px;--d:-1.2s"><svg><use href="#wbStar"/></svg></span>
+        <span class="wb-hang" style="--x:94%;--len:150px;--s:28px;--d:-5.3s"><svg><use href="#wbStar"/></svg></span>
+      </div>
+
+      <div class="container wb-hero-head">
+        <h1 class="wb-sign"><span class="wb-sign-you">Wizard</span> <span class="wb-sign-foe">Battles</span></h1>
         <div class="wb-hero-copy">
-          <!-- a few stars round the title (the crystal ball's star), placed in ems so they keep their spots -->
-          <h1 class="wb-title"><span class="wb-title-you">Wizard</span> <span class="wb-title-foe">Battles</span><svg class="wb-twinkle wb-twinkle-a" viewBox="0 0 84.349 84.349" aria-hidden="true" focusable="false"><use href="#wbSparkle"/></svg><svg class="wb-twinkle wb-twinkle-b" viewBox="0 0 84.349 84.349" aria-hidden="true" focusable="false"><use href="#wbSparkle"/></svg><svg class="wb-twinkle wb-twinkle-c" viewBox="0 0 84.349 84.349" aria-hidden="true" focusable="false"><use href="#wbSparkle"/></svg></h1>
-          <p class="wb-subtitle">A turn-based psychological experiment</p>
+          <p class="wb-kicker">A turn-based psychological experiment</p>
+          <p class="wb-lede">A duel between two wizards that I made for my dissertation, to measure how much risk people take when they play. It's all right here: press start and pick your moves on the desk under the stage.</p>
           <ul class="wb-tags" aria-label="Built with">
             <li>p5.js</li>
             <li>Node.js &amp; Express</li>
-            <li>Dissertation project</li>
+            <li>Cloudflare Workers</li>
           </ul>
         </div>
-
-        <!-- the participant's ticket. sketch.js writes the id into #player-id -->
-        <aside class="wb-ticket" aria-labelledby="wbTicketLabel">
-          <div class="wb-ticket-top">
-            <p class="wb-ticket-label" id="wbTicketLabel">Participant ID</p>
-            <p class="wb-ticket-id" id="player-id">&mdash;</p>
-          </div>
-          <div class="wb-ticket-body">
-            <p class="wb-ticket-note">The study has now concluded. The game is still fully playable, and the documents are kept here for reference.</p>
-            <ul class="wb-docs">
-              <li><a class="wb-doc" href="assets/wizard-battles/downloads/ParticipantConsentForm.pdf" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></svg>Consent form</a></li>
-              <li><a class="wb-doc" href="assets/wizard-battles/downloads/ParticipantInformationSheet.pdf" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></svg>Information sheet</a></li>
-              <li><span class="wb-doc wb-doc-closed" title="The study behind Wizard Battles has concluded, so the questionnaire is no longer accepting responses.">Questionnaire closed</span></li>
-            </ul>
-          </div>
-        </aside>
       </div>
 
-      <!-- the game on its board. page.js scales the game to fit and swaps in the uni original -->
-      <div class="container">
+      <!-- the game in its box. page.js scales the game to fit and swaps in the uni original -->
+      <div class="container wb-hero-game">
         <div class="wb-board">
-          <div class="wb-board-bar">
-            <p class="wb-side wb-side-you">You <b>100 HP</b></p>
-            <span class="wb-vs" aria-hidden="true">vs</span>
-            <p class="wb-side wb-side-foe">Enemy wizard <b>200 HP</b></p>
-          </div>
           <div class="wb-game-stage" id="gameStage">
 
             <!-- the revamp: a toy theatre (the canvas, duel.js) over a desk of keys. everything in here is laid
@@ -247,227 +228,200 @@
         </div>
 
         <div class="wb-version" role="group" aria-label="Which version to play">
-          <span class="wb-version-label">Version</span>
           <div class="wb-version-switch">
             <button type="button" data-version="new" aria-pressed="true">Revamped</button>
             <button type="button" data-version="uni" aria-pressed="false">Uni original</button>
           </div>
-          <p class="wb-version-note">The original is the game exactly as I handed it in for my dissertation, before the revamp. Same rules, same enemy.</p>
+          <p class="wb-version-note">The uni original is the game exactly as I handed it in. The revamp plays by the same rules, checked turn for turn against it, and adds the theatre, sound and playing a friend.</p>
         </div>
       </div>
     </section>
 
-    <section class="wb-section wb-intro">
-      <div class="container wb-intro-inner">
-        <div class="wb-intro-text" data-reveal>
-          <h2 class="wb-h2">What is Wizard Battles?</h2>
-          <p>Wizard Battles is a turn-based game designed as an experimental tool for psychology researchers, measuring risk-taking behaviour in individuals through a gamified method. It was partly inspired by the battle system in Pokémon and other turn-based games that I enjoy playing.</p>
-        </div>
-        <div class="wb-intro-art">
-          <img class="wb-cb-ring" src="assets/wizard-battles/rune-ring.svg" alt="" aria-hidden="true">
-          <div class="wb-crystal-ball-cluster">
-            <img class="wb-cb-ball" src="assets/wizard-battles/illustrations/crystal-ball.svg" alt="Illustration of a crystal ball">
-            <div class="wb-cb-vision" aria-hidden="true">
-              <span class="wb-cb-question"><svg class="wb-cb-question-glyph" viewBox="0 0 104.875 183.633" focusable="false"><use href="#wbQuestion"/></svg></span>
-              <span class="wb-cb-orbit"><svg class="wb-cb-star wb-cb-star-cyan" viewBox="0 0 84.349 84.349" focusable="false"><use href="#wbSparkle"/></svg></span>
-            </div>
-            <span class="wb-cb-glass" aria-hidden="true"></span>
-            <svg class="wb-cb-star wb-cb-star-yellow" viewBox="0 0 84.349 84.349" aria-hidden="true" focusable="false"><use href="#wbSparkle"/></svg>
-            <svg class="wb-cb-star wb-cb-star-pink" viewBox="0 0 84.349 84.349" aria-hidden="true" focusable="false"><use href="#wbSparkle"/></svg>
-            <svg class="wb-cb-eye wb-cb-eye-1" viewBox="0 0 120.529 77.6698" aria-hidden="true" focusable="false"><use href="#wbEye"/></svg>
-            <svg class="wb-cb-eye wb-cb-eye-2" viewBox="0 0 120.529 77.6698" aria-hidden="true" focusable="false"><use href="#wbEye"/></svg>
-            <svg class="wb-cb-eye wb-cb-eye-3" viewBox="0 0 120.529 77.6698" aria-hidden="true" focusable="false"><use href="#wbEye"/></svg>
-            <svg class="wb-cb-eye wb-cb-eye-4" viewBox="0 0 120.529 77.6698" aria-hidden="true" focusable="false"><use href="#wbEye"/></svg>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- why it exists, on a page torn from the spellbook -->
+    <!-- what it is and why, on a programme with the blue wizard peeking over the top -->
     <section class="wb-section">
       <div class="container">
-        <article class="wb-page" data-reveal>
-          <img class="wb-page-art" src="assets/wizard-battles/illustrations/wizard.svg" alt="Illustration of a wizard">
-          <div class="wb-page-copy">
-            <p class="wb-chapter">Behind the magic</p>
-            <h2 class="wb-h2">Why did I make Wizard Battles?</h2>
-            <p>I made Wizard Battles as my third-year dissertation project for my Bachelor's degree in computer science. I chose this project because I've always been fascinated by how psychology can intertwine with computerised design, whether that be in the realm of game design, UI design or user interaction. I think psychology plays a much deeper role than people realise and I wanted to indulge myself in a project that reflected that as its core principle.</p>
+        <article class="wb-programme" data-reveal>
+          <img class="wb-peek wb-peek-you" src="assets/wizard-battles/card/you.webp" alt="" width="208" height="457" loading="lazy">
+          <div class="wb-programme-sheet">
+            <div class="wb-programme-col">
+              <h2 class="wb-h2">What is Wizard Battles?</h2>
+              <p>Wizard Battles is a turn-based game designed as an experimental tool for psychology researchers, measuring risk-taking behaviour in individuals through a gamified method. It was partly inspired by the battle system in Pokémon and other turn-based games that I enjoy playing.</p>
+            </div>
+            <div class="wb-programme-col">
+              <h2 class="wb-h2">Why did I make it?</h2>
+              <p>I made Wizard Battles as my third-year dissertation project for my Bachelor's degree in computer science. I chose this project because I've always been fascinated by how psychology can intertwine with computerised design, whether that be in the realm of game design, UI design or user interaction. I think psychology plays a much deeper role than people realise and I wanted to indulge myself in a project that reflected that as its core principle.</p>
+            </div>
           </div>
         </article>
       </div>
     </section>
 
-    <!-- moves + elements, as cards from a spell deck -->
-    <section class="wb-section" id="spellbook">
+    <!-- the rules: the moves on one printed sheet, then elements and berserk strike -->
+    <section class="wb-section" id="how">
       <div class="container">
         <header class="wb-head" data-reveal>
-          <p class="wb-chapter">The spellbook</p>
           <h2 class="wb-h2">How it works</h2>
-          <p>Each turn you pick a move and its strength. Stronger moves are less likely to work, and every risk is optional, so the game records how much risk each player chooses to take. You start with <strong>100</strong> health; the enemy wizard has <strong>200</strong>.</p>
+          <p>Each scene you pick a move, <b class="wb-word-attack">Attack</b>, <b class="wb-word-defend">Defend</b> or <b class="wb-word-heal">Heal</b>, and then how strong to make it. Stronger moves do more but are less likely to work. Every risk is optional, so the game records how much risk each player chooses to take.</p>
+          <p>The enemy picks its move at the same time, then both play out. You start with <strong>100</strong> health and the evil wizard has <strong>200</strong>. First to 0 loses.</p>
         </header>
 
-        <div class="wb-spells">
-          <article class="wb-spell wb-spell-attack" data-reveal>
-            <h3 class="wb-spell-title">Attack</h3>
+        <div class="wb-moves" data-reveal>
+          <section class="wb-move wb-move-attack" aria-labelledby="mvAttack">
+            <h3 class="wb-move-key" id="mvAttack"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2.5 5 13.5h6.5l-1 8 8.5-11h-6.5z"/></svg>Attack</h3>
             <ul class="wb-tiers">
-              <li class="wb-tier" style="--chance:100%">
-                <span class="wb-tier-name">Low</span>
-                <span class="wb-tier-effect">15 damage</span>
-                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
-                <span class="wb-tier-chance">100%</span>
-              </li>
-              <li class="wb-tier" style="--chance:75%">
-                <span class="wb-tier-name">Mid</span>
-                <span class="wb-tier-effect">30 damage</span>
-                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
-                <span class="wb-tier-chance">75%</span>
-              </li>
-              <li class="wb-tier" style="--chance:50%">
-                <span class="wb-tier-name">High</span>
-                <span class="wb-tier-effect">45 damage</span>
-                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
-                <span class="wb-tier-chance">50%</span>
-              </li>
+              <li style="--chance:100%"><span class="wb-tier-name">Minor</span><span class="wb-tier-effect">15 damage</span><span class="wb-tier-bar" aria-hidden="true"><i></i></span><span class="wb-tier-chance">100%</span></li>
+              <li style="--chance:75%"><span class="wb-tier-name">Average</span><span class="wb-tier-effect">30 damage</span><span class="wb-tier-bar" aria-hidden="true"><i></i></span><span class="wb-tier-chance">75%</span></li>
+              <li style="--chance:50%"><span class="wb-tier-name">High</span><span class="wb-tier-effect">45 damage</span><span class="wb-tier-bar" aria-hidden="true"><i></i></span><span class="wb-tier-chance">50%</span></li>
             </ul>
-            <p class="wb-spell-note">On average Mid and High both deal 22.5 damage a turn. High just swings harder.</p>
-          </article>
-
-          <article class="wb-spell wb-spell-defend" data-reveal>
-            <h3 class="wb-spell-title">Defend</h3>
+            <p class="wb-move-note">A miss does nothing. Average and High both deal 22.5 damage a turn on average, High just swings harder.</p>
+          </section>
+          <section class="wb-move wb-move-defend" aria-labelledby="mvDefend">
+            <h3 class="wb-move-key" id="mvDefend"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/></svg>Defend</h3>
             <ul class="wb-tiers">
-              <li class="wb-tier" style="--chance:100%">
-                <span class="wb-tier-name">Low</span>
-                <span class="wb-tier-effect">Block 10%</span>
-                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
-                <span class="wb-tier-chance">100%</span>
-              </li>
-              <li class="wb-tier" style="--chance:60%">
-                <span class="wb-tier-name">Mid</span>
-                <span class="wb-tier-effect">Block 20%</span>
-                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
-                <span class="wb-tier-chance">60%</span>
-              </li>
-              <li class="wb-tier" style="--chance:50%">
-                <span class="wb-tier-name">High</span>
-                <span class="wb-tier-effect">Block 50%</span>
-                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
-                <span class="wb-tier-chance">50%</span>
-              </li>
+              <li style="--chance:100%"><span class="wb-tier-name">Minor</span><span class="wb-tier-effect">Block 10%</span><span class="wb-tier-bar" aria-hidden="true"><i></i></span><span class="wb-tier-chance">100%</span></li>
+              <li style="--chance:60%"><span class="wb-tier-name">Average</span><span class="wb-tier-effect">Block 20%</span><span class="wb-tier-bar" aria-hidden="true"><i></i></span><span class="wb-tier-chance">60%</span></li>
+              <li style="--chance:50%"><span class="wb-tier-name">High</span><span class="wb-tier-effect">Block 50%</span><span class="wb-tier-bar" aria-hidden="true"><i></i></span><span class="wb-tier-chance">50%</span></li>
             </ul>
-            <p class="wb-spell-note">Cuts the damage you take for one round.</p>
-          </article>
-
-          <article class="wb-spell wb-spell-heal" data-reveal>
-            <h3 class="wb-spell-title">Heal</h3>
+            <p class="wb-move-note">If it works, it cuts the damage you take that scene.</p>
+          </section>
+          <section class="wb-move wb-move-heal" aria-labelledby="mvHeal">
+            <h3 class="wb-move-key" id="mvHeal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21C6 16.6 2.5 13.4 2.5 9A4.6 4.6 0 0 1 7.1 4.4c2 0 3.8 1.1 4.9 2.8 1.1-1.7 2.9-2.8 4.9-2.8A4.6 4.6 0 0 1 21.5 9c0 4.4-3.5 7.6-9.5 12z"/><path d="M12 10.9v4.2M9.9 13h4.2"/></svg>Heal</h3>
             <ul class="wb-tiers">
-              <li class="wb-tier" style="--chance:75%">
-                <span class="wb-tier-name">Low</span>
-                <span class="wb-tier-effect">+10 health</span>
-                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
-                <span class="wb-tier-chance">75%</span>
-              </li>
-              <li class="wb-tier" style="--chance:60%">
-                <span class="wb-tier-name">Mid</span>
-                <span class="wb-tier-effect">+25 health</span>
-                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
-                <span class="wb-tier-chance">60%</span>
-              </li>
-              <li class="wb-tier" style="--chance:50%">
-                <span class="wb-tier-name">High</span>
-                <span class="wb-tier-effect">+40 health</span>
-                <span class="wb-tier-bar" aria-hidden="true"><i></i></span>
-                <span class="wb-tier-chance">50%</span>
-              </li>
+              <li style="--chance:75%"><span class="wb-tier-name">Minor</span><span class="wb-tier-effect">+10 health</span><span class="wb-tier-bar" aria-hidden="true"><i></i></span><span class="wb-tier-chance">75%</span></li>
+              <li style="--chance:60%"><span class="wb-tier-name">Average</span><span class="wb-tier-effect">+25 health</span><span class="wb-tier-bar" aria-hidden="true"><i></i></span><span class="wb-tier-chance">60%</span></li>
+              <li style="--chance:50%"><span class="wb-tier-name">High</span><span class="wb-tier-effect">+40 health</span><span class="wb-tier-bar" aria-hidden="true"><i></i></span><span class="wb-tier-chance">50%</span></li>
             </ul>
-            <p class="wb-spell-note">A successful heal makes your next move 10, 20 or 30% less likely to land.</p>
-          </article>
+            <p class="wb-move-note">A heal that works makes your next move 10, 20 or 30% less likely to land.</p>
+          </section>
+          <p class="wb-moves-key">The bar is the chance the move works.</p>
         </div>
 
-        <div class="wb-spells-extra">
-          <article class="wb-berserk" data-reveal>
-            <p class="wb-berserk-tag">Desperation move</p>
-            <h3>Berserk Strike</h3>
-            <p>Appears once you're down to <strong>15%</strong> health: <strong>60 damage</strong> at a <strong>35%</strong> chance, and a miss costs you 10 health of your own.</p>
-          </article>
-
+        <div class="wb-extras">
           <article class="wb-elements" data-reveal>
-            <div class="wb-elements-copy">
-              <h3>Elements</h3>
-              <p>Every attack also has an element. Hit the one it beats for <strong>double</strong> damage; hit the one that beats it for <strong>half</strong>. Neutral is never better or worse.</p>
-              <p class="wb-margin-note">Each arrow points at the element it beats.</p>
+            <div>
+              <h3 class="wb-h3">Elements</h3>
+              <p>Every attack also gets an element. Hit the element yours beats and it does <strong>double</strong> damage; hit the one that beats yours and it does <strong>half</strong>. Neutral is never better or worse, and the enemy's attacks follow the same rules.</p>
             </div>
-            <!-- Fire beats Earth, Earth beats Water, Water beats Fire. node colours are the game's own buttons -->
-            <svg class="wb-cycle" viewBox="0 0 300 250" role="img" aria-labelledby="wbCycleTitle">
-              <title id="wbCycleTitle">Fire beats Earth, Earth beats Water, and Water beats Fire</title>
+            <!-- fire beats earth, earth beats water, water beats fire. the colours are the desk's element keys -->
+            <svg class="wb-cycle" viewBox="0 0 300 260" role="img" aria-labelledby="wbCycleTitle">
+              <title id="wbCycleTitle">Fire beats Earth, Earth beats Water, and Water beats Fire. Neutral, in the middle, beats nothing and loses to nothing.</title>
               <defs>
-                <marker id="wbArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                  <path d="M0 0L10 5L0 10z" fill="#e3cc9c"/>
+                <marker id="wbArrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M0 0L10 5L0 10z" fill="#d9b77a"/>
                 </marker>
               </defs>
-              <g fill="none" stroke="#e3cc9c" stroke-width="2.5" stroke-linecap="round" marker-end="url(#wbArrow)">
-                <path d="M184.3 62.9 Q222 88 233.8 145.6"/>
-                <path d="M205.1 204.4 Q150 232 94.9 204.4"/>
-                <path d="M66.2 145.6 Q78 88 115.7 62.9"/>
+              <g fill="none" stroke="#d9b77a" stroke-width="3" stroke-linecap="round" marker-end="url(#wbArrow)">
+                <path d="M186 58Q226 84 238 140"/>
+                <path d="M204 210Q150 238 96 210"/>
+                <path d="M62 140Q74 84 114 58"/>
               </g>
-              <g font-family="Quicksand, sans-serif" font-size="17" font-weight="700" fill="#f6ead6" text-anchor="middle">
-                <text x="232" y="94">&#215;2</text>
-                <text x="150" y="244">&#215;2</text>
-                <text x="68" y="94">&#215;2</text>
+              <g class="wb-cycle-x2" text-anchor="middle">
+                <text x="238" y="86">&#215;2</text>
+                <text x="150" y="252">&#215;2</text>
+                <text x="62" y="86">&#215;2</text>
               </g>
-              <g font-family="Quicksand, sans-serif" font-size="15" font-weight="700" text-anchor="middle">
-                <circle cx="150" cy="40" r="32" fill="#c93232"/>
-                <text x="150" y="45" fill="#fff6e4">Fire</text>
-                <circle cx="242" cy="186" r="32" fill="#40a027"/>
-                <text x="242" y="191" fill="#fff6e4">Earth</text>
-                <circle cx="58" cy="186" r="32" fill="#29a1d4"/>
-                <text x="58" y="191" fill="#fff6e4">Water</text>
+              <g class="wb-cycle-disc" style="--c:#c93232" transform="translate(150 42)">
+                <circle class="wb-cycle-shadow" r="33" cx="3" cy="4"/><circle r="33"/>
+                <path class="wb-cycle-icon" transform="translate(-12 -27) scale(1)" d="M12 3c.6 3.6 5 5.2 5 10a5 5 0 0 1-10 0c0-2.6 1.3-4 2.4-5.2.3 1.8 1 2.8 2.1 3.2-.3-3 .2-5.6.5-8z"/>
+                <text y="18">Fire</text>
+              </g>
+              <g class="wb-cycle-disc" style="--c:#40a027" transform="translate(244 188)">
+                <circle class="wb-cycle-shadow" r="33" cx="3" cy="4"/><circle r="33"/>
+                <path class="wb-cycle-icon" transform="translate(-12 -27) scale(1)" d="M12 3 6.5 10.5h3L5.5 16h13l-4-5.5h3zM12 16v4.5"/>
+                <text y="18">Earth</text>
+              </g>
+              <g class="wb-cycle-disc" style="--c:#29a1d4" transform="translate(56 188)">
+                <circle class="wb-cycle-shadow" r="33" cx="3" cy="4"/><circle r="33"/>
+                <path class="wb-cycle-icon" transform="translate(-12 -27) scale(1)" d="M12 3.5s5.5 6.4 5.5 10.2a5.5 5.5 0 0 1-11 0C6.5 9.9 12 3.5 12 3.5z"/>
+                <text y="18">Water</text>
+              </g>
+              <g class="wb-cycle-disc wb-cycle-neutral" style="--c:#8f8a84" transform="translate(150 146)">
+                <circle class="wb-cycle-shadow" r="27" cx="3" cy="4"/><circle r="27"/>
+                <text y="5">Neutral</text>
               </g>
             </svg>
           </article>
+
+          <!-- berserk strike hangs on strings, the same as it drops onto the stage in the game -->
+          <article class="wb-berserk" data-reveal>
+            <div class="wb-berserk-board">
+              <h3>Berserk Strike</h3>
+              <p>60 damage &middot; 35% chance</p>
+            </div>
+            <p>A desperation move. Once you're down to <strong>15%</strong> health a red sign drops onto the stage, and you can gamble on one huge hit. A miss costs you 10 health of your own, and you never have to use it.</p>
+          </article>
         </div>
       </div>
     </section>
 
-    <!-- the AI -->
+    <!-- the enemy, standing on its own bit of stage -->
     <section class="wb-section">
       <div class="container wb-split">
         <div class="wb-split-copy" data-reveal>
-          <p class="wb-chapter">The opponent</p>
           <h2 class="wb-h2">How the AI enemy works</h2>
-          <p>The enemy doesn't cheat; it plays by the same kind of moves you do. It reads the state of the battle and your recent choices, then picks the move a sensible wizard would, just like a real opponent.</p>
+          <p>The evil wizard doesn't cheat: it never sees your move before it picks its own. It reads the state of the battle and your last few choices, then picks the move a sensible wizard would.</p>
           <ol class="wb-rules">
-            <li><strong>Below 35% health</strong>, it usually heals.</li>
-            <li>If you keep <strong>playing it safe</strong> (three low moves in your last five), it often defends.</li>
-            <li>If <strong>you're</strong> low on health or healing a lot, it keeps attacking.</li>
+            <li>Below <strong>35%</strong> health it usually heals, and below 20% it goes for its biggest heal.</li>
+            <li>If you keep <strong>playing it safe</strong> (three Minor moves in your last five) it often defends.</li>
+            <li>If you're under <strong>25%</strong> health, or you've healed twice in your last five moves, it usually keeps attacking, often with its stronger attacks.</li>
             <li>Otherwise it attacks <strong>60%</strong> of the time and defends the rest.</li>
-            <li>It remembers the elements of your <strong>last 10 attacks</strong> and picks the element that counters your favourite.</li>
+            <li>It remembers the elements of your <strong>last 10 attacks</strong>, and two times in three it picks the element that beats your favourite.</li>
           </ol>
+          <p class="wb-aside">It's tougher than you, too. As well as its 200 health, its attacks do 20, 35 or 55 damage and its heals give 20, 35 or 50, at the same odds as yours.</p>
         </div>
-        <div class="wb-split-art wb-split-art-foe">
-          <img src="assets/wizard-battles/illustrations/robot.svg" alt="Illustration of a robot enemy">
+        <div class="wb-floor" aria-hidden="true">
+          <img class="wb-floor-puppet" src="assets/wizard-battles/card/foe.webp" alt="" width="236" height="513" loading="lazy">
         </div>
       </div>
     </section>
 
-    <!-- data collection -->
+    <!-- playing a friend, with the wardrobe's hats hung on a rail -->
+    <section class="wb-section">
+      <div class="container wb-split wb-split-flip">
+        <div class="wb-split-copy" data-reveal>
+          <h2 class="wb-h2">Playing a friend</h2>
+          <p>The revamp adds a second way to play. Press <b>Play a friend</b>, dress your wizard (a name, plus colours for the robe, trim, stars and beard, or mix your own) and send your friend the link. Whoever opens the room picks how much health you each start with.</p>
+          <p>You both pick at the same time, with the same moves and odds as above. Heals land before attacks, and if you both drop to 0 in the same scene it's a draw. Each room is a tiny server of its own on Cloudflare Workers that rolls the dice and checks every move, so nobody can cheat by editing the page.</p>
+        </div>
+        <div class="wb-rail" aria-hidden="true">
+          <svg class="wb-hat" style="--hat:#355fae;--band:#f6c96b;--d:-.4s"><use href="#wbHat"/></svg>
+          <svg class="wb-hat" style="--hat:#327139;--band:#d9d4cc;--d:-2.1s"><use href="#wbHat"/></svg>
+          <svg class="wb-hat" style="--hat:#583d8a;--band:#f6c96b;--d:-1.3s"><use href="#wbHat"/></svg>
+          <svg class="wb-hat" style="--hat:#ac5c27;--band:#2e1f1a;--d:-3.4s"><use href="#wbHat"/></svg>
+          <svg class="wb-hat" style="--hat:#9f4671;--band:#c93232;--d:-2.7s"><use href="#wbHat"/></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- the research: how a session was saved, and the participant's ticket -->
     <section class="wb-section">
       <div class="container">
-        <div class="wb-split wb-split-flip">
-          <div class="wb-split-copy" data-reveal>
-            <p class="wb-chapter">The research</p>
-            <h2 class="wb-h2">Collecting data &amp; backend</h2>
-            <p>The game runs in the browser on p5.js with a Node.js and Express backend server. Every move either side makes is logged, and at the end of a battle the whole session is sent to the server and saved as a CSV file, which researchers can open and analyse straight away.</p>
+        <div class="wb-research">
+          <div class="wb-research-copy" data-reveal>
+            <h2 class="wb-h2">Collecting the data</h2>
+            <p>The study ran on the uni original: p5.js in the browser, with a Node.js and Express server behind it. Every move either side makes is logged, and when a battle ends the whole session is sent to the server and saved as a CSV file, one row per move, which researchers can open and analyse straight away.</p>
+            <p>The study has finished now, so nothing is saved from this site. The file is only sent when the game runs with the original project's server.</p>
           </div>
-          <div class="wb-split-art">
-            <div class="wb-art-stack">
-              <img src="assets/wizard-battles/illustrations/book.svg" alt="Illustration of an open book">
-              <img class="wb-art-accent" src="assets/wizard-battles/illustrations/scroll.svg" alt="" aria-hidden="true">
+
+          <!-- the participant's ticket. duel.js writes the id into #player-id -->
+          <aside class="wb-ticket" aria-labelledby="wbTicketLabel" data-reveal>
+            <p class="wb-ticket-stub" aria-hidden="true">Admit one</p>
+            <div class="wb-ticket-main">
+              <p class="wb-ticket-label" id="wbTicketLabel">Your participant ID</p>
+              <p class="wb-ticket-id" id="player-id">&mdash;</p>
+              <p class="wb-ticket-note">A new one for every game you play, written on each row of its session file. The papers participants were given are kept here for reference.</p>
+              <ul class="wb-docs">
+                <li><a class="wb-doc" href="assets/wizard-battles/downloads/ParticipantConsentForm.pdf" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></svg>Consent form</a></li>
+                <li><a class="wb-doc" href="assets/wizard-battles/downloads/ParticipantInformationSheet.pdf" download><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/></svg>Information sheet</a></li>
+                <li><span class="wb-doc wb-doc-closed" title="The study has finished, so the questionnaire is no longer taking responses.">Questionnaire closed</span></li>
+              </ul>
             </div>
-          </div>
+          </aside>
         </div>
-        <figure class="wb-scroll" data-reveal>
-          <figcaption>A session file, one row per move <span>(example values)</span></figcaption>
-          <div class="wb-scroll-body">
+
+        <figure class="wb-session" data-reveal>
+          <figcaption><b>session_K2U75E2AY1.csv</b> one row per move, both wizards <span>(example values)</span></figcaption>
+          <div class="wb-session-body" tabindex="0" role="region" aria-label="Example session file">
             <table class="wb-csv">
               <thead>
                 <tr><th>PlayerID</th><th>MoveNum</th><th>Role</th><th>MoveType</th><th>MoveTier</th><th>Element</th><th>Outcome</th><th>Value</th><th>Success</th></tr>
@@ -484,21 +438,19 @@
       </div>
     </section>
 
-    <!-- the page ends on a band in the game's own button colour -->
-    <section class="wb-band">
-      <div class="container">
-        <p class="wb-chapter">Do it yourself!</p>
-        <div class="wb-band-grid">
-          <div class="wb-band-item">
-            <h2>Build the project for yourself</h2>
-            <p>Download the project from GitHub and run it on your own machine.</p>
-            <a class="btn wb-band-btn" href="https://github.com/AhsanPotatwo/Wizard-battles" target="_blank" rel="noopener">Get it on GitHub</a>
-          </div>
-          <div class="wb-band-item">
-            <h2>Read the report for the project</h2>
-            <p>Read the dissertation document which outlines details about this project.</p>
-            <a class="btn wb-band-btn" href="assets/wizard-battles/downloads/Wizard-Battles-Dissertation-Report.pdf" target="_blank" rel="noopener">Read the dissertation</a>
-          </div>
+    <!-- the page ends on the curtain coming down, with two bills pinned to it -->
+    <section class="wb-curtain">
+      <div class="wb-pelmet" aria-hidden="true"></div>
+      <div class="container wb-curtain-bills">
+        <div class="wb-bill-card">
+          <h2>Build it yourself</h2>
+          <p>Download the project from GitHub and run it on your own machine.</p>
+          <a class="btn wb-curtain-btn" href="https://github.com/AhsanPotatwo/Wizard-battles" target="_blank" rel="noopener">Get it on GitHub</a>
+        </div>
+        <div class="wb-bill-card">
+          <h2>Read the report</h2>
+          <p>The dissertation itself, with everything behind the project in detail.</p>
+          <a class="btn wb-curtain-btn" href="assets/wizard-battles/downloads/Wizard-Battles-Dissertation-Report.pdf" target="_blank" rel="noopener">Read the dissertation</a>
         </div>
       </div>
     </section>
@@ -531,7 +483,6 @@
   <script src="js/wizard-battles/sounds.js"></script>
   <script src="js/wizard-battles/duel.js"></script>
   <script src="js/wizard-battles/page.js"></script>
-  <script src="js/wizard-battles/eyes.js"></script>
 </body>
 
 </html>

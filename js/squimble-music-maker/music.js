@@ -56,7 +56,7 @@
 // band that listens once it's written (listen): the tune on top and nothing rubbing against it.
 // README.md lists every rule with what sounded wrong before it. read it before changing one.
 //
-// ---------- times ----------
+// ---------- times -dis---------
 //
 // every time is in beats from the song's start, so the tempo never changes the notes. synth.js turns
 // beats into seconds.
