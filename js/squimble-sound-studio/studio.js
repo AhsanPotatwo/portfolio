@@ -30,6 +30,8 @@
   window.showMessage = (text) => {
     message = text;
     messageUntil = performance.now() + 6000;
+    // it shows over the tip of the button that was pressed, until the pointer moves to something else
+    hoveredTip = null;
     showTip();
   };
 
@@ -51,7 +53,7 @@
 
   const nameField = $('#ssName');
   const tipLine = $('#ssTip');
-  const DEFAULT_TIP = 'Point at anything to see what it does. Double click a slider to put it back to normal, or use the arrow keys to nudge it.';
+  const DEFAULT_TIP = 'Point at anything to see what it does. Double click a slider to put it back to normal, or use the arrow keys to nudge it. Keys A to K on your keyboard play the piano.';
 
   const Studio = Object.assign(Object.create(SoundEditor), {
     draft: soundSettings({}),
@@ -297,6 +299,8 @@
   const piano = $('#ssPiano');
   const steps = [0, 2, 4, 5, 7, 9, 11];
   const pianoKeys = [];
+  // each note's key, for the computer keyboard below
+  const keyFor = {};
   for (let k = 0; k < SOUND_EDITOR.whiteKeys; k++) {
     const note = SOUND_EDITOR.pianoFrom + 12 * Math.floor(k / 7) + steps[k % 7];
     pianoKeys.push({ note, k, black: false });
@@ -323,8 +327,30 @@
       down();
       setTimeout(up, 150);
     });
+    keyFor[note] = button;
     piano.append(button);
   }
+  // the computer keyboard plays it too, the usual way for a synth: the A row is the white keys from
+  // the bottom C and the row above it the black ones
+  const LETTERS = 'awsedftgyhujkolp;\'';
+  const noteOf = (event) => {
+    const i = LETTERS.indexOf(event.key.toLowerCase());
+    if (i < 0 || event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return null;
+    if (event.target.closest('input[type="text"], input[type="search"], textarea')) return null;
+    return SOUND_EDITOR.pianoFrom + i;
+  };
+  document.addEventListener('keydown', (event) => {
+    const note = noteOf(event);
+    if (note === null) return;
+    event.preventDefault();
+    if (event.repeat) return;
+    keyFor[note].classList.add('is-down');
+    Studio.play(noteFrequency(note));
+  });
+  document.addEventListener('keyup', (event) => {
+    const note = noteOf(event);
+    if (note !== null) keyFor[note].classList.remove('is-down');
+  });
   piano.addEventListener('keydown', (event) => {
     const way = { ArrowRight: 1, ArrowLeft: -1 }[event.key];
     if (!way) return;
@@ -450,77 +476,85 @@
   const readout = $('#ssReadout');
   const colours = getComputedStyle(document.body);
   const colour = (name) => colours.getPropertyValue(name).trim();
-  // the scope is an lcd, so it draws in the screen's inks. SIGNAL is for the library's pictures
-  const SIGNAL = colour('--ss-signal');
+  // the scope is an lcd, so it draws in the screen's inks, a pixel every PX css px
   const INK = colour('--ss-lcd-ink');
   const FILL = colour('--ss-lcd-fill');
   const LINE = colour('--ss-lcd-line');
+  const PX = Number(colour('--ss-px')) || 3;
+  // the library's pictures, on their stickers
+  const STICKER_INK = colour('--ss-raised');
+  const lowLabel = $('#ssScopeLow');
+  const led = $('#ssLed');
 
   // SoundVisualiser.draw() for a canvas: a close-up of a few waves from just after it gets loud,
   // and the whole sound with a line moving along it while it plays (or it talking, while it's
-  // saying something), from the real audio. its note, pitch and length go underneath
+  // saying something), from the real audio. its name, note, pitch and length go underneath.
+  // it's drawn in whole pixels only, so scaled up it looks like an old handheld's screen
   function drawScope() {
-    const ratio = window.devicePixelRatio || 1;
-    const w = scope.clientWidth;
-    const h = scope.clientHeight;
-    if (scope.width !== Math.round(w * ratio) || scope.height !== Math.round(h * ratio)) {
-      scope.width = Math.round(w * ratio);
-      scope.height = Math.round(h * ratio);
+    const box = scope.parentElement;
+    const w = Math.max(1, Math.floor(box.clientWidth / PX));
+    const h = Math.max(1, Math.floor(box.clientHeight / PX));
+    if (scope.width !== w || scope.height !== h) {
+      scope.width = w;
+      scope.height = h;
+      scope.style.width = `${w * PX}px`;
+      scope.style.height = `${h * PX}px`;
     }
     const ctx = context;
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
     const sound = Studio.draft;
     const preview = Sound.previewing;
+    const playing = Boolean(preview && (preview.loop || (millis() - preview.started) / 1000 < preview.seconds));
+    led.classList.toggle('is-on', playing);
     const say = preview && (millis() - preview.started) / 1000 < preview.seconds ? preview.say : null;
     const { samples } = Sound.render(sound);
     const { seconds } = Sound.render(sound, false, sound.pitch, say);
-    const panel = (h - 8) / 2;
-    const wholeY = panel + 8;
-    ctx.font = '500 11px Tektur, sans-serif';
-    for (const [top, label] of [[0, 'wave'], [wholeY, say === null ? 'whole sound' : 'talking']]) {
-      ctx.fillStyle = LINE;
-      ctx.fillRect(0, top + panel / 2, w, 1);
-      ctx.fillStyle = FILL;
-      ctx.fillText(label, 4, top + 12);
-    }
+    const panel = Math.floor((h - 3) / 2);
+    const wholeY = panel + 3;
+    const label = say === null ? 'whole sound' : 'talking';
+    if (lowLabel.textContent !== label) lowLabel.textContent = label;
+    ctx.fillStyle = LINE;
+    for (const top of [0, wholeY]) ctx.fillRect(0, top + Math.floor(panel / 2) + 2, w, 1);
 
-    // the close-up, from the end of the fade in plus a little into the hold
+    // the close-up, from the end of the fade in plus a little into the hold. each column fills
+    // from the last one's height to its own, so the line never breaks up
     const startSeconds = sound.attack / 1000 + Math.min(sound.sustain / 2000, 0.05);
     const start = Math.min(samples.length - 1, Math.floor(startSeconds * SOUND_RATE));
     const spanSeconds = SOUND_WAVES[sound.wave].shape || sound.wave === 'metal' ? closeUpCycles(sound.pitch) / sound.pitch : 0.01;
     const span = Math.max(8, Math.round(spanSeconds * SOUND_RATE));
-    const middle = panel / 2 + 4;
-    ctx.strokeStyle = INK;
-    ctx.lineWidth = 1.6;
-    ctx.lineJoin = 'round';
-    ctx.beginPath();
-    for (let i = 0; i <= w; i++) ctx.lineTo(i, middle - (samples[start + Math.floor((i / w) * span)] ?? 0) * (panel / 2 - 10));
-    ctx.stroke();
+    const middle = Math.floor(panel / 2) + 2;
+    const reach = panel / 2 - 5;
+    ctx.fillStyle = INK;
+    let last = null;
+    for (let x = 0; x < w; x++) {
+      const y = Math.round(middle - (samples[start + Math.floor((x / w) * span)] ?? 0) * reach);
+      const from = last ?? y;
+      ctx.fillRect(x, Math.min(from, y), 1, Math.abs(y - from) + 1);
+      last = y;
+    }
 
     // the whole sound, a line from the loudest to the quietest point of each column
-    const columns = Math.max(1, Math.floor(w));
-    const overview = soundOverview(sound, columns, say);
-    const centre = wholeY + panel / 2 + 4;
-    const height = panel - 18;
+    const overview = soundOverview(sound, w, say);
+    const centre = wholeY + Math.floor(panel / 2) + 2;
+    const height = panel - 8;
     ctx.fillStyle = FILL;
-    for (let c = 0; c < columns; c++) {
-      const top = centre - overview[c * 2 + 1] * (height / 2);
-      ctx.fillRect(c, top, 1, Math.max(1, (overview[c * 2 + 1] - overview[c * 2]) * (height / 2)));
+    for (let c = 0; c < w; c++) {
+      const top = Math.round(centre - overview[c * 2 + 1] * (height / 2));
+      const bottom = Math.round(centre - overview[c * 2] * (height / 2));
+      ctx.fillRect(c, top, 1, Math.max(1, bottom - top + 1));
     }
-    if (preview) {
+    if (playing) {
       const played = (millis() - preview.started) / 1000;
-      if (preview.loop || played < preview.seconds) {
-        ctx.fillStyle = INK;
-        ctx.fillRect(((played % preview.seconds) / preview.seconds) * w, wholeY, 1.5, panel);
-      }
+      ctx.fillStyle = INK;
+      ctx.fillRect(Math.floor(((played % preview.seconds) / preview.seconds) * w), wholeY, 1, panel);
     }
 
     let pitch = [noteName(sound.pitch), `${sound.pitch} Hz`];
     if (sound.wave === 'file') pitch = [`${Math.round((sound.pitch / 440) * 100)}% speed`];
     else if (!SOUND_WAVES[sound.wave].shape && sound.wave !== 'metal') pitch = [`${sound.pitch} Hz`];
-    const words = [...pitch, `${Math.round(seconds * 1000)} ms`];
+    const name = cleanMapName(nameField.value) || `new ${sound.kind}`;
+    const words = [name, ...pitch, `${Math.round(seconds * 1000)} ms`];
     const html = words.map((word) => `<span>${word}</span>`).join('');
     if (readout.innerHTML !== html) readout.innerHTML = html;
   }
@@ -614,6 +648,7 @@
   // which library is showing, 'sound' or 'voice'
   let libraryKind = 'sound';
   const library = $('#ssLibrary');
+  const finder = $('#ssFind');
   // little pictures waiting to be drawn, one a frame, since some sounds take a while to work out
   let toDraw = [];
 
@@ -622,11 +657,17 @@
     $('#ssNew').textContent = libraryKind === 'voice' ? 'New voice' : 'New sound';
     library.replaceChildren();
     toDraw = [];
-    const sounds = Object.values(libraryKind === 'voice' ? VOICES : SOUNDS);
-    if (sounds.length === 0) library.append(make('li', 'ss-lib-empty', `No ${libraryKind}s yet. Make one above and save it.`));
+    const every = Object.values(libraryKind === 'voice' ? VOICES : SOUNDS);
+    // the Find box, which follows the same rules as names so "lava rumble" finds lava-rumble
+    const find = cleanMapName(finder.value);
+    const sounds = every.filter((sound) => sound.name.includes(find));
+    if (every.length === 0) library.append(make('li', 'ss-lib-empty', `No ${libraryKind}s yet. Make one above and save it.`));
+    else if (sounds.length === 0) library.append(make('li', 'ss-lib-empty', `None of your ${libraryKind}s have "${find}" in their name.`));
     for (const sound of sounds) {
       const row = make('li');
       row.classList.toggle('is-open', sound.name === Studio.original);
+      row.classList.toggle('is-yours', Boolean(saved[sound.name] && !gameSounds[sound.name]));
+      row.classList.toggle('is-changed', Boolean(saved[sound.name] && gameSounds[sound.name]));
       const play = key('', '', () => {
         Studio.loopButton.on = false;
         Sound.preview(sound, sound.kind === 'voice' ? { say: Studio.sayField.value } : {});
@@ -640,6 +681,7 @@
       if (saved[sound.name]) open.append(make('small', '', gameSounds[sound.name] ? 'changed' : 'yours'));
       const picture = make('canvas');
       picture.setAttribute('aria-hidden', 'true');
+      picture.addEventListener('click', () => Studio.open(sound.name));
       toDraw.push([picture, sound]);
       row.append(play, open, picture);
       if (saved[sound.name]) {
@@ -670,16 +712,21 @@
     const next = toDraw.shift();
     if (!next) return;
     const [canvas, sound] = next;
+    // the whole sound across the sticker, leaving a margin either side
     const ratio = window.devicePixelRatio || 1;
-    canvas.width = 80 * ratio;
-    canvas.height = 26 * ratio;
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    canvas.width = Math.round(w * ratio);
+    canvas.height = Math.round(h * ratio);
     const ctx = canvas.getContext('2d');
     ctx.scale(ratio, ratio);
-    ctx.fillStyle = SIGNAL;
-    const overview = soundOverview(sound, 80);
-    for (let c = 0; c < 80; c++) {
-      const top = 13 - overview[c * 2 + 1] * 12;
-      ctx.fillRect(c, top, 1, Math.max(1, (overview[c * 2 + 1] - overview[c * 2]) * 12));
+    ctx.fillStyle = STICKER_INK;
+    const columns = Math.max(1, Math.floor(w - 20));
+    const reach = h / 2 - 6;
+    const overview = soundOverview(sound, columns);
+    for (let c = 0; c < columns; c++) {
+      const top = h / 2 - 2 - overview[c * 2 + 1] * reach;
+      ctx.fillRect(10 + c, top, 1, Math.max(1, (overview[c * 2 + 1] - overview[c * 2]) * reach));
     }
   }
 
@@ -687,6 +734,7 @@
     libraryKind = button.dataset.library;
     renderLibrary();
   }));
+  finder.addEventListener('input', renderLibrary);
   $('#ssNew').addEventListener('click', () => Studio.open(null, libraryKind));
 
   // ---------- every frame ----------

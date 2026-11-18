@@ -11,19 +11,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Quicksand:wght@400;500;600;700&family=Bai+Jamjuree:wght@400;500;600;700&family=Tektur:wdth,wght@75..100,400..800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Quicksand:wght@400;500;600;700&family=Bai+Jamjuree:wght@400;500;600;700&family=Tektur:wdth,wght@75..100,400..800&family=Doto:wght@600..900&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/squimble-sound-studio.css">
 </head>
 
 <body class="ss-page">
-
-  <div class="bg-glow" aria-hidden="true">
-    <div class="bg-nebula bg-nebula-1"></div>
-    <div class="bg-nebula bg-nebula-2"></div>
-    <div class="bg-nebula bg-nebula-3"></div>
-  </div>
 
   <a class="skip-link" href="#studio">Skip to the studio</a>
 
@@ -45,11 +39,11 @@
     </div>
   </header>
 
-  <main class="container">
+  <main>
 
-    <div class="ss-intro">
+    <div class="container ss-intro">
       <h1 class="ss-title">Squimble Sound Studio</h1>
-      <p class="ss-lede">The synthesiser I built for <a href="squimble-quest.html">Squimble Quest</a>, on its own page. Every sound is worked out sample by sample in JavaScript, with no recordings. Make one, then download it or copy it into the game.</p>
+      <p class="ss-lede">The synthesiser I built for <a href="squimble-quest.html">Squimble Quest</a>, as a little handheld of its own. Every sound is worked out sample by sample in JavaScript, with no recordings. Make one, then download it or copy it into the game.</p>
       <ul class="ss-tags" aria-label="Built with">
         <li>JavaScript</li>
         <li>Web Audio</li>
@@ -57,122 +51,152 @@
       </ul>
     </div>
 
-    <!-- the instrument. js/squimble-sound-studio/studio.js fills in the parts marked "filled in" -->
-    <section class="ss-studio" id="studio" aria-label="Sound studio">
+    <!-- the handheld. js/squimble-sound-studio/studio.js fills in the parts marked "filled in" -->
+    <div class="container">
+      <section class="ss-studio" id="studio" aria-label="Sound studio">
 
-      <div class="ss-bar">
-        <label class="ss-name">
-          <span>Name</span>
-          <input id="ssName" class="ss-input" type="text" maxlength="20" autocomplete="off" spellcheck="false" data-tip="The name it's saved under. Lower case, with - instead of spaces">
-        </label>
-        <span class="ss-saves-as" id="ssSavesAs"></span>
-        <div class="ss-kind" role="group" aria-label="Kind">
-          <button type="button" class="ss-key" data-kind="sound" aria-pressed="true" data-tip="Sound: for sound blocks and anything else in the game that makes a noise">Sound</button>
-          <button type="button" class="ss-key" data-kind="voice" aria-pressed="false" data-tip="Voice: for npcs to talk with. Type in the Say box on the Voice tab to hear it talk">Voice</button>
-        </div>
-        <div class="ss-bar-actions">
-          <button type="button" class="ss-key ss-key-line" id="ssUndo" data-tip="Undo: goes back to before the last change">Undo</button>
-          <button type="button" class="ss-key ss-key-go" id="ssSave" data-tip="Save it to the library below. Saving under a new name makes a copy">Save to library</button>
-        </div>
-      </div>
-
-      <div class="ss-deck">
-        <div class="ss-left">
-          <div class="ss-scope">
-            <canvas id="ssScope" aria-label="Picture of the sound: a close-up of its wave, and the whole sound from start to end" role="img"></canvas>
-            <p class="ss-readout" id="ssReadout" aria-live="off"></p>
+        <!-- the top of the case: the sound's name on a sticker, its kind, undo and save -->
+        <div class="ss-bar">
+          <label class="ss-name">
+            <span>Name</span>
+            <input id="ssName" class="ss-input" type="text" maxlength="20" autocomplete="off" spellcheck="false" data-tip="The name it's saved under. Lower case, with - instead of spaces">
+          </label>
+          <span class="ss-saves-as" id="ssSavesAs"></span>
+          <div class="ss-kind" role="group" aria-label="Kind">
+            <button type="button" class="ss-key" data-kind="sound" aria-pressed="true" data-tip="Sound: for sound blocks and anything else in the game that makes a noise">Sound</button>
+            <button type="button" class="ss-key" data-kind="voice" aria-pressed="false" data-tip="Voice: for npcs to talk with. Type in the Say box on the Voice tab to hear it talk">Voice</button>
           </div>
-
-          <div class="ss-transport">
-            <button type="button" class="ss-key ss-key-go" id="ssPlay" data-tip="Play it once (Space, when nothing's being typed in)"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg>Play</button>
-            <button type="button" class="ss-key" id="ssStop" data-tip="Stop playing"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5h7v7h-7z"/></svg>Stop</button>
-            <button type="button" class="ss-key" id="ssLoop" aria-pressed="false" data-tip="Loop: plays it over and over, and starts again whenever you change something, so you can hear a slider while you drag it"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M9.5 4.5A4 4 0 1 0 10 7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.6 1.6v3.6H7z"/></svg>Loop</button>
+          <div class="ss-bar-actions">
+            <button type="button" class="ss-key ss-key-line" id="ssUndo" data-tip="Undo: goes back to before the last change">Undo</button>
+            <button type="button" class="ss-key ss-key-go" id="ssSave" data-tip="Save it to the library below. Saving under a new name makes a copy">Save to library</button>
           </div>
+        </div>
 
-          <!-- filled in: two octaves of keys -->
-          <div class="ss-piano" id="ssPiano" data-tip="Piano: plays the sound at that note. Slides, jumps and vibrato all move with it"></div>
+        <div class="ss-deck">
+          <div class="ss-left">
+            <!-- the screen: the scope drawn in chunky lcd pixels, its readout, and the tip box -->
+            <div class="ss-bezel">
+              <p class="ss-power"><span class="ss-led" id="ssLed"></span>Sound</p>
+              <div class="ss-scope">
+                <div class="ss-scope-picture">
+                  <canvas id="ssScope" aria-label="Picture of the sound: a close-up of its wave, and the whole sound from start to end" role="img"></canvas>
+                  <span class="ss-scope-label">wave</span>
+                  <span class="ss-scope-label ss-scope-label-low" id="ssScopeLow">whole sound</span>
+                </div>
+                <p class="ss-readout" id="ssReadout" aria-live="off"></p>
+                <p class="ss-tip" id="ssTip"></p>
+              </div>
+            </div>
 
-          <div class="ss-makers">
-            <h2 class="ss-heading">Make one</h2>
-            <p class="ss-makers-note">Each button makes a random sound of that kind. Press it again for another, then shape it in the Character tab.</p>
-            <!-- filled in: a button per kind, then that kind's makers -->
-            <div class="ss-maker-kinds" id="ssKinds" role="group" aria-label="Kinds of sound"></div>
-            <div id="ssMakers"></div>
-            <div class="ss-dice">
-              <button type="button" class="ss-key" id="ssRandom" data-tip="Random: anything at all, from any wave. A lot of it is noise, so press it again">Random</button>
-              <button type="button" class="ss-key" id="ssMutate" data-tip="Mutate: nudges the settings that are on a little bit, for a sound that's similar but different">Mutate</button>
+            <div class="ss-transport">
+              <button type="button" class="ss-round ss-round-go" id="ssPlay" data-tip="Play it once (Space, when nothing's being typed in)"><span class="ss-cap"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 1.8v8.4L10 6z"/></svg></span>Play</button>
+              <button type="button" class="ss-round" id="ssStop" data-tip="Stop playing"><span class="ss-cap"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 2.5h7v7h-7z"/></svg></span>Stop</button>
+              <button type="button" class="ss-round" id="ssLoop" aria-pressed="false" data-tip="Loop: plays it over and over, and starts again whenever you change something, so you can hear a slider while you drag it"><span class="ss-cap"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M9.5 4.5A4 4 0 1 0 10 7" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.6 1.6v3.6H7z"/></svg></span>Loop</button>
+            </div>
+
+            <!-- filled in: two octaves of keys -->
+            <div class="ss-piano" id="ssPiano" data-tip="Piano: plays the sound at that note. Slides, jumps and vibrato all move with it. Your keyboard plays it too: A to K are the white keys, W E T Y U the black ones"></div>
+
+            <div class="ss-makers">
+              <h2 class="ss-heading">Make one</h2>
+              <p class="ss-makers-note">Each button makes a random sound of that kind. Press it again for another, then shape it in the Character tab.</p>
+              <!-- filled in: a button per kind, then that kind's makers -->
+              <div class="ss-maker-kinds" id="ssKinds" role="group" aria-label="Kinds of sound"></div>
+              <div id="ssMakers"></div>
+              <div class="ss-dice">
+                <button type="button" class="ss-pill" id="ssRandom" data-tip="Random: anything at all, from any wave. A lot of it is noise, so press it again"><span></span>Random</button>
+                <button type="button" class="ss-pill" id="ssMutate" data-tip="Mutate: nudges the settings that are on a little bit, for a sound that's similar but different"><span></span>Mutate</button>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="ss-right">
-          <div class="ss-waves">
-            <div class="ss-waves-head">
-              <h2 class="ss-heading">Wave</h2>
-              <span class="ss-file-name" id="ssFileName"></span>
-              <button type="button" class="ss-key ss-key-small ss-key-line" id="ssChooseFile" hidden data-tip="Pick an mp3, wav or ogg from your computer to use instead of a wave">Choose file</button>
+          <!-- the faceplate: waves, then a tab per group of settings -->
+          <div class="ss-right">
+            <div class="ss-waves">
+              <div class="ss-waves-head">
+                <h2 class="ss-heading">Wave</h2>
+                <span class="ss-file-name" id="ssFileName"></span>
+                <button type="button" class="ss-key ss-key-small ss-key-line" id="ssChooseFile" hidden data-tip="Pick an mp3, wav or ogg from your computer to use instead of a wave">Choose file</button>
+              </div>
+              <!-- filled in: a button per wave -->
+              <div class="ss-wave-grid" id="ssWaves" role="group" aria-label="Wave"></div>
             </div>
-            <!-- filled in: a button per wave -->
-            <div class="ss-wave-grid" id="ssWaves" role="group" aria-label="Wave"></div>
-          </div>
 
-          <!-- filled in: a tab per group of settings, and a panel of sliders for each -->
-          <div class="ss-tabs" id="ssTabs" role="group" aria-label="Settings"></div>
-          <div class="ss-panels" id="ssPanels"></div>
-        </div>
-      </div>
-
-      <p class="ss-tip" id="ssTip"></p>
-    </section>
-
-    <div class="ss-ribbon-wrap"><span class="ss-ribbon">Keep your sounds</span></div>
-
-    <div class="ss-lower">
-      <section class="ss-shelf ss-library" aria-labelledby="ssLibraryTitle">
-        <div class="ss-shelf-head">
-          <h2 class="ss-shelf-title" id="ssLibraryTitle">Your <span>library</span></h2>
-          <div class="ss-kind" role="group" aria-label="Show">
-            <button type="button" class="ss-key ss-key-small" data-library="sound" aria-pressed="true">Sounds</button>
-            <button type="button" class="ss-key ss-key-small" data-library="voice" aria-pressed="false">Voices</button>
+            <!-- filled in: a tab per group of settings, and a panel of sliders for each -->
+            <div class="ss-tabs" id="ssTabs" role="group" aria-label="Settings"></div>
+            <div class="ss-panels" id="ssPanels"></div>
           </div>
         </div>
-        <p class="ss-shelf-note">The game's own sounds, plus anything you save. Yours are kept in this browser.</p>
-        <button type="button" class="ss-new" id="ssNew">New sound</button>
-        <!-- filled in -->
-        <ul class="ss-library-list" id="ssLibrary"></ul>
-      </section>
 
-      <section class="ss-shelf ss-export" aria-labelledby="ssExportTitle">
-        <h2 class="ss-shelf-title" id="ssExportTitle">Take it <span>with you</span></h2>
-
-        <div class="ss-export-row">
-          <div>
-            <h3>As an audio file</h3>
-            <p id="ssWavNote">A WAV file of the sound playing once.</p>
-          </div>
-          <button type="button" class="ss-key ss-key-go" id="ssWav">Download WAV</button>
-        </div>
-
-        <div class="ss-export-row ss-export-code">
-          <div>
-            <h3>For Squimble Quest</h3>
-            <p id="ssCodeNote">The sound's own file for the game.</p>
-          </div>
-          <button type="button" class="ss-key ss-key-line" id="ssCopy">Download</button>
-          <pre class="ss-code"><code id="ssCode"></code></pre>
-        </div>
-
-        <div class="ss-export-row">
-          <div>
-            <h3>The whole library</h3>
-            <p>A file for every sound and voice you've saved or changed, plus any audio files you've used. They go in <code>assets/squimble-quest/sounds/</code> and <code>voices/</code>, and the message says which names to add to each <code>index.json</code>.</p>
-          </div>
-          <button type="button" class="ss-key ss-key-line" id="ssExportAll">Download changed files</button>
+        <!-- the bottom of the case: the maker's mark and the speaker -->
+        <div class="ss-case-foot" aria-hidden="true">
+          <span class="ss-mark">squimble</span>
+          <span class="ss-grille"><i></i><i></i><i></i><i></i><i></i><i></i></span>
         </div>
       </section>
     </div>
 
-    <div class="page-back">
+    <!-- the ports on the back: the sound as a wav, as the game's file, and the whole library -->
+    <section class="container ss-ports" aria-labelledby="ssExportTitle">
+      <h2 class="ss-section-head" id="ssExportTitle">Take it with you</h2>
+      <div class="ss-port-row">
+        <div class="ss-port">
+          <p class="ss-port-tag">Audio out</p>
+          <h3>As an audio file</h3>
+          <p id="ssWavNote">A WAV file of the sound playing once.</p>
+          <button type="button" class="ss-key ss-key-go" id="ssWav">Download WAV</button>
+        </div>
+
+        <div class="ss-port ss-port-code">
+          <p class="ss-port-tag">Game link</p>
+          <h3>For Squimble Quest</h3>
+          <p id="ssCodeNote">The sound's own file for the game.</p>
+          <pre class="ss-code"><code id="ssCode"></code></pre>
+          <button type="button" class="ss-key ss-key-go" id="ssCopy">Download file</button>
+        </div>
+
+        <div class="ss-port">
+          <p class="ss-port-tag">Backup</p>
+          <h3>The whole library</h3>
+          <p>A file for every sound and voice you've saved or changed, plus any audio files you've used. They go in <code>assets/squimble-quest/sounds/</code> and <code>voices/</code>, and the message says which names to add to each <code>index.json</code>.</p>
+          <button type="button" class="ss-key ss-key-go" id="ssExportAll">Download changed files</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- the library: every sound as a cartridge. click one to put it in the studio -->
+    <section class="container ss-library" aria-labelledby="ssLibraryTitle">
+      <div class="ss-library-head">
+        <h2 class="ss-section-head" id="ssLibraryTitle">Your library</h2>
+        <div class="ss-library-tools">
+          <input id="ssFind" class="ss-input" type="search" placeholder="Find one" autocomplete="off" spellcheck="false" aria-label="Find a sound by name">
+          <div class="ss-kind" role="group" aria-label="Show">
+            <button type="button" class="ss-key" data-library="sound" aria-pressed="true">Sounds</button>
+            <button type="button" class="ss-key" data-library="voice" aria-pressed="false">Voices</button>
+          </div>
+          <button type="button" class="ss-key ss-key-go" id="ssNew">New sound</button>
+        </div>
+      </div>
+      <p class="ss-library-note">The game's own sounds are grey. Yours are mint and the game's that you've changed are amber, both kept in this browser. Click one to open it in the studio.</p>
+      <!-- filled in -->
+      <ul class="ss-library-list" id="ssLibrary"></ul>
+    </section>
+
+    <!-- the page ends on a strip of the lcd -->
+    <section class="ss-band" aria-labelledby="ssBandTitle">
+      <div class="container ss-band-inner">
+        <div>
+          <h2 class="ss-band-title" id="ssBandTitle">More Squimble</h2>
+          <p>These sounds are made for Squimble Quest, and the music maker writes its songs.</p>
+        </div>
+        <div class="ss-band-links">
+          <a class="ss-key ss-key-ink" href="squimble-quest.html">Squimble Quest</a>
+          <a class="ss-key ss-key-ink" href="squimble-music-maker.html">Music Maker</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="container page-back">
       <a href="index.html#projects"><span aria-hidden="true">&larr;</span> Back to all projects</a>
     </div>
 
