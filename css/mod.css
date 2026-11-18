@@ -14,7 +14,7 @@
   background:var(--night);
   color:var(--paper);
 }
-html:has(.mod-page){ scrollbar-color:var(--night-3) var(--night); }
+html:has(.mod-page){ --sb-track:#1f1a33; --sb-thumb:#b49cff; --sb-edge:#6b4fe0; --sb-hover:#c5b3ff; --sb-round:6px; }
 .mod-page ::selection{ background:var(--butter); color:var(--night); }
 .mod-page :focus-visible{ outline:3px solid var(--butter); outline-offset:3px; }
 .mod-page .site-header{ background:var(--night); backdrop-filter:none; border-bottom:2px solid var(--night-2); }

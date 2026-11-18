@@ -75,7 +75,18 @@
   --mm-dock:      #0e0805;
   --mm-tint:      color-mix(in oklab, var(--mm-mood) 22%, var(--mm-butter));
 }
-html:has(.mm-page){ background:var(--mm-sky-deep); scrollbar-color:color-mix(in oklab, var(--mm-mood) 45%, #3a2414) var(--mm-sky-deep); }
+/* html has its own copy of the mood (maker.js sets both), so the page behind and the scrollbar can take
+   it too: a soft round key in the mood's light colour */
+html:has(.mm-page){
+  --mm-mood:#9cc5a1;
+  --mm-sky-deep:color-mix(in oklab, var(--mm-mood) 16%, #120904);
+  --sb-track:var(--mm-sky-deep);
+  --sb-thumb:color-mix(in oklab, var(--mm-mood) 34%, #fff6d8);
+  --sb-edge:color-mix(in oklab, var(--mm-mood) 45%, #3a2414);
+  --sb-hover:#fff6d8;
+  --sb-round:999px;
+  background:var(--mm-sky-deep);
+}
 /* clip, not styles.css's hidden: still no sideways scroll, but no scroll box either, so the dock can
    stick to the window */
 .mm-page, .mm-page main{ overflow-x:clip; }

@@ -34,10 +34,52 @@
 html{
   scroll-behavior:smooth;
   scroll-padding-top:90px;
-  scrollbar-color:#4a3d6e var(--bg);
   color-scheme:dark;
+  /* the scrollbar's colours (see "scrollbars" below). each page sets its own on html, not its body: the
+     page's scrollbar belongs to html, which can't see the body's colours */
+  --sb-track:#222025; --sb-thumb:#4a3d6e; --sb-edge:#2f2649; --sb-hover:#5b4b86; --sb-round:8px;
 }
+/* checkboxes, radios and sliders the browser draws take the scrollbar's colour too */
+:where(:root:not(:has(.cc-page, .dc-page))){ accent-color:var(--sb-thumb); }
 ::selection{ background:rgba(115,90,255,.45); color:#fff; }
+
+/* ---------- scrollbars: the thumb is a key like the buttons, a flat face on its own darker edge, that
+   sinks in while it's dragged. chrome and safari draw the ::-webkit ones, but drop them wherever
+   scrollbar-color is set, so that's only for firefox, which takes the two colours. :where() keeps these
+   easy to override. catpi corner and distant cousins draw their own ---------- */
+@supports not selector(::-webkit-scrollbar){
+  html{ scrollbar-color:var(--sb-thumb) var(--sb-track); }
+}
+:where(:root:not(:has(.cc-page, .dc-page)))::-webkit-scrollbar{ width:16px; height:16px; background:var(--sb-track); }
+:where(:root:not(:has(.cc-page, .dc-page))) body ::-webkit-scrollbar{ width:12px; height:12px; background:transparent; }
+:where(:root:not(:has(.cc-page, .dc-page)))::-webkit-scrollbar-track{ box-shadow:inset 2px 0 0 rgba(0,0,0,.14); }
+:where(:root:not(:has(.cc-page, .dc-page)))::-webkit-scrollbar-thumb,
+:where(:root:not(:has(.cc-page, .dc-page))) body ::-webkit-scrollbar-thumb{
+  border:3px solid transparent;
+  border-radius:calc(var(--sb-round) + 3px);
+  background:var(--sb-thumb) padding-box;
+  box-shadow:inset 0 -4px 0 var(--sb-edge);
+}
+/* the page's own thumb gets a grip in the middle, three short lines in the edge colour */
+:where(:root:not(:has(.cc-page, .dc-page)))::-webkit-scrollbar-thumb{
+  background-image:linear-gradient(var(--sb-edge) 0 0), linear-gradient(var(--sb-edge) 0 0), linear-gradient(var(--sb-edge) 0 0);
+  background-size:6px 2px;
+  background-repeat:no-repeat;
+  background-position:center calc(50% - 6px), center calc(50% - 2px), center calc(50% + 2px);
+}
+:where(:root:not(:has(.cc-page, .dc-page)))::-webkit-scrollbar-thumb:hover,
+:where(:root:not(:has(.cc-page, .dc-page))) body ::-webkit-scrollbar-thumb:hover{ background-color:var(--sb-hover); }
+:where(:root:not(:has(.cc-page, .dc-page)))::-webkit-scrollbar-thumb:active,
+:where(:root:not(:has(.cc-page, .dc-page))) body ::-webkit-scrollbar-thumb:active{ box-shadow:inset 0 3px 0 var(--sb-edge); }
+:where(:root:not(:has(.cc-page, .dc-page)))::-webkit-scrollbar-corner,
+:where(:root:not(:has(.cc-page, .dc-page))) body ::-webkit-scrollbar-corner{ background:transparent; }
+
+/* going from page to page fades one into the next instead of flashing white (chrome, edge and safari;
+   the others just load the page as before) */
+@view-transition{ navigation:auto; }
+@media (prefers-reduced-motion:reduce){
+  @view-transition{ navigation:none; }
+}
 
 body{
   margin:0;
@@ -274,7 +316,7 @@ a{ color:inherit; text-decoration:none; }
   opacity:.75;
   pointer-events:none;
 }
-html:has(.home){ scrollbar-color:var(--night-3) var(--night); }
+html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb-hover:#ffdc85; --sb-round:6px; }
 .home ::selection{ background:var(--butter); color:var(--night); }
 .hand{ font-family:var(--font-hand); font-weight:400; }
 

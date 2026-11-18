@@ -63,6 +63,18 @@
           <li class="sq-tag-wip">In development</li>
         </ul>
 
+        <!-- a sign over the game: none of it is final yet -->
+        <aside class="sq-wip" aria-labelledby="sqWipTitle">
+          <svg class="sq-wip-sign" viewBox="0 0 9 8" aria-hidden="true">
+            <path d="M4 0h1v1h1v2h1v2h1v2h1v1H0V7h1V5h1V3h1V1h1z"/>
+            <path class="sq-wip-mark" d="M4 2h1v3H4zM4 6h1v1H4z"/>
+          </svg>
+          <div>
+            <p class="sq-wip-title" id="sqWipTitle">Work in progress</p>
+            <p>Squimble Quest is in active development and changes all the time. The maps, art, quests and combat are all unfinished, so what you play here is nowhere near the final game. Expect bugs, placeholder art and things that break.</p>
+          </div>
+        </aside>
+
         <div class="sq-game-frame">
           <!-- sketch.js puts the canvas in here -->
           <div class="sq-game-stage" id="sqCanvas"></div>

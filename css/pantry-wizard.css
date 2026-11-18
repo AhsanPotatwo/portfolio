@@ -125,7 +125,8 @@ html.pw-light .pw-page{
   pointer-events:none;
 }
 
-html:has(.pw-page){ scrollbar-color:var(--wall-3) var(--wall); }
+/* the scrollbar: a violet shelf key on the wall */
+html:has(.pw-page){ --sb-track:#241b4d; --sb-thumb:#7357f2; --sb-edge:#4b33c4; --sb-hover:#8a72ff; --sb-round:8px; }
 .pw-page ::selection{ background:var(--shelf-lip); color:var(--ink); }
 .pw-page :focus-visible{ outline-color:var(--green); }
 

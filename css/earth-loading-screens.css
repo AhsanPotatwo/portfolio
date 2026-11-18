@@ -72,7 +72,11 @@
   background:var(--tile) 0 0 / 320px;
   pointer-events:none;
 }
-html:has(.el-page){ scrollbar-color:var(--muted) var(--bg); }
+/* the scrollbar: a round key in each theme's key colour. set on html, which can't see the themes' colours
+   on .el-page, so they're written out again here */
+html:has(.el-page){ --sb-track:#f1f3f5; --sb-thumb:#3366cc; --sb-edge:#22468f; --sb-hover:#4477dd; --sb-round:999px; }
+:root[data-el-theme="ocean"]:has(.el-page){ --sb-track:#123f5f; --sb-thumb:#f2d27a; --sb-edge:#c49a3a; --sb-hover:#f6dc94; }
+:root[data-el-theme="night"]:has(.el-page){ --sb-track:#1b1e23; --sb-thumb:#88a3e8; --sb-edge:#4a64a8; --sb-hover:#9db3ee; }
 .el-page ::selection{ background:var(--select); color:inherit; }
 .el-page :focus-visible{ outline-color:var(--focus); }
 

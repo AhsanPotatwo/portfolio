@@ -25,7 +25,8 @@
   --page-accent: var(--os-signal);
   background:var(--os-bg);
 }
-html:has(.os-page){ scrollbar-color:#3f4448 var(--os-bg); }
+/* the scrollbar: a fader cap in the panel's cream */
+html:has(.os-page){ --sb-track:#191b1d; --sb-thumb:#d9d6cc; --sb-edge:#9d998d; --sb-hover:#ece8de; --sb-round:3px; }
 .os-page ::selection{ background:rgba(125,255,160,.3); color:#fff; }
 .os-page .site-header{ background:rgba(21,23,25,.94); border-bottom-color:rgba(255,255,255,.08); }
 .os-page .brand:hover{ color:#c5ffd5; }

@@ -40,7 +40,8 @@
   background:url("../assets/cli-battleships/sea.svg") 0 0 / 560px;
   pointer-events:none;
 }
-html:has(.cb-page){ scrollbar-color:var(--raised) var(--bg); }
+/* the scrollbar: a block cursor in signal green */
+html:has(.cb-page){ --sb-track:#0c110e; --sb-thumb:#3ddc84; --sb-edge:#1f8f4f; --sb-hover:#6ee8a3; --sb-round:0px; }
 .cb-page ::selection{ background:var(--signal); color:var(--bg); }
 .cb-page :focus-visible{ outline-color:var(--signal); }
 

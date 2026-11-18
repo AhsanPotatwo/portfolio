@@ -33,7 +33,8 @@
   --page-accent: var(--ss-signal);
   background:var(--ss-night);
 }
-html:has(.ss-page){ scrollbar-color:var(--ss-raised) var(--ss-night); }
+/* the scrollbar: a signal teal key in the well */
+html:has(.ss-page){ --sb-track:#1b2230; --sb-thumb:#8fd3c1; --sb-edge:#4f8f80; --sb-hover:#a8e0d1; --sb-round:4px; }
 .ss-page ::selection{ background:rgba(143,211,193,.35); color:#fff; }
 .ss-page .bg-glow{ display:none; }
 .ss-page .site-header{ background:#1e2636; border-bottom-color:var(--ss-line); }

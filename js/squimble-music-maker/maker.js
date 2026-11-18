@@ -833,6 +833,8 @@
     renderSaveState();
     const colour = MOODS[song.mood].colour;
     document.body.style.setProperty('--mm-mood', colour);
+    // html too, for the page's scrollbar and what shows past the page's ends
+    document.documentElement.style.setProperty('--mm-mood', colour);
     document.body.style.setProperty('--mm-mood-ink', inkOn(colour));
     sky.mood(song.mood, colour);
   }

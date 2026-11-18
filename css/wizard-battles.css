@@ -59,7 +59,8 @@
   background:url("../assets/wizard-battles/house.svg") 0 0 / 420px;
   pointer-events:none;
 }
-html:has(.wizard-page){ scrollbar-color:var(--house-3) var(--house); }
+/* the scrollbar: a scroll of parchment, what else */
+html:has(.wizard-page){ --sb-track:#2b1d28; --sb-thumb:#f1e2c2; --sb-edge:#c4a774; --sb-hover:#f6ead6; --sb-round:5px; }
 .wizard-page ::selection{ background:var(--gold); color:var(--ink); }
 .wizard-page :focus-visible{ outline-color:var(--gold); }
 
