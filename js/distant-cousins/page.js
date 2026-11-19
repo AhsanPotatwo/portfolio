@@ -32,9 +32,10 @@
   let me = store.get('distantCousinsId', '');
   if (!/^[0-9a-f]{32}$/.test(me)) store.set('distantCousinsId', me = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join(''));
   // its answer as json (with error in it when it said no), or null when it couldn't be reached
+  // (or didn't answer in 8 seconds, so nothing waits on it forever)
   async function server(path, body) {
     try {
-      const r = await fetch(SERVER + path, body && { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ who: me, ...body }) });
+      const r = await fetch(SERVER + path, { signal: AbortSignal.timeout(8000), ...body && { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ who: me, ...body }) } });
       return await r.json();
     } catch { return null; }
   }

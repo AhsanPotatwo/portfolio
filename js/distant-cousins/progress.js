@@ -62,14 +62,8 @@
   // ---------- the window ----------
   const box = $('dcProg'), body = $('dcProgBody'), win = api.dialog(box);
   const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
-  const ICONS = {
-    kinds: '<path d="M12 12.5c-3 0-5.5 2.6-5.5 4.8 0 1.7 1.3 2.7 2.9 2.7 1 0 1.7-.5 2.6-.5s1.6.5 2.6.5c1.6 0 2.9-1 2.9-2.7 0-2.2-2.5-4.8-5.5-4.8z"/><ellipse cx="5.2" cy="10.4" rx="1.7" ry="2.1"/><ellipse cx="9.3" cy="6.2" rx="1.7" ry="2.2"/><ellipse cx="14.7" cy="6.2" rx="1.7" ry="2.2"/><ellipse cx="18.8" cy="10.4" rx="1.7" ry="2.1"/>',
-    time: '<path d="M10.375 12a1.625 1.625 0 0 1 3.25 0a3.25 3.25 0 0 1-6.5 0a4.875 4.875 0 0 1 9.75 0a6.5 6.5 0 0 1-13 0a8.125 8.125 0 0 1 16.25 0"/>',
-    records: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>',
-    you: '<path d="M6.5 21V4M6.5 4.5h11l-2.5 4 2.5 4h-11"/>',
-    all: '<circle cx="12" cy="5.5" r="2.5"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/><path d="M12 8v3.5M5.5 16v-1.5a3 3 0 0 1 3-3h7a3 3 0 0 1 3 3V16"/>',
-  };
-  const head = (sec, icon, words) => `<h3 class="dc-ach-head" data-sec="${sec}"><span class="dc-ach-badge" aria-hidden="true"><svg viewBox="0 0 24 24">${ICONS[icon]}</svg></span>${words}</h3>`;
+  // (plain headings: a picture in a coloured square on every one was too much)
+  const head = words => `<h3 class="dc-prog-head">${words}</h3>`;
   // one bar split into parts, with what each part is under it
   const stack = (parts, cls) => {
     const all = parts.reduce((s, p) => s + p[1], 0) || 1;
@@ -80,13 +74,16 @@
 
   function render() {
     const t = tally(), c = t.creatures, total = c.length;
-    let html = `<div class="dc-prog-tiles">
-      <p><b>${fmt(total)}</b><span>creatures found</span><small>of ${fmt(api.total)}${total ? `, ${total / api.total < 0.0001 ? 'a tiny bit' : +(total / api.total * 100).toFixed(2) + '%'}` : ''}</small></p>
-      <p><b>${fmt(t.groups)}</b><span>groups found</span></p>
-      <p><b>${fmt(t.extinct)}</b><span>that died out</span></p>
-      <p><b>${fmt(c.reduce((m, x) => Math.max(m, x.line.length - 1), 0))}</b><span>steps down your longest line</span></p>
+    // the tree in four numbers, like the line of figures at the top of a field guide's page (with its name, when
+    // there's more than one tree)
+    const name = api.trees.list.length > 1 ? api.trees.list.find(x => x.id === api.trees.now)?.name : '';
+    let html = `${name ? `<p class="dc-prog-tree">${esc(name)}</p>` : ''}<div class="dc-prog-stats">
+      <p><b>${fmt(total)}</b><span>${total === 1 ? 'creature' : 'creatures'} found</span><small>of ${fmt(api.total)}</small></p>
+      <p><b>${fmt(t.groups)}</b><span>${t.groups === 1 ? 'group' : 'groups'}</span></p>
+      <p><b>${fmt(t.extinct)}</b><span>died out</span></p>
+      <p><b>${fmt(c.reduce((m, x) => Math.max(m, x.line.length - 1), 0))}</b><span>steps down the longest line</span></p>
     </div>`;
-    html += `<p class="dc-trees-say">${api.trees.list.length > 1 ? `This is <b>${esc(api.trees.list.find(x => x.id === api.trees.now)?.name || '')}</b>, the tree on the board now. ` : ''}${total ? 'Here\'s what\'s on it, and how you explore.' : 'There\'s nothing on this tree yet. Discover a few creatures and come back to see what you like finding most.'}</p>`;
+    if (!total) html += '<p class="dc-prog-say">Nothing on this tree yet. Discover a few creatures and this page fills in with what you like finding most.</p>';
 
     if (total) {
       // what you find most, with everyone's share ticked on each bar once the server says
@@ -94,54 +91,64 @@
       const top = order[0], most = t.mix[top];
       // your favourite corner: the furthest down group holding at least a quarter of your finds (three at least),
       // with an everyday name
+      // (below the kind already named: "mostly mammals, your favourite corner is the mammals" says nothing)
+      const above = new Set(KINDS[top][1] ? api.trail(KINDS[top][1]) : []);
       let corner = null;
       for (const [g, n] of t.under) {
         const node = api.nodes.get(g);
-        if (!node?.l || n < Math.max(3, total * 0.25)) continue;
+        if (!node?.l || above.has(g) || n < Math.max(3, total * 0.25)) continue;
         const depth = api.trail(g).length;
         if (!corner || depth > corner.depth || depth === corner.depth && n > corner.n) corner = { node, n, depth };
       }
-      html += `${head(1, 'kinds', 'What you find most')}
+      html += `${head('What you find most')}
         <p class="dc-prog-say">${KINDS[top][1] ? `Mostly <b>${KINDS[top][0].toLowerCase()}</b>: ${pct(most, total)}% of your finds.` : 'Mostly the less famous corners of the tree.'}${corner ? ` Your favourite corner is the <button class="dc-link" type="button" data-go="${corner.node.q}">${esc(api.nameOf(corner.node).toLowerCase())}</button>, with ${fmt(corner.n)} of your ${fmt(total)} creatures.` : ''} <span data-everyone-kind></span></p>
         <ul class="dc-prog-kinds">${order.map(i => `<li data-kind="${i}"><span>${esc(KINDS[i][0])}</span><span class="dc-prog-bar"><i style="width:${(t.mix[i] / most * 100).toFixed(1)}%"></i><em data-tick="${i}" hidden></em></span><b>${fmt(t.mix[i])}</b></li>`).join('')}</ul>
         <p class="dc-prog-note" data-tick-note hidden><em></em> what everyone else's trees are like</p>`;
 
       // then and now: alive or gone, and how old their families are
-      const records = [];
-      const best = (score, words) => { let b = null; for (const x of c) { const s = score(x); if (s !== undefined && s !== null && (!b || s > b.s)) b = { x, s }; } return b; };
-      const old = best(x => x.n.a), heavy = best(x => x.n.kg), light = best(x => x.n.kg && -x.n.kg), deep = best(x => x.line.length);
-      const lately = best(x => x.n.x && x.n.z !== undefined ? -x.n.z : undefined);
+      // (each creature holds one record at most: the same one twice read like a mistake)
+      const records = [], holders = new Set();
+      const best = score => {
+        let b = null;
+        for (const x of c) { const s = score(x); if (!holders.has(x) && s !== undefined && s !== null && (!b || s > b.s)) b = { x, s }; }
+        if (b) holders.add(b.x);
+        return b;
+      };
+      const old = best(x => x.n.a), heavy = best(x => x.n.kg), light = best(x => x.n.kg && -x.n.kg);
+      const lately = best(x => x.n.x && x.n.z !== undefined ? -x.n.z : undefined), deep = best(x => x.line.length);
       if (old) records.push(go(old.x.n, `The oldest fossils: ${esc(api.ago(old.s).replace(' ago', ' old'))}`));
       if (heavy) records.push(go(heavy.x.n, `The heaviest: about ${esc(api.weight(heavy.s))}`));
-      if (light && light.x !== heavy?.x) records.push(go(light.x.n, `The lightest: about ${esc(api.weight(-light.s))}`));
+      if (light) records.push(go(light.x.n, `The lightest: about ${esc(api.weight(-light.s))}`));
       if (lately) records.push(go(lately.x.n, `The last to die out: ${esc(lately.s > -0.0125 ? 'within the last 12,000 years' : api.ago(-lately.s))}`));
       if (deep) records.push(go(deep.x.n, `The furthest from the first life: ${fmt(deep.s - 1)} steps`));
       // (where every line on the tree comes together)
       let meet = c[0].line.length;
       for (const x of c) { let i = 0; while (i < meet && x.line[i] === c[0].line[i]) i++; meet = i; }
       const all = total > 1 && meet > 1 ? api.nodes.get(c[0].line[meet - 1]) : null;
-      html += `${head(3, 'time', 'Then and now')}
+      html += `${head('Then and now')}
         <p class="dc-sub">Still around, or gone</p>${stack([['Alive today', total - t.extinct], ['Died out', t.extinct]], 'is-alive')}
         <p class="dc-sub">When their oldest fossils are from</p>${stack(ERAS.map(([name], i) => [name, t.eras[i]]), 'is-eras')}
         ${all ? `<p class="dc-prog-say">Everything on this tree is in one group: the <button class="dc-link" type="button" data-go="${all.q}">${esc(api.nameOf(all).toLowerCase())}</button>.</p>` : ''}
-        ${records.length ? `${head(5, 'records', 'Records on your tree')}<div class="dc-prog-records">${records.join('')}</div>` : ''}`;
+        ${records.length ? `${head('Records on your tree')}<div class="dc-prog-records">${records.join('')}</div>` : ''}`;
     }
 
     // how you explore
     const stats = store.get('distantCousinsStats', {}), got = Object.keys(store.get('distantCousinsAchievements', {})).length;
-    const tiles = [['opened', 'read about'], ['searches', 'searches'], ['surprises', 'surprises'], ['compared', 'side by sides'], ['gaps', 'missing links uncovered'], ['huntsWon', 'hunts won'], ['mysteriesSolved', 'mysteries solved']];
+    const DONE = [['opened', 'Creatures read about'], ['searches', 'Searches'], ['surprises', 'Surprises'], ['compared', 'Side by sides'], ['gaps', 'Missing links uncovered'], ['huntsWon', 'Hunts won'], ['mysteriesSolved', 'Mysteries solved']];
+    const done = [...DONE.map(([k, words]) => [words, stats[k] || 0]), ['Achievements', got]].filter(d => d[1]);
     const parts = PARTS.map(([name, from, to]) => [name, log.hours.reduce((s, n, h) => s + (h >= from % 24 && h < to || h + 24 >= from && h + 24 < to ? n : 0), 0)]);
     const logged = parts.reduce((s, p) => s + p[1], 0), busiest = parts.reduce((a, b) => b[1] > a[1] ? b : a);
     const fortnight = Array.from({ length: 14 }, (_, i) => { const d = new Date(); d.setDate(d.getDate() - 13 + i); return [d, log.days[dayKey(d)] || 0]; });
     const peak = Math.max(1, ...fortnight.map(f => f[1])), week = fortnight.slice(7).reduce((s, f) => s + f[1], 0);
-    html += `${head(0, 'you', 'How you explore')}
-      <div class="dc-prog-tiles is-small">${tiles.map(([k, words]) => `<p><b>${fmt(stats[k] || 0)}</b><span>${words}</span></p>`).join('')}<p><b>${fmt(got)}</b><span>achievements</span></p></div>
+    // (what you've done as a list, dots across to each number like an old ledger, and only what you have done)
+    html += `${head('How you explore')}
+      ${done.length ? `<ul class="dc-prog-ledger">${done.map(([words, n]) => `<li><span>${words}</span><i></i><b>${fmt(n)}</b></li>`).join('')}</ul>` : ''}
       ${logged ? `<p class="dc-prog-say">You explore most <b>${busiest[0]}</b>, and found ${fmt(week)} ${week === 1 ? 'creature or group' : 'creatures and groups'} in the last week.</p>
       <div class="dc-prog-days" aria-label="Finds on each of the last 14 days">${fortnight.map(([d, n]) => `<span class="${n ? '' : 'is-none'}" title="${d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })}: ${fmt(n)}"><i style="--h:${(n / peak).toFixed(3)}"></i><small>${d.toLocaleDateString('en-GB', { weekday: 'narrow' })}</small></span>`).join('')}</div>
       <p class="dc-prog-note">Finds counted since ${new Date(log.since).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}.</p>`
       : '<p class="dc-prog-say">Your finds from now on are counted here: what times of day you explore, and how many each day.</p>'}`;
 
-    html += `${head(2, 'all', 'You and everyone else')}<div data-everyone><p class="dc-prog-say">Asking the server...</p></div>`;
+    html += `${head('You and everyone else')}<div data-everyone><p class="dc-prog-say">Asking the server...</p></div>`;
     body.innerHTML = html;
     api.fillPics(body);
     everyone(t);
