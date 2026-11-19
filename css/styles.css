@@ -1402,18 +1402,19 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
   paint-order:stroke fill;
 }
 
-/* squimble music maker card: squimble's music box, as on its page. a sky in the song's mood (the mood
-   sunk into ink), the score's square notes in two lanes, a row of mood swatches in the corner, and the
-   title in butter on an ink outline with a hard shadow in the mood's colour, like the maker's own. on
-   hover each swatch in turn paints its mood over the card in a circle from where it sits, the way
-   picking a mood paints the maker: the letters hop as the paint passes, the shadow takes the new mood,
-   and the notes bounce on the beat, the bass on the off beat. one round is 4.5s, a mood a third of it.
+/* squimble music maker card: a sky in the song's mood (the mood sunk into ink), a grand staff of real
+   notes in butter outlined in ink, a row of mood swatches in the corner, and the title in butter with a
+   chunky extrusion in the mood's colour, ink outlined all round. on hover each swatch in turn paints its
+   mood over the card in a circle from where it sits, the way picking a mood paints the maker: the
+   letters hop as the paint passes, the extrusion takes the new mood, and the score plays, each note
+   hopping and flashing the mood on its beat. one round is 4.5s: four bars of 4/4, a mood a third of it.
    the paint spreads a circle of the next mood, then the card's own colour turns under it before the
    paint starts again from the next swatch */
 .project-card-music{
   --a:#ff6ac1;
   --b:#2f8fb0;
   --c:#d4a13a;
+  --m:var(--a);
   --sky-a:color-mix(in oklab, var(--a) 62%, #2b1508);
   --sky-b:color-mix(in oklab, var(--b) 62%, #2b1508);
   --sky-c:color-mix(in oklab, var(--c) 62%, #2b1508);
@@ -1422,7 +1423,13 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
   background:var(--sky-a);
 }
 .project-card-music:hover,
-.project-card-music:focus-within{ animation:music-sky 4.5s infinite; }
+.project-card-music:focus-within{ animation:music-sky 4.5s infinite, music-mood 4.5s infinite; }
+/* (the mood the title and the notes wear, turning as the paint crosses the title from the corner) */
+@keyframes music-mood{
+  0%, 7.9%, 74.9%, 100%{ --m:var(--a); }
+  8%, 40.9%{ --m:var(--b); }
+  41%, 74.8%{ --m:var(--c); }
+}
 @keyframes music-sky{
   0%, 27%, 93.01%, 100%{ background-color:var(--sky-a); }
   27.01%, 60%{ background-color:var(--sky-b); }
@@ -1439,41 +1446,36 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
   66.7%{ clip-path:circle(0 at 24px calc(100% - 22px)); background:var(--sky-a); animation-timing-function:cubic-bezier(.6,0,.2,1); }
   88.9%, 100%{ clip-path:circle(620px at 24px calc(100% - 22px)); background:var(--sky-a); }
 }
-.music-notes{ position:absolute; inset:0; }
-/* a grand staff round the title, edge to edge: five lines (every 5% of the card) and a bar line every
-   quarter, the tune above and the bass below */
-.music-staff{
-  position:absolute; left:0; right:0; top:10%;
-  height:calc(20% + 1px);
-  background:
-    linear-gradient(rgba(255,246,216,.2) 1px, transparent 1px) 0 0/100% calc((100% - 1px) / 4),
-    repeating-linear-gradient(90deg, transparent 0 calc(25% - 1.5px), rgba(255,246,216,.2) calc(25% - 1.5px) 25%);
+/* the score, drawn in the card's own shape (400 x 145): a grand staff edge to edge with its bar lines,
+   the tune above the title and the bass below, ending on a double bar. the notes are soft butter, flat,
+   and sway on the staff out of step with each other, like they're dancing to it */
+.music-score{ position:absolute; inset:0; width:100%; height:100%; }
+.music-staff{ fill:none; stroke:rgba(255,246,216,.22); stroke-width:1; }
+.music-staff-end{ fill:none; stroke:rgba(255,246,216,.32); stroke-width:3; }
+.music-notes{ color:#fff6d8; fill:currentColor; }
+.music-time{ opacity:.6; font:1000 13px "Recursive", var(--font-sans); font-variation-settings:"CASL" 1; text-anchor:middle; }
+.music-note{
+  opacity:.6;
+  transform-box:fill-box; transform-origin:50% 50%;
+  animation:music-sway 2.4s ease-in-out calc(var(--b) * -.37s) infinite alternate;
 }
-.music-staff-low{ top:70%; }
-/* the maker's square notes, sat on the lines and in the spaces */
-.music-notes i{
-  position:absolute;
-  left:var(--x); top:var(--y);
-  width:8px; height:8px;
-  margin:-4px 0 0 -4px;
-  border-radius:2px;
-  background:#fff6d8;
-  opacity:.55;
-  /* idle: the notes drift gently, out of step with each other */
-  animation:music-drift 3.6s ease-in-out infinite;
+.music-stem{ fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; }
+.music-ring{ fill:none; stroke:currentColor; stroke-width:1.9; }
+.music-note path:not(.music-stem){ stroke:currentColor; stroke-width:1; stroke-linejoin:round; }
+@keyframes music-sway{
+  from{ rotate:-5deg; }
+  to{ rotate:5deg; }
 }
-.music-notes i:nth-child(3n){ animation-delay:-1.2s; }
-.music-notes i:nth-child(3n+1){ animation-delay:-2.4s; }
-@keyframes music-drift{
-  0%, 100%{ translate:0 0; opacity:.5; }
-  50%{ translate:0 -2px; opacity:.75; }
-}
-.project-card-music:hover .music-notes i,
-.project-card-music:focus-within .music-notes i{ animation:music-bob .75s cubic-bezier(.22,1,.36,1) calc(var(--l) * .375s) infinite; }
-@keyframes music-bob{
-  0%{ translate:0 0; opacity:.55; }
-  15%{ translate:0 -4px; opacity:1; }
-  45%, 100%{ translate:0 0; opacity:.55; }
+/* hover plays them: each note squashes, springs up lit in the mood, and lands, on its beat (a sixteenth
+   of the round) */
+.project-card-music:hover .music-note,
+.project-card-music:focus-within .music-note{ animation:music-hop 4.5s ease-out calc(var(--b) * 4.5s / 16) infinite; }
+@keyframes music-hop{
+  0%{ translate:0 0; scale:1; rotate:0deg; opacity:.6; color:#fff6d8; }
+  1.5%{ translate:0 0; scale:1.18 .8; opacity:1; color:color-mix(in oklab, var(--m) 55%, #fff6d8); }
+  4.5%{ translate:0 -6px; scale:.9 1.14; rotate:-8deg; opacity:1; color:color-mix(in oklab, var(--m) 55%, #fff6d8); }
+  8%{ translate:0 0; scale:1.08 .92; rotate:3deg; }
+  11%, 100%{ translate:0 0; scale:1; rotate:0deg; opacity:.6; color:#fff6d8; }
 }
 /* the mood keys' dots, picked in turn */
 .music-swatches{ position:absolute; left:16px; bottom:14px; display:flex; gap:6px; }
@@ -1502,19 +1504,18 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
   color:#fff6d8;
   -webkit-text-stroke:5px #2b1508;
   paint-order:stroke fill;
-  text-shadow:0 4px 0 var(--a);
   text-align:center;
 }
 /* (the title a letter at a time to hop, read out whole: chrome reads letters in boxes of their own apart) */
 .music-said{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 .music-word{ display:inline-block; white-space:nowrap; }
-.music-word span{ display:inline-block; }
-.project-card-music:hover .music-title,
-.project-card-music:focus-within .music-title{ animation:music-shadow 4.5s infinite; }
-@keyframes music-shadow{
-  0%, 7%, 75%, 100%{ text-shadow:0 4px 0 var(--a); }
-  9%, 40%{ text-shadow:0 4px 0 var(--b); }
-  42%, 73%{ text-shadow:0 4px 0 var(--c); }
+.music-word span{ display:inline-block; position:relative; }
+/* the extrusion: each letter's own copy in the mood, outlined like the letter and sat under all of them */
+.music-word span::before{
+  content:attr(data-c);
+  position:absolute; left:0; top:0; z-index:-1;
+  translate:0 .2em;
+  color:var(--m);
 }
 /* (each third, as the paint crosses the title from the corner) */
 .project-card-music:hover .music-word span,
@@ -1987,7 +1988,7 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
   .wizard-puppet, .wizard-puppet img, .wizard-spell, .wizard-spell svg, .wizard-slip{ animation:none !important; }
   .cli-caret{ animation:none; }
   .studio-wave i, .studio-playhead{ animation:none; }
-  .project-card-music, .music-paint, .music-notes i, .music-swatches i, .music-title, .music-word span{ animation:none !important; }
+  .project-card-music, .music-paint, .music-note, .music-swatches i, .music-word span{ animation:none !important; }
   .osc-tail, .osc-head{ animation:none; opacity:0; }
   .pantry-orb, .pantry-food, .pantry-phone{ animation:none !important; }
   .pantry-bubble{ transition:none; }
