@@ -4,16 +4,41 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- github pages serves this for any missing path at any depth, so there the links start from the site
-       root. opened locally (a file, or a server at the repo root) the plain relative links already work -->
+  <!-- github pages serves this, with a real 404 status, for any missing path at any depth -->
   <script>
-    if (location.pathname.indexOf('/portfolio/') === 0) {
+    (function () {
+      var root = '/portfolio/';
+      if (location.pathname.indexOf(root) !== 0) return; // opened locally: relative links already work
+
+      // links start from the site root, however deep the missing path was
       var base = document.createElement('base');
-      base.href = '/portfolio/';
+      base.href = root;
       document.head.appendChild(base);
-    }
+
+      // old addresses (cv links, the dissertation) and near misses (Capitals, a trailing slash) go straight
+      // to where the thing lives now. the browser swaps the url, so back doesn't land on this page again
+      var path = decodeURIComponent(location.pathname.slice(root.length)).toLowerCase().replace(/\/+$/, '').replace(/\.html$/, '');
+      var moved = {
+        'ahsanwebsite/assets/ahsanresume.pdf': 'assets/AhsanResume.pdf',
+        'wizardbattlefiles/22489934_siddiqui_ahsan_report.pdf': 'assets/wizard-battles/downloads/Wizard-Battles-Dissertation-Report.pdf',
+        'wizardbattlefiles/participantconsentform.pdf': 'assets/wizard-battles/downloads/ParticipantConsentForm.pdf',
+        'wizardbattlefiles/participantinformationsheet.pdf': 'assets/wizard-battles/downloads/ParticipantInformationSheet.pdf'
+      };
+      var movedFolders = { 'ahsanwebsite/': '', 'wizardbattlefiles/': 'wizard-battles.html', 'battleships/': 'cli-battleships.html' };
+      var pages = ['index', 'wizard-battles', 'cli-battleships', 'squimble-quest', 'squimble-sound-studio', 'squimble-music-maker',
+        'oscilloscope', 'pantry-wizard', 'earth-loading-screens', 'distant-cousins', 'catpi-corner'];
+
+      var to = moved[path];
+      if (to === undefined) {
+        for (var folder in movedFolders) {
+          if ((path + '/').indexOf(folder) === 0) { to = movedFolders[folder]; break; }
+        }
+      }
+      if (to === undefined && pages.indexOf(path) !== -1) to = path === 'index' ? '' : path + '.html';
+      if (to !== undefined) location.replace(root + to + location.search + location.hash);
+    })();
   </script>
-  <title>Page not found - Ahsan</title>
+  <title>404 Page not found - Ahsan</title>
   <meta name="robots" content="noindex">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -69,6 +94,8 @@
       color:var(--paper-dim);
       text-wrap:balance;
     }
+    /* the big 404 is a drawing, so screen readers get the number in the heading instead */
+    .lost-sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
     @media (prefers-reduced-motion:reduce){ .lost-zero .lost-star{ animation:none; } }
   </style>
 </head>
@@ -85,7 +112,7 @@
         </span>
         <span>4</span>
       </p>
-      <h1 class="lost-title">Page not found</h1>
+      <h1 class="lost-title"><span class="lost-sr">404: </span>Page not found</h1>
       <p class="lost-copy">The page you're looking for doesn't exist or has moved.</p>
       <a class="btn btn-primary" href="index.html">Back home</a>
     </div>
