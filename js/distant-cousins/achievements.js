@@ -151,8 +151,8 @@
       else setTimeout(() => api.cheer(`Achievement: ${fresh[0]}`, 'From the tree you\'ve grown so far'), 1200);
       return;
     }
-    // (after the find's own sound)
-    setTimeout(() => fresh.forEach(name => api.cheer(`Achievement: ${name}`, LIST.find(a => a[2] === name)[3])), 700);
+    // (after the find's own sound. several at once are one cheer, not a queue of them)
+    setTimeout(() => fresh.length > 1 ? api.cheer(`${fresh.length} achievements`, fresh.join(', ')) : api.cheer(`Achievement: ${fresh[0]}`, LIST.find(a => a[2] === fresh[0])[3]), 700);
   }
 
   // what the board and the games say happened

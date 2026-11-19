@@ -655,7 +655,8 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   const agesBox = document.createElement('div');
   agesBox.className = 'dc-ages';
   agesBox.setAttribute('aria-hidden', 'true');
-  agesBox.innerHTML = AGES.map(([ma, name, say], i) => `<p class="dc-age"><b>${name}</b><span>${i + 1 < AGES.length ? fromTo(ma, AGES[i + 1][0]) : 'The last 12,000 years'}</span>${say ? `<i>${say}</i>` : ''}</p>`).join('')
+  // (each age's line about it is kept for travelling through time: on the board it got in the way of the cards)
+  agesBox.innerHTML = AGES.map(([ma, name], i) => `<p class="dc-age"><b>${name}</b><span>${i + 1 < AGES.length ? fromTo(ma, AGES[i + 1][0]) : 'The last 12,000 years'}</span></p>`).join('')
     + DYINGS.map(([ma, name, say]) => `<p class="dc-dying"><span><b>${name}</b>, ${ago(ma)}<i>: ${say}</i></span></p>`).join('');
   board.insertBefore(agesBox, world);
   const ageEls = [...agesBox.querySelectorAll('.dc-age')], dyingEls = [...agesBox.querySelectorAll('.dc-dying')];
@@ -680,7 +681,8 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
       const h = ageTall[i] ||= el.offsetHeight;
       const y = Math.min(Math.max(top + 10, v.top), bottom - h - 10);
       el.style.transform = `translateY(${y.toFixed(0)}px)`;
-      el.classList.toggle('is-off', bottom - top < h + 24 || y + h < 0 || y > v.h);
+      // (and gone once the next one starts pushing it up, rather than peeking out from under the header)
+      el.classList.toggle('is-off', bottom - top < h + 24 || y < v.top - 8 || y > v.h);
     });
     // (one too near the one above it says nothing: zoomed right out they'd pile up)
     let above = -Infinity;
@@ -702,8 +704,12 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
       const y = sy(timeAt), ma = maAt(timeAt), age = AGES[Math.max(0, ageAt(ma))];
       later.style.top = nowLine.style.top = y.toFixed(0) + 'px';
       const when = ma < 0.0117 ? 'Today' : `${ago(ma).replace(/^\w/, c => c.toUpperCase())} · ${age[1]}`;
-      if (nowLine.firstChild.textContent !== when) nowLine.firstChild.textContent = when;
-      ruler.setAttribute('aria-valuetext', when);
+      const pill = nowLine.firstChild;
+      if (pill.dataset.when !== when) {
+        pill.dataset.when = when;
+        pill.replaceChildren(when, ...(ma >= 0.0117 && age[2] ? [Object.assign(document.createElement('small'), { textContent: age[2] })] : []));
+      }
+      ruler.setAttribute('aria-valuetext', ma >= 0.0117 && age[2] ? `${when}. ${age[2]}` : when);
     }
   }
   // travel to the moment at this height on the strip: the board slides so that moment is level with your finger
@@ -785,15 +791,22 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   // the part of the board you can see past the logo, the keys and the panel
   function view() {
     const r = board.getBoundingClientRect();
-    const panelOpen = !$('dcPanel').hidden && innerWidth > 760;
-    return { left: 48, top: innerWidth > 760 ? 110 : 150, right: r.width - (panelOpen ? 448 : 24), bottom: r.height - 84, w: r.width, h: r.height };
+    const panelOpen = !$('dcPanel').hidden && innerWidth > 760, phone = innerWidth <= 760;
+    // (on a phone the first visit's hint sits over the top of the board, so the board starts under it, and the
+    // keys along the bottom take more room)
+    const hint = $('dcHint');
+    const top = phone && !hint.hidden ? Math.max(150, hint.offsetTop + hint.offsetHeight + 12) : phone ? 150 : 110;
+    return { left: 48, top, right: r.width - (panelOpen ? 448 : phone ? 64 : 24), bottom: r.height - (phone ? 92 : 84), w: r.width, h: r.height };
   }
-  // a box of the board (world units) into view: left alone if it's already there, slid in if it fits, else zoomed out to fit
+  // a box of the board (world units) into view: left alone if it's already there, slid in if it fits, else zoomed
+  // out to fit. least: never zoomed out further than that, so the cards stay readable (it's lined up with the
+  // top of the box instead, and the middle of it across)
   function show(box, opts = {}) {
     const v = view();
     let s = opts.s ?? cam.s;
     const fits = (box.r - box.l) * s <= v.right - v.left && (box.b - box.t) * s <= v.bottom - v.top;
     if (!fits) s = clampS(Math.min((v.right - v.left) / (box.r - box.l), (v.bottom - v.top) / (box.b - box.t)) * .95);
+    if (opts.least && s < opts.least) opts = { ...opts, s: (s = opts.least), top: true, center: true };
     const sx = box.l * s + cam.x, sy = box.t * s + cam.y, ex = box.r * s + cam.x, ey = box.b * s + cam.y;
     if (!opts.center && s === cam.s && sx >= v.left && ex <= v.right && sy >= v.top && ey <= v.bottom) return;
     const x = (v.left + v.right) / 2 - (box.l + box.r) / 2 * s;
@@ -922,7 +935,9 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
   function afterGrow(q) {
     const it = items.get(q);
     if (!it) return;
-    show(boxOf([q, ...it.kids.map(k => k.id)]));
+    // (a group with lots of branches would zoom the board out until nothing could be read: past a point the
+    // middle ones are shown, and the rest are a drag away)
+    show(boxOf([q, ...it.kids.map(k => k.id)]), { least: innerWidth <= 760 ? 0.6 : 0.5 });
   }
   async function latinFor(q, el) {
     el.classList.add('is-busy');
@@ -974,6 +989,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     panel.hidden = false;
     renderHere(n);
     panel.scrollTop = 0;
+    panelScrolled();
     if (wasHidden || opts.go) $('dcName').focus({ preventScroll: true });
     requestAnimationFrame(() => {
       const it = items.get(q);
@@ -988,6 +1004,13 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     board.focus({ preventScroll: true });
   }
   $('dcClose').addEventListener('click', closePanel);
+  // the bar at the top of the panel: see-through over the picture, solid once you scroll, and with the name in it
+  // once the big one has gone by
+  const panelScrolled = () => {
+    panel.classList.toggle('is-scrolled', panel.scrollTop > 8);
+    panel.classList.toggle('is-titled', panel.scrollTop > $('dcName').offsetTop + $('dcName').offsetHeight - 40);
+  };
+  panel.addEventListener('scroll', panelScrolled, { passive: true });
   addEventListener('keydown', e => {
     if (e.key !== 'Escape' || document.activeElement === input || document.querySelector('.dc-vs:not([hidden])')) return;
     if (!panel.hidden) closePanel();
@@ -1055,7 +1078,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     else if (!n.o && !n.live) tags.push(['Alive today', 'alive']);
     if (n.r && n.r !== 'species' && n.r !== 'clade') tags.push([cap(n.r), '']);
     $('dcTags').replaceChildren(...tags.map(([t, c]) => Object.assign(document.createElement('span'), { className: 'dc-tag' + (c ? ' dc-tag-' + c : ''), textContent: t })));
-    $('dcName').textContent = nameOf(n);
+    $('dcName').textContent = $('dcMini').textContent = nameOf(n);
     $('dcName').classList.toggle('is-latin', !n.l && n.q !== ROOT);
     $('dcSci').textContent = n.q === ROOT ? 'LUCA, the last universal common ancestor' : latinOf(n);
     $('dcSci').hidden = !$('dcSci').textContent;
@@ -1200,7 +1223,11 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
 
   function chooser() {
     const pool = [];
-    const addIdea = (q, name, home) => { if (q !== vsA.q && !pool.some(p => p[0] === q)) pool.push([q, name, home]); };
+    // (one name inside another is the same animal twice over, near enough: "Cat" and "House cat", "Tyrannosaurus"
+    // and "Tyrannosaurus rex")
+    const words = s => tidy(s).split(' ');
+    const alike = (a, b) => { const [x, y] = [words(a), words(b)].sort((p, q) => p.length - q.length); return x.every(w => y.includes(w)); };
+    const addIdea = (q, name, home) => { if (q !== vsA.q && !pool.some(p => p[0] === q || alike(p[1], name)) && !alike(nameOf(vsA), name)) pool.push([q, name, home]); };
     if (fav) addIdea(fav.q, fav.name, fav.h);
     for (const q of recent) { const n = nodes.get(q); if (n && !n.o) addIdea(q, nameOf(n), homeOf.get(q)); }
     for (const [q, name] of IDEAS) addIdea(q, nodes.get(q) ? nameOf(nodes.get(q)) : name);
@@ -1748,16 +1775,17 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     if (!store.get('distantCousinsTrees', null)) store.set('distantCousinsTrees', trees);
     await loadBoard(store.get(boardKey(trees.now), null));
     loaded = true;
+    // (the hint first: on a phone the board starts under it)
+    if (!store.get('distantCousinsHinted', false)) {
+      if (matchMedia('(pointer: coarse)').matches) $('dcHint').textContent = 'Tap a mystery card to find out who it is, then tap it again to read all about it. Time runs down the board, from the first life to today. Drag to look around, pinch to zoom.';
+      $('dcHint').hidden = false;
+    }
     look();
     draw(false);
     if (found.size > 3) fitAll(); else home();
     emit('ready');
     readyNow();
     if ((fav?.q ?? null) !== store.get('distantCousinsFavSent', null)) sendFav();
-    if (!store.get('distantCousinsHinted', false)) {
-      if (matchMedia('(pointer: coarse)').matches) $('dcHint').textContent = 'Tap a mystery card to find out who it is, then tap it again to read all about it. Time runs down the board, from the first life to today. Drag to look around, pinch to zoom.';
-      $('dcHint').hidden = false;
-    }
   }
   restore().catch(e => { console.warn(e); $('dcMet').textContent = "The tree wouldn't load. Check you're online and try again."; });
 })();

@@ -238,6 +238,7 @@ html:has(.dc-page){ scrollbar-color:auto; }
   font:400 15px/1.3 var(--font-round);
   white-space:nowrap;
 }
+.dc-now small{ display:block; font:600 12.5px/1.35 var(--font-sans); opacity:.9; }
 .dc-later.is-on, .dc-now.is-on{ opacity:1; transition-duration:.12s; }
 
 /* a creature on the board. its place is its transform (page.js), so lifting it on hover uses translate */
@@ -444,10 +445,14 @@ html:has(.dc-page){ scrollbar-color:auto; }
 /* the count hops up with each find */
 .dc-met.is-up{ animation:dc-hop .5s var(--ease-out); }
 @keyframes dc-hop{ 35%{ scale:1.12; color:var(--leaf-text); } }
-/* every so often, a cheer under it */
+/* every so often, a cheer: it takes the title's place for a moment, so it never lands on the tree */
+.dc-top > .dc-logo, .dc-top > .dc-met{ transition:opacity .25s ease; }
+.dc-top:has(> .dc-cheer:not([hidden])) > :is(.dc-logo, .dc-met){ opacity:0; }
 .dc-cheer{
-  width:max-content; max-width:min(420px, calc(100vw - 48px));
-  margin:10px auto 0;
+  position:absolute; left:50%; top:50%; translate:-50% -50%;
+  width:max-content; max-width:min(440px, calc(100vw - 32px));
+  margin:0;
+  text-align:center;
   padding:8px 18px;
   border-radius:20px;
   background:var(--star);
@@ -517,7 +522,19 @@ html:has(.dc-page){ scrollbar-color:auto; }
   pointer-events:none;
 }
 .dc-hint[hidden]{ display:none; }
-.dc-controls{ position:absolute; left:18px; bottom:20px; display:flex; flex-wrap:wrap; gap:8px; }
+/* the board's own keys: one bar, zoom | see everything | light, sound, trees */
+.dc-controls{
+  position:absolute; left:18px; bottom:20px;
+  display:flex; align-items:center; gap:2px;
+  padding:4px;
+  border-radius:999px;
+  background:var(--card);
+  box-shadow:0 4px 0 var(--card-edge);
+}
+.dc-controls .dc-key{ width:40px; height:40px; background:none; box-shadow:none; }
+.dc-controls .dc-key:hover{ background:var(--peach); transform:none; box-shadow:none; }
+.dc-controls .dc-key:active{ transform:scale(.92); }
+.dc-sep{ flex:none; width:2px; height:22px; margin:0 3px; border-radius:2px; background:var(--card-edge); }
 
 /* your favourite, top left */
 .dc-fav{ position:absolute; left:18px; top:18px; z-index:2; }
@@ -563,12 +580,34 @@ html:has(.dc-page){ scrollbar-color:auto; }
 .dc-panel > *{ flex-shrink:0; }
 @keyframes dc-slide{ from{ translate:30px 0; opacity:0; } }
 .dc-panel.is-extinct{ background:var(--stone); box-shadow:0 6px 0 var(--stone-edge); }
+/* the bar along the top of the panel: see-through over the picture at first, then solid with the name in it */
+.dc-panel-bar{
+  /* (sticky counts from inside the panel's padding: minus that, it sits flush with the top) */
+  position:sticky; top:-18px; z-index:2;
+  display:flex; align-items:center; gap:10px;
+  min-height:58px;
+  margin:-18px -20px -52px;
+  padding:9px 12px 9px 20px;
+  border-radius:24px 24px 0 0;
+  pointer-events:none;
+  transition:background-color .2s ease, box-shadow .2s ease;
+}
+.dc-panel.is-scrolled .dc-panel-bar{ background:var(--card); box-shadow:0 2px 0 var(--card-edge); }
+.dc-panel.is-extinct.is-scrolled .dc-panel-bar{ background:var(--stone); box-shadow:0 2px 0 var(--stone-edge); }
+.dc-panel-mini{
+  flex:1; min-width:0;
+  font:400 19px/1.2 var(--font-round);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  opacity:0; translate:0 6px;
+  transition:opacity .2s ease, translate .2s var(--ease-out);
+}
+.dc-panel.is-titled .dc-panel-mini{ opacity:1; translate:0 0; }
+.dc-panel-bar .dc-close{ margin:0 0 0 auto; pointer-events:auto; }
 .dc-close{
-  position:sticky; top:0; z-index:1;
+  position:relative; z-index:1;
   align-self:flex-end;
   flex:none;
   width:40px; height:40px;
-  margin-bottom:-52px;
   border:0;
   border-radius:50%;
   background:var(--peach);
@@ -844,9 +883,21 @@ body.dc-vs-open{ overflow:hidden; }
 .dc-sr{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 
 /* ---------- things to do: surprise, games, achievements (bottom right) ---------- */
-.dc-play{ position:absolute; right:18px; bottom:20px; display:flex; flex-wrap:wrap; justify-content:flex-end; gap:8px; transition:right .3s var(--ease-out); }
+.dc-play{ position:absolute; right:18px; bottom:20px; display:flex; flex-wrap:wrap-reverse; justify-content:flex-end; gap:8px; transition:right .3s var(--ease-out); }
 /* (beside the panel while it's open, not under it) */
 @media (min-width:761px){ .dc-stage:has(.dc-panel:not([hidden])) .dc-play{ right:452px; } }
+/* (and with the panel open there isn't room for their words as well: just their pictures, the words on hover) */
+@media (min-width:761px) and (max-width:1700px){
+  .dc-stage:has(.dc-panel:not([hidden])) .dc-play .dc-key{ position:relative; width:46px; padding:0; }
+  .dc-stage:has(.dc-panel:not([hidden])) .dc-play .dc-key > span:not(.dc-count){ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  .dc-stage:has(.dc-panel:not([hidden])) .dc-play .dc-count{ position:absolute; top:-7px; right:-10px; padding:2px 5px; font-size:10px; }
+}
+/* (narrower still, they go above the board's keys rather than into them) */
+@media (min-width:761px) and (max-width:1100px){
+  /* (and with nothing open they stay clear of the board's keys, a second row above if need be) */
+  .dc-play{ left:310px; }
+  .dc-stage:has(.dc-panel:not([hidden])) .dc-play{ right:auto; left:18px; bottom:80px; }
+}
 #dcGamesOpen{ background:var(--leaf); box-shadow:0 4px 0 color-mix(in srgb, var(--leaf) 60%, #000); color:#fff; }
 #dcGamesOpen:hover{ background:var(--leaf); box-shadow:0 6px 0 color-mix(in srgb, var(--leaf) 60%, #000); }
 #dcAchOpen{ background:var(--star); box-shadow:0 4px 0 var(--star-edge); color:#3b2440; }
@@ -857,7 +908,8 @@ body.dc-vs-open{ overflow:hidden; }
 /* ---------- the hunt ---------- */
 /* who you're looking for, at the top where the logo was (cheers come under it) */
 .dc-hunting .dc-logo{ display:none; }
-.dc-hunting .dc-top{ top:118px; padding:0; background:none; }
+.dc-hunting .dc-top{ top:auto; bottom:84px; padding:0; background:none; }
+.dc-hunting .dc-cheer{ position:static; translate:none; }
 .dc-hunt{
   position:absolute; top:12px; left:50%; z-index:5;
   translate:-50% 0;
@@ -896,7 +948,10 @@ body.dc-vs-open{ overflow:hidden; }
 /* ---------- windows: games, achievements, quizzes ---------- */
 /* the games: a card each, all the same size however many there are (games.js GAMES). each has its colour
    (--sec) and the soft one behind its picture (--soft), a slider for how hard, and one key to play */
-.dc-games{ display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); column-gap:12px; row-gap:0; margin-top:14px; }
+/* (four across, or two by two: never three and one left over on its own) */
+.dc-games{ display:grid; grid-template-columns:repeat(4, 1fr); column-gap:12px; row-gap:0; margin-top:14px; }
+@media (max-width:860px){ .dc-games{ grid-template-columns:repeat(2, 1fr); } }
+@media (max-width:520px){ .dc-games{ grid-template-columns:1fr; } }
 .dc-games > .dc-game{ margin-bottom:12px; }
 /* (each card a subgrid of the list's rows, so pictures, names, sliders and keys line up across a row of
    games whatever the length of the words) */
@@ -1279,30 +1334,43 @@ body.dc-vs-open{ overflow:hidden; }
   .dc-logo{ font-size:28px; }
   .dc-met{ margin-top:5px; font-size:13px; }
   .dc-find{ top:72px; left:12px; right:12px; width:auto; }
-  /* the cheer comes under the search box */
-  .dc-cheer{ position:absolute; top:120px; left:50%; translate:-50% 0; margin:0; border-radius:18px; font-size:15px; }
+  .dc-cheer{ border-radius:18px; font-size:15px; }
   .dc-found{ width:100%; }
-  .dc-controls{ left:12px; right:12px; bottom:14px; gap:6px; }
   .dc-key{ height:42px; padding:0 14px; font-size:15px; }
   .dc-icon{ width:42px; padding:0; }
-  /* surprise, games and achievements keep just their pictures, in a column on the right */
-  .dc-play{ right:12px; bottom:68px; flex-direction:column; align-items:flex-end; gap:6px; }
-  .dc-play .dc-key{ position:relative; width:42px; padding:0; }
-  .dc-play .dc-key span:not(.dc-count){ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
-  .dc-count{ position:absolute; top:-6px; right:-8px; padding:2px 5px; font-size:10px; }
+  /* the things to do along the bottom, a key each with its picture over its name, like a phone's own tabs */
+  .dc-play{
+    left:10px; right:10px; bottom:10px;
+    display:grid; grid-template-columns:repeat(4, 1fr); gap:6px;
+    padding:6px 6px 8px;
+    border-radius:22px;
+    background:var(--card);
+    box-shadow:0 4px 0 var(--card-edge);
+  }
+  .dc-play .dc-key{ position:relative; flex-direction:column; gap:3px; min-width:0; height:50px; padding:0 4px; border-radius:15px; font-size:clamp(10.5px, 3.1vw, 12.5px); }
+  .dc-play .dc-key > span:not(.dc-count){ max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+  .dc-play .dc-key:hover{ transform:none; }
+  #dcSurprise{ background:var(--peach); box-shadow:0 4px 0 var(--peach-edge); }
+  .dc-count{ position:absolute; top:3px; right:4px; padding:2px 5px; font-size:10px; }
+  /* the board's own keys up the right, over the bottom ones: no zoom keys (two fingers do that) */
+  .dc-controls{ left:auto; right:10px; bottom:84px; flex-direction:column; }
+  .dc-controls .dc-sep{ width:22px; height:2px; margin:3px 0; }
+  #dcIn, #dcOut, .dc-controls > .dc-sep:first-of-type{ display:none; }
+  .dc-hunting .dc-controls{ bottom:14px; }
   .dc-hint{ top:128px; bottom:auto; font-size:14px; }
   /* the ages: just their names and years, and the strip between the search and the keys */
-  .dc-ruler{ left:6px; top:132px; bottom:118px; width:12px; }
+  .dc-ruler{ left:6px; top:132px; bottom:140px; width:12px; }
   .dc-age{ left:24px; padding:3px 9px 4px; }
   .dc-age b{ font-size:13.5px; }
   .dc-age span, .dc-age i, .dc-dying span{ display:none; }
   .dc-now span{ left:26px; font-size:13px; }
   /* the favourite shrinks to its picture, bottom left */
-  .dc-fav{ left:12px; top:auto; right:auto; bottom:68px; }
+  .dc-fav{ left:10px; top:auto; right:auto; bottom:84px; }
   /* the hunt sits where the search was */
   .dc-hunt{ top:12px; flex-wrap:wrap; gap:8px 10px; padding:8px; }
-  .dc-hunting .dc-top{ top:150px; }
-  .dc-hunting .dc-cheer{ top:0; }
+  /* (and a cheer in a hunt comes along the bottom, beside the board's keys) */
+  .dc-hunting .dc-top{ left:10px; right:68px; bottom:14px; translate:none; }
+  .dc-hunting .dc-cheer{ max-width:100%; }
   .dc-hunt-pic{ width:60px; }
   .dc-hunt-words b, .dc-hunt-words b.is-latin{ font-size:18px; }
   .dc-hunt-keys{ width:100%; }
@@ -1319,14 +1387,25 @@ body.dc-vs-open{ overflow:hidden; }
   .dc-fav-pic{ width:34px; height:34px; }
   /* the panel comes up from the bottom */
   .dc-panel{ top:auto; left:8px; right:8px; bottom:8px; width:auto; max-height:72%; padding:14px 16px 18px; border-radius:22px; animation-name:dc-rise; }
+  .dc-panel-bar{ top:-14px; margin:-14px -16px -56px; padding-left:16px; border-radius:22px 22px 0 0; }
   .dc-here-pic img{ height:190px; }
-  /* side by side becomes one above the other */
   .dc-vs{ padding:8px; place-items:end center; }
   .dc-vs-card{ padding:16px 14px 20px; border-radius:22px; }
-  .dc-vs-pair{ grid-template-columns:1fr; gap:8px; }
-  .dc-vs-and{ z-index:1; width:48px; height:48px; margin:0 0 4px; justify-self:center; font-size:21px; }
-  .dc-vs-photo{ max-width:270px; }
-  .dc-vs-name{ font-size:22px; }
+  /* side by side stays side by side, smaller (picking the second one, the first goes above the search) */
+  .dc-vs-pair{ gap:6px; }
+  .dc-vs-and{ z-index:1; width:36px; height:36px; margin-top:calc((100cqw - 48px) / 2 * .375 - 10px); font-size:15px; }
+  .dc-vs-photo{ padding:5px 5px 7px; border-radius:14px; }
+  .dc-vs-photo::after{ width:48px; height:14px; top:-7px; }
+  .dc-vs-pic{ border-radius:9px; }
+  .dc-vs-name, .dc-vs-name.is-latin{ margin-top:6px; font-size:17px; }
+  .dc-vs-sci{ font-size:14px; }
+  .dc-vs-stats .dc-tag{ height:23px; padding:0 8px; font-size:11.5px; }
+  .dc-vs-keys{ font-size:13px; line-height:1.5; }
+  .dc-vs-pair:has(.dc-vs-pick){ grid-template-columns:1fr; gap:8px; }
+  .dc-vs-pair:has(.dc-vs-pick) .dc-vs-and{ width:44px; height:44px; margin:0 0 4px; justify-self:center; font-size:19px; }
+  .dc-vs-pair:has(.dc-vs-pick) .dc-vs-photo{ max-width:220px; }
+  .dc-vs-pair:has(.dc-vs-pick) .dc-vs-name{ font-size:21px; }
+  .dc-vs-ask{ font-size:21px; }
   .dc-step{ font-size:12px; padding:4px 8px; }
 }
 @keyframes dc-rise{ from{ translate:0 40px; opacity:0; } }
