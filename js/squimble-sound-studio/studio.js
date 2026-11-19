@@ -200,6 +200,7 @@
 
     if (tab.name === 'Character') {
       // the knobs of every kind of make one button, half in each column, only the recipe's kind shown
+      panel.classList.add('ss-panel-knobs');
       panel.append(make('h3', 'ss-section-title'), make('p', 'ss-hint'));
       for (const [kind, { knobs }] of Object.entries(SOUND_GENERATORS)) {
         Studio.knobSliders[kind] = {};
@@ -400,7 +401,10 @@
     if (hoveredTip) text = hoveredTip;
     else if (message && performance.now() < messageUntil) [text, kind] = [message, 'is-news'];
     else if (problem) [text, kind] = [problem, 'is-problem'];
-    if (tipLine.textContent !== text) tipLine.textContent = text;
+    if (tipLine.textContent !== text) {
+      tipLine.textContent = text;
+      tipLine.scrollTop = 0;
+    }
     tipLine.className = `ss-tip ${kind}`;
   }
   const studio = $('#studio');
@@ -655,6 +659,9 @@
   function renderLibrary() {
     document.querySelectorAll('[data-library]').forEach((button) => button.setAttribute('aria-pressed', button.dataset.library === libraryKind));
     $('#ssNew').textContent = libraryKind === 'voice' ? 'New voice' : 'New sound';
+    // the shelf never gets shorter while you use it, so finding one or showing voices doesn't pull
+    // the page up under you. it's let go when the window changes size
+    library.style.minHeight = `${Math.max(parseFloat(library.style.minHeight) || 0, library.offsetHeight)}px`;
     library.replaceChildren();
     toDraw = [];
     const every = Object.values(libraryKind === 'voice' ? VOICES : SOUNDS);
@@ -735,6 +742,7 @@
     renderLibrary();
   }));
   finder.addEventListener('input', renderLibrary);
+  window.addEventListener('resize', () => { library.style.minHeight = ''; });
   $('#ssNew').addEventListener('click', () => Studio.open(null, libraryKind));
 
   // ---------- every frame ----------

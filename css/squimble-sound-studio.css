@@ -166,7 +166,8 @@ html:has(.ss-page){ --sb-track:#1b2230; --sb-thumb:#8fd3c1; --sb-edge:#4f8f80; -
 .ss-bar{
   display:flex; flex-wrap:wrap; align-items:center;
   gap:12px 16px;
-  padding:18px 26px 16px;
+  position:relative;
+  padding:18px 26px 22px;
   border-bottom:2px solid var(--ss-shell-dip);
   box-shadow:0 2px 0 var(--ss-shell-hi);
 }
@@ -190,8 +191,13 @@ html:has(.ss-page){ --sb-track:#1b2230; --sb-thumb:#8fd3c1; --sb-edge:#4f8f80; -
 }
 .ss-input:focus{ outline:2px solid var(--ss-focus, var(--ss-signal)); outline-offset:1px; }
 .ss-name input{ width:190px; height:32px; background:#fbf8ef; color:#232c3d; border-radius:3px; }
-.ss-saves-as{ font-size:13px; font-weight:600; color:var(--ss-shell-soft); }
-.ss-saves-as:empty{ display:none; }
+/* under the sticker, out of the row, so it coming and going doesn't move the buttons */
+.ss-saves-as{
+  position:absolute; left:38px; bottom:3px;
+  font-size:12px; font-weight:600;
+  color:var(--ss-shell-soft);
+  white-space:nowrap;
+}
 .ss-kind{ display:flex; gap:6px; }
 .ss-bar-actions{ display:flex; gap:8px; margin-left:auto; }
 .ss-bar .ss-key-line,
@@ -253,20 +259,27 @@ html:has(.ss-page){ --sb-track:#1b2230; --sb-thumb:#8fd3c1; --sb-edge:#4f8f80; -
   color:var(--ss-lcd-fill);
 }
 .ss-scope-label-low{ top:calc(50% + 4px); }
+/* one line, always: a long name is cut short rather than wrapping */
 .ss-readout{
-  display:flex; flex-wrap:wrap; justify-content:center; gap:4px 16px;
+  display:flex; justify-content:center; gap:16px;
   margin:0;
   padding:6px 2px 8px;
+  white-space:nowrap;
+  overflow:hidden;
   font:600 13px var(--ss-display);
   font-stretch:85%;
   font-variant-numeric:tabular-nums;
   color:var(--ss-lcd-ink);
 }
-.ss-readout span:first-child{ font-weight:800; }
-/* the tip, in a box along the bottom of the screen like a game's talking box. four lines tall so
-   the buttons under it don't jump about */
+.ss-readout span{ flex:none; }
+.ss-readout span:first-child{ flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis; font-weight:800; }
+/* the tip, in a box along the bottom of the screen like a game's talking box. always five lines
+   tall, so the buttons under it never move. a longer message scrolls inside it */
 .ss-tip{
-  min-height:calc(4 * 1.45em + 16px);
+  height:calc(5 * 1.45em + 20px);
+  overflow-y:auto;
+  scrollbar-width:thin;
+  scrollbar-color:var(--ss-lcd-fill) transparent;
   margin:0;
   padding:8px 10px;
   border:2px solid var(--ss-lcd-ink);
@@ -357,6 +370,11 @@ html:has(.ss-page){ --sb-track:#1b2230; --sb-thumb:#8fd3c1; --sb-edge:#4f8f80; -
 /* rows of 5, like the game's */
 .ss-maker-kinds{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:9px 5px; }
 .ss-maker-kinds .ss-key{ min-height:28px; padding:0 4px; font-size:12.5px; border-radius:999px; }
+/* every kind's buttons sit in the same spot, the hidden ones just invisible, so the space is as
+   tall as the longest list whichever kind is showing */
+#ssMakers{ display:grid; }
+#ssMakers > .ss-maker-list{ grid-area:1 / 1; align-content:start; }
+.ss-page #ssMakers > [hidden]{ display:grid !important; visibility:hidden; }
 .ss-maker-list{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px 6px; padding-top:4px; }
 .ss-maker-list .ss-key{ min-height:34px; padding:0 6px; font-size:13px; font-weight:600; background:var(--ss-panel); }
 .ss-maker-list .ss-key:hover{ background:#3d4964; }
@@ -419,16 +437,28 @@ html:has(.ss-page){ --sb-track:#1b2230; --sb-thumb:#8fd3c1; --sb-edge:#4f8f80; -
 /* settings tabs */
 .ss-tabs{ display:flex; flex-wrap:wrap; gap:9px 6px; padding-bottom:14px; border-bottom:2px solid var(--ss-line); }
 .ss-tabs .ss-key{ flex:1 1 auto; }
-/* a tab with settings that aren't normal */
-.ss-tabs .ss-key.is-changed::before{
+/* a dot on a tab with settings that aren't normal. every tab keeps room for it, so the tabs don't
+   change width (and wrap differently) as dots come and go */
+.ss-tabs .ss-key::before{
   content:"";
   width:6px; height:6px;
   border-radius:50%;
-  background:var(--ss-signal);
 }
+.ss-tabs .ss-key.is-changed::before{ background:var(--ss-signal); }
 .ss-tabs .ss-key[aria-pressed="true"].is-changed::before{ background:currentColor; }
 
-.ss-panel{ display:flex; flex-direction:column; gap:14px; }
+/* the panels all sit in the same spot, the hidden ones just invisible, so the faceplate is as tall
+   as the tallest tab whichever is showing */
+.ss-panels{ display:grid; }
+.ss-panel{ grid-area:1 / 1; display:flex; flex-direction:column; gap:14px; }
+.ss-page #ssPanels > .ss-panel[hidden]{ display:flex !important; visibility:hidden; }
+/* the Character tab does the same with each make one kind's knobs, under its hint */
+.ss-panel-knobs,
+.ss-page #ssPanels > .ss-panel-knobs[hidden]{ display:grid !important; grid-template-columns:minmax(0,1fr); align-content:start; }
+.ss-panel-knobs > .ss-section-title{ grid-row:1; }
+.ss-panel-knobs > .ss-hint{ grid-row:2; }
+.ss-panel-knobs > .ss-columns{ grid-row:3; grid-column:1; }
+.ss-page .ss-panel-knobs > .ss-columns[hidden]{ display:grid !important; visibility:hidden; }
 .ss-columns{ display:grid; grid-template-columns:minmax(0,1fr); gap:6px 32px; align-items:start; }
 @container (min-width:620px){
   .ss-columns{ grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -526,7 +556,8 @@ html:has(.ss-page){ --sb-track:#1b2230; --sb-thumb:#8fd3c1; --sb-edge:#4f8f80; -
 
 @media (max-width:520px){
   .ss-studio{ border-radius:18px 18px 56px 18px; }
-  .ss-bar{ padding:14px 16px; }
+  .ss-bar{ padding:14px 16px 22px; }
+  .ss-saves-as{ left:28px; }
   .ss-bar-actions{ margin-left:0; width:100%; }
   .ss-bar-actions .ss-key{ flex:1; }
   .ss-name input{ width:150px; }
@@ -586,11 +617,21 @@ html:has(.ss-page){ --sb-track:#1b2230; --sb-thumb:#8fd3c1; --sb-edge:#4f8f80; -
 .ss-port .ss-key{ margin-top:auto; white-space:nowrap; }
 .ss-port > :nth-last-child(2){ margin-bottom:10px; }
 /* the file, on a little lcd */
+/* room for the longest note, so typing a name doesn't move the library */
+#ssCodeNote{ min-height:calc(6 * 1.55em); }
+@media (max-width:1000px){
+  #ssCodeNote{ min-height:calc(5 * 1.55em); }
+  #ssWavNote{ min-height:calc(4 * 1.55em); }
+}
+@media (max-width:520px){
+  #ssCodeNote{ min-height:calc(9 * 1.55em); }
+  #ssWavNote{ min-height:calc(6 * 1.55em); }
+}
 .ss-code{
   width:100%;
   margin:6px 0 0;
   padding:10px 12px;
-  max-height:150px;
+  height:150px;
   overflow:auto;
   background:var(--ss-lcd);
   border-radius:3px;
