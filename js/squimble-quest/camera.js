@@ -210,9 +210,8 @@ class Camera {
     return Math.round(value * px) / px;
   }
 
-  // exactly where begin() puts a world position on the screen. unlike worldToScreen() this uses the
-  // pixel snapped position, so things drawn in screen positions line up with things drawn through the
-  // camera (the tiles in tilemap.js need this)
+  // exactly where begin() puts a world position on the screen, pixel snapped, so things drawn in
+  // screen positions line up with things drawn through the camera (the tiles in tilemap.js need this)
   drawnPosition(wx, wy) {
     return {
       x: (wx - this.pixelSnap(this.x + this.shakeX)) * this.zoom + GAME_W / 2,
@@ -227,14 +226,6 @@ class Camera {
     return {
       x: (sx - GAME_W / 2) / this.zoom + this.x,
       y: (sy - GAME_H / 2) / this.zoom + this.y,
-    };
-  }
-
-  // like putting some ui above an enemy
-  worldToScreen(wx, wy) {
-    return {
-      x: (wx - this.x) * this.zoom + GAME_W / 2,
-      y: (wy - this.y) * this.zoom + GAME_H / 2,
     };
   }
 

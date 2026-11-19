@@ -38,7 +38,6 @@ html:has(.cc-page){ --sb-groove:#f4ead2; --sb-line:#3a3034; --sb-a:#a8ec44; --sb
 html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e; background:#1f1b24; }
 .cc-page ::selection{ background:var(--leaf); color:var(--text); }
 .cc-page :focus-visible{ outline:3px dashed var(--ink); outline-offset:4px; }
-.cc-defs{ position:absolute; width:0; height:0; }
 .cc-page .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 
 .cc-page .site-header{ background:var(--paper); backdrop-filter:none; border-bottom:3px solid var(--ink); border-radius:0 0 4px 12px / 0 0 6px 3px; }

@@ -97,109 +97,6 @@ main, .site-footer{
   overflow-x:clip;
 }
 
-/* background canvas the stars get drawn on, see particles.js */
-.bg-fx{
-  position:fixed; top:0; left:0;
-  width:100svw; height:100svh;
-  z-index:-1;
-  pointer-events:none;
-}
-
-/* 100vw/vh on iOS Safari was causing a few px of sideways scroll, this fixes it */
-.bg-glow{
-  position:fixed; top:0; left:0; z-index:-2;
-  width:100svw; height:100svh;
-  overflow:hidden;
-  pointer-events:none;
-}
-
-/* the blurry purple/blue blobs floating in the background */
-.bg-nebula{
-  position:absolute;
-  border-radius:50%;
-  filter:blur(70px);
-  pointer-events:none;
-}
-.bg-nebula-1{
-  top:0; left:0;
-  width:46vw; height:46vw;
-  background:radial-gradient(circle at 40% 40%, rgba(109,18,179,.32), transparent 70%);
-  animation:nebulaDrift1 34s ease-in-out infinite;
-}
-.bg-nebula-2{
-  bottom:0; right:0;
-  width:50vw; height:50vw;
-  background:radial-gradient(circle at 60% 60%, rgba(77,155,227,.22), transparent 70%);
-  animation:nebulaDrift2 42s ease-in-out infinite;
-}
-.bg-nebula-3{
-  top:35%; left:60%;
-  width:34vw; height:34vw;
-  background:radial-gradient(circle at 50% 50%, rgba(198,120,220,.18), transparent 72%);
-  animation:nebulaDrift3 28s ease-in-out infinite;
-}
-@keyframes nebulaDrift1{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(3vw,2vw) scale(1.08); } }
-@keyframes nebulaDrift2{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(-2.5vw,-3vw) scale(1.06); } }
-@keyframes nebulaDrift3{ 0%,100%{ transform:translate(0,0) scale(1); } 50%{ transform:translate(-2vw,2.5vw) scale(1.1); } }
-
-/* the shooting star + its trail, particles.js moves these around randomly */
-.shooting-star{
-  position:fixed; z-index:-1;
-  top:0; left:0;
-  width:3px; height:3px;
-  border-radius:50%;
-  background:#fff;
-  box-shadow:0 0 6px 2px rgba(255,255,255,.85);
-  opacity:0;
-  pointer-events:none;
-  transform-origin:0 0;
-  transform:rotate(var(--shoot-angle,0deg));
-}
-.shooting-star.is-flying{
-  animation-name:shootingStar;
-  animation-duration:var(--shoot-duration,1s);
-  animation-fill-mode:forwards;
-}
-.shooting-star::before{
-  content:"";
-  position:absolute; top:50%; right:1px;
-  width:var(--shoot-trail,70px); height:1px;
-  background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.85));
-  transform-origin:100% 50%;
-  transform:translateY(-50%) scaleX(.05);
-}
-.shooting-star.is-flying::before{
-  animation-name:shootingTrail;
-  animation-duration:var(--shoot-duration,1s);
-  animation-fill-mode:forwards;
-}
-@keyframes shootingStar{
-  0%{
-    opacity:0;
-    transform:rotate(var(--shoot-angle)) translateX(-10px) scale(.4);
-    animation-timing-function:cubic-bezier(.3,0,.15,1);
-  }
-  18%{
-    opacity:1;
-    transform:rotate(var(--shoot-angle)) translateX(calc(var(--shoot-dist) * 0.22)) scale(1);
-    animation-timing-function:cubic-bezier(.4,0,.7,1);
-  }
-  72%{
-    opacity:.9;
-    transform:rotate(var(--shoot-angle)) translateX(calc(var(--shoot-dist) * 0.88)) scale(.85);
-  }
-  100%{
-    opacity:0;
-    transform:rotate(var(--shoot-angle)) translateX(var(--shoot-dist)) scale(.65);
-  }
-}
-@keyframes shootingTrail{
-  0%{ opacity:0; transform:translateY(-50%) scaleX(.04); }
-  18%{ opacity:.9; transform:translateY(-50%) scaleX(1); }
-  72%{ opacity:.7; transform:translateY(-50%) scaleX(.8); }
-  100%{ opacity:0; transform:translateY(-50%) scaleX(.35); }
-}
-
 img{ display:block; max-width:100%; }
 ul,ol{ margin:0; padding:0; list-style:none; }
 h1,h2,h3,h4,p,dl,dd{ margin:0; }
@@ -941,13 +838,6 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
 .fig-3{ top:18%;    right:49.17%; bottom:61.17%; left:30%;    width:20.83%; height:20.83%; }
 .fig-2{ top:18%;    right:28.33%; bottom:61.17%; left:50.83%; width:20.84%; height:20.83%; }
 .fig-1{ top:38.83%; right:28.33%; bottom:40.33%; left:50.83%; width:20.84%; height:20.84%; }
-
-.vs-top{    top:15.5%;  right:15.32%; bottom:32.08%; left:15.28%; }
-.vs-bottom{ top:32.08%; right:15.32%; bottom:15.5%;  left:15.28%; }
-.vs-bottom img{ position:absolute; inset:-18.7% -14.13%; width:128.26%; height:137.4%; }
-.vs-bar{    top:15.5%;  right:15.32%; bottom:15.5%;  left:63%; }
-.vs-bar img{ position:absolute; inset:-14.21% -45.23%; width:190.46%; height:128.42%; }
-.vs-overlay{ top:15.5%; right:15.36%; bottom:15.5%; left:15.28%; opacity:.25; mix-blend-mode:overlay; }
 
 .cs-mark{
   top:19.5%; right:15%; bottom:19.4%; left:20%;
@@ -2016,7 +1906,6 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
   .copy-email-burst{ display:none; }
   .sky-star, .sky-line{ animation:none !important; }
   .reveal{ opacity:1; transform:none; }
-  .bg-nebula-1, .bg-nebula-2, .bg-nebula-3, .shooting-star{ animation:none; }
   .design-viewer[open]{ animation:none; }
   .wizard-puppet, .wizard-puppet img, .wizard-spell, .wizard-spell svg, .wizard-slip{ animation:none !important; }
   .cli-caret{ animation:none; }

@@ -58,9 +58,6 @@
     });
   }
 
-  // background starfield (particles.js, project pages only)
-  if (!reduced && window.PortfolioFX) window.PortfolioFX.initBackgroundStarfield();
-
   // pause the idle loops (twinkling hero stars, project cards) while they're off screen
   if ('IntersectionObserver' in window) {
     var loopWatcher = new IntersectionObserver(function (entries) {
@@ -132,9 +129,6 @@
       }
     });
   }
-
-  // shooting stars (particles.js)
-  if (window.PortfolioFX) window.PortfolioFX.initShootingStars();
 
   // keep the footer year up to date
   var year = document.getElementById('year');

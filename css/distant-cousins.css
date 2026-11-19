@@ -7,7 +7,7 @@
    the board the page ends in the soil, roots and all (roots.svg). Sniglet for the logo, Fredoka for the rest, Gentium italic for the
    latin names the way field guides print them. light and dark are only colours, set at the top. */
 .dc-page{
-  --bg:#fde3cf;            --tile-ink:#f6cdb3;
+  --bg:#fde3cf;
   --ink:#3b2440;           --muted:#86636b;          --heading-shadow:#f6bfa2;
   --card:#fffaf4;          --card-edge:#e8bf9f;      --card-hover:#ffffff;
   --mystery:#fdeee3;       --mystery-edge:#e3a98a;   --sil-ink:#5a3d55;
@@ -42,7 +42,7 @@
 }
 /* dark: the same sand at night */
 :root[data-dc-theme="dark"] .dc-page{
-  --bg:#211824;            --tile-ink:#2d2131;
+  --bg:#211824;
   --ink:#f6e3d8;           --muted:#b597a0;          --heading-shadow:#4c2f46;
   --card:#30243a;          --card-edge:#140c17;      --card-hover:#3a2c45;
   --mystery:#271d2b;       --mystery-edge:#5a4462;   --sil-ink:#c9a9bd;

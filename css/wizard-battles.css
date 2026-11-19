@@ -7,7 +7,6 @@
   /* the house */
   --house:      #2b1d28;
   --house-2:    #382734;
-  --house-3:    #4a3444;
   --house-edge: #1a1118;
   --muted:      #cdb9bd;
   /* the game's wood, for the board and the desk */
@@ -37,12 +36,10 @@
   --red:        #ff6b6b;
   --red-deep:   #b83a40;
   --green:      #8fdc8a;
-  --green-deep: #3d763a;
   /* the curtain */
   --curtain:       #b83a40;
   --curtain-dark:  #962f36;
   --curtain-shine: #c9474d;
-  --valance:       #7a2329;
   /* the hard shadow every cut out casts on the backdrop, like the game's shadow layer */
   --drop:       rgba(16,8,12,.32);
   --font-book:  "Crimson Pro", Georgia, serif;
@@ -197,11 +194,22 @@ html:has(.wizard-page){ --sb-track:#2b1d28; --sb-thumb:#f1e2c2; --sb-edge:#c4a77
 .wb-sign-you{ text-shadow:.04em .05em 0 var(--blue); }
 .wb-sign-foe{ text-shadow:.04em .05em 0 var(--red); }
 
+.wb-hero-side{ padding-bottom:10px; }
 .wb-hero-copy{
   max-width:46ch;
-  padding-bottom:10px;
   font-size:var(--text-body);
   line-height:var(--lh-body);
+}
+/* what it's made with, on little parchment tickets like the sign */
+.wb-tags{ display:flex; flex-wrap:wrap; gap:10px; margin:18px 0 0; padding:0; list-style:none; }
+.wb-tags li{
+  padding:4px 14px;
+  border-radius:8px;
+  background:var(--parch);
+  box-shadow:0 3px 0 var(--parch-edge);
+  color:var(--ink);
+  font-size:14px;
+  font-weight:700;
 }
 
 /* ---------- the board ----------

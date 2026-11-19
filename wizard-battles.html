@@ -8,6 +8,16 @@
   <meta name="description"
     content="Wizard Battles - a turn-based duel built as a psychology dissertation project, measuring how much risk players take. Play it in the browser as a paper toy theatre.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <!-- what shows when the link is shared -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Ahsan Siddiqui">
+  <meta property="og:title" content="Wizard Battles - Ahsan">
+  <meta property="og:description" content="Wizard Battles - a turn-based duel built as a psychology dissertation project, measuring how much risk players take. Play it in the browser as a paper toy theatre.">
+  <meta property="og:url" content="https://ahsanpotatwo.github.io/portfolio/wizard-battles.html">
+  <meta property="og:image" content="https://ahsanpotatwo.github.io/portfolio/assets/previews/wizard-battles.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -62,7 +72,14 @@
 
       <div class="container wb-hero-head">
         <h1 class="wb-sign"><span class="wb-sign-you">Wizard</span> <span class="wb-sign-foe">Battles</span></h1>
-        <p class="wb-hero-copy">A turn-based psychological experiment: a duel between two wizards that I made for my dissertation, to measure how much risk people take when they play. It's all here to play. Press start, then pick your moves on the desk under the stage.</p>
+        <div class="wb-hero-side">
+          <p class="wb-hero-copy">A turn-based psychological experiment: a duel between two wizards that I made for my dissertation, to measure how much risk people take when they play. It's all here to play. Press start, then pick your moves on the desk under the stage.</p>
+          <ul class="wb-tags" aria-label="Built with">
+            <li>p5.js</li>
+            <li>Node.js</li>
+            <li>Research study</li>
+          </ul>
+        </div>
       </div>
 
       <!-- the game in its box. page.js scales the game to fit and swaps in the uni original -->
