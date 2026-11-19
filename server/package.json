@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "node test.js && node board-test.js"
+    "test": "node test.js && node board-test.js && node cousins-test.js"
   },
   "devDependencies": {
     "wrangler": "^4.164.0"

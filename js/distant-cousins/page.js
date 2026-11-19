@@ -25,6 +25,19 @@
     get(k, fallback) { try { return JSON.parse(localStorage.getItem(k)) ?? fallback; } catch { return fallback; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } },
   };
+  // the server (server/src/cousins.js): how many have each creature as their favourite, the daily mystery
+  // cousin, and how trees compare. nobody signs in: a random id made up here goes with everything, and the page
+  // works just the same when the server isn't there
+  const SERVER = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://127.0.0.1:8787' : 'https://portfolio-server.portfolio-server.workers.dev';
+  let me = store.get('distantCousinsId', '');
+  if (!/^[0-9a-f]{32}$/.test(me)) store.set('distantCousinsId', me = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join(''));
+  // its answer as json (with error in it when it said no), or null when it couldn't be reached
+  async function server(path, body) {
+    try {
+      const r = await fetch(SERVER + path, body && { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ who: me, ...body }) });
+      return await r.json();
+    } catch { return null; }
+  }
 
   // ---------- the tree ----------
 
@@ -1087,6 +1100,21 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     $('dcStar').setAttribute('aria-pressed', isFav);
     $('dcStarText').textContent = isFav ? 'Your favourite' : 'Make favourite';
     $('dcVsOpen').hidden = n.q === ROOT || !!n.o;
+    // how many explorers have it as their favourite, once the server says
+    $('dcLoved').hidden = true;
+    const ask = ++lovedAsk;
+    if (n.q !== ROOT && !n.o) server('/cousins/favs?q=' + n.q).then(r => { if (ask === lovedAsk && current === n) sayLoved(n, r?.n); });
+  }
+  // (only the newest answer counts: one asked just before you starred it would be one short)
+  let lovedAsk = 0;
+  function sayLoved(n, count) {
+    const el = $('dcLoved'), mine = fav?.q === n.q;
+    el.hidden = !Number.isInteger(count);
+    if (el.hidden) return;
+    const others = count - (mine ? 1 : 0);
+    el.lastChild.textContent = !count ? "Nobody's favourite yet"
+      : !others ? 'Your favourite, and nobody else\'s yet'
+      : `The favourite of ${fmt(count)} ${count === 1 ? 'explorer' : 'explorers'}${mine ? ', you included' : ''}`;
   }
   $('dcMembers').addEventListener('click', e => {
     const b = e.target.closest('[data-q]');
@@ -1319,6 +1347,8 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     store.set('distantCousinsFav', fav);
     renderHere(n);
     draw(false);
+    const ask = ++lovedAsk;
+    sendFav().then(r => { if (ask === lovedAsk && current === n && r) sayLoved(n, r.n); });
     if (fav) {
       emit('favourite', { q: n.q });
       dcSound.play('star');
@@ -1326,6 +1356,13 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
       burst($('dcStage'), r.left - s.left + 24, r.top - s.top + r.height / 2, 'star', 9, 50);
     }
   });
+  // your favourite, to the server (and once more on the next visit if it couldn't be reached)
+  async function sendFav() {
+    const q = fav?.q ?? null;
+    const r = await server('/cousins/favs', { q, h: fav?.h ?? null });
+    if (r && !r.error) store.set('distantCousinsFavSent', q);
+    return r && !r.error ? r : null;
+  }
   $('dcFavGo').addEventListener('click', () => {
     if (!fav) return;
     if (found.has(fav.q) || nodes.has(fav.q) && !fav.h) return pick(fav.q, { go: true });
@@ -1687,7 +1724,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     ROOT, nodes, parentOf, homeOf, found, trail, kidsOf, isGroup, nameOf, latinOf, picOf, loadSlice, loadPics, fillPics,
     fmt, esc, ago, span, weight, roughly, motion, store, emit, cheer, burst, dialog, draw, els, goal, get items() { return items; },
     get hunting() { return hunt; }, enterHunt, leaveHunt, show, boxOf, pick, get selected() { return selected; }, get ready() { return ready; },
-    finder, bring, silUrl, traits: TRAITS,
+    finder, bring, silUrl, traits: TRAITS, server, me, get trees() { return trees; }, get total() { return total; }, get fav() { return fav; },
   };
 
   // ---------- off we go ----------
@@ -1716,6 +1753,7 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     if (found.size > 3) fitAll(); else home();
     emit('ready');
     readyNow();
+    if ((fav?.q ?? null) !== store.get('distantCousinsFavSent', null)) sendFav();
     if (!store.get('distantCousinsHinted', false)) {
       if (matchMedia('(pointer: coarse)').matches) $('dcHint').textContent = 'Tap a mystery card to find out who it is, then tap it again to read all about it. Time runs down the board, from the first life to today. Drag to look around, pinch to zoom.';
       $('dcHint').hidden = false;

@@ -1132,6 +1132,122 @@ body.dc-vs-open{ overflow:hidden; }
 .dc-myst-keys{ justify-content:center; flex-wrap:wrap; }
 .dc-myst-keys .dc-key:disabled{ opacity:.5; cursor:default; transform:none; }
 
+/* the daily cousin's card in the games (no levels: its number, and how today's going) and its results: a bar for
+   each number of guesses, yours in coral, and the quickest ten under their made up names */
+.dc-daily-banner{ display:flex; align-items:center; gap:18px; margin-top:14px; padding:10px 18px 10px 10px; border-radius:22px; background:var(--mystery); }
+.dc-daily-banner .dc-game-art{ flex:none; width:200px; }
+.dc-daily-banner:hover .dc-game-art .move{ animation:dc-wiggle .7s ease-in-out; }
+.dc-daily-words{ display:flex; flex-direction:column; gap:4px; flex:1; min-width:0; }
+.dc-daily-words h3{ font:800 22px/1.1 var(--font-round); }
+.dc-daily-words .dc-game-say{ margin:0; }
+.dc-daily-num{ font:400 15px/1.2 var(--font-round); color:var(--sec); }
+.dc-daily-say{ font-size:14px; font-weight:700; line-height:1.4; color:var(--leaf-text); }
+.dc-daily-banner .dc-game-play{ flex:none; margin:0; }
+.dc-daily-board{ margin-top:18px; padding:16px 18px 18px; border-radius:20px; background:var(--mystery); }
+.dc-daily-board[hidden]{ display:none; }
+.dc-daily-head{ font:800 20px/1.1 var(--font-round); }
+.dc-daily-sum{ margin:6px 0 14px; font-size:16px; font-weight:600; line-height:1.5; }
+.dc-daily-sum b{ color:var(--coral); }
+.dc-daily-spread{ display:grid; grid-template-columns:repeat(11, 1fr); gap:5px; height:110px; margin:8px 0 16px; }
+.dc-daily-spread span{ display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:4px; min-width:0; }
+.dc-daily-spread i{
+  position:relative; display:block; width:100%; height:calc(var(--h) * 78px); min-height:4px;
+  border-radius:8px 8px 3px 3px; background:var(--bark-soft);
+  transform-origin:bottom; animation:dc-grow .5s var(--ease-out) both;
+}
+.dc-daily-spread .is-you i{ background:var(--coral); }
+.dc-daily-spread i b{ position:absolute; bottom:100%; left:0; right:0; margin-bottom:2px; font-size:11px; font-weight:700; text-align:center; color:var(--muted); }
+.dc-daily-spread small{ font-size:12px; font-weight:700; color:var(--muted); }
+.dc-daily-spread .is-you small{ color:var(--coral); }
+@keyframes dc-grow{ from{ scale:1 0; } }
+.dc-daily-top{ display:flex; flex-direction:column; gap:4px; margin:8px 0 12px; padding:0; list-style:none; }
+.dc-daily-top li{ display:grid; grid-template-columns:28px 1fr auto; align-items:center; gap:10px; padding:6px 12px; border-radius:12px; background:var(--card); }
+.dc-daily-top li > b{ font:800 17px/1 var(--font-round); color:var(--muted); }
+.dc-daily-top li:first-child > b{ color:var(--star-edge); }
+.dc-daily-top span{ font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dc-daily-top small{ font-size:13px; font-weight:600; color:var(--muted); }
+.dc-daily-top li.is-you{ outline:3px solid var(--coral); }
+.dc-daily-you{ font-size:14px; font-weight:600; line-height:1.5; color:var(--muted); }
+
+/* how many have it as their favourite, under the panel's keys */
+.dc-loved{ display:flex; align-items:center; gap:6px; margin-top:-4px; font-size:14px; font-weight:700; color:var(--muted); }
+.dc-loved[hidden]{ display:none; }
+.dc-loved svg{ flex:none; width:16px; height:16px; fill:var(--star); stroke:var(--star-edge); stroke-width:1.5; stroke-linejoin:round; }
+
+/* ---------- your progress ---------- */
+#dcProgOpen{ background:var(--g-sky); box-shadow:0 4px 0 color-mix(in srgb, var(--g-sky) 60%, #000); color:#fff; }
+#dcProgOpen:hover{ background:var(--g-sky); box-shadow:0 6px 0 color-mix(in srgb, var(--g-sky) 60%, #000); }
+/* big numbers in a row of tiles */
+.dc-prog-tiles{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px; margin-bottom:12px; }
+.dc-prog-tiles p{ display:flex; flex-direction:column; gap:2px; padding:12px 14px; border-radius:16px; background:var(--mystery); }
+.dc-prog-tiles b{ font:800 32px/1 var(--font-round); color:var(--coral); }
+.dc-prog-tiles span{ font-size:14px; font-weight:700; line-height:1.3; }
+.dc-prog-tiles small{ font-size:12.5px; font-weight:600; color:var(--muted); }
+.dc-prog-tiles.is-small{ grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); }
+.dc-prog-tiles.is-small b{ font-size:24px; color:var(--ink); }
+.dc-prog-tiles.is-small span{ font-size:13px; color:var(--muted); }
+.dc-prog-say{ margin:0 0 12px; font-size:16px; font-weight:600; line-height:1.55; text-wrap:pretty; }
+.dc-prog-say b{ color:var(--coral); }
+.dc-prog-note{ display:flex; align-items:center; gap:6px; margin-top:6px; font-size:13px; font-weight:600; color:var(--muted); }
+.dc-prog-note[hidden]{ display:none; }
+.dc-prog-note em{ display:inline-block; width:3px; height:14px; border-radius:2px; background:var(--ink); }
+.dc-trees-say b{ color:var(--ink); }
+/* each kind of creature its own colour */
+[data-kind="0"]{ --k:var(--coral); }   [data-kind="1"]{ --k:var(--g-sky); }  [data-kind="2"]{ --k:var(--leaf); }
+[data-kind="3"]{ --k:#3aa7a0; }        [data-kind="4"]{ --k:#5b7fd5; }       [data-kind="5"]{ --k:var(--star-edge); }
+[data-kind="6"]{ --k:#8a6fc4; }        [data-kind="7"]{ --k:#e08a3c; }       [data-kind="8"]{ --k:var(--g-rose); }
+[data-kind="9"]{ --k:var(--bark-soft); }
+.dc-prog-kinds{ display:flex; flex-direction:column; gap:7px; margin:0; padding:0; list-style:none; }
+.dc-prog-kinds li{ display:grid; grid-template-columns:130px 1fr 48px; align-items:center; gap:10px; font-size:14px; font-weight:700; }
+.dc-prog-kinds li > b{ text-align:right; font-size:15px; }
+.dc-prog-bar{ position:relative; height:14px; border-radius:999px; background:var(--mystery); }
+.dc-prog-bar i{ display:block; height:100%; border-radius:inherit; background:var(--k); transform-origin:left; animation:dc-grow-x .6s var(--ease-out) both; }
+.dc-prog-bar em{ position:absolute; top:-3px; width:3px; height:20px; translate:-50% 0; border-radius:2px; background:var(--ink); transition:left .4s var(--ease-out); }
+.dc-prog-bar em[hidden]{ display:none; }
+@keyframes dc-grow-x{ from{ scale:0 1; } }
+/* one bar in parts, and what each part is */
+.dc-prog-stack{ display:flex; gap:3px; height:18px; margin:8px 0 6px; }
+.dc-prog-stack i{ border-radius:6px; background:var(--k); transform-origin:left; animation:dc-grow-x .6s var(--ease-out) both; }
+.dc-prog-legend{ display:flex; flex-wrap:wrap; gap:4px 14px; margin:0 0 14px; padding:0; list-style:none; font-size:13px; font-weight:600; color:var(--muted); }
+.dc-prog-legend li{ display:flex; align-items:center; gap:5px; }
+.dc-prog-legend li > i{ width:10px; height:10px; border-radius:3px; background:var(--k); }
+.dc-prog-legend b{ color:var(--ink); }
+.is-alive [data-part="0"]{ --k:var(--leaf); }  .is-alive [data-part="1"]{ --k:var(--stone-tag); }
+.is-eras [data-part="0"]{ --k:#8a6fc4; }  .is-eras [data-part="1"]{ --k:var(--g-sky); }  .is-eras [data-part="2"]{ --k:var(--leaf); }
+.is-eras [data-part="3"]{ --k:var(--star-edge); }  .is-eras [data-part="4"]{ --k:var(--stone-tag); }
+/* creatures you can go to: records, and the most loved */
+.dc-prog-records, .dc-prog-loved{ display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:8px; margin-bottom:12px; }
+.dc-prog-go{
+  display:flex; align-items:center; gap:10px; padding:8px; border:0; border-radius:16px;
+  background:var(--mystery); color:var(--ink); font:inherit; text-align:left; cursor:pointer;
+  transition:transform .12s var(--ease-out), background-color .12s;
+}
+.dc-prog-go:hover{ background:var(--card-hover); transform:translateY(-2px); }
+.dc-prog-go-pic{ flex:none; width:58px; height:46px; border-radius:11px; overflow:hidden; background:var(--peach); }
+.dc-prog-go-pic img{ width:100%; height:100%; object-fit:contain; }
+.dc-prog-go-pic img:not([src]){ visibility:hidden; }
+.dc-prog-go > span:last-child{ display:flex; flex-direction:column; gap:1px; min-width:0; }
+.dc-prog-go b{ font:400 16px/1.2 var(--font-round); }
+.dc-prog-go small{ font-size:12.5px; font-weight:600; line-height:1.35; color:var(--muted); }
+/* finds on each of the last two weeks' days */
+.dc-prog-days{ display:grid; grid-template-columns:repeat(14, 1fr); gap:4px; height:76px; }
+.dc-prog-days span{ display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:3px; }
+.dc-prog-days i{ display:block; width:100%; height:calc(var(--h) * 54px); min-height:3px; border-radius:6px 6px 2px 2px; background:var(--coral); transform-origin:bottom; animation:dc-grow .5s var(--ease-out) both; }
+.dc-prog-days .is-none i{ background:var(--peach); }
+.dc-prog-days span:last-child small{ color:var(--ink); }
+.dc-prog-days small{ font-size:11px; font-weight:700; color:var(--muted); }
+/* today's daily cousin */
+.dc-prog-daily{ display:flex; align-items:center; gap:14px; margin-bottom:14px; padding:12px 14px; border-radius:16px; background:var(--star-soft); }
+.dc-prog-daily p{ display:flex; flex-direction:column; gap:2px; flex:1; font-size:14px; font-weight:600; line-height:1.4; }
+.dc-prog-daily p b{ font:400 18px/1.2 var(--font-round); }
+@media (max-width:760px){
+  .dc-prog-kinds li{ grid-template-columns:96px 1fr 36px; font-size:13px; }
+  .dc-prog-daily{ flex-direction:column; align-items:stretch; }
+  .dc-daily-banner{ flex-direction:column; align-items:stretch; gap:10px; padding:10px 10px 14px; }
+  .dc-daily-banner .dc-game-art{ width:auto; }
+  .dc-daily-words{ padding:0 6px; }
+}
+
 /* ---------- the soil band ---------- */
 .dc-band{
   position:relative;
@@ -1149,6 +1265,7 @@ body.dc-vs-open{ overflow:hidden; }
 .dc-band-inner{ max-width:820px; padding-bottom:56px; }
 .dc-band .dc-heading{ font-size:clamp(30px,3.4vw,44px); margin-bottom:16px; }
 .dc-band p{ font-size:17px; font-weight:600; line-height:1.65; }
+.dc-band p + p{ margin-top:16px; }
 .dc-band p a{ color:var(--band-link); text-decoration:underline; text-underline-offset:3px; }
 .dc-band :focus-visible{ outline-color:var(--band-text); }
 .dc-page .page-back a:hover{ color:var(--band-link); }
@@ -1220,7 +1337,9 @@ body.dc-vs-open{ overflow:hidden; }
   .dc-node.is-revealed, .dc-node.is-hung, .dc-node.is-unfound:hover .dc-sil, .dc-met.is-up, .dc-cheer,
   #dcSurprise.is-rolling svg, .dc-vs-and, .dc-vs-fork, .dc-vs-line > li, .dc-vs-fact, .dc-ach.is-done .dc-ach-badge, .dc-hunt, .dc-node.is-hinted, .dc-quiz-pick.is-right, .dc-myst-card.is-shown, .dc-myst-guesses li.is-new{ animation:none; }
   .dc-quiz-pick{ transition:none; }
-  .dc-game:hover .dc-game-art .move, .dc-game:hover .dc-game-art .rise, .dc-thumb.is-off{ animation:none; }
+  .dc-daily-spread i, .dc-prog-bar i, .dc-prog-stack i, .dc-prog-days i{ animation:none; }
+  .dc-prog-go, .dc-prog-bar em{ transition:none; }
+  .dc-game:hover .dc-game-art .move, .dc-daily-banner:hover .dc-game-art .move, .dc-game:hover .dc-game-art .rise, .dc-thumb.is-off{ animation:none; }
   .dc-game, .dc-thumb, .dc-thumb-mouth, .dc-ticks span, .dc-stops i, .dc-game-level > p, .dc-game-level > p.is-on{ transition:none; }
   .dc-motes{ display:none; }
 }

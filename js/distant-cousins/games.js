@@ -84,6 +84,10 @@
     { id: 'mystery', name: 'Mystery cousin', say: 'We think of a creature. Guess any animal and we\'ll say how long ago it shared an ancestor with ours. Lower is warmer.',
       levels: MYSTERY_LEVELS, tone: ['--coral', '--peach'], start: k => startMystery(k),
       best: k => best['mystery-' + k] ? `Your best: ${best['mystery-' + k]} ${best['mystery-' + k] === 1 ? 'guess' : 'guesses'}` : '' },
+    // (daily: no levels, and it goes across the top of the menu. the server picks one a day for everybody,
+    // checks each guess and keeps the results)
+    { id: 'daily', name: 'Daily cousin', say: 'One mystery creature a day, the same one for everybody. Work it out in as few guesses as you can, and see where you place.',
+      daily: true, tone: ['--bark', '--star-soft'], start: () => startDaily() },
   ];
   const KEYS = ['easy', 'normal', 'hard', 'expert'];
   // little line drawings in the board's style: cards with faces, a game colour (f-sec), the page's card colour
@@ -121,11 +125,31 @@
       <path class="trail" d="M66 60H118"/>
       <rect class="f-card" x="70" y="16" width="30" height="24" rx="7"/>${face(85, 27)}
       <rect class="f-sec" x="124" y="28" width="46" height="58" rx="11"/><text x="147" y="66">?</text>`,
+    // a page off a calendar with today's mystery card on it, and a star for whoever's quickest
+    daily: `<rect class="f-card" x="58" y="18" width="84" height="82" rx="11"/>
+      <path class="f-sec" d="M58 29a11 11 0 0 1 11-11h62a11 11 0 0 1 11 11v9H58z"/>
+      <path d="M80 11v14M120 11v14"/>
+      <rect class="f-soft2" x="80" y="48" width="40" height="42" rx="9"/><text x="100" y="77" style="font-size:24px">?</text>
+      <g transform="translate(26 -54) scale(1.5)"><path class="f-star move" d="M100 50.5l2 4.1 4.5.6-3.3 3.1.8 4.5-4-2.2-4 2.2.8-4.5-3.3-3.1 4.5-.6z"/></g>
+      <path class="trail" d="M36 92h14M150 92h14"/>`,
   };
   const picked = store.get('distantCousinsGameLevels', {});
   function renderMenu() {
+    // (the daily one goes across the top, the rest are cards)
+    const daily = GAMES.find(g => g.daily);
     $('dcGamesBody').innerHTML = `<p class="dc-trees-say">Pick a game, slide to how hard you'd like it, and play. Your own tree is kept safe while you do.</p>
-      <div class="dc-games">${GAMES.map(g => {
+      <section class="dc-daily-banner" data-game="${daily.id}" style="--sec:var(${daily.tone[0]});--soft:var(${daily.tone[1]})">
+        <div class="dc-game-art" aria-hidden="true"><svg viewBox="0 0 200 112">${ART.daily}</svg></div>
+        <div class="dc-daily-words">
+          <p class="dc-daily-num" data-daily-num>A new one every day</p>
+          <h3>${esc(daily.name)}</h3>
+          <p class="dc-game-say">${esc(daily.say)}</p>
+          <p class="dc-daily-say" data-daily-say>Asking how everyone's doing...</p>
+        </div>
+        <button class="dc-key dc-game-play" type="button" data-play="${daily.id}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg><span>Play today's</span></button>
+      </section>
+      <div class="dc-games">${GAMES.filter(g => !g.daily).map(g => {
         const at = Math.max(0, KEYS.indexOf(picked[g.id] || 'normal'));
         return `<section class="dc-game" data-game="${g.id}" style="--sec:var(${g.tone[0]});--soft:var(${g.tone[1]})">
           <div class="dc-game-art" aria-hidden="true"><svg viewBox="0 0 200 112">${ART[g.id] || ''}</svg></div>
@@ -146,7 +170,21 @@
         </section>`;
       }).join('')}</div>`;
     for (const input of $('dcGamesBody').querySelectorAll('[data-level-of]')) sayLevel(input, true);
+    // today's daily: its number, and how everyone (and you) got on
+    api.server('/cousins/daily?who=' + api.me).then(d => {
+      const num = $('dcGamesBody').querySelector('[data-daily-num]'), say = $('dcGamesBody').querySelector('[data-daily-say]');
+      if (!num) return;
+      if (!d || d.error) { say.textContent = 'Needs the internet: the server picks it, and it can\'t be reached right now.'; return; }
+      num.textContent = `No. ${fmt(d.number)} · a new one ${untilNext(d.ends)}`;
+      const you = d.you;
+      say.textContent = you?.won ? `You got it in ${you.guesses}, and placed ${ordinal(you.rank)} of ${fmt(d.solved)}.`
+        : you?.done ? `This one beat you. ${fmt(d.solved)} of ${fmt(d.players)} got it.`
+        : you?.guesses || you?.hints ? `You're on it: ${you.guesses} ${you.guesses === 1 ? 'guess' : 'guesses'} so far.`
+        : d.players ? `${fmt(d.players)} ${d.players === 1 ? 'explorer has' : 'explorers have'} played today, and ${fmt(d.solved)} got it.` : 'Nobody\'s played today\'s yet. Be the first?';
+    });
   }
+  const ordinal = n => n + (n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th');
+  const untilNext = ms => { const h = Math.floor(ms / 36e5); return h >= 1 ? `in ${h} ${h === 1 ? 'hour' : 'hours'}` : `in ${Math.max(1, Math.ceil(ms / 6e4))} minutes`; };
   // the slider's own thumb is see-through (it still does the dragging and the keys): this one is drawn over it
   // and glides to each stop (css transitions --at). it has a face that gets more worried the harder it gets
   const THUMB = `<span class="dc-thumb" aria-hidden="true"><svg viewBox="0 0 20 20"><circle cx="7" cy="8.5" r="1.5"/><circle cx="13" cy="8.5" r="1.5"/><path class="dc-thumb-mouth" d="M6.5 12.5Q8 14.5 10 14.5Q12 14.5 13.5 12.5"/></svg></span>`;
@@ -186,7 +224,7 @@
     }
     const b = e.target.closest('[data-play]');
     const g = b && GAMES.find(x => x.id === b.dataset.play);
-    if (g) { win.close(); g.start(b.closest('.dc-game').dataset.level); }
+    if (g) { win.close(); g.start(b.closest('[data-game]').dataset.level); }
   });
 
   // ---------- the hunt ----------
@@ -504,23 +542,58 @@
     }
     if (!t) return;
     store.set('distantCousinsMysteries', [t[0], ...recent].slice(0, 30));
-    // its family line, and how long ago each group on it began (as the fossils have it: at least that long, and
-    // never younger than a group further down)
-    const line = api.trail(t[0]), ages = [];
-    line.forEach((q, i) => { const a = api.nodes.get(q)?.a; ages[i] = Math.min(a ?? Infinity, i ? ages[i - 1] : 4200); });
-    myst = { level, L, t, n: api.nodes.get(t[0]), line, ages, guesses: [], hinted: 0, hints: 0 };
+    myst = { level, L, t, g, n: api.nodes.get(t[0]), line: api.trail(t[0]), guesses: [], hinted: 0, hints: 0 };
     quiz = null;
     $('dcQuizTitle').textContent = `Mystery cousin · ${L.name}`;
     renderMystery();
     qwin.show();
     $('dcMystFind').focus({ preventScroll: true });
   }
+  // how long ago each group down a family line began (as the fossils have it: at least that long, and never
+  // younger than a group further down)
+  const agesOf = line => {
+    const out = [];
+    line.forEach((q, i) => { const a = api.nodes.get(q)?.a; out[i] = Math.min(a ?? Infinity, i ? out[i - 1] : 4200); });
+    return out;
+  };
+
+  // the daily one: the server picks it (server/src/cousins.js) and answers each guess, so here it's only known
+  // as far down its family line as the guesses and hints have got (line), until it's over. what you've done
+  // today is kept here too (distantCousinsDaily), so a closed window or a new visit carries on where you were
+  async function startDaily() {
+    let g;
+    try { g = await load(); } catch (e) { console.warn(e); return; }
+    const d = await api.server('/cousins/daily?who=' + api.me);
+    quiz = null;
+    $('dcQuizTitle').textContent = d && !d.error ? `Daily cousin · No. ${fmt(d.number)}` : 'Daily cousin';
+    if (!d || d.error) {
+      $('dcQuizBody').innerHTML = `<div class="dc-quiz-end"><p>The daily cousin is picked by the server, and it can't be reached right now. Check you're online and try again in a little while.</p>
+        <div class="dc-actions"><button class="dc-key" type="button" data-m-games>Other games</button></div></div>`;
+      myst = { done: true };
+      return qwin.show();
+    }
+    myst = { daily: d, level: 'daily', L: { name: 'Daily', hints: d.hints }, t: null, g, n: null, line: [api.ROOT], names: {}, guesses: [], hinted: 0, hints: d.you.hints, count: d.you.guesses };
+    const kept = store.get('distantCousinsDaily', null);
+    if (kept?.day === d.day) Object.assign(myst, { guesses: kept.guesses || [], hinted: kept.hinted || 0, line: kept.line || [api.ROOT], names: kept.names || {} });
+    renderMystery();
+    qwin.show();
+    if (d.you.done) finishDaily(d.answer, d.you.won);
+    else $('dcMystFind').focus({ preventScroll: true });
+  }
+  // (the progress window has a way in too)
+  api.startDaily = startDaily;
+  const keepDaily = () => { const m = myst; store.set('distantCousinsDaily', { day: m.daily.day, guesses: m.guesses, hinted: m.hinted, line: m.line, names: m.names }); };
+  // a name on the mystery one's line: from the tree if it's loaded, else as the server said it with a hint
+  const nameAt = q => api.nodes.has(q) ? api.nameOf(api.nodes.get(q)) : myst.names?.[q] || '?';
+  // (the whole line once it's known: up to its parent, never the mystery one. before that, as far as you've got)
+  const lineEnd = () => myst.daily && !myst.n ? myst.line.length - 1 : myst.line.length - 2;
+
   function renderMystery() {
     const m = myst, n = m.n;
     $('dcQuizBody').innerHTML = `
       <div class="dc-myst-top">
         <span class="dc-myst-card">${m.L.outline && n.si ? `<img src="${api.silUrl(n.si)}" alt="Its silhouette">` : '<b>?</b>'}</span>
-        <p>Guess any creature. We'll say how long ago it shared an ancestor with the mystery one. <b>The smaller the number, the closer you are.</b></p>
+        <p>${m.daily ? 'Today\'s mystery creature is the same for everybody. ' : ''}Guess any creature. We'll say how long ago it shared an ancestor with the mystery one. <b>The smaller the number, the closer you are.</b></p>
       </div>
       <ol class="dc-myst-line" aria-label="What you know of its family line"></ol>
       <div class="dc-find dc-vs-find">
@@ -530,7 +603,8 @@
       </div>
       <p class="dc-myst-say" aria-live="polite"></p>
       <ol class="dc-myst-guesses"></ol>
-      <div class="dc-actions dc-myst-keys"></div>`;
+      <div class="dc-actions dc-myst-keys"></div>
+      ${m.daily ? '<section class="dc-daily-board" aria-live="polite" hidden></section>' : ''}`;
     api.finder($('dcMystFind'), $('dcMystFound'), e => guess(e));
     sayMystery();
   }
@@ -538,8 +612,8 @@
   function sayMystery(words = '') {
     const m = myst, known = deepest();
     const body = $('dcQuizBody');
-    const steps = m.line.slice(1, Math.min(known, m.line.length - 2) + 1).map(q => `<li>${esc(api.nameOf(api.nodes.get(q)))}</li>`).join('');
-    body.querySelector('.dc-myst-line').innerHTML = `${steps}<li class="is-mystery"><span>${m.done ? esc(api.nameOf(m.n)) : '?'}</span></li>`;
+    const steps = m.line.slice(1, Math.min(known, lineEnd()) + 1).map(q => `<li>${esc(nameAt(q))}</li>`).join('');
+    body.querySelector('.dc-myst-line').innerHTML = `${steps}<li class="is-mystery"><span>${m.done ? esc(m.n ? api.nameOf(m.n) : m.t?.[2] || '?') : '?'}</span></li>`;
     if (words) body.querySelector('.dc-myst-say').innerHTML = words;
     const rows = [...m.guesses].sort((a, b) => b.at - a.at || b.when - a.when);
     const top = Math.log1p(4200);
@@ -554,9 +628,9 @@
     }).join('');
     for (const img of body.querySelectorAll('img[data-myst-pic]')) picture(img, img.dataset.mystPic);
     const keys = body.querySelector('.dc-myst-keys');
-    if (m.done) keys.innerHTML = `<button class="dc-key dc-vs-key" type="button" data-m-again>Play again</button><button class="dc-key" type="button" data-m-tree>Show it on my tree</button><button class="dc-key" type="button" data-m-games>Other games</button>`;
+    if (m.done) keys.innerHTML = `${m.daily ? '<button class="dc-key dc-vs-key" type="button" data-m-share>Copy my result</button>' : '<button class="dc-key dc-vs-key" type="button" data-m-again>Play again</button>'}<button class="dc-key" type="button" data-m-tree>Show it on my tree</button><button class="dc-key" type="button" data-m-games>Other games</button>`;
     else {
-      const left = m.L.hints - m.hints, canHint = left > 0 && known < m.line.length - 2;
+      const left = m.L.hints - m.hints, canHint = left > 0 && (m.daily ? !m.noMore : known < m.line.length - 2);
       keys.innerHTML = `${m.L.hints ? `<button class="dc-key" type="button" data-m-hint${canHint ? '' : ' disabled'}>Hint${left === Infinity ? '' : ` (${left} left)`}</button>` : ''}<button class="dc-key" type="button" data-m-give>Give up</button>`;
     }
   }
@@ -567,14 +641,28 @@
     if (m.guesses.some(g => g.q === q)) return sayMystery('You\'ve guessed that one already.');
     try { await api.loadSlice(e[1]); } catch { return sayMystery('That one wouldn\'t load. Try another?'); }
     if (myst !== m || !api.nodes.has(q)) return;
-    const n = api.nodes.get(q), gl = api.trail(q);
-    let i = 0;
-    while (i < gl.length && i < m.line.length && gl[i] === m.line[i]) i++;
-    const at = i - 1, before = deepest();
-    // (the mystery one itself, or one of its own kinds: a breed of it)
-    const right = at === m.line.length - 1;
-    const g = { q, name: api.nameOf(n), pic: api.picOf(n) || (n.m || []).find(x => x[3])?.[3], at, meet: api.nameOf(api.nodes.get(m.line[at])), years: m.ages[at], inside: i === gl.length && !right, right, when: m.guesses.length + 1 };
+    const n = api.nodes.get(q), gl = api.trail(q), before = deepest();
+    let at, right;
+    if (m.daily) {
+      // (the server says how far down the lines are the same, and the line's known that far from here on)
+      const r = await api.server('/cousins/daily', { do: 'guess', line: gl });
+      if (myst !== m) return;
+      if (r?.answer) return finishDaily(r.answer, false);
+      if (!r || r.error) return sayMystery(r ? esc(cap(r.error)) + '.' : 'The server couldn\'t be reached. Try that guess again?');
+      ({ at, right } = r);
+      if (at >= m.line.length) m.line = gl.slice(0, at + 1);
+      if (right) Object.assign(m, { answer: r.answer, rank: r.rank, count: r.guesses });
+    } else {
+      let i = 0;
+      while (i < gl.length && i < m.line.length && gl[i] === m.line[i]) i++;
+      at = i - 1;
+      // (the mystery one itself, or one of its own kinds: a breed of it)
+      right = at === m.line.length - 1;
+    }
+    // (up to where they meet the guess's line is the mystery one's, so its ages are too)
+    const g = { q, name: api.nameOf(n), pic: api.picOf(n) || (n.m || []).find(x => x[3])?.[3], at, meet: api.nameOf(api.nodes.get(gl[at])), years: agesOf(gl)[at], inside: at === gl.length - 1 && !right, right, when: m.guesses.length + 1 };
     m.guesses.push(g);
+    if (m.daily) keepDaily();
     if (right) return solved();
     const say = m.guesses.length === 1 && !m.hinted ? 'Your first guess. Now try to get the number smaller.'
       : at > before ? `<b>Warmer!</b> ${esc(g.name)} is the closest yet.`
@@ -583,26 +671,52 @@
     dcSound.play(at > before ? 'sparkle' : 'tap');
     sayMystery(say);
   }
-  function mysteryHint() {
+  async function mysteryHint() {
     const m = myst, known = deepest();
+    if (m.daily) {
+      if (m.hints >= m.L.hints || m.noMore || m.asking) return;
+      m.asking = true;
+      const r = await api.server('/cousins/daily', { do: 'hint' });
+      m.asking = false;
+      if (myst !== m) return;
+      if (r?.answer) return finishDaily(r.answer, false);
+      if (!r || r.error) { if (r) m.noMore = true; return sayMystery(r ? esc(cap(r.error)) + '.' : 'The server couldn\'t be reached. Try again?'); }
+      m.hints = r.hints;
+      m.hinted = r.at;
+      m.line = [...m.line.slice(0, r.at), r.q];
+      if (r.name) m.names[r.q] = r.name;
+      keepDaily();
+      dcSound.play('sparkle');
+      sayMystery(`Hint: it's one of the <b>${esc(nameAt(r.q).toLowerCase())}</b>.`);
+      return $('dcMystFind').focus({ preventScroll: true });
+    }
     if (m.hints >= m.L.hints || known >= m.line.length - 2) return;
     m.hints++;
     m.hinted = known + 1;
     dcSound.play('sparkle');
     sayMystery(`Hint: it's one of the <b>${esc(api.nameOf(api.nodes.get(m.line[known + 1])).toLowerCase())}</b>.`);
+    // (the key that was pressed has gone: focus back in the window, on the guessing box)
+    $('dcMystFind').focus({ preventScroll: true });
   }
   function solved() {
     const m = myst, count = m.guesses.length;
     m.done = true;
-    const key = 'mystery-' + m.level;
-    if (!(best[key] <= count)) { best[key] = count; store.set('distantCousinsBest', best); }
     api.emit('mystery-won', { level: m.level, guesses: count, hints: m.hints });
     dcSound.play('hooray');
+    if (m.daily) return finishDaily(m.answer, true);
+    const key = 'mystery-' + m.level;
+    if (!(best[key] <= count)) { best[key] = count; store.set('distantCousinsBest', best); }
     sayMystery(`<b>You got it in ${count} ${count === 1 ? 'guess' : 'guesses'}!</b> It was ${esc(the(api.nameOf(m.n), m.t[9]))}. Your best at ${m.L.name.toLowerCase()}: ${best[key]}.`);
     reveal();
   }
-  function mysteryGiveUp() {
+  async function mysteryGiveUp() {
     const m = myst;
+    if (m.daily) {
+      const r = await api.server('/cousins/daily', { do: 'give up' });
+      if (myst !== m) return;
+      if (!r?.answer) return sayMystery(r ? esc(cap(r.error)) + '.' : 'The server couldn\'t be reached. Try again?');
+      return finishDaily(r.answer, false);
+    }
     m.done = true;
     m.hinted = m.line.length - 2;
     sayMystery(`It was <b>${esc(the(api.nameOf(m.n), m.t[9]))}</b>. Here's its family line, all the way down.`);
@@ -611,12 +725,55 @@
   // the mystery card turns over to show who it was
   function reveal() {
     const card = $('dcQuizBody').querySelector('.dc-myst-card');
-    const file = api.picOf(myst.n);
+    const file = myst.n ? api.picOf(myst.n) : myst.t?.[3];
     card.classList.add('is-shown');
     card.setAttribute('data-pic-box', '');
-    card.innerHTML = file ? '<img alt="">' : `<b>${esc(api.nameOf(myst.n))}</b>`;
+    card.innerHTML = file ? '<img alt="">' : `<b>${esc(myst.n ? api.nameOf(myst.n) : myst.t?.[2] || '')}</b>`;
     if (file) picture(card.querySelector('img'), file);
-    $('dcQuizBody').querySelector('[data-m-again]')?.focus({ preventScroll: true });
+    $('dcQuizBody').querySelector('[data-m-again], [data-m-share]')?.focus({ preventScroll: true });
+  }
+
+  // the daily one's over (got it, gave up, or done earlier today): who it was, its whole family line, and how
+  // everyone got on
+  async function finishDaily(answer, won) {
+    const m = myst;
+    m.done = true;
+    m.won = won;
+    await api.loadSlice(answer.h).catch(() => { });
+    if (myst !== m) return;
+    m.n = api.nodes.get(answer.q) || null;
+    m.t = m.g.quiz.find(e => e[0] === answer.q) || [answer.q, answer.h, answer.name];
+    if (m.n) {
+      m.line = api.trail(answer.q);
+      if (!won) m.hinted = m.line.length - 2;
+    }
+    const it = esc(the(m.n ? api.nameOf(m.n) : answer.name, m.t[9])), count = m.count ?? m.guesses.length;
+    sayMystery(won ? `<b>You got it in ${count} ${count === 1 ? 'guess' : 'guesses'}!</b> It was ${it}.` : `It was <b>${it}</b>. Here's its family line, all the way down.`);
+    reveal();
+    dailyBoard();
+  }
+  // today's results from the server: how many guesses everyone who got it took, the best ten, and where you are
+  async function dailyBoard() {
+    const m = myst, box = $('dcQuizBody').querySelector('.dc-daily-board');
+    const d = await api.server('/cousins/daily?who=' + api.me);
+    if (myst !== m || !box || !d || d.error) return;
+    m.daily = d;
+    const most = Math.max(1, ...d.spread), yours = d.you?.won ? Math.min(d.you.guesses, 11) : 0;
+    const time = s => s < 60 ? `${s} s` : s < 3600 ? `${Math.round(s / 60)} min` : `${+(s / 3600).toFixed(1)} h`;
+    box.hidden = false;
+    box.innerHTML = `
+      <h3 class="dc-daily-head">Today's results</h3>
+      <p class="dc-daily-sum">${fmt(d.players)} ${d.players === 1 ? 'explorer' : 'explorers'} played, ${fmt(d.solved)} got it${d.you?.won ? `, and you placed <b>${ordinal(d.you.rank)}</b>` : ''}.</p>
+      <p class="dc-sub">How many guesses it took</p>
+      <div class="dc-daily-spread">${d.spread.map((n, i) => `<span class="${i + 1 === yours ? 'is-you' : ''}" title="${fmt(n)} got it in ${i < 10 ? i + 1 : '11 or more'}"><i style="--h:${(n / most).toFixed(3)}"><b>${n ? fmt(n) : ''}</b></i><small>${i < 10 ? i + 1 : '11+'}</small></span>`).join('')}</div>
+      ${d.top.length ? `<p class="dc-sub">The quickest today</p><ol class="dc-daily-top">${d.top.map((t, i) => `<li class="${t.you ? 'is-you' : ''}"><b>${i + 1}</b><span>${esc(t.name)}${t.you ? ' (you)' : ''}</span><small>${t.guesses} ${t.guesses === 1 ? 'guess' : 'guesses'}${t.hints ? `, ${t.hints} ${t.hints === 1 ? 'hint' : 'hints'}` : ''} · ${time(t.secs)}</small></li>`).join('')}</ol>` : ''}
+      <p class="dc-daily-you">You're on the results as <b>${esc(d.you?.name || '')}</b>, a name made up for you. A new mystery ${untilNext(d.ends)}.</p>`;
+  }
+  // a line to paste anywhere: no spoilers, just how it went
+  function shareDaily(b) {
+    const m = myst, d = m.daily, count = m.count ?? m.guesses.length;
+    const text = `Distant Cousins daily No. ${d.number}: ${m.won ? `got it in ${count} ${count === 1 ? 'guess' : 'guesses'}${m.hints ? ` with ${m.hints} ${m.hints === 1 ? 'hint' : 'hints'}` : ''}` : 'this one beat me'}. ${location.origin}${location.pathname}`;
+    navigator.clipboard?.writeText(text).then(() => { b.textContent = 'Copied'; }, () => { b.textContent = 'Couldn\'t copy'; });
   }
   qbox.addEventListener('click', e => {
     const b = e.target.closest('button');
@@ -624,6 +781,7 @@
     if (b.hasAttribute('data-m-hint')) mysteryHint();
     else if (b.hasAttribute('data-m-give')) mysteryGiveUp();
     else if (b.hasAttribute('data-m-again')) startMystery(myst.level);
+    else if (b.hasAttribute('data-m-share')) shareDaily(b);
     else if (b.hasAttribute('data-m-games')) { qwin.close(); renderMenu(); win.show(); }
     else if (b.hasAttribute('data-m-tree')) { const q = myst.t[0]; qwin.close(); api.bring(q); }
   });

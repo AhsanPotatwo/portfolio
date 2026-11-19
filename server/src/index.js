@@ -1,10 +1,11 @@
 // server for my portfolio, on cloudflare workers: the multiplayer wizard battles, catpi corner's notice board,
-// and the site's mods (mod.html)
+// the site's mods (mod.html), and distant cousins' favourites, daily mystery and tree stats (cousins.js)
 // each room code gets its own durable object: a tiny server of its own that holds one wizard battle
 import { DurableObject } from 'cloudflare:workers';
 import WizardRules from '../../js/wizard-battles/rules.js';
 import { board } from './board.js';
 import { mods } from './mods.js';
+import { cousins } from './cousins.js';
 
 const { newDuel, legalPick, duelTurn, duelView } = WizardRules;
 const SITE = 'https://ahsanpotatwo.github.io';
@@ -29,6 +30,7 @@ export default {
     }
     if (url.pathname === '/board' || url.pathname === '/board/mod') return board(req, env, url, cors);
     if (url.pathname === '/mod') return mods(req, env, cors);
+    if (url.pathname.startsWith('/cousins/')) return cousins(req, env, url, cors);
 
     const room = url.pathname.match(/^\/room\/([A-Za-z0-9]{4,8})$/);
     if (room) {

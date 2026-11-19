@@ -100,7 +100,7 @@
         </button>
       </div>
 
-      <!-- things to do: a surprise, the games (games.js), the achievements (achievements.js) -->
+      <!-- things to do: a surprise, the games (games.js), your progress (progress.js), the achievements (achievements.js) -->
       <div class="dc-play" role="group" aria-label="Things to do">
         <button class="dc-key" type="button" id="dcSurprise">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="9" cy="9" r="1.3"/><circle cx="15" cy="15" r="1.3"/><circle cx="15" cy="9" r="1.3"/><circle cx="9" cy="15" r="1.3"/></svg>
@@ -109,6 +109,10 @@
         <button class="dc-key" type="button" id="dcGamesOpen">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>
           <span>Games</span>
+        </button>
+        <button class="dc-key" type="button" id="dcProgOpen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M6.5 20v-6M11 20V9M15.5 20v-8M20 20V5"/></svg>
+          <span>Progress</span>
         </button>
         <button class="dc-key" type="button" id="dcAchOpen">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/></svg>
@@ -145,6 +149,8 @@
             <span id="dcStarText">Make favourite</span>
           </button>
         </div>
+        <!-- how many explorers have it as their favourite (from the server) -->
+        <p class="dc-loved" id="dcLoved" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"/></svg><span></span></p>
         <p class="dc-read" id="dcRead"></p>
         <nav class="dc-line" id="dcLine" aria-label="Family line" hidden></nav>
         <div class="dc-time" id="dcTime"></div>
@@ -194,6 +200,15 @@
           <div id="dcAchBody"></div>
         </div>
       </div>
+      <div class="dc-vs" id="dcProg" role="dialog" aria-modal="true" aria-labelledby="dcProgTitle" hidden>
+        <div class="dc-vs-card">
+          <div class="dc-vs-head">
+            <h2 class="dc-vs-title" id="dcProgTitle">Your progress</h2>
+            <button class="dc-close" type="button" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div id="dcProgBody"></div>
+        </div>
+      </div>
       <div class="dc-vs" id="dcQuiz" role="dialog" aria-modal="true" aria-labelledby="dcQuizTitle" hidden>
         <div class="dc-vs-card">
           <div class="dc-vs-head">
@@ -225,6 +240,7 @@
         <div>
           <h2 class="dc-heading">Where it all comes from</h2>
           <p>The tree is <a href="https://www.wikidata.org/" target="_blank" rel="noopener">Wikidata</a>'s: every animal it knows and who its parents are, which thousands of people keep up to date. The dates come from the fossils in the <a href="https://paleobiodb.org/" target="_blank" rel="noopener">Paleobiology Database</a>: a fossil's age is the age of the rock it's in, which is often known only to within a few million years, so the page says "at least" where it can't be sure. Weights for mammals and birds are the averages scientists collected in <a href="https://doi.org/10.6084/m9.figshare.3559887.v1" target="_blank" rel="noopener">EltonTraits</a>, and for everything else Wikidata's grown-up figures. The words come from <a href="https://en.wikipedia.org/" target="_blank" rel="noopener">Wikipedia</a>, the pictures from <a href="https://commons.wikimedia.org/" target="_blank" rel="noopener">Wikimedia Commons</a> (credited under each one) and the silhouettes from <a href="https://www.phylopic.org/" target="_blank" rel="noopener">PhyloPic</a> (credited on the card, where the artist asks for it). Scientists have named thousands of in-between groups, so only the well known ones are kept here: the rest are folded into the branch above. Scientists also still argue about plenty of branches, so now and then a creature sits somewhere surprising.</p>
+          <p>Everyone's favourites, the daily cousin and how your tree compares with everybody else's go through a little server of mine on Cloudflare. Nobody signs in: your browser makes up a random number to tell your visits apart, and nothing that could say who you are is kept.</p>
         </div>
       </div>
       <div class="container page-back">
@@ -246,6 +262,7 @@
   <script src="js/distant-cousins/page.js"></script>
   <script src="js/distant-cousins/achievements.js"></script>
   <script src="js/distant-cousins/games.js"></script>
+  <script src="js/distant-cousins/progress.js"></script>
 </body>
 
 </html>
