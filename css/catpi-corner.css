@@ -71,6 +71,22 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
   paint-order:stroke fill;
 }
 .cc-hero-side{ display:flex; flex-direction:column; align-items:flex-start; gap:12px; }
+/* a collab: my name in the site's brackets, plus her cup of juice stuck on at a tilt. the cup has a go
+   at a sip on hover */
+.cc-collab{
+  display:inline-flex; align-items:center; gap:10px;
+  color:var(--text); text-decoration:none;
+}
+.cc-collab-me{ font:700 34px/1 var(--font-hand); }
+.cc-collab-me b{ color:var(--fern); }
+.cc-collab-plus{ font:700 40px/1 var(--font-hand); color:#e8285a; translate:0 -2px; }
+.cc-collab-cup{
+  width:52px; height:auto;
+  rotate:8deg;
+  filter:drop-shadow(0 0 0 #fff) drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 2px 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(2px 3px 0 rgba(58, 48, 52, .25));
+  transition:rotate .3s var(--ease-out), translate .3s var(--ease-out);
+}
+.cc-collab:hover .cc-collab-cup, .cc-collab:focus-visible .cc-collab-cup{ rotate:-6deg; translate:0 -3px; }
 .cc-lights .cc-moon, .cc-lights[aria-pressed="true"] .cc-bulb{ display:none; }
 .cc-lights[aria-pressed="true"] .cc-moon{ display:block; }
 .cc-lede{

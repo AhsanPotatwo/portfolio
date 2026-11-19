@@ -1742,6 +1742,15 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
   text-shadow:0 .9cqi 0 #3a3034;
 }
 .catpi-title span + span{ color:#ffb6d2; translate:0 1.4cqi; }
+/* the collab sticker: her cup of juice with a white sticker edge, tipping for a sip on hover */
+.catpi-collab{
+  position:absolute; right:3.5cqi; top:3cqi;
+  width:8.5cqi; height:auto;
+  rotate:10deg;
+  filter:drop-shadow(.5cqi 0 0 #fff) drop-shadow(-.5cqi 0 0 #fff) drop-shadow(0 .5cqi 0 #fff) drop-shadow(0 -.5cqi 0 #fff) drop-shadow(.4cqi .6cqi 0 rgba(58, 48, 52, .22));
+  transition:rotate .35s var(--ease-out);
+}
+.project-card-catpi:is(:hover, :focus-within) .catpi-collab{ rotate:-8deg; }
 
 /* contact: the page ends on a flat butter band, with one big night-coloured star in the corner */
 .contact{
