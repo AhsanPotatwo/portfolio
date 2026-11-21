@@ -189,9 +189,17 @@
     <!-- make a new catpi, or change one -->
     <dialog class="cc-hatch" id="ccHatch" aria-labelledby="ccHatchTitle">
       <form id="ccHatchForm" method="dialog">
+        <!-- the catpi and their name stay in view; the choices are on pages behind the tabs, so a new kind of
+             choice is one more fieldset, and a new page is one more tab and section (page.js wires them up) -->
         <div class="cc-hatch-side">
           <h2 id="ccHatchTitle">Hatch a catpi</h2>
-          <canvas id="ccHatchPic" width="360" height="240" aria-hidden="true"></canvas>
+          <div class="cc-hatch-pic">
+            <canvas id="ccHatchPic" width="360" height="240" aria-hidden="true"></canvas>
+            <button class="cc-small" type="button" id="ccSurprise">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7h4c4 0 5 10 9 10h4M17.5 14l3 3-3 3M3.5 17h4c1.6 0 2.7-1.6 3.6-3.4M13 9.4C13.9 7.6 15 7 16.5 7h4M17.5 4l3 3-3 3"/></svg>
+              Surprise me
+            </button>
+          </div>
           <label class="cc-name">
             <span>Name</span>
             <span class="cc-name-row">
@@ -201,42 +209,54 @@
               </button>
             </span>
           </label>
-          <!-- two drawn sliders: a little catpi that grows as you slide it, and a note that climbs -->
-          <div class="cc-slide">
-            <label for="ccSize">Size</label>
-            <div class="cc-slide-row"><span aria-hidden="true">tiny</span><input class="cc-range cc-range-size" type="range" id="ccSize" min="0.7" max="1.15" step="0.01"><span aria-hidden="true">big</span></div>
-          </div>
-          <div class="cc-slide">
-            <label for="ccVoice">Voice</label>
-            <div class="cc-slide-row"><span aria-hidden="true">low</span><input class="cc-range cc-range-voice" type="range" id="ccVoice" min="220" max="460" step="5"><span aria-hidden="true">high</span></div>
-            <button class="cc-small" type="button" id="ccHear">Hear it</button>
-          </div>
-          <button class="cc-small" type="button" id="ccSurprise">Surprise me</button>
+        </div>
+        <div class="cc-hatch-tabs" role="tablist" aria-label="What to change">
+          <button class="cc-tab" role="tab" type="button" id="ccPageColours" aria-controls="ccHatchColours" aria-selected="true">Colours</button>
+          <button class="cc-tab" role="tab" type="button" id="ccPagePattern" aria-controls="ccHatchPattern" aria-selected="false" tabindex="-1">Pattern</button>
+          <button class="cc-tab" role="tab" type="button" id="ccPageFace" aria-controls="ccHatchFace" aria-selected="false" tabindex="-1">Face</button>
+          <button class="cc-tab" role="tab" type="button" id="ccPageWear" aria-controls="ccHatchWear" aria-selected="false" tabindex="-1">Wear</button>
+          <button class="cc-tab" role="tab" type="button" id="ccPageWho" aria-controls="ccHatchWho" aria-selected="false" tabindex="-1">Who they are</button>
         </div>
         <div class="cc-hatch-main">
-          <h3 class="cc-group">Colours</h3>
-          <fieldset><legend>Body</legend><div class="cc-crayons" id="ccBody"></div></fieldset>
-          <fieldset><legend>Ears and tail</legend><div class="cc-crayons" id="ccAccent"></div></fieldset>
-          <fieldset><legend>Pattern</legend><div class="cc-chips" id="ccPattern"></div></fieldset>
-          <fieldset id="ccDotRow"><legend>Pattern colour</legend><div class="cc-crayons" id="ccDot"></div></fieldset>
-          <h3 class="cc-group">Face</h3>
-          <fieldset><legend>Eyes</legend><div class="cc-chips" id="ccEyes"></div></fieldset>
-          <fieldset><legend>Mouth</legend><div class="cc-chips" id="ccMouth"></div></fieldset>
-          <fieldset><legend>Cheeks</legend><div class="cc-chips" id="ccCheeks"></div></fieldset>
-          <fieldset><legend>Whiskers</legend><div class="cc-chips" id="ccWhiskers"></div></fieldset>
-          <fieldset><legend>Drawn in</legend><div class="cc-chips" id="ccLines"></div></fieldset>
-          <h3 class="cc-group">Things to wear</h3>
-          <fieldset><legend>On their head</legend><div class="cc-chips" id="ccHat"></div></fieldset>
-          <fieldset><legend>On their face</legend><div class="cc-chips" id="ccFace"></div></fieldset>
-          <fieldset><legend>On their back</legend><div class="cc-chips" id="ccBack"></div></fieldset>
-          <h3 class="cc-group">Who they are</h3>
-          <fieldset><legend>What they're like</legend><div class="cc-chips" id="ccTrait"></div><p class="cc-says" id="ccTraitSays"></p></fieldset>
-          <fieldset><legend>Favourite food</legend><div class="cc-chips" id="ccLikes"></div></fieldset>
-          <div class="cc-hatch-go">
-            <button class="cc-small cc-bye" type="button" id="ccBye" hidden>Say goodbye</button>
-            <button class="cc-small" type="button" id="ccHatchCancel">Never mind</button>
-            <button class="cc-new" type="submit" id="ccHatchGo">Hatch</button>
-          </div>
+          <section class="cc-hatch-page" id="ccHatchColours" role="tabpanel" aria-labelledby="ccPageColours">
+            <fieldset><legend>Body</legend><div class="cc-crayons" id="ccBody"></div></fieldset>
+            <fieldset><legend>Ears and tail</legend><div class="cc-crayons" id="ccAccent"></div></fieldset>
+          </section>
+          <section class="cc-hatch-page" id="ccHatchPattern" role="tabpanel" aria-labelledby="ccPagePattern" hidden>
+            <fieldset><legend>Pattern</legend><div class="cc-chips" id="ccPattern"></div></fieldset>
+            <fieldset id="ccDotRow"><legend>Pattern colour</legend><div class="cc-crayons" id="ccDot"></div></fieldset>
+          </section>
+          <section class="cc-hatch-page" id="ccHatchFace" role="tabpanel" aria-labelledby="ccPageFace" hidden>
+            <fieldset><legend>Eyes</legend><div class="cc-chips" id="ccEyes"></div></fieldset>
+            <fieldset><legend>Mouth</legend><div class="cc-chips" id="ccMouth"></div></fieldset>
+            <fieldset><legend>Cheeks</legend><div class="cc-chips" id="ccCheeks"></div></fieldset>
+            <fieldset><legend>Whiskers</legend><div class="cc-chips" id="ccWhiskers"></div></fieldset>
+            <fieldset><legend>Drawn in</legend><div class="cc-chips" id="ccLines"></div></fieldset>
+          </section>
+          <section class="cc-hatch-page" id="ccHatchWear" role="tabpanel" aria-labelledby="ccPageWear" hidden>
+            <fieldset><legend>On their head</legend><div class="cc-chips" id="ccHat"></div></fieldset>
+            <fieldset><legend>On their face</legend><div class="cc-chips" id="ccFace"></div></fieldset>
+            <fieldset><legend>On their back</legend><div class="cc-chips" id="ccBack"></div></fieldset>
+          </section>
+          <section class="cc-hatch-page" id="ccHatchWho" role="tabpanel" aria-labelledby="ccPageWho" hidden>
+            <fieldset><legend>What they're like</legend><div class="cc-chips" id="ccTrait"></div><p class="cc-says" id="ccTraitSays"></p></fieldset>
+            <fieldset><legend>Favourite food</legend><div class="cc-chips" id="ccLikes"></div></fieldset>
+            <!-- two drawn sliders: a little catpi that grows as you slide it, and a note that climbs -->
+            <div class="cc-slide">
+              <label for="ccSize">Size</label>
+              <div class="cc-slide-row"><span aria-hidden="true">tiny</span><input class="cc-range cc-range-size" type="range" id="ccSize" min="0.7" max="1.15" step="0.01"><span aria-hidden="true">big</span></div>
+            </div>
+            <div class="cc-slide">
+              <label for="ccVoice">Voice</label>
+              <div class="cc-slide-row"><span aria-hidden="true">low</span><input class="cc-range cc-range-voice" type="range" id="ccVoice" min="220" max="460" step="5"><span aria-hidden="true">high</span></div>
+              <button class="cc-small" type="button" id="ccHear">Hear it</button>
+            </div>
+          </section>
+        </div>
+        <div class="cc-hatch-go">
+          <button class="cc-small cc-bye" type="button" id="ccBye" hidden>Say goodbye</button>
+          <button class="cc-small" type="button" id="ccHatchCancel">Never mind</button>
+          <button class="cc-new" type="submit" id="ccHatchGo">Hatch</button>
         </div>
       </form>
     </dialog>

@@ -258,26 +258,11 @@ html:has(.cb-page){ --sb-track:#0c110e; --sb-thumb:#3ddc84; --sb-edge:#1f8f4f; -
   animation:cb-ping 4s var(--d) infinite;
 }
 .cb-radar-hit{ background:var(--hit); box-shadow:0 3px 0 var(--hit-edge); }
-/* a flat ring that spreads out from each contact as it's found */
-.cb-radar-ping::after{
-  content:"";
-  position:absolute; inset:-2px;
-  border:2px solid var(--peg);
-  border-radius:50%;
-  opacity:0;
-  animation:cb-ping-ring 4s ease-out var(--d) infinite;
-}
-.cb-radar-hit::after{ border-color:var(--hit); }
 @keyframes cb-ping{
   0%  { opacity:0; scale:1.7; translate:0 -8px; }
   5%  { opacity:1; scale:1; translate:0 0; animation-timing-function:linear; }
   65% { opacity:1; }
   90%,100%{ opacity:0; }
-}
-@keyframes cb-ping-ring{
-  0%  { opacity:0; scale:1; }
-  5%  { opacity:1; scale:1; }
-  30%,100%{ opacity:0; scale:3; }
 }
 .cb-radar-label{
   position:absolute;
@@ -636,6 +621,6 @@ html:has(.cb-page){ --sb-track:#0c110e; --sb-thumb:#3ddc84; --sb-edge:#1f8f4f; -
 
 @media (prefers-reduced-motion:reduce){
   .cb-caret{ animation:none; }
-  .cb-radar-sweep, .cb-radar-ping::after{ animation:none; }
+  .cb-radar-sweep{ animation:none; }
   .cb-radar-ping{ animation:none; opacity:1; }
 }

@@ -64,10 +64,10 @@
     <section class="wb-hero" id="game">
       <div class="wb-pelmet" aria-hidden="true"></div>
       <div class="wb-hangers" aria-hidden="true">
-        <span class="wb-hang wb-hang-wide" style="--x:35%;--len:44px;--s:22px;--d:-4s"><svg><use href="#wbStar"/></svg></span>
-        <span class="wb-hang wb-hang-moon" style="--x:84%;--len:58px;--s:66px;--d:-2.6s"><i></i></span>
-        <span class="wb-hang wb-hang-wide" style="--x:79%;--len:196px;--s:20px;--d:-1.2s"><svg><use href="#wbStar"/></svg></span>
-        <span class="wb-hang" style="--x:94%;--len:150px;--s:28px;--d:-5.3s"><svg><use href="#wbStar"/></svg></span>
+        <span class="wb-hang wb-hang-wide" style="--x:35%;--len:44px;--s:22px;--t:3.2s;--d:-4s"><svg><use href="#wbStar"/></svg></span>
+        <span class="wb-hang wb-hang-moon" style="--x:84%;--len:58px;--s:66px;--t:4.3s;--d:-2.6s"><i></i></span>
+        <span class="wb-hang wb-hang-wide" style="--x:79%;--len:196px;--s:20px;--t:6.4s;--d:-1.2s"><svg><use href="#wbStar"/></svg></span>
+        <span class="wb-hang" style="--x:94%;--len:150px;--s:28px;--t:5.7s;--d:-5.3s"><svg><use href="#wbStar"/></svg></span>
       </div>
 
       <div class="container wb-hero-head">
@@ -242,7 +242,7 @@
     <!-- what it is and why, on a programme with the blue wizard peeking over the top -->
     <section class="wb-section">
       <div class="container">
-        <article class="wb-programme" data-reveal>
+        <article class="wb-programme">
           <img class="wb-peek wb-peek-you" src="assets/wizard-battles/card/you.webp" alt="" width="208" height="457" loading="lazy">
           <div class="wb-programme-sheet">
             <div class="wb-programme-col">
@@ -261,13 +261,13 @@
     <!-- the rules: the moves on one printed sheet, then elements and berserk strike -->
     <section class="wb-section" id="how">
       <div class="container">
-        <header class="wb-head" data-reveal>
+        <header class="wb-head">
           <h2 class="wb-h2">How it works</h2>
           <p>Each scene you pick a move, Attack, Defend or Heal, and then how strong to make it. Stronger moves do more but are less likely to work. Every risk is optional, so the game records how much risk each player chooses to take. The bars below show how likely each move is to work.</p>
           <p>The enemy picks its move at the same time, then both play out. You start with 100 health and the evil wizard has 200. First to 0 loses.</p>
         </header>
 
-        <div class="wb-moves" data-reveal>
+        <div class="wb-moves">
           <section class="wb-move wb-move-attack" aria-labelledby="mvAttack">
             <h3 class="wb-move-key" id="mvAttack"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 2.5 5 13.5h6.5l-1 8 8.5-11h-6.5z"/></svg>Attack</h3>
             <ul class="wb-tiers">
@@ -298,7 +298,7 @@
         </div>
 
         <div class="wb-extras">
-          <article class="wb-elements" data-reveal>
+          <article class="wb-elements">
             <div>
               <h3 class="wb-h3">Elements</h3>
               <p>Every attack also gets an element. Hit the element yours beats and it does double damage; hit the one that beats yours and it does half. Neutral is never better or worse, and the enemy's attacks follow the same rules.</p>
@@ -322,7 +322,7 @@
 
           <!-- berserk strike, the sign that drops onto the stage in the game, hanging off a batten. it swings on its
                strings rather than turning, so they stay tied on -->
-          <article class="wb-berserk" data-reveal>
+          <article class="wb-berserk">
             <div class="wb-berserk-rig">
               <div class="wb-berserk-swing">
                 <div class="wb-berserk-hang">
@@ -340,7 +340,7 @@
     <!-- the enemy, standing on its own bit of stage -->
     <section class="wb-section">
       <div class="container wb-split">
-        <div class="wb-split-copy" data-reveal>
+        <div class="wb-split-copy">
           <h2 class="wb-h2">How the AI enemy works</h2>
           <p>The evil wizard doesn't cheat: it never sees your move before it picks its own. It reads the state of the battle and your last few choices, then picks the move a sensible wizard would. It goes down this list and does the first thing that fits.</p>
           <ol class="wb-rules">
@@ -362,7 +362,7 @@
          images in assets/wizard-battles/friends. your friend plays on the enemy's puppet, so he still scowls -->
     <section class="wb-section">
       <div class="container wb-split wb-split-flip">
-        <div class="wb-split-copy" data-reveal>
+        <div class="wb-split-copy">
           <h2 class="wb-h2">Playing a friend</h2>
           <p>The revamp adds a second way to play. Press <b>Play a friend</b>, dress your wizard (a name, plus colours for the robe, trim, stars and beard, or mix your own) and send your friend the link. Whoever opens the room picks how much health you each start with.</p>
           <p>You both pick at the same time, with the same moves and odds as above. Heals land before attacks, and if you both drop to 0 in the same scene it's a draw. Each room is a tiny server of its own on Cloudflare Workers that rolls the dice and checks every move, so nobody can cheat by editing the page.</p>
@@ -378,14 +378,14 @@
     <section class="wb-section">
       <div class="container">
         <div class="wb-research">
-          <div class="wb-research-copy" data-reveal>
+          <div class="wb-research-copy">
             <h2 class="wb-h2">Collecting the data</h2>
             <p>The study ran on the uni original: p5.js in the browser, with a Node.js and Express server behind it. Every move either side makes is logged, and when a battle ends the whole session is sent to the server and saved as a CSV file, one row per move, which researchers can open and analyse straight away.</p>
             <p>The study has finished now, so nothing is saved from this site. The file is only sent when the game runs with the original project's server.</p>
           </div>
 
           <!-- the participant's ticket. duel.js writes the id into #player-id -->
-          <div class="wb-ticket-holder" data-reveal>
+          <div class="wb-ticket-holder">
           <aside class="wb-ticket" aria-labelledby="wbTicketLabel">
             <p class="wb-ticket-stub" aria-hidden="true">Admit one</p>
             <div class="wb-ticket-main">
@@ -402,7 +402,7 @@
           </div>
         </div>
 
-        <figure class="wb-session" data-reveal>
+        <figure class="wb-session">
           <figcaption><b>session_K2U75E2AY1.csv</b> one row per move, both wizards <span>(example values)</span></figcaption>
           <div class="wb-session-body" tabindex="0" role="region" aria-label="Example session file">
             <table class="wb-csv">

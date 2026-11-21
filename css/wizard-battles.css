@@ -112,13 +112,14 @@ html:has(.wizard-page){ --sb-track:#2b1d28; --sb-thumb:#f1e2c2; --sb-edge:#c4a77
 /* ---------- hero ---------- */
 .wb-hero{ position:relative; overflow:clip; padding-bottom:clamp(56px,7vw,96px); }
 
-/* things hanging off the pelmet on threads, swaying a little like the game's stars */
+/* things hanging off the pelmet on threads, swaying a little like the game's stars. --t is one swing,
+   set by thread length like a real pendulum (goes with the square root, so long threads swing slower) */
 .wb-hangers{ position:absolute; inset:0 0 auto; height:340px; z-index:1; pointer-events:none; }
 .wb-hang{
   position:absolute; left:var(--x); top:20px;
   width:0; height:var(--len);
   transform-origin:0 0;
-  animation:wb-sway 5.5s ease-in-out var(--d) infinite alternate;
+  animation:wb-sway var(--t, 5.5s) ease-in-out var(--d) infinite alternate;
 }
 .wb-hang::before{
   content:"";
@@ -878,11 +879,7 @@ html:has(.wizard-page){ --sb-track:#2b1d28; --sb-thumb:#f1e2c2; --sb-edge:#c4a77
 /* the effect sits over both columns so every bar is the same length */
 .wb-tier-effect{ grid-area:1 / 1 / 2 / 3; justify-self:end; font-weight:700; font-size:16px; white-space:nowrap; }
 .wb-tier-bar{ grid-area:2 / 1 / 3 / 2; height:10px; border-radius:5px; background:rgba(54,37,33,.12); overflow:hidden; }
-.wb-tier-bar i{ display:block; width:var(--chance); height:100%; border-radius:inherit; background:var(--edge-c); transition:width .9s var(--ease-out) .2s; }
-.wb-tiers li:nth-child(2) .wb-tier-bar i{ transition-delay:.35s; }
-.wb-tiers li:nth-child(3) .wb-tier-bar i{ transition-delay:.5s; }
-/* the odds fill in when the sheet first comes into view (main.js adds .is-visible) */
-.reveal:not(.is-visible) .wb-tier-bar i{ width:0; }
+.wb-tier-bar i{ display:block; width:var(--chance); height:100%; border-radius:inherit; background:var(--edge-c); }
 .wb-tier-chance{ grid-area:2 / 2 / 3 / 3; text-align:right; font-weight:700; font-size:15px; }
 .wb-move-note{ margin-top:20px; font-size:15px; line-height:1.5; color:var(--ink-soft); }
 

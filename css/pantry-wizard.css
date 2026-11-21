@@ -369,11 +369,7 @@ html.pw-light .pw-title{ color:var(--violet); }
 }
 .pw-hero-shelf > img{ flex:none; height:auto; }
 .pw-phone-hero{ width:clamp(190px,18vw,262px); flex:none; margin-inline:clamp(4px,1vw,14px); }
-.pw-hero-orb{ width:clamp(74px,7.6vw,110px); margin-bottom:2px; animation:pw-float 4s ease-in-out infinite; }
-@keyframes pw-float{
-  0%, 100%{ translate:0 0; }
-  50%{ translate:0 -6px; }
-}
+.pw-hero-orb{ width:clamp(74px,7.6vw,110px); margin-bottom:2px; }
 /* cut outs standing against the wall, with the same hard shadow as everything else */
 .pw-hero-orb, .pw-hero-food{ filter:drop-shadow(4px 3px 0 var(--edge)); }
 .pw-hero-food{ transform-origin:50% 100%; }
@@ -1261,7 +1257,7 @@ html.pw-light .pw-cloth{
   box-shadow:0 10px 0 rgba(20,10,60,.4);
   color:var(--ink);
 }
-.pw-cloth-orb{ width:clamp(80px,9vw,120px); animation:pw-float 4s ease-in-out infinite; }
+.pw-cloth-orb{ width:clamp(80px,9vw,120px); }
 .pw-cloth-card h2{ font-size:var(--h2); font-weight:700; line-height:1.08; }
 .pw-cloth-card p{ max-width:520px; margin:12px 0 26px; font-size:var(--text-body); line-height:var(--lh-body); color:#45405a; }
 .pw-page .pw-cloth + .page-back{ padding-top:clamp(40px,5vw,64px); }
@@ -1343,7 +1339,7 @@ html.pw-light .pw-cloth{
 
 @media (prefers-reduced-motion:reduce){
   .pw-page{ transition:none; }
-  .pw-hero-orb, .pw-hero-food, .pw-cloth-orb{ animation:none !important; }
+  .pw-hero-orb, .pw-hero-food{ animation:none !important; }
   .pw-device.is-buzzing{ animation:none; outline:3px solid var(--green); outline-offset:4px; }
   .pw-panel.is-entering .pw-phone,
   .pw-panel.is-entering .pw-panel-copy,

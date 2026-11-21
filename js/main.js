@@ -39,25 +39,6 @@
     sections.forEach(function (section) { spy.observe(section); });
   }
 
-  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // fade [data-reveal] blocks in the first time they scroll into view (project pages). once only,
-  // so scrolling back up doesn't make everything fade out and in again
-  if (!reduced && 'IntersectionObserver' in window) {
-    var revealer = new IntersectionObserver(function (entries) {
-      entries.forEach(function (entry) {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add('is-visible');
-        revealer.unobserve(entry.target);
-      });
-    }, { threshold: 0.08 });
-
-    document.querySelectorAll('[data-reveal]').forEach(function (el) {
-      el.classList.add('reveal');
-      revealer.observe(el);
-    });
-  }
-
   // pause the idle loops (twinkling hero stars, project cards) while they're off screen
   if ('IntersectionObserver' in window) {
     var loopWatcher = new IntersectionObserver(function (entries) {
@@ -108,14 +89,10 @@
       copyLabel.textContent = 'Copied';
       copyStatus.textContent = 'Email address copied. Speak soon!';
       copyEmail.classList.add('is-copied');
-      // restart the burst even on a quick second click
-      copyEmail.classList.remove('is-bursting');
-      void copyEmail.offsetWidth;
-      copyEmail.classList.add('is-bursting');
       clearTimeout(copyReset);
       copyReset = setTimeout(function () {
         copyLabel.textContent = 'Copy';
-        copyEmail.classList.remove('is-copied', 'is-bursting');
+        copyEmail.classList.remove('is-copied');
         copyStatus.textContent = '';
       }, 2600);
     };

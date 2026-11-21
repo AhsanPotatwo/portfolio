@@ -1055,13 +1055,12 @@ html.mm-painting::view-transition-new(root){ animation:none; mix-blend-mode:norm
 html.mm-painting .mm-page, html.mm-painting .mm-page *{ transition:none !important; }
 
 @media (prefers-reduced-motion: no-preference){
-  @keyframes mm-pop{ 0%{ scale:.88; } 55%{ scale:1.07; } 100%{ scale:1; } }
+  @keyframes mm-pop{ 35%{ scale:.94; } }
   @keyframes mm-grow{ from{ scale:0; } }
   @keyframes mm-hop{ from{ translate:0 6px; } }
-  @keyframes mm-drop{ from{ opacity:0; translate:0 -40px; rotate:-10deg; } }
-  @keyframes mm-rise{ from{ opacity:0; translate:0 32px; } }
 
-  /* a setting turned on pops (only the keys that stay put: the tabs' keys are drawn again on every change) */
+  /* a setting turned on gives under the finger like a real key and comes back (only the keys that stay
+     put: the tabs' keys are drawn again on every change) */
   .mm-mood[aria-pressed="true"],
   .mm-style [aria-pressed="true"],
   .mm-mod[aria-pressed="true"],
@@ -1071,27 +1070,11 @@ html.mm-painting .mm-page, html.mm-painting .mm-page *{ transition:none !importa
   .mm-mood[aria-pressed="true"]::before{ animation:mm-grow .5s var(--mm-spring); }
   .mm-tab[aria-selected="true"]{ animation:mm-hop .4s var(--mm-spring); }
 
-  /* the page arriving: the title's letters drop in one by one, the machine rises, the card lands on it */
-  .mm-letter{ animation:mm-drop .6s var(--mm-spring) backwards; animation-delay:calc(var(--i) * 28ms); }
-  .mm-machine{ animation:mm-rise .6s var(--mm-out) .1s backwards; }
-  .mm-label{ animation:mm-drop .7s var(--mm-spring) .45s backwards; }
-  .mm-welcome{ animation:mm-rise .5s var(--mm-spring) .6s backwards; }
-
   /* folds slide open and shut, where the browser can size to fit */
   @supports selector(::details-content){
     .mm-page{ interpolate-size:allow-keywords; }
     .mm-page details::details-content{ block-size:0; overflow-y:clip; transition:block-size .35s var(--mm-out), content-visibility .35s allow-discrete; }
     .mm-page details[open]::details-content{ block-size:auto; }
-  }
-
-  /* further down, the cards and headings rise into place as they're scrolled to. (over a set distance,
-     not a share of the card: the tour is taller than a screen, and would still be fading in while read) */
-  @supports (animation-timeline: view()){
-    .mm-ribbon, .mm-lower > .mm-shelf, .mm-guide-grid > .mm-shelf, .mm-hood > .mm-shelf{
-      animation:mm-rise linear both;
-      animation-timeline:view();
-      animation-range:entry 0px entry 200px;
-    }
   }
 }
 @media (prefers-reduced-motion: reduce){

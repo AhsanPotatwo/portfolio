@@ -504,7 +504,7 @@
   }
 
   // ---------- places ----------
-  const tabs = [...document.querySelectorAll('.cc-tab')];
+  const tabs = [...document.querySelectorAll('.cc-tabs .cc-tab')];
   function go(id) {
     if (id === place) return;
     place = id;
@@ -675,6 +675,7 @@
       box.hidden = false;
       mix.setAttribute('aria-expanded', true);
       set();
+      box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     };
     box.close = () => { box.hidden = true; mix.setAttribute('aria-expanded', false); };
     mix.addEventListener('click', () => { if (box.hidden) box.open(); else box.close(); tap(); });
@@ -741,6 +742,36 @@
   chipRow($('#ccTrait'), Object.keys(Catpis.TRAITS), 'trait');
   chipRow($('#ccLikes'), Catpis.FOODS, 'likes', plural);
 
+  // the dialog's pages: one tab each, arrow keys move along them like the browser's own tabs
+  const pageTabs = [...document.querySelectorAll('.cc-hatch-tabs .cc-tab')];
+  function turnTo(tab) {
+    for (const t of pageTabs) {
+      const on = t === tab;
+      t.setAttribute('aria-selected', on);
+      t.tabIndex = on ? 0 : -1;
+      $('#' + t.getAttribute('aria-controls')).hidden = !on;
+    }
+    $('.cc-hatch-main').scrollTop = 0;
+    tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    moreTabs();
+  }
+  // on a phone the tabs don't all fit: they slide sideways, and fade at the edge while there are more
+  const tabStrip = $('.cc-hatch-tabs');
+  const moreTabs = () => tabStrip.classList.toggle('is-more', pageTabs.at(-1).getBoundingClientRect().right > tabStrip.getBoundingClientRect().right + 1);
+  tabStrip.addEventListener('scroll', moreTabs, { passive: true });
+  addEventListener('resize', moreTabs);
+  pageTabs.forEach((tab, i) => {
+    tab.addEventListener('click', () => { turnTo(tab); tap(); });
+    tab.addEventListener('keydown', (e) => {
+      const step = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+      if (!step) return;
+      e.preventDefault();
+      const next = pageTabs[(i + step + pageTabs.length) % pageTabs.length];
+      turnTo(next);
+      next.focus();
+    });
+  });
+
   // the two sliders: how far along they are, for their crayon fill (css --p) and the size thumb's catpi (--k)
   const sliders = [$('#ccSize'), $('#ccVoice')];
   const slid = (el) => {
@@ -767,7 +798,7 @@
     redraft();
     hideCard();
     dialog.showModal();
-    $('.cc-hatch-main').scrollTop = 0;
+    turnTo(pageTabs[0]);
   }
   function redraft() {
     Catpis.repaint(draft);

@@ -567,22 +567,26 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
 
   // ---------- the moment of finding something ----------
 
-  // a puff of little shapes out of a point: leaves for the living, stone chips for the long gone (which fall),
-  // confetti for a milestone. into box (the board's world, or the stage over it), at x, y in its units
+  // a puff of little shapes out of a point: leaves for the living, stone chips for the long gone, stars for
+  // a favourite, confetti for a milestone. into box (the board's world, or the stage over it), at x, y in its
+  // units. thrown up and out at random (not an even ring), then they fall: how far, how long, and how high
+  // they get thrown (chips are heavy and barely go up) depends on what they are
+  const THROW = { leaf: [40, 40, 1.3, 0.5, 1], stone: [70, 50, 0.85, 0.3, 0.45], star: [30, 30, 1, 0.3, 1], confetti: [90, 80, 1.9, 0.6, 1] };
   function burst(box, x, y, kind, count = 14, reach = 90) {
     if (!motion()) return;
+    const [fall, fallMore, time, timeMore, up] = THROW[kind];
+    const r = Math.random;
     const b = document.createElement('div');
     b.className = 'dc-burst is-' + kind;
     b.style.cssText = `left:${x}px;top:${y}px`;
     for (let i = 0; i < count; i++) {
-      const a = (i / count) * Math.PI * 2 + Math.random() * 0.5, r = reach * (0.6 + Math.random() * 0.6);
+      const a = -Math.PI / 2 + (r() - 0.5) * 2.6, far = reach * (0.5 + r() * 0.7);
       const s = document.createElement('i');
-      const fall = kind === 'stone' ? 40 + Math.random() * 30 : kind === 'confetti' ? 60 : 0;
-      s.style.cssText = `--dx:${(Math.cos(a) * r).toFixed(0)}px;--dy:${(Math.sin(a) * r * (kind === 'stone' ? 0.5 : 1) + fall).toFixed(0)}px;--r:${Math.floor(Math.random() * 360)}deg;--d:${Math.floor(Math.random() * 90)}ms`;
+      s.style.cssText = `--dx:${(Math.cos(a) * far).toFixed(0)}px;--dy:${(Math.sin(a) * far * up).toFixed(0)}px;--fall:${(fall + r() * fallMore).toFixed(0)}px;--t:${(time + r() * timeMore).toFixed(2)}s;--r:${Math.floor(r() * 360)}deg;--d:${Math.floor(r() * 90)}ms`;
       b.append(s);
     }
     box.append(b);
-    setTimeout(() => b.remove(), 1600);
+    setTimeout(() => b.remove(), 2700);
   }
   // a card you've just found: a creature's turns over to show who it is, a group's sign swings on its
   // branch, and the sound says which (and plucks a note for each branch coming out of it)
@@ -1574,26 +1578,10 @@ const isGroup = n => !!n && !!n.g && n.q !== ROOT;
     document.documentElement.dataset.dcTheme = next;
     try { localStorage.setItem('distantCousinsTheme', next); } catch { }
     sayTheme();
-    makeMotes();
     dcSound.theme();
     emit('theme', { dark: next === 'dark' });
   });
   sayTheme();
-
-  // ---------- the air over the board ----------
-  // a few specks drifting about: pollen in the daytime, fireflies at night. over the board, under everything
-  // else, never in the way of a click (and not there at all for anyone who'd rather things kept still)
-  function makeMotes() {
-    const box = $('dcMotes');
-    const dark = document.documentElement.dataset.dcTheme === 'dark';
-    box.replaceChildren(...Array.from({ length: dark ? 16 : 22 }, () => {
-      const m = document.createElement('i');
-      const r = () => Math.random();
-      m.style.cssText = `left:${(r() * 100).toFixed(1)}%;top:${(r() * 100).toFixed(1)}%;--s:${(2 + r() * (dark ? 3 : 4)).toFixed(1)}px;--dx:${((r() - 0.5) * 160).toFixed(0)}px;--dy:${(-40 - r() * 120).toFixed(0)}px;--t:${(14 + r() * 16).toFixed(1)}s;--d:-${(r() * 30).toFixed(1)}s;--b:${(2.5 + r() * 4).toFixed(1)}s`;
-      return m;
-    }));
-  }
-  makeMotes();
 
   // ---------- music and sounds (sound.js) ----------
   // on from the start unless turned off last time. browsers hold sound back until the page is first

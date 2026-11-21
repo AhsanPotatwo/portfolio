@@ -121,13 +121,13 @@
     <!-- ---------- screen tour ---------- -->
     <section class="pw-section" id="tour">
       <div class="container">
-        <header class="pw-head" data-reveal>
+        <header class="pw-head">
           <p class="pw-tape" style="--tape:#d2506a">The screens</p>
           <h2 class="pw-h2">A quick tour of the app</h2>
           <p>Every screen comes in light and dark. Switch the page's theme and the screens switch with it.</p>
         </header>
 
-        <div class="pw-tour" data-reveal>
+        <div class="pw-tour">
           <div class="pw-tabs" role="tablist" aria-label="App screens">
             <button class="pw-tab" type="button" role="tab" id="pwTabHome" aria-controls="pwPanelHome" aria-selected="true">
               <span class="pw-tab-num">1</span>Home
@@ -224,13 +224,13 @@
     <!-- ---------- playground ---------- -->
     <section class="pw-section" id="try">
       <div class="container">
-        <header class="pw-head" data-reveal>
+        <header class="pw-head">
           <p class="pw-tape" style="--tape:#3f9a2b">Try it</p>
           <h2 class="pw-h2">The app, rebuilt for your browser</h2>
           <p>The real app runs on phones, so here's a web recreation of its pantry, add and edit screens. It behaves like the app and uses your browser's versions of the same hardware: take or pick a photo, feel the buzz on an Android phone, hear items read aloud, and tag them with your location. Everything stays on your device and resets when you reload.</p>
         </header>
 
-        <div class="pw-play" data-reveal>
+        <div class="pw-play">
           <!-- app demo (js/pantry-wizard/page.js) -->
           <div class="pw-stand">
           <div class="pw-device" id="pwDevice">
@@ -364,14 +364,14 @@
     <!-- ---------- hardware: four jars on a shelf ---------- -->
     <section class="pw-section" id="hardware">
       <div class="container">
-        <header class="pw-head" data-reveal>
+        <header class="pw-head">
           <p class="pw-tape" style="--tape:#d98a1c">Hardware</p>
           <h2 class="pw-h2">Four features from the phone itself</h2>
           <p>The app uses .NET MAUI's cross-platform APIs, so the same C# code works with the camera, vibration motor, speech engine and GPS on Android, iOS and Windows.</p>
         </header>
 
         <div class="pw-jars">
-          <article class="pw-jar-spot" data-reveal style="--lid:#e46fb6;--lid-edge:#a8397c">
+          <article class="pw-jar-spot" style="--lid:#e46fb6;--lid-edge:#a8397c">
             <div class="pw-jar">
               <span class="pw-jar-lid" aria-hidden="true"></span>
               <div class="pw-jar-label">
@@ -383,7 +383,7 @@
             </div>
           </article>
 
-          <article class="pw-jar-spot" data-reveal style="--lid:#f2a73b;--lid-edge:#b0701a">
+          <article class="pw-jar-spot" style="--lid:#f2a73b;--lid-edge:#b0701a">
             <div class="pw-jar">
               <span class="pw-jar-lid" aria-hidden="true"></span>
               <div class="pw-jar-label">
@@ -395,7 +395,7 @@
             </div>
           </article>
 
-          <article class="pw-jar-spot" data-reveal style="--lid:#5e7fff;--lid-edge:#3550c4">
+          <article class="pw-jar-spot" style="--lid:#5e7fff;--lid-edge:#3550c4">
             <div class="pw-jar">
               <span class="pw-jar-lid" aria-hidden="true"></span>
               <div class="pw-jar-label">
@@ -407,7 +407,7 @@
             </div>
           </article>
 
-          <article class="pw-jar-spot" data-reveal style="--lid:#6cc64a;--lid-edge:#3d8a24">
+          <article class="pw-jar-spot" style="--lid:#6cc64a;--lid-edge:#3d8a24">
             <div class="pw-jar">
               <span class="pw-jar-lid" aria-hidden="true"></span>
               <div class="pw-jar-label">
@@ -425,7 +425,7 @@
     <!-- ---------- settings ---------- -->
     <section class="pw-section" id="settings">
       <div class="container pw-settings-inner">
-        <div class="pw-settings-copy" data-reveal>
+        <div class="pw-settings-copy">
           <p class="pw-tape" style="--tape:#5e7fff">Settings</p>
           <h2 class="pw-h2">Dark mode and accessibility</h2>
           <p>The Settings screen has two switches. Both are saved on the phone, so they're remembered the next time the app opens.</p>
@@ -437,7 +437,7 @@
         </div>
 
         <!-- settings screen -->
-        <div class="pw-settings-card" data-reveal>
+        <div class="pw-settings-card">
           <p class="pw-settings-title">Settings</p>
           <div class="pw-settings-group">
             <p class="pw-settings-heading">Accessibility</p>
@@ -467,14 +467,14 @@
     <!-- ---------- under the hood ---------- -->
     <section class="pw-section" id="build">
       <div class="container">
-        <header class="pw-head" data-reveal>
+        <header class="pw-head">
           <p class="pw-tape" style="--tape:#8f66b3">Under the hood</p>
           <h2 class="pw-h2">How it's built</h2>
           <p>One C# codebase, compiled for Android, iOS, Windows and macOS with .NET MAUI.</p>
         </header>
 
         <!-- navigation flow -->
-        <div class="pw-flow" data-reveal aria-label="How the screens connect">
+        <div class="pw-flow" aria-label="How the screens connect">
           <!-- turns into a tree on mobile, data-via replaces the arrow labels -->
           <div class="pw-node pw-node-home"><strong>Home</strong><span>Welcome screen</span></div>
           <div class="pw-edge pw-edge-settings" aria-hidden="true"><span>gear icon</span></div>
@@ -489,7 +489,7 @@
 
         <!-- the code, typed out on recipe cards -->
         <div class="pw-build">
-          <figure class="pw-recipe" data-reveal>
+          <figure class="pw-recipe">
             <figcaption><span>Recipe</span>Models/PantryItem.cs</figcaption>
             <pre><code><span class="tk">public class</span> <span class="tt">PantryItem</span>
 {
@@ -508,7 +508,7 @@
 }</code></pre>
           </figure>
 
-          <figure class="pw-recipe pw-recipe-2" data-reveal>
+          <figure class="pw-recipe pw-recipe-2">
             <figcaption><span>Recipe</span>Services/TextToSpeechService.cs</figcaption>
             <pre><code><span class="tk">public static class</span> <span class="tt">TextToSpeechService</span>
 {
@@ -524,7 +524,7 @@
 }</code></pre>
           </figure>
 
-          <ul class="pw-build-points" data-reveal>
+          <ul class="pw-build-points">
             <li>
               <strong>Stored on the phone</strong>
               <span>Items live in a local SQLite database (sqlite-net-pcl) in the app's data folder, so it works offline and needs no account. One method handles both inserting and updating.</span>

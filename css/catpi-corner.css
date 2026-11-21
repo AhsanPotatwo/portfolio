@@ -441,6 +441,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
   border-radius:var(--wobble-2);
   background:var(--card);
   box-shadow:4px 5px 0 var(--ink);
+  scroll-margin:16px;
   animation:cc-card-in .25s var(--ease-out);
 }
 .cc-mixer[hidden]{ display:none; }
@@ -502,6 +503,42 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
 .cc-chip:hover{ transform:rotate(-2deg); background:var(--hover); }
 .cc-chip[aria-pressed="true"]{ background:var(--leaf); color:var(--on); }
 .cc-hatch-go{ display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:10px; margin-top:6px; }
+/* the hatch dialog itself: the catpi on the left, the choices on paper pages behind tabs on the right, and
+   the hatch button always in reach at the bottom. the dialog keeps one size, so turning a page never jumps */
+#ccHatch{ height:min(700px, calc(100dvh - 24px)); overflow:hidden; }
+#ccHatch form{
+  height:100%;
+  grid-template-columns:minmax(280px, 370px) minmax(0, 1fr);
+  grid-template-rows:auto minmax(0, 1fr) auto;
+  grid-template-areas:"side tabs" "side main" "go main";
+}
+#ccHatch .cc-hatch-side{ grid-area:side; overflow:auto; border-right:3px dashed var(--ink); }
+.cc-hatch-pic{ position:relative; }
+.cc-hatch-pic .cc-small{ position:absolute; left:8px; top:8px; min-height:34px; padding:0 10px; font-size:17px; }
+.cc-hatch-pic .cc-small svg{ width:18px; height:18px; }
+/* the pages' tabs stand on a pencil line, like the places' tabs stand on the stage */
+.cc-hatch-tabs{
+  grid-area:tabs;
+  display:flex; align-items:flex-end; gap:5px;
+  min-height:62px;
+  padding:0 22px;
+  background:var(--card);
+  overflow-x:auto; scrollbar-width:none;
+}
+.cc-hatch-tabs::-webkit-scrollbar{ display:none; }
+.cc-hatch-tabs.is-more{ -webkit-mask:linear-gradient(to left, transparent, #000 36px); mask:linear-gradient(to left, transparent, #000 36px); }
+.cc-hatch-tabs .cc-tab{ flex:none; height:38px; padding:0 14px 2px; font-size:20px; }
+.cc-hatch-tabs .cc-tab:hover{ height:41px; }
+.cc-hatch-tabs .cc-tab[aria-selected="true"]{ height:45px; }
+.cc-hatch-tabs .cc-tab:nth-child(4)[aria-selected="true"]{ background:var(--sun); }
+.cc-hatch-tabs .cc-tab:nth-child(5)[aria-selected="true"]{ background:#e1c8ff; }
+#ccHatch .cc-hatch-main{ grid-area:main; display:block; max-height:none; overflow:auto; border-top:3px solid var(--ink); }
+.cc-hatch-page{ display:flex; flex-direction:column; gap:16px; }
+.cc-hatch-page[hidden]{ display:none; }
+/* on a wide screen the hatch button sits under the catpi, a big one with the smaller ones below it */
+#ccHatch .cc-hatch-go{ grid-area:go; margin:0; padding:12px 22px 22px; border-right:3px dashed var(--ink); background:var(--card); }
+#ccHatch .cc-hatch-go .cc-new{ order:-1; flex:1 1 100%; justify-content:center; }
+#ccHatch .cc-hatch-go .cc-small{ flex:1; margin:0; }
 .cc-hatch-go .cc-new{ margin-left:0; }
 .cc-bye{ margin-right:auto; color:var(--bye); }
 
@@ -673,6 +710,31 @@ html:has(.cc-page)::-webkit-scrollbar-corner, .cc-hatch ::-webkit-scrollbar-corn
   .cc-cork{ grid-template-columns:repeat(auto-fill, minmax(128px, 1fr)); gap:22px 16px; padding:32px 24px 26px; }
   .cc-board-keys, .cc-board-keys .cc-new{ width:100%; justify-content:center; }
   .cc-write form{ grid-template-columns:1fr; }
+  /* the place tabs share one row, two lines each if they must, so they all stand on the stage; the night
+     and sound keys go up above them on the right */
+  .cc-tabs{ flex-wrap:nowrap; width:100%; gap:4px; padding-left:0; }
+  .cc-tab{ flex:1 1 0; min-width:0; justify-content:center; gap:5px; height:52px; padding:0 6px 2px; font-size:18px; line-height:.95; text-align:center; }
+  .cc-tab:hover{ height:54px; }
+  .cc-tab[aria-selected="true"]{ height:60px; }
+  .cc-tab-count{ min-width:22px; height:22px; font-size:15px; }
+  .cc-keys{ order:-1; margin-left:auto; padding-bottom:0; }
+  /* hatching on a phone: nearly the whole screen. the catpi stays at the top while only the page under the
+     tabs scrolls, and the hatch button stays at the bottom */
+  #ccHatch{ width:calc(100% - 16px); height:calc(100dvh - 16px); max-height:none; overflow:hidden; }
+  #ccHatch form{ grid-template-columns:minmax(0, 1fr); grid-template-rows:auto auto minmax(0, 1fr) auto; grid-template-areas:"side" "tabs" "main" "go"; }
+  #ccHatch .cc-hatch-side{ gap:8px; padding:12px 14px 4px; border-bottom:0; overflow:visible; }
+  #ccHatch h2{ font-size:28px; }
+  #ccHatch .cc-hatch-pic canvas{ height:clamp(100px, 22dvh, 200px); aspect-ratio:auto; object-fit:contain; }
+  #ccHatch .cc-name{ grid-template-columns:auto minmax(0, 1fr); align-items:center; gap:10px; }
+  .cc-hatch-tabs{ min-height:54px; padding:0 12px; }
+  .cc-hatch-tabs .cc-tab{ flex:none; height:36px; padding:0 10px 2px; font-size:18px; }
+  .cc-hatch-tabs .cc-tab:hover{ height:38px; }
+  .cc-hatch-tabs .cc-tab[aria-selected="true"]{ height:42px; }
+  #ccHatch .cc-hatch-main{ padding:14px; overflow:auto; }
+  #ccHatch .cc-hatch-side, #ccHatch .cc-hatch-go{ border-right:0; }
+  #ccHatch .cc-hatch-go{ flex-wrap:nowrap; gap:8px; padding:10px 14px 12px; border-top:3px dashed var(--ink); }
+  #ccHatch .cc-hatch-go .cc-small{ flex:0 1 auto; padding:0 10px; }
+  #ccHatch .cc-hatch-go .cc-new{ order:0; flex:1 1 auto; width:auto; height:48px; padding:0 16px; font-size:22px; }
 }
 
 @media (prefers-reduced-motion:reduce){

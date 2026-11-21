@@ -334,21 +334,25 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
 .hero-portrait:hover .sky-line{ animation:sky-march 1.2s linear infinite; }
 @keyframes sky-march{ to{ stroke-dashoffset:-7; } }
 
-/* --t staggers the twinkle, --p is when a star pops on hover. each star turns about its own centre, given in
-   the svg's units (fill-box puts the centre in the wrong place on <use> elements in chrome) */
+/* --w is how often a star flickers (all different, so they never line up), --p is when it pops on hover.
+   each star turns about its own centre, given in the svg's units (fill-box puts the centre in the wrong
+   place on <use> elements in chrome) */
 .sky-star{
   color:var(--butter);
   transform-box:view-box;
-  animation:sky-twinkle 5s ease-in-out var(--t) infinite;
+  animation:sky-twinkle var(--w) linear infinite;
 }
-.sky-star-a{ --t:0s;   --p:0s;   transform-origin:-4px 11px; }
-.sky-star-b{ --t:1.3s; --p:.08s; transform-origin:9px 4px; color:var(--paper); }
-.sky-star-c{ --t:2.6s; --p:.16s; transform-origin:21px 11px; color:var(--lilac); }
-.sky-star-d{ --t:3.6s; transform-origin:103px 103px; }
+.sky-star-a{ --w:6.7s; --p:0s;   transform-origin:-4px 11px; }
+.sky-star-b{ --w:4.9s; --p:.08s; transform-origin:9px 4px; color:var(--paper); animation-delay:-2.1s; }
+.sky-star-c{ --w:8.3s; --p:.16s; transform-origin:21px 11px; color:var(--lilac); animation-delay:-5.4s; }
+.sky-star-d{ --w:5.6s; transform-origin:103px 103px; animation-delay:-1.2s; }
 .hero-portrait:hover .sky-star:not(.sky-star-d){ animation:sky-pop .7s cubic-bezier(.3,1.5,.5,1) var(--p) both; }
+/* still most of the time, then a quick uneven flicker, like a real star through air */
 @keyframes sky-twinkle{
-  0%, 100%{ opacity:1; scale:1; }
-  50%{ opacity:.55; scale:.85; }
+  0%, 86%, 100%{ opacity:1; scale:1; }
+  88%{ opacity:.45; scale:.86; }
+  90%{ opacity:.95; scale:1; }
+  92.5%{ opacity:.6; scale:.92; }
 }
 /* a full turn of a five pointed star is 72deg, so it lands looking just as it started */
 @keyframes sky-pop{
@@ -880,11 +884,10 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
 .wizard-backdrop{ position:absolute; inset:0; width:100%; height:100%; transition:filter .2s ease; }
 .project-card-wizard:is(:hover, :focus-within) .wizard-backdrop{ filter:brightness(1.08); }
 .wizard-theatre{ position:absolute; inset:0; width:100%; height:100%; }
-.wizard-puppet{ position:absolute; bottom:1.25cqi; animation:wizard-bob 3s ease-in-out infinite; }
+.wizard-puppet{ position:absolute; bottom:1.25cqi; }
 .wizard-puppet img{ display:block; width:100%; height:auto; transform-origin:50% 100%; }
 .wizard-puppet-you{ left:12cqi; width:11.7cqi; }
-.wizard-puppet-foe{ right:12cqi; width:13.3cqi; animation-delay:-1.5s; }
-@keyframes wizard-bob{ 50%{ translate:0 -.3cqi; } }
+.wizard-puppet-foe{ right:12cqi; width:13.3cqi; }
 
 /* the playbill */
 .wizard-sign{
@@ -934,7 +937,6 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
 }
 .wizard-slip-foe{ left:84cqi; top:9cqi; rotate:5deg; }
 .wizard-slip-you{ left:23cqi; top:12cqi; rotate:-5deg; }
-.project-card-wizard:is(:hover, :focus-within) .wizard-puppet{ animation:none; }
 .project-card-wizard:is(:hover, :focus-within) .wizard-puppet-you img{ animation:wizard-you-turn 3.2s linear infinite; }
 .project-card-wizard:is(:hover, :focus-within) .wizard-puppet-foe img{ animation:wizard-foe-turn 3.2s linear infinite; }
 .project-card-wizard:is(:hover, :focus-within) .wizard-spell-fire{ animation:wizard-fire-x 3.2s linear infinite; }
@@ -1117,11 +1119,6 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
 .pantry-orb{
   left:44.5cqi;
   width:10cqi; height:10cqi;
-  animation:pantry-float 4s ease-in-out infinite;
-}
-@keyframes pantry-float{
-  0%, 100%{ translate:0 0; }
-  50%{ translate:0 -.8cqi; }
 }
 .pantry-phone{
   left:56cqi;
@@ -1731,25 +1728,6 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
 .copy-email.is-copied .copy-email-icon-copy{ display:none; }
 .copy-email.is-copied .copy-email-icon-done{ display:block; }
 
-.copy-email-burst{ position:absolute; top:50%; left:18px; width:0; height:0; pointer-events:none; }
-.copy-email-burst i{
-  position:absolute; top:-3px; left:-3px;
-  width:6px; height:6px;
-  border-radius:50%;
-  background:var(--c);
-  opacity:0;
-}
-.copy-email-burst i:nth-child(1){ --c:#6b4fe0; --x:-26px; --y:-20px; }
-.copy-email-burst i:nth-child(2){ --c:#17704a; --x:2px;   --y:-30px; }
-.copy-email-burst i:nth-child(3){ --c:#1f1a33; --x:28px;  --y:-18px; }
-.copy-email-burst i:nth-child(4){ --c:#6b4fe0; --x:-30px; --y:10px; }
-.copy-email-burst i:nth-child(5){ --c:#1f1a33; --x:30px;  --y:12px; }
-.copy-email-burst i:nth-child(6){ --c:#17704a; --x:-4px;  --y:28px; }
-.copy-email.is-bursting .copy-email-burst i{ animation:copyBurst .7s cubic-bezier(.16,1,.3,1); }
-@keyframes copyBurst{
-  0%{ opacity:1; transform:translate(0,0) scale(1.4); }
-  100%{ opacity:0; transform:translate(var(--x),var(--y)) scale(.3); }
-}
 .copy-email-status{ min-height:1.4em; margin:8px 0 0; font-size:14px; font-weight:600; }
 
 /* "back to all projects" link on the project pages, colour set per page with --page-accent */
@@ -1780,10 +1758,6 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
 
 .home .site-footer{ border-top:0; color:var(--paper-dim); }
 .home .site-footer p{ font-family:var(--font-hand); font-size:20px; }
-
-/* fade/slide in on scroll for [data-reveal] blocks on the project pages, see main.js */
-.reveal{ opacity:0; transform:translateY(26px) scale(.98); transition:opacity .55s ease, transform .55s ease; }
-.reveal.is-visible{ opacity:1; transform:none; }
 
 /* responsive breakpoints, biggest screens first */
 @media (max-width:1180px){
@@ -1903,9 +1877,7 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
 @media (prefers-reduced-motion:reduce){
   html{ scroll-behavior:auto; }
   *{ transition-duration:.01ms !important; animation-duration:.01ms !important; }
-  .copy-email-burst{ display:none; }
   .sky-star, .sky-line{ animation:none !important; }
-  .reveal{ opacity:1; transform:none; }
   .design-viewer[open]{ animation:none; }
   .wizard-puppet, .wizard-puppet img, .wizard-spell, .wizard-spell svg, .wizard-slip{ animation:none !important; }
   .cli-caret{ animation:none; }
