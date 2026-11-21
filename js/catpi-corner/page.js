@@ -742,35 +742,39 @@
   chipRow($('#ccTrait'), Object.keys(Catpis.TRAITS), 'trait');
   chipRow($('#ccLikes'), Catpis.FOODS, 'likes', plural);
 
-  // the dialog's pages: one tab each, arrow keys move along them like the browser's own tabs
-  const pageTabs = [...document.querySelectorAll('.cc-hatch-tabs .cc-tab')];
-  function turnTo(tab) {
-    for (const t of pageTabs) {
-      const on = t === tab;
-      t.setAttribute('aria-selected', on);
-      t.tabIndex = on ? 0 : -1;
-      $('#' + t.getAttribute('aria-controls')).hidden = !on;
-    }
-    $('.cc-hatch-main').scrollTop = 0;
-    tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-    moreTabs();
-  }
-  // on a phone the tabs don't all fit: they slide sideways, and fade at the edge while there are more
-  const tabStrip = $('.cc-hatch-tabs');
-  const moreTabs = () => tabStrip.classList.toggle('is-more', pageTabs.at(-1).getBoundingClientRect().right > tabStrip.getBoundingClientRect().right + 1);
-  tabStrip.addEventListener('scroll', moreTabs, { passive: true });
-  addEventListener('resize', moreTabs);
-  pageTabs.forEach((tab, i) => {
-    tab.addEventListener('click', () => { turnTo(tab); tap(); });
-    tab.addEventListener('keydown', (e) => {
-      const step = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
-      if (!step) return;
-      e.preventDefault();
-      const next = pageTabs[(i + step + pageTabs.length) % pageTabs.length];
-      turnTo(next);
-      next.focus();
+  // the dialogs' pages (hatching and leaving a note): one tab each, arrow keys move along them like the
+  // browser's own tabs, and closing goes back to the first page. on a phone the tabs don't all fit: they slide
+  // sideways, and fade at the edge while there are more
+  for (const strip of document.querySelectorAll('.cc-hatch-tabs')) {
+    const pageTabs = [...strip.children], box = strip.closest('dialog'), main = box.querySelector('.cc-hatch-main');
+    const more = () => strip.classList.toggle('is-more', pageTabs.at(-1).getBoundingClientRect().right > strip.getBoundingClientRect().right + 1);
+    const turnTo = (tab) => {
+      for (const t of pageTabs) {
+        const on = t === tab;
+        t.setAttribute('aria-selected', on);
+        t.tabIndex = on ? 0 : -1;
+        $('#' + t.getAttribute('aria-controls')).hidden = !on;
+      }
+      main.scrollTop = 0;
+      tab.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      more();
+    };
+    pageTabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => { turnTo(tab); tap(); });
+      tab.addEventListener('keydown', (e) => {
+        const step = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+        if (!step) return;
+        e.preventDefault();
+        const next = pageTabs[(i + step + pageTabs.length) % pageTabs.length];
+        turnTo(next);
+        next.focus();
+      });
     });
-  });
+    strip.addEventListener('scroll', more, { passive: true });
+    // also runs when the dialog opens, since the strip goes from no size to its size
+    new ResizeObserver(more).observe(strip);
+    box.addEventListener('close', () => turnTo(pageTabs[0]));
+  }
 
   // the two sliders: how far along they are, for their crayon fill (css --p) and the size thumb's catpi (--k)
   const sliders = [$('#ccSize'), $('#ccVoice')];
@@ -798,7 +802,6 @@
     redraft();
     hideCard();
     dialog.showModal();
-    turnTo(pageTabs[0]);
   }
   function redraft() {
     Catpis.repaint(draft);

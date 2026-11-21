@@ -503,16 +503,16 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
 .cc-chip:hover{ transform:rotate(-2deg); background:var(--hover); }
 .cc-chip[aria-pressed="true"]{ background:var(--leaf); color:var(--on); }
 .cc-hatch-go{ display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:10px; margin-top:6px; }
-/* the hatch dialog itself: the catpi on the left, the choices on paper pages behind tabs on the right, and
-   the hatch button always in reach at the bottom. the dialog keeps one size, so turning a page never jumps */
-#ccHatch{ height:min(700px, calc(100dvh - 24px)); overflow:hidden; }
-#ccHatch form{
+/* the hatch and note dialogs: the catpi or note on the left, the choices on paper pages behind tabs on the right,
+   and the hatch or pin button always in reach. the dialog keeps one size, so turning a page never jumps */
+.cc-paged{ height:min(700px, calc(100dvh - 24px)); overflow:hidden; }
+.cc-paged form{
   height:100%;
   grid-template-columns:minmax(280px, 370px) minmax(0, 1fr);
   grid-template-rows:auto minmax(0, 1fr) auto;
   grid-template-areas:"side tabs" "side main" "go main";
 }
-#ccHatch .cc-hatch-side{ grid-area:side; overflow:auto; border-right:3px dashed var(--ink); }
+.cc-paged .cc-hatch-side{ grid-area:side; overflow:auto; border-right:3px dashed var(--ink); }
 .cc-hatch-pic{ position:relative; }
 .cc-hatch-pic .cc-small{ position:absolute; left:8px; top:8px; min-height:34px; padding:0 10px; font-size:17px; }
 .cc-hatch-pic .cc-small svg{ width:18px; height:18px; }
@@ -532,13 +532,13 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
 .cc-hatch-tabs .cc-tab[aria-selected="true"]{ height:45px; }
 .cc-hatch-tabs .cc-tab:nth-child(4)[aria-selected="true"]{ background:var(--sun); }
 .cc-hatch-tabs .cc-tab:nth-child(5)[aria-selected="true"]{ background:#e1c8ff; }
-#ccHatch .cc-hatch-main{ grid-area:main; display:block; max-height:none; overflow:auto; border-top:3px solid var(--ink); }
+.cc-paged .cc-hatch-main{ grid-area:main; display:block; max-height:none; overflow:auto; border-top:3px solid var(--ink); }
 .cc-hatch-page{ display:flex; flex-direction:column; gap:16px; }
 .cc-hatch-page[hidden]{ display:none; }
 /* on a wide screen the hatch button sits under the catpi, a big one with the smaller ones below it */
-#ccHatch .cc-hatch-go{ grid-area:go; margin:0; padding:12px 22px 22px; border-right:3px dashed var(--ink); background:var(--card); }
-#ccHatch .cc-hatch-go .cc-new{ order:-1; flex:1 1 100%; justify-content:center; }
-#ccHatch .cc-hatch-go .cc-small{ flex:1; margin:0; }
+.cc-paged .cc-hatch-go{ grid-area:go; margin:0; padding:12px 22px 22px; border-right:3px dashed var(--ink); background:var(--card); }
+.cc-paged .cc-hatch-go .cc-new{ order:-1; flex:1 1 100%; justify-content:center; }
+.cc-paged .cc-hatch-go .cc-small{ flex:1; margin:0; }
 .cc-hatch-go .cc-new{ margin-left:0; }
 .cc-bye{ margin-right:auto; color:var(--bye); }
 
@@ -600,12 +600,17 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
 .cc-mod-open{ margin-top:18px; text-decoration:none; }
 
 /* ---------- leaving a note, looking closer, and the mod panel: paper dialogs like the hatch one ---------- */
-.cc-write form{ grid-template-columns:minmax(280px, 440px) 1fr; }
-.cc-write .cc-hatch-main > *{ flex-shrink:0; }
+/* the note fills its column, so pinning it up goes under the trays instead */
+.cc-write form{ grid-template-columns:minmax(280px, 420px) minmax(0, 1fr); grid-template-areas:"side tabs" "side main" "side go"; }
+.cc-paged.cc-write{ height:min(680px, calc(100dvh - 24px)); }
+.cc-write .cc-hatch-go{ padding:12px 22px 16px; border-right:0; border-top:3px dashed var(--ink); background:none; }
+.cc-write .cc-hatch-go .cc-new, .cc-write .cc-hatch-go .cc-small{ order:0; flex:none; }
 .cc-hatch .cc-pad{ aspect-ratio:1; border-radius:0; background:none; touch-action:none; cursor:crosshair; }
-.cc-held{ display:flex; flex-wrap:wrap; gap:6px; }
-.cc-held .cc-small{ min-height:36px; padding:0 10px; }
-.cc-held .cc-small:has(svg){ width:40px; padding:0; }
+/* the note's buttons: pictures in one row, their words in the tooltip and for screen readers */
+.cc-held-bar{ display:flex; gap:14px; }
+.cc-held{ display:flex; gap:5px; }
+.cc-held .cc-small{ width:38px; min-height:36px; padding:0; }
+.cc-held .cc-small span{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 .cc-held .cc-small svg{ width:20px; height:20px; }
 .cc-paper::before{ content:""; width:16px; height:16px; border-radius:4px 6px 3px 5px; background:var(--dot); box-shadow:0 0 0 2px var(--ink); }
 .cc-width{ display:inline-flex; align-items:center; gap:8px; }
@@ -627,8 +632,8 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
 .cc-my-catpis{ grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); }
 .cc-hatch .cc-catpi-pick canvas{ width:100px; height:auto; aspect-ratio:4 / 3; border-radius:0; background:none; }
 .cc-catpi-pick span{ font-size:17px; }
-.cc-write-rules{ margin:8px 0 0; padding:8px 12px; border:2.5px dashed var(--ink); border-radius:var(--wobble-2); font-size:18px; font-weight:700; }
-.cc-write-say{ flex:1 1 100%; margin:0; font-size:19px; font-weight:700; color:var(--bye); text-align:right; }
+.cc-write-rules{ order:-3; flex:1 1 100%; margin:0 0 4px; padding:8px 12px; border:2.5px dashed var(--ink); border-radius:var(--wobble-2); font-size:18px; font-weight:700; }
+.cc-write-say{ order:-2; flex:1 1 100%; margin:0; font-size:19px; font-weight:700; color:var(--bye); text-align:right; }
 .cc-write-say:empty{ display:none; }
 
 .cc-look{ width:min(620px, calc(100% - 24px)); padding:48px 18px 18px; }
@@ -718,23 +723,37 @@ html:has(.cc-page)::-webkit-scrollbar-corner, .cc-hatch ::-webkit-scrollbar-corn
   .cc-tab[aria-selected="true"]{ height:60px; }
   .cc-tab-count{ min-width:22px; height:22px; font-size:15px; }
   .cc-keys{ order:-1; margin-left:auto; padding-bottom:0; }
-  /* hatching on a phone: nearly the whole screen. the catpi stays at the top while only the page under the
+  /* on a phone: nearly the whole screen. the catpi or note stays at the top while only the page under the
      tabs scrolls, and the hatch button stays at the bottom */
-  #ccHatch{ width:calc(100% - 16px); height:calc(100dvh - 16px); max-height:none; overflow:hidden; }
-  #ccHatch form{ grid-template-columns:minmax(0, 1fr); grid-template-rows:auto auto minmax(0, 1fr) auto; grid-template-areas:"side" "tabs" "main" "go"; }
-  #ccHatch .cc-hatch-side{ gap:8px; padding:12px 14px 4px; border-bottom:0; overflow:visible; }
-  #ccHatch h2{ font-size:28px; }
+  .cc-paged{ width:calc(100% - 16px); height:calc(100dvh - 16px); max-height:none; overflow:hidden; }
+  .cc-paged form{ grid-template-columns:minmax(0, 1fr); grid-template-rows:auto auto minmax(0, 1fr) auto; grid-template-areas:"side" "tabs" "main" "go"; }
+  .cc-paged .cc-hatch-side{ gap:8px; padding:12px 14px 4px; border-bottom:0; overflow:visible; }
+  .cc-paged h2{ font-size:28px; }
   #ccHatch .cc-hatch-pic canvas{ height:clamp(100px, 22dvh, 200px); aspect-ratio:auto; object-fit:contain; }
   #ccHatch .cc-name{ grid-template-columns:auto minmax(0, 1fr); align-items:center; gap:10px; }
   .cc-hatch-tabs{ min-height:54px; padding:0 12px; }
   .cc-hatch-tabs .cc-tab{ flex:none; height:36px; padding:0 10px 2px; font-size:18px; }
   .cc-hatch-tabs .cc-tab:hover{ height:38px; }
   .cc-hatch-tabs .cc-tab[aria-selected="true"]{ height:42px; }
-  #ccHatch .cc-hatch-main{ padding:14px; overflow:auto; }
-  #ccHatch .cc-hatch-side, #ccHatch .cc-hatch-go{ border-right:0; }
-  #ccHatch .cc-hatch-go{ flex-wrap:nowrap; gap:8px; padding:10px 14px 12px; border-top:3px dashed var(--ink); }
-  #ccHatch .cc-hatch-go .cc-small{ flex:0 1 auto; padding:0 10px; }
-  #ccHatch .cc-hatch-go .cc-new{ order:0; flex:1 1 auto; width:auto; height:48px; padding:0 16px; font-size:22px; }
+  .cc-paged .cc-hatch-main{ padding:14px; overflow:auto; }
+  .cc-paged .cc-hatch-side, .cc-paged .cc-hatch-go{ border-right:0; }
+  .cc-paged .cc-hatch-go{ flex-wrap:nowrap; gap:8px; padding:10px 14px 12px; border-top:3px dashed var(--ink); }
+  .cc-paged .cc-hatch-go .cc-small{ flex:0 1 auto; padding:0 10px; }
+  .cc-paged .cc-hatch-go .cc-new{ order:0; flex:1 1 auto; width:auto; height:48px; padding:0 16px; font-size:22px; }
+  /* the note on a phone: smaller, so the trays get room, and its buttons down to their pictures on one line */
+  .cc-write .cc-pad{ width:auto; height:clamp(150px, 28dvh, 340px); align-self:center; }
+  /* squeezed to fit: each button takes an even share of the line, up to its usual size */
+  .cc-held-bar{ justify-content:center; gap:10px; }
+  .cc-held{ flex:2 1 0; gap:4px; min-width:0; }
+  .cc-held + .cc-held{ flex-grow:6; }
+  .cc-held .cc-small{ flex:1 1 0; width:auto; max-width:38px; min-width:0; }
+  .cc-write .cc-hatch-go{ flex-wrap:wrap; }
+  .cc-write-rules{ margin:0; padding:0; border:0; color:var(--muted); font-size:16px; line-height:1.1; }
+  /* room is short, so when pinning has something to say it takes the rules' place for a moment */
+  .cc-hatch-go:has(.cc-write-say:not(:empty)) .cc-write-rules{ display:none; }
+  .cc-write-say{ text-align:left; }
+  .cc-my-catpis{ grid-template-columns:repeat(auto-fill, minmax(84px, 1fr)); }
+  .cc-hatch .cc-catpi-pick canvas{ width:80px; }
 }
 
 @media (prefers-reduced-motion:reduce){

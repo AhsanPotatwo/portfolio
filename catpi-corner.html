@@ -187,7 +187,7 @@
     </div>
 
     <!-- make a new catpi, or change one -->
-    <dialog class="cc-hatch" id="ccHatch" aria-labelledby="ccHatchTitle">
+    <dialog class="cc-hatch cc-paged" id="ccHatch" aria-labelledby="ccHatchTitle">
       <form id="ccHatchForm" method="dialog">
         <!-- the catpi and their name stay in view; the choices are on pages behind the tabs, so a new kind of
              choice is one more fieldset, and a new page is one more tab and section (page.js wires them up) -->
@@ -262,47 +262,64 @@
     </dialog>
 
     <!-- leave a note on the board -->
-    <dialog class="cc-hatch cc-write" id="ccWrite" aria-labelledby="ccWriteTitle">
+    <!-- the note stays in view with its buttons under it; the trays are pages behind tabs, like the hatch one -->
+    <dialog class="cc-hatch cc-paged cc-write" id="ccWrite" aria-labelledby="ccWriteTitle">
       <form id="ccWriteForm" method="dialog">
         <div class="cc-hatch-side">
           <h2 id="ccWriteTitle">Leave a note</h2>
           <canvas class="cc-pad" id="ccPad" width="800" height="800" tabindex="0" aria-label="Your note. Draw on it with a crayon, and drag what you've stuck on it. With something picked, arrow keys move it, plus and minus resize it, the square brackets turn it and delete takes it off."></canvas>
-          <div class="cc-held" id="ccHeld" role="group" aria-label="The thing you picked">
-            <button class="cc-small" type="button" data-do="smaller" aria-label="Smaller" title="Smaller"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button>
-            <button class="cc-small" type="button" data-do="bigger" aria-label="Bigger" title="Bigger"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg></button>
-            <button class="cc-small" type="button" data-do="left" aria-label="Turn left" title="Turn left"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5 4.5 9 8 12.5"/><path d="M4.5 9H14a5.5 5.5 0 0 1 0 11h-3"/></svg></button>
-            <button class="cc-small" type="button" data-do="right" aria-label="Turn right" title="Turn right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 5.5 19.5 9 16 12.5"/><path d="M19.5 9H10a5.5 5.5 0 0 0 0 11h3"/></svg></button>
-            <button class="cc-small" type="button" data-do="front">To the front</button>
-            <button class="cc-small cc-bye" type="button" data-do="off">Take off</button>
-          </div>
-          <div class="cc-held">
-            <button class="cc-small" type="button" id="ccUndo">Undo</button>
-            <button class="cc-small" type="button" id="ccWipe">Wipe it clean</button>
+          <!-- on a phone these lose their words and keep their pictures, so they all fit on one line -->
+          <div class="cc-held-bar">
+            <div class="cc-held" role="group" aria-label="The note">
+              <button class="cc-small" type="button" id="ccUndo" title="Undo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5 4.5 9 8 12.5"/><path d="M4.5 9H14a5.5 5.5 0 0 1 0 11h-3"/></svg><span>Undo</span></button>
+              <button class="cc-small" type="button" id="ccWipe" title="Wipe it clean"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4.5l5.5 5.5-8.5 8.5H6.5l-2.5-2.5a1.4 1.4 0 0 1 0-2z"/><path d="M9 9.5l5.5 5.5M11 18.5h9"/></svg><span>Wipe it clean</span></button>
+            </div>
+            <div class="cc-held" id="ccHeld" role="group" aria-label="The thing you picked">
+              <button class="cc-small" type="button" data-do="smaller" aria-label="Smaller" title="Smaller"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12"/></svg></button>
+              <button class="cc-small" type="button" data-do="bigger" aria-label="Bigger" title="Bigger"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12h12M12 6v12"/></svg></button>
+              <button class="cc-small" type="button" data-do="left" aria-label="Turn left" title="Turn left"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5.5 12.5a7 7 0 1 0 2.3-5.6"/><path d="M7.5 3.5v3.7h3.7"/></svg></button>
+              <button class="cc-small" type="button" data-do="right" aria-label="Turn right" title="Turn right"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.5 12.5a7 7 0 1 1-2.3-5.6"/><path d="M16.5 3.5v3.7h-3.7"/></svg></button>
+              <button class="cc-small" type="button" data-do="front" title="To the front"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 8V4.5h11v11H16"/><path d="M4.5 8.5h11v11h-11z"/></svg><span>To the front</span></button>
+              <button class="cc-small cc-bye" type="button" data-do="off" title="Take off"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg><span>Take off</span></button>
+            </div>
           </div>
         </div>
+        <div class="cc-hatch-tabs" role="tablist" aria-label="What to put on">
+          <button class="cc-tab" role="tab" type="button" id="ccTrayDraw" aria-controls="ccWriteDraw" aria-selected="true">Draw</button>
+          <button class="cc-tab" role="tab" type="button" id="ccTrayStickers" aria-controls="ccWriteStickers" aria-selected="false" tabindex="-1">Stickers</button>
+          <button class="cc-tab" role="tab" type="button" id="ccTrayWords" aria-controls="ccWriteWords" aria-selected="false" tabindex="-1">Words</button>
+          <button class="cc-tab" role="tab" type="button" id="ccTrayCatpis" aria-controls="ccWriteCatpis" aria-selected="false" tabindex="-1">Your catpis</button>
+        </div>
         <div class="cc-hatch-main">
-          <h3 class="cc-group">Paper</h3>
-          <div class="cc-chips cc-pencils" id="ccPapers"></div>
-          <h3 class="cc-group">Crayons</h3>
-          <p class="cc-says">Draw anywhere on the note that's not a sticker.</p>
-          <div class="cc-crayons" id="ccInks"></div>
-          <div class="cc-chips" id="ccWidths" role="group" aria-label="How thick"></div>
-          <h3 class="cc-group">Stickers</h3>
-          <div class="cc-stickers" id="ccStickers"></div>
-          <h3 class="cc-group">Words</h3>
-          <div class="cc-name-row">
-            <input id="ccWords" maxlength="60" autocomplete="off" aria-label="Words to stick on, in the crayon colour" placeholder="Say hello...">
-            <button class="cc-small" type="button" id="ccWordsGo">Stick it on</button>
-          </div>
-          <h3 class="cc-group">Your catpis</h3>
-          <p class="cc-says" id="ccNoCatpis" hidden>Hatch a catpi first and they can go on your note too.</p>
-          <div class="cc-stickers cc-my-catpis" id="ccMyCatpis"></div>
+          <section class="cc-hatch-page" id="ccWriteDraw" role="tabpanel" aria-labelledby="ccTrayDraw">
+            <fieldset><legend>Paper</legend><div class="cc-chips cc-pencils" id="ccPapers"></div></fieldset>
+            <fieldset>
+              <legend>Crayons</legend>
+              <div class="cc-crayons" id="ccInks"></div>
+              <div class="cc-chips" id="ccWidths" role="group" aria-label="How thick"></div>
+              <p class="cc-says">Draw anywhere on the note that's not a sticker.</p>
+            </fieldset>
+          </section>
+          <section class="cc-hatch-page" id="ccWriteStickers" role="tabpanel" aria-labelledby="ccTrayStickers" hidden>
+            <div class="cc-stickers" id="ccStickers"></div>
+          </section>
+          <section class="cc-hatch-page" id="ccWriteWords" role="tabpanel" aria-labelledby="ccTrayWords" hidden>
+            <div class="cc-name-row">
+              <input id="ccWords" maxlength="60" autocomplete="off" aria-label="Words to stick on, in the crayon colour" placeholder="Say hello...">
+              <button class="cc-small" type="button" id="ccWordsGo">Stick it on</button>
+            </div>
+            <p class="cc-says">They go on in the crayon you're drawing with.</p>
+          </section>
+          <section class="cc-hatch-page" id="ccWriteCatpis" role="tabpanel" aria-labelledby="ccTrayCatpis" hidden>
+            <p class="cc-says" id="ccNoCatpis" hidden>Hatch a catpi first and they can go on your note too.</p>
+            <div class="cc-stickers cc-my-catpis" id="ccMyCatpis"></div>
+          </section>
+        </div>
+        <div class="cc-hatch-go">
           <p class="cc-write-rules">A mod reads every note before it goes on the board, so be kind. No names, addresses or anything you'd want back.</p>
-          <div class="cc-hatch-go">
-            <p class="cc-write-say" id="ccWriteSay" role="status"></p>
-            <button class="cc-small" type="button" id="ccWriteCancel">Not now</button>
-            <button class="cc-new" type="submit" id="ccWriteGo">Pin it up</button>
-          </div>
+          <p class="cc-write-say" id="ccWriteSay" role="status"></p>
+          <button class="cc-small" type="button" id="ccWriteCancel">Not now</button>
+          <button class="cc-new" type="submit" id="ccWriteGo">Pin it up</button>
         </div>
       </form>
     </dialog>
