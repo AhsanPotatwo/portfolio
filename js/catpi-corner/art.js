@@ -15,20 +15,39 @@ const Art = (() => {
         C.stroke(p, [[-30, 28], [-8, 4], [18, -20]], '#4e8a33', 3);
         break;
       case 'berry':
+        // a strawberry: seeds sitting in little dips, a ruff of leaves on top and its stalk
         C.shape(p, [[0, 30], [-22, 6], [-24, -12], [-12, -20], [0, -18], [12, -20], [24, -12], [22, 6]], '#f2554f', { shade: '#c9322f', width: 3 });
-        for (const [x, y] of [[-10, -4], [8, -6], [0, 8], [-6, 18], [10, 12]]) { p.fillStyle = '#ffe680'; p.fillRect(x - 2, y - 2, 4, 5); }
-        C.shape(p, [[-16, -20], [0, -30], [16, -20], [0, -14]], '#6dbb53', { width: 2.5 });
+        for (const [x, y] of [[-12, -6], [0, -9], [12, -6], [-7, 5], [7, 5], [-1, 16], [-12, 16]]) {
+          C.shape(p, C.blob(x, y, 1.6, 2.6, 0.05, 8), '#ffe680', { outline: false });
+          C.stroke(p, [[x - 2, y + 3], [x + 2, y + 3]], '#c9322f', 1.2, 0.7);
+        }
+        C.shape(p, Array.from({ length: 10 }, (_, i) => { const a = Math.PI * (1.05 + (i / 9) * 0.9), r = i % 2 ? 9 : 19; return [Math.cos(a) * r, -17 + Math.sin(a) * r * 0.55]; }).concat([[8, -14], [0, -12], [-8, -14]]), '#6dbb53', { shade: '#4e9a3a', width: 2.5 });
+        C.stroke(p, [[0, -20], [2, -30]], '#4e8a33', 3);
         break;
       case 'fish':
         C.shape(p, [[-30, 0], [-12, -16], [12, -14], [22, -4], [36, -16], [34, 14], [22, 4], [12, 14], [-12, 16]], '#8fb8d8', { shade: '#5f8fb8', width: 3 });
         p.fillStyle = INK; p.beginPath(); p.arc(-16, -3, 3.5, 0, 7); p.fill();
         C.stroke(p, [[-4, -10], [0, 0], [-4, 10]], '#5f8fb8', 2.5);
         break;
-      case 'cake':
-        C.shape(p, [[-30, 20], [-30, -4], [26, -24], [30, -6], [30, 20]], '#ffe3a8', { shade: '#f2c879', width: 3 });
-        C.shape(p, [[-30, -4], [26, -24], [30, -6], [-30, 8]], '#ff9fbf', { shade: '#ef6f9c', width: 2.5 });
-        C.shape(p, C.blob(18, -30, 7, 7, 0.1, 8), '#e5383b', { width: 2 });
+      case 'cake': {
+        // a slice on a plate, its point to the left: the cut side shows sponge, jam and cream, the crust end
+        // is in shadow, pink icing on top runs over the edge, and a strawberry sits on a blob of cream
+        C.shape(p, C.blob(0, 22, 37, 9, 0.03, 18), '#fff7ea', { shade: '#d6e6ef', width: 2.5 });
+        C.shape(p, [[28, -2], [18, -20], [18, 2], [28, 20]], '#e6b86a', { shade: '#c99540', width: 3, sharp: true });
+        C.shape(p, [[-31, 0], [28, -2], [28, 20], [-31, 18]], '#ffe3a8', { shade: '#f2c879', width: 3, sharp: true });
+        p.save();
+        C.trace(p, [[-31, 0], [28, -2], [28, 20], [-31, 18]], true, true);
+        p.clip();
+        C.shape(p, [[-34, 7], [31, 6], [31, 10], [-34, 11]], '#e5466e', { outline: false, sharp: true });
+        C.shape(p, [[-34, 11], [31, 10], [31, 13], [-34, 14]], '#ffffff', { outline: false, sharp: true });
+        p.restore();
+        C.shape(p, [[-31, 0], [18, -20], [28, -2], [24, 4], [20, 0], [15, 6], [9, 0], [2, 3], [-6, 0], [-12, 5], [-18, 1], [-26, 3]], '#ff9fbf', { shade: '#ef6f9c', width: 2.5 });
+        C.shape(p, C.blob(14, -12, 8, 4, 0.08, 10), '#ffffff', { width: 2 });
+        C.shape(p, [[14, -28], [7, -20], [10, -14], [18, -14], [21, -20]], '#e5383b', { shade: '#b8252a', width: 2 });
+        C.stroke(p, [[11, -28], [14, -31], [17, -28]], '#4e9a3a', 2.5);
+        for (const [x, y] of [[12, -21], [16, -18]]) C.shape(p, C.blob(x, y, 1, 1.6, 0.05, 6), '#ffe680', { outline: false });
         break;
+      }
       case 'ball':
         C.shape(p, C.blob(0, 0, 30, 30, 0.03), '#ffd84f', { shade: '#f2a516', width: 3 });
         C.stroke(p, [[-28, -8], [-6, -2], [10, 6], [28, 12]], '#e5383b', 7);
@@ -36,9 +55,15 @@ const Art = (() => {
         break;
       case 'heart': heart('#ff7f9e'); break;
       case 'note':
-        C.stroke(p, [[-8, 22], [-8, -24], [20, -30], [20, 14]], INK, 4);
-        C.shape(p, C.blob(-16, 22, 10, 8, 0.1, 10), INK, { outline: false });
-        C.shape(p, C.blob(12, 14, 10, 8, 0.1, 10), INK, { outline: false });
+        // two quavers joined by a beam: straight stems, a thick beam, heads tipped over
+        C.shape(p, [[-10, -22], [23, -31], [23, -23], [-10, -14]], INK, { outline: false, sharp: true });
+        C.stroke(p, [[-9, -18], [-9, 20]], INK, 4);
+        C.stroke(p, [[22, -27], [22, 12]], INK, 4);
+        for (const [x, y] of [[-16, 21], [15, 13]]) {
+          p.save(); p.translate(x, y); p.rotate(-0.45);
+          C.shape(p, C.blob(0, 0, 9.5, 6.5, 0.05, 14), INK, { outline: false });
+          p.restore();
+        }
         break;
       case 'star':
         C.shape(p, Array.from({ length: 10 }, (_, i) => { const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 13 : 30; return [Math.cos(a) * r, Math.sin(a) * r]; }), '#ffd84f', { shade: '#f2a516', width: 3 });
@@ -111,8 +136,14 @@ const Art = (() => {
         break;
       }
       case 'soap':
-        C.shape(p, C.box(-28, -10, 56, 32, 10), '#ffc9e0', { shade: '#f59ac0', width: 3 });
-        for (const [x, y, r] of [[-14, -20, 8], [4, -26, 10], [20, -18, 6]]) C.pencil(p, C.blob(x, y, r, r, 0.05, 10), { color: '#7fb2cc', width: 2.5 });
+        // a bar of soap seen a little from above, its top paler than its side, bubbles coming off it
+        C.shape(p, [[-30, 4], [-26, -2], [26, -2], [30, 4], [30, 18], [26, 23], [-26, 23], [-30, 18]], '#f59ac0', { shade: '#e5749f', angle: 1.4, gap: 5, width: 3, sharp: true });
+        C.shape(p, [[-30, 4], [-22, -10], [30, -10], [34, -4], [30, 4]].map(([x, y]) => [x - 2, y + 2]), '#ffc9e0', { shade: '#f59ac0', angle: 0.2, gap: 5, width: 3, sharp: true });
+        C.stroke(p, [[-18, -3], [12, -3]], '#ffffff', 2.5, 0.8);
+        for (const [x, y, r] of [[-14, -22, 7], [4, -29, 9], [21, -21, 5]]) {
+          C.shape(p, C.blob(x, y, r, r, 0.03, 12), 'rgba(214, 238, 251, .55)', { line: '#7fb2cc', width: 2.2 });
+          C.stroke(p, [[x - r * 0.5, y - r * 0.2], [x - r * 0.2, y - r * 0.55]], '#ffffff', 2);
+        }
         break;
       case 'cocoon':
         C.shape(p, C.blob(0, 0, 22, 34, 0.06), '#f6e6c4', { shade: '#d9be8a', width: 3 });
@@ -129,11 +160,23 @@ const Art = (() => {
   function face(p) { C.shape(p, C.blob(0, 0, 32, 32, 0.03), '#ffd84f', { shade: '#f2a516', width: 3 }); }
   const eyes = (p) => { for (const x of [-11, 11]) { p.fillStyle = INK; p.beginPath(); p.arc(x, -8, 4, 0, 7); p.fill(); } };
   const heartAt = (p, x, y, s, fill) => C.shape(p, [[0, 30], [-26, 6], [-30, -10], [-22, -24], [-8, -24], [0, -12], [8, -24], [22, -24], [30, -10], [26, 6]].map(([a, b]) => [x + a * s, y + b * s]), fill, { width: 2 });
+  // a fist with its thumb up: four fingers curled and stacked down the front, a thumb with its nail, a sleeve
+  // round the wrist. outlines first, then the fills, so the parts read as one hand (the cloud's trick)
   function thumb(p) {
-    C.shape(p, C.box(-35, -2, 14, 36, 3), '#7fc3e8', { shade: '#4f9fe0', width: 3, sharp: true });
-    C.shape(p, C.box(-17, -37, 17, 36, 8), SKIN, { width: 3 });
-    C.shape(p, C.box(-23, -8, 46, 41, 11), SKIN, { shade: '#f5b48c', width: 3 });
-    for (const y of [5, 14, 23]) C.stroke(p, [[2, y], [12, y + 1], [21, y]], '#d98d66', 2.5);
+    const fist = C.box(-21, -6, 38, 36, 10, 0.8);
+    const up = [[-20, 2], [-22, -22], [-18, -33], [-10, -36], [-4, -30], [-3, -2]];
+    const fingers = [-6, 3, 12, 21].map((y, i) => C.box(3, y, i === 3 ? 18 : 23 - i, 9.5, 4.5, 0.4));
+    const cuff = C.box(-27, 25, 34, 14, 3, 0.6);
+    p.strokeStyle = INK; p.lineWidth = 6; p.lineJoin = 'round';
+    for (const b of [cuff, fist, up, ...fingers]) { C.trace(p, b); p.stroke(); }
+    p.fillStyle = SKIN;
+    for (const b of [fist, up, ...fingers]) { C.trace(p, b); p.fill(); }
+    C.scribble(p, fist, '#f5b48c', { angle: 0.5, gap: 5, width: 3, alpha: 0.5 });
+    for (const f of fingers) C.pencil(p, f, { color: '#c9825a', width: 2, passes: 1, rough: 0.4 });
+    C.stroke(p, [[-18, 4], [-6, 6]], '#c9825a', 2);
+    C.shape(p, C.blob(-11, -29, 4, 5, 0.05, 10), '#fff0e4', { line: '#c9825a', width: 1.4 });
+    C.shape(p, cuff, '#7fc3e8', { shade: '#4f9fe0', width: 3 });
+    C.stroke(p, [[-24, 30], [4, 30]], '#4f9fe0', 2);
   }
   function sticker(p, name) {
     switch (name) {
@@ -148,7 +191,8 @@ const Art = (() => {
         C.shape(p, [[8, -37], [-22, 4], [-3, 4], [-12, 37], [23, -9], [4, -9], [16, -37]], '#ffd84f', { shade: '#f2a516', width: 3, sharp: true });
         break;
       case 'thumbs up': thumb(p); break;
-      case 'thumbs down': p.save(); p.scale(1, -1); thumb(p); p.restore(); break;
+      // the same hand turned over, so it's still a right hand
+      case 'thumbs down': p.save(); p.rotate(Math.PI); thumb(p); p.restore(); break;
       case 'smile':
         face(p); eyes(p);
         C.stroke(p, [[-14, 7], [-8, 14], [0, 16], [8, 14], [14, 7]], INK, 3.5);

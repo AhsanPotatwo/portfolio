@@ -28,6 +28,15 @@ const PLACES = (() => {
     petal: ['#ff8fb1', '#ffd84f', '#ffffff', '#c59cf4'],
   };
 
+  // puddle corner's shops, each built its own way (the street draws them, the cafe window looks out at them)
+  const SHOPS = [
+    { name: 'Bakery', share: 1.12, top: 150, wall: '#f29b8f', shade: '#d9705f', trim: '#fff7ea', door: '#b8452f', roof: 'gable', up: 'sash', way: 'right', awning: ['scallop', '#fff7ea', '#e5383b'], sign: 'board', show: 'bread' },
+    { name: 'Yarn', share: 0.86, top: 96, wall: '#a8dcc6', shade: '#78bfa0', trim: '#fff7ea', door: '#3f9a76', roof: 'cornice', up: 'arch', way: 'left', awning: null, sign: 'hanging', show: 'yarn', pipe: true },
+    { name: 'Books', share: 1.06, top: 128, wall: '#ffe08a', shade: '#efbf45', trim: '#7a4a2a', door: '#7a4a2a', roof: 'steps', up: 'three', way: 'middle', awning: ['straight', '#fff7ea', '#f08a24'], sign: 'painted', show: 'books' },
+    { name: 'Hats', share: 0.98, top: 118, wall: '#cdb7e8', shade: '#a993cf', trim: '#fff7ea', door: '#5b3f9a', roof: 'mansard', up: 'shutters', way: 'right', awning: ['fringe', '#7c5cc4'], sign: 'awning', show: 'hats', pipe: true },
+    { name: 'Leaves', share: 1, top: 168, wall: '#9fcdef', shade: '#6aa8d8', trim: '#fff7ea', door: '#2f6a9e', roof: 'garden', up: 'ivy', way: 'left', awning: ['scallop', '#fff7ea', '#4e9a3a'], sign: 'plank', show: 'plants' },
+  ];
+
   // a cloud's puffs, used by every place with a sky
   const cloud = (g, x, y, s) => {
     const pts = [];
@@ -83,6 +92,7 @@ const PLACES = (() => {
     const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / 40));
     return Array.from({ length: n }, (_, k) => [x0 + ((x1 - x0) * k) / n + (k ? C.j(rough) : 0), y0 + ((y1 - y0) * k) / n + (k ? C.j(rough) : 0)]);
   });
+  const post = (g, x, y, w, h) => C.shape(g, [[x, y + 6], [x + w * 0.5, y], [x + w, y + 6], [x + w, y + h], [x, y + h]].map(([px, py]) => [px + C.j(0.8), py + C.j(0.8)]), K.wood, { shade: K.woodShade, angle: 1.4, gap: 4, sharp: true });
   const tuft = (g, x, y, s = 1, colour = K.tuft) => {
     for (const d of [-6, -2, 3, 7]) C.stroke(g, [[x + d * s, y], [x + d * 1.6 * s + C.j(2), y - (10 + Math.abs(C.j(6))) * s]], colour, 2, 0.8);
   };
@@ -150,7 +160,10 @@ const PLACES = (() => {
       const fy = 372;
       C.shape(g, C.box(-10, fy - 30, W + 20, 9, 3, 1), K.wood, { shade: K.woodShade, angle: 0, gap: 4 });
       C.shape(g, C.box(-10, fy - 6, W + 20, 9, 3, 1), K.wood, { shade: K.woodShade, angle: 0, gap: 4 });
-      for (let x = 20; x < W; x += 74) C.shape(g, C.box(x, fy - 46, 14, 58, 3), K.wood, { shade: K.woodShade, angle: 1.4, gap: 4 });
+      for (let x = 20; x < W; x += 74) {
+        post(g, x, fy - 48, 14, 60);
+        for (const y of [fy - 26, fy - 2]) C.shape(g, C.blob(x + 7, y, 1.8, 1.8, 0.1, 6), K.woodDark, { outline: false });
+      }
       // the pond, with reeds
       for (const p of this.water(W)) {
         C.shape(g, C.blob(p.x, p.y, p.rx + 10, p.ry + 8, 0.05), '#8bc46a', { outline: false });
@@ -174,8 +187,8 @@ const PLACES = (() => {
     front(g, W) {
       // tall grass along the bottom edge, and a fence post in each corner
       for (let x = -10; x < W + 10; x += 13) tuft(g, x + C.j(4), 722, 1.8, x % 26 ? K.tuft : K.grassShade);
-      C.shape(g, C.box(-6, 600, 22, 130, 3), K.wood, { shade: K.woodShade, angle: 1.4, gap: 4 });
-      C.shape(g, C.box(W - 16, 600, 22, 130, 3), K.wood, { shade: K.woodShade, angle: 1.4, gap: 4 });
+      post(g, -6, 598, 22, 132);
+      post(g, W - 16, 598, 22, 132);
     },
     props: (W) => [
       { x: W * 0.17, y: 478, w: 150, h: 100, ax: 75, ay: 92, draw(g) {
@@ -198,7 +211,7 @@ const PLACES = (() => {
         C.shape(g, [[-80, -47], [80, -47], [74, -16], [-74, -16]], K.wood, { shade: K.woodShade, angle: 0.03, gap: 5, sharp: true });
         for (const y of [-37, -26]) C.stroke(g, [[-77, y], [77, y]], K.woodShade, 2.5);
         for (const d of [-1, 1]) {
-          C.shape(g, C.box(d * 82 - 7, -72, 14, 58, 3), K.wood, { shade: K.woodShade, angle: 1.5, gap: 4 });
+          post(g, d * 82 - 7, -74, 14, 60);
           for (const y of [-58, -30]) C.shape(g, C.blob(d * 82, y, 2.5, 2.5, 0.1, 6), K.woodDark, { outline: false });
         }
       } },
@@ -230,11 +243,15 @@ const PLACES = (() => {
   };
 
   // ---------- crumbs café ----------
+  // the clock hangs on the wall over the counter, clear of the menu board
+  // the lamps over the room: the second only where it won't hang in front of the window
+  const lampsAt = (W) => (W >= 900 ? [W * 0.22, W * 0.83] : [W * 0.22]);
+  const clockAt = (W) => ({ x: Math.min(W * 0.22, 220) * 0.45, y: 122 });
   const cafe = {
     id: 'cafe', name: 'Crumbs Cafe', says: 'the cafe',
     ground: (W) => ({ top: 480, bottom: 692, left: 40, right: W - 40 }),
     water: () => [],
-    spots: (W) => [{ x: W * 0.43, y: 112, r: 46, name: 'clock' }, { x: Math.min(W * 0.22, 220) * 0.52, y: 274, r: 30, name: 'bell' }],
+    spots: (W) => [{ ...clockAt(W), r: 46, name: 'clock' }, { x: Math.min(W * 0.22, 220) * 0.91, y: 274, r: 30, name: 'bell' }],
     sky(g, W) {
       g.fillStyle = '#fdeedd';
       g.fillRect(0, 0, W, 720);
@@ -243,7 +260,14 @@ const PLACES = (() => {
       // striped wallpaper, then wooden panels low down
       for (let x = 0; x < W; x += 56) C.scribble(g, [[x, 0], [x + 24, 0], [x + 24, 380], [x, 380]], '#f6b9b4', { angle: 1.57, gap: 6, width: 4, alpha: 0.55, over: 0 });
       C.shape(g, [[-10, 330], [W + 10, 330], [W + 10, 440], [-10, 440]], '#c98d5a', { shade: '#a8703f', angle: 1.55, gap: 9, alpha: 0.35, width: 2, sharp: true });
-      for (let x = 30; x < W; x += 90) C.pencil(g, C.box(x, 346, 64, 76, 4), { color: '#8a5a31', width: 2, passes: 1 });
+      // raised panels, lit along their top and left, in shadow along the bottom and right, between a rail
+      // and a skirting board
+      for (let px = 14; px < W; px += 86) {
+        C.shape(g, box4(px, 346, 58, 74, 0.6), '#d39a66', { sharp: true, width: 1.8, line: '#8a5a31' });
+        for (const [a, b, c] of [[[px + 4, 416], [px + 4, 350], '#e8b98a'], [[px + 4, 350], [px + 54, 350], '#e8b98a'], [[px + 54, 351], [px + 54, 416], '#9a6538'], [[px + 54, 416], [px + 5, 416], '#9a6538']]) C.stroke(g, [a, b], c, 2.5, 0.9);
+      }
+      C.shape(g, box4(-10, 322, W + 20, 12, 0.6), '#8a5a31', { shade: '#6d4523', angle: 0, gap: 4, sharp: true });
+      C.shape(g, box4(-10, 428, W + 20, 13, 0.6), '#8a5a31', { shade: '#6d4523', angle: 0, gap: 4, sharp: true });
       // the floor: wide boards running into the room
       C.shape(g, [[-10, 440], [W + 10, 440], [W + 10, 730], [-10, 730]], '#efc08a', { shade: '#d9a066', angle: 0.02, gap: 12, alpha: 0.4, outline: false, sharp: true });
       for (let y = 470; y < 720; y += 44 + (y - 470) * 0.2) C.stroke(g, [[-10, y], [W + 10, y + C.j(3)]], '#b77e47', 2, 0.7);
@@ -252,13 +276,33 @@ const PLACES = (() => {
       const wx = W * 0.56, ww = Math.min(300, W * 0.28);
       C.shape(g, C.box(wx - 12, 58, ww + 24, 226, 6), '#c98d5a', { shade: '#a8703f', angle: 1.5 });
       C.shape(g, C.box(wx, 70, ww, 202, 4), K.sky, { shade: K.skyShade, angle: 0.1, gap: 12, alpha: 0.4, line: '#8a5a31' });
-      C.shape(g, C.poly([[wx, 272], [wx, 190], [wx + ww * 0.3, 190], [wx + ww * 0.3, 160], [wx + ww * 0.55, 160], [wx + ww * 0.55, 205], [wx + ww, 205], [wx + ww, 272]]), '#cdb7e8', { shade: '#a993cf', angle: 1.5, gap: 6, line: '#7a6a99', width: 2, sharp: true });
-      for (let i = 0; i < 4; i++) C.shape(g, C.box(wx + 14 + i * ww * 0.24, 214 + (i % 2) * 12, 16, 20, 2), '#fff3bf', { outline: false });
+      // across the road, the tops of puddle corner's shops and a tree between two of them
+      g.save();
+      C.trace(g, C.box(wx, 70, ww, 202, 4));
+      g.clip();
+      C.shape(g, C.blob(wx + ww * 0.5, 176, 26, 30, 0.1), K.leaf, { shade: K.leafShade, alpha: 0.4, gap: 5, width: 2 });
+      C.stroke(g, [[wx + ww * 0.5, 200], [wx + ww * 0.5, 240]], K.trunk, 6);
+      for (const [f, fw, ty, k] of [[-0.02, 0.32, 150, 0], [0.62, 0.22, 128, 3], [0.82, 0.24, 164, 2]]) {
+        const sh = SHOPS[k], bx = wx + ww * f, bw = ww * fw;
+        if (k === 0) C.shape(g, [[bx - 6, ty + 2], [bx + bw / 2, ty - 26], [bx + bw + 6, ty + 2]], '#8e3b30', { sharp: true, width: 2 });
+        if (k === 3) C.shape(g, [[bx - 4, ty + 2], [bx + 6, ty - 18], [bx + bw - 6, ty - 18], [bx + bw + 4, ty + 2]], '#6f6a86', { sharp: true, width: 2 });
+        C.shape(g, edges([[bx, 290], [bx, ty], [bx + bw, ty], [bx + bw, 290]], 0.6), sh.wall, { shade: sh.shade, angle: 1.5, gap: 6, alpha: 0.3, sharp: true, width: 2 });
+        for (const [px, py] of [[0.2, 18], [0.6, 18], [0.2, 54], [0.6, 54]]) C.shape(g, box4(bx + bw * px, ty + py, bw * 0.22, 22, 0.3), '#d3ecf8', { sharp: true, width: 1.6 });
+      }
+      g.restore();
       C.stroke(g, [[wx + ww / 2, 72], [wx + ww / 2, 270]], '#8a5a31', 6);
       C.stroke(g, [[wx + 2, 170], [wx + ww - 2, 170]], '#8a5a31', 6);
-      // curtains
-      for (const [x0, d] of [[wx - 22, 1], [wx + ww + 22, -1]]) C.shape(g, C.poly([[x0, 48], [x0 + d * 46, 48], [x0 + d * 30, 160], [x0 + d * 40, 290], [x0, 300]]), '#9fd8a4', { shade: '#6fbb7a', angle: 1.5, gap: 6 });
-      C.shape(g, C.box(wx - 40, 40, ww + 80, 14, 6), '#8a5a31', { outline: false });
+      // curtains, gathered in at a tie halfway down and falling out again below it, on a rod with knobs
+      for (const [x0, d] of [[wx - 26, 1], [wx + ww + 26, -1]]) {
+        C.shape(g, C.poly([[x0, 46], [x0 + d * 54, 46], [x0 + d * 44, 104], [x0 + d * 26, 172], [x0 + d * 34, 236], [x0 + d * 52, 300], [x0, 304]], 1), '#9fd8a4', { shade: '#6fbb7a', angle: 1.5, gap: 6 });
+        for (const k of [0.3, 0.62]) {
+          C.stroke(g, [[x0 + d * 54 * k, 50], [x0 + d * 22 * k + d * 4, 168]], '#6fbb7a', 2, 0.8);
+          C.stroke(g, [[x0 + d * 22 * k + d * 4, 178], [x0 + d * 50 * k, 296]], '#6fbb7a', 2, 0.8);
+        }
+        C.shape(g, C.poly([[x0 - d * 2, 166], [x0 + d * 30, 168], [x0 + d * 30, 178], [x0 - d * 2, 176]], 0.6), '#f6c3cc', { shade: '#e597a6', width: 2 });
+      }
+      C.stroke(g, [[wx - 52, 44], [wx + ww + 52, 44]], '#8a5a31', 6);
+      for (const x of [wx - 54, wx + ww + 54]) C.shape(g, C.blob(x, 44, 7, 7, 0.06, 10), '#8a5a31', { width: 2 });
       // the chalkboard menu
       const mx = Math.max(W * 0.27, 250), mw = Math.min(200, W * 0.2);
       if (W > 640) {
@@ -271,6 +315,19 @@ const PLACES = (() => {
         g.font = '400 21px Gaegu, sans-serif';
         ['leaf pie', 'fish tarts', 'dewdrop tea', 'crumbs (free)'].forEach((line, i) => g.fillText(line, mx + mw / 2, 136 + i * 28));
         g.restore();
+        C.stroke(g, [[mx + mw / 2 - 30, 110], [mx + mw / 2 - 10, 113], [mx + mw / 2 + 12, 109], [mx + mw / 2 + 30, 112]], '#f6f1e4', 2, 0.8);
+        C.shape(g, box4(mx + 8, 252, mw - 16, 7, 0.4), '#8a5a31', { sharp: true, width: 2 });
+        C.shape(g, box4(mx + mw * 0.66, 246, 16, 6, 0.3), '#fff7ea', { sharp: true, width: 1.4 });
+        // a little painting of the hills in a frame, in the gap before the window
+        const gap0 = mx + mw, gap1 = wx - 58;
+        if (gap1 - gap0 > 130) {
+          const px = (gap0 + gap1) / 2;
+          C.shape(g, box4(px - 40, 96, 80, 62, 0.5), '#c98d5a', { shade: '#a8703f', angle: 0.8, gap: 4, sharp: true });
+          C.shape(g, box4(px - 31, 105, 62, 44, 0.4), K.sky, { sharp: true, width: 1.6 });
+          C.shape(g, [[px - 31, 149], [px - 31, 132], [px - 12, 124], [px + 8, 133], [px + 31, 127], [px + 31, 149]], K.hill, { shade: K.hillShade, alpha: 0.4, gap: 4, sharp: true, width: 1.6 });
+          C.shape(g, C.blob(px + 16, 116, 6, 6, 0.06, 10), K.sun, { width: 1.4 });
+          C.stroke(g, [[px - 14, 92], [px, 80], [px + 14, 92]], INK, 1.5);
+        }
       }
       // the counter, with a cake under a glass and the coffee machine
       const cw = Math.min(W * 0.22, 220);
@@ -278,18 +335,9 @@ const PLACES = (() => {
       C.shape(g, edges([[-12, 456], [cw - 4, 456], [cw - 4, 470], [-12, 470]]), '#e597a6', { width: 2, sharp: true });
       C.shape(g, edges([[-12, 288], [cw + 8, 288], [cw + 8, 309], [-12, 309]]), '#8a5a31', { shade: '#6d4523', angle: 0, sharp: true });
       for (let x = 14; x < cw - 10; x += 34) C.stroke(g, [[x, 320], [x, 456]], '#e597a6', 3, 0.8);
-      const mx2 = cw * 0.8;
-      // the coffee machine: a body, its top, a dial, the spout, and a cup waiting under it
-      C.shape(g, C.box(mx2 - 30, 206, 60, 70, 6), '#e4785a', { shade: '#c4553a', angle: 1.5, gap: 6 });
-      C.shape(g, C.box(mx2 - 34, 198, 68, 12, 4), '#8a5a31', {});
-      C.shape(g, C.box(mx2 - 30, 276, 60, 10, 3), '#5f5a60', {});
-      C.shape(g, C.blob(mx2 + 14, 224, 8, 8, 0.08, 10), '#fff7ea', { width: 2 });
-      C.stroke(g, [[mx2 + 14, 224], [mx2 + 18, 219]], INK, 2);
-      C.shape(g, C.box(mx2 - 14, 240, 14, 10, 2), '#5f5a60', { width: 2 });
-      C.shape(g, [[mx2 - 18, 260], [mx2 + 4, 260], [mx2 + 1, 276], [mx2 - 15, 276]], '#fff7ea', { width: 2, sharp: true });
-      C.stroke(g, [[mx2 + 4, 264], [mx2 + 9, 266], [mx2 + 3, 272]], INK, 2);
+      espresso(g, cw * 0.62, 289, Math.min(1, cw / 220));
       // the bell (ring it)
-      const bx2 = cw * 0.52;
+      const bx2 = cw * 0.91;
       C.shape(g, [[bx2 - 16, 286], [bx2 - 13, 272], [bx2 - 6, 265], [bx2 + 6, 265], [bx2 + 13, 272], [bx2 + 16, 286]], '#ffd84f', { shade: '#efb52d', width: 2, sharp: true });
       C.shape(g, C.box(bx2 - 20, 284, 40, 5, 2), '#8a5a31', { outline: false });
       C.shape(g, C.blob(bx2, 262, 3, 3, 0.1, 8), '#3a3034', { outline: false });
@@ -305,9 +353,12 @@ const PLACES = (() => {
         C.shape(g, C.blob(kx, 242, 5, 5, 0.1, 8), '#e5383b', { outline: false });
       }
       // the lamps hanging from the ceiling
-      for (const f of [0.22, 0.83]) {
+      for (const x of lampsAt(W)) {
+        const f = x / W;
         C.stroke(g, [[W * f, 0], [W * f, 40]], INK, 2);
-        C.shape(g, C.poly([[W * f - 26, 70], [W * f - 12, 40], [W * f + 12, 40], [W * f + 26, 70]]), '#ffd84f', { shade: '#ffb42e', angle: 1.5, gap: 5 });
+        C.shape(g, C.blob(W * f, 72, 8, 7, 0.05, 10), '#fff7ea', { width: 1.6 });
+        C.shape(g, [[W * f - 27, 70], [W * f - 12, 38], [W * f + 12, 38], [W * f + 27, 70]], '#ffd84f', { shade: '#ffb42e', angle: 1.5, gap: 5, sharp: true });
+        C.shape(g, box4(W * f - 5, 32, 10, 7, 0.3), INK, { outline: false });
       }
     },
     front() {},
@@ -333,7 +384,7 @@ const PLACES = (() => {
     },
     live(g, W, t, night) {
       // the clock tells the real time
-      const cx = W * 0.43, cy = 112;
+      const { x: cx, y: cy } = clockAt(W);
       g.drawImage(art('clock'), cx - 46, cy - 46, 92, 92);
       const now = new Date();
       const hr = ((now.getHours() % 12) + now.getMinutes() / 60) / 12 * Math.PI * 2;
@@ -349,70 +400,85 @@ const PLACES = (() => {
       // the window's sky goes dark at night
       if (night) {
         const wx = W * 0.56, ww = Math.min(300, W * 0.28);
-        g.fillStyle = 'rgba(40, 46, 110, .55)';
-        g.fillRect(wx + 4, 74, ww - 8, 90);
+        g.fillStyle = 'rgba(40, 46, 110, .5)';
+        g.fillRect(wx + 4, 74, ww - 8, 194);
       }
     },
   };
 
+  // crumbs café's espresso machine, standing on the counter at (x, y): cups warming on top, a gauge, two
+  // handles sticking out, a cup under one spout with coffee running in, a drip tray and the steam wand
+  function espresso(g, x, y, s) {
+    const teal = '#7fc8b4', tealShade = '#5aa894', chrome = '#d5dde3', chromeShade = '#9aa8b3';
+    g.save();
+    g.translate(x, y);
+    g.scale(s, s);
+    for (const cx of [-15, 9]) C.shape(g, [[cx - 8, -86], [cx + 8, -86], [cx + 6, -97], [cx - 6, -97]], '#fff7ea', { sharp: true, width: 1.8 });
+    C.stroke(g, [[38, -60], [47, -55], [48, -24]], INK, 6);
+    C.stroke(g, [[38, -60], [47, -55], [48, -24]], chrome, 3);
+    C.shape(g, box4(-37, -84, 74, 82, 0.5), teal, { shade: tealShade, angle: 1.5, gap: 5, sharp: true });
+    C.shape(g, box4(-34, -88, 68, 5, 0.3), chrome, { sharp: true, width: 1.8 });
+    C.shape(g, box4(-25, -42, 50, 38, 0.4), C.mix(tealShade, INK, 0.45), { sharp: true, width: 2 });
+    C.shape(g, C.blob(0, -64, 12, 12, 0.02, 16), chrome, { width: 2 });
+    C.shape(g, C.blob(0, -64, 8, 8, 0.02, 14), '#fff7ea', { outline: false });
+    C.stroke(g, [[0, -64], [5, -69]], '#e5383b', 1.8);
+    C.shape(g, C.blob(0, -78, 9, 2.5, 0.05, 10), '#e0b040', { width: 1.2 });
+    for (const d of [-1, 1]) {
+      C.shape(g, box4(d * 12 - 7, -44, 14, 8, 0.3), chrome, { sharp: true, width: 1.8 });
+      C.shape(g, box4(d * 12 - 5, -36, 10, 5, 0.3), chromeShade, { sharp: true, width: 1.4 });
+      C.stroke(g, [[d * 16, -34], [d * 33, -29]], INK, 5);
+    }
+    C.stroke(g, [[-12, -31], [-12, -19]], '#7a4a2a', 2.2);
+    C.shape(g, [[-20, -19], [-4, -19], [-6, -6], [-18, -6]], '#fff7ea', { sharp: true, width: 1.8 });
+    C.stroke(g, [[-4, -16], [1, -14], [-5, -9]], INK, 1.6);
+    C.shape(g, box4(-26, -6, 52, 5, 0.3), chrome, { sharp: true, width: 1.8 });
+    for (const fx of [-34, 26]) C.shape(g, box4(fx, -2, 8, 3, 0.2), INK, { outline: false });
+    g.restore();
+  }
+
   // ---------- puddle corner, a street ----------
-  const shops = [
-    { colour: '#f29b8f', shade: '#d9705f', awning: ['#ffffff', '#e5383b'], name: 'Bakery' },
-    { colour: '#a8dcc6', shade: '#78bfa0', awning: ['#ffffff', '#3f9a76'], name: 'Yarn' },
-    { colour: '#ffe08a', shade: '#efbf45', awning: ['#ffffff', '#f08a24'], name: 'Books' },
-    { colour: '#cdb7e8', shade: '#a993cf', awning: ['#ffffff', '#7c5cc4'], name: 'Hats' },
-    { colour: '#9fcdef', shade: '#6aa8d8', awning: ['#ffffff', '#3d78b8'], name: 'Leaves' },
-  ];
+  // a row of shops, each built its own way: its own width and height, roof, windows upstairs, sign, awning (or
+  // none), door on its own side and its own things in the window. a narrow stage shows the first three. all
+  // straight edged (edges() + sharp), since smoothing makes a building into a bean
+  const box4 = (x, y, w, h, rough = 1) => edges([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], rough);
+  // words that shrink until they fit
+  const label = (g, text, cx, cy, maxW, size, colour = INK) => {
+    g.save();
+    let s = size;
+    do g.font = `700 ${s}px Gaegu, sans-serif`; while (g.measureText(text).width > maxW && --s > 11);
+    g.fillStyle = colour;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(text, cx, cy + 1);
+    g.restore();
+  };
+  const FOOT = 452;
+  // the hydrant stands near the end of the street, clear of the plant shop's pots
+  const hydrantAt = (W) => W - Math.max(60, W * 0.07);
   const street = {
     id: 'street', name: 'Puddle Corner', says: 'the corner',
     ground: (W) => ({ top: 458, bottom: 678, left: 40, right: W - 40 }),
     water: (W) => [{ x: W * 0.44, y: 608, rx: 74, ry: 22 }, { x: W * 0.16, y: 650, rx: 54, ry: 16 }],
-    spots: (W) => [{ x: W * 0.9, y: 80, r: 56, name: 'sun' }, { x: W * 0.86, y: 500, r: 34, name: 'hydrant' }],
+    spots: (W) => [{ x: W * 0.9, y: 80, r: 56, name: 'sun' }, { x: hydrantAt(W), y: 500, r: 34, name: 'hydrant' }],
     sky(g, W) { skyFill(g, W, 300); },
     back(g, W) {
-      // a row of shops, each its own height
-      const n = Math.max(3, Math.min(5, Math.round(W / 260)));
-      const sw = W / n;
-      for (let i = 0; i < n; i++) {
-        const s = shops[i % shops.length];
-        const x = i * sw, top = 96 + ((i * 53) % 70);
-        C.shape(g, C.box(x - 2, top, sw + 4, 450 - top, 3), s.colour, { shade: s.shade, angle: 1.5, gap: 9, alpha: 0.35 });
-        // the roof edge, and windows upstairs
-        C.shape(g, C.box(x - 6, top - 12, sw + 12, 16, 4), '#7d6e74', { outline: false });
-        for (let k = 0; k < 2; k++) {
-          const wx = x + sw * (0.18 + k * 0.42), wy = top + 30;
-          C.shape(g, C.box(wx, wy, sw * 0.22, 64, 3), '#d3ecf8', { shade: '#aedaf2', alpha: 0.4, line: INK });
-          C.stroke(g, [[wx + sw * 0.11, wy + 2], [wx + sw * 0.11, wy + 62]], INK, 2);
-          C.shape(g, C.box(wx - 4, wy + 64, sw * 0.22 + 8, 8, 2), '#fff7ea', { outline: false });
-        }
-        // the awning, striped, and the shop's sign
-        const ay = 262;
-        const stripes = 7;
-        for (let k = 0; k < stripes; k++) {
-          const ax = x + 10 + ((sw - 20) * k) / stripes, aw = (sw - 20) / stripes;
-          C.shape(g, C.poly([[ax, ay], [ax + aw, ay], [ax + aw + 3, ay + 46], [ax - 3, ay + 46]], 1), s.awning[k % 2], { width: 1.6, line: '#6d5a5f', sharp: true });
-          C.shape(g, C.blob(ax + aw / 2, ay + 46, aw / 2 + 1, 7, 0.05, 10), s.awning[k % 2], { width: 1.6, line: '#6d5a5f' });
-        }
-        C.shape(g, C.box(x + sw * 0.2, ay - 46, sw * 0.6, 36, 6), '#fff7ea', { line: INK });
-        g.save();
-        g.fillStyle = INK;
-        g.font = `700 ${Math.min(30, sw * 0.13)}px Gaegu, sans-serif`;
-        g.textAlign = 'center';
-        g.fillText(s.name, x + sw / 2, ay - 19);
-        g.restore();
-        // the shop window and door
-        C.shape(g, C.box(x + sw * 0.1, 330, sw * 0.46, 92, 3), '#d3ecf8', { shade: '#aedaf2', alpha: 0.45 });
-        C.stroke(g, [[x + sw * 0.14, 340], [x + sw * 0.24, 330 + 30]], '#ffffff', 3, 0.8);
-        C.shape(g, C.box(x + sw * 0.64, 318, sw * 0.24, 132, 3), s.shade, { shade: '#5a4a50', alpha: 0.25, angle: 1.5 });
-        C.shape(g, C.blob(x + sw * 0.84, 388, 4, 4, 0.1, 8), '#ffd84f', { width: 1.5 });
-      }
+      // things that sit on the pavement (door steps, pots), drawn once it's down
+      const later = [];
+      shopRow(W).forEach(({ s, x, w }, i) => shop(g, s, x, w, C.seeded(40 + i), later));
       // the pavement, its slabs, and the kerb and road
       C.shape(g, [[-10, 446], [W + 10, 446], [W + 10, 700], [-10, 700]], '#dcd8d2', { shade: '#c4beb6', angle: 0.02, gap: 14, alpha: 0.35, outline: false, sharp: true });
       for (let y = 446; y < 700; y += 64) C.stroke(g, [[-10, y], [W + 10, y + C.j(2)]], '#a9a198', 2, 0.6);
       for (let x = 0, row = 0; row < 4; row++) for (x = (row % 2) * 60; x < W; x += 120) C.stroke(g, [[x, 446 + row * 64], [x + C.j(3), 446 + (row + 1) * 64]], '#a9a198', 2, 0.6);
+      // a crack or two across the slabs
+      for (const [cx, cy] of [[W * 0.33, 560], [W * 0.71, 630]]) C.stroke(g, [[cx, cy], [cx + 14, cy + 6], [cx + 20, cy + 3], [cx + 34, cy + 10]], '#a9a198', 1.6, 0.7);
+      for (const f of later) f();
       C.shape(g, C.box(-10, 690, W + 20, 14, 2), '#b5aea5', { line: '#7d746c', width: 2 });
       C.shape(g, [[-10, 704], [W + 10, 704], [W + 10, 730], [-10, 730]], '#5f5a60', { shade: '#4d484e', angle: 0, gap: 8, outline: false, sharp: true });
       for (let x = 20; x < W; x += 110) C.shape(g, C.box(x, 712, 54, 6, 2), '#ffd84f', { outline: false });
+      // a drain in the kerb
+      const dx = W * 0.56;
+      C.shape(g, box4(dx, 688, 40, 14, 0.5), '#4d484e', { sharp: true, width: 2 });
+      for (let k = 1; k < 5; k++) C.stroke(g, [[dx + k * 8, 690], [dx + k * 8, 700]], '#8a8f96', 2);
       // puddles
       for (const p of this.water(W)) C.shape(g, C.blob(p.x, p.y, p.rx, p.ry, 0.08), '#a9d8f2', { shade: '#7fbfe6', angle: 0, gap: 6, alpha: 0.5, line: '#6a9ab8', width: 2 });
       // a few weeds in the cracks
@@ -433,20 +499,59 @@ const PLACES = (() => {
           C.stroke(g, [[x + 10, -34], [x + 14, -6]], iron, 5);
         }
       } },
-      // the lamppost
-      { x: W * 0.64, y: 470, w: 90, h: 330, ax: 45, ay: 320, draw(g) {
-        C.shape(g, C.box(-6, -270, 12, 266, 3), '#4d5560', { shade: '#353b44', angle: 1.5 });
-        C.shape(g, C.box(-16, -14, 32, 14, 3), '#4d5560', {});
-        C.shape(g, C.poly([[-22, -276], [22, -276], [16, -310], [-16, -310]]), '#fff3bf', { line: '#353b44', width: 3 });
-        C.shape(g, C.poly([[-28, -310], [28, -310], [0, -322]]), '#4d5560', {});
+      // the lamppost: a stepped foot, a post with collars and the lamplighter's bar, and the lantern sitting
+      // in a cup on top of the post, so it's held up by something
+      { x: W * 0.64, y: 470, w: 90, h: 360, ax: 45, ay: 350, draw(g) {
+        const iron = '#4d5560', dark = '#353b44';
+        C.shape(g, box4(-17, -24, 34, 22, 0.6), iron, { shade: dark, angle: 1.5, gap: 4, sharp: true });
+        C.shape(g, box4(-12, -40, 24, 17, 0.6), iron, { shade: dark, angle: 1.5, gap: 4, sharp: true });
+        C.shape(g, box4(-5, -268, 10, 230, 0.6), iron, { shade: dark, angle: 1.5, gap: 4, sharp: true });
+        for (const y of [-126, -244]) C.shape(g, box4(-8, y, 16, 8, 0.4), iron, { sharp: true, width: 2 });
+        C.stroke(g, [[-17, -252], [17, -252]], iron, 4);
+        for (const x of [-18, 18]) C.shape(g, C.blob(x, -252, 3.5, 3.5, 0.05, 8), iron, { width: 1.6 });
+        C.shape(g, [[-6, -266], [6, -266], [15, -282], [-15, -282]], iron, { sharp: true, width: 2.2 });
+        const glass = [[-14, -282], [14, -282], [20, -318], [-20, -318]];
+        C.shape(g, glass, '#fff3bf', { shade: '#ffe08a', alpha: 0.5, angle: 1.5, gap: 5, sharp: true, line: dark, width: 2.4 });
+        C.shape(g, C.blob(0, -296, 6, 8, 0.05, 10), '#ffd84f', { outline: false });
+        for (const [a, b] of [[[-14, -282], [-20, -318]], [[0, -282], [0, -318]], [[14, -282], [20, -318]]]) C.stroke(g, [a, b], dark, 2.6);
+        C.shape(g, [[-26, -317], [26, -317], [9, -336], [-9, -336]], iron, { shade: dark, angle: 0.4, gap: 4, sharp: true });
+        C.shape(g, C.blob(0, -341, 4.5, 5, 0.05, 10), iron, { width: 2 });
       } },
       // the fire hydrant (click it)
-      { x: W * 0.86, y: 520, w: 80, h: 90, ax: 40, ay: 84, draw(g) {
-        C.shape(g, C.box(-18, -62, 36, 60, 6), '#e5383b', { shade: '#b8252a', angle: 1.5, gap: 5 });
-        C.shape(g, C.blob(0, -62, 20, 12, 0.05), '#e5383b', { shade: '#b8252a' });
-        C.shape(g, C.box(-28, -46, 56, 12, 4), '#b8252a', {});
-        C.shape(g, C.box(-22, -8, 44, 8, 2), '#b8252a', {});
+      { x: hydrantAt(W), y: 520, w: 80, h: 100, ax: 40, ay: 94, draw(g) {
+        const red = '#e5383b', dark = '#b8252a';
+        C.shape(g, box4(-23, -10, 46, 9, 0.5), dark, { sharp: true, width: 2.2 });
+        C.shape(g, box4(-16, -60, 32, 50, 0.6), red, { shade: dark, angle: 1.5, gap: 5, sharp: true });
+        for (const d of [-1, 1]) {
+          C.shape(g, box4(d < 0 ? -25 : 16, -45, 9, 14, 0.4), dark, { sharp: true, width: 2 });
+          C.shape(g, C.blob(d * 26, -38, 5, 7, 0.05, 10), red, { width: 2 });
+        }
+        C.shape(g, C.blob(0, -34, 9, 9, 0.05, 12), dark, { width: 2 });
+        C.shape(g, C.blob(0, -34, 3, 3, 0.05, 8), '#ffd84f', { outline: false });
+        C.shape(g, box4(-20, -66, 40, 7, 0.4), dark, { sharp: true, width: 2 });
+        C.shape(g, Array.from({ length: 9 }, (_, i) => { const a = Math.PI + (i / 8) * Math.PI; return [Math.cos(a) * 16, -66 + Math.sin(a) * 15]; }), red, { shade: dark, gap: 4, sharp: true });
+        C.shape(g, box4(-5, -86, 10, 7, 0.3), dark, { sharp: true, width: 2 });
+        C.stroke(g, [[-8, -30], [-14, -24], [-22, -28]], '#8a8f96', 1.8);
       } },
+      // the bakery's chalkboard out on the pavement (not when the stage is narrow, the bench is there)
+      ...(W >= 700 ? [{ x: shopRow(W)[0].x + shopRow(W)[0].w * 0.3, y: 472, w: 80, h: 110, ax: 40, ay: 100, draw(g) {
+        C.stroke(g, [[-20, -84], [-33, -2]], K.woodDark, 5);
+        C.stroke(g, [[20, -84], [33, -2]], K.woodDark, 5);
+        C.shape(g, edges([[-22, -94], [22, -94], [29, -6], [-29, -6]], 0.8), K.wood, { shade: K.woodShade, angle: 1.5, gap: 4, sharp: true });
+        C.shape(g, edges([[-16, -86], [16, -86], [22, -14], [-22, -14]], 0.6), '#3f5a4a', { shade: '#2f4a3b', angle: 0.3, gap: 5, alpha: 0.6, sharp: true, width: 1.8 });
+        g.save();
+        g.fillStyle = '#f6f1e4';
+        g.textAlign = 'center';
+        g.font = '400 15px Gaegu, sans-serif';
+        g.fillText('fresh', 0, -66);
+        g.font = '700 19px Gaegu, sans-serif';
+        g.fillText('buns', 0, -48);
+        g.restore();
+        C.pencil(g, C.blob(0, -28, 9, 6, 0.08, 12), { color: '#f6f1e4', width: 1.8, passes: 1 });
+        C.stroke(g, [[-4, -31], [-1, -27]], '#f6f1e4', 1.4);
+        C.stroke(g, [[2, -31], [5, -27]], '#f6f1e4', 1.4);
+        C.stroke(g, [[-6, -94], [6, -94]], '#8a8f96', 3);
+      } }] : []),
     ],
     live(g, W, t, night) {
       g.save();
@@ -456,10 +561,471 @@ const PLACES = (() => {
       g.restore();
       clouds(g, W, t, 70, 2);
     },
-    // the lamp shines at night (page.js draws lights over the dark)
-    lights: (W) => [{ x: W * 0.64, y: 166, r: 90, floor: 520 }],
+    // the lamp shines at night (page.js draws lights over the dark), from its glass
+    lights: (W) => [{ x: W * 0.64, y: 172, r: 90, floor: 520 }],
   };
-  cafe.lights = (W) => [{ x: W * 0.22, y: 70, r: 90, floor: 560 }, { x: W * 0.83, y: 70, r: 90, floor: 560 }];
+
+  // which shops fit, and how wide each one is
+  function shopRow(W) {
+    const list = SHOPS.slice(0, Math.max(3, Math.min(5, Math.round(W / 260))));
+    const total = list.reduce((a, s) => a + s.share, 0);
+    let x = 0;
+    return list.map((s) => { const w = (W * s.share) / total, at = { s, x, w }; x += w; return at; });
+  }
+
+  // one shop: its walls and roof, upstairs, then the shop front
+  function shop(g, s, x, w, r, later) {
+    const top = s.top, mid = x + w / 2;
+    const wall = { shade: s.shade, angle: 1.5, gap: 9, alpha: 0.3, sharp: true };
+    if (s.roof === 'gable') {
+      // the gable end faces the street: the wall goes up to a point under two roof edges, with a chimney
+      const slope = (px) => top - (1 - Math.abs(px - mid) / (w / 2)) * 60;
+      const cx = x + w * 0.7, ct = slope(cx) - 34;
+      C.shape(g, box4(cx, ct, 22, slope(cx) - ct + 14, 0.5), '#c4553a', { shade: '#a8432e', angle: 0, gap: 4, sharp: true });
+      for (const y of [ct + 10, ct + 20]) C.stroke(g, [[cx + 2, y], [cx + 20, y]], '#8e3b30', 1.5, 0.7);
+      C.shape(g, box4(cx + 5, ct - 14, 12, 10, 0.4), '#e5874f', { sharp: true, width: 2 });
+      C.shape(g, box4(cx - 4, ct - 6, 30, 8, 0.4), '#8e3b30', { sharp: true, width: 2 });
+      C.shape(g, edges([[x, FOOT], [x, top], [mid, top - 60], [x + w, top], [x + w, FOOT]]), s.wall, wall);
+      for (const end of [x - 12, x + w + 12]) C.shape(g, [[mid, top - 70], [end, top + 2], [end, top + 13], [mid, top - 57]], '#8e3b30', { shade: '#6f2a22', angle: 0.5, gap: 4, sharp: true });
+      C.shape(g, C.blob(mid, top - 72, 4, 4, 0.05, 8), '#8e3b30', { width: 2 });
+      round(g, mid, top - 24, 11, s.trim);
+    } else if (s.roof === 'cornice') {
+      // a flat roof behind a cornice with little blocks under it, and a chimney stack with pots
+      const cx = x + w * 0.66;
+      C.shape(g, box4(cx, top - 28, w * 0.18, 30, 0.5), '#c4553a', { shade: '#a8432e', angle: 0, gap: 4, sharp: true });
+      for (const k of [0.25, 0.65]) C.shape(g, box4(cx + w * 0.18 * k, top - 40, 10, 13, 0.4), '#e5874f', { sharp: true, width: 2 });
+      C.shape(g, box4(x, top, w, FOOT - top), s.wall, wall);
+      C.shape(g, box4(x - 6, top - 12, w + 12, 14, 0.6), C.mix(s.shade, INK, 0.12), { sharp: true, width: 2.2 });
+      for (let px = x + 6; px < x + w - 8; px += 15) C.shape(g, box4(px, top + 3, 8, 7, 0.3), C.mix(s.shade, '#ffffff', 0.35), { width: 1.4, sharp: true });
+    } else if (s.roof === 'steps') {
+      // a stepped gable, each step capped with stone, and a round window in the top
+      const steps = [0, 0.13, 0.26, 0.38, 0.62, 0.74, 0.87, 1];
+      const rise = [0, 20, 40, 60, 60, 40, 20, 0];
+      const pts = [[x, FOOT]];
+      for (let k = 0; k < steps.length - 1; k++) {
+        if (k === 0 || rise[k] !== rise[k - 1]) pts.push([x + w * steps[k], top - rise[k]]);
+        if (rise[k + 1] !== rise[k] || k === steps.length - 2) pts.push([x + w * steps[k + 1], top - rise[k]]);
+      }
+      pts.push([x + w, FOOT]);
+      C.shape(g, pts, s.wall, wall);
+      for (let k = 0; k < steps.length - 1; k++) if (rise[k] || k === 0 || k === steps.length - 2) C.shape(g, box4(x + w * steps[k] - 3, top - rise[k] - 6, w * (steps[k + 1] - steps[k]) + 6, 7, 0.3), '#e8d8b8', { sharp: true, width: 1.8 });
+      round(g, mid, top - 30, 13, s.trim);
+    } else if (s.roof === 'mansard') {
+      // a steep slate roof with dormer windows standing out of it
+      const rt = top - 54;
+      C.shape(g, box4(x, top, w, FOOT - top), s.wall, wall);
+      const tiles = edges([[x - 6, top + 2], [x + 14, rt], [x + w - 14, rt], [x + w + 6, top + 2]]);
+      C.shape(g, tiles, '#6f6a86', { shade: '#56516b', angle: 0.1, gap: 7, alpha: 0.35, sharp: true });
+      g.save();
+      C.trace(g, tiles, true, true);
+      g.clip();
+      for (let row = 0, y = rt + 11; y < top; y += 11, row++) {
+        C.stroke(g, [[x - 10, y], [x + w + 10, y]], '#4d4860', 1.5, 0.7);
+        for (let px = x + (row % 2) * 7; px < x + w; px += 14) C.stroke(g, [[px, y], [px, y + 11]], '#4d4860', 1.3, 0.55);
+      }
+      g.restore();
+      C.shape(g, box4(x + 10, rt - 6, w - 20, 8, 0.4), '#4d4860', { sharp: true, width: 2 });
+      for (const f of w > 180 ? [0.3, 0.7] : [0.5]) {
+        const dx = x + w * f;
+        C.shape(g, box4(dx - 18, rt + 4, 36, 42, 0.5), s.wall, { shade: s.shade, angle: 1.5, gap: 6, alpha: 0.3, sharp: true });
+        const glass = pane(g, dx - 11, rt + 13, 22, 26, s.trim);
+        C.stroke(g, [[dx, rt + 13], [dx, rt + 39]], s.trim, 3);
+        C.shape(g, [[dx - 25, rt + 7], [dx, rt - 14], [dx + 25, rt + 7], [dx + 21, rt + 10], [dx, rt - 6], [dx - 21, rt + 10]], '#6f6a86', { shade: '#56516b', sharp: true, width: 2.2 });
+        glint(g, glass);
+      }
+    } else if (s.roof === 'garden') {
+      // a roof garden: bushes and a sunflower peeping over the parapet
+      const sx = x + w * 0.24;
+      C.stroke(g, [[sx, top], [sx - 3, top - 40], [sx + 1, top - 62]], '#4e8a33', 3.5);
+      C.shape(g, [[sx - 2, top - 36], [sx - 16, top - 44], [sx - 6, top - 30]], K.leaf, { width: 1.6 });
+      for (const [fx, h, col] of [[0.1, 26, K.leaf], [0.4, 40, '#4e9a3a'], [0.62, 24, '#5fae4a'], [0.86, 34, K.leaf]]) {
+        C.shape(g, C.blob(x + w * fx, top - h * 0.4, 20, h * 0.55, 0.12), col, { shade: K.leafShade, alpha: 0.4, gap: 5, width: 2 });
+      }
+      for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; C.shape(g, C.blob(sx + 1 + Math.cos(a) * 11, top - 64 + Math.sin(a) * 11, 6, 6, 0.1, 8), '#ffd84f', { width: 1.4 }); }
+      C.shape(g, C.blob(sx + 1, top - 64, 8, 8, 0.06, 12), '#8a5a31', { width: 1.8 });
+      C.shape(g, box4(x, top, w, FOOT - top), s.wall, wall);
+      C.shape(g, box4(x - 5, top - 8, w + 10, 11, 0.5), '#e8e2d8', { sharp: true, width: 2.2 });
+    }
+    bricks(g, r, x + 8, top + 8, x + w - 8, 250, C.mix(s.shade, INK, 0.12));
+    if (s.pipe) {
+      // a drainpipe down one side, with a hopper at the top and brackets holding it on
+      const px = x + w - 9;
+      C.shape(g, [[px - 7, top + 2], [px + 7, top + 2], [px + 4, top + 12], [px - 4, top + 12]], '#7d8590', { sharp: true, width: 1.8 });
+      C.shape(g, box4(px - 3, top + 12, 6, FOOT - top - 16, 0.4), '#8a919b', { sharp: true, width: 1.8 });
+      for (let y = top + 40; y < FOOT - 20; y += 70) C.stroke(g, [[px - 5, y], [px + 5, y]], '#5f6670', 2.5);
+    }
+    upstairs(g, s, x, w, top, r);
+    shopFront(g, s, x, w, r, later);
+  }
+
+  // a scatter of bricks showing where the paint's worn, in a few patches
+  function bricks(g, r, x0, y0, x1, y1, colour) {
+    for (let k = 0; k < 3; k++) {
+      const bx = x0 + r() * Math.max(1, x1 - x0 - 50), by = y0 + r() * Math.max(1, y1 - y0 - 30);
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3 - row; col++) {
+          if (r() < 0.2) continue;
+          const px = bx + col * 17 + (row % 2) * 8, py = by + row * 9;
+          C.pencil(g, [[px, py], [px + 15, py], [px + 15, py + 7], [px, py + 7]], { color: colour, width: 1.5, passes: 1, rough: 0.5, sharp: true });
+        }
+      }
+    }
+  }
+  // a window's frame and glass, square or arched, giving back the glass's outline
+  function pane(g, x, y, w, h, frame, arch = false) {
+    const outline = (x, y, w, h) => (arch
+      ? [[x, y + h], ...Array.from({ length: 13 }, (_, i) => { const a = Math.PI + (i / 12) * Math.PI; return [x + w / 2 + (Math.cos(a) * w) / 2, y + w / 2 + (Math.sin(a) * w) / 2]; }), [x + w, y + h]]
+      : box4(x, y, w, h, 0.6));
+    C.shape(g, outline(x - 5, y - 5, w + 10, h + 10), frame, { sharp: true, width: 2.2 });
+    const glass = outline(x, y, w, h);
+    C.shape(g, glass, '#d3ecf8', { shade: '#aedaf2', alpha: 0.5, angle: 0.5, gap: 6, width: 1.8, sharp: true });
+    return glass;
+  }
+  const glint = (g, glass) => {
+    const xs = glass.map((p) => p[0]), ys = glass.map((p) => p[1]);
+    const x0 = Math.min(...xs), y0 = Math.min(...ys), x1 = Math.max(...xs), y1 = Math.max(...ys);
+    C.stroke(g, [[x0 + (x1 - x0) * 0.16, y0 + (y1 - y0) * 0.42], [x0 + (x1 - x0) * 0.42, y0 + (y1 - y0) * 0.12]], '#ffffff', 2.5, 0.75);
+  };
+  const sill = (g, x, y, w, frame) => C.shape(g, box4(x - 10, y + 4, w + 20, 7, 0.4), frame, { sharp: true, width: 2 });
+  // a round window high in a gable
+  function round(g, cx, cy, rad, frame) {
+    C.shape(g, C.blob(cx, cy, rad + 5, rad + 5, 0.02, 16), frame, { width: 2.2 });
+    C.shape(g, C.blob(cx, cy, rad, rad, 0.02, 16), '#d3ecf8', { shade: '#aedaf2', alpha: 0.5, width: 1.8 });
+    C.stroke(g, [[cx - rad, cy], [cx + rad, cy]], frame, 2.5);
+    C.stroke(g, [[cx, cy - rad], [cx, cy + rad]], frame, 2.5);
+  }
+  // curtains drawn back in a window, tied in the middle
+  function curtains(g, glass, colour) {
+    const xs = glass.map((p) => p[0]), ys = glass.map((p) => p[1]);
+    const x0 = Math.min(...xs), y0 = Math.min(...ys), x1 = Math.max(...xs), y1 = Math.max(...ys), w = x1 - x0, h = y1 - y0;
+    g.save();
+    C.trace(g, glass, true, true);
+    g.clip();
+    for (const d of [1, -1]) {
+      const e = d > 0 ? x0 : x1;
+      C.shape(g, [[e, y0 - 2], [e + d * w * 0.36, y0 - 2], [e + d * w * 0.12, y0 + h * 0.55], [e + d * w * 0.2, y1 + 2], [e, y1 + 2]], colour, { shade: C.mix(colour, INK, 0.2), angle: 1.5, gap: 5, alpha: 0.35, width: 1.6, sharp: true });
+      C.stroke(g, [[e + d * w * 0.03, y0 + h * 0.55], [e + d * w * 0.15, y0 + h * 0.55]], C.mix(colour, INK, 0.4), 2.5);
+    }
+    g.restore();
+  }
+  // a box of flowers under a window
+  function flowerBox(g, x, y, w, r) {
+    for (let px = x + 6; px < x + w - 4; px += 9) {
+      C.stroke(g, [[px, y + 2], [px + C.j(2), y - 7]], K.leafShade, 2);
+      g.fillStyle = K.petal[Math.floor(r() * 3)] === '#ffffff' ? '#ff8fb1' : K.petal[Math.floor(r() * 2)];
+      C.trace(g, C.blob(px, y - 8, 4, 4, 0.1, 8));
+      g.fill();
+    }
+    C.shape(g, box4(x, y, w, 11, 0.4), '#c4553a', { shade: '#a8432e', angle: 0, gap: 4, sharp: true, width: 2 });
+  }
+
+  function upstairs(g, s, x, w, top, r) {
+    if (s.up === 'sash') {
+      // two sash windows, one with its curtains, one with a window box
+      const ww = w * 0.2, y = top + 22, h = 62;
+      [0.17, 0.63].forEach((f, k) => {
+        const wx = x + w * f;
+        const glass = pane(g, wx, y, ww, h, s.trim);
+        if (!k) curtains(g, glass, '#ffb6d2');
+        C.stroke(g, [[wx, y + h * 0.5], [wx + ww, y + h * 0.5]], s.trim, 4);
+        C.stroke(g, [[wx + ww / 2, y], [wx + ww / 2, y + h]], s.trim, 2.5);
+        glint(g, glass);
+        sill(g, wx, y + h, ww, s.trim);
+        if (k) flowerBox(g, wx - 4, y + h + 11, ww + 8, r);
+      });
+    } else if (s.up === 'arch') {
+      // one tall arched window, curtains tied back, a window box
+      const ww = w * 0.4, wx = x + w * 0.3, y = top + 34, h = 236 - y;
+      const glass = pane(g, wx, y, ww, h, s.trim, true);
+      curtains(g, glass, '#ffe08a');
+      C.stroke(g, [[wx + ww / 2, y], [wx + ww / 2, y + h]], s.trim, 3);
+      C.stroke(g, [[wx, y + ww / 2], [wx + ww, y + ww / 2]], s.trim, 3);
+      glint(g, glass);
+      sill(g, wx, y + h, ww, s.trim);
+      flowerBox(g, wx - 2, y + h + 11, ww + 4, r);
+    } else if (s.up === 'three') {
+      // three narrow windows under stone lintels, the middle one's blind half down
+      const ww = w * 0.16, y = top + 30, h = 76;
+      [0.12, 0.42, 0.72].forEach((f, k) => {
+        const wx = x + w * f;
+        C.shape(g, box4(wx - 9, y - 16, ww + 18, 8, 0.4), '#e8d8b8', { sharp: true, width: 1.8 });
+        const glass = pane(g, wx, y, ww, h, s.trim);
+        if (k === 1) {
+          C.shape(g, box4(wx, y, ww, h * 0.45, 0.3), '#fff7ea', { shade: '#f08a24', angle: 0, gap: 6, alpha: 0.5, sharp: true, width: 1.6 });
+          C.shape(g, C.blob(wx + ww / 2, y + h * 0.45 + 5, 3, 3, 0.1, 8), '#f08a24', { width: 1.2 });
+        }
+        C.stroke(g, [[wx + ww / 2, y + (k === 1 ? h * 0.45 : 0)], [wx + ww / 2, y + h]], s.trim, 2.5);
+        C.stroke(g, [[wx, y + h * 0.55], [wx + ww, y + h * 0.55]], s.trim, 2.5);
+        glint(g, glass);
+        sill(g, wx, y + h, ww, '#e8d8b8');
+      });
+    } else if (s.up === 'shutters') {
+      // two windows with their shutters open, one with a box of flowers
+      const ww = w * 0.18, y = top + 34, h = 68;
+      [0.2, 0.62].forEach((f, k) => {
+        const wx = x + w * f;
+        for (const d of [-1, 1]) {
+          const sx = d < 0 ? wx - 6 - ww * 0.42 : wx + ww + 6;
+          C.shape(g, box4(sx, y - 3, ww * 0.42, h + 6, 0.4), '#7c5cc4', { shade: '#5b3f9a', angle: 1.5, gap: 4, alpha: 0.3, sharp: true, width: 2 });
+          for (let yy = y + 6; yy < y + h - 2; yy += 7) C.stroke(g, [[sx + 3, yy], [sx + ww * 0.42 - 3, yy + 2]], '#5b3f9a', 1.4, 0.8);
+        }
+        const glass = pane(g, wx, y, ww, h, s.trim);
+        C.stroke(g, [[wx + ww / 2, y], [wx + ww / 2, y + h]], s.trim, 2.5);
+        C.stroke(g, [[wx, y + h * 0.5], [wx + ww, y + h * 0.5]], s.trim, 2.5);
+        glint(g, glass);
+        sill(g, wx, y + h, ww, s.trim);
+        if (!k) flowerBox(g, wx - 4, y + h + 11, ww + 8, r);
+      });
+    } else if (s.up === 'ivy') {
+      // one wide window with pots on its sill, and ivy climbing the wall beside it
+      const ww = w * 0.48, wx = x + w * 0.4, y = top + 22, h = 54;
+      const glass = pane(g, wx, y, ww, h, s.trim);
+      g.save();
+      C.trace(g, glass, true, true);
+      g.clip();
+      for (const f of [0.18, 0.5, 0.82]) {
+        const px = wx + ww * f;
+        C.shape(g, C.blob(px, y + h - 22, 10, 12, 0.12, 12), K.leaf, { shade: K.leafShade, alpha: 0.4, width: 1.6 });
+        C.shape(g, [[px - 8, y + h - 12], [px + 8, y + h - 12], [px + 6, y + h + 2], [px - 6, y + h + 2]], '#e5874f', { sharp: true, width: 1.6 });
+      }
+      g.restore();
+      C.stroke(g, [[wx + ww / 2, y], [wx + ww / 2, y + h]], s.trim, 3);
+      glint(g, glass);
+      sill(g, wx, y + h, ww, s.trim);
+      // the ivy: a stem wandering up from the shop sign, leaves either side
+      const vx = x + w * 0.14;
+      const stem = Array.from({ length: 9 }, (_, i) => [vx + Math.sin(i * 1.3) * 9, 258 - i * ((258 - top - 10) / 8)]);
+      C.stroke(g, stem, '#4e8a33', 2.5);
+      stem.forEach(([px, py], i) => { if (i) C.shape(g, [[px, py], [px + (i % 2 ? 13 : -13), py - 5], [px + (i % 2 ? 7 : -7), py + 5]], i % 3 ? K.leaf : '#5fae4a', { width: 1.5 }); });
+    }
+  }
+
+  // the shop front: windows, door, the awning over them and the sign
+  function shopFront(g, s, x, w, r, later) {
+    const at = s.way === 'right' ? { win: [[0.07, 0.56]], door: 0.69 }
+      : s.way === 'left' ? { win: [[0.38, 0.56]], door: 0.08 }
+      : { win: [[0.06, 0.3], [0.64, 0.3]], door: 0.4 };
+    const dw = w * (s.way === 'middle' ? 0.2 : 0.23);
+    for (const [f, ww] of at.win) shopWindow(g, s, x + w * f, w * ww, r);
+    door(g, s, x + w * at.door, dw, later);
+    // signs that live on the fascia, over the awning
+    const cx = x + w / 2;
+    if (s.sign === 'board') {
+      const bw = Math.min(w * 0.66, 190);
+      C.shape(g, box4(cx - bw / 2, 260, bw, 34, 0.6), '#fff7ea', { shade: '#f3e3c4', alpha: 0.5, angle: 0.1, gap: 6, sharp: true });
+      for (const d of [-1, 1]) C.shape(g, C.blob(cx + d * (bw / 2 - 8), 266, 2, 2, 0.1, 6), INK, { outline: false });
+      label(g, s.name, cx, 277, bw - 24, 28);
+    } else if (s.sign === 'painted') {
+      C.shape(g, box4(x + 5, 258, w - 10, 38, 0.6), s.trim, { shade: C.mix(s.trim, INK, 0.3), alpha: 0.35, angle: 0.05, gap: 6, sharp: true });
+      label(g, s.name, cx, 277, w * 0.6, 30, '#ffd84f');
+    } else if (s.sign === 'hanging') {
+      // a band over the shop front with the name on a plaque, and a ball of yarn hung out on a bracket
+      C.shape(g, box4(x + 4, 264, w - 8, 30, 0.6), C.mix(s.shade, INK, 0.1), { sharp: true, width: 2.2 });
+      const bw = Math.min(w * 0.56, 150);
+      C.shape(g, C.blob(cx, 279, bw / 2, 19, 0.02, 20), '#fff7ea', { shade: '#f3e3c4', alpha: 0.4, gap: 6 });
+      label(g, s.name, cx, 278, bw - 30, 26);
+      if (w > 190) {
+        const bx = x + w * 0.86, by = 190;
+        C.stroke(g, [[x + w - 4, by - 6], [bx - 26, by - 6]], '#4d5560', 3.5);
+        C.stroke(g, [[x + w - 4, by + 10], [x + w - 18, by - 6]], '#4d5560', 2.5);
+        for (const d of [-14, 14]) C.stroke(g, [[bx - 12 + d * 0.6, by - 6], [bx - 12 + d * 0.8, by + 8]], '#8a8f96', 1.5);
+        C.shape(g, C.blob(bx - 12, by + 22, 16, 16, 0.04, 18), '#ff8fb1', { shade: '#e5638e', alpha: 0.4, gap: 5 });
+        for (const k of [-6, 0, 6]) C.stroke(g, [[bx - 26, by + 22 + k], [bx - 18, by + 12 + k], [bx + 2, by + 18 + k]], '#d4507a', 1.6, 0.9);
+        C.stroke(g, [[bx - 2, by + 34], [bx + 6, by + 44], [bx + 2, by + 52]], '#e5638e', 2);
+      }
+    } else {
+      // a plain band; the name is on the awning, or on a plank nailed up crooked
+      C.shape(g, box4(x + 4, 266, w - 8, 28, 0.6), C.mix(s.shade, INK, 0.08), { sharp: true, width: 2.2 });
+      if (s.sign === 'plank') {
+        const bw = Math.min(w * 0.6, 170);
+        g.save();
+        g.translate(cx + 6, 279);
+        g.rotate(-0.035);
+        C.shape(g, box4(-bw / 2, -17, bw, 32, 0.5), K.wood, { shade: K.woodShade, angle: 0.04, gap: 5, sharp: true });
+        for (const y of [-8, 6]) C.stroke(g, [[-bw / 2 + 10, y], [-bw / 2 + 40, y + 1]], K.woodShade, 1.6, 0.8);
+        for (const d of [-1, 1]) C.shape(g, C.blob(d * (bw / 2 - 9), -1, 2.2, 2.2, 0.1, 6), INK, { outline: false });
+        label(g, s.name, 0, -1, bw - 34, 27, '#5a3a20');
+        g.restore();
+      }
+    }
+    if (s.awning) {
+      const [x0, x1] = s.way === 'middle' || s.awning[0] === 'scallop' && s.way === 'right' ? [x + w * 0.03, x + w * 0.97]
+        : s.way === 'left' ? [x + w * 0.34, x + w * 0.97] : [x + w * 0.03, x + w * 0.66];
+      awning(g, x0, x1, 300, s.awning, s.sign === 'awning' ? s.name : null);
+    }
+  }
+
+  // the big window, with the shop's things inside and the low wall under it
+  function shopWindow(g, s, x, w, r) {
+    const y = 318, h = 92;
+    C.shape(g, box4(x - 7, y - 7, w + 14, h + 14, 0.6), s.trim, { sharp: true, width: 2.2 });
+    const glass = box4(x, y, w, h, 0.5);
+    C.shape(g, glass, '#d3ecf8', { shade: '#aedaf2', alpha: 0.4, angle: 0.5, gap: 7, width: 1.8, sharp: true });
+    g.save();
+    C.trace(g, glass, true, true);
+    g.clip();
+    display(g, s.show, x, y, w, h, r);
+    g.restore();
+    const bars = w > 150 ? 2 : 1;
+    for (let k = 1; k <= bars; k++) C.stroke(g, [[x + (w * k) / (bars + 1), y], [x + (w * k) / (bars + 1), y + h]], s.trim, 4);
+    glint(g, glass);
+    C.shape(g, box4(x - 7, y + h + 7, w + 14, FOOT - (y + h + 7), 0.5), s.shade, { sharp: true, width: 2.2 });
+    C.pencil(g, box4(x + 4, y + h + 14, w - 8, FOOT - (y + h + 14) - 9, 0.4), { color: C.mix(s.shade, INK, 0.35), width: 1.6, passes: 1, sharp: true });
+  }
+
+  // a door with a fanlight over it, a window and a panel, and a stone step out on the pavement
+  function door(g, s, x, w, later) {
+    const y = 312, deep = C.mix(s.door, INK, 0.45);
+    C.shape(g, box4(x - 6, y - 6, w + 12, FOOT - y + 6, 0.5), s.trim, { sharp: true, width: 2.2 });
+    C.shape(g, box4(x, y, w, 16, 0.4), '#d3ecf8', { shade: '#aedaf2', alpha: 0.5, width: 1.6, sharp: true });
+    for (const f of [0.33, 0.66]) C.stroke(g, [[x + w * f, y], [x + w * f, y + 16]], s.trim, 2.5);
+    C.shape(g, box4(x, y + 20, w, FOOT - y - 20, 0.5), s.door, { shade: C.mix(s.door, INK, 0.25), alpha: 0.3, angle: 1.5, gap: 6, sharp: true });
+    C.shape(g, box4(x + w * 0.18, y + 30, w * 0.64, 40, 0.4), '#d3ecf8', { shade: '#aedaf2', alpha: 0.5, width: 1.6, sharp: true });
+    C.pencil(g, box4(x + w * 0.18, y + 84, w * 0.64, 40, 0.4), { color: deep, width: 1.8, passes: 1, sharp: true });
+    C.stroke(g, [[x + w * 0.24, y + 52], [x + w * 0.36, y + 36]], '#ffffff', 2, 0.7);
+    C.shape(g, C.blob(x + w * 0.82, y + 78, 3.5, 3.5, 0.1, 8), '#ffd84f', { width: 1.5 });
+    later.push(() => C.shape(g, box4(x - 12, 446, w + 24, 9, 0.5), '#cfc8bf', { shade: '#b5aea5', angle: 0, gap: 4, sharp: true, width: 2 }));
+    if (s.show === 'plants') later.push(() => { for (const px of [x - 24, x + w + 24]) potPlant(g, px, 460, 1); });
+  }
+  function potPlant(g, px, py, z) {
+    for (const [a, l] of [[-0.6, 22], [-0.15, 28], [0.35, 24], [0.75, 18]]) {
+      const tx = px + Math.sin(a) * l * z, ty = py - 18 * z - Math.cos(a) * l * z;
+      C.stroke(g, [[px, py - 16 * z], [tx, ty]], '#4e8a33', 2);
+      C.shape(g, C.blob(tx, ty, 6 * z, 10 * z, 0.08, 10), K.leaf, { shade: K.leafShade, alpha: 0.4, width: 1.5 });
+    }
+    C.shape(g, [[px - 12 * z, py - 18 * z], [px + 12 * z, py - 18 * z], [px + 9 * z, py], [px - 9 * z, py]], '#e5874f', { shade: '#c4553a', gap: 4, sharp: true, width: 2 });
+  }
+
+  // an awning: one piece of striped canvas sloping out from the wall, with its flap along the bottom
+  // (scalloped, straight, or a fringe), the shadow it throws on the wall, and maybe the shop's name on it
+  function awning(g, x0, x1, y, [kind, a, b], name) {
+    const drop = name ? 40 : 32, flap = 11, out = 9;
+    const L = x0 - out, R = x1 + out, by = y + drop;
+    const n = Math.max(3, Math.round((x1 - x0) / 30)) | 1;
+    const bottom = [];
+    if (kind === 'scallop') {
+      for (let k = n - 1; k >= 0; k--) {
+        const cx = L + ((k + 0.5) * (R - L)) / n, half = (R - L) / n / 2;
+        for (let i = 0; i <= 6; i++) { const t = (i / 6) * Math.PI; bottom.push([cx + Math.cos(t) * half, by + flap + Math.sin(t) * 7]); }
+      }
+    } else bottom.push([R, by + flap], [L, by + flap]);
+    const outline = [[x0, y], [x1, y], [R, by], ...bottom, [L, by]];
+    g.save();
+    g.globalAlpha = 0.16;
+    g.fillStyle = INK;
+    C.trace(g, outline.map(([px, py]) => [px + 3, py + 12]), true, true);
+    g.fill();
+    g.restore();
+    g.save();
+    C.trace(g, outline, true, true);
+    g.clip();
+    for (let k = 0; k < n; k++) {
+      const t0 = k / n, t1 = (k + 1) / n;
+      g.fillStyle = kind === 'fringe' ? a : k % 2 ? b : a;
+      g.beginPath();
+      g.moveTo(x0 + (x1 - x0) * t0, y - 2);
+      g.lineTo(x0 + (x1 - x0) * t1, y - 2);
+      g.lineTo(L + (R - L) * t1, by);
+      g.lineTo(L + (R - L) * t1, by + flap + 10);
+      g.lineTo(L + (R - L) * t0, by + flap + 10);
+      g.lineTo(L + (R - L) * t0, by);
+      g.closePath();
+      g.fill();
+    }
+    C.scribble(g, outline, C.mix(kind === 'fringe' ? a : b, INK, 0.2), { angle: 1.45, gap: 6, alpha: 0.22, sharp: true, width: 3 });
+    // the slope's a little darker under the fold, where the canvas turns down
+    g.fillStyle = 'rgba(58, 48, 52, .1)';
+    g.fillRect(L - 4, by, R - L + 8, flap + 10);
+    g.restore();
+    C.stroke(g, [[L, by], [R, by]], '#6d5a5f', 1.8, 0.8);
+    C.pencil(g, outline, { width: 2.2, sharp: true });
+    if (kind === 'fringe') for (let px = L + 4; px < R - 2; px += 6) C.stroke(g, [[px, by + flap + 1], [px + C.j(1), by + flap + 8]], '#ffd84f', 2, 0.95);
+    if (name) label(g, name, (x0 + x1) / 2, y + drop * 0.52, (x1 - x0) * 0.7, 30, '#fff7ea');
+  }
+
+  // what each shop has in its window
+  function display(g, show, x, y, w, h, r) {
+    const shelf = (sy) => C.stroke(g, [[x - 4, sy], [x + w + 4, sy]], '#8a5a31', 4);
+    if (show === 'bread') {
+      // loaves on two shelves, each with its cuts, and a long one stood in the corner
+      for (const sy of [y + h * 0.5, y + h - 4]) {
+        shelf(sy);
+        for (let px = x + 16 + r() * 8; px < x + w - 14; px += 28 + r() * 10) {
+          const lw = 10 + r() * 5;
+          C.shape(g, C.blob(px, sy - 8, lw, 7.5, 0.06, 14), '#e0a05a', { shade: '#c07a38', alpha: 0.5, gap: 4, width: 1.8 });
+          for (const d of [-4, 2]) C.stroke(g, [[px + d - 2, sy - 12], [px + d + 3, sy - 6]], '#9a5a26', 1.5);
+        }
+      }
+      C.shape(g, C.poly([[x + w - 14, y + h - 4], [x + w - 4, y + h - 6], [x + w - 16, y + 8], [x + w - 24, y + 10]], 0.6), '#e9b06a', { shade: '#c07a38', gap: 4, alpha: 0.5, width: 1.8 });
+    } else if (show === 'yarn') {
+      // balls of yarn on a shelf, more in a basket, one strand hanging down
+      const cols = ['#ff8fb1', '#ffd84f', '#7fc3e8', '#c59cf4', '#ff9a5c', '#8fd660'];
+      shelf(y + h * 0.42);
+      for (let px = x + 14, k = 0; px < x + w - 10; px += 22 + r() * 6, k++) {
+        const c = cols[k % cols.length], rad = 8 + r() * 3, cy = y + h * 0.42 - rad;
+        C.shape(g, C.blob(px, cy, rad, rad, 0.04, 14), c, { width: 1.6 });
+        for (const d of [-0.4, 0.3]) C.stroke(g, [[px - rad * 0.8, cy + d * rad], [px, cy + d * rad - 4], [px + rad * 0.8, cy + d * rad + 2]], C.mix(c, INK, 0.35), 1.3, 0.9);
+      }
+      C.stroke(g, [[x + w * 0.5, y + h * 0.42], [x + w * 0.52, y + h * 0.55], [x + w * 0.47, y + h * 0.66]], '#c59cf4', 1.8);
+      const bx = x + w * 0.2, bw = Math.min(70, w * 0.6);
+      for (let k = 0; k < 3; k++) C.shape(g, C.blob(bx + 14 + k * (bw - 28) / 2, y + h - 22, 10, 10, 0.05, 12), cols[(k + 2) % cols.length], { width: 1.6 });
+      C.shape(g, [[bx, y + h - 20], [bx + bw, y + h - 20], [bx + bw - 6, y + h + 2], [bx + 6, y + h + 2]], '#d9a066', { shade: '#b97e45', angle: 0.8, gap: 3, alpha: 0.6, sharp: true, width: 1.8 });
+      C.stroke(g, [[bx + 3, y + h - 11], [bx + bw - 3, y + h - 11]], '#b97e45', 1.6);
+    } else if (show === 'books') {
+      // books stood up on the top shelf, one leaning, and piles lying down below
+      const cols = ['#e5383b', '#3d78b8', '#3f9a76', '#f08a24', '#7c5cc4', '#8a5a31', '#fff7ea'];
+      shelf(y + h * 0.48);
+      let px = x + 6;
+      while (px < x + w - 12) {
+        const bw = 6 + r() * 5, bh = 22 + r() * 12, c = cols[Math.floor(r() * cols.length)];
+        C.shape(g, box4(px, y + h * 0.48 - bh, bw, bh, 0.3), c, { sharp: true, width: 1.4 });
+        C.stroke(g, [[px + 1, y + h * 0.48 - bh + 6], [px + bw - 1, y + h * 0.48 - bh + 6]], C.mix(c, '#ffffff', 0.5), 1.2);
+        px += bw + 1 + (r() < 0.15 ? 10 : 0);
+      }
+      for (let k = 0, sx = x + 8; sx < x + w - 30; k++, sx += 34 + r() * 14) {
+        for (let j = 0, sy = y + h - 4; j < 3 + Math.floor(r() * 2); j++) {
+          const bw = 24 + r() * 8, bh = 6 + r() * 3;
+          C.shape(g, box4(sx + C.j(3), sy - bh, bw, bh, 0.3), cols[Math.floor(r() * cols.length)], { sharp: true, width: 1.4 });
+          sy -= bh;
+        }
+      }
+    } else if (show === 'hats') {
+      // hats on stands: a top hat, a sun hat with a ribbon, a beret
+      const kinds = ['top', 'sun', 'beret'], count = w > 120 ? 3 : 2;
+      for (let k = 0; k < count; k++) {
+        const sx = x + (w * (k + 0.5)) / count, sy = y + h * (0.42 + (k % 2) * 0.1);
+        C.stroke(g, [[sx, sy], [sx, y + h - 6]], '#8a5a31', 2.5);
+        C.shape(g, C.blob(sx, y + h - 5, 11, 4, 0.05, 10), '#8a5a31', { width: 1.4 });
+        const kind = kinds[k % 3];
+        if (kind === 'top') {
+          C.shape(g, box4(sx - 11, sy - 30, 22, 28, 0.4), '#3a3034', { sharp: true, width: 1.6, line: '#1f1a1c' });
+          C.shape(g, box4(sx - 11, sy - 10, 22, 5, 0.3), '#e5383b', { outline: false });
+          C.shape(g, C.blob(sx, sy - 2, 19, 4, 0.05, 12), '#3a3034', { width: 1.4, line: '#1f1a1c' });
+        } else if (kind === 'sun') {
+          C.shape(g, C.blob(sx, sy - 2, 24, 6, 0.05, 14), '#f4d25f', { shade: '#d8ab2d', gap: 4, width: 1.6 });
+          C.shape(g, C.blob(sx, sy - 9, 12, 9, 0.05, 12), '#f4d25f', { shade: '#d8ab2d', gap: 4, width: 1.6 });
+          C.stroke(g, [[sx - 11, sy - 6], [sx + 11, sy - 6]], '#7fc3e8', 3);
+          C.stroke(g, [[sx + 10, sy - 6], [sx + 16, sy + 6]], '#7fc3e8', 2.5);
+        } else {
+          C.shape(g, C.blob(sx + 2, sy - 6, 17, 7, 0.06, 14), '#e5638e', { shade: '#c4466e', gap: 4, width: 1.6 });
+          C.stroke(g, [[sx + 2, sy - 13], [sx + 3, sy - 18]], '#c4466e', 3);
+        }
+      }
+    } else if (show === 'plants') {
+      // pots along the bottom, and one hung from the top with its leaves trailing
+      for (let px = x + 18; px < x + w - 12; px += 34 + r() * 10) potPlant(g, px, y + h - 2, 0.9 + r() * 0.3);
+      const hx = x + w * 0.5;
+      C.stroke(g, [[hx - 10, y], [hx, y + 22]], '#8a8f96', 1.2);
+      C.stroke(g, [[hx + 10, y], [hx, y + 22]], '#8a8f96', 1.2);
+      C.shape(g, C.blob(hx, y + 28, 11, 7, 0.06, 12), '#fff7ea', { width: 1.6 });
+      for (const d of [-1, 1]) {
+        const vine = [[hx + d * 8, y + 28], [hx + d * 14, y + 40], [hx + d * 12, y + 52]];
+        C.stroke(g, vine, '#4e8a33', 1.8);
+        for (const [vx, vy] of vine.slice(1)) C.shape(g, C.blob(vx, vy, 4, 3, 0.1, 8), K.leaf, { width: 1.2 });
+      }
+    }
+  }
+  cafe.lights = (W) => lampsAt(W).map((x) => ({ x, y: 70, r: 90, floor: 560 }));
   farm.lights = (W) => [{ x: W * 0.07 + 125, y: 210, r: 70 }];
 
   // clouds drifting across, the same few sprites (made once per boil frame)
