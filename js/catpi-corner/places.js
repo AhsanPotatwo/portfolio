@@ -120,8 +120,9 @@ const PLACES = (() => {
     sky(g, W) { skyFill(g, W, 360); },
     back(g, W) {
       // far hills, one behind the other
-      C.shape(g, [[-20, 330], ...Array.from({ length: 9 }, (_, i) => [(i / 8) * (W + 40) - 20, 268 + Math.sin(i * 1.3) * 26 + C.j(4)]), [W + 20, 330]], K.hill2, { shade: K.hillShade, alpha: 0.3, angle: 0.3, gap: 10, line: '#7aa85a', width: 2 });
-      C.shape(g, [[-20, 340], ...Array.from({ length: 7 }, (_, i) => [(i / 6) * (W + 40) - 20, 300 + Math.cos(i * 1.7) * 18 + C.j(3)]), [W + 20, 340]], K.hill, { shade: K.hillShade, alpha: 0.35, angle: -0.3, gap: 9, line: '#7aa85a', width: 2 });
+      // (each hill's bottom goes well below where the grass starts: smoothing bows a long bottom edge up)
+      C.shape(g, [[-20, 440], ...Array.from({ length: 9 }, (_, i) => [(i / 8) * (W + 40) - 20, 268 + Math.sin(i * 1.3) * 26 + C.j(4)]), [W + 20, 440]], K.hill2, { shade: K.hillShade, alpha: 0.3, angle: 0.3, gap: 10, line: '#7aa85a', width: 2 });
+      C.shape(g, [[-20, 440], ...Array.from({ length: 7 }, (_, i) => [(i / 6) * (W + 40) - 20, 300 + Math.cos(i * 1.7) * 18 + C.j(3)]), [W + 20, 440]], K.hill, { shade: K.hillShade, alpha: 0.35, angle: -0.3, gap: 9, line: '#7aa85a', width: 2 });
       // little trees on the hills
       for (const f of [0.38, 0.45, 0.93]) tree(g, W * f, 300, 0.5);
       // the windmill's tower (its sails turn, live())
@@ -280,8 +281,8 @@ const PLACES = (() => {
       g.save();
       C.trace(g, C.box(wx, 70, ww, 202, 4));
       g.clip();
-      C.shape(g, C.blob(wx + ww * 0.5, 176, 26, 30, 0.1), K.leaf, { shade: K.leafShade, alpha: 0.4, gap: 5, width: 2 });
-      C.stroke(g, [[wx + ww * 0.5, 200], [wx + ww * 0.5, 240]], K.trunk, 6);
+      C.stroke(g, [[wx + ww * 0.4, 196], [wx + ww * 0.4 - 1, 280]], K.trunk, 7);
+      C.shape(g, C.blob(wx + ww * 0.4, 176, 26, 30, 0.1), K.leaf, { shade: K.leafShade, alpha: 0.4, gap: 5, width: 2 });
       for (const [f, fw, ty, k] of [[-0.02, 0.32, 150, 0], [0.62, 0.22, 128, 3], [0.82, 0.24, 164, 2]]) {
         const sh = SHOPS[k], bx = wx + ww * f, bw = ww * fw;
         if (k === 0) C.shape(g, [[bx - 6, ty + 2], [bx + bw / 2, ty - 26], [bx + bw + 6, ty + 2]], '#8e3b30', { sharp: true, width: 2 });
@@ -363,17 +364,27 @@ const PLACES = (() => {
     },
     front() {},
     props: (W) => {
-      const table = (x, y) => ({ x, y, w: 200, h: 170, ax: 100, ay: 160, draw(g) {
+      const table = (x, y, set) => ({ x, y, w: 200, h: 170, ax: 100, ay: 160, draw(g) {
         C.shape(g, C.box(-8, -112, 16, 108, 3), '#8a5a31', { shade: '#6d4523', angle: 1.5, gap: 4 });
         C.shape(g, C.blob(0, -6, 40, 9, 0.05), '#8a5a31', { outline: false });
         C.shape(g, C.blob(0, -120, 88, 22, 0.03), '#fff7ea', { shade: '#f6c3cc', angle: 0.1, gap: 7, alpha: 0.6 });
-        // a teacup and a crumb or two
-        C.shape(g, C.poly([[-34, -146], [-16, -146], [-19, -128], [-31, -128]]), '#9fd8a4', {});
-        C.stroke(g, [[-38, -127], [-12, -127]], INK, 2);
-        C.stroke(g, [[-28, -152], [-24, -160], [-28, -168]], '#b6a99b', 2, 0.7);
-        C.shape(g, C.poly([[16, -132], [40, -136], [32, -124]]), '#f4d25f', { shade: '#d8ab2d', width: 1.8 });
+        if (set === 'tea') {
+          // a teacup on its saucer, steam coming off it, and the crumbs of whatever was eaten
+          C.shape(g, C.blob(-25, -127, 16, 4, 0.05, 12), '#fff7ea', { width: 1.6 });
+          C.stroke(g, [[-17, -142], [-11, -140], [-17, -134]], INK, 2);
+          C.shape(g, [[-34, -146], [-16, -146], [-19, -129], [-31, -129]], '#9fd8a4', { sharp: true, width: 2 });
+          C.stroke(g, [[-27, -152], [-23, -160], [-27, -168]], '#b6a99b', 2, 0.7);
+          for (const [cx, cy] of [[18, -126], [26, -122], [31, -128], [22, -131]]) C.shape(g, C.blob(cx, cy, 2, 1.5, 0.1, 6), '#d8ab2d', { outline: false });
+        } else {
+          // a bun on a plate, and a mug on the far side
+          C.shape(g, C.blob(-14, -124, 22, 6, 0.05, 14), '#fff7ea', { width: 1.6 });
+          C.shape(g, C.blob(-14, -132, 13, 8, 0.06, 14), '#e0a05a', { shade: '#c07a38', alpha: 0.5, gap: 4, width: 1.8 });
+          C.stroke(g, [[-20, -136], [-12, -138], [-6, -135]], '#fff7ea', 2);
+          C.shape(g, [[22, -150], [38, -150], [38, -128], [22, -128]], '#ffb6d2', { shade: '#e5638e', alpha: 0.3, sharp: true, width: 2 });
+          C.stroke(g, [[38, -146], [44, -144], [44, -134], [38, -132]], INK, 2);
+        }
       } });
-      return [table(W * 0.46, 548), table(W * 0.78, 640), { x: W - 44, y: 470, w: 90, h: 170, ax: 45, ay: 160, draw(g) {
+      return [table(W * 0.46, 548, 'tea'), table(W * 0.78, 640, 'bun'), { x: W - 44, y: 470, w: 90, h: 170, ax: 45, ay: 160, draw(g) {
         C.shape(g, C.poly([[-26, -54], [26, -54], [20, -2], [-20, -2]]), '#e4785a', { shade: '#c4553a', gap: 5 });
         for (const [a, l] of [[-0.5, 80], [0, 100], [0.45, 86], [-0.2, 60], [0.25, 66]]) {
           const tx = Math.sin(a) * l, ty = -54 - Math.cos(a) * l;
@@ -599,16 +610,12 @@ const PLACES = (() => {
       for (let px = x + 6; px < x + w - 8; px += 15) C.shape(g, box4(px, top + 3, 8, 7, 0.3), C.mix(s.shade, '#ffffff', 0.35), { width: 1.4, sharp: true });
     } else if (s.roof === 'steps') {
       // a stepped gable, each step capped with stone, and a round window in the top
-      const steps = [0, 0.13, 0.26, 0.38, 0.62, 0.74, 0.87, 1];
-      const rise = [0, 20, 40, 60, 60, 40, 20, 0];
+      const { at: steps, rise } = STEPS;
       const pts = [[x, FOOT]];
-      for (let k = 0; k < steps.length - 1; k++) {
-        if (k === 0 || rise[k] !== rise[k - 1]) pts.push([x + w * steps[k], top - rise[k]]);
-        if (rise[k + 1] !== rise[k] || k === steps.length - 2) pts.push([x + w * steps[k + 1], top - rise[k]]);
-      }
+      rise.forEach((h, k) => pts.push([x + w * steps[k], top - h], [x + w * steps[k + 1], top - h]));
       pts.push([x + w, FOOT]);
       C.shape(g, pts, s.wall, wall);
-      for (let k = 0; k < steps.length - 1; k++) if (rise[k] || k === 0 || k === steps.length - 2) C.shape(g, box4(x + w * steps[k] - 3, top - rise[k] - 6, w * (steps[k + 1] - steps[k]) + 6, 7, 0.3), '#e8d8b8', { sharp: true, width: 1.8 });
+      rise.forEach((h, k) => C.shape(g, box4(x + w * steps[k] - 3, top - h - 6, w * (steps[k + 1] - steps[k]) + 6, 7, 0.3), '#e8d8b8', { sharp: true, width: 1.8 }));
       round(g, mid, top - 30, 13, s.trim);
     } else if (s.roof === 'mansard') {
       // a steep slate roof with dormer windows standing out of it
@@ -631,22 +638,25 @@ const PLACES = (() => {
         const glass = pane(g, dx - 11, rt + 13, 22, 26, s.trim);
         C.stroke(g, [[dx, rt + 13], [dx, rt + 39]], s.trim, 3);
         C.shape(g, [[dx - 25, rt + 7], [dx, rt - 14], [dx + 25, rt + 7], [dx + 21, rt + 10], [dx, rt - 6], [dx - 21, rt + 10]], '#6f6a86', { shade: '#56516b', sharp: true, width: 2.2 });
-        glint(g, glass);
+        glint(g, glass, r);
       }
     } else if (s.roof === 'garden') {
       // a roof garden: bushes and a sunflower peeping over the parapet
       const sx = x + w * 0.24;
       C.stroke(g, [[sx, top], [sx - 3, top - 40], [sx + 1, top - 62]], '#4e8a33', 3.5);
       C.shape(g, [[sx - 2, top - 36], [sx - 16, top - 44], [sx - 6, top - 30]], K.leaf, { width: 1.6 });
-      for (const [fx, h, col] of [[0.1, 26, K.leaf], [0.4, 40, '#4e9a3a'], [0.62, 24, '#5fae4a'], [0.86, 34, K.leaf]]) {
-        C.shape(g, C.blob(x + w * fx, top - h * 0.4, 20, h * 0.55, 0.12), col, { shade: K.leafShade, alpha: 0.4, gap: 5, width: 2 });
+      for (const [fx, h] of [[0.1, 22], [0.4, 36], [0.63, 20], [0.86, 30]]) {
+        const bx = x + w * fx;
+        for (const [dx, dy, rad, col] of [[-12, -h * 0.25, h * 0.42, '#4e9a3a'], [10, -h * 0.3, h * 0.38, '#5fae4a'], [0, -h * 0.55, h * 0.4, K.leaf]]) {
+          C.shape(g, C.blob(bx + dx, top + dy, rad * 1.1, rad, 0.14, 14), col, { shade: K.leafShade, alpha: 0.35, gap: 5, width: 1.8 });
+        }
+        for (const [dx, dy] of [[-6, -h * 0.5], [8, -h * 0.25]]) C.stroke(g, [[bx + dx - 3, top + dy + 2], [bx + dx + 3, top + dy - 3]], K.leafShade, 1.6, 0.8);
       }
       for (let k = 0; k < 10; k++) { const a = (k / 10) * Math.PI * 2; C.shape(g, C.blob(sx + 1 + Math.cos(a) * 11, top - 64 + Math.sin(a) * 11, 6, 6, 0.1, 8), '#ffd84f', { width: 1.4 }); }
       C.shape(g, C.blob(sx + 1, top - 64, 8, 8, 0.06, 12), '#8a5a31', { width: 1.8 });
       C.shape(g, box4(x, top, w, FOOT - top), s.wall, wall);
       C.shape(g, box4(x - 5, top - 8, w + 10, 11, 0.5), '#e8e2d8', { sharp: true, width: 2.2 });
     }
-    bricks(g, r, x + 8, top + 8, x + w - 8, 250, C.mix(s.shade, INK, 0.12));
     if (s.pipe) {
       // a drainpipe down one side, with a hopper at the top and brackets holding it on
       const px = x + w - 9;
@@ -654,20 +664,48 @@ const PLACES = (() => {
       C.shape(g, box4(px - 3, top + 12, 6, FOOT - top - 16, 0.4), '#8a919b', { sharp: true, width: 1.8 });
       for (let y = top + 40; y < FOOT - 20; y += 70) C.stroke(g, [[px - 5, y], [px + 5, y]], '#5f6670', 2.5);
     }
+    taken = [];
+    // a stepped gable has wall up in its steps too: the sky over each step, and its round window, are off limits
+    let high = top + 8;
+    if (s.roof === 'steps') {
+      high = top - 56;
+      STEPS.rise.forEach((h, k) => taken.push([x + w * STEPS.at[k] - 2, 0, x + w * STEPS.at[k + 1] + 2, top - h + 6]));
+      taken.push([mid - 24, top - 54, mid + 24, top - 6]);
+    }
     upstairs(g, s, x, w, top, r);
+    if (s.sign === 'hanging' && w > 190) taken.push([x, 176, x + w * 0.3, 250]);
+    bricks(g, r, x + 6, high, x + w - (s.pipe ? 18 : 6), 250, s);
     shopFront(g, s, x, w, r, later);
   }
 
-  // a scatter of bricks showing where the paint's worn, in a few patches
-  function bricks(g, r, x0, y0, x1, y1, colour) {
-    for (let k = 0; k < 3; k++) {
-      const bx = x0 + r() * Math.max(1, x1 - x0 - 50), by = y0 + r() * Math.max(1, y1 - y0 - 30);
-      for (let row = 0; row < 3; row++) {
-        for (let col = 0; col < 3 - row; col++) {
-          if (r() < 0.2) continue;
-          const px = bx + col * 17 + (row % 2) * 8, py = by + row * 9;
-          C.pencil(g, [[px, py], [px + 15, py], [px + 15, py + 7], [px, py + 7]], { color: colour, width: 1.5, passes: 1, rough: 0.5, sharp: true });
-        }
+  // a stepped gable: where each step starts and ends across the front, and how high it stands, the same
+  // both sides
+  const STEPS = { at: [0, 0.13, 0.26, 0.38, 0.62, 0.74, 0.87, 1], rise: [0, 20, 40, 60, 40, 20, 0] };
+  // the bits of wall upstairs that windows, shutters, sills and boxes cover, so bricks go round them
+  let taken = [];
+  const clear = (x0, y0, x1, y1) => !taken.some(([a, b, c, d]) => x0 < c && x1 > a && y0 < d && y1 > b);
+  // a few patches of bricks showing where the paint's worn, each somewhere the wall is bare: a big patch if
+  // one fits, a small one if not, or a little stack up a corner. a shade darker than the wall so they show
+  function bricks(g, r, x0, y0, x1, y1, s) {
+    const fill = C.mix(s.wall, s.shade, 0.55), line = C.mix(s.shade, INK, 0.3);
+    for (let k = 1 + Math.floor(r() * 2.6); k > 0; k--) {
+      for (const rows of [[3, 2, 1], [2, 1], [1, 1, 1]]) {
+        const pw = rows[0] * 17 + (rows.length > 1 ? 8 : 0) - 2, ph = rows.length * 9;
+        // every place it could go on a 6 px grid, looked at in a random order
+        const spots = [];
+        for (let bx = x0; bx + pw <= x1; bx += 6) for (let by = y0; by + ph <= y1; by += 6) if (clear(bx - 4, by - 4, bx + pw + 4, by + ph + 4)) spots.push([bx, by]);
+        if (!spots.length) continue;
+        const spot = spots[Math.floor(r() * spots.length)];
+        const [bx, by] = spot;
+        taken.push([bx - 10, by - 10, bx + pw + 10, by + ph + 10]);
+        rows.forEach((cols, row) => {
+          for (let col = 0; col < cols; col++) {
+            if (row && r() < 0.15) continue;
+            const px = bx + col * 17 + (row % 2) * 8, py = by + row * 9;
+            C.shape(g, [[px, py], [px + 15, py], [px + 15, py + 7], [px, py + 7]], fill, { line, width: 1.6, sharp: true });
+          }
+        });
+        break;
       }
     }
   }
@@ -676,15 +714,20 @@ const PLACES = (() => {
     const outline = (x, y, w, h) => (arch
       ? [[x, y + h], ...Array.from({ length: 13 }, (_, i) => { const a = Math.PI + (i / 12) * Math.PI; return [x + w / 2 + (Math.cos(a) * w) / 2, y + w / 2 + (Math.sin(a) * w) / 2]; }), [x + w, y + h]]
       : box4(x, y, w, h, 0.6));
+    taken.push([x - 10, y - 10, x + w + 10, y + h + 14]);
     C.shape(g, outline(x - 5, y - 5, w + 10, h + 10), frame, { sharp: true, width: 2.2 });
     const glass = outline(x, y, w, h);
     C.shape(g, glass, '#d3ecf8', { shade: '#aedaf2', alpha: 0.5, angle: 0.5, gap: 6, width: 1.8, sharp: true });
     return glass;
   }
-  const glint = (g, glass) => {
+  // a streak of light on the glass, somewhere different on each window, and on some none at all
+  const glint = (g, glass, r) => {
+    if (r() < 0.3) return;
     const xs = glass.map((p) => p[0]), ys = glass.map((p) => p[1]);
     const x0 = Math.min(...xs), y0 = Math.min(...ys), x1 = Math.max(...xs), y1 = Math.max(...ys);
-    C.stroke(g, [[x0 + (x1 - x0) * 0.16, y0 + (y1 - y0) * 0.42], [x0 + (x1 - x0) * 0.42, y0 + (y1 - y0) * 0.12]], '#ffffff', 2.5, 0.75);
+    const fx = 0.1 + r() * 0.5, len = 0.18 + r() * 0.2, fy = 0.3 + r() * 0.3;
+    C.stroke(g, [[x0 + (x1 - x0) * fx, y0 + (y1 - y0) * fy], [x0 + (x1 - x0) * (fx + len), y0 + (y1 - y0) * (fy - len * 1.4)]], '#ffffff', 2.5, 0.75);
+    if (r() < 0.4) C.stroke(g, [[x0 + (x1 - x0) * (fx + 0.08), y0 + (y1 - y0) * (fy + 0.06)], [x0 + (x1 - x0) * (fx + 0.16), y0 + (y1 - y0) * (fy - 0.06)]], '#ffffff', 1.6, 0.6);
   };
   const sill = (g, x, y, w, frame) => C.shape(g, box4(x - 10, y + 4, w + 20, 7, 0.4), frame, { sharp: true, width: 2 });
   // a round window high in a gable
@@ -710,6 +753,7 @@ const PLACES = (() => {
   }
   // a box of flowers under a window
   function flowerBox(g, x, y, w, r) {
+    taken.push([x - 2, y - 12, x + w + 2, y + 13]);
     for (let px = x + 6; px < x + w - 4; px += 9) {
       C.stroke(g, [[px, y + 2], [px + C.j(2), y - 7]], K.leafShade, 2);
       g.fillStyle = K.petal[Math.floor(r() * 3)] === '#ffffff' ? '#ff8fb1' : K.petal[Math.floor(r() * 2)];
@@ -721,15 +765,15 @@ const PLACES = (() => {
 
   function upstairs(g, s, x, w, top, r) {
     if (s.up === 'sash') {
-      // two sash windows, one with its curtains, one with a window box
+      // two sash windows with matching curtains, one with a window box
       const ww = w * 0.2, y = top + 22, h = 62;
       [0.17, 0.63].forEach((f, k) => {
         const wx = x + w * f;
         const glass = pane(g, wx, y, ww, h, s.trim);
-        if (!k) curtains(g, glass, '#ffb6d2');
+        curtains(g, glass, '#ffb6d2');
         C.stroke(g, [[wx, y + h * 0.5], [wx + ww, y + h * 0.5]], s.trim, 4);
         C.stroke(g, [[wx + ww / 2, y], [wx + ww / 2, y + h]], s.trim, 2.5);
-        glint(g, glass);
+        glint(g, glass, r);
         sill(g, wx, y + h, ww, s.trim);
         if (k) flowerBox(g, wx - 4, y + h + 11, ww + 8, r);
       });
@@ -740,7 +784,7 @@ const PLACES = (() => {
       curtains(g, glass, '#ffe08a');
       C.stroke(g, [[wx + ww / 2, y], [wx + ww / 2, y + h]], s.trim, 3);
       C.stroke(g, [[wx, y + ww / 2], [wx + ww, y + ww / 2]], s.trim, 3);
-      glint(g, glass);
+      glint(g, glass, r);
       sill(g, wx, y + h, ww, s.trim);
       flowerBox(g, wx - 2, y + h + 11, ww + 4, r);
     } else if (s.up === 'three') {
@@ -748,6 +792,7 @@ const PLACES = (() => {
       const ww = w * 0.16, y = top + 30, h = 76;
       [0.12, 0.42, 0.72].forEach((f, k) => {
         const wx = x + w * f;
+        taken.push([wx - 11, y - 18, wx + ww + 11, y - 6]);
         C.shape(g, box4(wx - 9, y - 16, ww + 18, 8, 0.4), '#e8d8b8', { sharp: true, width: 1.8 });
         const glass = pane(g, wx, y, ww, h, s.trim);
         if (k === 1) {
@@ -756,7 +801,7 @@ const PLACES = (() => {
         }
         C.stroke(g, [[wx + ww / 2, y + (k === 1 ? h * 0.45 : 0)], [wx + ww / 2, y + h]], s.trim, 2.5);
         C.stroke(g, [[wx, y + h * 0.55], [wx + ww, y + h * 0.55]], s.trim, 2.5);
-        glint(g, glass);
+        glint(g, glass, r);
         sill(g, wx, y + h, ww, '#e8d8b8');
       });
     } else if (s.up === 'shutters') {
@@ -766,13 +811,14 @@ const PLACES = (() => {
         const wx = x + w * f;
         for (const d of [-1, 1]) {
           const sx = d < 0 ? wx - 6 - ww * 0.42 : wx + ww + 6;
+          taken.push([sx - 3, y - 6, sx + ww * 0.42 + 3, y + h + 6]);
           C.shape(g, box4(sx, y - 3, ww * 0.42, h + 6, 0.4), '#7c5cc4', { shade: '#5b3f9a', angle: 1.5, gap: 4, alpha: 0.3, sharp: true, width: 2 });
           for (let yy = y + 6; yy < y + h - 2; yy += 7) C.stroke(g, [[sx + 3, yy], [sx + ww * 0.42 - 3, yy + 2]], '#5b3f9a', 1.4, 0.8);
         }
         const glass = pane(g, wx, y, ww, h, s.trim);
         C.stroke(g, [[wx + ww / 2, y], [wx + ww / 2, y + h]], s.trim, 2.5);
         C.stroke(g, [[wx, y + h * 0.5], [wx + ww, y + h * 0.5]], s.trim, 2.5);
-        glint(g, glass);
+        glint(g, glass, r);
         sill(g, wx, y + h, ww, s.trim);
         if (!k) flowerBox(g, wx - 4, y + h + 11, ww + 8, r);
       });
@@ -790,10 +836,11 @@ const PLACES = (() => {
       }
       g.restore();
       C.stroke(g, [[wx + ww / 2, y], [wx + ww / 2, y + h]], s.trim, 3);
-      glint(g, glass);
+      glint(g, glass, r);
       sill(g, wx, y + h, ww, s.trim);
       // the ivy: a stem wandering up from the shop sign, leaves either side
       const vx = x + w * 0.14;
+      taken.push([vx - 20, top, vx + 20, 260]);
       const stem = Array.from({ length: 9 }, (_, i) => [vx + Math.sin(i * 1.3) * 9, 258 - i * ((258 - top - 10) / 8)]);
       C.stroke(g, stem, '#4e8a33', 2.5);
       stem.forEach(([px, py], i) => { if (i) C.shape(g, [[px, py], [px + (i % 2 ? 13 : -13), py - 5], [px + (i % 2 ? 7 : -7), py + 5]], i % 3 ? K.leaf : '#5fae4a', { width: 1.5 }); });
@@ -825,13 +872,15 @@ const PLACES = (() => {
       C.shape(g, C.blob(cx, 279, bw / 2, 19, 0.02, 20), '#fff7ea', { shade: '#f3e3c4', alpha: 0.4, gap: 6 });
       label(g, s.name, cx, 278, bw - 30, 26);
       if (w > 190) {
-        const bx = x + w * 0.86, by = 190;
-        C.stroke(g, [[x + w - 4, by - 6], [bx - 26, by - 6]], '#4d5560', 3.5);
-        C.stroke(g, [[x + w - 4, by + 10], [x + w - 18, by - 6]], '#4d5560', 2.5);
-        for (const d of [-14, 14]) C.stroke(g, [[bx - 12 + d * 0.6, by - 6], [bx - 12 + d * 0.8, by + 8]], '#8a8f96', 1.5);
-        C.shape(g, C.blob(bx - 12, by + 22, 16, 16, 0.04, 18), '#ff8fb1', { shade: '#e5638e', alpha: 0.4, gap: 5 });
-        for (const k of [-6, 0, 6]) C.stroke(g, [[bx - 26, by + 22 + k], [bx - 18, by + 12 + k], [bx + 2, by + 18 + k]], '#d4507a', 1.6, 0.9);
-        C.stroke(g, [[bx - 2, by + 34], [bx + 6, by + 44], [bx + 2, by + 52]], '#e5638e', 2);
+        // an iron arm out from the wall with a brace under it, and the ball hung from it on two chains
+        const arm = x + w * 0.22, by = 190, bx = x + w * 0.14;
+        C.stroke(g, [[x + 4, by - 6], [arm, by - 6]], '#4d5560', 3.5);
+        C.stroke(g, [[x + 4, by + 10], [x + 18, by - 6]], '#4d5560', 2.5);
+        C.shape(g, C.blob(arm + 1, by - 6, 3, 3, 0.05, 8), '#4d5560', { outline: false });
+        for (const d of [-8, 8]) C.stroke(g, [[bx + d * 0.6, by - 6], [bx + d * 0.8, by + 8]], '#8a8f96', 1.5);
+        C.shape(g, C.blob(bx, by + 22, 16, 16, 0.04, 18), '#ff8fb1', { shade: '#e5638e', alpha: 0.4, gap: 5 });
+        for (const k of [-6, 0, 6]) C.stroke(g, [[bx - 14, by + 22 + k], [bx - 6, by + 12 + k], [bx + 14, by + 18 + k]], '#d4507a', 1.6, 0.9);
+        C.stroke(g, [[bx + 10, by + 34], [bx + 18, by + 44], [bx + 14, by + 52]], '#e5638e', 2);
       }
     } else {
       // a plain band; the name is on the awning, or on a plank nailed up crooked
@@ -868,13 +917,14 @@ const PLACES = (() => {
     g.restore();
     const bars = w > 150 ? 2 : 1;
     for (let k = 1; k <= bars; k++) C.stroke(g, [[x + (w * k) / (bars + 1), y], [x + (w * k) / (bars + 1), y + h]], s.trim, 4);
-    glint(g, glass);
+    glint(g, glass, r);
     C.shape(g, box4(x - 7, y + h + 7, w + 14, FOOT - (y + h + 7), 0.5), s.shade, { sharp: true, width: 2.2 });
     C.pencil(g, box4(x + 4, y + h + 14, w - 8, FOOT - (y + h + 14) - 9, 0.4), { color: C.mix(s.shade, INK, 0.35), width: 1.6, passes: 1, sharp: true });
   }
 
   // a door with a fanlight over it, a window and a panel, and a stone step out on the pavement
   function door(g, s, x, w, later) {
+    const r = C.seeded(Math.round(x));
     const y = 312, deep = C.mix(s.door, INK, 0.45);
     C.shape(g, box4(x - 6, y - 6, w + 12, FOOT - y + 6, 0.5), s.trim, { sharp: true, width: 2.2 });
     C.shape(g, box4(x, y, w, 16, 0.4), '#d3ecf8', { shade: '#aedaf2', alpha: 0.5, width: 1.6, sharp: true });
@@ -885,7 +935,7 @@ const PLACES = (() => {
     C.stroke(g, [[x + w * 0.24, y + 52], [x + w * 0.36, y + 36]], '#ffffff', 2, 0.7);
     C.shape(g, C.blob(x + w * 0.82, y + 78, 3.5, 3.5, 0.1, 8), '#ffd84f', { width: 1.5 });
     later.push(() => C.shape(g, box4(x - 12, 446, w + 24, 9, 0.5), '#cfc8bf', { shade: '#b5aea5', angle: 0, gap: 4, sharp: true, width: 2 }));
-    if (s.show === 'plants') later.push(() => { for (const px of [x - 24, x + w + 24]) potPlant(g, px, 460, 1); });
+    if (s.show === 'plants') later.push(() => { for (const px of [x - 20, x + w + 22]) potPlant(g, px, 460, 1); });
   }
   function potPlant(g, px, py, z) {
     for (const [a, l] of [[-0.6, 22], [-0.15, 28], [0.35, 24], [0.75, 18]]) {
@@ -982,18 +1032,21 @@ const PLACES = (() => {
         C.stroke(g, [[px + 1, y + h * 0.48 - bh + 6], [px + bw - 1, y + h * 0.48 - bh + 6]], C.mix(c, '#ffffff', 0.5), 1.2);
         px += bw + 1 + (r() < 0.15 ? 10 : 0);
       }
+      // the window's floor is a board the piles stand on, each book lying a little off the one under it
+      const floor = y + h - 6;
       for (let k = 0, sx = x + 8; sx < x + w - 30; k++, sx += 34 + r() * 14) {
-        for (let j = 0, sy = y + h - 4; j < 3 + Math.floor(r() * 2); j++) {
+        for (let j = 0, sy = floor; j < 3 + Math.floor(r() * 2); j++) {
           const bw = 24 + r() * 8, bh = 6 + r() * 3;
-          C.shape(g, box4(sx + C.j(3), sy - bh, bw, bh, 0.3), cols[Math.floor(r() * cols.length)], { sharp: true, width: 1.4 });
+          C.shape(g, box4(sx + (r() - 0.5) * 5, sy - bh, bw, bh, 0.3), cols[Math.floor(r() * cols.length)], { sharp: true, width: 1.4 });
           sy -= bh;
         }
       }
+      C.shape(g, box4(x - 4, floor, w + 8, 10, 0.3), '#8a5a31', { shade: '#6d4523', angle: 0, gap: 3, sharp: true, width: 1.6 });
     } else if (show === 'hats') {
       // hats on stands: a top hat, a sun hat with a ribbon, a beret
       const kinds = ['top', 'sun', 'beret'], count = w > 120 ? 3 : 2;
       for (let k = 0; k < count; k++) {
-        const sx = x + (w * (k + 0.5)) / count, sy = y + h * (0.42 + (k % 2) * 0.1);
+        const sx = x + (w * (k + 0.5)) / count, sy = y + h * (0.64 + (k % 2) * 0.08);
         C.stroke(g, [[sx, sy], [sx, y + h - 6]], '#8a5a31', 2.5);
         C.shape(g, C.blob(sx, y + h - 5, 11, 4, 0.05, 10), '#8a5a31', { width: 1.4 });
         const kind = kinds[k % 3];
