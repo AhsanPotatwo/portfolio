@@ -160,23 +160,27 @@ const Art = (() => {
   function face(p) { C.shape(p, C.blob(0, 0, 32, 32, 0.03), '#ffd84f', { shade: '#f2a516', width: 3 }); }
   const eyes = (p) => { for (const x of [-11, 11]) { p.fillStyle = INK; p.beginPath(); p.arc(x, -8, 4, 0, 7); p.fill(); } };
   const heartAt = (p, x, y, s, fill) => C.shape(p, [[0, 30], [-26, 6], [-30, -10], [-22, -24], [-8, -24], [0, -12], [8, -24], [22, -24], [30, -10], [26, 6]].map(([a, b]) => [x + a * s, y + b * s]), fill, { width: 2 });
-  // a fist with its thumb up: four fingers curled and stacked down the front, a thumb with its nail, a sleeve
-  // round the wrist. outlines first, then the fills, so the parts read as one hand (the cloud's trick)
+  // a fist with its thumb up, drawn as one outline so the thumb grows out of the hand: the thumb rises from
+  // the back of the fist, the four curled fingers are bumps down the front with creases running back into
+  // the palm, and a sleeve covers the wrist
   function thumb(p) {
-    const fist = C.box(-21, -6, 38, 36, 10, 0.8);
-    const up = [[-20, 2], [-22, -22], [-18, -33], [-10, -36], [-4, -30], [-3, -2]];
-    const fingers = [-6, 3, 12, 21].map((y, i) => C.box(3, y, i === 3 ? 18 : 23 - i, 9.5, 4.5, 0.4));
-    const cuff = C.box(-27, 25, 34, 14, 3, 0.6);
-    p.strokeStyle = INK; p.lineWidth = 6; p.lineJoin = 'round';
-    for (const b of [cuff, fist, up, ...fingers]) { C.trace(p, b); p.stroke(); }
-    p.fillStyle = SKIN;
-    for (const b of [fist, up, ...fingers]) { C.trace(p, b); p.fill(); }
-    C.scribble(p, fist, '#f5b48c', { angle: 0.5, gap: 5, width: 3, alpha: 0.5 });
-    for (const f of fingers) C.pencil(p, f, { color: '#c9825a', width: 2, passes: 1, rough: 0.4 });
-    C.stroke(p, [[-18, 4], [-6, 6]], '#c9825a', 2);
-    C.shape(p, C.blob(-11, -29, 4, 5, 0.05, 10), '#fff0e4', { line: '#c9825a', width: 1.4 });
-    C.shape(p, cuff, '#7fc3e8', { shade: '#4f9fe0', width: 3 });
-    C.stroke(p, [[-24, 30], [4, 30]], '#4f9fe0', 2);
+    // each curled finger: its top, its bottom, how far forward its knuckle comes
+    const fingers = [[-8, 3, 28], [3, 13, 29], [13, 22, 27], [22, 30, 23]];
+    const front = fingers.flatMap(([t, bt, r], i) => [[r - 5, t + (i ? 0.5 : -1)], [r, (t + bt) / 2], [r - 4, bt], [r - 8, bt + 0.4]]);
+    const hand = [
+      [-11, -37], [-6, -35], [-4, -28], [-4, -18], [-1, -10],
+      [8, -10], [16, -10], ...front,
+      [12, 32], [2, 33], [-8, 30], [-15, 25], [-20, 15], [-22, 4], [-20, -5], [-17, -12], [-17, -22], [-16, -32],
+    ];
+    C.shape(p, hand, SKIN, { shade: '#f5b48c', angle: 0.5, gap: 5, alpha: 0.45, width: 3 });
+    // the creases between the fingers, and where the thumb folds down over the first one
+    fingers.slice(0, 3).forEach(([, bt, r]) => C.stroke(p, [[r - 8, bt + 0.4], [r - 15, bt - 0.2], [r - 21, bt + 0.6]], '#c9825a', 2));
+    C.stroke(p, [[-1, -10], [-5, -5], [-11, -2]], '#c9825a', 2);
+    // the thumbnail, at the front of its tip
+    C.shape(p, [[-10, -34], [-6, -34], [-5.5, -28], [-9.5, -27.5]], '#fff0e4', { line: '#c9825a', width: 1.4 });
+    // the sleeve
+    C.shape(p, [[-21, 21], [6, 28], [3, 40], [-25, 33]], '#7fc3e8', { shade: '#4f9fe0', width: 3, sharp: true });
+    C.stroke(p, [[-21, 25], [5, 32]], '#4f9fe0', 2);
   }
   function sticker(p, name) {
     switch (name) {
