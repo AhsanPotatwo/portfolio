@@ -756,7 +756,8 @@ const sky = (() => {
       const list = Array.from({ length: o.n || 8 }, (_, i) => ({ x: rnd(), y: rnd(0.05, 0.95), steps: 3 + Math.floor(rnd(3)), sp: rnd(0.5, 1) * (i % 2 ? 1 : -1), lift: 0, fill: i % 3 ? p.soft : p.mid }));
       return (m) => {
         for (const hit of m.hits) if (hit.kind === 'kick' || hit.kind === 'snare') pick(list).lift = 1;
-        if (m.beat && !m.playing) pick(list).lift = 0.6;
+        // while nothing plays one stands up slowly instead of jumping, as there's no drum to jump to
+        if (m.beat && !m.playing) pick(list).aim = 0.6;
         c.lineWidth = 0.5 * U;
         c.lineJoin = 'miter';
         c.lineCap = 'butt';
@@ -765,6 +766,10 @@ const sky = (() => {
           if (q.x > 1.15) q.x = -0.15;
           if (q.x < -0.15) q.x = 1.15;
           q.lift *= Math.exp(-m.dt * 5);
+          if (q.aim) {
+            q.lift = Math.max(q.lift, q.lift + (q.aim - q.lift) * (1 - Math.exp(-m.dt * 8)));
+            q.aim *= Math.exp(-m.dt * 2.5);
+          }
           const s = 1.6 * U;
           const rise = s * (1 + 0.8 * q.lift);
           let x = q.x * W - 2 * q.steps * s;
@@ -1216,7 +1221,9 @@ const sky = (() => {
       idleBeat += m.dt;
       m.beat = idleBeat > 1.2;
       if (m.beat) idleBeat = 0;
-      beatPulse = 0.3 * Math.exp(-idleBeat * 8);
+      // a slow breath rather than a kick: with no music to hit, a sudden jump just looks like the
+      // picture stuttering
+      beatPulse = 0.3 * Math.sin((Math.PI * idleBeat) / 1.2) ** 2;
     }
     m.kick *= Math.exp(-m.dt * 7);
     for (const hit of hits) if (hit.kind === 'kick') m.kick = Math.max(m.kick, hit.vel);

@@ -896,8 +896,8 @@
   const SHEETS = {
     light: { paper: PAPER, paperDark: PAPER_DARK, rule: RULE, ink: INK, inkSoft: INK_SOFT, line: '44, 39, 33', parts: PART_COLOURS },
     dark: {
-      paper: '#251b14', paperDark: '#33261c', rule: '#3f3024', ink: '#f6e9cc', inkSoft: '#b9a185', line: '246, 233, 204',
-      parts: Object.fromEntries(Object.entries(PART_COLOURS).map(([part, colour]) => [part, mix(colour, '#251b14', 0.62)])),
+      paper: '#1e1916', paperDark: '#2a2420', rule: '#37302a', ink: '#f6e9cc', inkSoft: '#b5a690', line: '246, 233, 204',
+      parts: Object.fromEntries(Object.entries(PART_COLOURS).map(([part, colour]) => [part, mix(colour, '#1e1916', 0.62)])),
     },
   };
   let sheet = document.body.classList.contains('is-dark') ? SHEETS.dark : SHEETS.light;

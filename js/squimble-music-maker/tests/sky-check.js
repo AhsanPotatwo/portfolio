@@ -67,6 +67,21 @@ for (const key of Object.keys(MOODS)) {
   }
 }
 
+// with nothing playing the made up beat swells and settles, it never jumps: a jump with no music to
+// hit looked like the waves stuttering. the ribbons' width follows the pulse, so it shows any jump
+{
+  const widths = [];
+  sky.mood('shoegaze', MOODS.shoegaze.colour);
+  for (let frame = 0; frame < 600; frame++) {
+    clock += 1000 / 60;
+    sky.frame({ playing: false });
+    if (frame > 120) widths.push(pen.lineWidth);
+  }
+  let worst = 0;
+  for (let i = 1; i < widths.length; i++) worst = Math.max(worst, Math.abs(widths[i] / widths[i - 1] - 1));
+  if (worst > 0.01) fail(`shoegaze's ribbons jump ${(worst * 100).toFixed(1)}% in a frame with nothing playing`);
+}
+
 console.log(`lowest contrast of page text on a big shape: ${lowest.toFixed(2)}`);
 if (failures.length) {
   console.log(failures.join('\n'));

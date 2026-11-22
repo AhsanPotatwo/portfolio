@@ -36,6 +36,8 @@
   --mm-warn:      #b3321c;
   --mm-mood:      #9cc5a1;
   --mm-mood-ink:  #2b1508;
+  /* how much of an outline's colour its hard shadow keeps (the rest is black): all of it here */
+  --mm-lift:      100%;
   /* the world: the mood's colour sunk into the ink, so every mood gets a dark sky of its own */
   --mm-sky:       color-mix(in oklab, var(--mm-mood) 36%, #170d07);
   --mm-sky-deep:  color-mix(in oklab, var(--mm-mood) 16%, #120904);
@@ -67,23 +69,26 @@
 @supports (transition-timing-function:linear(0, 1)){
   .mm-page{ --mm-spring:linear(0, .2 3.5%, .6 9%, .93 15%, 1.08 20%, 1.12 24%, 1.1 28%, 1.03 35%, .99 42%, .985 48%, 1 60%, 1.004 70%, 1); }
 }
-/* dark mode (#mmDark, kept in this browser): the toy turns dark brown with outlines darker still, the
-   words and picked things cream. the sky and the mood's colour stay as they are */
+/* dark mode (#mmDark, kept in this browser): the toy turns a warm charcoal (a brown one turned every
+   mood's colour to mud), the words and picked things cream, the lines lighter than the surfaces so the
+   keys stand off the panel, and the shadows under them near black. the mood's cards and keys are deep
+   jewel tones of their own colours. the sky stays as it is */
 .mm-page.is-dark{
   color-scheme:dark;
   --mm-ink:       #f6e9cc;
-  --mm-ink-soft:  #bba387;
+  --mm-ink-soft:  #b5a690;
   --mm-edge:      color-mix(in oklab, var(--mm-edge-from) 22%, #3a2c22);
   --mm-edge-deep: color-mix(in oklab, var(--mm-edge-from) 10%, #0a0503);
   --mm-solid:     var(--mm-ink);
   --mm-edge-mood: color-mix(in oklab, var(--mm-mood) 30%, #3a2c22);
   --mm-edge-score:#56627c;
   --mm-dock:      color-mix(in oklab, var(--mm-mood) 10%, #0a0503);
-  --mm-butter:    #2e2219;
-  --mm-butter-hi: #3a2b20;
-  --mm-well:      #241a13;
-  --mm-line:      #44342a;
-  --mm-paper:     #251b14;
+  --mm-butter:    #29231f;
+  --mm-butter-hi: #342d28;
+  --mm-well:      #201b18;
+  --mm-line:      #3b332d;
+  --mm-paper:     #1e1916;
+  --mm-lift:      28%;
   --mm-warn:      #ff8f75;
   --mm-dent:      rgba(246,233,204,.06);
   --mm-dent-2:    rgba(246,233,204,.12);
@@ -102,10 +107,11 @@
     --mm-dock:      oklch(from var(--mm-mood) .28 min(c, .08) h);
   }
   .mm-page.is-dark{
-    --mm-edge:      oklch(from var(--mm-edge-from) .4 min(c, .04) h);
+    --mm-edge:      oklch(from var(--mm-edge-from) .5 min(c, .04) h);
     --mm-edge-deep: oklch(from var(--mm-edge-from) .14 min(c, .03) h);
     --mm-solid:     var(--mm-ink);
-    --mm-edge-mood: oklch(from var(--mm-mood) .44 min(c, .08) h);
+    --mm-edge-mood: oklch(from var(--mm-mood) .52 min(c, .1) h);
+    --mm-tint:      oklch(from var(--mm-mood) .31 min(c, .055) h);
     --mm-dock:      oklch(from var(--mm-mood) .14 min(c, .04) h);
   }
 }
@@ -199,7 +205,7 @@ html:has(.mm-page){
   background:var(--mm-butter);
   border:2px solid var(--mm-edge);
   border-radius:12px;
-  box-shadow:0 3px 0 var(--mm-edge);
+  box-shadow:0 3px 0 color-mix(in oklab, var(--mm-edge) var(--mm-lift), #000);
   cursor:pointer;
   white-space:nowrap;
   /* (down at once, back up on a spring) */
@@ -209,13 +215,13 @@ html:has(.mm-page){
 /* a key pointed at rises off its edge a little, ready to press. (not on a touch screen, where a tapped
    key would stay up) */
 @media (hover:hover){
-  .mm-key:hover{ transform:translateY(-1px); box-shadow:0 4px 0 var(--mm-edge); }
+  .mm-key:hover{ transform:translateY(-1px); box-shadow:0 4px 0 color-mix(in oklab, var(--mm-edge) var(--mm-lift), #000); }
 }
 .mm-key:active{ transform:translateY(3px); box-shadow:0 0 0 var(--mm-edge); transition-duration:.05s; }
 .mm-key:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:3px; }
 .mm-key:disabled{ opacity:.4; cursor:default; }
-.mm-key:disabled:hover{ background:var(--mm-butter); transform:none; box-shadow:0 3px 0 var(--mm-edge); }
-.mm-key:disabled:active{ transform:none; box-shadow:0 3px 0 var(--mm-edge); }
+.mm-key:disabled:hover{ background:var(--mm-butter); transform:none; box-shadow:0 3px 0 color-mix(in oklab, var(--mm-edge) var(--mm-lift), #000); }
+.mm-key:disabled:active{ transform:none; box-shadow:0 3px 0 color-mix(in oklab, var(--mm-edge) var(--mm-lift), #000); }
 .mm-key svg{ width:13px; height:13px; fill:currentColor; flex:none; }
 /* a setting that's on: the mood's colour */
 .mm-key[aria-pressed="true"],
@@ -306,7 +312,7 @@ html:has(.mm-page){
   position:absolute; inset:0;
   border:2px solid var(--mm-edge-mood);
   border-radius:14px;
-  box-shadow:0 4px 0 var(--mm-edge-mood);
+  box-shadow:0 4px 0 color-mix(in oklab, var(--mm-edge-mood) var(--mm-lift), #000);
   transition:rotate .5s var(--mm-spring), translate .5s var(--mm-spring);
 }
 .mm-deck::before{ background:color-mix(in oklab, var(--mm-mood) 70%, var(--mm-edge-mood)); rotate:2.4deg; translate:6px 3px; }
@@ -320,7 +326,7 @@ html:has(.mm-page){
   color:var(--mm-mood-ink);
   border:2px solid var(--mm-edge-mood);
   border-radius:14px;
-  box-shadow:0 4px 0 var(--mm-edge-mood);
+  box-shadow:0 4px 0 color-mix(in oklab, var(--mm-edge-mood) var(--mm-lift), #000);
   rotate:-0.8deg;
   transition:rotate .45s var(--mm-spring);
 }
@@ -376,13 +382,13 @@ html:has(.mm-page){
   background:var(--mm-mood);
   border-width:3px;
   border-radius:999px;
-  box-shadow:0 5px 0 var(--mm-edge-mood);
+  box-shadow:0 5px 0 color-mix(in oklab, var(--mm-edge-mood) var(--mm-lift), #000);
   border-color:var(--mm-edge-mood);
 }
 .mm-key-play svg{ width:16px; height:16px; }
 .mm-key-play:hover{ background:color-mix(in oklab, var(--mm-mood) 82%, #fff); }
 @media (hover:hover){
-  .mm-key-play:hover{ transform:translateY(-2px); box-shadow:0 7px 0 var(--mm-edge-mood); }
+  .mm-key-play:hover{ transform:translateY(-2px); box-shadow:0 7px 0 color-mix(in oklab, var(--mm-edge-mood) var(--mm-lift), #000); }
 }
 .mm-key-play:active{ transform:translateY(5px); box-shadow:0 0 0 var(--mm-edge); }
 .mm-key-play.is-playing, .mm-key-play.is-playing:hover{ background:var(--mm-solid); color:var(--mm-butter); }
@@ -438,7 +444,10 @@ html:has(.mm-page){
 .is-dark .mm-key.mm-mood, .is-dark .mm-cell[aria-pressed="true"], .is-dark .mm-detail-title{ --mm-edge:color-mix(in oklab, var(--own) 30%, #3a2c22); }
 @supports (color:oklch(from red l c h)){
   .mm-key.mm-mood, .mm-cell[aria-pressed="true"], .mm-detail-title{ --mm-edge:oklch(from var(--own) .4 min(c, .11) h); }
-  .is-dark .mm-key.mm-mood, .is-dark .mm-cell[aria-pressed="true"], .is-dark .mm-detail-title{ --mm-edge:oklch(from var(--own) .44 min(c, .08) h); }
+  .is-dark .mm-key.mm-mood, .is-dark .mm-cell[aria-pressed="true"], .is-dark .mm-detail-title{ --mm-edge:oklch(from var(--own) .52 min(c, .1) h); }
+  /* in the dark a mood key is a deep jewel of its colour, not its colour stirred into the charcoal */
+  .is-dark .mm-mood:not([aria-pressed="true"]){ background:oklch(from var(--c) .31 min(c, .07) h); }
+  .is-dark .mm-mood:not([aria-pressed="true"]):hover{ background:oklch(from var(--c) .37 min(c, .08) h); }
 }
 /* the song's mood, what it's for, and its flavours: a card in the mood's tint under the moods */
 .mm-flavours{
@@ -612,7 +621,7 @@ html:has(.mm-page){
   border-radius:50%;
   border:2px solid var(--mm-edge);
   background:var(--mm-knob);
-  box-shadow:0 2px 0 var(--mm-edge);
+  box-shadow:0 2px 0 color-mix(in oklab, var(--mm-edge) var(--mm-lift), #000);
   transition:transform .3s var(--mm-spring);
 }
 .mm-slider input::-moz-range-thumb{
@@ -620,7 +629,7 @@ html:has(.mm-page){
   border-radius:50%;
   border:2px solid var(--mm-edge);
   background:var(--mm-knob);
-  box-shadow:0 2px 0 var(--mm-edge);
+  box-shadow:0 2px 0 color-mix(in oklab, var(--mm-edge) var(--mm-lift), #000);
   transition:transform .3s var(--mm-spring);
 }
 /* (the knob swells under a finger while it's dragged) */
@@ -673,7 +682,7 @@ html:has(.mm-page){
   background:var(--mm-butter);
   border:2px solid var(--mm-edge);
   border-radius:9px;
-  box-shadow:0 2px 0 var(--mm-edge);
+  box-shadow:0 2px 0 color-mix(in oklab, var(--mm-edge) var(--mm-lift), #000);
   cursor:pointer;
   transition:transform .3s var(--mm-spring), box-shadow .3s var(--mm-spring);
 }
@@ -762,7 +771,7 @@ html:has(.mm-page){
   background:#fffdf3;
   border:2px solid var(--mm-edge);
   border-radius:10px;
-  box-shadow:0 3px 0 var(--mm-edge);
+  box-shadow:0 3px 0 color-mix(in oklab, var(--mm-edge) var(--mm-lift), #000);
   cursor:pointer;
   transition:transform .3s var(--mm-spring), box-shadow .3s var(--mm-spring);
 }
@@ -801,7 +810,7 @@ html:has(.mm-page){
 .mm-arrange-layer{ white-space:nowrap; padding-right:6px; font-size:14px; }
 /* the layers' names stay put while a long song scrolls under them */
 .mm-arrange tbody th, .mm-arrange-corner{ position:sticky; left:0; z-index:1; background:var(--mm-well); }
-.mm-arrange-layer .mm-key{ margin-left:3px; min-height:28px; min-width:28px; font-size:12px; border-radius:8px; box-shadow:0 2px 0 var(--mm-edge); }
+.mm-arrange-layer .mm-key{ margin-left:3px; min-height:28px; min-width:28px; font-size:12px; border-radius:8px; box-shadow:0 2px 0 color-mix(in oklab, var(--mm-edge) var(--mm-lift), #000); }
 .mm-arrange-layer .mm-key:active{ box-shadow:none; transform:translateY(2px); }
 .mm-arrange-name{
   display:inline-flex; align-items:center; gap:8px;
