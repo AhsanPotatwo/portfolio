@@ -3,15 +3,15 @@
 // daily mystery cousin answers guesses from the family line, gives hints that never give it away, counts each
 // creature once, places winners, and won't take guesses once you're done. one place can only make 20 new
 // players a day
-// node cousins-test.js                 (against wrangler dev, with SALT in .dev.vars)
-// node cousins-test.js https://... <salt>
+// node tests/cousins-test.js                 (against wrangler dev, with SALT in .dev.vars)
+// node tests/cousins-test.js https://... <salt>
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
 import { createHash, randomBytes } from 'node:crypto';
 
 const base = (process.argv[2] || 'http://127.0.0.1:8787').replace(/\/$/, '');
 const salt = process.argv[3] || readFileSync(new URL('.dev.vars', import.meta.url), 'utf8').match(/^SALT=(.*)$/m)[1].trim();
-const games = JSON.parse(readFileSync(new URL('../js/distant-cousins/games.json', import.meta.url), 'utf8'));
+const games = JSON.parse(readFileSync(new URL('../../js/distant-cousins/games.json', import.meta.url), 'utf8'));
 const ROOT = 2382443;
 const place = () => `10.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}.${Math.floor(Math.random() * 250)}`;
 const from = place();

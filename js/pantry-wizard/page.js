@@ -214,7 +214,7 @@
   var locBtn = document.getElementById('pwLocBtn');
   var locStatus = document.getElementById('pwLocStatus');
 
-  var PLACEHOLDER = 'assets/pantry-crystalball.svg';
+  var PLACEHOLDER = 'assets/pantry-wizard/crystalball.svg';
   var UNKNOWN_LOCATION = 'Unknown location';
   var itemLocation = UNKNOWN_LOCATION;
   var mode = 'add';
@@ -237,10 +237,10 @@
 
   // starter items
   var items = [
-    { name: 'Apples', qty: '6', type: 'pieces', img: 'assets/pantry-apple.svg', added: daysFromToday(-3), exp: daysFromToday(16), loc: 'Manchester' },
-    { name: 'Bread', qty: '800', type: 'g', img: 'assets/pantry-bread.svg', added: daysFromToday(-1), exp: daysFromToday(5), loc: 'Manchester' },
-    { name: 'Chicken drumsticks', qty: '1', type: 'kg', img: 'assets/pantry-drumstick.svg', added: daysFromToday(-2), exp: daysFromToday(3), loc: 'Manchester' },
-    { name: 'Kiwis', qty: '5', type: 'pieces', img: 'assets/pantry-kiwi.svg', added: daysFromToday(-6), exp: daysFromToday(10), loc: 'Manchester' }
+    { name: 'Apples', qty: '6', type: 'pieces', img: 'assets/pantry-wizard/apple.svg', added: daysFromToday(-3), exp: daysFromToday(16), loc: 'Manchester' },
+    { name: 'Bread', qty: '800', type: 'g', img: 'assets/pantry-wizard/bread.svg', added: daysFromToday(-1), exp: daysFromToday(5), loc: 'Manchester' },
+    { name: 'Chicken drumsticks', qty: '1', type: 'kg', img: 'assets/pantry-wizard/drumstick.svg', added: daysFromToday(-2), exp: daysFromToday(3), loc: 'Manchester' },
+    { name: 'Kiwis', qty: '5', type: 'pieces', img: 'assets/pantry-wizard/kiwi.svg', added: daysFromToday(-6), exp: daysFromToday(10), loc: 'Manchester' }
   ].map(function (item) { item.id = nextId++; return item; });
 
   function describe(item) {

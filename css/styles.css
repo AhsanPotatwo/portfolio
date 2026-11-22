@@ -208,8 +208,8 @@ a{ color:inherit; text-decoration:none; }
   position:fixed; inset:0;
   z-index:-1;
   background:
-    url("../assets/night-sky.svg") 0 0 / 420px,
-    url("../assets/night-sky.svg") 170px 230px / 690px;
+    url("../assets/home/night-sky.svg") 0 0 / 420px,
+    url("../assets/home/night-sky.svg") 170px 230px / 690px;
   opacity:.75;
   pointer-events:none;
 }

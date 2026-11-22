@@ -1,8 +1,8 @@
 // plays a quick wizard battle through the server: two players join a room and say who they are, the room
 // maker's healths are used, a third is turned away, cheating moves are ignored, both sides see the same scenes
 // until someone wins, and leaving tells the other player
-// node test.js                 (against wrangler dev)
-// node test.js https://...     (against the live server)
+// node tests/battle-test.js                 (against wrangler dev)
+// node tests/battle-test.js https://...     (against the live server)
 import assert from 'node:assert';
 
 const base = (process.argv[2] || 'http://127.0.0.1:8787').replace(/\/$/, '');

@@ -1,11 +1,11 @@
 // the notice board and the site's mods through the server: a note waits until a mod pins it, bad notes and
 // strangers are turned away, only the owner manages mods and what they look after, notes can be archived and
 // put back, binned ones are gone for good, and one place can't send more than 5 notes a day
-// node board-test.js                         (against wrangler dev, with the keys in .dev.vars)
-// node board-test.js https://... <boss key>  (against the live server)
+// node tests/board-test.js                         (against wrangler dev, with the keys in .dev.vars)
+// node tests/board-test.js https://... <boss key>  (against the live server)
 import assert from 'node:assert';
 import { readFileSync } from 'node:fs';
-import CatpiNotes from '../js/catpi-corner/notes.js';
+import CatpiNotes from '../../js/catpi-corner/notes.js';
 
 const base = (process.argv[2] || 'http://127.0.0.1:8787').replace(/\/$/, '');
 const boss = process.argv[3] || readFileSync(new URL('.dev.vars', import.meta.url), 'utf8').match(/^BOSS_KEY=(.*)$/m)[1].trim();
