@@ -774,6 +774,25 @@
     });
     try { localStorage.setItem(DARK_KEY, on ? '1' : ''); } catch { /* light again next time */ }
   });
+  // the outline key: what colour the everyday outlines (keys, boxes, sliders) are drawn in (data-edge,
+  // the css's [data-edge] rules), round in a ring. the big cards keep
+  // the mood's, the score its own. kept in this browser, put on by the page's head like dark mode
+  const EDGE_KEY = 'squimble-music-edge';
+  const EDGES = [['', 'cocoa'], ['mood', "the mood's own colour"], ['plum', 'plum'], ['navy', 'navy'], ['pine', 'pine'], ['ink', 'ink, almost black']];
+  const edgeKey = $('#mmEdge');
+  const edgeAt = () => Math.max(0, EDGES.findIndex(([id]) => id === (document.body.dataset.edge || '')));
+  const tipEdge = () => { edgeKey.dataset.tip = `Outlines in ${EDGES[edgeAt()][1]}. Click for ${EDGES[(edgeAt() + 1) % EDGES.length][1]}. This browser remembers it`; };
+  tipEdge();
+  edgeKey.addEventListener('click', () => {
+    const [id, name] = EDGES[(edgeAt() + 1) % EDGES.length];
+    paint(edgeKey, () => {
+      if (id) document.body.dataset.edge = id;
+      else delete document.body.dataset.edge;
+    });
+    tipEdge();
+    say(`Outlines in ${name}.`);
+    try { localStorage.setItem(EDGE_KEY, id); } catch { /* the mood's colour again next time */ }
+  });
   const clickKey = $('#mmClick');
   clickKey.addEventListener('click', () => {
     player.metronome = !player.metronome;

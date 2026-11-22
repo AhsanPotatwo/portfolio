@@ -1,5 +1,5 @@
 /* squimble music maker. squimble's music box: a chunky toy made of the squimble's own colours (the
-   butter of its skin, the warm shading, the dark brown outline round every edge), with hard cartoon
+   butter of its skin, the warm shading, a dark outline round every edge in the mood's hue), with hard cartoon
    shadows under it. it sits in a world the colour of the song's mood (--mm-mood, set by maker.js), so
    picking a mood repaints the whole page.
    two meanings, kept everywhere: the mood's colour is a setting that's on (play, a mood, a modifier,
@@ -8,13 +8,25 @@
 .mm-page{
   --mm-ink:       #2b1508;
   --mm-ink-soft:  #74563b;
-  /* outlines and the hard shadows under things. the same as the ink here; apart in dark mode */
-  --mm-edge:      #2b1508;
-  --mm-edge-deep: #000;
+  /* three kinds of outline, never black:
+     edge: everyday things (keys, boxes, sliders, the panel), a soft cocoa line so the words in them
+       stand out more than their outline. --mm-edge-from is the colour it's made from, and the outline
+       key in maker.js can pick another. solid is a darker fill of it: the main keys, the open thing.
+     edge-mood: the big cards (the machine, the song's card, the mood's card, the shelves) and settings
+       that are on, a dark line in the song's mood. each mood key and each layer colour gets its own
+       colour's line instead (.mm-mood, .mm-cell).
+     edge-score: the paper screens (the score, the note editor, the learn tab), a slate bezel of their
+       own so they read as screens set into the toy */
+  --mm-edge-from: #9a6440;
+  --mm-edge:      color-mix(in oklab, var(--mm-edge-from) 60%, #3a2414);
+  --mm-edge-deep: color-mix(in oklab, var(--mm-edge-from) 35%, #24140a);
+  --mm-solid:     color-mix(in oklab, var(--mm-edge-from) 30%, #24140a);
+  --mm-edge-mood: color-mix(in oklab, var(--mm-mood) 30%, #24140a);
+  --mm-edge-score:#3e4a63;
   --mm-dent:      rgba(43,21,8,.07);
   --mm-dent-2:    rgba(43,21,8,.13);
   --mm-knob:      var(--mm-butter);
-  --mm-dock:      #2b1508;
+  --mm-dock:      color-mix(in oklab, var(--mm-mood) 18%, #160c05);
   --mm-dock-text: #fff6d8;
   --mm-butter:    #fff6d8;
   --mm-butter-hi: #fffcee;
@@ -55,14 +67,18 @@
 @supports (transition-timing-function:linear(0, 1)){
   .mm-page{ --mm-spring:linear(0, .2 3.5%, .6 9%, .93 15%, 1.08 20%, 1.12 24%, 1.1 28%, 1.03 35%, .99 42%, .985 48%, 1 60%, 1.004 70%, 1); }
 }
-/* dark mode (#mmDark, kept in this browser): the toy turns dark brown with black outlines, the words
-   and picked things cream. the sky and the mood's colour stay as they are */
+/* dark mode (#mmDark, kept in this browser): the toy turns dark brown with outlines darker still, the
+   words and picked things cream. the sky and the mood's colour stay as they are */
 .mm-page.is-dark{
   color-scheme:dark;
   --mm-ink:       #f6e9cc;
   --mm-ink-soft:  #bba387;
-  --mm-edge:      #0e0805;
-  --mm-edge-deep: #0e0805;
+  --mm-edge:      color-mix(in oklab, var(--mm-edge-from) 22%, #3a2c22);
+  --mm-edge-deep: color-mix(in oklab, var(--mm-edge-from) 10%, #0a0503);
+  --mm-solid:     var(--mm-ink);
+  --mm-edge-mood: color-mix(in oklab, var(--mm-mood) 30%, #3a2c22);
+  --mm-edge-score:#56627c;
+  --mm-dock:      color-mix(in oklab, var(--mm-mood) 10%, #0a0503);
   --mm-butter:    #2e2219;
   --mm-butter-hi: #3a2b20;
   --mm-well:      #241a13;
@@ -72,9 +88,35 @@
   --mm-dent:      rgba(246,233,204,.06);
   --mm-dent-2:    rgba(246,233,204,.12);
   --mm-knob:      #eadcbd;
-  --mm-dock:      #0e0805;
   --mm-tint:      color-mix(in oklab, var(--mm-mood) 22%, var(--mm-butter));
 }
+/* where the browser can, a line keeps its colour's hue at one darkness whatever the colour's own, so a
+   pale mood still gets a line as dark as a deep one. in dark mode the lines are lighter than the
+   surfaces, so the keys stand off the panel */
+@supports (color:oklch(from red l c h)){
+  .mm-page{
+    --mm-edge:      oklch(from var(--mm-edge-from) .47 min(c, .07) h);
+    --mm-edge-deep: oklch(from var(--mm-edge-from) .3 min(c, .05) h);
+    --mm-solid:     oklch(from var(--mm-edge-from) .33 min(c, .05) h);
+    --mm-edge-mood: oklch(from var(--mm-mood) .4 min(c, .11) h);
+    --mm-dock:      oklch(from var(--mm-mood) .28 min(c, .08) h);
+  }
+  .mm-page.is-dark{
+    --mm-edge:      oklch(from var(--mm-edge-from) .4 min(c, .04) h);
+    --mm-edge-deep: oklch(from var(--mm-edge-from) .14 min(c, .03) h);
+    --mm-solid:     var(--mm-ink);
+    --mm-edge-mood: oklch(from var(--mm-mood) .44 min(c, .08) h);
+    --mm-dock:      oklch(from var(--mm-mood) .14 min(c, .04) h);
+  }
+}
+/* the outline key's other colours for everyday lines (data-edge on the body, kept in this browser).
+   cocoa is the default above; ink is the old near black */
+.mm-page[data-edge="mood"]{ --mm-edge-from:var(--mm-mood); }
+.mm-page[data-edge="plum"]{ --mm-edge-from:#9150a8; }
+.mm-page[data-edge="navy"]{ --mm-edge-from:#3d63c4; }
+.mm-page[data-edge="pine"]{ --mm-edge-from:#2c8f62; }
+.mm-page[data-edge="ink"]{ --mm-edge:#2b1508; --mm-edge-deep:#000; --mm-solid:#2b1508; }
+.mm-page.is-dark[data-edge="ink"]{ --mm-edge:#0e0805; --mm-edge-deep:#0e0805; --mm-solid:var(--mm-ink); }
 /* html has its own copy of the mood (maker.js sets both), so the page behind and the scrollbar can take
    it too: a soft round key in the mood's light colour */
 html:has(.mm-page){
@@ -178,11 +220,13 @@ html:has(.mm-page){
 /* a setting that's on: the mood's colour */
 .mm-key[aria-pressed="true"],
 .mm-key[aria-pressed="true"]:hover{ color:var(--mm-mood-ink); background:var(--mm-mood); }
+/* (and drawn round in the mood's line, where everything that's off has the everyday one) */
+.mm-key[aria-pressed="true"]{ --mm-edge:var(--mm-edge-mood); }
 /* the main action: solid ink */
-.mm-key-go{ background:var(--mm-ink); color:var(--mm-butter); box-shadow:0 3px 0 var(--mm-edge-deep); }
-.mm-key-go:hover{ background:color-mix(in oklab, var(--mm-ink) 86%, var(--mm-butter)); }
+.mm-key-go{ background:var(--mm-solid); color:var(--mm-butter); box-shadow:0 3px 0 var(--mm-edge-deep); }
+.mm-key-go:hover{ background:color-mix(in oklab, var(--mm-solid) 86%, var(--mm-butter)); }
 .mm-key-go:active{ box-shadow:0 0 0 var(--mm-edge-deep); }
-.mm-key-go:disabled:hover{ background:var(--mm-ink); }
+.mm-key-go:disabled:hover{ background:var(--mm-solid); }
 /* a quieter action: an outline, flush with what's under it */
 .mm-key-line,
 .mm-key-line:active,
@@ -195,6 +239,10 @@ html:has(.mm-page){
 .mm-key-dark svg{ width:16px; height:16px; transition:rotate .6s var(--mm-spring); }
 /* (the moon turns over into the night, and back) */
 .mm-key-dark[aria-pressed="true"] svg{ rotate:360deg; }
+/* the outline key: a dot of the colour the outlines are sunk from, ringed in the outline itself */
+.mm-key-edge{ width:40px; }
+.mm-edge-dot{ width:16px; height:16px; border-radius:50%; background:var(--mm-edge-from); border:3px solid var(--mm-edge); transition:scale .35s var(--mm-spring); }
+.mm-key-edge:active .mm-edge-dot{ scale:.8; }
 @media (prefers-reduced-motion: reduce){
   .mm-key, .mm-key-dark svg{ transition:none; }
 }
@@ -213,7 +261,7 @@ html:has(.mm-page){
 /* ---------- the machine: the toy itself ---------- */
 .mm-machine{
   background:var(--mm-butter);
-  border:3px solid var(--mm-edge);
+  border:3px solid var(--mm-edge-mood);
   border-radius:26px;
   box-shadow:0 10px 0 var(--mm-drop);
   color:var(--mm-ink);
@@ -228,7 +276,7 @@ html:has(.mm-page){
   margin:4px 22px 0;
   padding:14px 18px;
   background:var(--mm-tint);
-  border:2px solid var(--mm-edge);
+  border:2px solid var(--mm-edge-mood);
   border-radius:16px;
 }
 .mm-welcome-steps{ flex:1 1 420px; display:grid; list-style:decimal; gap:5px; margin:0; padding:0 0 0 1.5em; font-size:15px; line-height:1.45; }
@@ -256,12 +304,12 @@ html:has(.mm-page){
 .mm-deck::after{
   content:"";
   position:absolute; inset:0;
-  border:2px solid var(--mm-edge);
+  border:2px solid var(--mm-edge-mood);
   border-radius:14px;
-  box-shadow:0 4px 0 var(--mm-edge);
+  box-shadow:0 4px 0 var(--mm-edge-mood);
   transition:rotate .5s var(--mm-spring), translate .5s var(--mm-spring);
 }
-.mm-deck::before{ background:color-mix(in oklab, var(--mm-mood) 70%, var(--mm-edge)); rotate:2.4deg; translate:6px 3px; }
+.mm-deck::before{ background:color-mix(in oklab, var(--mm-mood) 70%, var(--mm-edge-mood)); rotate:2.4deg; translate:6px 3px; }
 .mm-deck::after{ background:color-mix(in oklab, var(--mm-mood) 55%, var(--mm-butter)); rotate:-2.6deg; translate:-4px 4px; }
 .mm-label{
   position:relative; z-index:2;
@@ -270,9 +318,9 @@ html:has(.mm-page){
   padding:9px 16px 10px;
   background:var(--mm-mood);
   color:var(--mm-mood-ink);
-  border:2px solid var(--mm-edge);
+  border:2px solid var(--mm-edge-mood);
   border-radius:14px;
-  box-shadow:0 4px 0 var(--mm-edge);
+  box-shadow:0 4px 0 var(--mm-edge-mood);
   rotate:-0.8deg;
   transition:rotate .45s var(--mm-spring);
 }
@@ -328,15 +376,16 @@ html:has(.mm-page){
   background:var(--mm-mood);
   border-width:3px;
   border-radius:999px;
-  box-shadow:0 5px 0 var(--mm-edge);
+  box-shadow:0 5px 0 var(--mm-edge-mood);
+  border-color:var(--mm-edge-mood);
 }
 .mm-key-play svg{ width:16px; height:16px; }
 .mm-key-play:hover{ background:color-mix(in oklab, var(--mm-mood) 82%, #fff); }
 @media (hover:hover){
-  .mm-key-play:hover{ transform:translateY(-2px); box-shadow:0 7px 0 var(--mm-edge); }
+  .mm-key-play:hover{ transform:translateY(-2px); box-shadow:0 7px 0 var(--mm-edge-mood); }
 }
 .mm-key-play:active{ transform:translateY(5px); box-shadow:0 0 0 var(--mm-edge); }
-.mm-key-play.is-playing, .mm-key-play.is-playing:hover{ background:var(--mm-ink); color:var(--mm-butter); }
+.mm-key-play.is-playing, .mm-key-play.is-playing:hover{ background:var(--mm-solid); color:var(--mm-butter); }
 /* where the song's got to, as a row of small readings */
 .mm-readout{
   flex:1 1 280px;
@@ -354,7 +403,7 @@ html:has(.mm-page){
   position:relative;
   margin:16px 22px 0;
   background:var(--mm-paper);
-  border:3px solid var(--mm-edge);
+  border:3px solid var(--mm-edge-score);
   border-radius:16px;
 }
 .mm-score-wrap canvas{ display:block; width:100%; height:120px; border-radius:13px; cursor:pointer; touch-action:manipulation; }
@@ -364,7 +413,7 @@ html:has(.mm-page){
 /* the rows of moods as keys, one row's moods shown at a time */
 .mm-mood-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin-bottom:14px; }
 .mm-mood-groups{ display:flex; flex-wrap:wrap; gap:6px 5px; }
-.mm-group[aria-pressed="true"], .mm-group[aria-pressed="true"]:hover{ background:var(--mm-ink); color:var(--mm-butter); }
+.mm-group[aria-pressed="true"], .mm-group[aria-pressed="true"]:hover{ background:var(--mm-solid); color:var(--mm-butter); }
 /* each mood a swatch of its own colour, full strength on the song's mood */
 .mm-moods{ display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:10px 8px; }
 .mm-mood{
@@ -381,13 +430,23 @@ html:has(.mm-page){
 .mm-mood[aria-pressed="true"],
 .mm-mood[aria-pressed="true"]:hover{ color:var(--c-ink); background:var(--c); }
 .mm-mood[aria-pressed="true"]::before{ background:var(--c-ink); border-color:var(--c-ink); }
+/* every mood key, every layer's colour chip and a playing square is drawn round in a dark line of its
+   own colour, not the song's mood */
+.mm-key.mm-mood{ --own:var(--c); }
+.mm-cell[aria-pressed="true"], .mm-detail-title{ --own:var(--chip); }
+.mm-key.mm-mood, .mm-cell[aria-pressed="true"], .mm-detail-title{ --mm-edge:color-mix(in oklab, var(--own) 30%, #24140a); }
+.is-dark .mm-key.mm-mood, .is-dark .mm-cell[aria-pressed="true"], .is-dark .mm-detail-title{ --mm-edge:color-mix(in oklab, var(--own) 30%, #3a2c22); }
+@supports (color:oklch(from red l c h)){
+  .mm-key.mm-mood, .mm-cell[aria-pressed="true"], .mm-detail-title{ --mm-edge:oklch(from var(--own) .4 min(c, .11) h); }
+  .is-dark .mm-key.mm-mood, .is-dark .mm-cell[aria-pressed="true"], .is-dark .mm-detail-title{ --mm-edge:oklch(from var(--own) .44 min(c, .08) h); }
+}
 /* the song's mood, what it's for, and its flavours: a card in the mood's tint under the moods */
 .mm-flavours{
   display:grid; gap:10px;
   margin-top:16px;
   padding:14px 18px 15px;
   background:var(--mm-tint);
-  border:2px solid var(--mm-edge);
+  border:2px solid var(--mm-edge-mood);
   border-radius:16px;
 }
 .mm-about{ margin:0; max-width:86ch; font-size:15px; line-height:1.5; color:var(--mm-ink); }
@@ -646,7 +705,7 @@ html:has(.mm-page){
   cursor:pointer;
 }
 .mm-layer-open:hover{ background:var(--mm-butter-hi); }
-.mm-layer-open[aria-pressed="true"]{ background:var(--mm-ink); color:var(--mm-butter); }
+.mm-layer-open[aria-pressed="true"]{ background:var(--mm-solid); color:var(--mm-butter); }
 .mm-layer-open:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:2px; }
 .mm-layer-chip{ flex:none; width:10px; height:26px; border-radius:4px; box-shadow:inset 0 0 0 1.5px var(--mm-edge); }
 .mm-layer-open[aria-pressed="true"] .mm-layer-chip{ box-shadow:none; }
@@ -679,7 +738,7 @@ html:has(.mm-page){
   max-height:380px;
   overflow-y:auto;
   background:var(--mm-paper);
-  border:3px solid var(--mm-edge);
+  border:3px solid var(--mm-edge-score);
   border-radius:14px;
   scrollbar-color:var(--mm-line) var(--mm-paper);
 }
@@ -690,7 +749,7 @@ html:has(.mm-page){
 /* learn: the part on a piano, a guitar's neck and tab, or a staff, on the same paper as the score,
    and the chord shapes it uses as a row of songbook boxes */
 .mm-learn-controls{ display:grid; gap:4px; }
-.mm-learn{ margin-top:14px; background:#fffdf3; border:3px solid var(--mm-edge); border-radius:14px; overflow:hidden; }
+.mm-learn{ margin-top:14px; background:#fffdf3; border:3px solid var(--mm-edge-score); border-radius:14px; overflow:hidden; }
 .mm-learn canvas{ display:block; width:100%; height:260px; cursor:pointer; touch-action:manipulation; }
 .mm-shapes{ margin-top:20px; }
 .mm-shapes:empty{ display:none; }
@@ -734,7 +793,7 @@ html:has(.mm-page){
 .mm-arrange-head b{ font:800 12.5px var(--mm-ui); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .mm-arrange-head small{ font:500 11px var(--mm-mono); font-variation-settings:"MONO" 1, "CASL" 0; color:var(--mm-ink-soft); }
 .mm-arrange-head:hover{ background:var(--mm-butter-hi); }
-.mm-arrange-head[aria-pressed="true"]{ background:var(--mm-ink); color:var(--mm-butter); }
+.mm-arrange-head[aria-pressed="true"]{ background:var(--mm-solid); color:var(--mm-butter); }
 .mm-arrange-head[aria-pressed="true"] small{ color:color-mix(in oklab, var(--mm-butter) 70%, var(--mm-ink)); }
 .mm-arrange-head:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:2px; }
 /* the section playing now */
@@ -758,7 +817,7 @@ html:has(.mm-page){
 }
 .mm-arrange-name .mm-layer-chip{ height:18px; }
 .mm-arrange-name:hover{ background:var(--mm-dent); }
-.mm-arrange-name[aria-pressed="true"]{ background:var(--mm-ink); color:var(--mm-butter); }
+.mm-arrange-name[aria-pressed="true"]{ background:var(--mm-solid); color:var(--mm-butter); }
 .mm-arrange-name:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:2px; }
 .mm-arrange-chords th{ font:850 14px var(--mm-ui); font-variation-settings:"CASL" 1; color:var(--mm-ink); padding-left:6px; }
 /* an empty square is a dent in the panel; a playing one is filled with its layer's colour */
@@ -830,7 +889,7 @@ html:has(.mm-page){
 .mm-shelf{
   padding:24px;
   background:var(--mm-butter);
-  border:3px solid var(--mm-edge);
+  border:3px solid var(--mm-edge-mood);
   border-radius:22px;
   box-shadow:0 8px 0 var(--mm-drop);
   color:var(--mm-ink);
@@ -1029,7 +1088,7 @@ html:has(.mm-page){
   .mm-tip{ font-size:13.5px; line-height:1.4; min-height:2.8em; }
   .mm-bar-actions{ margin-left:0; width:100%; }
   .mm-bar-actions .mm-key{ flex:1; }
-  .mm-bar-actions .mm-key-dark{ flex:none; width:44px; }
+  .mm-bar-actions .mm-key-dark, .mm-bar-actions .mm-key-edge{ flex:none; width:44px; }
   .mm-field, .mm-slider{ grid-template-columns:84px minmax(0,1fr); }
   .mm-slider{ grid-template-columns:84px minmax(0,1fr) 72px; }
   .mm-chips, .mm-chord-problem{ margin-left:0; }

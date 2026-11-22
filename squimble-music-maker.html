@@ -31,7 +31,7 @@
 
 <body class="mm-page">
   <!-- dark mode, if it was picked last time, before anything's drawn (maker.js keeps it) -->
-  <script>try { if (localStorage.getItem('squimble-music-dark')) document.body.classList.add('is-dark'); } catch { /* light */ }</script>
+  <script>try { if (localStorage.getItem('squimble-music-dark')) document.body.classList.add('is-dark'); const edge = localStorage.getItem('squimble-music-edge'); if (edge) document.body.dataset.edge = edge; } catch { /* light, mood outlines */ }</script>
   <!-- the sky behind everything, drawn to the music in the mood's own scene (js/squimble-music-maker/sky.js) -->
   <canvas class="mm-sky" id="mmSky" aria-hidden="true"></canvas>
 
@@ -97,6 +97,7 @@
         <button type="button" class="mm-key mm-key-line" id="mmBlank" data-tip="New track: a blank song to make yourself, with an empty melody, bass and drums. Draw notes in the Arrange tab, or play them in on your keyboard"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>New track</button>
         <div class="mm-bar-actions">
           <button type="button" class="mm-key mm-key-square mm-key-dark" id="mmDark" aria-pressed="false" aria-label="Dark mode" data-tip="Dark mode: the page and the score go dark, easier on the eyes at night. This browser remembers it"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.2 10.4A5.6 5.6 0 0 1 5.6 2.8a5.6 5.6 0 1 0 7.6 7.6z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button>
+          <button type="button" class="mm-key mm-key-square mm-key-edge" id="mmEdge" aria-label="Outline colour" data-tip="Outlines: the colour the keys and boxes are drawn round in. Click for the next one. This browser remembers it"><span class="mm-edge-dot" aria-hidden="true"></span></button>
           <button type="button" class="mm-key mm-key-line" id="mmUndo" data-tip="Undo: back to before the last change (Ctrl + Z)">Undo</button>
           <button type="button" class="mm-key mm-key-line" id="mmRedo" data-tip="Redo: forward again (Ctrl + Y)">Redo</button>
           <button type="button" class="mm-key mm-key-go" id="mmSave" data-tip="Save it to your library below, kept in this browser">Save</button>
