@@ -544,6 +544,24 @@
     for (const b of toolButtons) b.querySelector('img').src = pic(b.dataset.tool === 'food' ? FOOD_FOR[food] : TOOL_PIC[b.dataset.tool]).toDataURL();
     for (const b of document.querySelectorAll('.cc-food')) b.querySelector('img').src = pic(FOOD_FOR[b.dataset.food]).toDataURL();
   }
+  // the page's mouse pointer off the stage: the crayon arrow, and the stage's hand over things you can press.
+  // 32px drawn at 2x; x y is the hotspot (arrow tip, top of the middle fingers). a cream rim cut round it like
+  // a sticker (the cup up top has one too), or the ink outline vanishes on the lights-off paper
+  function pageCursors() {
+    const css = (name, x, y, fallback) => {
+      const { c: rim, g: r } = C.sheet(64, 64);
+      r.drawImage(pic(name), 0, 0, 64, 64);
+      r.globalCompositeOperation = 'source-in';
+      r.fillStyle = '#fffdf6';
+      r.fillRect(0, 0, 64, 64);
+      const { c, g: p } = C.sheet(64, 64);
+      for (let i = 0; i < 8; i++) p.drawImage(rim, Math.round(Math.cos(i * Math.PI / 4) * 3), Math.round(Math.sin(i * Math.PI / 4) * 3));
+      p.drawImage(pic(name), 0, 0, 64, 64);
+      return `-webkit-image-set(url(${c.toDataURL()}) 2x) ${x} ${y}, ${fallback}`;
+    };
+    document.body.style.setProperty('--cc-arrow', css('arrow', 4, 2, 'auto'));
+    document.body.style.setProperty('--cc-point', css('hand', 16, 4, 'pointer'));
+  }
   for (const b of document.querySelectorAll('.cc-food')) b.addEventListener('click', () => {
     food = b.dataset.food;
     for (const o of document.querySelectorAll('.cc-food')) o.setAttribute('aria-pressed', o === b);
@@ -935,6 +953,7 @@
     $('#ccSky').setAttribute('aria-pressed', night);
     counts();
     toolPics();
+    pageCursors();
     ready = true;
     stage.classList.add('is-ready');
     news(night ? 'It is night in the corner. Shh.' : pick(['Everyone is out and about.', 'A lovely day in the corner.', 'The catpis are up and wiggling.']));

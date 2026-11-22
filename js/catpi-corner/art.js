@@ -98,6 +98,19 @@ const Art = (() => {
       case 'dizzy':
         C.stroke(p, Array.from({ length: 24 }, (_, i) => { const a = i * 0.55, r = 3 + i * 1.2; return [Math.cos(a) * r, Math.sin(a) * r]; }), INK, 3.5);
         break;
+      // the page's own pointer off the stage: a leaf-green crayon arrow, its tip in the top left corner
+      // chubby, with every corner rounded off (a point either side of each corner, so the smooth line bends
+      // round it instead of turning the whole thing into a bean), and a shine on it like the ball's
+      case 'arrow': {
+        const corners = [[-31, -35, 7], [-32, 20, 15], [-17, 10, 9], [-9, 33, 11], [9, 26, 11], [1, 6, 9], [19, 3, 15]];
+        const pts = corners.flatMap(([x, y, r], i) => {
+          const along = ([px, py]) => { const d = Math.hypot(px - x, py - y); return [x + ((px - x) / d) * r, y + ((py - y) / d) * r]; };
+          return [along(corners[(i + corners.length - 1) % corners.length]), [x, y], along(corners[(i + 1) % corners.length])];
+        });
+        C.shape(p, pts, '#a8ec44', { shade: '#6aa82a', angle: 0.9, gap: 6, width: 4.5 });
+        C.stroke(p, [[-25, -20], [-25.5, -12], [-25, -4]], '#ffffff', 4.5, 0.9);
+        break;
+      }
       // the cursor's tools
       case 'hand': {
         // a little open hand, fingers spread: thick round lines for the fingers and thumb on a round palm

@@ -36,6 +36,12 @@
 /* the scrollbars' colours live on html, since the page's own scrollbar belongs to it */
 html:has(.cc-page){ --sb-groove:#f4ead2; --sb-line:#3a3034; --sb-a:#a8ec44; --sb-b:#6aa82a; --sb-hover:#b8f25c; }
 html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e; background:#1f1b24; }
+/* the mouse pointer: a crayon arrow, and the stage's crayon hand over anything you can press. page.js draws
+   both into --cc-arrow and --cc-point; these are the plain ones until it has. :where keeps it weak so the
+   page's own cursors below still win */
+.cc-page{ --cc-arrow:auto; --cc-point:pointer; cursor:var(--cc-arrow); }
+.cc-page :where(a[href], button:not(:disabled), select, summary, label:has(input:not([type="text"]))){ cursor:var(--cc-point); }
+.cc-page :where(input:not([type="range"], [type="checkbox"], [type="radio"], [type="button"]), textarea){ cursor:text; }
 .cc-page ::selection{ background:var(--leaf); color:var(--text); }
 .cc-page :focus-visible{ outline:3px dashed var(--ink); outline-offset:4px; }
 .cc-page .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
@@ -111,7 +117,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
   background:var(--paper-2);
   color:var(--text);
   font:700 22px/1 var(--font-hand);
-  cursor:pointer;
+  cursor:var(--cc-point);
   transition:height .2s var(--ease-out), background-color .15s ease;
 }
 .cc-tab:hover{ height:46px; background:var(--card); }
@@ -138,7 +144,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
   background:var(--card);
   box-shadow:0 4px 0 var(--ink);
   color:var(--text);
-  cursor:pointer;
+  cursor:var(--cc-point);
   transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out);
 }
 .cc-key:hover{ transform:translateY(-2px); box-shadow:0 6px 0 var(--ink); }
@@ -214,7 +220,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
   width:34px; height:34px;
   border:0; border-radius:50%;
   background:transparent; color:var(--text);
-  cursor:pointer;
+  cursor:var(--cc-point);
 }
 .cc-card-x:hover{ background:var(--paper-2); }
 .cc-card-name{ margin:2px 0 0; font-size:32px; line-height:1; }
@@ -247,7 +253,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
   box-shadow:0 3px 0 var(--ink);
   color:var(--text);
   font:700 19px/1 var(--font-hand);
-  cursor:pointer;
+  cursor:var(--cc-point);
   transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out), background-color .15s ease;
 }
 .cc-small[hidden]{ display:none; }
@@ -272,7 +278,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
   box-shadow:0 5px 0 var(--ink);
   color:var(--text);
   font:700 20px/1 var(--font-hand);
-  cursor:pointer;
+  cursor:var(--cc-point);
   transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out), background-color .15s ease;
 }
 .cc-tool-pic{ display:block; width:44px; height:44px; transition:transform .2s var(--ease-out); }
@@ -301,7 +307,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
   box-shadow:0 5px 0 var(--fern-edge), 0 5px 0 3px var(--ink);
   color:var(--on);
   font:700 25px/1 var(--font-hand);
-  cursor:pointer;
+  cursor:var(--cc-point);
   transition:transform .15s var(--ease-out), box-shadow .15s var(--ease-out);
 }
 .cc-new svg{ width:30px; height:30px; }
@@ -373,7 +379,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
   margin:0;
   background:transparent;
   appearance:none; -webkit-appearance:none;
-  cursor:pointer;
+  cursor:var(--cc-point);
 }
 .cc-range:focus-visible{ outline-offset:2px; }
 .cc-range::-webkit-slider-runnable-track{
@@ -423,7 +429,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
   background:var(--c);
   clip-path:polygon(30% 0, 70% 0, 100% 24%, 100% 100%, 0 100%, 0 24%);
   box-shadow:inset 0 -14px 0 rgba(0,0,0,.14), inset 0 -18px 0 rgba(255,255,255,.35), inset 0 -2px 0 rgba(0,0,0,.25), inset 2px 0 0 rgba(0,0,0,.15), inset -2px 0 0 rgba(0,0,0,.15);
-  cursor:pointer;
+  cursor:var(--cc-point);
   translate:0 10px;
   transition:translate .2s var(--ease-out);
 }
@@ -497,7 +503,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
   background:var(--card);
   color:var(--text);
   font:700 19px/1 var(--font-hand);
-  cursor:pointer;
+  cursor:var(--cc-point);
   transition:transform .15s var(--ease-out), background-color .15s ease;
 }
 .cc-chip:hover{ transform:rotate(-2deg); background:var(--hover); }
@@ -549,7 +555,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
 .cc-board-lede{ max-width:30em; margin:6px 0 0; font-size:clamp(19px,1.5vw,22px); font-weight:700; color:var(--muted); }
 .cc-board-keys{ display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
 .cc-board-keys .cc-new{ margin-left:0; }
-.cc-small:disabled, .cc-new:disabled{ opacity:.5; cursor:default; transform:none; }
+.cc-small:disabled, .cc-new:disabled{ opacity:.5; cursor:var(--cc-arrow); transform:none; }
 .cc-cork{
   display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:30px 26px;
   min-height:240px;
@@ -624,7 +630,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
   border-radius:var(--wobble-2);
   background:none; color:var(--text);
   font:700 15px/1 var(--font-hand);
-  cursor:pointer;
+  cursor:var(--cc-point);
   transition:transform .15s var(--ease-out), background-color .15s ease, border-color .15s ease;
 }
 .cc-sticker img{ width:46px; height:46px; }
@@ -687,7 +693,7 @@ html:has(.cc-page)::-webkit-scrollbar-corner, .cc-hatch ::-webkit-scrollbar-corn
 .cc-band p{ max-width:34em; margin:12px 0 0; font-size:clamp(20px,1.6vw,23px); font-weight:700; line-height:1.25; }
 .cc-band p a{ color:inherit; text-decoration:underline; text-decoration-style:wavy; text-underline-offset:4px; }
 .cc-band-links{ display:flex; flex-wrap:wrap; gap:16px; }
-.cc-page .btn{ border:3px solid var(--ink); border-radius:var(--wobble-2); font-family:var(--font-hand); font-size:23px; cursor:pointer; }
+.cc-page .btn{ border:3px solid var(--ink); border-radius:var(--wobble-2); font-family:var(--font-hand); font-size:23px; cursor:var(--cc-point); }
 .cc-btn-a{ --k:var(--ink); background:var(--card); color:var(--text); }
 .cc-btn-b{ --k:var(--ink); background:var(--sun); color:var(--on); }
 .cc-page .page-back{ padding:clamp(36px,5vw,52px) var(--gutter) clamp(36px,5vw,52px); }
