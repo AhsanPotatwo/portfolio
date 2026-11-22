@@ -1,5 +1,5 @@
 /* catpi corner page, loaded on top of styles.css.
-   a sheet of cream drawing paper with crayon doodles in the margins (assets/catpi-corner/doodles.svg). the
+   a sheet of cream drawing paper with crayon doodles in the margins (assets/catpi-corner/doodles.webp). the
    stage is a drawing taped to it, and everything you press is cut out of paper: wobbly corners (border-radius
    with a different curve on every corner), a pencil line round it, and a flat shadow that it presses down
    into. icons are pencil lines pushed about by a little noise (#ccRough in the page). Gaegu for every word,
@@ -12,12 +12,12 @@
   --band:#8fd660;          --band-2:#6dbb53;         --band-text:#253a1b;
   --text:#3a3034;          --on:#3a3034;             --hover:#ffffff;         --field:#ffffff;
   --preview:#eaf6db;       --rule:#cfe3ef;           --doing:#147a4c;         --bye:#a8323a;
-  --tile:url("../assets/catpi-corner/doodles.svg");
+  --tile:url("../assets/catpi-corner/doodles.webp");
   --wobble:18px 26px 16px 30px / 28px 16px 30px 18px;
   --wobble-2:26px 14px 28px 16px / 16px 28px 14px 26px;
   --font-hand:"Gaegu", "Comic Sans MS", var(--font-sans);
   --page-accent:var(--band-text);
-  background:var(--paper) var(--tile) 0 0 / 360px;
+  background:var(--paper) var(--tile) 0 0 / 480px;
   color:var(--text);
   font-family:var(--font-hand);
   letter-spacing:-.02em;
@@ -31,7 +31,7 @@
   --text:#f1e6d4;          --hover:#38313f;          --field:#38313f;         --preview:#263423;
   --rule:#3d3646;          --doing:#8be0ad;          --bye:#ff9b9b;
   --band:#3a6a30;          --band-2:#2c5224;         --band-text:#eaf5dc;
-  --tile:url("../assets/catpi-corner/doodles-dark.svg");
+  --tile:url("../assets/catpi-corner/doodles-dark.webp");
 }
 /* the scrollbars' colours live on html, since the page's own scrollbar belongs to it */
 html:has(.cc-page){ --sb-groove:#f4ead2; --sb-line:#3a3034; --sb-a:#a8ec44; --sb-b:#6aa82a; --sb-hover:#b8f25c; }
@@ -337,7 +337,7 @@ html[data-cc-theme="dark"]:has(.cc-page){ --sb-groove:#2b2631; --sb-line:#0c090e
   padding:0;
   border:3px solid var(--ink);
   border-radius:12px 18px 14px 20px / 18px 12px 20px 14px;
-  background:var(--paper) var(--tile) 0 0 / 360px;
+  background:var(--paper) var(--tile) 0 0 / 480px;
   box-shadow:8px 9px 0 var(--ink);
   color:var(--text);
   font-family:var(--font-hand);

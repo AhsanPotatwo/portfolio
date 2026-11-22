@@ -1570,7 +1570,7 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
 .project-card-catpi{
   position:relative;
   overflow:hidden;
-  background:#fbf5e6 url("../assets/catpi-corner/doodles.svg") 0 0 / 180px;
+  background:#fbf5e6 url("../assets/catpi-corner/doodles.webp") 0 0 / 240px;
 }
 .project-card-catpi:hover,
 .project-card-catpi:focus-within{ background-color:#fffaf0; }
