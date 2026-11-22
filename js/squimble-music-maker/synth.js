@@ -12,8 +12,9 @@
 //
 // each layer has a channel like a mixing desk strip (its rig, a low cut, an eq for its place, volume,
 // pan, and sends to the room, the reverb and the echo). they meet in buildGraph(): drive -> warmth ->
-// tape wobble -> glue -> a little mud out -> tape -> volume -> limiter. the reverb is made of decaying
-// noise (impulse()), so it needs no recorded room. see "the mixing desk"
+// tape wobble -> glue -> a little mud out -> tape -> volume -> limiter. the rooms are worked out from
+// made up rooms (roomBuffer()), each song's its own shape, so they need no recordings. see "the mixing
+// desk"
 
 const mtof = (midi) => 440 * 2 ** ((midi - 69) / 12);
 
@@ -325,7 +326,8 @@ function voiceChain(ctx, out, inst, tone, f, when, dur, vel, note = {}, again = 
     const { freq, q = 0.7, env = 1, attack: opens = 0.01, decay: closes = 0.3, track = 0, lfo: sweep } = inst.filter;
     const filter = ctx.createBiquadFilter();
     filter.Q.value = q;
-    const base = Math.min(16000, freq * tone.bright * (f / 262) ** track * (inst.kind === 'sample' ? recordedHardness(vel) : hardness(vel)));
+    // (a recording's a little brighter or darker every note, as no two strikes or breaths are the same)
+    const base = Math.min(16000, freq * tone.bright * (f / 262) ** track * (inst.kind === 'sample' ? recordedHardness(vel) * (0.88 + Math.random() * 0.24) : hardness(vel)));
     filter.frequency.setValueAtTime(base, when);
     if (sweep) lfo(ctx, sweep[0], base * sweep[1], filter.frequency, when, end);
     // backwards, it opens up as the note swells instead of closing as it fades
@@ -669,6 +671,42 @@ const ENGINES = {
 // note far outside what was recorded, and with RECORDINGS.on false, so a song never waits or goes silent
 const RECORDINGS = { on: true, root: 'assets/squimble-music-maker/samples/', sets: new Map() };
 
+// how loud a recording comes in, in db: its loudest fiftieth of a second in its first half second.
+// takes a few notes apart can be recorded several db apart, so pickTake only swaps between takes
+// about as loud as each other
+function levelOf(buffer) {
+  const data = buffer.getChannelData(0);
+  const step = Math.round(buffer.sampleRate * 0.02);
+  let top = 0;
+  for (let at = 0; at + step <= Math.min(data.length, buffer.sampleRate * 0.5); at += step) {
+    let sum = 0;
+    for (let i = at; i < at + step; i++) sum += data[i] * data[i];
+    top = Math.max(top, sum / step);
+  }
+  return 10 * Math.log10(top + 1e-12);
+}
+
+// a folder's softer loudness layers, brought to sit 10 log10(vel) db under its loudest (half what the
+// note's velocity takes off again when it's played): every library was mastered its own way, so its
+// soft takes were anywhere from 1 db (the steinway) to 32 db (the kawai) under the loud ones, and a
+// soft note played on them got quieter twice over. the loudest layer stays as it is, so gains measured
+// with levels.html (at full loudness) still hold. note.lift is the gain a take's played at
+const LAYER_LIFT = [-6, 30];
+function evenLayers(notes) {
+  const vels = [...new Set(notes.map((note) => note.vel))];
+  if (vels.length < 2) return;
+  const top = Math.max(...vels);
+  const middle = (vel) => {
+    const levels = notes.filter((note) => note.vel === vel).map((note) => note.level).sort((a, b) => a - b);
+    return levels[levels.length >> 1];
+  };
+  const loudest = middle(top);
+  for (const vel of vels) {
+    const db = Math.min(LAYER_LIFT[1], Math.max(LAYER_LIFT[0], loudest + 10 * Math.log10(vel / top) - middle(vel)));
+    for (const note of notes) if (note.vel === vel) note.lift = 10 ** (db / 20);
+  }
+}
+
 // starts loading a folder (once) and returns a promise of it. a set is { notes, hits, low, high, loop }
 function loadSamples(folder) {
   if (!RECORDINGS.sets.has(folder)) {
@@ -685,8 +723,9 @@ function loadSamples(folder) {
       const decoder = new OfflineAudioContext(1, 1, 44100);
       const notes = await Promise.all(index.notes.map(async (note) => {
         const buffer = await decoder.decodeAudioData(await (await get(note.file)).arrayBuffer());
-        return { ...note, buffer, loop: index.loop ? loopNote(buffer) : null };
+        return { ...note, buffer, loop: index.loop ? loopNote(buffer) : null, level: levelOf(buffer) };
       }));
+      evenLayers(notes.filter((note) => note.midi !== undefined && note.vel !== undefined));
       const hits = {};
       for (const note of notes) if (note.hit) (hits[note.hit] ||= []).push(note);
       const midis = notes.filter((note) => note.midi !== undefined).map((note) => note.midi);
@@ -708,14 +747,17 @@ function loadSamples(folder) {
 const recordingsOf = (inst) => (inst?.samples ? [[inst.samples, inst.sampled || {}], ...Object.entries(inst.more || {})] : []);
 // the folder a layer plays: the one it chose, if the instrument has it
 const recordingFolder = (inst, choice) => (recordingsOf(inst).find(([folder]) => folder === choice) || recordingsOf(inst)[0] || [])[0];
-// the folders an instrument (and its kit's slots) needs, for the recording chosen
-const sampleFolders = (inst, choice) => [recordingFolder(inst, choice), ...(inst?.slots || []).map((slot) => slot.hit?.split('/')[0])].filter(Boolean);
+// a recording's section: other players' recordings playing every note with it ({ folder: level },
+// sampled.section), so a brass section is real horns, trombones and trumpets together
+const sectionOf = (inst, choice) => recordingsOf(inst).find(([folder]) => folder === recordingFolder(inst, choice))?.[1].section || {};
+// the folders an instrument (its section, and its kit's slots) needs, for the recording chosen
+const sampleFolders = (inst, choice) => [recordingFolder(inst, choice), ...Object.keys(sectionOf(inst, choice)), ...(inst?.slots || []).map((slot) => slot.hit?.split('/')[0])].filter(Boolean);
 // starts loading everything a song plays, for awaiting before a render
 function songSamples(song) {
   if (!RECORDINGS.on) return Promise.resolve();
   const folders = new Set(song.layers.flatMap((layer) => [
     ...sampleFolders(INSTRUMENTS[layer.instrument], layer.recording),
-    ...(layer.with || []).map((one) => recordingFolder(INSTRUMENTS[one.instrument], one.recording)).filter(Boolean),
+    ...(layer.with || []).flatMap((one) => sampleFolders(INSTRUMENTS[one.instrument], one.recording)),
   ]));
   return Promise.all([...folders].map(loadSamples));
 }
@@ -773,8 +815,11 @@ function loopNote(buffer) {
 }
 
 // the recording to play: the nearest note, at the nearest loudness. takes of the same note and
-// loudness (round robins) are picked between at random, so a drum hit twice isn't the same twice
-function pickTake(takes, midi, vel) {
+// loudness (round robins) are picked between at random, so a drum hit twice isn't the same twice.
+// loose: now and then a neighbour's recording instead (one semitone further off at most, never more
+// than two in all, and within 2 db of it: levelOf), so a folder with one take a note doesn't play the
+// very same sound every time the tune comes back to it, the clearest sign of a sampler
+function pickTake(takes, midi, vel, loose = false) {
   let best = Infinity;
   let found = [];
   for (const take of takes) {
@@ -784,7 +829,11 @@ function pickTake(takes, midi, vel) {
       found = [take];
     } else if (score < best + 1e-6) found.push(take);
   }
-  return found[Math.floor(Math.random() * found.length)];
+  const picked = found[Math.floor(Math.random() * found.length)];
+  if (!loose || found.length > 1 || Math.random() > 0.35) return picked;
+  const away = Math.abs(picked.midi - midi);
+  const near = takes.filter((take) => take !== picked && take.vel === picked.vel && Math.abs(take.midi - midi) <= Math.min(2, away + 1) && Math.abs((take.level ?? 0) - (picked.level ?? 0)) < 2);
+  return near.length ? near[Math.floor(Math.random() * near.length)] : picked;
 }
 
 // a recording backwards (a reversed piano), made once
@@ -798,32 +847,99 @@ function reversed(buffer) {
   return reversals.get(buffer);
 }
 
+// a player is never quite the same twice, and a sampler always is. so every recorded note gets:
+//   - a neighbour's take now and then (pickTake's loose)
+//   - a held note (blown, bowed, sung: the recordings that loop) a few cents off, as a player's tuning
+//     is note to note (HELD_TUNING), and a slow wander in pitch and loudness once it's held longer than
+//     its loop, which otherwise repeats the same second of bow or breath over and over
+//   - a struck or plucked note played softer than its recording a softer start (TOUCH): a softly
+//     played key or string has less of a knock, which darkening alone doesn't give
+const HELD_TUNING = 3;
+const TOUCH = 0.014;
 ENGINES.sample = (ctx, voice, inst, tone, f, midi, note = {}) => {
-  const take = pickTake(sampleSet(inst.samples).notes, midi, voice.vel);
+  const set = sampleSet(inst.samples);
+  const take = pickTake(set.notes, midi, voice.vel, !inst.backwards);
   const source = ctx.createBufferSource();
   source.buffer = inst.backwards ? reversed(take.buffer) : take.buffer;
   if (take.loop) {
     source.loop = true;
     [source.loopStart, source.loopEnd] = take.loop;
   }
-  source.detune.value = (midi - take.midi) * 100 + (take.tune || 0) + scatter(tone) * 0.5 + (note.cents || 0);
+  const held = !!take.loop;
+  source.detune.value = (midi - take.midi) * 100 + (take.tune || 0) + scatter(tone) * 0.5 + (note.cents || 0) + (held ? (Math.random() * 2 - 1) * HELD_TUNING : 0);
   bendWith(voice.pitch, source.detune);
   let into = voice.input;
+  if (held && voice.dur > take.loop[1] - take.loop[0]) {
+    const wander = drifting(ctx, 2.5, voice.when, voice.end);
+    wander.connect(source.detune);
+    const breath = new GainNode(ctx, { gain: 1 });
+    drifting(ctx, 0.07, voice.when, voice.end).connect(breath.gain);
+    breath.connect(into);
+    into = breath;
+  }
+  const soft = (take.vel ?? 0.75) - voice.vel;
+  if (!held && !inst.backwards && soft > 0.05 && !note.slur) {
+    const touch = new GainNode(ctx, { gain: 0 });
+    touch.gain.setValueAtTime(0, voice.when);
+    touch.gain.linearRampToValueAtTime(1, voice.when + Math.min(0.6, soft) * TOUCH);
+    touch.connect(into);
+    into = touch;
+  }
   // a palm mute: the string's top taken off and the note stopped short (see the pluck engine)
   if (note.mute) {
     const stop = new GainNode(ctx, { gain: 1 });
     stop.gain.setTargetAtTime(0, voice.when + 0.04, 0.06);
-    into = new BiquadFilterNode(ctx, { frequency: 900, Q: 0.5 });
-    into.connect(stop).connect(voice.input);
+    const muted = new BiquadFilterNode(ctx, { frequency: 900, Q: 0.5 });
+    muted.connect(stop).connect(into);
+    into = muted;
   }
-  source.connect(into);
-  // legato: a slurred note starts in its recording's steady middle, past the attack, with the last
-  // note's release overlapping it, so a line goes note to note without a puff or scrape on each.
-  // backwards (sampled.backwards), it's lined up so the strike lands as the note ends: started into the
-  // tail for a short note, started late for one longer than the recording
-  if (inst.backwards) source.start(voice.when + Math.max(0, voice.dur - take.buffer.duration), Math.max(0, take.buffer.duration - voice.dur));
-  else source.start(voice.when, note.slur && take.loop ? take.loop[0] : 0);
-  source.stop(voice.end);
+  // (a softer layer brought up to sit with the others: evenLayers)
+  if (take.lift && take.lift !== 1) {
+    const lift = new GainNode(ctx, { gain: take.lift });
+    lift.connect(into);
+    into = lift;
+  }
+  // detuned: a piano whose strings for each note have drifted apart (a honky tonk's), the recording
+  // played twice, that many cents apart, so the note beats as a real one does
+  const sources = [source];
+  if (inst.detuned) {
+    const other = new AudioBufferSourceNode(ctx, { buffer: source.buffer, loop: source.loop, loopStart: source.loopStart, loopEnd: source.loopEnd });
+    other.detune.value = source.detune.value + inst.detuned;
+    source.detune.value -= inst.detuned * 0.3;
+    bendWith(voice.pitch, other.detune);
+    sources.push(other);
+  }
+  for (const one of sources) {
+    one.connect(into);
+    // legato: a slurred note starts in its recording's steady middle, past the attack, with the last
+    // note's release overlapping it, so a line goes note to note without a puff or scrape on each.
+    // backwards (sampled.backwards), it's lined up so the strike lands as the note ends: started into the
+    // tail for a short note, started late for one longer than the recording
+    if (inst.backwards) one.start(voice.when + Math.max(0, voice.dur - take.buffer.duration), Math.max(0, take.buffer.duration - voice.dur));
+    else one.start(voice.when, note.slur && take.loop ? take.loop[0] : 0);
+    one.stop(voice.end);
+  }
+  // a section's other players (sampled.section): each from its own recording, a few cents and
+  // milliseconds from the rest and a little to one side, as no two players are together, and only in
+  // the notes their instrument reaches (a trombone drops out at the top, a trumpet at the bottom)
+  for (const [folder, level] of Object.entries(inst.section || {})) {
+    const member = sampleSet(folder);
+    if (!member || midi < member.low - 4 || midi > member.high + 4) continue;
+    const take = pickTake(member.notes, midi, voice.vel, true);
+    const player = ctx.createBufferSource();
+    player.buffer = take.buffer;
+    if (take.loop) {
+      player.loop = true;
+      [player.loopStart, player.loopEnd] = take.loop;
+    }
+    player.detune.value = (midi - take.midi) * 100 + (take.tune || 0) + (note.cents || 0) + (Math.random() < 0.5 ? -1 : 1) * (3 + Math.random() * 6);
+    bendWith(voice.pitch, player.detune);
+    const place = new StereoPannerNode(ctx, { pan: (Math.random() * 2 - 1) * 0.35 });
+    player.connect(new GainNode(ctx, { gain: level * (take.lift || 1) })).connect(place).connect(into);
+    const late = note.slur ? 0 : 0.005 + Math.random() * 0.02;
+    player.start(voice.when + late, note.slur && take.loop ? take.loop[0] : 0);
+    player.stop(voice.end);
+  }
 };
 
 // a kit's slot from a recording (slot.hit), or false if it isn't loaded, retuned from slot.at into the
@@ -2463,41 +2579,135 @@ function instrumentChain(ctx, inst) {
 
 // ---------- the room ----------
 
-// a room's echo, made up: noise dying away and darkening as it goes, as walls soak up the top first
-// (normalised, so a big room isn't louder). its cost is its length, and it was the band's most
-// expensive part, so it stops 45 db down instead of 60 (under any music), and at three seconds on a
-// phone. kept, so a new song needn't make it again
-const impulses = new Map();
-function impulse(ctx, size, tone) {
-  const rate = ctx.sampleRate;
-  const key = `${rate}|${size}|${tone}`;
-  if (impulses.has(key)) return impulses.get(key);
-  const decays = 0.6 + size * 6;
-  const seconds = Math.min(LIGHT ? 3 : Infinity, decays * 0.75);
-  const length = Math.floor(rate * seconds);
-  const buffer = ctx.createBuffer(2, length, rate);
-  const gap = Math.floor(rate * (0.005 + size * 0.03));
-  const full = Math.floor(rate * decays);
-  const tail = Math.floor(length * 0.85);
+// a room's echo, worked out from a made up room rather than recorded, so every song can have its own.
+// the old one was noise dying away from the moment a note started, four seconds long in most songs:
+// every part floated in the same smooth wash, the sound of stock music and of music made by computer.
+//
+// a real room starts with a few separate bounces off its walls, then they crowd into a wash. so two
+// microphones a little apart hear the band's first bounces (image sources: each wall mirrors the band,
+// then the mirrors' mirrors, three deep), and the wash fades in as they run out. in the wash the lows
+// ring longest and the top dies fastest, as walls and air soak the top up first: it's split into four
+// bands, each fading at its own rate. soft walls (a dark tone) take more of each bounce and more of the
+// top. seed is the song, so its room has its own shape and is the same every time it plays.
+// every room is as loud as every other (normalised), so a big one is only longer. its cost is its
+// length, so the wash stops 50 db down (under any music), and at three seconds on a phone
+
+// a seeded random number maker, 0 to 1 (mulberry32 on a hash of the text)
+function seededRandom(text) {
+  let h = 1779033703 ^ text.length;
+  for (let i = 0; i < text.length; i++) {
+    h = Math.imul(h ^ text.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  return () => {
+    h = (h + 0x6d2b79f5) | 0;
+    let t = Math.imul(h ^ (h >>> 15), 1 | h);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// a room as a stereo buffer: rt is how long the middle of its wash takes to die away (seconds to 60 db
+// down), metres its length, hard how hard its walls are (0 curtains, 1 stone), gap extra quiet before
+// the first bounce (a producer's pre delay, so a note's start stays clear of its echo), energy how loud
+// it comes out in all
+const BAND_EDGES = [250, 1000, 4000];
+function roomBuffer(rate, { rt, metres, hard, gap, seed, energy, cap = Infinity }) {
+  const random = seededRandom(seed);
+  const room = [metres, metres * (0.55 + random() * 0.35), Math.max(2.6, metres * (0.25 + random() * 0.25))];
+  const spot = () => room.map((side) => side * (0.2 + random() * 0.6));
+  const band = spot();
+  const ears = spot();
+  // the lows ring a little longer than the middle, the top much shorter, shorter still off soft walls
+  const fades = [rt * 1.3, rt * 1.12, rt, rt * (0.3 + hard * 0.5)];
+  const length = Math.floor(rate * Math.min(cap, fades[0] * 0.85));
+  const buffer = new AudioBuffer({ numberOfChannels: 2, length, sampleRate: rate });
+  const bounce = 0.5 + hard * 0.4;
+  const volume = room[0] * room[1] * room[2];
+  const dull = 1 - Math.exp((-2 * Math.PI * (2500 + hard * 7000)) / rate);
+  const splits = BAND_EDGES.map((hz) => 1 - Math.exp((-2 * Math.PI * hz) / rate));
   for (let channel = 0; channel < 2; channel++) {
     const data = buffer.getChannelData(channel);
-    let low = 0;
-    for (let i = gap; i < length; i++) {
-      const fade = Math.exp((-6.9 * (i - gap)) / (full - gap)) * (i < tail ? 1 : (length - i) / (length - tail));
-      low += (Math.random() * 2 - 1 - low) * (0.06 + tone * 0.85 * (1 - (i / full) * 0.8));
-      data[i] = low * fade;
+    // the microphones 30 cm apart, so each side hears its own bounces: that's what makes a room wide
+    const ear = [ears[0] + (channel ? 0.15 : -0.15), ears[1], ears[2]];
+    const direct = Math.hypot(...band.map((at, k) => at - ear[k]));
+    const early = new Float32Array(length);
+    const arrivals = [];
+    for (let x = -3; x <= 3; x++) for (let y = -3; y <= 3; y++) for (let z = -3; z <= 3; z++) {
+      const order = Math.abs(x) + Math.abs(y) + Math.abs(z);
+      if (!order || order > 3) continue;
+      const image = [x, y, z].map((n, k) => (n % 2 === 0 ? n * room[k] + band[k] : (n + 1) * room[k] - band[k]));
+      const far = Math.hypot(...image.map((at, k) => at - ear[k]));
+      const t = gap + (far - direct) / 343;
+      const at = t * rate;
+      const i = Math.floor(at);
+      if (i + 1 >= length) continue;
+      // quieter for every wall it's bounced off and every metre further than the band itself
+      const level = (bounce ** order * direct) / far * (random() < 0.5 ? -1 : 1);
+      early[i] += level * (1 - (at - i));
+      early[i + 1] += level * (at - i);
+      arrivals.push(t);
     }
-    // early reflections: the first bounces off the walls, different each side so it's wide (a wash
-    // alone is a cheap reverb's room with no walls). soft knocks, about a fifth of the wash's first 80 ms
-    let early = 0;
-    for (let i = gap; i < Math.min(length, gap + rate * 0.08); i++) early += data[i] * data[i];
-    const level = Math.sqrt((early * 0.35) / 7 / 4);
-    for (let k = 0; k < 7; k++) {
-      const at = gap + Math.floor(rate * (0.004 + Math.random() * (0.01 + size * 0.05)));
-      const sign = Math.random() < 0.5 ? -1 : 1;
-      for (let j = 0; j < 12 && at + j < length; j++) data[at + j] += sign * level * (1 - k * 0.08) * Math.exp(-j / 3);
+    // a wall's bounce is duller than the sound that hit it
+    let low = 0;
+    for (let i = 0; i < length; i++) early[i] = low += (early[i] - low) * dull;
+    arrivals.sort((a, b) => a - b);
+    const first = arrivals[0];
+    const crowded = Math.max(first + 0.01, arrivals[arrivals.length >> 1]);
+    // the wash: as loud as a room this size's crowd of later bounces would be, and growing in from the
+    // first bounce until the separate ones run out
+    // (one band split, written out: this loop is most of the room's cost)
+    const level = Math.sqrt((4 * Math.PI * 343 * direct * direct) / (volume * rate)) * Math.sqrt(3);
+    const [s0, s1, s2, s3] = fades.map((seconds) => Math.exp(-6.9 / (seconds * rate)));
+    const [c0, c1, c2] = splits;
+    let [f0, f1, f2, f3] = [1, 1, 1, 1];
+    let [l0, l1, l2] = [0, 0, 0];
+    const start = Math.ceil(first * rate);
+    const full = Math.ceil(crowded * rate);
+    const tail = Math.floor(length * 0.85);
+    for (let i = 0; i < start; i++) data[i] = early[i];
+    f0 = s0 ** start;
+    f1 = s1 ** start;
+    f2 = s2 ** start;
+    f3 = s3 ** start;
+    for (let i = start; i < length; i++) {
+      const noise = Math.random() * 2 - 1;
+      l0 += (noise - l0) * c0;
+      l1 += (noise - l1) * c1;
+      l2 += (noise - l2) * c2;
+      const wash = l0 * f0 + (l1 - l0) * f1 + (l2 - l1) * f2 + (noise - l2) * f3;
+      f0 *= s0;
+      f1 *= s1;
+      f2 *= s2;
+      f3 *= s3;
+      const grow = i < full ? ((i - start) / (full - start)) ** 2 : 1;
+      data[i] = early[i] + wash * level * grow * (i < tail ? 1 : (length - i) / (length - tail));
     }
   }
+  let sum = 0;
+  for (let channel = 0; channel < 2; channel++) for (const x of buffer.getChannelData(channel)) sum += x * x;
+  const scale = Math.sqrt(energy / Math.max(1e-12, sum / 2));
+  for (let channel = 0; channel < 2; channel++) {
+    const data = buffer.getChannelData(channel);
+    for (let i = 0; i < length; i++) data[i] *= scale;
+  }
+  return buffer;
+}
+
+// the song's reverb (fx.size, fx.tone), kept so a new song needn't make it again. size 0 is a small
+// room (0.3 seconds), a middling 0.55 a hall of about a second and a half, 1 a cathedral (3.4). a
+// bigger room is a little louder in all, but quieter in its first fifth of a second than the old wash
+// was (old against new in the scratch calibration: about 1 db under at 0.5, 4 db under at 0.9)
+const reverbEnergy = (size) => 450 + 450 * size;
+const impulses = new Map();
+function impulse(ctx, size, tone, seed = '') {
+  const rate = ctx.sampleRate;
+  const key = `${rate}|${size}|${tone}|${seed}`;
+  if (impulses.has(key)) return impulses.get(key);
+  const buffer = roomBuffer(rate, {
+    rt: 0.3 + size ** 1.4 * 3.1, metres: 4 + size ** 1.3 * 34, hard: 0.2 + tone * 0.65, gap: 0.004 + size * 0.016,
+    seed: `reverb ${seed}`, energy: reverbEnergy(size), cap: LIGHT ? 3 : Infinity,
+  });
   if (impulses.size > 8) impulses.clear();
   impulses.set(key, buffer);
   return buffer;
@@ -2538,30 +2748,18 @@ const PLACES = {
   texture: { presence: -2, air: -1, room: 0.1 },
 };
 
-// the room everyone shares: hard walls, early reflections in the first 40 ms (different each side) and a
-// tail gone in half a second. kept per context
-const roomImpulses = new WeakMap();
-function roomImpulse(ctx) {
-  if (!roomImpulses.has(ctx)) {
-    const rate = ctx.sampleRate;
-    const length = Math.floor(rate * 0.6);
-    const buffer = ctx.createBuffer(2, length, rate);
-    for (let channel = 0; channel < 2; channel++) {
-      const data = buffer.getChannelData(channel);
-      let low = 0;
-      for (let i = 0; i < length; i++) {
-        low += (Math.random() * 2 - 1 - low) * (0.5 - (0.35 * i) / length);
-        data[i] = low * Math.exp((-6.9 * i) / length) * 0.3;
-      }
-      for (let k = 0; k < 14; k++) {
-        const at = Math.floor(rate * (0.003 + Math.random() * 0.04));
-        const level = (Math.random() < 0.5 ? -1 : 1) * Math.exp(-at / (rate * 0.03));
-        for (let j = 0; j < 16 && at + j < length; j++) data[at + j] += level * Math.exp(-j / 4);
-      }
-    }
-    roomImpulses.set(ctx, buffer);
+// the room everyone shares, the studio the band played in: a small one with hard walls, four to eight
+// metres long and gone in under half a second, its own shape for every song (seed)
+const ROOM_ENERGY = 28;
+const rooms = new Map();
+function roomImpulse(ctx, seed = '') {
+  const key = `${ctx.sampleRate}|${seed}`;
+  if (!rooms.has(key)) {
+    const random = seededRandom(`studio ${seed}`);
+    if (rooms.size > 8) rooms.clear();
+    rooms.set(key, roomBuffer(ctx.sampleRate, { rt: 0.28 + random() * 0.2, metres: 4 + random() * 4, hard: 0.6 + random() * 0.3, gap: 0, seed: `studio ${seed}`, energy: ROOM_ENERGY, cap: 0.6 }));
   }
-  return roomImpulses.get(ctx);
+  return rooms.get(key);
 }
 
 // tape saturation's curve: tanh pushed off centre (even harmonics, warmth), scaled so quiet sound passes
@@ -2603,7 +2801,8 @@ function buildGraph(ctx) {
   g.reverbIn.connect(g.reverb).connect(new BiquadFilterNode(ctx, { type: 'highpass', frequency: 200, Q: 0.5 })).connect(g.bus);
   // the room every part shares, its boom and its fizz taken off
   g.roomIn = ctx.createGain();
-  g.roomIn.connect(new ConvolverNode(ctx, { buffer: roomImpulse(ctx) })).connect(new BiquadFilterNode(ctx, { type: 'highpass', frequency: 180, Q: 0.5 }))
+  g.studio = new ConvolverNode(ctx, { buffer: roomImpulse(ctx) });
+  g.roomIn.connect(g.studio).connect(new BiquadFilterNode(ctx, { type: 'highpass', frequency: 180, Q: 0.5 }))
     .connect(new BiquadFilterNode(ctx, { frequency: 8000, Q: 0.5 })).connect(g.bus);
   // the echo bounces left and right (ping pong), losing some top end each time, and its low end on
   // the way back to the band
@@ -2630,16 +2829,21 @@ function buildGraph(ctx) {
 
 // puts a song's fx (music.js FX_DEFAULTS) onto the graph. changes glide, so dragging a slider while it
 // plays doesn't click
-function applySpace(g, fx, tempo) {
+function applySpace(g, fx, tempo, seed = '') {
   const now = g.ctx.currentTime;
   const set = (param, value) => {
     if (g.ready) param.setTargetAtTime(value, now, 0.03);
     else param.setValueAtTime(value, now);
   };
-  const room = `${fx.size.toFixed(2)}|${fx.tone.toFixed(2)}`;
+  // (the song's seed gives its rooms their shape)
+  const room = `${fx.size.toFixed(2)}|${fx.tone.toFixed(2)}|${seed}`;
   if (g.room !== room) {
     g.room = room;
-    g.reverb.buffer = impulse(g.ctx, fx.size, fx.tone);
+    g.reverb.buffer = impulse(g.ctx, Number(fx.size.toFixed(2)), Number(fx.tone.toFixed(2)), seed);
+  }
+  if (g.studied !== seed) {
+    g.studied = seed;
+    g.studio.buffer = roomImpulse(g.ctx, seed);
   }
   if (g.driven !== fx.drive) {
     g.driven = fx.drive;
@@ -2784,7 +2988,7 @@ class MusicPlayer {
     }
     if (this.ctx.state !== 'running') this.ctx.resume();
     this.unmute();
-    if (this.song) applySpace(this.graph, this.song.fx, this.song.tempo);
+    if (this.song) applySpace(this.graph, this.song.fx, this.song.tempo, this.song.seed);
   }
 
   // an iphone's silent switch mutes web audio unless it's media: audioSession says so (safari 17), and
@@ -2837,7 +3041,7 @@ class MusicPlayer {
     this.nextRound = null;
     findRestrikes(comp.notes);
     this.secondsPerBeat = secondsPerBeat;
-    if (this.ctx) applySpace(this.graph, song.fx, song.tempo);
+    if (this.ctx) applySpace(this.graph, song.fx, song.tempo, song.seed);
     this.fetchRecordings();
     if (!this.playing) return;
     this.mix();
@@ -3160,7 +3364,7 @@ async function renderSong(song, comp, loop, progress) {
   const tail = 7;
   const ctx = new OfflineAudioContext(2, Math.ceil((length + tail) * rate), rate);
   const graph = buildGraph(ctx);
-  applySpace(graph, song.fx, song.tempo);
+  applySpace(graph, song.fx, song.tempo, song.seed);
   const channels = {};
   const layers = {};
   for (const layer of song.layers) {

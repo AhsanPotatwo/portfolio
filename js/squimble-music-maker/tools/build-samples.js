@@ -108,6 +108,12 @@ const SOURCES = {
   sharon: { url: 'https://cdn.freesound.org/previews/', name: 'Music, Sharon Sings Notes and Shouts by CHallSmith (freesound.org)', licence: 'CC0 1.0' },
   musyng: { url: 'https://gleitz.github.io/midi-js-soundfonts/MusyngKite/', name: 'Musyng Kite soundfont, via midi-js-soundfonts', licence: 'CC BY-SA 3.0' },
   // the voices round: a woman singing long notes, from her takes on freesound
+  // the real sounds round: a celesta and a harmonium where only the general midi sets had one
+  pjcohen: { url: 'https://cdn.freesound.org/previews/', name: 'Celesta by pjcohen (freesound.org/people/pjcohen)', licence: 'CC BY 4.0' },
+  // and two more of d. smolken's bass guitars, so the commonest part isn't the same three basses
+  fashion: { git: 'https://github.com/sfzinstruments/karoryfer.fashionbass', name: 'Fashionbass (Karoryfer Samples)', licence: 'CC0 1.0' },
+  swag: { git: 'https://github.com/sfzinstruments/karoryfer.swagbass', name: 'Swagbass (Karoryfer Samples)', licence: 'CC0 1.0' },
+  cabled: { url: 'https://cdn.freesound.org/previews/', name: 'Harmonium by cabled_mess (freesound.org/people/cabled_mess)', licence: 'CC0 1.0' },
   owstu: { url: 'https://cdn.freesound.org/previews/', name: 'Female Voc Long Notes, female vocal long and vocal C sharp long by owstu (freesound.org)', licence: 'CC0 1.0' },
 };
 
@@ -127,34 +133,35 @@ const LOUD = vel([[/_ff?[_.\d]/i, 0.9], [/_mf[_.\d]/i, 0.65], [/_mp[_.\d]/i, 0.4
 
 const FOLDERS = {
   // ----- vsco 2 ce -----
-  violin: { from: 'vsco', dir: 'Strings/Solo Violin/Arco Vib/', match: /_([A-G]#?\d)_f\.wav$/, loop: true, seconds: 4 },
+  // (every loudness the libraries have: a soft note's a different sound, not just a quieter one)
+  violin: { from: 'vsco', dir: 'Strings/Solo Violin/Arco Vib/', match: /_([A-G]#?\d)_(p|f)\.wav$/, layers: { p: 0.4, f: 0.85 }, loop: true, seconds: 4 },
   strings: {
-    loop: true, seconds: 4, parts: [
-      { from: 'vsco', dir: 'Strings/Cello Section/susvib/', shift: 1, match: /_([A-G]#?\d)_v1_1\.wav$/, high: 47 },
-      { from: 'vsco', dir: 'Strings/Viola Section/susvib/', shift: 1, match: /_([A-G]#?\d)_v1_1\.wav$/, low: 48, high: 54 },
-      { from: 'vsco', dir: 'Strings/Violin Section/susVib/', shift: 1, match: /_([A-G]#?\d)_v1\.wav$/, low: 55 },
+    loop: true, seconds: 4, layers: { v1: 0.4, v2: 0.85, v3: 0.85 }, parts: [
+      { from: 'vsco', dir: 'Strings/Cello Section/susvib/', shift: 1, match: /_([A-G]#?\d)_(v1|v3)_1\.wav$/, high: 47 },
+      { from: 'vsco', dir: 'Strings/Viola Section/susvib/', shift: 1, match: /_([A-G]#?\d)_(v1|v2)_1\.wav$/, low: 48, high: 54 },
+      { from: 'vsco', dir: 'Strings/Violin Section/susVib/', shift: 1, match: /_([A-G]#?\d)_(v1|v2)\.wav$/, low: 55 },
     ],
   },
-  'cello-section': { from: 'vsco', dir: 'Strings/Cello Section/susvib/', shift: 1, match: /_([A-G]#?\d)_v1_1\.wav$/, loop: true, seconds: 4 },
+  'cello-section': { from: 'vsco', dir: 'Strings/Cello Section/susvib/', shift: 1, match: /_([A-G]#?\d)_(v1|v3)_1\.wav$/, layers: { v1: 0.4, v3: 0.85 }, loop: true, seconds: 4 },
   pizzicato: { from: 'vsco', dir: 'Strings/Violin Section/Pizz/', shift: 1, match: /_([A-G]#?\d)_(v\d)_rr1\.wav$/, layers: { v1: 0.4, v2: 0.9 }, seconds: 2 },
   'double-bass': { from: 'vsco', dir: 'Strings/Solo Contrabass/Pizz/', shift: 1, match: /_([A-G]#?\d)_(v\d)_rr1\.wav$/, layers: { v1: 0.4, v3: 0.9 }, seconds: 3 },
-  trumpet: { from: 'vsco', dir: 'Brass/Trumpet/sus/', shift: 1, match: /_sus_([A-G]#?\d)_v3_rr1\.wav$/, loop: true, seconds: 4 },
+  trumpet: { from: 'vsco', dir: 'Brass/Trumpet/sus/', shift: 1, match: /_sus_([A-G]#?\d)_(v1|v3)_rr1\.wav$/, layers: { v1: 0.4, v3: 0.85 }, loop: true, seconds: 4 },
   'harmon-trumpet': { from: 'vsco', dir: 'Brass/Trumpet/harmonM-sus/', shift: 1, match: /_([A-G]#?\d)_v3_rr1\.wav$/, loop: true, seconds: 4 },
-  horn: { from: 'vsco', dir: 'Brass/F Horn/sus/', shift: 1, match: /_([A-G]#?\d)_v2_1\.wav$/, loop: true, seconds: 4 },
-  trombone: { from: 'vsco', dir: 'Brass/Tenor Trombone/sus/', shift: 1, match: /_([A-G]#?\d)_v2_1\.wav$/, loop: true, seconds: 4 },
-  tuba: { from: 'vsco', dir: 'Brass/Tuba/sus/', shift: 1, match: /_([A-G]#?\d)_v2_rr1_Mid\.wav$/, loop: true, seconds: 4 },
+  horn: { from: 'vsco', dir: 'Brass/F Horn/sus/', shift: 1, match: /_([A-G]#?\d)_(v1|v2|v3)_1\.wav$/, layers: { v1: 0.35, v2: 0.65, v3: 0.9 }, loop: true, seconds: 4 },
+  trombone: { from: 'vsco', dir: 'Brass/Tenor Trombone/sus/', shift: 1, match: /_([A-G]#?\d)_(v1|v2|v3)_1\.wav$/, layers: { v1: 0.35, v2: 0.65, v3: 0.9 }, loop: true, seconds: 4 },
+  tuba: { from: 'vsco', dir: 'Brass/Tuba/sus/', shift: 1, match: /_([A-G]#?\d)_(v1|v2|v3)_rr1_Mid\.wav$/, layers: { v1: 0.35, v2: 0.65, v3: 0.9 }, loop: true, seconds: 4 },
   flute: { from: 'vsco', dir: 'Woodwinds/Flute/susvib/', shift: 1, match: /_([A-G]#?\d)_v1_1\.wav$/, loop: true, seconds: 4 },
-  clarinet: { from: 'vsco', dir: 'Woodwinds/Clarinet/susLong/', shift: 1, match: /_([A-G]#?\d)_v2_rr1_sum\.wav$/, loop: true, seconds: 4 },
+  clarinet: { from: 'vsco', dir: 'Woodwinds/Clarinet/susLong/', shift: 1, match: /_([A-G]#?\d)_(v1|v2|v3)_rr1_sum\.wav$/, layers: { v1: 0.35, v2: 0.65, v3: 0.9 }, loop: true, seconds: 4 },
   // the upright's files are numbered, two semitones apart from the bottom a (MappingChart.txt)
   'upright-piano': { from: 'vsco', dir: 'Keys/Upright Piano/', match: /Player_(dyn\d)_rr1_(\d+)\.wav$/, note: (m) => 21 + 2 * Number(m[2]), layer: (m) => m[1], layers: { dyn1: 0.3, dyn3: 0.9 }, every: 4, low: 28, high: 100, seconds: 5 },
   // ----- vcsl -----
-  piano: { from: 'vcsl', dir: 'Chordophones/Zithers/Grand Piano, Steinway B/Sus/', match: /_([A-G]#?\d)_(vl\d)_rr1\.wav$/, layers: { vl2: 0.35, vl4: 0.9 }, low: 28, high: 100, seconds: 5 },
-  'tenor-sax': { from: 'vcsl', dir: 'Aerophones/Reed Aerophones/Tenor Saxophone/Non-Vibrato/', shift: 1, match: /_([A-G]#?\d)_vl2_rr1\.wav$/, loop: true, seconds: 4 },
+  piano: { from: 'vcsl', dir: 'Chordophones/Zithers/Grand Piano, Steinway B/Sus/', match: /_([A-G]#?\d)_(vl\d)_rr1\.wav$/, layers: { vl2: 0.35, vl3: 0.62, vl4: 0.9 }, low: 28, high: 100, seconds: 5 },
+  'tenor-sax': { from: 'vcsl', dir: 'Aerophones/Reed Aerophones/Tenor Saxophone/Non-Vibrato/', shift: 1, match: /_([A-G]#?\d)_(vl2|vl3)_rr1\.wav$/, layers: { vl2: 0.45, vl3: 0.85 }, loop: true, seconds: 4 },
   harmonica: { from: 'vcsl', dir: 'Aerophones/Free Aerophones/Harmonica-Hohner-Super64/Sustains/Normal/', shift: 1, match: /_([A-G]#?\d)\.wav$/, loop: true, seconds: 4 },
   koto: { from: 'vcsl', dir: 'Chordophones/Zithers/Dan Tranh/Normal/', shift: 1, match: /^([A-G]#?\d)_ff?_1\.wav$/, seconds: 4 },
   harp: { from: 'vcsl', dir: 'Chordophones/Composite Chordophones/Concert Harp/', match: /_([A-G]#?\d)_(mf|f)1\.wav$/, layers: { mf: 0.45, f: 0.9 }, seconds: 4 },
   glockenspiel: { from: 'vcsl', dir: 'Idiophones/Struck Idiophones/Glockenspiel/', shift: 1, match: /_(soft|loud)_([A-G]#?\d)_01\.wav$/, note: 2, layer: 1, layers: { soft: 0.35, loud: 0.9 }, every: 2, seconds: 3 },
-  marimba: { from: 'vcsl', dir: 'Idiophones/Struck Idiophones/Marimba/', shift: 1, match: /_([A-G]#?\d)_(soft|loud)_01\.wav$/, layers: { soft: 0.35, loud: 0.9 }, seconds: 3 },
+  marimba: { from: 'vcsl', dir: 'Idiophones/Struck Idiophones/Marimba/', shift: 1, match: /_([A-G]#?\d)_(soft|med|loud)_01\.wav$/, layers: { soft: 0.35, med: 0.62, loud: 0.9 }, seconds: 3 },
   vibraphone: { from: 'vcsl', dir: 'Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/', shift: 1, match: /_([A-G]#?\d)_(v\d)_rr1_Main\.wav$/, layers: { v1: 0.4, v2: 0.9 }, seconds: 4 },
   'pipe-organ': { from: 'vcsl', dir: 'Aerophones/Edge-blown Aerophones/Pipe Organ/Quiet/', shift: 1, match: /_([A-G]#?\d)_rr1\.wav$/, loop: true, seconds: 4 },
   // ----- karoryfer and friends -----
@@ -362,8 +369,8 @@ const FOLDERS = {
   // the recorder's bigger sisters, the tenor and bass, for a consort of recorders
   'tenor-recorder': { from: 'vcsl', shift: 1, dir: 'Aerophones/Edge-blown Aerophones/Baroque Tenor Recorder/Sustain/', match: /^TenRecorder_Sus_([A-G]#?\d)_rr1_Main\.wav$/, every: 2, loop: true, seconds: 4 },
   'alto-recorder': { from: 'vcsl', shift: 1, dir: 'Aerophones/Edge-blown Aerophones/Baroque Alto Recorder/Sustain/', match: /^AltRecorder_Sus_([A-G]#?\d)_rr1_Main\.wav$/, every: 2, loop: true, seconds: 4 },
-  'yamaha-upright': { from: 'vcsl', shift: 1, dir: 'Chordophones/Zithers/Upright Piano, Yamaha/Sustains/', match: /^Upright1_Sus_([A-G]#?\d)_(vl1|vl3)_rr1\.wav$/, layers: { vl1: 0.35, vl3: 0.85 }, low: 28, high: 100, every: 1, seconds: 6 },
-  'kawai-grand': { from: 'vcsl', shift: 1, dir: 'Chordophones/Zithers/Grand Piano, Kawai/Sustains/', match: /^GPiano_sus_([A-G]#?-?\d)_(v1|v3)_rr1_Player\.wav$/, layers: { v1: 0.35, v3: 0.85 }, low: 28, high: 100, seconds: 6 },
+  'yamaha-upright': { from: 'vcsl', shift: 1, dir: 'Chordophones/Zithers/Upright Piano, Yamaha/Sustains/', match: /^Upright1_Sus_([A-G]#?\d)_(vl1|vl2|vl3)_rr[12]\.wav$/, layers: { vl1: 0.35, vl2: 0.6, vl3: 0.85 }, rr: 2, low: 28, high: 100, every: 1, seconds: 6 },
+  'kawai-grand': { from: 'vcsl', shift: 1, dir: 'Chordophones/Zithers/Grand Piano, Kawai/Sustains/', match: /^GPiano_sus_([A-G]#?-?\d)_(v1|v2|v3|v4)_rr1_Player\.wav$/, layers: { v1: 0.3, v2: 0.5, v3: 0.7, v4: 0.9 }, low: 28, high: 100, seconds: 6 },
   clavisynth: { from: 'vcsl', shift: 2,dir: 'Electrophones/TX81Z/Clavisynth/', match: /^Clavisynth_([A-G]#?\d)_(vl1|vl3)\.wav$/, layers: { vl1: 0.4, vl3: 0.9 }, low: 36, high: 96, seconds: 3 },
   // the second general midi set's (musyng kite), a second recording of the instruments that had one
   'string-ensemble': { gm: 'string_ensemble_1', font: 'musyng', low: 36, high: 96, loop: true },
@@ -397,6 +404,13 @@ const FOLDERS = {
   // the shoegaze round: natural harmonics (the first general midi set's, sounding two octaves over their
   // names). karoryfer's behind the bridge plinks were tried and left out: each rings at its string's own
   // pitch behind the bridge, nothing like its name, so they can't be played as notes
+  // the real sounds round: a celesta played a note at a time (named as written, so measured), and a
+  // harmonium, its few notes held
+  'real-celesta': { from: 'pjcohen', measure: true, seconds: 4, files: [['410/410666_394391-hq.mp3', 44], ['410/410678_394391-hq.mp3', 46], ['410/410645_394391-hq.mp3', 48], ['410/410630_394391-hq.mp3', 52], ['410/410638_394391-hq.mp3', 54], ['410/410675_394391-hq.mp3', 56], ['410/410677_394391-hq.mp3', 58], ['410/410641_394391-hq.mp3', 60], ['410/410635_394391-hq.mp3', 62], ['410/410631_394391-hq.mp3', 64], ['410/410673_394391-hq.mp3', 66], ['410/410674_394391-hq.mp3', 68], ['410/410676_394391-hq.mp3', 70], ['410/410640_394391-hq.mp3', 72], ['410/410636_394391-hq.mp3', 74], ['410/410632_394391-hq.mp3', 76], ['410/410672_394391-hq.mp3', 78], ['410/410654_394391-hq.mp3', 80], ['410/410658_394391-hq.mp3', 82], ['410/410643_394391-hq.mp3', 84], ['410/410629_394391-hq.mp3', 86], ['410/410637_394391-hq.mp3', 88], ['410/410671_394391-hq.mp3', 90]].map(([file, midi]) => [file, midi]) },
+  // roundwound strings, bright and punchy, and old flatwounds, dark and thumpy: two takes of three loudnesses
+  'fashion-bass': { from: 'fashion', low: 26, high: 67, dir: 'notes/', match: /^([a-g]b?\d)_(p|mf|ff)_rr[12]\.wav$/, layers: { p: 0.35, mf: 0.6, ff: 0.9 }, rr: 2, seconds: 4 },
+  'swag-bass': { from: 'swag', shift: -1, low: 26, high: 67, dir: 'notes/', match: /^([a-g]b?\d)_(p|f|fff)_rr[12]\.wav$/, layers: { p: 0.35, f: 0.65, fff: 0.9 }, rr: 2, seconds: 4 },
+  harmonium: { from: 'cabled', loop: true, trust: true, seconds: 5, files: [['523/523883_5450487-hq.mp3', 41], ['523/523889_5450487-hq.mp3', 43], ['523/523884_5450487-hq.mp3', 44], ['523/523878_5450487-hq.mp3', 48], ['523/523880_5450487-hq.mp3', 51], ['523/523882_5450487-hq.mp3', 53], ['523/523888_5450487-hq.mp3', 55], ['523/523887_5450487-hq.mp3', 56], ['523/523879_5450487-hq.mp3', 63], ['523/523885_5450487-hq.mp3', 65], ['523/523881_5450487-hq.mp3', 67], ['523/523886_5450487-hq.mp3', 68]].map(([file, midi]) => [file, midi]) },
   'guitar-harmonics': { gm: 'guitar_harmonics', shift: -2, low: 40, high: 76 },
   'slap-bass-2': { gm: 'slap_bass_1', font: 'musyng', low: 28, high: 67 },
   'fretless-2': { gm: 'fretless_bass', font: 'musyng', low: 28, high: 67 },

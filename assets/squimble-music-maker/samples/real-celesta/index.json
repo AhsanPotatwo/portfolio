@@ -1,0 +1,117 @@
+{
+ "source": "Celesta by pjcohen (freesound.org/people/pjcohen)",
+ "link": "https://cdn.freesound.org/previews/",
+ "licence": "CC BY 4.0",
+ "notes": [
+  {
+   "file": "ab2.mp3",
+   "midi": 44
+  },
+  {
+   "file": "bb2.mp3",
+   "midi": 46,
+   "tune": -3
+  },
+  {
+   "file": "c3.mp3",
+   "midi": 48
+  },
+  {
+   "file": "e3.mp3",
+   "midi": 52
+  },
+  {
+   "file": "gb3.mp3",
+   "midi": 54,
+   "tune": -1
+  },
+  {
+   "file": "ab3.mp3",
+   "midi": 56,
+   "tune": -1
+  },
+  {
+   "file": "bb3.mp3",
+   "midi": 58,
+   "tune": -2
+  },
+  {
+   "file": "c4.mp3",
+   "midi": 60
+  },
+  {
+   "file": "d4.mp3",
+   "midi": 62
+  },
+  {
+   "file": "e4.mp3",
+   "midi": 64,
+   "tune": -1
+  },
+  {
+   "file": "gb4.mp3",
+   "midi": 66,
+   "tune": -1
+  },
+  {
+   "file": "ab4.mp3",
+   "midi": 68,
+   "tune": -1
+  },
+  {
+   "file": "bb4.mp3",
+   "midi": 70,
+   "tune": -1
+  },
+  {
+   "file": "c5.mp3",
+   "midi": 72,
+   "tune": -1
+  },
+  {
+   "file": "d5.mp3",
+   "midi": 74,
+   "tune": -2
+  },
+  {
+   "file": "e5.mp3",
+   "midi": 76,
+   "tune": -2
+  },
+  {
+   "file": "gb5.mp3",
+   "midi": 78,
+   "tune": -2
+  },
+  {
+   "file": "ab5.mp3",
+   "midi": 80,
+   "tune": -3
+  },
+  {
+   "file": "bb5.mp3",
+   "midi": 82,
+   "tune": -3
+  },
+  {
+   "file": "c6.mp3",
+   "midi": 84,
+   "tune": -5
+  },
+  {
+   "file": "d6.mp3",
+   "midi": 86,
+   "tune": -4
+  },
+  {
+   "file": "e6.mp3",
+   "midi": 88,
+   "tune": -4
+  },
+  {
+   "file": "gb6.mp3",
+   "midi": 90,
+   "tune": -5
+  }
+ ]
+}

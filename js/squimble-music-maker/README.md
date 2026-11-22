@@ -70,6 +70,9 @@ Each is here because the song sounded wrong without it. Most have a check in `mu
 - Backing sits at least 0.1 under the melody. Textures are scenery: events with quiet between, capped under the tune.
 - Every part but bass, drums and drones has its lows cut (`CUTS`); fill-in parts on opposite sides (`spread`).
 - Recordings are picked five to one over synths, each layer its own recording, and only recordings double.
+- General MIDI soundfont recordings are never picked for a new song where a real one exists (`weight: 0`, kept for songs that chose them).
+- A recording is never quite the same twice: every loudness the library has, a neighbour's take now and then, held notes a few cents off (`pickTake`, `ENGINES.sample`).
+- Every song plays in its own rooms, shaped by its seed, short enough that the start of a note stays clear (`roomBuffer`).
 - Sung lines sing each note on its nearest recording, never bent more than two semitones, moving like a singer (`singerMove`).
 
 ### Listening
@@ -130,12 +133,16 @@ Kept so nobody undoes a fix by accident.
 | Last chord hanging | Bass ended wherever its pattern was | `comeHome` |
 | Stutters, silence on iPhones | Long reverb tail, late notes, silent switch | Shorter tail, `warmNote`, `unmute` |
 | Big songs stuttering on Windows | 10 ms buffer, amp curves never resting | 40 ms buffer, odd-length curves |
+| Sounding made by a computer, like stock music | Every part in one four second wash of noise, the same in every song | Rooms worked out from a made up room: first bounces, then a wash growing in, the lows ringing longest, half as long, each song its own (`roomBuffer`) |
+| The same note sounding the same every time | One take a note, at one loudness | Every loudness the libraries have, neighbours' takes (within 2 db), held notes off by a few cents and wandering, soft notes starting softer |
+| Soft notes vanishing on some instruments | Each library's soft takes mastered 1 to 32 db under its loud ones, then turned down again for velocity | `evenLayers`: soft layers sit 10 log10(vel) db under the loudest |
+| General MIDI sounds | 70 folders from soundfonts, a fifth of all parts | Real recordings first; a real celesta and harmonium; a brass section of real players (`section`); honky tonk from a real upright (`detuned`) |
 
 ## Adding things
 
 - **A change that makes saved songs sound different** (`saved-songs-check.js` fails): first run `node js/squimble-music-maker/tools/keep-composer.js` (`--from HEAD` if already changed). It copies moods.js and music.js into `kept/composer-n.js`, bumps `COMPOSER_VERSIONS` and adds a `COMPOSER_KEYS` line in maker.js (describe it by hand). Once the new one's finished, `saved-songs-check.js --add`. Changes only to `generateSong`'s picks don't need it.
 - **An instrument:** an `INSTRUMENTS` line with a family, an `edge`, an engine, and `gain` set with `levels.html`. Check the id isn't taken.
-- **Recordings:** a folder in `tools/build-samples.js` (run `--probe` first), then `samples` and `sampled.gain`. Only libraries whose licence allows a game, credited on the page.
+- **Recordings:** a folder in `tools/build-samples.js` (run `--probe` first), then `samples` and `sampled.gain`. Only libraries whose licence allows a game, credited on the page. Take every loudness and take the library has. Rebuilding a folder with a louder layer than before moves its level (each folder is levelled to its loudest note), so measure its `gain` again. `levels.html` picks takes at random: to compare two versions, seed `Math.random` again for each instrument and turn off `pickTake`'s `loose`, or the same recording measures several db apart from run to run.
 - **A mood:** a `MOODS` entry (the comment above it lists every field) and its `FLAVOURS` entry. Use `surprise: 0` or older songs change.
 - **A flavour:** a kind in its mood's `FLAVOURS` with a `name`, a `tip` (the feeling, never the source) and a `phrasing`. Never change the first kind.
 - **A modifier:** `MODIFIERS` entry with `name`, `tip`, `against`, `apply(mood, style)`.

@@ -5,45 +5,142 @@
  "loop": true,
  "notes": [
   {
-   "file": "bb1.mp3",
+   "file": "bb1-4.mp3",
    "midi": 34,
+   "vel": 0.35,
+   "tune": 1
+  },
+  {
+   "file": "bb1-7.mp3",
+   "midi": 34,
+   "vel": 0.65,
    "tune": -2
   },
   {
-   "file": "db2.mp3",
+   "file": "db2-4.mp3",
    "midi": 37,
+   "vel": 0.35
+  },
+  {
+   "file": "db2-7.mp3",
+   "midi": 37,
+   "vel": 0.65,
    "tune": 1
   },
   {
-   "file": "f2.mp3",
+   "file": "f2-4.mp3",
    "midi": 41,
+   "vel": 0.35
+  },
+  {
+   "file": "f2-7.mp3",
+   "midi": 41,
+   "vel": 0.65,
    "tune": -1
   },
   {
-   "file": "bb2.mp3",
-   "midi": 46
+   "file": "f2-9.mp3",
+   "midi": 41,
+   "vel": 0.9
   },
   {
-   "file": "d3.mp3",
+   "file": "bb2-4.mp3",
+   "midi": 46,
+   "vel": 0.35,
+   "tune": 2
+  },
+  {
+   "file": "bb2-7.mp3",
+   "midi": 46,
+   "vel": 0.65
+  },
+  {
+   "file": "bb2-9.mp3",
+   "midi": 46,
+   "vel": 0.9,
+   "tune": 1
+  },
+  {
+   "file": "d3-4.mp3",
    "midi": 50,
+   "vel": 0.35,
+   "tune": -1
+  },
+  {
+   "file": "d3-7.mp3",
+   "midi": 50,
+   "vel": 0.65,
    "tune": 1
   },
   {
-   "file": "f3.mp3",
+   "file": "d3-9.mp3",
+   "midi": 50,
+   "vel": 0.9,
+   "tune": 1
+  },
+  {
+   "file": "f3-4.mp3",
    "midi": 53,
+   "vel": 0.35,
    "tune": 1
   },
   {
-   "file": "c4.mp3",
-   "midi": 60
+   "file": "f3-7.mp3",
+   "midi": 53,
+   "vel": 0.65,
+   "tune": 1
   },
   {
-   "file": "eb4.mp3",
-   "midi": 63
+   "file": "f3-9.mp3",
+   "midi": 53,
+   "vel": 0.9,
+   "tune": 1
   },
   {
-   "file": "f4.mp3",
-   "midi": 65
+   "file": "c4-4.mp3",
+   "midi": 60,
+   "vel": 0.35
+  },
+  {
+   "file": "c4-7.mp3",
+   "midi": 60,
+   "vel": 0.65
+  },
+  {
+   "file": "c4-9.mp3",
+   "midi": 60,
+   "vel": 0.9,
+   "tune": -1
+  },
+  {
+   "file": "eb4-4.mp3",
+   "midi": 63,
+   "vel": 0.35
+  },
+  {
+   "file": "eb4-7.mp3",
+   "midi": 63,
+   "vel": 0.65
+  },
+  {
+   "file": "eb4-9.mp3",
+   "midi": 63,
+   "vel": 0.9
+  },
+  {
+   "file": "f4-4.mp3",
+   "midi": 65,
+   "vel": 0.35
+  },
+  {
+   "file": "f4-7.mp3",
+   "midi": 65,
+   "vel": 0.65
+  },
+  {
+   "file": "f4-9.mp3",
+   "midi": 65,
+   "vel": 0.9
   }
  ]
 }

@@ -5,79 +5,187 @@
  "loop": true,
  "notes": [
   {
-   "file": "c2.mp3",
-   "midi": 36
+   "file": "c2-4.mp3",
+   "midi": 36,
+   "vel": 0.4
   },
   {
-   "file": "e2.mp3",
-   "midi": 40,
-   "tune": 2
-  },
-  {
-   "file": "g2.mp3",
-   "midi": 43,
+   "file": "c2-9.mp3",
+   "midi": 36,
+   "vel": 0.85,
    "tune": 3
   },
   {
-   "file": "b2.mp3",
+   "file": "e2-4.mp3",
+   "midi": 40,
+   "vel": 0.4,
+   "tune": 2
+  },
+  {
+   "file": "e2-9.mp3",
+   "midi": 40,
+   "vel": 0.85
+  },
+  {
+   "file": "g2-4.mp3",
+   "midi": 43,
+   "vel": 0.4,
+   "tune": 3
+  },
+  {
+   "file": "g2-9.mp3",
+   "midi": 43,
+   "vel": 0.85
+  },
+  {
+   "file": "b2-4.mp3",
    "midi": 47,
+   "vel": 0.4,
    "tune": -3
   },
   {
-   "file": "c3.mp3",
+   "file": "b2-9.mp3",
+   "midi": 47,
+   "vel": 0.85,
+   "tune": -5
+  },
+  {
+   "file": "c3-4.mp3",
    "midi": 48,
+   "vel": 0.4,
    "tune": -1
   },
   {
-   "file": "e3.mp3",
-   "midi": 52
+   "file": "c3-9.mp3",
+   "midi": 48,
+   "vel": 0.85,
+   "tune": 2
   },
   {
-   "file": "g3.mp3",
-   "midi": 55
+   "file": "e3-4.mp3",
+   "midi": 52,
+   "vel": 0.4
   },
   {
-   "file": "b3.mp3",
-   "midi": 59,
-   "tune": 1
-  },
-  {
-   "file": "d4.mp3",
-   "midi": 62,
-   "tune": 1
-  },
-  {
-   "file": "gb4.mp3",
-   "midi": 66
-  },
-  {
-   "file": "a4.mp3",
-   "midi": 69
-  },
-  {
-   "file": "c5.mp3",
-   "midi": 72,
+   "file": "e3-9.mp3",
+   "midi": 52,
+   "vel": 0.85,
    "tune": -2
   },
   {
-   "file": "e5.mp3",
-   "midi": 76,
-   "tune": 1
+   "file": "g3-4.mp3",
+   "midi": 55,
+   "vel": 0.4
   },
   {
-   "file": "g5.mp3",
-   "midi": 79,
-   "tune": 1
-  },
-  {
-   "file": "b5.mp3",
-   "midi": 83,
+   "file": "g3-9.mp3",
+   "midi": 55,
+   "vel": 0.85,
    "tune": -1
   },
   {
-   "file": "d6.mp3",
+   "file": "b3-4.mp3",
+   "midi": 59,
+   "vel": 0.4,
+   "tune": 1
+  },
+  {
+   "file": "b3-9.mp3",
+   "midi": 59,
+   "vel": 0.85,
+   "tune": 3
+  },
+  {
+   "file": "d4-4.mp3",
+   "midi": 62,
+   "vel": 0.4,
+   "tune": 1
+  },
+  {
+   "file": "d4-9.mp3",
+   "midi": 62,
+   "vel": 0.85,
+   "tune": -1
+  },
+  {
+   "file": "gb4-4.mp3",
+   "midi": 66,
+   "vel": 0.4
+  },
+  {
+   "file": "gb4-9.mp3",
+   "midi": 66,
+   "vel": 0.85,
+   "tune": -5
+  },
+  {
+   "file": "a4-4.mp3",
+   "midi": 69,
+   "vel": 0.4
+  },
+  {
+   "file": "a4-9.mp3",
+   "midi": 69,
+   "vel": 0.85,
+   "tune": 1
+  },
+  {
+   "file": "c5-4.mp3",
+   "midi": 72,
+   "vel": 0.4,
+   "tune": -2
+  },
+  {
+   "file": "c5-9.mp3",
+   "midi": 72,
+   "vel": 0.85
+  },
+  {
+   "file": "e5-4.mp3",
+   "midi": 76,
+   "vel": 0.4,
+   "tune": 1
+  },
+  {
+   "file": "e5-9.mp3",
+   "midi": 76,
+   "vel": 0.85,
+   "tune": 1
+  },
+  {
+   "file": "g5-4.mp3",
+   "midi": 79,
+   "vel": 0.4,
+   "tune": 1
+  },
+  {
+   "file": "g5-9.mp3",
+   "midi": 79,
+   "vel": 0.85,
+   "tune": 3
+  },
+  {
+   "file": "b5-4.mp3",
+   "midi": 83,
+   "vel": 0.4,
+   "tune": -1
+  },
+  {
+   "file": "b5-9.mp3",
+   "midi": 83,
+   "vel": 0.85,
+   "tune": 3
+  },
+  {
+   "file": "d6-4.mp3",
    "midi": 86,
+   "vel": 0.4,
    "tune": -4
+  },
+  {
+   "file": "d6-9.mp3",
+   "midi": 86,
+   "vel": 0.85
   }
  ]
 }

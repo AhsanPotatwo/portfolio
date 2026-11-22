@@ -1,0 +1,65 @@
+{
+ "source": "Harmonium by cabled_mess (freesound.org/people/cabled_mess)",
+ "link": "https://cdn.freesound.org/previews/",
+ "licence": "CC0 1.0",
+ "loop": true,
+ "notes": [
+  {
+   "file": "f2.mp3",
+   "midi": 41
+  },
+  {
+   "file": "g2.mp3",
+   "midi": 43,
+   "tune": -6
+  },
+  {
+   "file": "ab2.mp3",
+   "midi": 44
+  },
+  {
+   "file": "c3.mp3",
+   "midi": 48
+  },
+  {
+   "file": "eb3.mp3",
+   "midi": 51,
+   "tune": -4
+  },
+  {
+   "file": "f3.mp3",
+   "midi": 53,
+   "tune": -6
+  },
+  {
+   "file": "g3.mp3",
+   "midi": 55,
+   "tune": -7
+  },
+  {
+   "file": "ab3.mp3",
+   "midi": 56,
+   "tune": -6
+  },
+  {
+   "file": "eb4.mp3",
+   "midi": 63,
+   "tune": -8
+  },
+  {
+   "file": "f4.mp3",
+   "midi": 65,
+   "tune": -6
+  },
+  {
+   "file": "g4.mp3",
+   "midi": 67,
+   "tune": -7
+  },
+  {
+   "file": "ab4.mp3",
+   "midi": 68,
+   "tune": -8
+  }
+ ]
+}
