@@ -166,34 +166,26 @@ html:has(.wizard-page){ --sb-track:#2b1d28; --sb-thumb:#f1e2c2; --sb-edge:#c4a77
   padding-top:clamp(52px,6vw,76px);
   margin-bottom:clamp(44px,5vw,64px);
 }
-/* the name on a sign hanging from the pelmet, the same sign as the home page card */
+/* the name, cut from paper like the puppets and dressed in their robes (assets/wizard-battles/logo.webp, the
+   same as the home page card), hanging from the pelmet on two threads tied to the W and the d */
 .wb-sign{
   position:relative;
   justify-self:start;
-  padding:.14em .36em .2em;
-  border-radius:10px;
-  background:var(--parch);
-  box-shadow:0 8px 0 var(--parch-edge), 12px 20px 0 var(--drop);
-  font-family:var(--font-book);
-  font-weight:700;
-  font-size:clamp(58px,7.4vw,108px);
-  line-height:.88;
-  text-align:center;
-  color:var(--ink);
-  rotate:-2deg;
+  width:clamp(300px,30vw,430px);
+  margin:0;
+  rotate:-1deg;
   transform-origin:50% -150px;
   transition:rotate .6s cubic-bezier(.3,1.7,.5,1);
 }
-.wb-sign:hover{ rotate:1.2deg; }
+.wb-sign:hover{ rotate:1.5deg; }
+.wb-sign img{ display:block; width:100%; height:auto; }
 .wb-sign::before{
   content:"";
-  position:absolute; left:22%; right:22%; bottom:100%;
-  height:260px;
+  position:absolute; left:18.1%; right:11.6%; bottom:80%;
+  z-index:-1;
+  height:300px;
   border-inline:2px solid var(--tan-light);
 }
-.wb-sign > span{ display:block; }
-.wb-sign-you{ text-shadow:.04em .05em 0 var(--blue); }
-.wb-sign-foe{ text-shadow:.04em .05em 0 var(--red); }
 
 .wb-hero-side{ padding-bottom:10px; }
 .wb-hero-copy{
@@ -388,9 +380,8 @@ html:has(.wizard-page){ --sb-track:#2b1d28; --sb-thumb:#f1e2c2; --sb-edge:#c4a77
   line-height:.92;
   color:var(--ink);
 }
-.wb-bill-title-text > span{ display:block; }
-.wb-bill .wb-title-you{ text-shadow:.04em .05em 0 var(--blue); }
-.wb-bill .wb-title-foe{ text-shadow:.04em .05em 0 var(--red); }
+/* the name glued on the playbill: the page's logo without the threads (assets/wizard-battles/logo-bill.webp) */
+.wb-bill-logo img{ display:block; width:300px; height:auto; margin:4px auto 0; }
 .wb-bill-end .wb-bill-title-text{ margin-bottom:10px; text-shadow:.04em .05em 0 var(--tan-light); }
 .wb-bill-cast{ font-size:16px; font-weight:600; color:#5a4232; }
 .wb-bill-cast i{ font-family:var(--font-book); font-weight:600; font-size:19px; color:var(--red-deep); }
@@ -1245,7 +1236,7 @@ a.wb-doc:active{ transform:translateY(3px); box-shadow:0 0 0 var(--parch-edge); 
 @media (max-width:600px){
   .wb-pelmet{ height:52px; background-size:78px 52px; }
   .wb-hang{ top:14px; }
-  .wb-sign{ font-size:clamp(50px,16vw,72px); }
+  .wb-sign{ width:min(300px,78vw); }
   /* the board goes nearly edge to edge so the game isn't tiny */
   .wb-hero-game{ padding-inline:8px; }
   .wb-board{ padding:8px; border-radius:16px; box-shadow:0 6px 0 var(--edge); }

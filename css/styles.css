@@ -889,34 +889,25 @@ html:has(.home){ --sb-track:#1f1a33; --sb-thumb:#ffd166; --sb-edge:#c9962a; --sb
 .wizard-puppet-you{ left:12cqi; width:11.7cqi; }
 .wizard-puppet-foe{ right:12cqi; width:13.3cqi; }
 
-/* the playbill */
+/* the name, cut from paper in the wizards' robes (assets/wizard-battles/logo.webp, as on the game's page) */
 .wizard-sign{
   position:absolute; left:50%; top:7.5cqi; z-index:2;
-  padding:1.3cqi 3cqi 1.5cqi;
-  border-radius:.8cqi;
-  background:#f1e2c2;
-  box-shadow:0 .8cqi 0 #c4a774, 1cqi 1.8cqi 0 rgba(28,18,14,.28);
+  width:40cqi;
   translate:-50% 0;
-  rotate:-2deg;
-  font-family:"Crimson Pro", var(--font-sans);
-  font-weight:700;
-  font-size:8.4cqi;
-  line-height:.9;
-  text-align:center;
-  color:#362521;
+  rotate:-1deg;
+  transform-origin:50% -8cqi;
   transition:rotate .35s var(--ease-out);
 }
 .project-card-wizard:is(:hover, :focus-within) .wizard-sign{ rotate:1deg; }
-/* the two strings up to the pelmet */
+.wizard-sign img{ display:block; width:100%; height:auto; }
+/* the two threads up to the pelmet, tied to the W and the d */
 .wizard-sign::before{
   content:"";
-  position:absolute; left:20%; right:20%; top:-4cqi;
-  height:4cqi;
+  position:absolute; left:18.1%; right:11.6%; bottom:80%;
+  z-index:-1;
+  height:9cqi;
   border-inline:.25cqi solid #d9b77a;
 }
-.wizard-sign > span{ display:block; }
-.wizard-sign .wizard-you{ text-shadow:.04em .05em 0 #98c1ff; }
-.wizard-sign .wizard-foe{ text-shadow:.04em .05em 0 #ff6b6b; }
 
 /* the duel, 3.2s round: blue casts at 0%, fire lands at 30%, red casts at 50%, water lands at 80% */
 /* behind the playbill, like a prop passing behind the scenery, so the name always reads */
