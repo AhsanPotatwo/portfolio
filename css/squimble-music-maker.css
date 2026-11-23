@@ -10,8 +10,7 @@
   --mm-ink-soft:  #74563b;
   /* three kinds of outline, never black:
      edge: everyday things (keys, boxes, sliders, the panel), a soft cocoa line so the words in them
-       stand out more than their outline. --mm-edge-from is the colour it's made from, and the outline
-       key in maker.js can pick another. solid is a darker fill of it: the main keys, the open thing.
+       stand out more than their outline. --mm-edge-from is the colour it's made from. solid is a darker fill of it: the main keys, the open thing.
      edge-mood: the big cards (the machine, the song's card, the mood's card, the shelves) and settings
        that are on, a dark line in the song's mood. each mood key and each layer colour gets its own
        colour's line instead (.mm-mood, .mm-cell).
@@ -115,14 +114,6 @@
     --mm-dock:      oklch(from var(--mm-mood) .14 min(c, .04) h);
   }
 }
-/* the outline key's other colours for everyday lines (data-edge on the body, kept in this browser).
-   cocoa is the default above; ink is the old near black */
-.mm-page[data-edge="mood"]{ --mm-edge-from:var(--mm-mood); }
-.mm-page[data-edge="plum"]{ --mm-edge-from:#9150a8; }
-.mm-page[data-edge="navy"]{ --mm-edge-from:#3d63c4; }
-.mm-page[data-edge="pine"]{ --mm-edge-from:#2c8f62; }
-.mm-page[data-edge="ink"]{ --mm-edge:#2b1508; --mm-edge-deep:#000; --mm-solid:#2b1508; }
-.mm-page.is-dark[data-edge="ink"]{ --mm-edge:#0e0805; --mm-edge-deep:#0e0805; --mm-solid:var(--mm-ink); }
 /* html has its own copy of the mood (maker.js sets both), so the page behind and the scrollbar can take
    it too: a soft round key in the mood's light colour */
 html:has(.mm-page){
@@ -245,10 +236,6 @@ html:has(.mm-page){
 .mm-key-dark svg{ width:16px; height:16px; transition:rotate .6s var(--mm-spring); }
 /* (the moon turns over into the night, and back) */
 .mm-key-dark[aria-pressed="true"] svg{ rotate:360deg; }
-/* the outline key: a dot of the colour the outlines are sunk from, ringed in the outline itself */
-.mm-key-edge{ width:40px; }
-.mm-edge-dot{ width:16px; height:16px; border-radius:50%; background:var(--mm-edge-from); border:3px solid var(--mm-edge); transition:scale .35s var(--mm-spring); }
-.mm-key-edge:active .mm-edge-dot{ scale:.8; }
 @media (prefers-reduced-motion: reduce){
   .mm-key, .mm-key-dark svg{ transition:none; }
 }
@@ -1097,7 +1084,7 @@ html:has(.mm-page){
   .mm-tip{ font-size:13.5px; line-height:1.4; min-height:2.8em; }
   .mm-bar-actions{ margin-left:0; width:100%; }
   .mm-bar-actions .mm-key{ flex:1; }
-  .mm-bar-actions .mm-key-dark, .mm-bar-actions .mm-key-edge{ flex:none; width:44px; }
+  .mm-bar-actions .mm-key-dark{ flex:none; width:44px; }
   .mm-field, .mm-slider{ grid-template-columns:84px minmax(0,1fr); }
   .mm-slider{ grid-template-columns:84px minmax(0,1fr) 72px; }
   .mm-chips, .mm-chord-problem{ margin-left:0; }

@@ -7,10 +7,11 @@ const path = require('path');
 const vm = require('vm');
 
 // a pretend page: a canvas whose drawing calls do nothing
-const pen = new Proxy({}, { get: (target, key) => (key in target ? target[key] : () => {}), set: (target, key, value) => ((target[key] = value), true) });
+const pen = new Proxy({ createPattern: () => ({ setTransform() {} }) }, { get: (target, key) => (key in target ? target[key] : () => {}), set: (target, key, value) => ((target[key] = value), true) });
 Object.assign(globalThis, {
   window: globalThis,
-  document: { getElementById: () => ({ getContext: () => pen }), querySelector: () => ({ getBoundingClientRect: () => ({ top: 500, bottom: 76 }) }) },
+  DOMMatrix: class {},
+  document: { getElementById: () => ({ getContext: () => pen }), createElement: () => ({ getContext: () => pen }), querySelector: () => ({ getBoundingClientRect: () => ({ top: 500, bottom: 76 }) }) },
   matchMedia: () => ({ matches: false }),
   addEventListener: () => {},
   innerWidth: 1366,

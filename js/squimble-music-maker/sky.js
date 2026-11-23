@@ -7,7 +7,9 @@
 // behind the toy and never fights the words in front of it.
 //
 // every scene spreads evenly over the whole window and stays put as the page scrolls, so it looks the
-// same wherever you are on the page when you pick a mood.
+// same wherever you are on the page when you pick a mood. under it lies a faint pattern (the ground)
+// that slides along slower than the page, like something further back, and scrolling stirs the
+// whole sky up for a moment, so moving down the page never shows a flat, dead colour.
 //
 // it drifts slowly on its own and comes alive while a song plays: the beat, the drums' kicks, snares and
 // crashes, and the tune's notes. they're read from the song's own notes as the playhead passes them, not
@@ -28,6 +30,8 @@ const sky = (() => {
   let W = 0;
   let H = 0;
   let U = 1;
+  // device pixels to a css pixel, as drawn (capped, to keep big screens light)
+  let DPR = 1;
   // the top of the sky: under the site's header while it sticks there (on a phone it scrolls away)
   let T = 0;
   const header = document.querySelector('.site-header');
@@ -145,6 +149,119 @@ const sky = (() => {
     return (m) => !m.playing && (wait -= m.dt) < 0 && (wait = rnd(low, high));
   }
 
+  // ---------- patterns ----------
+  // the tiles a mood's ground repeats, drawn once onto a tile g device pixels square. u is the size unit
+  // in device pixels. each meets itself at the tile's edges, so the pattern has no seams
+  const TILES = {
+    dots(t, g, u) { spots(t, [[g / 4, g / 4], [g * 0.75, g * 0.75]], 0.4 * u); },
+    stipple(t, g, u) {
+      // a scatter, the same every time it's made, with each speck copied over the edges it crosses
+      let seed = 7;
+      const next = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      const list = [];
+      for (let i = 0; i < 14; i++) {
+        const [x, y, r] = [next() * g, next() * g, (0.15 + next() * 0.35) * u];
+        for (const dx of [-g, 0, g]) for (const dy of [-g, 0, g]) list.push([x + dx, y + dy, r]);
+      }
+      for (const [x, y, r] of list) spots(t, [[x, y]], r);
+    },
+    rings(t, g, u) {
+      t.lineWidth = 0.3 * u;
+      for (const [x, y] of [[g / 4, g / 4], [g * 0.75, g * 0.75]]) {
+        t.beginPath();
+        t.arc(x, y, g * 0.08, 0, TAU);
+        t.stroke();
+      }
+    },
+    // circles overlapping their neighbours, a lattice of petals where they cross
+    circles(t, g, u) {
+      t.lineWidth = 0.25 * u;
+      for (const [x, y] of [[0, 0], [g, 0], [0, g], [g, g], [g / 2, g / 2]]) {
+        t.beginPath();
+        t.arc(x, y, g / 2, 0, TAU);
+        t.stroke();
+      }
+    },
+    diag(t, g, u) {
+      t.lineWidth = 0.25 * u;
+      t.beginPath();
+      for (const k of [-1, 0, 1]) {
+        t.moveTo(k * g, g);
+        t.lineTo(k * g + g, 0);
+      }
+      t.stroke();
+    },
+    dashes(t, g, u) {
+      t.lineWidth = 0.3 * u;
+      t.lineCap = 'round';
+      t.beginPath();
+      for (const [x, y] of [[g * 0.2, g * 0.3], [g * 0.7, g * 0.8]]) {
+        t.moveTo(x, y);
+        t.lineTo(x + g * 0.12, y);
+      }
+      t.stroke();
+    },
+    grid(t, g, u) {
+      t.fillRect(0, 0, g, Math.max(1, 0.2 * u));
+      t.fillRect(0, 0, Math.max(1, 0.2 * u), g);
+    },
+    diamonds(t, g, u) {
+      t.lineWidth = 0.25 * u;
+      t.beginPath();
+      t.moveTo(0, g / 2);
+      t.lineTo(g / 2, 0);
+      t.lineTo(g, g / 2);
+      t.lineTo(g / 2, g);
+      t.closePath();
+      t.stroke();
+    },
+    checks(t, g, u) {
+      const s = g * 0.12;
+      t.beginPath();
+      t.roundRect(g / 4 - s, g / 4 - s, s * 2, s * 2, s * 0.3);
+      t.roundRect(g * 0.75 - s, g * 0.75 - s, s * 2, s * 2, s * 0.3);
+      t.fill();
+    },
+    tri(t, g, u) {
+      const s = g * 0.1;
+      t.beginPath();
+      t.moveTo(g / 4, g / 4 - s);
+      t.lineTo(g / 4 + s, g / 4 + s * 0.8);
+      t.lineTo(g / 4 - s, g / 4 + s * 0.8);
+      t.moveTo(g * 0.75, g * 0.75 + s);
+      t.lineTo(g * 0.75 + s, g * 0.75 - s * 0.8);
+      t.lineTo(g * 0.75 - s, g * 0.75 - s * 0.8);
+      t.fill();
+    },
+    waves(t, g, u) {
+      t.lineWidth = 0.3 * u;
+      t.beginPath();
+      for (let x = 0; x <= g; x += g / 16) t.lineTo(x, g / 2 + Math.sin((x / g) * TAU) * g * 0.12);
+      t.stroke();
+    },
+    // a row of steps up and down again
+    steps(t, g, u) {
+      t.lineWidth = 0.3 * u;
+      t.beginPath();
+      let y = g * 0.7;
+      t.moveTo(0, y);
+      for (let k = 0; k < 6; k++) {
+        t.lineTo((k + 1) * (g / 6), y);
+        y += k < 3 ? -g * 0.13 : g * 0.13;
+        if (k < 5) t.lineTo((k + 1) * (g / 6), y);
+      }
+      t.stroke();
+    },
+  };
+  function spots(t, points, r) {
+    t.beginPath();
+    for (const [x, y] of points) {
+      t.moveTo(x + r, y);
+      t.arc(x, y, r, 0, TAU);
+    }
+    t.fill();
+  }
+
   // ---------- scenes ----------
   // each makes its things once and returns a draw for every frame. m is the music this frame:
   //   dt     seconds since the last frame
@@ -155,6 +272,81 @@ const sky = (() => {
   //   hits   what started this frame: { kind: kick, snare, crash, note or bass, midi, vel }
   // positions are fractions of the window, so a resize just works
   const SCENES = {
+    // a faint pattern over the whole window, under everything else, so no part of the sky is ever bare.
+    // it drifts slowly, and slides as the page scrolls but slower than the page, like something further
+    // back. kind: which of TILES, gap: how big a tile is, alpha: how strong, drift: which way it goes,
+    // depth: how far back (how much slower than the page it slides)
+    ground(p, o) {
+      const tile = document.createElement('canvas');
+      const [dx, dy] = o.drift || [0.5, -0.3];
+      let made = 0;
+      let pattern = null;
+      let x = rnd(100);
+      let y = rnd(100);
+      return (m) => {
+        const g = Math.max(4, Math.round((o.gap || 12) * U * DPR));
+        if (made !== g) {
+          made = g;
+          tile.width = tile.height = g;
+          const t = tile.getContext('2d');
+          t.fillStyle = t.strokeStyle = p.mid;
+          TILES[o.kind](t, g, U * DPR);
+          pattern = c.createPattern(tile, 'repeat');
+        }
+        const size = g / DPR;
+        x = (x + m.dt * m.go * dx * U) % size;
+        y = (y + m.dt * m.go * dy * U) % size;
+        // (whole device pixels, so the pattern doesn't shimmer as it slides)
+        const at = (v) => Math.round((((v % size) + size) % size) * DPR) / DPR;
+        pattern.setTransform(new DOMMatrix([1 / DPR, 0, 0, 1 / DPR, at(x), at(y - m.scroll * (calm.matches ? 0 : o.depth || 0.2))]));
+        fade(o.alpha || 0.3);
+        c.fillStyle = pattern;
+        c.fillRect(0, 0, W, H);
+        fade(1);
+      };
+    },
+
+    // big plain shapes floating slowly up the page as if they were lighter than the air, swaying a
+    // little and turning as they go, swelling on the kick. kinds: which shapes, size: [smallest, biggest],
+    // solid: filled in the big things' tones instead of drawn round
+    float(p, o) {
+      const kinds = o.kinds || ['ring', 'square', 'tri'];
+      const [low, high] = o.size || [3, 7];
+      const list = Array.from({ length: o.n || 10 }, (_, i) => ({ x: rnd(), y: rnd(-0.1, 1.1), r: rnd(low, high), turn: rnd(TAU), spin: rnd(-0.15, 0.15), sp: rnd(0.5, 1.1), sway: rnd(TAU), kind: kinds[i % kinds.length], fill: o.solid ? (i % 2 ? p.soft : p.faint) : i % 3 ? p.soft : p.mid }));
+      return (m) => {
+        c.lineWidth = 0.45 * U;
+        c.lineJoin = 'round';
+        c.lineCap = 'round';
+        for (const q of list) {
+          q.y -= m.dt * m.go * q.sp * 0.008 * (o.speed || 1);
+          q.sway += m.dt * m.go * q.sp * 0.5;
+          q.turn += m.dt * m.go * q.spin;
+          if (q.y < -0.1) Object.assign(q, { y: 1.1, x: rnd() });
+          const r = q.r * U * (1 + 0.1 * m.pulse);
+          c.save();
+          c.translate((q.x + 0.012 * Math.sin(q.sway)) * W, q.y * H);
+          c.rotate(q.turn);
+          c.beginPath();
+          if (q.kind === 'ring') c.arc(0, 0, r, 0, TAU);
+          else if (q.kind === 'square') c.rect(-r * 0.8, -r * 0.8, r * 1.6, r * 1.6);
+          else if (q.kind === 'diamond') {
+            c.moveTo(0, -r);
+            c.lineTo(r * 0.6, 0);
+            c.lineTo(0, r);
+            c.lineTo(-r * 0.6, 0);
+            c.closePath();
+          } else {
+            for (let k = 0; k < 3; k++) c.lineTo(Math.cos(k * TAU / 3) * r, Math.sin(k * TAU / 3) * r);
+            c.closePath();
+          }
+          c.restore();
+          c.fillStyle = c.strokeStyle = q.fill;
+          if (o.solid) c.fill();
+          else c.stroke();
+        }
+      };
+    },
+
     // a lava lamp: big soft blobs rising and sinking past each other, swelling on the kick. the ones the
     // same colour melt together where they touch
     lava(p, o) {
@@ -422,8 +614,8 @@ const sky = (() => {
 
     // broken rings turning slowly round two hidden centres, at different speeds and both ways, a note
     // lighting one now and then
-    arcs(p) {
-      const list = [[0.86, 0.24], [0.1, 0.78]].flatMap(([x, y]) => Array.from({ length: 4 }, (_, k) => ({ x, y, r: 9 + k * 6, span: rnd(1, 3.4), a: rnd(TAU), sp: (k % 2 ? 1 : -1) * rnd(0.05, 0.14), end: Math.random() < 0.6, lit: 0 })));
+    arcs(p, o) {
+      const list = (o.centres || [[0.86, 0.24], [0.1, 0.78]]).flatMap(([x, y]) => Array.from({ length: 4 }, (_, k) => ({ x, y, r: 9 + k * 6, span: rnd(1, 3.4), a: rnd(TAU), sp: (k % 2 ? 1 : -1) * rnd(0.05, 0.14), end: Math.random() < 0.6, lit: 0 })));
       return (m) => {
         for (const hit of m.hits) if (hit.kind === 'note' && Math.random() < 0.3) pick(list).lit = 1;
         c.lineCap = 'round';
@@ -465,7 +657,7 @@ const sky = (() => {
     // things falling: rain, snow, leaves, petals, ash or dust. a gust on the kick
     fall(p, o) {
       const kind = o.kind;
-      const fresh = (y) => ({ x: rnd(), y, s: rnd(0.6, 1.3), rot: rnd(TAU), spin: rnd(-1.5, 1.5), ph: rnd(TAU), fill: Math.random() < 0.35 ? p.soft : p.faint });
+      const fresh = (y) => ({ x: rnd(), y, s: rnd(0.6, 1.3) * (o.size || 1), rot: rnd(TAU), spin: rnd(-1.5, 1.5), ph: rnd(TAU), fill: Math.random() < 0.35 ? p.soft : p.faint });
       const list = Array.from({ length: o.n || 30 }, () => fresh(rnd(-0.05, 1)));
       const speed = { rain: 0.55, snow: 0.05, leaf: 0.06, petal: 0.05, ash: 0.025, dust: 0.008 }[kind] * (o.speed || 1);
       let gust = 0;
@@ -710,7 +902,7 @@ const sky = (() => {
         list.draw(m, (b, age) => {
           const x = b.x * W + Math.sin(age * 7 + b.ph) * 2 * U;
           const y = (b.y - age * 0.3) * H;
-          const r = b.r * U * Math.min(1, age * 6) * (1 - age * 0.7);
+          const r = b.r * (o.size || 1) * U * Math.min(1, age * 6) * (1 - age * 0.7);
           shape([[x, y - r * 1.4], [x + r, y], [x, y + r * 1.4], [x - r, y]], age < 0.4 ? p.glow : p.mid);
         });
       };
@@ -828,12 +1020,12 @@ const sky = (() => {
     },
 
     // bubbles wobbling up the page, one for some of the tune's notes
-    bubbles(p) {
-      const list = bits(50);
+    bubbles(p, o) {
+      const list = bits(70);
       const blow = (r, old) => list.add({ x: rnd(0.02, 0.98), life: rnd(4, 7), r, ph: rnd(TAU), age: old ? rnd() : 0 });
       for (let i = 0; i < 12; i++) blow(rnd(0.6, 1.4), true);
       return (m) => {
-        if (Math.random() < m.dt * 1.2 * m.go) blow(rnd(0.6, 1.4));
+        if (Math.random() < m.dt * (o.rate || 1.2) * m.go) blow(rnd(0.6, 1.4));
         for (const hit of m.hits) if (hit.kind === 'note' && Math.random() < 0.35) blow(0.8 + hit.vel);
         list.draw(m, (b, age) => {
           const x = b.x * W + Math.sin(age * 10 + b.ph) * 1.5 * U;
@@ -848,7 +1040,7 @@ const sky = (() => {
     // alone
     ripples(p, o) {
       const rings = bits(40);
-      const idle = every(0.8, 2);
+      const idle = every(0.8 / (o.often || 1), 2 / (o.often || 1));
       const drop = (power) => rings.add({ x: rnd(), y: rnd(0.05, 0.95), r: (6 + 10 * power) * (o.size || 1), life: 2 + power * 1.5 });
       return (m) => {
         for (const hit of m.hits) if (hit.kind === 'kick' || (o.on !== 'kick' && hit.kind === 'note' && Math.random() < 0.5)) drop(hit.vel);
@@ -865,7 +1057,7 @@ const sky = (() => {
     },
 
     // a mandala breathing with the drone, a petal lighting on each note as they go round
-    mandala(p) {
+    mandala(p, o) {
       let a = 0;
       let lit = 0;
       let glow = 0;
@@ -886,9 +1078,10 @@ const sky = (() => {
           lit = (lit + 1) % 12;
           glow = 1;
         }
-        const x = W * 0.84;
-        const y = H * 0.34;
-        const R = 12 * U * (1 + 0.05 * m.pulse);
+        const [fx, fy] = o.at || [0.84, 0.34];
+        const x = W * fx;
+        const y = H * fy;
+        const R = (o.size || 12) * U * (1 + 0.05 * m.pulse);
         petals(x, y, 12, R, R * 0.42, R * 0.17, a, p.faint, lit);
         petals(x, y, 8, R * 0.55, R * 0.3, R * 0.13, -a * 1.5, p.soft, -1);
         dot(x, y, R * 0.28, p.mid);
@@ -955,7 +1148,7 @@ const sky = (() => {
     // shrinking away. slow: lazier
     popping(p, o) {
       const list = bits(40);
-      const idle = every(0.3, 0.9);
+      const idle = every(0.3 / (o.often || 1), 0.9 / (o.often || 1));
       const pop = (size) => list.add({ x: rnd(), y: rnd(), r: size, life: o.slow ? 2.6 : 1.2, ring: Math.random() < 0.3, fill: Math.random() < 0.4 ? p.mid : p.soft });
       return (m) => {
         for (const hit of m.hits) {
@@ -973,9 +1166,9 @@ const sky = (() => {
     },
 
     // music notes floating up and swaying, more of them the more the tune plays
-    notes(p) {
+    notes(p, o) {
       const list = bits(30);
-      const idle = every(1, 2.2);
+      const idle = every(1 / (o.often || 1), 2.2 / (o.often || 1));
       const add = (vel) => list.add({ x: rnd(0.03, 0.97), life: rnd(6, 9), s: rnd(0.8, 1.2) * (0.7 + vel * 0.5), ph: rnd(TAU), two: Math.random() < 0.35, fill: Math.random() < 0.4 ? p.mid : p.soft });
       return (m) => {
         for (const hit of m.hits) if (hit.kind === 'note' && Math.random() < 0.2) add(hit.vel);
@@ -1027,7 +1220,7 @@ const sky = (() => {
 
     // bands of mist drifting across
     fog(p, o) {
-      const bands = Array.from({ length: o.n || 5 }, () => ({ x: rnd(-0.3, 1), y: rnd(0.08, 0.95), w: rnd(0.25, 0.55), h: rnd(2, 4), sp: rnd(0.5, 1) }));
+      const bands = Array.from({ length: o.n || 5 }, () => ({ x: rnd(-0.3, 1), y: rnd(0.08, 0.95), w: rnd(0.25, 0.55), h: rnd(2, 4) * (o.thick || 1), sp: rnd(0.5, 1) }));
       return (m) => {
         c.fillStyle = p.faint;
         c.beginPath();
@@ -1041,70 +1234,71 @@ const sky = (() => {
     },
   };
 
-  // which scenes each mood draws, back to front, and how
+  // which scenes each mood draws, back to front, and how. every mood starts with a ground, so the
+  // window is never bare between the bigger things
   const MOOD_SCENES = {
-    calm: [['lava', { n: 6 }]],
-    heavenly: [['clouds', { rays: true }]],
-    happy: [['stars5', {}]],
-    playful: [['hop', { n: 16 }]],
-    spirited: [['clouds', { n: 4, speed: 3 }], ['flock', {}]],
-    upbeat: [['streaks', { speed: 0.35 }]],
-    cozy: [['lava', { n: 5, speed: 0.7 }], ['notes', {}]],
-    wistful: [['fall', { kind: 'petal', n: 18, speed: 0.7 }]],
-    nostalgic: [['stars', { drift: true, n: 22 }]],
-    sad: [['fall', { kind: 'rain', n: 60, speed: 0.8 }]],
-    tragic: [['fog', { n: 3 }], ['fall', { kind: 'rain', n: 40, speed: 0.6 }]],
-    bleak: [['fog', { n: 6 }], ['fall', { kind: 'ash', n: 30 }]],
-    mysterious: [['stars', { n: 30 }], ['arcs', {}]],
-    tense: [['strings', {}]],
-    neon: [['tunnel', {}]],
-    eerie: [['fog', { n: 4 }], ['wisps', {}]],
-    desolate: [['fog', { n: 3 }], ['fall', { kind: 'dust', n: 30 }]],
-    heroic: [['sun', { at: [0.5, -0.3], rays: 16, disc: false }], ['chevrons', {}]],
-    magic: [['stars', { n: 26 }], ['swirl', {}]],
-    gaslamp: [['fog', { n: 5 }], ['waltz', {}]],
-    dragon: [['embers', { rate: 9, most: 90, start: 40 }]],
-    sands: [['storm', {}]],
-    jade: [['ripples', { flat: true }], ['fall', { kind: 'petal', n: 14 }]],
-    greenwood: [['fall', { kind: 'leaf', n: 22 }], ['stars', { drift: true, n: 10 }]],
-    metal: [['shards', {}]],
-    grunge: [['shards', { ragged: true, n: 10 }], ['fall', { kind: 'ash', n: 20 }]],
-    hardcore: [['streaks', { speed: 0.3, n: 12 }], ['shards', { n: 12 }]],
-    shoegaze: [['ribbons', { n: 4, width: 7 }]],
-    dreampop: [['lava', { n: 5, speed: 0.6 }], ['ribbons', { n: 2, width: 3 }]],
-    ethereal: [['ribbons', { n: 5, width: 2 }], ['stars', { n: 20 }]],
-    desert: [['stars', { n: 24 }], ['moon', {}]],
-    tropical: [['sun', { at: [0.82, 0.22], size: 9 }], ['swell', { gap: 14, speed: 0.9, amp: 1 }]],
-    folk: [['fall', { kind: 'leaf', n: 24 }]],
-    wintry: [['fall', { kind: 'snow', n: 70 }]],
-    synthwave: [['stripes', {}], ['sun', { at: [0.78, 0.36], size: 15, stripes: true }]],
-    breakbeat: [['fall', { kind: 'rain', n: 30 }], ['streaks', { speed: 0.6, n: 30 }]],
-    jazz: [['wisps', { n: 6 }], ['hop', { n: 9, size: 1.6 }]],
-    lounge: [['lava', { n: 4, speed: 0.5 }], ['bubbles', {}]],
-    soul: [['lava', { n: 5, speed: 0.6 }], ['popping', { slow: true }]],
-    showtime: [['sun', { beams: true, disc: false }], ['specks', {}]],
-    shop: [['rows', { gap: 14, size: 0.9 }]],
-    blues: [['fall', { kind: 'rain', n: 35, speed: 0.6 }], ['wisps', { n: 4 }]],
-    country: [['sun', { at: [0.85, 0.15], size: 8, rays: 12 }], ['fall', { kind: 'dust', n: 35 }]],
-    fareast: [['sun', { at: [0.8, 0.3], size: 11 }], ['fall', { kind: 'petal', n: 16 }]],
-    raga: [['mandala', {}]],
-    reggae: [['ribbons', { n: 3, width: 5 }], ['ripples', { on: 'kick' }]],
-    aztec: [['zigzags', {}], ['fall', { kind: 'leaf', n: 10 }]],
-    tribal: [['ripples', { on: 'kick' }], ['embers', { rate: 3 }]],
-    egyptian: [['sun', { at: [0.8, 0.2], size: 8, rays: 24 }], ['storm', { n: 60, speed: 0.08 }]],
-    antiquity: [['sun', { at: [0.2, 0.15], size: 7, rays: 20 }], ['fall', { kind: 'leaf', n: 8, speed: 0.6 }]],
-    medieval: [['fog', { n: 4 }], ['embers', { rate: 3, start: 15 }]],
-    steppe: [['clouds', { n: 4, speed: 2 }], ['streaks', { speed: 0.15, n: 12 }]],
-    gamelan: [['stars', { drift: true, n: 8 }], ['ripples', {}]],
-    flamenco: [['embers', { rate: 4 }], ['fall', { kind: 'petal', n: 18 }]],
-    pop: [['popping', {}]],
-    hiphop: [['rows', { gap: 18, size: 2.6, kinds: ['square'] }], ['fall', { kind: 'dust', n: 25 }]],
-    trap: [['ripples', { on: 'kick', size: 1.6 }]],
-    wasteland: [['sun', { at: [0.75, 0.25], size: 8 }], ['storm', { n: 70, speed: 0.06 }]],
-    underwater: [['sun', { at: [0.5, -0.1], rays: 10, disc: false }], ['waves', {}], ['bubbles', {}]],
-    pirate: [['clouds', { n: 3 }], ['swell', { gap: 11, amp: 2 }]],
-    space: [['stars', { n: 50 }], ['planet', {}]],
-    ironcity: [['sun', { beams: true, disc: false }], ['fall', { kind: 'rain', n: 30 }]],
+    calm: [['ground', { kind: 'dots', gap: 10 }], ['lava', { n: 9 }]],
+    heavenly: [['ground', { kind: 'dots', gap: 14, alpha: 0.2 }], ['clouds', { rays: true, n: 8 }]],
+    happy: [['ground', { kind: 'dots', gap: 13 }], ['stars5', { n: 24 }]],
+    playful: [['ground', { kind: 'checks', gap: 13 }], ['hop', { n: 40, size: 3.2 }]],
+    spirited: [['ground', { kind: 'diag', gap: 9, drift: [1.5, 0] }], ['clouds', { n: 7, speed: 3 }], ['flock', {}]],
+    upbeat: [['ground', { kind: 'dashes', gap: 10, drift: [-2, 0] }], ['streaks', { speed: 0.35, n: 40 }]],
+    cozy: [['ground', { kind: 'diamonds', gap: 12 }], ['lava', { n: 7, speed: 0.7 }], ['notes', { often: 3 }]],
+    wistful: [['ground', { kind: 'circles', gap: 18, drift: [0.3, 0.3] }], ['fall', { kind: 'petal', n: 40, speed: 0.7, size: 1.4 }]],
+    nostalgic: [['ground', { kind: 'stipple', gap: 30 }], ['float', { kinds: ['ring'], solid: true, n: 10, size: [5, 13], speed: 0.3 }], ['stars', { drift: true, n: 55 }]],
+    sad: [['ground', { kind: 'waves', gap: 10, drift: [0.3, 0] }], ['fog', { n: 3, thick: 1.5 }], ['fall', { kind: 'rain', n: 120, speed: 0.8, size: 1.3 }]],
+    tragic: [['ground', { kind: 'diag', gap: 10 }], ['fog', { n: 7, thick: 2 }], ['fall', { kind: 'rain', n: 90, speed: 0.6, size: 1.4 }]],
+    bleak: [['ground', { kind: 'grid', gap: 16 }], ['fog', { n: 8 }], ['fall', { kind: 'ash', n: 70 }]],
+    mysterious: [['ground', { kind: 'stipple', gap: 26 }], ['stars', { n: 70 }], ['arcs', { centres: [[0.86, 0.24], [0.1, 0.78], [0.6, 0.66], [0.32, 0.16]] }]],
+    tense: [['ground', { kind: 'dashes', gap: 8, drift: [0, 0.6] }], ['strings', { n: 13 }]],
+    neon: [['ground', { kind: 'grid', gap: 10, alpha: 0.2 }], ['tunnel', {}]],
+    eerie: [['ground', { kind: 'stipple', gap: 22 }], ['fog', { n: 7 }], ['wisps', { n: 16 }]],
+    desolate: [['ground', { kind: 'dashes', gap: 16, drift: [1, 0] }], ['fog', { n: 5 }], ['fall', { kind: 'dust', n: 90 }]],
+    heroic: [['ground', { kind: 'dots', gap: 12, alpha: 0.2 }], ['sun', { at: [0.5, -0.3], rays: 16, disc: false }], ['chevrons', { n: 9 }]],
+    magic: [['ground', { kind: 'rings', gap: 13, drift: [0.4, -0.6] }], ['float', { kinds: ['ring'], solid: true, n: 9, size: [4, 10], speed: 0.4 }], ['stars', { n: 70 }], ['swirl', {}]],
+    gaslamp: [['ground', { kind: 'circles', gap: 16 }], ['fog', { n: 6 }], ['waltz', { n: 16 }]],
+    dragon: [['ground', { kind: 'diamonds', gap: 10, drift: [0, -1] }], ['wisps', { n: 10 }], ['embers', { rate: 18, most: 150, start: 90, size: 1.6 }]],
+    sands: [['ground', { kind: 'waves', gap: 12, drift: [1.2, 0] }], ['storm', {}]],
+    jade: [['ground', { kind: 'circles', gap: 14 }], ['ripples', { flat: true, often: 2.5 }], ['fall', { kind: 'petal', n: 30, size: 1.4 }]],
+    greenwood: [['ground', { kind: 'stipple', gap: 24 }], ['fall', { kind: 'leaf', n: 40, size: 1.6 }], ['stars', { drift: true, n: 30 }]],
+    metal: [['ground', { kind: 'diag', gap: 7 }], ['shards', { n: 30 }]],
+    grunge: [['ground', { kind: 'dashes', gap: 9 }], ['shards', { ragged: true, n: 22 }], ['fall', { kind: 'ash', n: 50 }]],
+    hardcore: [['ground', { kind: 'grid', gap: 12 }], ['streaks', { speed: 0.3, n: 22 }], ['shards', { n: 20 }]],
+    shoegaze: [['ground', { kind: 'waves', gap: 9, drift: [0.6, 0] }], ['ribbons', { n: 6, width: 6 }]],
+    dreampop: [['ground', { kind: 'dots', gap: 11 }], ['lava', { n: 7, speed: 0.6 }], ['ribbons', { n: 3, width: 3 }]],
+    ethereal: [['ground', { kind: 'stipple', gap: 24 }], ['ribbons', { n: 6, width: 2 }], ['stars', { n: 45 }]],
+    desert: [['ground', { kind: 'stipple', gap: 28 }], ['fog', { n: 3 }], ['stars', { n: 80 }], ['moon', {}], ['fall', { kind: 'dust', n: 40, size: 1.5 }]],
+    tropical: [['ground', { kind: 'circles', gap: 16, alpha: 0.2 }], ['sun', { at: [0.82, 0.22], size: 9 }], ['swell', { gap: 14, speed: 0.9, amp: 1 }]],
+    folk: [['ground', { kind: 'diamonds', gap: 13 }], ['fall', { kind: 'leaf', n: 40, size: 1.7 }]],
+    wintry: [['ground', { kind: 'stipple', gap: 22, drift: [0.2, 0.5] }], ['fall', { kind: 'snow', n: 120 }]],
+    synthwave: [['ground', { kind: 'grid', gap: 12, alpha: 0.2 }], ['stripes', {}], ['sun', { at: [0.78, 0.36], size: 15, stripes: true }]],
+    breakbeat: [['ground', { kind: 'checks', gap: 14, alpha: 0.2 }], ['fall', { kind: 'rain', n: 40 }], ['streaks', { speed: 0.6, n: 36 }]],
+    jazz: [['ground', { kind: 'dashes', gap: 11 }], ['fog', { n: 4, thick: 2 }], ['wisps', { n: 14 }], ['hop', { n: 22, size: 2 }]],
+    lounge: [['ground', { kind: 'circles', gap: 15 }], ['lava', { n: 6, speed: 0.5 }], ['bubbles', { rate: 3 }]],
+    soul: [['ground', { kind: 'dots', gap: 12 }], ['lava', { n: 8, speed: 0.6 }], ['popping', { slow: true, often: 2.5 }]],
+    showtime: [['ground', { kind: 'dots', gap: 14, alpha: 0.2 }], ['sun', { beams: true, disc: false }], ['specks', { n: 130 }]],
+    shop: [['rows', { gap: 14, size: 0.9 }], ['float', { kinds: ['square', 'ring'], n: 8, size: [3, 6] }]],
+    blues: [['ground', { kind: 'waves', gap: 11 }], ['fog', { n: 5, thick: 1.5 }], ['fall', { kind: 'rain', n: 70, speed: 0.6, size: 1.3 }], ['wisps', { n: 10 }]],
+    country: [['ground', { kind: 'diamonds', gap: 14, alpha: 0.2 }], ['sun', { at: [0.85, 0.15], size: 8, rays: 12 }], ['fall', { kind: 'dust', n: 70 }]],
+    fareast: [['ground', { kind: 'circles', gap: 13 }], ['fog', { n: 4, thick: 1.5 }], ['sun', { at: [0.8, 0.3], size: 11 }], ['fall', { kind: 'petal', n: 34, size: 1.4 }]],
+    raga: [['ground', { kind: 'rings', gap: 12 }], ['wisps', { n: 6 }], ['mandala', {}], ['mandala', { at: [0.12, 0.8], size: 8 }]],
+    reggae: [['ground', { kind: 'dots', gap: 11 }], ['ribbons', { n: 4, width: 5 }], ['ripples', { on: 'kick', often: 2 }]],
+    aztec: [['ground', { kind: 'steps', gap: 10 }], ['zigzags', { n: 18 }], ['fall', { kind: 'leaf', n: 18, size: 1.5 }]],
+    tribal: [['ground', { kind: 'tri', gap: 12 }], ['float', { kinds: ['tri', 'diamond'], n: 14, size: [4, 9], speed: 0.6 }], ['ripples', { on: 'kick', often: 2 }], ['embers', { rate: 10, size: 1.5 }]],
+    egyptian: [['ground', { kind: 'tri', gap: 14, alpha: 0.2 }], ['sun', { at: [0.8, 0.2], size: 8, rays: 24 }], ['storm', { n: 90, speed: 0.08 }]],
+    antiquity: [['ground', { kind: 'dots', gap: 13, alpha: 0.2 }], ['sun', { at: [0.2, 0.15], size: 7, rays: 20 }], ['fall', { kind: 'leaf', n: 18, speed: 0.6, size: 1.5 }]],
+    medieval: [['ground', { kind: 'diamonds', gap: 11 }], ['fog', { n: 5, thick: 1.5 }], ['embers', { rate: 7, start: 35, size: 1.4 }]],
+    steppe: [['ground', { kind: 'dashes', gap: 12, drift: [2, 0] }], ['clouds', { n: 6, speed: 2 }], ['streaks', { speed: 0.15, n: 26 }]],
+    gamelan: [['ground', { kind: 'rings', gap: 11 }], ['stars', { drift: true, n: 22 }], ['ripples', { often: 2.5 }]],
+    flamenco: [['ground', { kind: 'circles', gap: 14 }], ['embers', { rate: 9, size: 1.4 }], ['fall', { kind: 'petal', n: 46, size: 1.4 }]],
+    pop: [['ground', { kind: 'dots', gap: 10 }], ['float', { kinds: ['ring', 'square', 'tri'], n: 14, size: [2.5, 6] }], ['popping', { often: 3 }]],
+    hiphop: [['rows', { gap: 18, size: 2.6, kinds: ['square'] }], ['fall', { kind: 'dust', n: 55 }]],
+    trap: [['ground', { kind: 'grid', gap: 18 }], ['float', { kinds: ['diamond'], n: 9, size: [3, 7], speed: 0.5 }], ['ripples', { on: 'kick', size: 1.6, often: 2 }]],
+    wasteland: [['ground', { kind: 'dashes', gap: 14, drift: [1.5, 0] }], ['sun', { at: [0.75, 0.25], size: 8 }], ['storm', { n: 120, speed: 0.06 }]],
+    underwater: [['ground', { kind: 'waves', gap: 14, alpha: 0.5, drift: [0.5, 0] }], ['sun', { at: [0.5, -0.1], rays: 10, disc: false }], ['waves', {}], ['bubbles', { rate: 2.5 }]],
+    pirate: [['clouds', { n: 5 }], ['swell', { gap: 11, amp: 2 }]],
+    space: [['ground', { kind: 'stipple', gap: 34, drift: [0.2, 0], depth: 0.08 }], ['ground', { kind: 'stipple', gap: 52, drift: [0.4, 0], depth: 0.3, alpha: 0.5 }], ['stars', { n: 110 }], ['planet', {}]],
+    ironcity: [['ground', { kind: 'grid', gap: 14 }], ['sun', { beams: true, disc: false }], ['fall', { kind: 'rain', n: 70 }]],
   };
 
   // ---------- listening ----------
@@ -1163,10 +1357,12 @@ const sky = (() => {
   let idleBeat = 0;
   let still = false;
   let skip = false;
-  const m = { dt: 0, t: 0, go: 0.35, pulse: 0, kick: 0, beat: false, playing: false, hits };
+  // stir: how much scrolling has just stirred the sky up, 0 to 1
+  let stir = 0;
+  const m = { dt: 0, t: 0, go: 0.35, pulse: 0, kick: 0, beat: false, playing: false, hits, scroll: 0 };
 
   function resize() {
-    const dpr = Math.min(devicePixelRatio || 1, 1.5);
+    const dpr = (DPR = Math.min(devicePixelRatio || 1, 1.5));
     W = innerWidth;
     H = innerHeight;
     U = Math.max(3.2, Math.min(W, H) / 100);
@@ -1176,8 +1372,13 @@ const sky = (() => {
     still = false;
   }
   addEventListener('resize', resize);
-  // (a still sky is drawn again after a scroll, as on a phone the header it hangs under scrolls away)
-  addEventListener('scroll', () => { still = false; }, { passive: true });
+  // (a still sky is drawn again after a scroll, as on a phone the header it hangs under scrolls away.
+  // the ground slides with the page, so no frames are skipped for a moment after one)
+  let scrolledAt = -1e9;
+  addEventListener('scroll', () => {
+    still = false;
+    scrolledAt = performance.now();
+  }, { passive: true });
   resize();
 
   function mood(key, colour) {
@@ -1193,7 +1394,7 @@ const sky = (() => {
     const now = performance.now();
     const playing = !!player.playing;
     // half the frames while nothing plays: it's only drifting
-    if (!playing && !calm.matches && (skip = !skip)) return;
+    if (!playing && !calm.matches && now - scrolledAt > 500 && (skip = !skip)) return;
     m.dt = Math.min(0.05, (now - last) / 1000);
     last = now;
     if (!showing) return;
@@ -1204,7 +1405,11 @@ const sky = (() => {
       m.dt = 0;
     }
     m.playing = playing;
-    m.go += ((playing ? 1 : 0.35) - m.go) * (1 - Math.exp(-m.dt * 2));
+    // moving down the page stirs the sky up like walking through it: things drift faster for a moment
+    const scrolled = window.scrollY || 0;
+    stir = Math.max(stir * Math.exp(-m.dt * 1.5), Math.min(1, Math.abs(scrolled - m.scroll) / (H * 0.04 + 1)));
+    m.scroll = scrolled;
+    m.go += ((playing ? 1 : 0.35) + (calm.matches ? 0 : 0.8 * stir) - m.go) * (1 - Math.exp(-m.dt * 2));
     m.t += m.dt * m.go;
     let beatPulse = 0;
     const pos = playing ? player.position() : null;
