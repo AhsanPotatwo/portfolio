@@ -93,3 +93,18 @@ for (const [name, flicker] of Object.entries(LIGHT_FLICKERS)) {
   }
   if (name !== 'none') assert(lowest < 0.9, `${name} flickers`);
 }
+
+// overlapping light rolls off towards white: as it is up to the knee, always getting brighter, never
+// past white, and close to it at the most there's room for
+const { lightTone, shadowSlant } = game;
+assert.strictEqual(lightTone(0), 0);
+assert.strictEqual(lightTone(LIGHTING.knee), LIGHTING.knee);
+for (let l = 0; l < LIGHTING.headroom; l += 0.05) assert(lightTone(l + 0.05) > lightTone(l), 'brighter light is brighter');
+assert(lightTone(LIGHTING.headroom) < 1 && lightTone(LIGHTING.headroom) > 0.95, 'the most there can be is nearly white');
+assert(lightTone(1) < 1, 'one full light leaves room for another');
+
+// shadows slant away from the light, and one edge on to it keeps some depth instead of going flat
+assert.deepStrictEqual({ ...shadowSlant({ x: 0, y: 2 }) }, { x: 0, y: 2 }, 'from behind, straight down the screen');
+const side = shadowSlant({ x: 3, y: 0 });
+assert(side.x === 3 && side.y === LIGHTING.thinnest * 3, 'from the side, still thinnest of its length deep, in front');
+assert(shadowSlant({ x: 3, y: -0.1 }).y < 0, 'falling behind if that is the way it was going');

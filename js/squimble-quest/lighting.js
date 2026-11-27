@@ -1,27 +1,33 @@
 // lighting: light and shadow over the world, kept in pixel art. lamps, campfires, neon, torches and
-// flashlights, the sun and moon going round, shadows off walls, buildings, trees and characters, glows
-// round lights, and glowing paint (neon tubes, lit windows) that stays bright in the dark.
+// flashlights in any colour, the sun and moon going round, shadows off walls, buildings, trees and
+// characters, glows round lights, and glowing paint (neon tubes, lit windows) that stays bright in the
+// dark.
 //
 // it's an experiment. a map only gets it if its atmosphere ticks Light > Lighting (atmosphere.js), and
 // it can be switched off for every map in the pause menu (Screen > Lighting) or with J in dev mode
 // (Shift + J shows just the light, to see what it's doing). off, it costs nothing and the game draws
 // exactly as it did. it only ever changes how things look: nothing in the game reads it, and if it ever
 // throws an error it turns itself off and says so in the console rather than stop the game.
-// the test maps are light-city (night, neon), light-village (the day goes round in 3 minutes) and
-// light-cave (no sky at all), joined by warps. their stand-in art is in objects/lighting-test/.
+// the test maps are light-city (night, neon, a red, green and blue corner), light-village (the day goes
+// round in 3 minutes) and light-cave (no sky at all), joined by warps. their stand-in art is in
+// objects/lighting-test/.
 //
 // ---------- the idea ----------
 // the game draws everything as normal. then this works out how much light reaches each spot on screen
 // as a picture, the light map, and multiplies the world by it, so black is dark and white leaves it as
-// drawn. coloured light tints. the light map is in light pixels (LIGHTING.cell, 2 world px, one art
-// pixel of the 16 px tiles) lined up with the map's own pixel grid, then scaled up without blending, so
-// every ring of light and every shadow edge lands on the art's pixels: no half pixels, no mixels. each
-// light is stepped into rings of its own colour (Light looks > Bands), like pixel art lights are.
+// drawn. coloured light tints, and lights add up like real light does: red and blue make purple, red,
+// green and blue make white. the light map is in light pixels (LIGHTING.cell, 2 world px, one art pixel
+// of the 16 px tiles) lined up with the map's own pixel grid, then scaled up without blending, so every
+// edge lands on the art's pixels: no half pixels, no mixels.
+//
+// light fades smoothly, and lights that overlap add up past full brightness (LIGHTING.headroom) and
+// then roll off towards white (lightTone()), so two lamps side by side make one bigger glow instead of
+// a flat white patch with a hard edge.
 //
 // the game's seen from an angle, so up the screen is both further away and higher up. light and
 // shadow work on the ground, in world px, and height is separate: a lamp hangs `height` px above its
-// spot, a character's shadow is its picture laid down along the ground away from the light, and a
-// building's shadow is its footprint pushed out by its height.
+// spot, a character's shadow is its picture slanted along the ground away from the light, feet on its
+// feet, and a building's shadow is its footprint pushed out by its height.
 //
 // each frame (Lighting.draw(), called by sketch.js after the things on the map, before the atmosphere):
 //   1. the light map starts as the sky's light (ambient), plus glowing tiles (lava), and the lights
@@ -30,17 +36,19 @@
 //      silhouettes (the atlas), by its own drawing code, so its shadow and light follow its real shape
 //      whatever it looks like now
 //   3. the sun or moon: sunlight everywhere, minus the shadows of walls and buildings (their footprint
-//      pushed away from the sun by their height) and of everything standing (its silhouette laid down)
-//   4. each light that casts shadows, on its own small canvas: its glow, minus the same shadows from
-//      where it is, then added on
-//   5. the things, front to back like sketch.js draws them: each one's silhouette on the light map gets
-//      the light that reached its feet (sampled in steps 1 to 4 before its own shadow was laid down),
-//      so a character standing in a shadow is in shadow head to toe, and the side nearer a light is
-//      brighter. lights behind something light it less from the front and give it a bright edge
-//      instead (rim light). a building's front gets the light at its base, so it's dark when the sun's
-//      behind it, and its roof gets the sky. glowing paint (glowImage) is kept for later, with the
-//      things in front of it cut out of it
-//   6. the light map multiplies the world
+//      pushed away from the sun by their height, blocking all of it) and of everything standing (its
+//      silhouette slanted along the ground, blocking Shadows % of it)
+//   4. each light that casts shadows or is a beam, on its own small canvas: its glow, cut to its beam
+//      with soft sides, minus the same shadows from where it is (their edges softened a light pixel),
+//      then added on
+//   5. the tops of walls only get the sky, so the inside of rock never glows
+//   6. the things, front to back like sketch.js draws them: each one gets the light that reached its
+//      feet (sampled in steps 1 to 4 before its own shadow was laid down), averaged so a thin shadow
+//      under it doesn't stripe it, a bit brighter on the side nearer the light, kept just inside its
+//      outline so it never lights the ground round it. so a character in a shadow is in shadow head to
+//      toe. lights behind something light it less from the front and give it a bright edge instead
+//      (rim light). a building's front gets the light along its base, and its roof gets the sky
+//   7. the light map rolls off towards white (above) and multiplies the world
 // then Lighting.drawGlow() (sketch.js, after the atmosphere so it shows through fog) puts the glowing
 // paint over the top in its lit colours (an object's glowImage is the same picture as its image with
 // only the glowing pixels, drawn lit: the windows yellow, the neon tubes bright), as bright as its light
@@ -49,13 +57,16 @@
 //
 // ---------- where light comes from ----------
 // lights are kinds, like particle effects: a file each in assets/squimble-quest/lights/ with the
-// settings in LIGHT_DEFAULTS. anything that gives off light names one with a "light" setting:
+// settings in LIGHT_DEFAULTS. the map editor's Map > Lights box changes them (colour, reach, beam,
+// flicker...) while the map shows it, and saves new ones. anything that gives off light names one:
 //   objects   "light": "street-lamp" on its file (objects/), from the middle of its base. or a list,
 //             each with its own spot: [{ "light": "window", "x": -20, "y": 0, "height": 50 }], x and y
 //             in world px from the middle of its base, height overriding the light's own. "aim" too
+//   on its own  every light kind can be placed by itself from the editor's Lights tab, as a light-<name>
+//             object (made here, lightMarkers()) that's only seen in the editor
 //   tiles     "light": "lava-glow". every tile of that kind glows (soft, no shadows, one pass for all)
-//   items     "light": "torch" lights whoever holds it, or wears it. a cone light (a flashlight)
-//             points where they aim
+//   items     "light": "torch" lights whoever holds it, or wears it. a beam (a flashlight) points
+//             where they aim
 //   particles every particle effect that glows (its Glow setting) lights up round itself
 //   drops     items on the ground glow faintly in their rarity's colour, so they're findable in the dark
 //   the player  a faint light round them (Light > Your light) so you never lose yourself in the dark
@@ -65,30 +76,33 @@
 // say, with "shadow" and "shadowHeight":
 //   tiles     shadowHeight: px tall. null (normal) is LIGHTING.wallHeight for solid tiles that block
 //             sight (walls), and none for the rest. 0 for a solid tile that's low, like a fence
-//   objects   shadow: "sprite" (normal for standing objects) lays its picture down as its shadow, for
-//             trees, lamp posts, signs and anything that isn't a box. "box" makes its tiles a solid
-//             block shadowHeight px tall (normal: its picture's height above its tiles), for houses,
-//             shacks and skyscrapers: its shadow is that block's, from whichever way the light comes.
-//             a list of boxes, each { "x", "y", "w", "h", "height" } in tiles from its top left tile,
-//             for buildings that aren't one block (an L shaped house, a tower on a shop). "none" for
-//             nothing (rugs, puddles). lying down objects are "none" normally
+//   objects   shadow: "sprite" (normal for standing objects) slants its picture along the ground as its
+//             shadow, for trees, lamp posts, signs and anything that isn't a box. "box" makes its tiles
+//             a solid block shadowHeight px tall (normal: its picture's height above its tiles), for
+//             houses, shacks and skyscrapers: its shadow is that block's, from whichever way the light
+//             comes. a list of boxes, each { "x", "y", "w", "h", "height" } in tiles from its top left
+//             tile, for buildings that aren't one block (an L shaped house, a tower on a shop). "none"
+//             for nothing (rugs, puddles). lying down objects are "none" normally
 //   characters  always "sprite", from their silhouette
 // a building's picture is front wall at the bottom (shadowHeight px of it) and roof above, which is how
 // it knows to light the front by what reaches its base and the roof by the sky.
 //
 // ---------- adding things ----------
-//   a light kind      a file in lights/ and its name in lights/index.json
+//   a light kind      Map > Lights in the editor, or a file in lights/ and its name in lights/index.json
+//   a light setting   a line in LIGHT_DEFAULTS and LIGHT_SETTINGS (its row in the Lights box)
 //   a flicker         a function in LIGHT_FLICKERS, given seconds and a random 0 to 1 per light
 //   a light source    a function in LIGHT_SOURCES, giving back lights (see lightFrom())
-//   a setting         Light tab settings are lines in ATMOSPHERE_SETTINGS (atmosphere.js), read here
+//   a map setting     Light tab settings are lines in ATMOSPHERE_SETTINGS (atmosphere.js), read here
 //
 // ---------- taking it out ----------
 // delete this file and its <script> tag (squimble-quest.html) and line atop sketch.js, the three
 // Lighting lines in sketch.js, `lighting` in GAME_SETTINGS (config.js) and SETTING_ROWS (pausemenu.js),
-// the lighting lines in debug.js, the Light tab lines in ATMOSPHERE_SETTINGS (atmosphere.js), `light:`
-// in DATA_KINDS (datafiles.js), and lights/. the light and shadow settings in TILE_DEFAULTS,
-// OBJECT_DEFAULTS, ITEM_DEFAULTS and glowImage in PICTURE_SETTINGS can stay (they do nothing) or go
-// with the "light", "shadow", "shadowHeight" and "glowImage" lines in the data files.
+// the lighting lines in debug.js, `lights` in EDITOR_COMMANDS and EDITOR_MENUS (editormenu.js), the
+// Light tab lines in ATMOSPHERE_SETTINGS (atmosphere.js), `light:` in DATA_KINDS (datafiles.js), and
+// lights/. the light and shadow settings in TILE_DEFAULTS, OBJECT_DEFAULTS, ITEM_DEFAULTS, glowImage in
+// PICTURE_SETTINGS and the lightMarker line in TileMap.drawObject() can stay (they do nothing) or go
+// with the "light", "shadow", "shadowHeight" and "glowImage" lines in the data files. maps with
+// light-<name> objects in them would warn about them, so take those out in the editor first.
 //
 // ---------- ideas for later ----------
 //   - lightAt(x, y) for gameplay (monsters that hate light, stealth in shadows). it'd be worked out in
@@ -99,24 +113,38 @@
 //
 // shortcut: other characters' shadows from lamps don't darken you, only the sun's do (trees' shade),
 // since each thing's light is sampled before lamp shadows are laid down so it never darkens itself.
-// shortcut: light isn't stopped by height. a lamp lights the top of a wall next to it from either side,
-// and a roof only gets the sky, never a lamp
+// shortcut: lights that don't cast shadows (glowing particles, items, the light round you, glowing
+// tiles) aren't stopped by walls, they're small enough that it doesn't show. wall tops only get the
+// sky, never a lamp, and a roof only gets the sky too
 
 const LIGHTING = {
   // world px in a light pixel, one art pixel of the 16 px tiles. 1 would match the 32 px art
   cell: 2,
   // the most light pixels the light map has. zoomed out further than that, light pixels get bigger
   maxCells: 320000,
+  // how much brighter than full lights can add up to before they're rolled off to white (lightTone()).
+  // 1 is no room: overlapping lights go flat white
+  headroom: 2,
+  // up to here (0 to 1) light is as it is, and above it brighter light rolls off slowly towards white
+  knee: 0.6,
   // how tall walls are, px, for tiles with no shadowHeight of their own (above)
   wallHeight: 32,
-  // how much of a light behind something still lights its front, 0 to 1 (step 5 above)
+  // light pixels lamp and sun shadows' edges are softened over
+  softness: 1,
+  // how soft a beam's sides are, as a part of its width
+  beamSoftness: 0.35,
+  // the thinnest a character's or tree's shadow gets, as a part of its length, when the light's off to
+  // its side (a picture seen edge on would have no shadow at all)
+  thinnest: 0.3,
+  // how much of a light behind something still lights its front, 0 to 1 (step 6 above)
   behind: 0.35,
   // light pixels towards the sun its light is sampled from, so a character's own shadow (which starts
   // at its feet) doesn't put it in shade
   nudge: 2,
-  // the most lights with shadows at once, the closest to the middle of the screen. the rest light up
-  // without them
+  // the most lights with shadows at once, and beams without (windows, neon), the closest to the middle
+  // of the screen, each on its own canvas. the rest light up without shadows, and beams with hard sides
   maxShadowed: 16,
+  maxBeams: 24,
   // the most glowing particles that light up round themselves, the closest to the middle
   maxParticleLights: 40,
   // the box a character's silhouette is drawn into, at least, px. bigger art makes it bigger
@@ -135,16 +163,15 @@ const LIGHTING = {
   particleRadius: 7,
   // the faint light round the player, its colour and brightness (its size is Light > Your light)
   you: { colour: [1, 0.95, 0.86], strength: 0.4, height: 30 },
-  // halos: their rings, from the middle out, as parts of the halo's brightness
-  haloRings: [1, 0.5, 0.22],
 };
 
-// what a light kind's file can say (assets/squimble-quest/lights/)
+// what a light kind's file can say (assets/squimble-quest/lights/). LIGHT_SETTINGS (bottom of the file)
+// is each one's row in the Lights box
 const LIGHT_DEFAULTS = {
   colour: '#ffd7a0',
   // px it reaches along the ground
   radius: 160,
-  // how bright in the middle. above 1 makes the bright middle bigger
+  // how bright in the middle. above 1 makes the bright middle bigger and whiter
   strength: 1,
   // px above the ground it hangs (a campfire's flames are low, a street lamp's high up). shadows get
   // shorter under a high light, and its halo is drawn up there
@@ -211,9 +238,18 @@ function lightNoise(t, seed) {
   return a + (lightHash(i + 1, seed) - a) * f * f * (3 - 2 * f);
 }
 
-// how bright a light is t of the way out to its radius (0 to 1). a soft edge, a solid middle
+// how bright a light is t of the way out to its radius (0 to 1). a bright middle that falls away
+// softly and reaches nothing at its edge, so there's no line where it stops
 function lightFade(t) {
   return t >= 1 ? 0 : (1 - t * t) ** 2;
+}
+
+// how bright light that's added up to `light` (0 up to LIGHTING.headroom) looks: as it is up to the
+// knee, then rolling off towards full white without ever hitting it hard
+function lightTone(light) {
+  const knee = LIGHTING.knee;
+  if (light <= knee) return light;
+  return knee + (1 - knee) * (1 - Math.exp(-(light - knee) / (1 - knee)));
 }
 
 // the sky through the day: at each hour, the light everywhere (sky) and the sun's colour, 0 to 1. in
@@ -236,9 +272,13 @@ const LIGHT_TYPES = {};
 
 function defineLight(name, settings) {
   defineType(LIGHT_TYPES, LIGHT_DEFAULTS, 'light', name, settings); // utils.js
-  const type = LIGHT_TYPES[name];
+  checkLight(LIGHT_TYPES[name]);
+}
+
+// a flicker that isn't one goes back to none, and works out its colour as numbers
+function checkLight(type) {
   if (!LIGHT_FLICKERS[type.flicker]) {
-    console.warn(`The light "${name}" has a flicker "${type.flicker}" that isn't one of ${Object.keys(LIGHT_FLICKERS).join(', ')} (lighting.js), so it's none`);
+    console.warn(`The light "${type.name}" has a flicker "${type.flicker}" that isn't one of ${Object.keys(LIGHT_FLICKERS).join(', ')} (lighting.js), so it's none`);
     type.flicker = 'none';
   }
   type.rgb = hexToRgb(type.colour).map((c) => c / 255); // particles.js
@@ -246,18 +286,38 @@ function defineLight(name, settings) {
 
 DataFiles.register('light', {
   define: defineLight,
+  // every light kind can be placed on its own (lightMarkers()). it has to be before the maps load,
+  // since they drop objects that don't exist (mapfile.js), and lights load before maps
+  loaded: () => Object.keys(LIGHT_TYPES).forEach(lightMarker),
   names: () => Object.keys(LIGHT_TYPES),
   toData: (name) => typeToData(LIGHT_TYPES[name], LIGHT_DEFAULTS), // utils.js
-  // the editor's Lights tab lists the objects that give off light, and places them like objects do
-  // (editor.js). it's filled once the objects have loaded too, so wait a tick for them
-  loaded: () => setTimeout(fillLightsTab),
 });
 
+// ---------- lights on their own ----------
+// so any light kind can be put anywhere without an object file for it, each one has an object
+// "light-<name>" made here: a tile's worth of its colour in the editor, nothing in the game
+// (TileMap.drawObject()), lighting from the middle of its tile. they're placed, moved and erased like
+// any object and saved in maps the same way. they aren't object files, so objects can't be exported
+// with them in (objects don't export anyway)
+
+function lightMarker(name) {
+  const key = `light-${name}`;
+  // a real object file with that name wins
+  if (OBJECT_TYPES[key] && !OBJECT_TYPES[key].lightMarker) return;
+  OBJECT_TYPES[key] = { ...OBJECT_DEFAULTS, name: key, colour: LIGHT_TYPES[name].colour, fill: LIGHT_TYPES[name].colour, light: name, lightMarker: true };
+}
+
+// the editor's Lights tab (editor.js): every object that gives off light, own ones first. the tab's
+// list is kept in place since the editor holds on to it (EDITOR_CATALOGUES)
 function fillLightsTab() {
   const tab = EDITOR_TABS.find(({ kind }) => kind === 'light'); // editor.js
   if (!tab) return;
-  for (const [name, type] of Object.entries(OBJECT_TYPES)) if (type.light) tab.types[name] = type;
-  tab.place = (map, name, col, row) => Editor.placeObject(map, name, col, row);
+  tab.place ??= (map, name, col, row) => Editor.placeObject(map, name, col, row);
+  const lit = Object.entries(OBJECT_TYPES).filter(([, type]) => type.light).sort(([, a], [, b]) => Boolean(b.lightMarker) - Boolean(a.lightMarker));
+  const names = lit.map(([name]) => name);
+  if (Object.keys(tab.types).join() === names.join()) return;
+  for (const name of Object.keys(tab.types)) delete tab.types[name];
+  for (const [name, type] of lit) tab.types[name] = type;
 }
 
 // an object's, tile's or item's "light" setting as a list of { light, x, y, height, aim }, or none
@@ -298,7 +358,8 @@ const LIGHT_SOURCES = {
     const spots = lightSpots(type?.light);
     if (spots.length === 0) return [];
     const x = (obj.col + type.width / 2) * TILE;
-    const y = (obj.row + type.height) * TILE;
+    // a light on its own shines from the middle of its tile
+    const y = (obj.row + type.height) * TILE - (type.lightMarker ? TILE / 2 : 0);
     return spots.map((spot) => {
       const light = LIGHT_TYPES[spot.light];
       return lightFrom(light, x + (spot.x ?? 0), y + (spot.y ?? 0), { height: spot.height ?? light.height, aim: radians(spot.aim ?? light.aim), owner: obj, seed: lightHash(obj.col * 7 + obj.row * 13 + (spot.x ?? 0), 4) });
@@ -448,6 +509,17 @@ function convexHull(points) {
   return lower.slice(0, -1).concat(upper.slice(0, -1));
 }
 
+// how a standing thing's silhouette is laid down as its shadow: each px of its height goes `along`
+// ({ x, y } per px) away from the light, so its feet stay on its feet and its top slants off. the
+// picture isn't turned, which would leave a wedge of no shadow by the feet. edge on to a light it'd be
+// a line, so it's kept LIGHTING.thinnest of its length deep (falling in front of it if unsure)
+function shadowSlant(along) {
+  const length = Math.hypot(along.x, along.y);
+  const thin = LIGHTING.thinnest * length;
+  if (Math.abs(along.y) >= thin) return along;
+  return { x: along.x, y: along.y < 0 ? -thin : thin };
+}
+
 // ---------- the sun and moon ----------
 
 // the hour's sky light, and the sun or moon: { sky, sun, elevation (degrees), angle (radians, the way
@@ -472,7 +544,7 @@ function skyAt(a, hour) {
   const highest = day ? LIGHTING.sunHighest : LIGHTING.moonHighest;
   return {
     sky,
-    sun: colour.map((c) => c * reach * up ** 0.5 * (day ? 1 : 0.8)),
+    sun: colour.map((c) => c * reach * up ** 0.5 * (day ? 1 : 0.6)),
     elevation: Math.max(LIGHTING.lowest, highest * up),
     angle,
   };
@@ -521,6 +593,23 @@ function rgbText([r, g, b], alpha = 1) {
   return `rgba(${c(r)}, ${c(g)}, ${c(b)}, ${alpha})`;
 }
 
+// the svg filter that rolls the light map off towards white (lightTone()), the same for red, green and
+// blue so colours don't split apart. made once, its id
+function toneFilter(headroom) {
+  const id = 'sqLightTone';
+  if (!document.getElementById(id)) {
+    const values = Array.from({ length: 33 }, (_, i) => lightTone((i / 32) * headroom).toFixed(4)).join(' ');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '0');
+    svg.setAttribute('height', '0');
+    svg.setAttribute('aria-hidden', 'true');
+    svg.style.position = 'absolute';
+    svg.innerHTML = `<filter id="${id}" color-interpolation-filters="sRGB"><feComponentTransfer>${['R', 'G', 'B'].map((c) => `<feFunc${c} type="table" tableValues="${values}"/>`).join('')}</feComponentTransfer></filter>`;
+    document.body.appendChild(svg);
+  }
+  return `url(#${id})`;
+}
+
 // ---------- the light map ----------
 
 const Lighting = {
@@ -530,8 +619,12 @@ const Lighting = {
   hour: null,
   // how dark the sky is now, 0 (day) to 1 (night or underground), for lights that are only on at night
   darkness: 0,
-  // the light map, the banded one, the glow, the sun, one light, a shadow mask, the strips each thing's
-  // light is sampled into, and a thing on its own (plain canvases, lightCanvas())
+  // the light map is stored divided by this, to leave room for lights adding up (LIGHTING.headroom).
+  // 1 in browsers that can't filter a canvas, which then just go white where lights overlap
+  headroom: 1,
+  // plain canvases (lightCanvas()): the light map and the rolled off one, the glow, the glowing paint,
+  // the sun, one light, a shadow mask, the strips each thing's light is sampled into, a thing on its
+  // own, a strip averaged, and the silhouettes shrunk a little (core)
   canvases: null,
   // the silhouettes and glowing paint of this frame's things (p5 graphics, drawingInto())
   atlas: null,
@@ -555,6 +648,8 @@ const Lighting = {
     this.time += dt;
     const a = this.settings(map);
     if (a && a.lightDayLength > 0) this.hour = ((this.hour ?? a.lightTime) + (dt * 24) / (a.lightDayLength * 60)) % 24;
+    // new and renamed light kinds show up in the Lights tab
+    if (Editor.active) fillLightsTab();
   },
 
   // the hour it is on map now
@@ -582,7 +677,7 @@ const Lighting = {
       ctx.save();
       ctx.imageSmoothingEnabled = false;
       ctx.globalCompositeOperation = this.onlyLight ? 'source-over' : 'multiply';
-      ctx.drawImage(this.canvases.light.canvas, 0, 0, f.cols, f.rows, f.ox, f.oy, f.cols * f.cell, f.rows * f.cell);
+      ctx.drawImage(this.canvases.final.canvas, 0, 0, f.cols, f.rows, f.ox, f.oy, f.cols * f.cell, f.rows * f.cell);
       ctx.restore();
     } catch (err) {
       // never let an experiment stop the game
@@ -607,16 +702,22 @@ const Lighting = {
     ctx.restore();
   },
 
+  // an [r, g, b] of light as it's stored in the light map (headroom above)
+  stored(rgb, alpha = 1) {
+    return rgbText(rgb.map((c) => c / this.headroom), alpha);
+  },
+
   // works out the light map (steps at the top of the file) and gives back the frame:
-  // { settings, cell, ox, oy, cols, rows }
+  // { settings, cell, ox, oy, cols, rows, view, sun }
   build(camera, map, a) {
     if (!this.canvases) {
-      this.canvases = Object.fromEntries(['light', 'glow', 'emit', 'sun', 'one', 'mask', 'strips', 'thing'].map((name) => [name, lightCanvas()]));
+      this.canvases = Object.fromEntries(['light', 'final', 'glow', 'emit', 'sun', 'one', 'mask', 'strips', 'thing', 'average', 'core'].map((name) => [name, lightCanvas()]));
       this.atlas = lightGraphics(1024, 512);
       this.glowAtlas = lightGraphics(1024, 512);
+      this.headroom = 'filter' in CanvasRenderingContext2D.prototype ? LIGHTING.headroom : 1;
     }
     const view = camera.view();
-    // bigger light pixels when zoomed out a lot, in steps of 2 so they stay on the art's pixel grid
+    // bigger light pixels when zoomed out a lot, in steps of 2 so they stay on the art's pixel grid.
     // a number, though the picker gives back its words' key
     let cell = Number(a.lightPixel) || LIGHTING.cell;
     while (((view.right - view.left) / cell) * ((view.bottom - view.top) / cell) > LIGHTING.maxCells) cell *= 2;
@@ -624,13 +725,12 @@ const Lighting = {
     const oy = Math.floor(view.top / cell) * cell - cell;
     const cols = Math.ceil((view.right - ox) / cell) + 2;
     const rows = Math.ceil((view.bottom - oy) / cell) + 2;
-    const f = { settings: a, cell, ox, oy, cols, rows, view };
-    this.bands = a.lightBands;
+    const f = { settings: a, cell, ox, oy, cols, rows, view, sun: null };
     const sky = skyAt(a, this.hourOn(a));
     this.darkness = Math.max(0, Math.min(1, (0.42 - Math.max(...sky.sky)) / 0.2));
-    const { light, glow, emit } = this.canvases;
-    for (const c of [light, glow, emit]) fitCanvas(c, cols, rows);
-    const world = (ctx, x = ox, y = oy) => ctx.setTransform(1 / cell, 0, 0, 1 / cell, -x / cell, -y / cell);
+    const { light, final, glow, emit } = this.canvases;
+    for (const c of [light, final, glow, emit]) fitCanvas(c, cols, rows);
+    const world = (ctx) => ctx.setTransform(1 / cell, 0, 0, 1 / cell, -ox / cell, -oy / cell);
 
     // what's around: the lights that reach the view, shadow boxes, and the things standing up
     const reach = { left: view.left - 400, right: view.right + 400, top: view.top - 400, bottom: view.bottom + 400 };
@@ -639,12 +739,17 @@ const Lighting = {
     if (a.lightPlayer > 0 && this.darkness > 0 && !player.dead && !Editor.active) {
       lights.push({ x: player.x, y: player.y + player.h / 2, z: LIGHTING.you.height, rgb: LIGHTING.you.colour.map((c) => c * LIGHTING.you.strength * this.darkness), flicker: 1, radius: a.lightPlayer, width: 0, cone: null, aim: 0, shadows: false, owner: player, glow: 0, glowSize: 0 });
     }
+    // lights with shadows and beams get their own canvas, the closest ones to the middle first
     const middle = { x: camera.x, y: camera.y };
-    const shadowed = lights.filter((l) => l.shadows).sort((p, q) => Math.hypot(p.x - middle.x, p.y - middle.y) - Math.hypot(q.x - middle.x, q.y - middle.y)).slice(0, LIGHTING.maxShadowed);
-    const plain = lights.filter((l) => !shadowed.includes(l));
+    const closest = (p, q) => Math.hypot(p.x - middle.x, p.y - middle.y) - Math.hypot(q.x - middle.x, q.y - middle.y);
+    const own = [
+      ...lights.filter((l) => l.shadows).sort(closest).slice(0, LIGHTING.maxShadowed),
+      ...lights.filter((l) => !l.shadows && l.cone !== null).sort(closest).slice(0, LIGHTING.maxBeams),
+    ];
+    const plain = lights.filter((l) => !own.includes(l));
     const boxes = shadowBoxes(map, reach);
     const things = this.things(map, reach, cell);
-    this.stats = { lights: lights.length, shadowed: shadowed.length, things: things.length, ms: this.stats.ms };
+    this.stats = { lights: lights.length, shadowed: own.length, things: things.length, ms: this.stats.ms };
     this.drawSilhouettes(things, cell);
 
     // 1. the sky, glowing tiles and lights without shadows
@@ -655,13 +760,14 @@ const Lighting = {
     lc.setTransform(1, 0, 0, 1, 0, 0);
     lc.globalCompositeOperation = 'source-over';
     lc.globalAlpha = 1;
-    lc.fillStyle = rgbText(ambient);
+    lc.filter = 'none';
+    lc.fillStyle = this.stored(ambient);
     lc.fillRect(0, 0, cols, rows);
     lc.globalCompositeOperation = 'lighter';
     this.drawTileGlow(lc, map, f);
     world(lc);
-    for (const l of plain) this.drawLight(lc, l);
-    // the glow's halos for lights not on a thing (the rest go on with their thing, step 5)
+    for (const l of plain) this.drawLight(lc, l, false);
+    // the glow's halos for lights not on a thing (the rest go on with their thing, step 6)
     const gc = glow.ctx;
     for (const c of [glow.ctx, emit.ctx]) {
       c.setTransform(1, 0, 0, 1, 0, 0);
@@ -694,24 +800,38 @@ const Lighting = {
       this.drawSun(f, colour, angle, elevation, boxes, things, shade, world);
     }
 
-    // 4. lights with shadows, each on its own canvas
-    for (const l of shadowed) this.drawShadowedLight(f, l, boxes, things, shade);
+    // 4. lights with shadows and beams, each on its own canvas
+    for (const l of own) this.drawOwnLight(f, l, boxes, things, shade);
 
-    // 5. the things, back to front
-    this.drawThings(f, things, lights, world);
+    // 5. wall tops get the sky and nothing else
+    const top = this.stored(ambient.map((c, i) => c + (sky.sun?.[i] ?? 0)));
+    world(lc);
+    lc.globalCompositeOperation = 'source-over';
+    lc.fillStyle = top;
+    for (const box of boxes) if (box.tile) lc.fillRect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0);
 
-    // the darkest it gets
+    // 6. the things, back to front
+    this.drawThings(f, things, lights, world, ambient, sky);
+
+    // the darkest it gets, then rolled off towards white
     lc.setTransform(1, 0, 0, 1, 0, 0);
     lc.globalAlpha = 1;
     lc.globalCompositeOperation = 'lighten';
-    lc.fillStyle = rgbText(LIGHTING.floor);
+    lc.fillStyle = this.stored(LIGHTING.floor);
     lc.fillRect(0, 0, cols, rows);
+    const fc = final.ctx;
+    fc.setTransform(1, 0, 0, 1, 0, 0);
+    fc.globalCompositeOperation = 'copy';
+    fc.filter = this.headroom > 1 ? toneFilter(this.headroom) : 'none';
+    fc.drawImage(light.canvas, 0, 0, cols, rows, 0, 0, cols, rows);
+    fc.filter = 'none';
+    fc.globalCompositeOperation = 'source-over';
     return f;
   },
 
-  // the standing things the light map treats one by one (step 5), front to back like sketch.js sorts
+  // the standing things the light map treats one by one (step 6), front to back like sketch.js sorts
   // them. each { owner, foot: { x, y }, height, box (world px, on the light grid), cols, rows, shadow
-  // ('sprite' or 'box'), boxes, drawBody(), drawGlow() }
+  // ('sprite', 'box' or 'none'), roofAt, drawBody(), drawGlow(), flicker }
   things(map, area, cell) {
     const list = [];
     const snap = (v) => Math.floor(v / cell) * cell;
@@ -726,7 +846,7 @@ const Lighting = {
       const size = artDrawnSize(characterArt(c.settings, 'idle')); // character.js, art.js
       const w = Math.max(LIGHTING.characterBox.w, (size?.w ?? 0) + 24);
       const h = Math.max(LIGHTING.characterBox.h, (size?.h ?? 0) + 24);
-      add(c, c.x, c.y + c.h / 2, w, h, 6, { height: size?.h ?? c.h, shadow: 'sprite', drawBody: () => c.drawBody(), drawGlow: null });
+      add(c, c.x, c.y + c.h / 2, w, h, 6, { height: size?.h ?? c.h, shadow: 'sprite', drawBody: () => c.drawBody(), drawGlow: null, flicker: 1 });
     }
     const huge = { left: -Infinity, right: Infinity, top: -Infinity, bottom: Infinity };
     for (const obj of map.standingObjects()) {
@@ -752,7 +872,9 @@ const Lighting = {
     return list;
   },
 
-  // step 2: every thing drawn small into the atlas by its own code, a box each, packed in rows
+  // step 2: every thing drawn small into the atlas by its own code, a box each, packed in rows. then a
+  // copy shrunk a little (core: each pixel's coverage to the power of 8, so only the ones the thing
+  // covers all of are left) that its light goes on, so light never spills onto the ground round it
   drawSilhouettes(things, cell) {
     let x = 0;
     let y = 0;
@@ -796,6 +918,16 @@ const Lighting = {
     drawingInto(this.glowAtlas, () => {
       for (const t of things) if (t.slot && t.drawGlow) into(this.glowAtlas, t, () => { push(); t.drawGlow(); pop(); });
     });
+    const core = this.canvases.core;
+    fitCanvas(core, W, H);
+    const cc = core.ctx;
+    cc.setTransform(1, 0, 0, 1, 0, 0);
+    cc.globalAlpha = 1;
+    cc.globalCompositeOperation = 'copy';
+    cc.drawImage(this.atlas.canvas, 0, 0);
+    cc.globalCompositeOperation = 'destination-in';
+    for (let i = 0; i < 3; i++) cc.drawImage(core.canvas, 0, 0);
+    cc.globalCompositeOperation = 'source-over';
   },
 
   // adds what canvas src (light pixels, its top left at world ox, oy) has along thing t's feet onto
@@ -811,11 +943,13 @@ const Lighting = {
     sc.globalAlpha = 1;
   },
 
-  // a light's glow onto ctx (in world positions), coloured, with its cone and width
-  drawLight(ctx, l) {
+  // a light's glow onto ctx (in world positions), coloured, spread by its width, fading smoothly to
+  // nothing at its reach. a beam's sides fade softly when it's on its own canvas (own), and are cut
+  // hard when it isn't (other lights are on that canvas)
+  drawLight(ctx, l, own) {
     const r = l.radius;
     ctx.save();
-    if (l.cone !== null) {
+    if (l.cone !== null && !own) {
       ctx.beginPath();
       ctx.moveTo(l.x, l.y);
       ctx.arc(l.x, l.y, r + l.width, l.aim - l.cone / 2, l.aim + l.cone / 2);
@@ -824,43 +958,52 @@ const Lighting = {
     }
     ctx.translate(l.x, l.y);
     if (l.width > 0) ctx.scale((r + l.width / 2) / r, 1);
-    ctx.fillStyle = this.gradient(ctx, l.rgb, r);
+    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+    for (let k = 0; k <= 12; k++) gradient.addColorStop(k / 12, this.stored(l.rgb.map((c) => c * lightFade(k / 12))));
+    ctx.fillStyle = gradient;
     ctx.fillRect(-r, -r, r * 2, r * 2);
+    ctx.restore();
+    if (l.cone !== null && own) this.cutBeam(ctx, l);
+  },
+
+  // keeps only a beam's wedge of what's on ctx, its sides fading over LIGHTING.beamSoftness of its
+  // width. needs a conic gradient (Chrome, Edge, Firefox, Safari 16.4 on), or the sides are cut hard
+  cutBeam(ctx, l) {
+    const reach = l.radius + l.width;
+    ctx.save();
+    ctx.globalCompositeOperation = 'destination-in';
+    if (ctx.createConicGradient) {
+      // the gradient goes round from straight behind the beam, so the beam's middle is halfway
+      const turn = Math.PI * 2;
+      const soft = Math.max(radians(6), l.cone * LIGHTING.beamSoftness) / turn;
+      const half = l.cone / 2 / turn;
+      const mask = ctx.createConicGradient(l.aim - Math.PI, l.x, l.y);
+      mask.addColorStop(0, 'rgba(0, 0, 0, 0)');
+      mask.addColorStop(Math.max(0, 0.5 - half - soft / 2), 'rgba(0, 0, 0, 0)');
+      mask.addColorStop(Math.max(0, 0.5 - half + soft / 2), '#000');
+      mask.addColorStop(Math.min(1, 0.5 + half - soft / 2), '#000');
+      mask.addColorStop(Math.min(1, 0.5 + half + soft / 2), 'rgba(0, 0, 0, 0)');
+      mask.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.fillStyle = mask;
+      ctx.fillRect(l.x - reach, l.y - reach, reach * 2, reach * 2);
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(l.x, l.y);
+      ctx.arc(l.x, l.y, reach, l.aim - l.cone / 2, l.aim + l.cone / 2);
+      ctx.closePath();
+      ctx.fillStyle = '#000';
+      ctx.fill();
+    }
     ctx.restore();
   },
 
-  // a light's glow from its middle out to r, in rings of the map's Bands (each the brightness a
-  // quarter of the way into it), or smooth with 0 bands. the rings are worked out on the light map's
-  // own pixels, so their edges are pixel steps
-  gradient(ctx, rgb, r) {
-    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-    const bands = this.bands;
-    if (bands < 2) {
-      for (let k = 0; k <= 8; k++) gradient.addColorStop(k / 8, rgbText(rgb.map((c) => c * lightFade(k / 8))));
-      return gradient;
-    }
-    for (let k = 0; k < bands; k++) {
-      const colour = rgbText(rgb.map((c) => c * lightFade((k + 0.25) / bands)));
-      gradient.addColorStop(k / bands, colour);
-      gradient.addColorStop((k + 1) / bands - 0.0001, colour);
-    }
-    gradient.addColorStop(1, 'rgb(0, 0, 0)');
-    return gradient;
-  },
-
-  // the halo round a light, up where it hangs, in rings
+  // the halo round a light, up where it hangs, fading out smoothly
   drawHalo(ctx, l) {
     if (l.glow <= 0 || l.glowSize <= 0) return;
     const y = l.y - l.z;
     const gradient = ctx.createRadialGradient(l.x, y, 0, l.x, y, l.glowSize);
-    const rings = LIGHTING.haloRings;
     const brightest = Math.max(...l.rgb, 0.001);
-    rings.forEach((ring, k) => {
-      const colour = rgbText(l.rgb.map((c) => (c / brightest) * ring * l.glow));
-      gradient.addColorStop(k / rings.length, colour);
-      gradient.addColorStop((k + 1) / rings.length - 0.001, colour);
-    });
-    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    for (let k = 0; k <= 6; k++) gradient.addColorStop(k / 6, rgbText(l.rgb.map((c) => (c / brightest) * l.glow * lightFade(k / 6))));
     ctx.fillStyle = gradient;
     ctx.fillRect(l.x - l.glowSize, y - l.glowSize, l.glowSize * 2, l.glowSize * 2);
   },
@@ -885,12 +1028,13 @@ const Lighting = {
           fitCanvas(tiny, lastCol - firstCol + 1, lastRow - firstRow + 1);
           tiny.ctx.setTransform(1, 0, 0, 1, 0, 0);
           tiny.ctx.globalCompositeOperation = 'source-over';
+          tiny.ctx.globalAlpha = 1;
           tiny.ctx.clearRect(0, 0, tiny.canvas.width, tiny.canvas.height);
         }
         const l = LIGHT_TYPES[spot.light];
         const level = l.strength * LIGHT_FLICKERS[l.flicker](this.time * l.flickerSpeed, (col * 0.13 + row * 0.07) % 1 * 100, l.flickerAmount);
         reach = Math.max(reach, l.radius);
-        tiny.ctx.fillStyle = rgbText(l.rgb.map((c) => c * level));
+        tiny.ctx.fillStyle = this.stored(l.rgb.map((c) => c * level));
         tiny.ctx.fillRect(col - firstCol, row - firstRow, 1, 1);
       }
     }
@@ -905,9 +1049,8 @@ const Lighting = {
     lc.restore();
   },
 
-  // the shadows of boxes from light l (or the sun, `away`) filled on ctx in world positions. boxes the
-  // light is inside or on don't count, or it'd be all shadow. tiles' own tops stay lit (cut back out)
-  // by the sun and by lights higher than them
+  // the shadows of boxes from light l (or the sun, `away`) filled on ctx in world positions, giving
+  // back whether there were any. boxes the light is inside or on don't count, or it'd be all shadow
   fillBoxShadows(ctx, boxes, l, away) {
     ctx.fillStyle = '#000';
     ctx.beginPath();
@@ -926,64 +1069,75 @@ const Lighting = {
       ctx.closePath();
       any = true;
     }
-    if (!any) return false;
-    ctx.fill();
-    ctx.globalCompositeOperation = 'destination-out';
-    for (const box of boxes) if (box.tile && (away || l.z > box.h)) ctx.fillRect(box.x0, box.y0, box.x1 - box.x0, box.y1 - box.y0);
-    ctx.globalCompositeOperation = 'source-over';
+    if (any) ctx.fill();
+    return any;
+  },
+
+  // lays thing t's silhouette down on ctx (in world positions) as its shadow: its feet stay put and
+  // each px of height goes `along` ({ x, y } per px) away from the light (shadowSlant())
+  layShadow(ctx, t, along, cell) {
+    if (!t.slot || t.shadow !== 'sprite') return false;
+    if (Math.hypot(along.x, along.y) < 0.01) return false;
+    const { x: ax, y: ay } = shadowSlant(along);
+    const { y: fy } = t.foot;
+    const bx = t.box.x;
+    const by = t.box.y;
+    // only what's above its feet. a silhouette px (i, j) is world (bx + i cell, by + j cell), v = fy - by
+    // - j cell up from its feet, and it goes to the ground at (bx + i cell + ax v, fy + ay v)
+    const above = Math.min(t.rows, Math.ceil((fy - by) / cell));
+    ctx.save();
+    ctx.transform(cell, 0, -ax * cell, -ay * cell, bx + ax * (fy - by), fy + ay * (fy - by));
+    ctx.drawImage(this.atlas.canvas, t.slot.x, t.slot.y, t.cols, above, 0, 0, t.cols, above);
+    ctx.restore();
     return true;
   },
 
-  // lays thing t's silhouette down on ctx (in world positions) as a shadow: its feet stay put and each
-  // px of height goes `along` ({ x, y } per px) away from the light, its width across that way
-  layShadow(ctx, t, along, cell) {
-    if (!t.slot || t.shadow !== 'sprite') return;
-    const length = Math.hypot(along.x, along.y);
-    if (length < 0.01) return;
-    const d = { x: along.x / length, y: along.y / length };
-    // across the shadow, kept pointing right where it can so it isn't mirrored
-    const p = d.y >= 0 ? { x: d.y, y: -d.x } : { x: -d.y, y: d.x };
-    const { x: fx, y: fy } = t.foot;
-    const bx = t.box.x;
-    const by = t.box.y;
-    // a silhouette px (i, j) is world (bx + i cell, by + j cell): u across from the feet, v up from them
-    // u = bx - fx + i cell, v = fy - by - j cell, and it goes to the ground at feet + u p + v along
-    ctx.save();
-    ctx.transform(p.x * cell, p.y * cell, -along.x * cell, -along.y * cell, fx + p.x * (bx - fx) + along.x * (fy - by), fy + p.y * (bx - fx) + along.y * (fy - by));
-    ctx.drawImage(this.atlas.canvas, t.slot.x, t.slot.y, t.cols, t.rows, 0, 0, t.cols, t.rows);
-    ctx.restore();
+  // takes the shadows drawn on mask (size light px square, from the top left) out of canvas c, by
+  // `amount` (1 blocks all the light), edges softened, then clears the mask and puts its world
+  // transform back (x0, y0)
+  cutShadows(c, mask, size, amount, x0, y0, cell) {
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.globalCompositeOperation = 'destination-out';
+    c.globalAlpha = amount;
+    if (LIGHTING.softness > 0) c.filter = `blur(${LIGHTING.softness}px)`;
+    c.drawImage(mask.canvas, 0, 0, size.w, size.h, 0, 0, size.w, size.h);
+    c.filter = 'none';
+    c.globalAlpha = 1;
+    mask.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    mask.ctx.clearRect(0, 0, size.w, size.h);
+    mask.ctx.setTransform(1 / cell, 0, 0, 1 / cell, -x0 / cell, -y0 / cell);
   },
 
   // step 3: sunlight over the light map, minus the shadows, sampled by the things on the way
   drawSun(f, colour, angle, elevation, boxes, things, shade, world) {
     const sun = this.canvases.sun;
-    fitCanvas(sun, f.cols, f.rows);
+    const mask = this.canvases.mask;
+    for (const c of [sun, mask]) fitCanvas(c, f.cols, f.rows);
     const c = sun.ctx;
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.globalCompositeOperation = 'source-over';
     c.globalAlpha = 1;
-    c.fillStyle = rgbText(colour);
+    c.fillStyle = this.stored(colour);
     c.fillRect(0, 0, f.cols, f.rows);
     // a px of height pushes a shadow this far along the ground, away from the sun
     const per = 1 / Math.tan(radians(elevation));
     const away = { x: -Math.cos(angle) * per, y: -Math.sin(angle) * per };
+    const size = { w: f.cols, h: f.rows };
+    const m = mask.ctx;
+    m.setTransform(1, 0, 0, 1, 0, 0);
+    m.globalCompositeOperation = 'source-over';
+    m.globalAlpha = 1;
+    m.clearRect(0, 0, f.cols, f.rows);
+    world(m);
+    // walls and buildings block all of it, standing things Shadows % of it
+    if (this.fillBoxShadows(m, boxes, null, away)) this.cutShadows(c, mask, size, 1, f.ox, f.oy, f.cell);
     if (shade > 0) {
-      const mask = this.canvases.mask;
-      fitCanvas(mask, f.cols, f.rows);
-      const m = mask.ctx;
-      m.setTransform(1, 0, 0, 1, 0, 0);
-      m.globalCompositeOperation = 'source-over';
-      m.clearRect(0, 0, f.cols, f.rows);
-      world(m);
-      this.fillBoxShadows(m, boxes, null, away);
+      let any = false;
       for (const t of things) {
         const k = Math.min(1, LIGHTING.longestShadow / (per * t.height));
-        this.layShadow(m, t, { x: away.x * k, y: away.y * k }, f.cell);
+        any = this.layShadow(m, t, { x: away.x * k, y: away.y * k }, f.cell) || any;
       }
-      c.globalCompositeOperation = 'destination-out';
-      c.globalAlpha = shade;
-      c.drawImage(mask.canvas, 0, 0, f.cols, f.rows, 0, 0, f.cols, f.rows);
-      c.globalAlpha = 1;
+      if (any) this.cutShadows(c, mask, size, shade, f.ox, f.oy, f.cell);
     }
     // sampled a little towards the sun, past the thing's own shadow
     const toward = { x: Math.cos(angle), y: Math.sin(angle) };
@@ -999,7 +1153,7 @@ const Lighting = {
     f.sun = { colour, toward, elevation };
   },
 
-  // how much of a light lights thing t's front (step 5): all of it from in front or overhead, less
+  // how much of a light lights thing t's front (step 6): all of it from in front or overhead, less
   // from behind. dx, dy the way to the light along the ground, up how far overhead it is (0 to 1).
   // buildings work theirs out from their own shadow, so get all of it
   facing(t, dx, dy, up) {
@@ -1009,8 +1163,10 @@ const Lighting = {
     return LIGHTING.behind + (1 - LIGHTING.behind) * front;
   },
 
-  // step 4: one light with its shadows, on its own canvas the size of its reach
-  drawShadowedLight(f, l, boxes, things, shade) {
+  // step 4: one light on its own canvas the size of its reach: its glow cut to its beam, minus walls
+  // and buildings (all the light), then the things near it sample it, then their own shadows go down
+  // (Shadows % of the light)
+  drawOwnLight(f, l, boxes, things, shade) {
     const { cell } = f;
     const one = this.canvases.one;
     const mask = this.canvases.mask;
@@ -1028,28 +1184,20 @@ const Lighting = {
     }
     const c = one.ctx;
     c.globalCompositeOperation = 'lighter';
-    this.drawLight(c, l);
+    this.drawLight(c, l, true);
     const near = things.filter((t) => Math.hypot(t.foot.x - l.x, t.foot.y - l.y) < reach + t.box.w / 2);
-    // walls and buildings first, then the things sample it, then their own shadows go down
-    const cut = () => {
-      c.setTransform(1, 0, 0, 1, 0, 0);
-      c.globalCompositeOperation = 'destination-out';
-      c.globalAlpha = shade;
-      c.drawImage(mask.canvas, 0, 0, size, size, 0, 0, size, size);
-      c.globalAlpha = 1;
-      mask.ctx.setTransform(1, 0, 0, 1, 0, 0);
-      mask.ctx.clearRect(0, 0, size, size);
-      mask.ctx.setTransform(1 / cell, 0, 0, 1 / cell, -x0 / cell, -y0 / cell);
-    };
-    if (shade > 0 && this.fillBoxShadows(mask.ctx, boxes, l, null)) cut();
+    const square = { w: size, h: size };
+    if (l.shadows && this.fillBoxShadows(mask.ctx, boxes, l, null)) this.cutShadows(c, mask, square, 1, x0, y0, cell);
     const sc = this.canvases.strips.ctx;
     for (const t of near) {
+      // a building's own lights (windows, signs) shine out of it, not onto its wall
+      if (t.shadow === 'box' && t.owner === l.owner) continue;
       const dx = l.x - t.foot.x;
       const dy = l.y - t.foot.y;
       const up = l.owner === t.owner ? 1 : Math.sin(Math.atan2(l.z, Math.hypot(dx, dy)));
       this.sample(sc, one.canvas, x0, y0, cell, t, things.indexOf(t), 0, 0, this.facing(t, dx, dy, up));
     }
-    if (shade > 0) {
+    if (l.shadows && shade > 0) {
       let any = false;
       for (const t of near) {
         if (t.owner === l.owner || t.shadow !== 'sprite') continue;
@@ -1057,10 +1205,9 @@ const Lighting = {
         if (ground < 3) continue;
         // a px of height goes this far: further the further away it is, and the lower the light
         const length = l.z > t.height + 1 ? Math.min(ground / (l.z - t.height), LIGHTING.longestShadow / t.height) : LIGHTING.longestShadow / t.height;
-        this.layShadow(mask.ctx, t, { x: ((t.foot.x - l.x) / ground) * length, y: ((t.foot.y - l.y) / ground) * length }, cell);
-        any = true;
+        any = this.layShadow(mask.ctx, t, { x: ((t.foot.x - l.x) / ground) * length, y: ((t.foot.y - l.y) / ground) * length }, cell) || any;
       }
-      if (any) cut();
+      if (any) this.cutShadows(c, mask, square, shade, x0, y0, cell);
     }
     const lc = this.canvases.light.ctx;
     lc.setTransform(1, 0, 0, 1, 0, 0);
@@ -1068,42 +1215,54 @@ const Lighting = {
     lc.drawImage(one.canvas, 0, 0, size, size, (x0 - f.ox) / cell, (y0 - f.oy) / cell, size, size);
   },
 
-  // step 5: each thing's light over its silhouette, then its rim light, glowing paint and halos
-  drawThings(f, things, lights, world) {
+  // step 6: each thing's light over its silhouette, then its rim light, glowing paint and halos
+  drawThings(f, things, lights, world, ambient, sky) {
     const { cell } = f;
     const a = f.settings;
     const lc = this.canvases.light.ctx;
     const gc = this.canvases.glow.ctx;
     const ec = this.canvases.emit.ctx;
     const thing = this.canvases.thing;
+    const average = this.canvases.average;
     const strips = this.canvases.strips.canvas;
+    const core = this.canvases.core.canvas;
     fitCanvas(thing, Math.max(1, ...things.map((t) => t.cols)), Math.max(1, ...things.map((t) => t.rows)));
+    fitCanvas(average, 64, 1);
     const tc = thing.ctx;
+    const ac = average.ctx;
     // the sky on roofs
-    const sky = skyAt(a, this.hourOn(a));
-    const roof = hexToRgb(a.lightAmbient).map((c, i) => c / 255 + sky.sky[i] + (sky.sun?.[i] ?? 0) * 0.85);
+    const roof = this.stored(ambient.map((c, i) => c + (sky.sun?.[i] ?? 0) * 0.85));
     things.forEach((t, i) => {
-      if (!t.slot || t.shadow === 'none' && !t.drawGlow) return;
+      if (!t.slot || (t.shadow === 'none' && !t.drawGlow)) return;
       const at = { x: (t.box.x - f.ox) / cell, y: (t.box.y - f.oy) / cell };
-      tc.setTransform(1, 0, 0, 1, 0, 0);
-      tc.globalAlpha = 1;
-      tc.imageSmoothingEnabled = false;
-      tc.globalCompositeOperation = 'copy';
       if (t.shadow !== 'none') {
-        // its feet's light up its whole height. a building's front is its bottom shadowHeight px, and
-        // above that is roof
-        tc.drawImage(strips, 0, i, t.cols, 1, 0, 0, t.cols, t.rows);
+        // its feet's light, averaged into a few pixels so a thin shadow crossing its feet doesn't stripe
+        // it: two for a character or tree (the sides nearer and further from a light), one every six
+        // light pixels along a building's front. then stretched over it smoothly
+        const n = t.shadow === 'box' ? Math.max(2, Math.min(64, Math.round(t.cols / 6))) : 2;
+        ac.setTransform(1, 0, 0, 1, 0, 0);
+        ac.globalCompositeOperation = 'copy';
+        ac.imageSmoothingEnabled = true;
+        ac.imageSmoothingQuality = 'high';
+        ac.drawImage(strips, 0, i, t.cols, 1, 0, 0, n, 1);
+        tc.setTransform(1, 0, 0, 1, 0, 0);
+        tc.globalAlpha = 1;
+        tc.imageSmoothingEnabled = true;
+        tc.globalCompositeOperation = 'copy';
+        tc.drawImage(average.canvas, 0, 0, n, 1, 0, 0, t.cols, t.rows);
+        tc.imageSmoothingEnabled = false;
+        // a building's front is its bottom shadowHeight px, and above that is roof
         if (t.roofAt !== null && t.roofAt !== undefined) {
           tc.globalCompositeOperation = 'source-over';
-          tc.fillStyle = rgbText(roof);
+          tc.fillStyle = roof;
           tc.fillRect(0, 0, t.cols, Math.max(0, Math.round((t.roofAt - t.box.y) / cell)));
         }
         tc.globalCompositeOperation = 'destination-in';
-        tc.drawImage(this.atlas.canvas, t.slot.x, t.slot.y, t.cols, t.rows, 0, 0, t.cols, t.rows);
+        tc.drawImage(core, t.slot.x, t.slot.y, t.cols, t.rows, 0, 0, t.cols, t.rows);
         lc.setTransform(1, 0, 0, 1, 0, 0);
         lc.globalCompositeOperation = 'source-over';
         lc.drawImage(thing.canvas, 0, 0, t.cols, t.rows, at.x, at.y, t.cols, t.rows);
-        if (a.lightRim > 0 && t.shadow === 'sprite' && t.owner instanceof Character) this.drawRim(t, lights, f);
+        if (a.lightRim > 0 && t.shadow === 'sprite') this.drawRim(t, lights, f);
         // whatever glowed behind it is hidden by it
         for (const c of [gc, ec]) {
           c.setTransform(1, 0, 0, 1, 0, 0);
@@ -1144,8 +1303,8 @@ const Lighting = {
     });
   },
 
-  // a bright edge on the side of a character facing the strongest light behind or beside it (its
-  // front's darker from it, facing()), one light pixel wide
+  // a bright edge on the side of a character, tree or post facing the strongest light behind or beside
+  // it (its front's darker from it, facing()), one light pixel wide, inside its outline
   drawRim(t, lights, f) {
     const { cell } = f;
     let best = null;
@@ -1184,16 +1343,16 @@ const Lighting = {
     const sx = Math.round(Math.cos(angle));
     const sy = Math.round(Math.sin(angle));
     const tc = this.canvases.thing.ctx;
-    const atlas = this.atlas.canvas;
+    const core = this.canvases.core.canvas;
     tc.setTransform(1, 0, 0, 1, 0, 0);
     tc.globalAlpha = 1;
     tc.globalCompositeOperation = 'copy';
-    tc.drawImage(atlas, t.slot.x, t.slot.y, t.cols, t.rows, 0, 0, t.cols, t.rows);
+    tc.drawImage(core, t.slot.x, t.slot.y, t.cols, t.rows, 0, 0, t.cols, t.rows);
     tc.globalCompositeOperation = 'destination-out';
-    tc.drawImage(atlas, t.slot.x, t.slot.y, t.cols, t.rows, -sx, -sy, t.cols, t.rows);
+    tc.drawImage(core, t.slot.x, t.slot.y, t.cols, t.rows, -sx, -sy, t.cols, t.rows);
     tc.globalCompositeOperation = 'source-in';
     const brightest = Math.max(...best.rgb, 0.001);
-    tc.fillStyle = rgbText(best.rgb.map((c) => (c / brightest) * Math.min(1, bestAmount * 1.6)), Math.min(1, f.settings.lightRim / 100));
+    tc.fillStyle = this.stored(best.rgb.map((c) => (c / brightest) * Math.min(1, bestAmount * 1.6)), Math.min(1, f.settings.lightRim / 100));
     tc.fillRect(0, 0, t.cols, t.rows);
     const lc = this.canvases.light.ctx;
     lc.setTransform(1, 0, 0, 1, 0, 0);
@@ -1201,3 +1360,115 @@ const Lighting = {
     lc.drawImage(this.canvases.thing.canvas, 0, 0, t.cols, t.rows, (t.box.x - f.ox) / cell, (t.box.y - f.oy) / cell, t.cols, t.rows);
   },
 };
+
+// ---------- the Lights box ----------
+
+// every light setting's row in the Lights box (LightEditor), like ATMOSPHERE_SETTINGS (atmosphere.js
+// explains the parts). options is a picker of a fixed list
+const LIGHT_SETTINGS = [
+  { tab: 'Light', key: 'colour', label: 'Colour', colour: true, tip: 'Its colour. Lights add up like real ones: red and blue make purple, red, green and blue make white' },
+  { tab: 'Light', key: 'strength', label: 'Brightness', min: 0, max: 3, step: 0.05, tip: 'How bright its middle is. Above 1 its middle gets bigger and whiter' },
+  { tab: 'Light', key: 'radius', label: 'Reach', min: 16, max: 600, step: 2, unit: 'px', tip: 'How far along the ground it reaches' },
+  { tab: 'Light', key: 'height', label: 'Height', min: 0, max: 200, unit: 'px', tip: 'How high it hangs. Shadows are shorter under a high light, and long and stretched from a low one' },
+  { tab: 'Light', key: 'width', label: 'Spread', min: 0, max: 300, step: 2, unit: 'px', tip: 'Stretches it sideways, for long lights like a neon tube or a row of windows. 0 is a point' },
+  { tab: 'Light', key: 'shadows', label: 'Shadows', tick: 'casts shadows', tip: 'Walls, buildings and anything standing block it. Untick for small glows that would cost too much' },
+  { tab: 'Light', key: 'night', label: 'Night', tick: 'only on in the dark', tip: 'Fades in at dusk and out at dawn, like street lamps and windows' },
+  { tab: 'Beam', key: 'cone', label: 'Beam width', min: 5, max: 360, step: 5, unit: '°', tip: 'How wide a beam it is. 360 shines all round' },
+  { tab: 'Beam', key: 'aim', label: 'Points', min: 0, max: 355, step: 5, unit: '°', tip: 'Which way a beam points. 0 is right, 90 down, 180 left, 270 up. Held ones point where their holder aims' },
+  { tab: 'Beam', key: 'spin', label: 'Spin', min: -360, max: 360, step: 5, unit: '°/s', tip: 'Turns it round, like a lighthouse or a police light' },
+  { tab: 'Flicker', key: 'flicker', label: 'Flicker', options: { none: 'steady', fire: 'fire', candle: 'candle', neon: 'neon stutter', failing: 'failing lamp' }, tip: 'Fire is restless, candles slow, neon stutters now and then, a failing lamp goes out for a while' },
+  { tab: 'Flicker', key: 'flickerAmount', label: 'Dims by', min: 0, max: 1, step: 0.05, tip: 'How much darker it gets when it flickers. 1 goes right out' },
+  { tab: 'Flicker', key: 'flickerSpeed', label: 'Speed', min: 0.1, max: 5, step: 0.1, tip: 'How fast it flickers. 1 is normal' },
+  { tab: 'Flicker', key: 'glow', label: 'Halo', min: 0, max: 2, step: 0.05, tip: 'How bright the glow round it is, where it hangs' },
+  { tab: 'Flicker', key: 'glowSize', label: 'Halo size', min: 0, max: 60, unit: 'px', tip: 'How big the glow round it is' },
+];
+
+// the box from the map editor's Map > Lights (editormenu.js): pick a light kind and change it while
+// the map shows it, then Save, or Save as a new name for a new kind, which can be placed straight away
+// from the Lights tab. Cancel puts it back how it was. like atmospheres there's no rename or delete,
+// since objects and maps name lights. do it by hand (the file and index.json)
+const LightEditor = {
+  open(name = Object.keys(LIGHT_TYPES)[0]) {
+    const type = LIGHT_TYPES[name];
+    if (!type) return;
+    // the kind itself changes while the box is open, so everything using it shows it. this is how it
+    // was, for Cancel
+    const before = { ...type };
+    const draft = { ...type };
+    const picker = new Picker({ w: 180, choices: Object.keys(LIGHT_TYPES), value: name, label: (n) => n, art: (n, x, y, size) => drawLightChoice(n, x, y, size) });
+    const nameField = new TextField({ w: 180, value: name });
+    let exporting = false;
+    const fields = {};
+    const tabs = [{
+      label: 'Light',
+      rows: [
+        { label: 'Light', field: picker, tip: 'Which one to change. Picking another starts on that one' },
+        { label: 'Save as', field: nameField, tip: 'Saving under a new name makes a new light, placed from the Lights tab as light-<name>' },
+      ],
+    }];
+    for (const line of LIGHT_SETTINGS) {
+      fields[line.key] = atmosphereRowField(line, draft[line.key]); // atmosphere.js
+      let tab = tabs.find(({ label }) => label === line.tab);
+      if (!tab) tabs.push(tab = { label: line.tab, rows: [] });
+      tab.rows.push({ label: line.label, field: fields[line.key], tip: line.tip });
+    }
+    tabs[0].rows.push({
+      label: '',
+      field: new Button({ w: 180, label: 'Save and export', style: 'editor', onClick: () => { exporting = true; FormBox.confirm(); } }),
+      tip: 'Saves, then downloads the files of new or changed lights for lights/',
+    });
+    const putBack = () => {
+      Object.assign(type, before);
+      if (OBJECT_TYPES[`light-${name}`]?.lightMarker) Object.assign(OBJECT_TYPES[`light-${name}`], { colour: type.colour, fill: type.colour });
+    };
+    FormBox.open({
+      title: 'Lights',
+      hint: 'Right click a slider to put it back to normal',
+      confirmLabel: 'Save',
+      tabs,
+      // the light changes on the map as you drag
+      onUpdate: () => {
+        if (picker.value !== name) {
+          putBack();
+          FormBox.close();
+          this.open(picker.value);
+          return;
+        }
+        for (const line of LIGHT_SETTINGS) {
+          const value = fields[line.key].value;
+          if (!line.colour || HEX_COLOUR.test(value)) draft[line.key] = value; // textfield.js
+        }
+        Object.assign(type, draft);
+        checkLight(type);
+        const marker = OBJECT_TYPES[`light-${name}`];
+        if (marker?.lightMarker) Object.assign(marker, { colour: type.colour, fill: type.colour });
+      },
+      canConfirm: () => LIGHT_SETTINGS.every((line) => !line.colour || HEX_COLOUR.test(fields[line.key].value)) && cleanMapName(nameField.value) !== '',
+      onCancel: putBack,
+      onConfirm: () => {
+        const saved = cleanMapName(nameField.value); // mapfile.js
+        const settings = { ...draft, name: saved };
+        delete settings.rgb;
+        if (saved !== name) putBack();
+        defineLight(saved, Object.fromEntries(Object.keys(LIGHT_DEFAULTS).map((key) => [key, settings[key]])));
+        lightMarker(saved);
+        fillLightsTab();
+        if (exporting) DataFiles.export(['light']);
+      },
+    });
+  },
+};
+
+// a light kind's little picture in the picker: a dark square with its glow in the middle
+function drawLightChoice(name, x, y, size) {
+  const type = LIGHT_TYPES[name];
+  if (!type) return;
+  noStroke();
+  fill('#15131c');
+  rect(x, y, size, size);
+  const ctx = drawingContext;
+  const gradient = ctx.createRadialGradient(x + size / 2, y + size / 2, 0, x + size / 2, y + size / 2, size / 2);
+  for (let k = 0; k <= 4; k++) gradient.addColorStop(k / 4, rgbText(type.rgb.map((c) => c * Math.min(1, type.strength) * lightFade(k / 4))));
+  ctx.fillStyle = gradient;
+  ctx.fillRect(x, y, size, size);
+}

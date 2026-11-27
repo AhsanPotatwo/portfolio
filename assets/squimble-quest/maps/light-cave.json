@@ -46,61 +46,61 @@
       "type": "wall-torch",
       "col": -16,
       "row": -10,
-      "id": "7v0d5o"
+      "id": "al6btf"
     },
     {
       "type": "wall-torch",
       "col": -7,
       "row": -10,
-      "id": "jluk4z"
+      "id": "t7srwz"
     },
     {
       "type": "wall-torch",
       "col": 12,
       "row": -10,
-      "id": "x2k8ch"
+      "id": "1rx0qh"
     },
     {
       "type": "wall-torch",
       "col": -14,
       "row": 2,
-      "id": "7rggrb"
+      "id": "nxy3m4"
     },
     {
       "type": "crystal",
       "col": 15,
       "row": -4,
-      "id": "ovflrk"
+      "id": "r2gp9j"
     },
     {
       "type": "crystal",
       "col": 16,
       "row": -5,
-      "id": "jtiirt"
+      "id": "a5arny"
     },
     {
       "type": "crystal",
       "col": -15,
       "row": 8,
-      "id": "jsp43w"
+      "id": "hgavsq"
     },
     {
       "type": "crystal",
       "col": 14,
       "row": 8,
-      "id": "frt1nd"
+      "id": "9awtub"
     },
     {
       "type": "crystal",
       "col": -6,
       "row": -2,
-      "id": "k2leyr"
+      "id": "wuoyce"
     },
     {
       "type": "campfire",
       "col": -10,
       "row": 6,
-      "id": "3wx5kf"
+      "id": "ke0p6l"
     }
   ],
   "items": [
@@ -108,13 +108,13 @@
       "type": "torch",
       "col": -12,
       "row": -7,
-      "id": "3yzawm"
+      "id": "s1w0qd"
     },
     {
       "type": "flashlight",
       "col": -10,
       "row": -7,
-      "id": "gznyl6"
+      "id": "i6kysf"
     }
   ],
   "enemies": [
@@ -122,19 +122,19 @@
       "type": "sqwomp",
       "col": 12,
       "row": -6,
-      "id": "0shgpo"
+      "id": "yk29me"
     },
     {
       "type": "sqwomp",
       "col": 13,
       "row": 5,
-      "id": "0qv0k3"
+      "id": "94ud4c"
     },
     {
       "type": "dummy",
       "col": -6,
       "row": 7,
-      "id": "dnp7t4"
+      "id": "xj4f5n"
     }
   ],
   "npcs": [],

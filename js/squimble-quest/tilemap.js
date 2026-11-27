@@ -593,9 +593,14 @@ class TileMap {
     const h = type.height * TILE;
     const open = InventoryScreen.storage === obj && type.openImage; // inventory.js
     const art = getArt(open ? type.openImage : type.image, 'object', type.name);
-    // a picture can reach up past its tiles
-    const above = artDrawnSize(art)?.h ?? 0;
-    if (x > view.right || x + w < view.left || y > view.bottom || y + h < view.top - above) return;
+    // a light on its own (lighting.js) is only seen in the editor
+    if (type.lightMarker && !Editor.active) return;
+    // a picture can reach up past its tiles and out past their sides, so a tree whose trunk is just
+    // below the screen still shows its top
+    const size = artDrawnSize(art);
+    const sides = Math.max(w, size?.w ?? 0) / 2;
+    const top = Math.min(y, y + h - (size?.h ?? 0));
+    if (x + w / 2 - sides > view.right || x + w / 2 + sides < view.left || top > view.bottom || y + h < view.top) return;
     // a lid opening plays from when it opened (StorageObjects.openedAt), anything else from page load
     const time = (millis() - (open ? StorageObjects.openedAt : 0)) / 1000;
     if (drawArt(art, x + w / 2, y + h, { time })) return;

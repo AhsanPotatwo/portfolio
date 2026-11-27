@@ -45,6 +45,8 @@ const EDITOR_COMMANDS = {
 
   resize: { label: 'Resize…', run: () => Editor.resizeMap() },
   atmosphere: { label: 'Atmosphere…', run: () => AtmosphereEditor.open(worldMap.atmosphere) },
+  // light kinds' colour, reach, beam and flicker (lighting.js)
+  lights: { label: 'Lights…', run: () => LightEditor.open() },
   worldMap: { label: 'World map', run: () => WarpGraph.openWorld(worldMap.name) },
   findUses: { label: 'Find uses of what\'s picked', run: () => FindUses.open(Editor.selected) },
   checkMap: { label: 'Check for problems', run: () => MapCheck.open() },
@@ -69,7 +71,7 @@ const EDITOR_MENUS = [
   ['File', ['newMap', 'openMap', '-', 'save', 'saveAs', '-', 'recover']],
   ['Edit', ['undo', 'redo', '-', 'cut', 'copy', 'paste', 'delete', '-', 'selectAll', 'deselect', '-', 'search', 'prevTab', 'nextTab']],
   ['View', ['grid', 'atmospherePreview', 'enemyPaths', 'minimap', 'textures', '-', 'zoomIn', 'zoomOut', 'zoomReset', '-', 'hideUI', 'devMenu', 'devPanel']],
-  ['Map', ['resize', 'atmosphere', '-', 'worldMap', 'findUses', '-', 'checkMap', 'checkAll', 'artReport']],
+  ['Map', ['resize', 'atmosphere', 'lights', '-', 'worldMap', 'findUses', '-', 'checkMap', 'checkAll', 'artReport']],
   ['Tools', [...EDITOR_TOOLS.map(({ name }) => `tool-${name}`), '-', 'brushBigger', 'brushSmaller']],
   ['Help', ['shortcuts', 'tileGuide', '-', 'play', 'playHere']],
 ];

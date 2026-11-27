@@ -50,109 +50,109 @@
       "type": "house",
       "col": -10,
       "row": -6,
-      "id": "hchhey"
+      "id": "n7u1sk"
     },
     {
       "type": "house",
       "col": 4,
       "row": -6,
-      "id": "cfmxgy"
+      "id": "mm9pza"
     },
     {
       "type": "shack",
       "col": 12,
       "row": -5,
-      "id": "vszney"
+      "id": "e5qcd5"
     },
     {
       "type": "skyscraper",
       "col": -20,
       "row": -11,
-      "id": "qmerjg"
+      "id": "3zr2ht"
     },
     {
       "type": "tree",
       "col": -16,
       "row": -3,
-      "id": "ja54ex"
+      "id": "6ce9iq"
     },
     {
       "type": "tree",
       "col": 8,
       "row": -12,
-      "id": "4elbnh"
+      "id": "z9bnrk"
     },
     {
       "type": "tree",
       "col": 16,
       "row": -11,
-      "id": "fvwi5a"
+      "id": "yyl9yd"
     },
     {
       "type": "tree",
       "col": -6,
       "row": 6,
-      "id": "9gzh29"
+      "id": "96j2li"
     },
     {
       "type": "tree",
       "col": 5,
       "row": 8,
-      "id": "envvp3"
+      "id": "jlll8g"
     },
     {
       "type": "tree",
       "col": -3,
       "row": 10,
-      "id": "mj88i6"
+      "id": "lccg6p"
     },
     {
       "type": "tree",
       "col": 18,
       "row": 10,
-      "id": "thqas5"
+      "id": "t3ka7t"
     },
     {
       "type": "tree",
       "col": -17,
       "row": 12,
-      "id": "xgbgpi"
+      "id": "z2tu8k"
     },
     {
       "type": "street-lamp",
       "col": -14,
       "row": 2,
-      "id": "3sj3su"
+      "id": "9sis6h"
     },
     {
       "type": "street-lamp",
       "col": -2,
       "row": 2,
-      "id": "oa5p1x"
+      "id": "w607rc"
     },
     {
       "type": "street-lamp",
       "col": 2,
       "row": 2,
-      "id": "6dmul1"
+      "id": "8fqi3m"
     },
     {
       "type": "street-lamp",
       "col": 14,
       "row": 2,
-      "id": "fm1njm"
+      "id": "2uyqgr"
     },
     {
       "type": "street-sign",
       "col": 2,
       "row": -2,
-      "id": "orwgb2"
+      "id": "lt2x47"
     },
     {
       "type": "campfire",
       "col": 8,
       "row": 5,
-      "id": "4xanye"
+      "id": "yk7osq"
     }
   ],
   "items": [
@@ -160,7 +160,7 @@
       "type": "lantern",
       "col": 2,
       "row": 4,
-      "id": "j677b1"
+      "id": "s40g0p"
     }
   ],
   "enemies": [
@@ -168,19 +168,19 @@
       "type": "dummy",
       "col": -4,
       "row": 4,
-      "id": "gltl85"
+      "id": "zgflyk"
     },
     {
       "type": "dummy",
       "col": 6,
       "row": 3,
-      "id": "33l439"
+      "id": "lsb3rs"
     },
     {
       "type": "sqwomp",
       "col": -9,
       "row": 8,
-      "id": "6ubqq3"
+      "id": "mtysn8"
     }
   ],
   "npcs": [
@@ -188,7 +188,7 @@
       "type": "villager",
       "col": -3,
       "row": -2,
-      "id": "cmpn5y"
+      "id": "vdu4w9"
     }
   ],
   "warps": [

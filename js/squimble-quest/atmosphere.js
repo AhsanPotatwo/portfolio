@@ -157,7 +157,6 @@ const ATMOSPHERE_SETTINGS = [
   { tab: 'Light', key: 'lightAmbient', label: 'Glow', normal: '#000000', colour: true, tip: "Light everywhere on top of the sky, like a cave's dim glow or a city's orange night. Black is none" },
   { tab: 'Light', key: 'lightShadows', label: 'Shadows', normal: 80, min: 0, max: 100, unit: '%', tip: 'How much light shadows block. 0 turns them off' },
   { tab: 'Light', key: 'lightPlayer', label: 'Your light', normal: 80, min: 0, max: 300, step: 5, unit: 'px', tip: "A faint light round you, so you can always see yourself and what's next to you. 0 for none" },
-  { tab: 'Light looks', key: 'lightBands', label: 'Bands', normal: 6, min: 0, max: 16, tip: 'Steps each light into this many rings, for pixel art lights. 0 is smooth' },
   { tab: 'Light looks', key: 'lightPixel', label: 'Light pixel', normal: 2, options: { 1: { say: '1 px' }, 2: { say: '2 px, the 16 px art' }, 4: { say: '4 px' } }, tip: 'How big a pixel of light is. Match it to the art so light edges land on its pixels' },
   { tab: 'Light looks', key: 'lightGlow', label: 'Halos', normal: 100, min: 0, max: 200, step: 5, unit: '%', tip: 'The glow round lights and glowing paint like neon. 0 turns it off' },
   { tab: 'Light looks', key: 'lightRim', label: 'Edge light', normal: 100, min: 0, max: 200, step: 5, unit: '%', tip: 'A bright edge on characters lit from behind or the side' },

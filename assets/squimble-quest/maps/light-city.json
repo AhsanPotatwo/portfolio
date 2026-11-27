@@ -38,177 +38,195 @@
     "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
     "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
     "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
-    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
-    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr wa wa wa wa wa wa wa wa wa gr gr gr gr gr gr gr",
-    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
-    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
-    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
-    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
-    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
-    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr"
+    "gr gr gr gr gr gr gr gr gr gr gr pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv gr gr gr gr wa wa wa wa wa wa wa wa wa gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr"
   ],
   "objects": [
     {
       "type": "house",
       "col": -21,
       "row": -6,
-      "id": "dpa0t5"
+      "id": "m66yih"
     },
     {
       "type": "skyscraper",
       "col": -14,
       "row": -9,
-      "id": "lkcf9z"
+      "id": "3lngcr"
     },
     {
       "type": "shack",
       "col": -7,
       "row": -5,
-      "id": "0oasx1"
+      "id": "3girql"
     },
     {
       "type": "neon-sign",
       "col": -2,
       "row": -3,
-      "id": "fnf5k3"
+      "id": "5320t2"
     },
     {
       "type": "house",
       "col": 3,
       "row": -6,
-      "id": "emym2s"
+      "id": "3wf2vu"
     },
     {
       "type": "skyscraper",
       "col": 9,
       "row": -10,
-      "id": "amjj8e"
+      "id": "p8cenv"
     },
     {
       "type": "shack",
       "col": 15,
       "row": -5,
-      "id": "y16dn1"
+      "id": "u927et"
     },
     {
       "type": "skyscraper",
       "col": 19,
       "row": -8,
-      "id": "mad1v8"
+      "id": "zxnqi0"
     },
     {
       "type": "street-lamp",
       "col": -20,
       "row": -1,
-      "id": "3fukiv"
+      "id": "t7vh4v"
     },
     {
       "type": "street-lamp",
       "col": -12,
       "row": -1,
-      "id": "897bkt"
+      "id": "kt6k11"
     },
     {
       "type": "street-lamp",
       "col": -4,
       "row": -1,
-      "id": "baxw4l"
+      "id": "vplx9q"
     },
     {
       "type": "street-lamp",
       "col": 5,
       "row": -1,
-      "id": "uys490"
+      "id": "r4pwu6"
     },
     {
       "type": "street-lamp",
       "col": 13,
       "row": -1,
-      "id": "6q67bf"
+      "id": "8b9b97"
     },
     {
       "type": "street-lamp",
       "col": 21,
       "row": -1,
-      "id": "vmp0oe"
+      "id": "6xz7cw"
     },
     {
       "type": "street-lamp",
       "col": -16,
       "row": 4,
-      "id": "1o866t"
+      "id": "9rr4mo"
     },
     {
       "type": "street-lamp",
       "col": -8,
       "row": 4,
-      "id": "cidqh5"
+      "id": "mcav1y"
     },
     {
       "type": "broken-lamp",
       "col": 8,
       "row": 4,
-      "id": "9l03x2"
+      "id": "pdrnd9"
     },
     {
       "type": "street-lamp",
       "col": 16,
       "row": 4,
-      "id": "teq8c1"
+      "id": "vktlol"
     },
     {
       "type": "street-sign",
       "col": 3,
       "row": 5,
-      "id": "bdi54z"
+      "id": "1slkam"
     },
     {
       "type": "beacon",
       "col": -4,
       "row": 6,
-      "id": "coiuvv"
+      "id": "arvzb9"
     },
     {
       "type": "tree",
       "col": -20,
       "row": 11,
-      "id": "ra5ut8"
+      "id": "xsp00i"
     },
     {
       "type": "tree",
       "col": -14,
       "row": 13,
-      "id": "79n9sf"
+      "id": "03do35"
     },
     {
       "type": "tree",
       "col": -9,
-      "row": 10,
-      "id": "365k8r"
+      "row": 11,
+      "id": "k1m53q"
     },
     {
       "type": "tree",
       "col": 20,
       "row": 12,
-      "id": "0vxvbe"
+      "id": "0lgt34"
+    },
+    {
+      "type": "light-red",
+      "col": -11,
+      "row": 9,
+      "id": "ken39n"
+    },
+    {
+      "type": "light-blue",
+      "col": -5,
+      "row": 9,
+      "id": "9k75w5"
+    },
+    {
+      "type": "light-green",
+      "col": -8,
+      "row": 14,
+      "id": "1rb6pt"
     },
     {
       "type": "campfire",
       "col": -16,
       "row": 11,
-      "id": "ud2xqs"
+      "id": "gei7el"
     },
     {
       "type": "crystal",
       "col": 12,
       "row": 12,
-      "id": "vdcg0a"
+      "id": "ehaj7n"
     },
     {
       "type": "wall-torch",
       "col": 9,
       "row": 10,
-      "id": "grc1m0"
+      "id": "s94a4e"
     }
   ],
   "items": [
@@ -216,39 +234,39 @@
       "type": "flashlight",
       "col": -1,
       "row": 7,
-      "id": "ee1e6y"
+      "id": "8wtoo6"
     },
     {
       "type": "torch",
       "col": 0,
       "row": 7,
-      "id": "1r7k7v"
+      "id": "9lpsvu"
     },
     {
       "type": "lantern",
       "col": 1,
       "row": 7,
-      "id": "6hurvv"
+      "id": "4p2s7r"
     }
   ],
   "enemies": [
     {
       "type": "dummy",
-      "col": -11,
-      "row": 12,
-      "id": "6k8ix9"
+      "col": -10,
+      "row": 13,
+      "id": "uia0qd"
     },
     {
       "type": "dummy",
       "col": 12,
       "row": 11,
-      "id": "a1pfkm"
+      "id": "ppedy0"
     },
     {
       "type": "sqwomp",
       "col": 6,
       "row": 12,
-      "id": "1kef4b"
+      "id": "7sf9ru"
     }
   ],
   "npcs": [
@@ -256,7 +274,7 @@
       "type": "villager",
       "col": -6,
       "row": 6,
-      "id": "mgxd72"
+      "id": "pecbk7"
     }
   ],
   "warps": [

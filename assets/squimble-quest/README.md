@@ -13,7 +13,7 @@ Everything the game is made of lives here, one JSON file per thing named after i
 | `parts/` | piece of a character's look | top of `looks.js` |
 | `particles/` | particle effect (pictures in `particles/pictures/`) | top of `particles.js` |
 | `atmospheres/` | map look: fog, colour, weather, sound, light (Light tab) | top of `atmosphere.js` |
-| `lights/` | kind of light (lamp, neon, torch...), named by objects, tiles and items | top of `lighting.js` |
+| `lights/` | kind of light (lamp, neon, torch...), named by objects, tiles and items, or placed on its own as `light-<name>` | editor Map > Lights, top of `lighting.js` |
 | `maps/` | map | [maps README](maps/README.md) |
 
 ## Adding something
