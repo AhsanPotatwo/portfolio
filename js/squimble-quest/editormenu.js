@@ -34,6 +34,7 @@ const EDITOR_COMMANDS = {
   atmospherePreview: { label: 'Atmosphere', run: () => Debug.flip('atmosphere'), ticked: () => Debug.show.atmosphere },
   enemyPaths: { label: 'Enemy AI routes', devKey: 'enemyPaths', run: () => Debug.flip('paths'), ticked: () => Debug.show.paths },
   minimap: { label: 'Minimap', run: () => Debug.flip('minimap'), ticked: () => Debug.show.minimap },
+  textures: { label: 'Texture inspector', devKey: 'textureInspector', run: () => Debug.flip('textures'), ticked: () => Debug.show.textures },
   zoomIn: { label: 'Zoom in', devKey: 'zoomIn', run: () => gameCamera.zoomTo(gameCamera.targetZoom * 1.25) },
   zoomOut: { label: 'Zoom out', devKey: 'zoomOut', run: () => gameCamera.zoomTo(gameCamera.targetZoom / 1.25) },
   zoomReset: { label: 'Normal zoom', devKey: 'zoomReset', run: () => gameCamera.zoomTo(1) },
@@ -58,6 +59,7 @@ const EDITOR_COMMANDS = {
   brushSmaller: { label: 'Smaller brush', key: 'brushSmaller', run: () => Editor.setBrush(Editor.brush - 1), enabled: () => Editor.brush > 1 },
 
   shortcuts: { label: 'Keys and mouse', run: () => openShortcuts() },
+  tileGuide: { label: 'Making tiles', run: () => openTileGuide() },
   play: { label: 'Play', run: () => Editor.close(player, gameCamera) },
   playHere: { label: 'Play here', key: 'editorPlayHere', run: () => Editor.startPlayHere() },
 };
@@ -66,10 +68,10 @@ const EDITOR_COMMANDS = {
 const EDITOR_MENUS = [
   ['File', ['newMap', 'openMap', '-', 'save', 'saveAs', '-', 'recover']],
   ['Edit', ['undo', 'redo', '-', 'cut', 'copy', 'paste', 'delete', '-', 'selectAll', 'deselect', '-', 'search', 'prevTab', 'nextTab']],
-  ['View', ['grid', 'atmospherePreview', 'enemyPaths', 'minimap', '-', 'zoomIn', 'zoomOut', 'zoomReset', '-', 'hideUI', 'devMenu', 'devPanel']],
+  ['View', ['grid', 'atmospherePreview', 'enemyPaths', 'minimap', 'textures', '-', 'zoomIn', 'zoomOut', 'zoomReset', '-', 'hideUI', 'devMenu', 'devPanel']],
   ['Map', ['resize', 'atmosphere', '-', 'worldMap', 'findUses', '-', 'checkMap', 'checkAll', 'artReport']],
   ['Tools', [...EDITOR_TOOLS.map(({ name }) => `tool-${name}`), '-', 'brushBigger', 'brushSmaller']],
-  ['Help', ['shortcuts', '-', 'play', 'playHere']],
+  ['Help', ['shortcuts', 'tileGuide', '-', 'play', 'playHere']],
 ];
 
 // the words for a command's key, like Ctrl+Z, or '' if it hasn't got one (keyName() in debug.js)

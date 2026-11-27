@@ -96,6 +96,8 @@ const DEV_OVERLAYS = [
   { name: 'grid', label: 'Tile grid', note: 'and (0, 0)', key: 'grid', on: true },
   { name: 'paths', label: 'Enemy AI', note: 'labels, routes', key: 'enemyPaths', on: true },
   { name: 'hitboxes', label: 'UI hitboxes', note: 'ui.js', on: false },
+  // what tile, picture and dual grid piece is drawn under the mouse (inspector.js)
+  { name: 'textures', label: 'Texture inspector', note: 'under the mouse', key: 'textureInspector', on: false },
   // untick to see the map plainly while editing (atmosphere.js)
   { name: 'atmosphere', label: 'Atmosphere', note: 'fog, colour, weather', on: true },
 ];

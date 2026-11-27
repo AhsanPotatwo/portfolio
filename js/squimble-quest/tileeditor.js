@@ -616,3 +616,56 @@ function swapTileInMaps(from, to) {
 function mapsUsingTile(name) {
   return Object.keys(MAPS).filter((mapName) => getMap(mapName).tiles.includes(name));
 }
+
+// ---------- Help > Making tiles ----------
+
+// how tiles work and how to make your own, as words and a drawing of the dual grid tileset layout,
+// in a GuideWindow (ui.js). change the words here
+function openTileGuide() {
+  const blocks = [
+    { heading: 'Tiles are files' },
+    { text: 'Every tile is a file in assets/squimble-quest/tiles/ named after it (grass.json is grass), with its name in tiles/index.json. The file only holds what\'s different from the defaults: its colour, its picture, whether it\'s solid and so on. The easy way to make one is the Tiles tab: New, or right click a tile to change it. Save uses it straight away, and Export downloads its file and pictures to put in the tiles folder.' },
+    { heading: 'Normal tiles' },
+    { text: 'A normal tile is one square picture in tiles/normal/, stretched to fill the tile (a 16 x 16 picture is 2 game px a pixel). Variants are more pictures for the same tile: each spot on the map always shows the same one, picked by where it is, so a big patch doesn\'t look like wallpaper. Frames are pictures it plays through, for things like water.' },
+    { heading: 'Dual grid tiles' },
+    { text: 'Ground that blends into what\'s next to it, like grass, is a dual grid tile (Kind: dual grid) drawn from a tileset in tiles/dual-grid/. It isn\'t drawn tile by tile. At every corner where four tiles meet, the game draws one piece, reaching half a tile into each of the four, and picks it by which of those four tiles are this tile. Each piece\'s quarters are the four tiles: its up left quarter is part of the tile up and left of the corner. So 16 pieces cover every mix of neighbours, and the edges can be ragged and round.' },
+    { heading: 'The tileset' },
+    { text: 'A tileset is 4 pieces across, so a 64 wide picture has 16 px pieces. The game only knows which piece is which by where it is, so every spot has a fixed job. Here\'s each spot, from the grass tileset, with which of its quarters are this tile (filled) and which are something else:' },
+    { height: 4 * 70, draw: drawTilesetLayout },
+    { text: 'An edge has to cross each side of a piece at the same place in every piece (halfway, on the line between two tiles), or seams show where pieces meet. Keep the very middle row and column plain too: a wall can make an edge stop there.' },
+    { heading: 'Variants of the middle' },
+    { text: 'Rows under the 4 x 4 are more whole pieces, with all four quarters this tile. The middle of the ground picks one of them, or the whole piece in the 4 x 4, by where it is, so it never changes and doesn\'t repeat every tile. Put flowers and stones here and not in the 4 x 4, or they\'re on every tile and along every edge. A see-through spot is skipped, so a row doesn\'t have to be full. Keep each flower or stone inside one quarter of its piece, since a wall can make a corner draw each quarter from a different piece.' },
+    { heading: 'Walls, doors and layers' },
+    { text: 'A tile\'s Blends setting (Dual grid tab) says which dual grid tiles round off onto it. Walls have none, so grass stops in a straight line at them. A wall hides its quarter of the piece, and the other quarters are drawn as if it was what\'s next to them, so grass runs straight up to a wall but never pokes into a path or a door beside it. Where two dual grid tiles meet, the one lower in tiles/index.json goes on top, so list dirt before grass.' },
+    { heading: 'Checking them' },
+    { text: 'View > Texture inspector (U) shows what\'s drawn under the mouse: the tile and its picture, and at a dual grid corner which piece each quarter came from, which variant, and where it is in the tileset. The checks (node js/squimble-quest/tests/run.js) draw every dual grid tileset at every kind of corner and say if a speck floats loose or a hole shows through.' },
+  ];
+  UI.add(new GuideWindow({ title: 'Making tiles', w: 440, h: 440, group: 'editor', blocks }));
+}
+
+// the 16 spots of a dual grid tileset (DUAL_TILESET_LAYOUT in dualgrid.js), each with its piece from
+// the first dual grid tile that has a tileset, a little 2 x 2 of which quarters are the tile, and its name
+function drawTilesetLayout(x, y, w) {
+  const example = Object.values(TILE_TYPES).find((type) => type.dualTiles);
+  const cellW = w / 4;
+  const cellH = 70;
+  const size = 36;
+  DUAL_TILESET_LAYOUT.forEach((bits, i) => {
+    const left = x + (i % 4) * cellW;
+    const top = y + Math.floor(i / 4) * cellH;
+    noStroke();
+    fill(EDITOR_COLOURS.well);
+    rect(left, top, size, size);
+    if (example) image(example.dualTiles[bits], left, top, size, size);
+    // which quarters are the tile: filled, up left first
+    const q = 10;
+    for (let j = 0; j < 4; j++) {
+      fill(bits & (0b1000 >> j) ? EDITOR_COLOURS.text : EDITOR_COLOURS.edge);
+      rect(left + size + 6 + (j % 2) * (q + 1), top + Math.floor(j / 2) * (q + 1), q, q);
+    }
+    fill(EDITOR_COLOURS.dimText);
+    setText(9, BOLD, LEFT, TOP);
+    text(bits.toString(2).padStart(4, '0'), left + size + 6, top + 2 * q + 6);
+    wrapText(DUAL_PIECE_NAMES[bits], cellW - 6).slice(0, 2).forEach((words, n) => text(words, left, top + size + 4 + n * 11));
+  });
+}

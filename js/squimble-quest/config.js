@@ -438,6 +438,8 @@ const KEYS = {
   grid:      ['KeyG'],
   // shows or hides the enemy routes (pathfinding.js)
   enemyPaths: ['KeyP'],
+  // shows or hides the texture inspector (inspector.js)
+  textureInspector: ['KeyU'],
   teleport:  ['KeyT'],
   nextMap:   ['KeyM'],
   // B for build (E is already used for talking). works without dev mode too, for builders

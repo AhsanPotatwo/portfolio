@@ -360,3 +360,82 @@ class ListWindow extends FloatingWindow {
 
 // px for each line of a ListWindow
 const LIST_WINDOW_ROW = 20;
+
+// a FloatingWindow of reading, scrolled with the wheel, like Help > Making tiles (tileeditor.js).
+//   blocks  a list of { heading: 'words' }, { text: 'words' } (wrapped to fit), and { height, draw(x,
+//           y, w) } for anything drawn, like a diagram, height px tall
+const GUIDE_WINDOW = { pad: 12, line: 16, gap: 8, scrollStep: 48 };
+
+class GuideWindow extends FloatingWindow {
+  constructor(options) {
+    super(options);
+    this.blocks = options.blocks;
+    // px scrolled down
+    this.scroll = 0;
+  }
+
+  // where the words go, and how tall it all is with them wrapped to fit
+  contentBox() {
+    const { pad } = GUIDE_WINDOW;
+    return { x: this.x + pad, y: this.contentTop() + pad, w: this.w - pad * 2 - 6, h: this.y + this.h - this.contentTop() - pad * 2 };
+  }
+
+  // each block with its lines (headings and text) and its height
+  laidOut() {
+    const { line, gap } = GUIDE_WINDOW;
+    const box = this.contentBox();
+    return this.blocks.map((block) => {
+      if (block.draw) return { ...block, h: block.height + gap };
+      setText(block.heading ? 13 : 12, block.heading ? BOLD : NORMAL, LEFT, TOP);
+      const lines = wrapText(block.heading ?? block.text, box.w);
+      return { ...block, lines, h: lines.length * line + gap + (block.heading ? 4 : 0) };
+    });
+  }
+
+  update(hovered) {
+    if (this.updateWindow(hovered)) return;
+    if (hovered && Input.wheel !== 0) {
+      this.scroll += Math.sign(Input.wheel) * GUIDE_WINDOW.scrollStep;
+      // used up so the map behind doesn't zoom
+      Input.wheel = 0;
+    }
+  }
+
+  draw() {
+    this.drawWindow();
+    const C = EDITOR_COLOURS;
+    const box = this.contentBox();
+    const blocks = this.laidOut();
+    const total = blocks.reduce((sum, block) => sum + block.h, 0);
+    const maxScroll = Math.max(0, total - box.h);
+    this.scroll = constrain(this.scroll, 0, maxScroll);
+
+    // only inside the window, below the title bar
+    drawingContext.save();
+    drawingContext.beginPath();
+    drawingContext.rect(this.x, this.contentTop() + 1, this.w, this.h - FLOATING_WINDOW.titleHeight - 1);
+    drawingContext.clip();
+    let y = box.y - this.scroll;
+    for (const block of blocks) {
+      if (y + block.h > box.y - GUIDE_WINDOW.pad && y < box.y + box.h + GUIDE_WINDOW.pad) {
+        noStroke();
+        if (block.draw) {
+          block.draw(box.x, y, box.w);
+        } else {
+          fill(block.heading ? C.text : C.dimText);
+          setText(block.heading ? 13 : 12, block.heading ? BOLD : NORMAL, LEFT, TOP);
+          block.lines.forEach((words, i) => text(words, box.x, y + (block.heading ? 4 : 0) + i * GUIDE_WINDOW.line));
+        }
+      }
+      y += block.h;
+    }
+    drawingContext.restore();
+
+    if (maxScroll > 0) {
+      noStroke();
+      const thumb = Math.max(16, (box.h * box.h) / total);
+      fill('#5d6575');
+      rect(this.x + this.w - 7, box.y + (box.h - thumb) * (this.scroll / maxScroll), 3, thumb, 2);
+    }
+  }
+}

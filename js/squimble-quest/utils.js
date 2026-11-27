@@ -116,6 +116,23 @@ function fitText(words, maxWidth) {
   return `${words}…`;
 }
 
+// words split into lines that each fit in maxWidth px, in the text settings now (setText())
+function wrapText(words, maxWidth) {
+  const lines = [];
+  let line = '';
+  for (const word of words.split(' ')) {
+    const longer = line ? `${line} ${word}` : word;
+    if (line && textWidth(longer) > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = longer;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
 // pictures that didn't load or are the wrong size, each { kind, name, file, problem }, for the map
 // editor's Art report (Map menu, mapcheck.js). artProblem() adds one, with a console warning too, as
 // the pictures load, and checkArtSizes() (mapcheck.js) adds the wrong sizes once they all have

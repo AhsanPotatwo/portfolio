@@ -58,6 +58,7 @@
 //   access.js     accessibility settings that draw: sound captions (after sound.js)
 //   pausemenu.js  the pause menu: sound, screen, accessibility and assist settings, and keys (after formbox.js)
 //   deathscreen.js the placeholder death screen: "You died" and Respawn (after button.js)
+//   inspector.js  the texture inspector: what tile, picture and dual grid piece is drawn where (U)
 //   debug.js      dev mode (` or Ctrl + D)
 //
 // every spot that'd get in the way of multiplayer is marked with a "multiplayer:" comment, so search
@@ -497,6 +498,8 @@ function draw() {
     // the E over whatever's in reach (interact.js)
     if (!Editor.active && !Dialogue.active) Interact.drawPrompt();
     if (Editor.active) Editor.drawCursor(worldMap, gameCamera, aim);
+    // the texture inspector's outlines, while the mouse is on the map and not a window (inspector.js)
+    if (Debug.shows('textures') && UI.hovered === null) TextureInspector.drawOnMap(worldMap, aim);
     gameCamera.end();
     // the dev mode shader over the world, but not the ui (shaders.js)
     Shaders.apply(gameCamera, worldMap, player, aim);
@@ -515,6 +518,8 @@ function draw() {
   if (!Editor.active && !Dialogue.active && !InventoryScreen.active && !player.dead) Hotbar.drawLabel();
   // health and the rest (hud.js). the dialogue box covers the bottom, and the death screen says enough
   if (!Editor.active && !Dialogue.active && !player.dead) drawHud(player);
+  // the texture inspector's panel, under windows and menus (inspector.js)
+  if (Debug.shows('textures') && UI.hovered === null) TextureInspector.draw(worldMap, aim);
   // dev mode can outline every ui element (debug.js)
   UI.draw(Debug.shows('hitboxes'));
   InventoryScreen.drawDragged();
