@@ -1,3 +1,5 @@
 {
-  "colour": "#a47148"
+  "colour": "#a47148",
+  "dualGrid": true,
+  "texture": "dirt_tileset.png"
 }

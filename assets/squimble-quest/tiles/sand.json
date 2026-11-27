@@ -1,4 +1,6 @@
 {
   "colour": "#e6d28e",
-  "speed": 0.8
+  "speed": 0.8,
+  "dualGrid": true,
+  "texture": "sand_tileset.png"
 }
