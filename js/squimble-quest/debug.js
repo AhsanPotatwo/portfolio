@@ -12,6 +12,7 @@
 //     it scrolls instead (outside the editor the wheel changes hotbar slot)
 //   - T teleports the player to the mouse (if it's somewhere you can stand)
 //   - M goes to the next map (maps.js)
+//   - ; and ' held wind the time of day back and forward (Shift for slowly), O puts it back
 // B opens the map editor (editor.js) with or without dev mode, for anyone whose role can build. the
 // overlays, their keys and zooming work in the editor without dev mode too, since a builder needs them
 //   - [ and ] go through the shaders (shaders.js), which only show in dev mode for now
@@ -25,6 +26,9 @@
 
 // how fast it zooms while a zoom key is held
 const DEV_KEY_ZOOM_RATE = 1;
+// hours a second the clock winds while ; or ' is held, and with Shift
+const DEV_CLOCK_RATE = 3;
+const DEV_CLOCK_SLOW_RATE = 0.5;
 // how much it zooms for each bit the wheel turns
 const DEV_WHEEL_ZOOM_RATE = 0.0015;
 // the localStorage keys for whether it's on, and what's picked in the menu
@@ -90,11 +94,15 @@ const DEV_INFO = [
   },
   {
     // lights on screen, how many cast shadows, standing things lit one by one, and the time it took
-    name: 'lighting', label: 'Lighting', note: 'lights, time it takes', on: false,
-    lines: () => {
-      if (!Lighting.frame) return [['lighting', GAME_SETTINGS.lighting ? 'none on this map' : 'off (J)']]; // lighting.js
+    name: 'lighting', label: 'Lighting', note: 'lights, time, ms', on: false,
+    lines: ({ map }) => {
+      const a = Lighting.settings(map);
+      if (!Lighting.frame || !a) return [['lighting', GAME_SETTINGS.lighting ? 'none on this map' : 'off (J)']]; // lighting.js
       const s = Lighting.stats;
-      return [['lighting', `${s.lights} lights, ${s.shadowed} shadowed, ${s.things} things, ${s.ms.toFixed(1)} ms`]];
+      return [
+        ['lighting', `${s.lights} lights, ${s.shadowed} shadowed, ${s.things} things, ${s.ms.toFixed(1)} ms`],
+        ['time', `${formatHour(Lighting.hourOn(a))}${Lighting.devHour === null ? '' : '  held'}`],
+      ];
     },
   },
 ];
@@ -121,6 +129,8 @@ const DEV_TOOLS = [
   { label: 'Shader', keys: ['shaderPrev', 'shaderNext'], run: () => Shaders.next(1) },
   // Shift + J shows just the light (lighting.js)
   { label: 'Lighting on and off', keys: ['lighting'], run: () => Lighting.toggle() },
+  // clicking puts the map's own time back
+  { label: 'Time of day, reset', keys: ['clockBack', 'clockForward', 'clockReset'], run: () => { Lighting.devHour = null; } },
   { label: 'Dev mode off', keys: ['devMode'], run: () => Debug.toggle(player, gameCamera) },
 ];
 
@@ -213,8 +223,12 @@ const Debug = {
     if (Input.wasPressed('devMode')) this.toggle(player, camera);
     // Editor.open() checks the role
     if (Input.wasPressed('editor')) Editor.toggle(player, camera);
-    // the overlays and zoom are the editor's too
-    if (!this.showing()) return;
+    // the overlays, zoom and clock are the editor's too. the clock goes back to the map's own time once
+    // neither's open
+    if (!this.showing()) {
+      Lighting.devHour = null;
+      return;
+    }
 
     for (const overlay of DEV_OVERLAYS) if (overlay.key && Input.wasPressed(overlay.key)) this.flip(overlay.name);
     // multiplies rather than adds, so it feels the same at any zoom
@@ -226,6 +240,7 @@ const Debug = {
       camera.zoomTo(camera.targetZoom * Math.exp(-Input.wheel * DEV_WHEEL_ZOOM_RATE));
     }
     if (Input.wasPressed('zoomReset')) camera.zoomTo(1);
+    this.windClock(map, dt);
 
     if (!this.enabled) return;
     if (Input.wasPressed('devMenu')) this.toggleMenu();
@@ -245,6 +260,19 @@ const Debug = {
     if (Input.wasPressed('teleport') && aim && !map.isSolid(map.colAt(aim.x), map.rowAt(aim.y))) {
       player.x = aim.x;
       player.y = aim.y - feetBelowCentre(player.settings); // character.js
+    }
+  },
+
+  // ; and ' held wind the time of day (lighting.js), and O puts the map's own back
+  windClock(map, dt) {
+    const way = (Input.isDown('clockForward') ? 1 : 0) - (Input.isDown('clockBack') ? 1 : 0);
+    if (way !== 0) {
+      const rate = Input.shift ? DEV_CLOCK_SLOW_RATE : DEV_CLOCK_RATE;
+      showMessage(Lighting.windClock(map, way * rate * dt) ? `Time ${formatHour(Lighting.devHour)}` : 'No lighting on this map'); // hud.js
+    }
+    if (Input.wasPressed('clockReset') && Lighting.devHour !== null) {
+      Lighting.devHour = null;
+      showMessage("Back to the map's own time");
     }
   },
 
@@ -510,6 +538,12 @@ function keyName(code) {
 // green when it's smooth, yellow when it's a bit slow, red when it's struggling
 function fpsColour(fps) {
   return fps >= 55 ? '#7bd88f' : fps >= 30 ? '#ffd23f' : '#ff6b6b';
+}
+
+// turns 13.5 into "13:30"
+function formatHour(hour) {
+  const minutes = Math.floor(hour * 60) % (24 * 60);
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
 }
 
 // turns { x: 12.345, y: -6.7 } into "12, -7"

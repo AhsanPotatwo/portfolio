@@ -1,6 +1,7 @@
 // checks lighting (lighting.js): every light file loads with no unknown settings, everything that names
 // a light names one that exists, shadows of boxes cover the box and fall away from the light, the sun
-// rises, goes over and sets with the moon out between, and flickers stay between out and full.
+// rises, goes over and sets with the moon out between, flickers stay between out and full, and dev
+// mode's clock winds round.
 // run it with node js/squimble-quest/tests/lighting-check.js
 // no output means it all passed
 const assert = require('assert');
@@ -155,3 +156,16 @@ for (let angle = 0; angle < 6.3; angle += 0.4) {
 }
 assert.strictEqual(beamEnds({ x: 3, y: 4, length: 0, angle: 0 }).length, 1, 'a point light is one wedge');
 assert.strictEqual(beamBand({ x: 3, y: 4, length: 0, angle: 0, aim: 0 }, 50), null, 'with no band');
+
+// dev mode's clock holds the hour over the map's own, winds round past midnight both ways, and does
+// nothing on a map with no lighting
+const { Lighting } = game;
+const lit = { lightOn: true, lightTime: 12, lightDayLength: 0 };
+Lighting.settings = (map) => map;
+assert.strictEqual(Lighting.hourOn(lit), 12);
+assert(Lighting.windClock(lit, -13));
+assert.strictEqual(Lighting.hourOn(lit), 23, 'back past midnight');
+Lighting.windClock(lit, 2);
+assert.strictEqual(Lighting.hourOn(lit), 1, 'forward past midnight');
+assert.strictEqual(Lighting.windClock(null, 1), false, 'no lighting, nothing to wind');
+Lighting.devHour = null;

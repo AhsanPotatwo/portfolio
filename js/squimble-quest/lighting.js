@@ -788,9 +788,23 @@ const Lighting = {
     if (Editor.active) fillLightsTab();
   },
 
-  // the hour it is on map now
+  // the hour it is on map now. dev mode's clock (devHour) holds it, on any map, until it's reset
   hourOn(a) {
+    if (this.devHour !== null) return this.devHour;
     return a.lightDayLength > 0 ? this.hour ?? a.lightTime : a.lightTime;
+  },
+
+  // dev mode's clock (debug.js): the hour it's held at for testing, or null for the map's own. never
+  // saved, and dev mode turning off lets go of it
+  devHour: null,
+
+  // winds dev mode's clock by `hours` from whatever time it is on map, and holds it there. false if
+  // there's no lighting on map to wind
+  windClock(map, hours) {
+    const a = this.settings(map);
+    if (!a) return false;
+    this.devHour = ((((this.devHour ?? this.hourOn(a)) + hours) % 24) + 24) % 24;
+    return true;
   },
 
   // J in dev mode, and the pause menu's tick (pausemenu.js)
@@ -869,7 +883,8 @@ const Lighting = {
     const cols = Math.ceil((view.right - ox) / cell) + 2;
     const rows = Math.ceil((view.bottom - oy) / cell) + 2;
     const f = { settings: a, cell, ox, oy, cols, rows, view, sun: null };
-    const sky = skyAt(a, this.hourOn(a));
+    // a preview's scene keeps its own hour, whatever dev mode's clock says
+    const sky = skyAt(a, scene ? a.lightTime : this.hourOn(a));
     this.darkness = Math.max(0, Math.min(1, (0.42 - Math.max(...sky.sky)) / 0.2));
     const { light, final, glow, emit } = this.canvases;
     for (const c of [light, final, glow, emit]) fitCanvas(c, cols, rows);

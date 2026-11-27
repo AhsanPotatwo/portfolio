@@ -1,5 +1,5 @@
 {
-  "width": 3,
+  "width": 4,
   "height": 2,
   "colour": "#8a9096",
   "standing": true,
@@ -16,8 +16,9 @@
   "light": [
     {
       "light": "window-dim",
-      "x": 20,
-      "height": 14
+      "x": 28,
+      "height": 48,
+      "length": 32
     }
   ]
 }

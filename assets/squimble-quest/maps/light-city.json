@@ -50,19 +50,19 @@
   "objects": [
     {
       "type": "house",
-      "col": -21,
-      "row": -6,
+      "col": -22,
+      "row": -7,
       "id": "m66yih"
     },
     {
       "type": "skyscraper",
-      "col": -14,
-      "row": -9,
+      "col": -16,
+      "row": -10,
       "id": "3lngcr"
     },
     {
       "type": "shack",
-      "col": -7,
+      "col": -8,
       "row": -5,
       "id": "3girql"
     },
@@ -74,13 +74,13 @@
     },
     {
       "type": "house",
-      "col": 3,
-      "row": -6,
+      "col": 1,
+      "row": -7,
       "id": "3wf2vu"
     },
     {
       "type": "skyscraper",
-      "col": 9,
+      "col": 7,
       "row": -10,
       "id": "p8cenv"
     },
@@ -92,8 +92,8 @@
     },
     {
       "type": "skyscraper",
-      "col": 19,
-      "row": -8,
+      "col": 15,
+      "row": -13,
       "id": "zxnqi0"
     },
     {

@@ -1,6 +1,6 @@
 {
-  "width": 4,
-  "height": 2,
+  "width": 6,
+  "height": 3,
   "colour": "#cdb084",
   "standing": true,
   "solid": true,
@@ -16,13 +16,15 @@
   "light": [
     {
       "light": "window",
-      "x": -36,
-      "height": 28
+      "x": -60,
+      "height": 58,
+      "length": 32
     },
     {
       "light": "window",
-      "x": 36,
-      "height": 28
+      "x": 60,
+      "height": 58,
+      "length": 32
     }
   ]
 }

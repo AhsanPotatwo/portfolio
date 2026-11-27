@@ -1,6 +1,6 @@
 {
-  "width": 4,
-  "height": 3,
+  "width": 8,
+  "height": 4,
   "colour": "#4a5466",
   "standing": true,
   "solid": true,
@@ -16,15 +16,17 @@
   "light": [
     {
       "light": "lobby",
-      "x": -32
+      "x": -74,
+      "length": 68
     },
     {
       "light": "lobby",
-      "x": 32
+      "x": 74,
+      "length": 68
     },
     {
       "light": "office",
-      "length": 112
+      "length": 224
     }
   ]
 }

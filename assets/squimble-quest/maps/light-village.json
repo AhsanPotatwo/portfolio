@@ -48,26 +48,26 @@
   "objects": [
     {
       "type": "house",
-      "col": -10,
-      "row": -6,
+      "col": -11,
+      "row": -7,
       "id": "n7u1sk"
     },
     {
       "type": "house",
-      "col": 4,
-      "row": -6,
+      "col": 3,
+      "row": -7,
       "id": "mm9pza"
     },
     {
       "type": "shack",
-      "col": 12,
+      "col": 11,
       "row": -5,
       "id": "e5qcd5"
     },
     {
       "type": "skyscraper",
-      "col": -20,
-      "row": -11,
+      "col": -22,
+      "row": -12,
       "id": "3zr2ht"
     },
     {

@@ -444,6 +444,11 @@ const KEYS = {
   // lighting on and off everywhere, the same as the pause menu's tick (lighting.js). with Shift, just
   // the light, to see what it's doing
   lighting:  ['KeyJ'],
+  // held, wind the time of day back and forward for testing the light (with Shift, slowly), and O
+  // goes back to the map's own time (Lighting.windClock())
+  clockBack:    ['Semicolon'],
+  clockForward: ['Quote'],
+  clockReset:   ['KeyO'],
   nextMap:   ['KeyM'],
   // B for build (E is already used for talking). works without dev mode too, for builders
   editor:    ['KeyB'],
