@@ -1,6 +1,64 @@
-// things drawn over the game that aren't ui elements: messages (showMessage()) and the crosshair
-// (dev mode's panels are in debug.js). later on health bars and quest text would go here too. they're
-// in screen positions, so draw them after camera.end()
+// things drawn over the game that aren't ui elements: the hud, messages (showMessage()) and the
+// crosshair (dev mode's panels are in debug.js). they're in screen positions, so draw them after
+// camera.end()
+
+// ---------- the hud ----------
+// pieces that stay on screen while playing, each a block in HUD (config.js) saying where it sits and
+// how it looks, and a function here that draws it. to move or restyle one, change its block. to add
+// one (stamina, quest text, a minimap), add a block to HUD and its function to HUD_PIECES, and it's
+// placed and hidden like the rest
+
+// draws each piece in its box. piece is its HUD block, p the player
+const HUD_PIECES = {
+  health: drawHealthPiece,
+};
+
+// every piece that's shown, from sketch.js while playing
+function drawHud(p) {
+  for (const [name, piece] of Object.entries(HUD)) {
+    if (piece.show) HUD_PIECES[name](hudBox(piece), piece, p);
+  }
+}
+
+// where a HUD block sits on screen, { x, y, w, h }, from its anchor (config.js)
+function hudBox({ anchor, x, y, w, h }) {
+  const across = anchor.includes('left') ? x : anchor.includes('right') ? GAME_W - w - x : (GAME_W - w) / 2 + x;
+  const down = anchor.includes('top') ? y : anchor.includes('bottom') ? GAME_H - h - y : (GAME_H - h) / 2 + y;
+  return { x: Math.round(across), y: Math.round(down), w, h };
+}
+
+// the player's health: a frame, the empty bar, the health just lost draining away (trailHealth,
+// character.js), the health, and the numbers. UI_ART's playerHealth, playerHealthBack and
+// playerHealthFill replace the drawn ones
+function drawHealthPiece({ x, y, w, h }, piece, p) {
+  const f = piece.frame;
+  if (!drawArtBox(uiArt('playerHealth'), x - f, y - f, w + f * 2, h + f * 2)) drawFlatBox(x - f, y - f, w + f * 2, h + f * 2); // ui.js
+  noStroke();
+  if (!drawArtBox(uiArt('playerHealthBack'), x, y, w, h)) {
+    fill(UI_BOX.well);
+    rect(x, y, w, h);
+  }
+  const share = (health) => Math.round(w * Math.max(0, health / p.maxHealth));
+  fill(piece.trailColour);
+  rect(x, y, share(p.trailHealth), h);
+  const left = share(p.health);
+  if (!drawArtBox(uiArt('playerHealthFill'), x, y, left, h)) {
+    fill(p.health <= p.maxHealth * piece.low ? piece.lowColour : piece.colour);
+    rect(x, y, left, h);
+  }
+  if (piece.textSize > 0) {
+    setText(piece.textSize);
+    // outlined so it reads over the bar and the empty part. round joins, or sharp corners (the 1, 7
+    // and 5) get spikes
+    push();
+    stroke(UI_BOX.edge);
+    strokeWeight(3);
+    strokeJoin(ROUND);
+    fill(255);
+    text(`${Math.ceil(p.health)} / ${p.maxHealth}`, x + w / 2, y + h / 2);
+    pop();
+  }
+}
 
 // how many seconds a showMessage() stays up
 const MESSAGE_TIME = 4;

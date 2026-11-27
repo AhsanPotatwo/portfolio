@@ -66,6 +66,7 @@ Everything that isn't behaviour is a JSON file in `assets/squimble-quest/<kind>/
 - **Something to press E on:** a line in `INTERACTABLES` (interact.js).
 - **An editor command or tool:** `EDITOR_COMMANDS` + `EDITOR_MENUS`, or `EDITOR_TOOLS`.
 - **A key:** `KEYS` in config.js, then `Input.wasPressed('action')`.
+- **Something on the HUD:** a block in `HUD` (config.js) for where it sits and how it looks, and its draw function in `HUD_PIECES` (hud.js).
 
 ## Known issues
 

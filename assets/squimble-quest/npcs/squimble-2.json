@@ -1,0 +1,16 @@
+{
+  "label": "Squimble 2",
+  "dialogue": [
+    "Right click me in the editor to change how I look!"
+  ],
+  "voice": "villager-voice",
+  "colour": "#fff8c8",
+  "outline": "#4f1e03",
+  "look": {
+    "parts": {
+      "body": "squimble-2-body",
+      "eyes": "squimble-2-eyes",
+      "mouth": "squimble-2-mouth"
+    }
+  }
+}

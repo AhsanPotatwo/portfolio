@@ -21,14 +21,18 @@ const DUAL_TILESET_LAYOUT = [
   0b0000, 0b0001, 0b0110, 0b1000,
 ];
 
-// why a p5 image can't be a tileset (as words to show), or null if it's fine. it has to be a square
-// of 4 x 4 whole pieces
+// why a p5 image can't be a tileset (as words to show), or null if it's fine. it has to be 4 x 4
+// whole pieces, like 128 x 128 for 32 px tiles, and any rows under them are more whole pieces (0b1111)
+// that the middle of the ground picks between by where it is, so flowers and stones don't repeat on
+// every tile. a gap in those rows (a see-through piece) is left out
 function dualTilesetProblem(sheet) {
-  if (sheet.width === sheet.height && sheet.width % 4 === 0) return null;
-  return `it's ${sheet.width} x ${sheet.height}, it has to be a square of 4 x 4 pieces, like 64 x 64`;
+  const size = sheet.width / 4;
+  if (Number.isInteger(size) && sheet.height >= sheet.width && sheet.height % size === 0) return null;
+  return `it's ${sheet.width} x ${sheet.height}, it has to be 4 x 4 pieces, like 128 x 128, with any extra rows of whole pieces under them`;
 }
 
-// cuts a tileset (a p5 image) into its 16 pieces, as pieces[bits] following DUAL_TILESET_LAYOUT.
+// cuts a tileset (a p5 image) into its 16 pieces, as pieces[bits] following DUAL_TILESET_LAYOUT, and
+// pieces.whole, the whole piece and the extra ones under the 4 x 4 (dualTilesetProblem()).
 // gives null with a warning if dualTilesetProblem() doesn't like it. label is only for the warning.
 // I cut them into separate pictures because drawing part of one big picture can bleed in a line from
 // the next piece at some zooms (it looks like a faint grid)
@@ -43,6 +47,14 @@ function cutDualTileset(sheet, label) {
   DUAL_TILESET_LAYOUT.forEach((which, i) => {
     pieces[which] = sheet.get((i % 4) * size, Math.floor(i / 4) * size, size, size);
   });
+  pieces.whole = [pieces[0b1111]];
+  sheet.loadPixels();
+  for (let y = 4 * size; y < sheet.height; y += size) {
+    for (let x = 0; x < sheet.width; x += size) {
+      // a see-through middle means an empty spot. pixelDensity is 1 for loaded pictures
+      if (sheet.pixels[((y + size / 2) * sheet.width + x + size / 2) * 4 + 3] > 0) pieces.whole.push(sheet.get(x, y, size, size));
+    }
+  }
   return pieces;
 }
 
@@ -125,7 +137,9 @@ function drawDualCorner(map, col, row, x, y) {
         cut |= 0b1000 >> i;
       }
     }
-    const piece = type.dualTiles[which];
+    // whole ones pick a variant by where they are (tileHash() in tiles.js), so it never changes
+    const whole = type.dualTiles.whole;
+    const piece = which === 0b1111 ? whole[tileHash(col, row) % whole.length] : type.dualTiles[which];
     if (!cut) {
       image(piece, xs[0], ys[0], xs[2] - xs[0], ys[2] - ys[0]);
     } else {

@@ -513,6 +513,8 @@ function draw() {
   if (Editor.active) drawingContext.globalAlpha = Editor.uiAlpha;
   Debug.draw(player, gameCamera, worldMap, aim);
   if (!Editor.active && !Dialogue.active && !InventoryScreen.active && !player.dead) Hotbar.drawLabel();
+  // health and the rest (hud.js). the dialogue box covers the bottom, and the death screen says enough
+  if (!Editor.active && !Dialogue.active && !player.dead) drawHud(player);
   // dev mode can outline every ui element (debug.js)
   UI.draw(Debug.shows('hitboxes'));
   InventoryScreen.drawDragged();

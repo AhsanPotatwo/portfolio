@@ -413,13 +413,12 @@ class TilePreview extends UIElement {
       const imgTop = top + (size - h) / 2;
       image(img, imgLeft, imgTop, w, h);
       if (dualGrid) {
-        // lines between the 4 x 4 pieces
+        // lines between the pieces: 4 across, and 4 down plus any rows of whole ones (dualgrid.js)
         stroke(255, 255, 255, 50);
         strokeWeight(1);
-        for (let i = 1; i < 4; i++) {
-          line(imgLeft + (w * i) / 4, imgTop, imgLeft + (w * i) / 4, imgTop + h);
-          line(imgLeft, imgTop + (h * i) / 4, imgLeft + w, imgTop + (h * i) / 4);
-        }
+        const piece = w / 4;
+        for (let i = 1; i < 4; i++) line(imgLeft + piece * i, imgTop, imgLeft + piece * i, imgTop + h);
+        for (let y = piece; y < h - 0.5; y += piece) line(imgLeft, imgTop + y, imgLeft + w, imgTop + y);
       }
     } else {
       fill(fillColour);

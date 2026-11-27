@@ -50,6 +50,10 @@ const UI_ART = {
   // the health bar over a character's head (Character.drawHealthBar()): behind it, and its health
   healthBar: null,
   healthFill: null,
+  // the player's health bar in the corner (HUD.health): its frame, the empty part, and the health
+  playerHealth: null,
+  playerHealthBack: null,
+  playerHealthFill: null,
   // the death screen (deathscreen.js): over the whole screen instead of the dark, and instead of
   // "You died"
   deathBackground: null,
@@ -70,6 +74,38 @@ const UI_BOX = {
   key:       '#fff8e1',
   keyEdge:   '#b8bd9c',
   keyText:   '#1c2618',
+};
+
+// ---------- hud ----------
+// what stays on screen while playing (hud.js), a block per piece. pieces sit round the edges so the
+// middle, where you are, stays clear: the hotbar's bottom middle, captions bottom right, messages top
+// middle, and dev mode and the editor use the top left.
+//   show     false hides it
+//   anchor   which part of the screen it's stuck to: 'top left', 'top', 'top right', 'left', 'middle',
+//            'right', 'bottom left', 'bottom' or 'bottom right'
+//   x, y     px in from the edges it's stuck to. on a middle (like 'bottom'), x moves it right instead
+//   w, h     its size in px
+// the rest are that piece's own. its pictures are in UI_ART
+const HUD = {
+  // the player's health, on the hotbar's line so the bottom is one strip and the top stays clear
+  health: {
+    show: true,
+    anchor: 'bottom left',
+    x: 16,
+    y: 15,
+    w: 200,
+    h: 14,
+    // px of frame round the bar
+    frame: 5,
+    colour: '#4ade80',
+    // below this share of max health it turns lowColour
+    low: 0.3,
+    lowColour: '#e05050',
+    // the light part showing health just lost, which drains away (COMBAT.healthDrain)
+    trailColour: 'rgba(255, 255, 255, 0.75)',
+    // "73 / 100" on the bar. textSize 0 for none
+    textSize: 11,
+  },
 };
 
 // the most seconds one frame can count as. without this the player would jump forward after the tab
