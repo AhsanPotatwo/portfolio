@@ -101,25 +101,33 @@ for (const [name, flicker] of Object.entries(LIGHT_FLICKERS)) {
 
 // overlapping light rolls off towards white: as it is up to the knee, always getting brighter, never
 // past white, and close to it at the most there's room for
-const { lightTone, shadowSlants } = game;
+const { lightTone, shadowLay } = game;
 assert.strictEqual(lightTone(0), 0);
 assert.strictEqual(lightTone(LIGHTING.knee), LIGHTING.knee);
 for (let l = 0; l < LIGHTING.headroom; l += 0.05) assert(lightTone(l + 0.05) > lightTone(l), 'brighter light is brighter');
 assert(lightTone(LIGHTING.headroom) < 1 && lightTone(LIGHTING.headroom) > 0.95, 'the most there can be is nearly white');
 assert(lightTone(1) < 1, 'one full light leaves room for another');
 
-// a shadow edge on to its light keeps some depth, and fades from falling in front to behind as the
-// light crosses its feet (it used to jump from one to the other)
-assert.deepStrictEqual([...shadowSlants({ x: 0, y: 2 })].map((s) => ({ ...s })), [{ x: 0, y: 2, alpha: 1 }], 'from behind, straight down the screen');
-const thin = LIGHTING.thinnest * 3;
-for (const s of shadowSlants({ x: 3, y: 0 })) assert(Math.abs(s.y) === thin && s.alpha === 0.5, 'side on, half in front and half behind');
+// a shadow goes exactly the way the light sends it: lit from behind it's the picture slanted, and side
+// on it lies flat, straight out along the ground. all the way round it never goes flatter than canvas
+// can draw, and never jumps (it used to keep some depth side on, so it was never straight)
+const lay = (along) => [...shadowLay(along)].map((l) => ({ row: { ...l.row }, along: { ...l.along }, alpha: l.alpha }));
+assert.strictEqual(JSON.stringify(lay({ x: 0, y: 2 })), JSON.stringify([{ row: { x: 1, y: 0 }, along: { x: 0, y: 2 }, alpha: 1 }]), 'from behind, straight down the screen');
+const side = lay({ x: 3, y: 0 });
+assert(side.length === 2 && side.every((l) => l.row.x === 0 && l.along.y === 0 && l.alpha === 0.5), 'side on, lying flat, straight out sideways');
+assert(Math.abs(side[0].row.y) === LIGHTING.sideDepth, 'as deep as its side');
 let last = null;
-for (let y = -1.5; y <= 1.5; y += 0.05) {
-  const slants = shadowSlants({ x: 3, y });
-  const mean = slants.reduce((sum, s) => sum + s.y * s.alpha, 0);
-  assert(slants.every((s) => Math.abs(s.y) >= thin - 1e-9), 'never flatter than canvas can draw');
-  assert(Math.abs(mean - y) < 1e-9, 'on average it slants the way the light says');
-  assert(last === null || Math.abs(mean - last) < 0.06, 'so it never jumps');
+for (let deg = -180; deg <= 180; deg += 0.5) {
+  const along = { x: 3 * Math.cos((deg * Math.PI) / 180), y: 3 * Math.sin((deg * Math.PI) / 180) };
+  const lays = lay(along);
+  for (const l of lays) {
+    assert(l.along.x === along.x && l.along.y === along.y, 'it goes the way the light says');
+    const area = Math.abs(l.row.x * l.along.y - l.row.y * l.along.x) / 3;
+    assert(area > 0.3, `never flatter than canvas can draw (${deg}°: ${area.toFixed(3)})`);
+  }
+  // across, on average, so turning over at the feet line fades rather than flips
+  const mean = { x: lays.reduce((s, l) => s + l.row.x * l.alpha, 0), y: lays.reduce((s, l) => s + l.row.y * l.alpha, 0) };
+  assert(last === null || Math.hypot(mean.x - last.x, mean.y - last.y) < 0.06, `never jumps (${deg}°)`);
   last = mean;
 }
 

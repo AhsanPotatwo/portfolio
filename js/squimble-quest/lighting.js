@@ -27,7 +27,8 @@
 // the game's seen from an angle, so up the screen is both further away and higher up. light and
 // shadow work on the ground, in world px, and height is separate: a lamp hangs `height` px above its
 // spot, a character's shadow is its picture slanted along the ground away from the light, feet on its
-// feet, and a building's shadow is its footprint pushed out by its height.
+// feet, and a building's shadow is its footprint pushed out by its height. lit from the side, a
+// character's shadow lies down instead, so side on it goes straight out along the ground (shadowLay())
 //
 // each frame (Lighting.draw(), called by sketch.js after the things on the map, before the atmosphere):
 //   1. the light map starts as the sky's light (ambient), plus glowing tiles (lava), and the lights
@@ -142,9 +143,14 @@ const LIGHTING = {
   softness: 1,
   // how soft a beam's sides are, as a part of its width
   beamSoftness: 0.35,
-  // the thinnest a character's or tree's shadow gets, as a part of its length, when the light's off to
-  // its side (a picture seen edge on would have no shadow at all, and canvas can't draw one that flat)
-  thinnest: 0.3,
+  // a character's or tree's shadow starts lying down when the light's this many degrees from side on,
+  // and side on it's lying flat, straight out along the ground, this deep as a part of its width (a
+  // body's thinner side on than face on). a picture slanted that far would be a line (shadowLay())
+  lieFrom: 35,
+  sideDepth: 0.5,
+  // how far off side on (as a part of the shadow's length, sideways) the shadow fades from falling in
+  // front of its feet to behind, rather than flipping over at once
+  flipBand: 0.1,
   // how much of a light behind something still lights its front, 0 to 1 (step 6 above)
   behind: 0.35,
   // light pixels towards the sun its light is sampled from, so a character's own shadow (which starts
@@ -560,15 +566,28 @@ function convexHull(points) {
   return lower.slice(0, -1).concat(upper.slice(0, -1));
 }
 
-// how a standing thing's silhouette is laid down as its shadow: each px of its height goes `along`
-// ({ x, y } per px) away from the light, as a list of { x, y, alpha }. edge on to a light it'd be a
-// line, so it's kept LIGHTING.thinnest of its length deep. as the light crosses the line of its feet
-// the shadow fades from falling in front of it to falling behind, rather than jumping across
-function shadowSlants(along) {
-  const thin = LIGHTING.thinnest * Math.hypot(along.x, along.y);
-  if (Math.abs(along.y) >= thin) return [{ ...along, alpha: 1 }];
-  const front = (1 + along.y / thin) / 2;
-  return [{ x: along.x, y: thin, alpha: front }, { x: along.x, y: -thin, alpha: 1 - front }].filter((s) => s.alpha > 0);
+// how a standing thing's silhouette is laid down as its shadow, as a list of { row, along, alpha }:
+// each px of its height goes `along` ({ x, y } per px) away from the light, and each px across it goes
+// `row`. lit from in front or behind, it's the picture slanted (rows straight across, so it starts
+// along its feet). lit from the side it lies down: within LIGHTING.lieFrom degrees of side on its rows
+// turn, until side on it's the thing lying flat, straight out along the ground. as the light crosses
+// the line of its feet it turns over, from falling in front of it to behind, faded across
+// LIGHTING.flipBand so it never jumps
+function shadowLay(along) {
+  const length = Math.hypot(along.x, along.y);
+  if (length < 1e-9) return [];
+  const from = Math.cos(radians(LIGHTING.lieFrom));
+  const k = Math.max(0, Math.min(1, (Math.abs(along.x) / length - from) / (1 - from)));
+  // eased, so it starts and finishes lying down gently
+  const lie = k * k * (3 - 2 * k);
+  const across = lie * LIGHTING.sideDepth * Math.sign(along.x);
+  // in front (falling down the screen) it's the picture flipped, like a reflection, and behind it's
+  // the right way up, so its rows turn the other way to keep it that way round
+  const front = Math.max(0, Math.min(1, (1 + along.y / length / LIGHTING.flipBand) / 2));
+  return [
+    { row: { x: 1 - lie, y: -across }, along, alpha: front },
+    { row: { x: 1 - lie, y: across }, along, alpha: 1 - front },
+  ].filter((l) => l.alpha > 0);
 }
 
 // ---------- the sun and moon ----------
@@ -1238,21 +1257,24 @@ const Lighting = {
   },
 
   // lays thing t's silhouette down on ctx (in world positions) as its shadow: its feet stay put and
-  // each px of height goes `along` ({ x, y } per px) away from the light (shadowSlants()). the
-  // picture's slanted, not turned, which would leave a wedge of no shadow by the feet
+  // each px of height goes `along` ({ x, y } per px) away from the light, and lit from the side it
+  // lies down (shadowLay()). it's only turned near side on: turned any other time it'd leave a wedge of
+  // no shadow by its feet
   layShadow(ctx, t, along, cell) {
     if (!t.slot || t.shadow !== 'sprite') return false;
     if (Math.hypot(along.x, along.y) < 0.01) return false;
     const { y: fy } = t.foot;
     const bx = t.box.x;
     const up = fy - t.box.y;
-    // only what's above its feet. a silhouette px (i, j) is world (bx + i cell, by + j cell), v = up - j
-    // cell up from its feet, and it goes to the ground at (bx + i cell + ax v, fy + ay v)
+    // only what's above its feet
     const above = Math.min(t.rows, Math.ceil(up / cell));
-    for (const { x: ax, y: ay, alpha } of shadowSlants(along)) {
+    // a silhouette px (i, j) is s = bx + i cell - feet across from its feet and v = up - j cell up, and
+    // goes to the ground at feet + s row + v along
+    const s0 = bx - t.foot.x;
+    for (const { row, along: a, alpha } of shadowLay(along)) {
       ctx.save();
       ctx.globalAlpha = alpha;
-      ctx.transform(cell, 0, -ax * cell, -ay * cell, bx + ax * up, fy + ay * up);
+      ctx.transform(row.x * cell, row.y * cell, -a.x * cell, -a.y * cell, t.foot.x + s0 * row.x + up * a.x, fy + s0 * row.y + up * a.y);
       ctx.drawImage(this.atlas.canvas, t.slot.x, t.slot.y, t.cols, above, 0, 0, t.cols, above);
       ctx.restore();
     }
@@ -2349,7 +2371,7 @@ function useChosenPicture(setting, img, name) {
 function openLightGuide() {
   const blocks = [
     { heading: 'Turning it on' },
-    { text: 'A map only has lighting when its atmosphere ticks Light > Lighting (Map > Atmosphere). The Light tab sets the time of day, how long a day lasts, the sun and how dark shadows are. Pause menu > Screen > Lighting turns it off everywhere. In dev mode J does too, and Shift + J shows just the light, the clearest way to see what it\'s doing.' },
+    { text: 'A map only has lighting when its atmosphere ticks Light > Lighting (Map > Atmosphere). The Light tab sets the time of day, how long a day lasts, the sun and how dark shadows are. Pause menu > Screen > Lighting turns it off everywhere. In dev mode J does too, and Shift + J shows just the light, the clearest way to see what it\'s doing. Holding ; or \' winds the time of day back or forward to test it (Shift for slowly), and O puts the map\'s own time back.' },
     { heading: 'Lights are kinds' },
     { text: 'Every light is a kind, a file in lights/: a street lamp, a window, a torch. Lights tab > New makes one, and Edit (or right click it in the palette) changes it, everywhere at once. A light is a point, or a bar when it has a Length (a neon tube, a strip light, a row of windows). Beam width under 360 makes it a beam pointing one way: a window or a sign shines out of its front and not behind it. Night lights only come on in the dark.' },
     { heading: 'Placing lights' },
