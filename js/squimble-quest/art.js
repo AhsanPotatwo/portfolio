@@ -18,8 +18,8 @@
 //   directions  how many rows: 1 (the same whichever way it faces), 4 (down, left, right, up) or 8
 //               (down, down left, left, up left, up, up right, right, down right)
 //   mirror      with 1 direction, drawn flipped when it faces left, so draw it facing right (false)
-//   scale       how many game px each picture px is (ART_SCALE in config.js, 1 for 32 px tiles, 2 if
-//               the art is drawn at 16 px a tile)
+//   scale       how many game px each picture px is (ART_SCALE in config.js, 2: the art is 16 px a
+//               tile)
 //   edge        for ui boxes: px round the edge that keep their size while the middle stretches, so
 //               one picture fits any size of box (a nine slice). 0 stretches the whole picture
 //

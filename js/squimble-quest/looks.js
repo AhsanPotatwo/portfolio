@@ -29,7 +29,8 @@
 // - the recolour colours have to be exact, with no soft edges or in-between shades of them, or those
 //   pixels won't change. different parts can reuse the same colours, since each part is only
 //   recoloured with its own group
-// - pictures are drawn at their own size, with their bottom middle on the character's feet
+// - pictures are drawn at their own size (times ART_SCALE, so 16 x 32 for a one tile squimble), with
+//   their bottom middle on the character's feet
 //   (drawCharacter() in character.js), so any size works and the hitbox (width and height in its
 //   npc/enemy file, or PLAYER) is separate. to change the art's size, redraw it. nothing in the code
 //   needs to change

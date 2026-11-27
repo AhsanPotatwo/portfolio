@@ -13,10 +13,10 @@ const GAME_H = 540;
 const TILE = 32;
 
 // ---------- art ----------
-// how the game's pictures work is in art.js. this is how many game px each picture px is drawn as: 1
-// for art drawn at 32 px a tile, 2 for 16 px a tile (each picture px a 2 x 2 block). a picture's own
-// "scale" setting overrides it. tile textures always fill their tile, whatever their size
-const ART_SCALE = 1;
+// how the game's pictures work is in art.js. the art is drawn at 16 px a tile, so each picture px is
+// drawn as a 2 x 2 block of game px. a picture's own "scale" setting overrides it. tile textures
+// always fill their tile, whatever their size
+const ART_SCALE = 2;
 
 // the font for all the game's words (setText() in utils.js, buttons). a font file of your own: add an
 // @font-face for it in css/squimble-quest.css and put its family name here. the map editor uses it too

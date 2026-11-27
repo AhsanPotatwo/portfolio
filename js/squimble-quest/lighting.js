@@ -1024,7 +1024,7 @@ const Lighting = {
       list.push({ owner, foot: { x: footX, y: footY }, box, cols: box.w / cell, rows: box.h / cell, ...extra });
     };
     for (const c of characters) {
-      const size = artDrawnSize(characterArt(c.settings, 'idle')); // character.js, art.js
+      const size = characterDrawnSize(c.settings); // character.js
       const w = Math.max(LIGHTING.characterBox.w, (size?.w ?? 0) + 24);
       const h = Math.max(LIGHTING.characterBox.h, (size?.h ?? 0) + 24);
       add(c, c.x, c.y + c.h / 2, w, h, 6, { height: size?.h ?? c.h, shadow: 'sprite', drawBody: () => c.drawBody(), drawGlow: null, flicker: 1 });

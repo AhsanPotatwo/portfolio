@@ -730,6 +730,15 @@ function characterArt(settings, state) {
   return own ?? (state === 'death' ? null : getArt(settings.image, 'character', settings.name));
 }
 
+// its picture's size standing still in game px ({ w, h }), its look's if it has one, or null for none
+// or not loaded yet
+function characterDrawnSize(settings) {
+  const size = artDrawnSize(characterArt(settings, 'idle'));
+  if (size || !settings.hasLook) return size;
+  const img = settings.img;
+  return img ? { w: img.width * ART_SCALE, h: img.height * ART_SCALE } : null;
+}
+
 // where each wear place (WEAR_PLACES in items.js) goes on the placeholder body, as the top and bottom
 // of a band across it, in parts of its height from the top. accessories go down its side instead
 const WORN_BANDS = {
@@ -768,8 +777,8 @@ function drawCharacter(settings, x, y, { facing = { x: 0, y: 1 }, hurt = false, 
   const img = art ? null : settings.img;
   const pictured = drawArt(art, x, bottom, { time, facing, ...stretch }) || Boolean(img); // art.js
   if (img) {
-    const imgW = Math.round(img.width * stretch.sx);
-    const imgH = Math.round(img.height * stretch.sy);
+    const imgW = Math.round(img.width * ART_SCALE * stretch.sx);
+    const imgH = Math.round(img.height * ART_SCALE * stretch.sy);
     image(img, Math.round(x - imgW / 2), Math.round(bottom) - imgH, imgW, imgH);
   } else if (!pictured) {
     stroke(settings.outline);

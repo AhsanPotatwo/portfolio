@@ -356,8 +356,8 @@ class CharacterPreview extends UIElement {
 
     // as big as fits, in whole steps so pixel art stays square. a picture can be bigger than the body
     // (drawCharacter() in character.js), so whichever's bigger has to fit
-    const img = artDrawnSize(characterArt(settings, 'idle')) ?? settings.img; // character.js
-    const zoom = Math.max(1, Math.floor(Math.min((h - textH - 28) / Math.max(settings.height, img?.height ?? 0), (w - 20) / Math.max(settings.width, img?.width ?? 0))));
+    const size = characterDrawnSize(settings); // character.js
+    const zoom = Math.max(1, Math.floor(Math.min((h - textH - 28) / Math.max(settings.height, size?.h ?? 0), (w - 20) / Math.max(settings.width, size?.w ?? 0))));
     const cx = Math.round(x + w / 2);
     const cy = Math.round(y + (h - textH) / 2);
     // a shadow on the floor under its feet
