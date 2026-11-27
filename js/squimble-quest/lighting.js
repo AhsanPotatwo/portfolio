@@ -134,7 +134,7 @@ const LIGHTING = {
   // how soft a beam's sides are, as a part of its width
   beamSoftness: 0.35,
   // the thinnest a character's or tree's shadow gets, as a part of its length, when the light's off to
-  // its side (a picture seen edge on would have no shadow at all)
+  // its side (a picture seen edge on would have no shadow at all, and canvas can't draw one that flat)
   thinnest: 0.3,
   // how much of a light behind something still lights its front, 0 to 1 (step 6 above)
   behind: 0.35,
@@ -510,14 +510,14 @@ function convexHull(points) {
 }
 
 // how a standing thing's silhouette is laid down as its shadow: each px of its height goes `along`
-// ({ x, y } per px) away from the light, so its feet stay on its feet and its top slants off. the
-// picture isn't turned, which would leave a wedge of no shadow by the feet. edge on to a light it'd be
-// a line, so it's kept LIGHTING.thinnest of its length deep (falling in front of it if unsure)
-function shadowSlant(along) {
-  const length = Math.hypot(along.x, along.y);
-  const thin = LIGHTING.thinnest * length;
-  if (Math.abs(along.y) >= thin) return along;
-  return { x: along.x, y: along.y < 0 ? -thin : thin };
+// ({ x, y } per px) away from the light, as a list of { x, y, alpha }. edge on to a light it'd be a
+// line, so it's kept LIGHTING.thinnest of its length deep. as the light crosses the line of its feet
+// the shadow fades from falling in front of it to falling behind, rather than jumping across
+function shadowSlants(along) {
+  const thin = LIGHTING.thinnest * Math.hypot(along.x, along.y);
+  if (Math.abs(along.y) >= thin) return [{ ...along, alpha: 1 }];
+  const front = (1 + along.y / thin) / 2;
+  return [{ x: along.x, y: thin, alpha: front }, { x: along.x, y: -thin, alpha: 1 - front }].filter((s) => s.alpha > 0);
 }
 
 // ---------- the sun and moon ----------
@@ -1074,21 +1074,24 @@ const Lighting = {
   },
 
   // lays thing t's silhouette down on ctx (in world positions) as its shadow: its feet stay put and
-  // each px of height goes `along` ({ x, y } per px) away from the light (shadowSlant())
+  // each px of height goes `along` ({ x, y } per px) away from the light (shadowSlants()). the
+  // picture's slanted, not turned, which would leave a wedge of no shadow by the feet
   layShadow(ctx, t, along, cell) {
     if (!t.slot || t.shadow !== 'sprite') return false;
     if (Math.hypot(along.x, along.y) < 0.01) return false;
-    const { x: ax, y: ay } = shadowSlant(along);
     const { y: fy } = t.foot;
     const bx = t.box.x;
-    const by = t.box.y;
-    // only what's above its feet. a silhouette px (i, j) is world (bx + i cell, by + j cell), v = fy - by
-    // - j cell up from its feet, and it goes to the ground at (bx + i cell + ax v, fy + ay v)
-    const above = Math.min(t.rows, Math.ceil((fy - by) / cell));
-    ctx.save();
-    ctx.transform(cell, 0, -ax * cell, -ay * cell, bx + ax * (fy - by), fy + ay * (fy - by));
-    ctx.drawImage(this.atlas.canvas, t.slot.x, t.slot.y, t.cols, above, 0, 0, t.cols, above);
-    ctx.restore();
+    const up = fy - t.box.y;
+    // only what's above its feet. a silhouette px (i, j) is world (bx + i cell, by + j cell), v = up - j
+    // cell up from its feet, and it goes to the ground at (bx + i cell + ax v, fy + ay v)
+    const above = Math.min(t.rows, Math.ceil(up / cell));
+    for (const { x: ax, y: ay, alpha } of shadowSlants(along)) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.transform(cell, 0, -ax * cell, -ay * cell, bx + ax * up, fy + ay * up);
+      ctx.drawImage(this.atlas.canvas, t.slot.x, t.slot.y, t.cols, above, 0, 0, t.cols, above);
+      ctx.restore();
+    }
     return true;
   },
 

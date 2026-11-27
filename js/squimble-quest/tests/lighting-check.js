@@ -96,15 +96,24 @@ for (const [name, flicker] of Object.entries(LIGHT_FLICKERS)) {
 
 // overlapping light rolls off towards white: as it is up to the knee, always getting brighter, never
 // past white, and close to it at the most there's room for
-const { lightTone, shadowSlant } = game;
+const { lightTone, shadowSlants } = game;
 assert.strictEqual(lightTone(0), 0);
 assert.strictEqual(lightTone(LIGHTING.knee), LIGHTING.knee);
 for (let l = 0; l < LIGHTING.headroom; l += 0.05) assert(lightTone(l + 0.05) > lightTone(l), 'brighter light is brighter');
 assert(lightTone(LIGHTING.headroom) < 1 && lightTone(LIGHTING.headroom) > 0.95, 'the most there can be is nearly white');
 assert(lightTone(1) < 1, 'one full light leaves room for another');
 
-// shadows slant away from the light, and one edge on to it keeps some depth instead of going flat
-assert.deepStrictEqual({ ...shadowSlant({ x: 0, y: 2 }) }, { x: 0, y: 2 }, 'from behind, straight down the screen');
-const side = shadowSlant({ x: 3, y: 0 });
-assert(side.x === 3 && side.y === LIGHTING.thinnest * 3, 'from the side, still thinnest of its length deep, in front');
-assert(shadowSlant({ x: 3, y: -0.1 }).y < 0, 'falling behind if that is the way it was going');
+// a shadow edge on to its light keeps some depth, and fades from falling in front to behind as the
+// light crosses its feet (it used to jump from one to the other)
+assert.deepStrictEqual([...shadowSlants({ x: 0, y: 2 })].map((s) => ({ ...s })), [{ x: 0, y: 2, alpha: 1 }], 'from behind, straight down the screen');
+const thin = LIGHTING.thinnest * 3;
+for (const s of shadowSlants({ x: 3, y: 0 })) assert(Math.abs(s.y) === thin && s.alpha === 0.5, 'side on, half in front and half behind');
+let last = null;
+for (let y = -1.5; y <= 1.5; y += 0.05) {
+  const slants = shadowSlants({ x: 3, y });
+  const mean = slants.reduce((sum, s) => sum + s.y * s.alpha, 0);
+  assert(slants.every((s) => Math.abs(s.y) >= thin - 1e-9), 'never flatter than canvas can draw');
+  assert(Math.abs(mean - y) < 1e-9, 'on average it slants the way the light says');
+  assert(last === null || Math.abs(mean - last) < 0.06, 'so it never jumps');
+  last = mean;
+}

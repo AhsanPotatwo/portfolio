@@ -4,7 +4,6 @@
   "strength": 1.2,
   "height": 40,
   "width": 60,
-  "cone": 200,
   "flicker": "neon",
   "flickerAmount": 0.75,
   "shadows": false,
