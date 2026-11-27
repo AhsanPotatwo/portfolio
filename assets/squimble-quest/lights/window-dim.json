@@ -1,0 +1,14 @@
+{
+  "colour": "#ffae5c",
+  "radius": 58,
+  "strength": 0.5,
+  "height": 14,
+  "length": 16,
+  "cone": 150,
+  "shadows": false,
+  "flicker": "candle",
+  "flickerAmount": 0.3,
+  "glow": 0,
+  "glowSize": 0,
+  "night": true
+}

@@ -62,6 +62,7 @@ const EDITOR_COMMANDS = {
 
   shortcuts: { label: 'Keys and mouse', run: () => openShortcuts() },
   tileGuide: { label: 'Making tiles', run: () => openTileGuide() },
+  lightGuide: { label: 'Lights and buildings', run: () => openLightGuide() }, // lighting.js
   play: { label: 'Play', run: () => Editor.close(player, gameCamera) },
   playHere: { label: 'Play here', key: 'editorPlayHere', run: () => Editor.startPlayHere() },
 };
@@ -73,7 +74,7 @@ const EDITOR_MENUS = [
   ['View', ['grid', 'atmospherePreview', 'enemyPaths', 'minimap', 'textures', '-', 'zoomIn', 'zoomOut', 'zoomReset', '-', 'hideUI', 'devMenu', 'devPanel']],
   ['Map', ['resize', 'atmosphere', 'lights', '-', 'worldMap', 'findUses', '-', 'checkMap', 'checkAll', 'artReport']],
   ['Tools', [...EDITOR_TOOLS.map(({ name }) => `tool-${name}`), '-', 'brushBigger', 'brushSmaller']],
-  ['Help', ['shortcuts', 'tileGuide', '-', 'play', 'playHere']],
+  ['Help', ['shortcuts', 'tileGuide', 'lightGuide', '-', 'play', 'playHere']],
 ];
 
 // the words for a command's key, like Ctrl+Z, or '' if it hasn't got one (keyName() in debug.js)

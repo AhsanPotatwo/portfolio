@@ -13,6 +13,8 @@ const game = load(['utils.js', 'lighting.js'], {
   hexToRgb: (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)),
   radians: (d) => (d * Math.PI) / 180,
   TILE: 32,
+  HEX_COLOUR: /^#[0-9a-f]{6}$/i,
+  UIElement: class {},
 });
 const { LIGHT_TYPES, LIGHT_FLICKERS, defineLight, lightSpots, boxShadow, convexHull, skyAt, tileShadowHeight, LIGHTING } = game;
 
@@ -28,6 +30,8 @@ for (const folder of ['objects', 'tiles', 'items']) {
     for (const spot of list) {
       const light = typeof spot === 'string' ? spot : spot.light;
       assert(LIGHT_TYPES[light], `${folder}/${name}.json names the light "${light}", but there's no lights/${light}.json`);
+      // a spot's own settings are light settings (placedLight() would quietly skip a typo)
+      for (const key of Object.keys(typeof spot === 'string' ? {} : spot)) assert(['light', 'x', 'y'].includes(key) || key in game.LIGHT_DEFAULTS, `${folder}/${name}.json has a light with "${key}", which lights don't have`);
     }
     assert.strictEqual(lightSpots(settings.light).length, list.length);
   }
@@ -117,3 +121,37 @@ for (let y = -1.5; y <= 1.5; y += 0.05) {
   assert(last === null || Math.abs(mean - last) < 0.06, 'so it never jumps');
   last = mean;
 }
+
+// a light changed on the map keeps its kind's settings except its own, and a map file can't break it
+const { placedLight, placedDiff } = game;
+const red = LIGHT_TYPES.red;
+assert.strictEqual(placedLight(red, undefined), red, 'nothing of its own is just its kind');
+const changed = placedLight(red, { colour: '#00ff00', length: 64, radius: 'big', flicker: 'disco', strength: NaN, x: 8 });
+assert.strictEqual(changed.colour, '#00ff00');
+assert.deepStrictEqual([...changed.rgb], [0, 1, 0], 'its own colour is worked out');
+assert.strictEqual(changed.length, 64);
+assert.strictEqual(changed.radius, red.radius, 'a setting that is the wrong sort is left out');
+assert.strictEqual(changed.flicker, red.flicker, 'so is a flicker there is not');
+assert.strictEqual(changed.strength, red.strength, 'and a number that is not one');
+assert.strictEqual(red.length, 0, 'its kind is left alone');
+assert.strictEqual(placedLight(red, { colour: 'green' }).colour, red.colour, 'a colour has to be a whole one');
+// only what differs is saved, and nothing at all when nothing does
+const base = { ...red, x: 0, y: 0 };
+assert.strictEqual(placedDiff(base, { ...base }), undefined);
+assert.deepStrictEqual({ ...placedDiff(base, { ...base, length: 40, x: -6 }) }, { length: 40, x: -6 });
+
+// a bar's beam is a wedge from each end and the band between them, which goes round the same way as
+// the wedges, so filling them together never cuts a hole where they overlap
+const { beamEnds, beamBand } = game;
+const turning = (points) => points.reduce((sum, p, i) => sum + p.x * points[(i + 1) % points.length].y - points[(i + 1) % points.length].x * p.y, 0);
+for (let angle = 0; angle < 6.3; angle += 0.4) {
+  for (let aim = 0; aim < 6.3; aim += 0.5) {
+    const bar = { x: 10, y: -4, length: 60, angle, aim, radius: 100 };
+    const ends = beamEnds(bar);
+    assert(Math.abs(Math.hypot(ends[1].x - ends[0].x, ends[1].y - ends[0].y) - 60) < 1e-9, 'its ends are its length apart');
+    const band = beamBand(bar, 100);
+    if (Math.abs(Math.sin(angle - aim)) > 0.01) assert(turning(band) > 0, 'the band goes round like an arc does');
+  }
+}
+assert.strictEqual(beamEnds({ x: 3, y: 4, length: 0, angle: 0 }).length, 1, 'a point light is one wedge');
+assert.strictEqual(beamBand({ x: 3, y: 4, length: 0, angle: 0, aim: 0 }, 50), null, 'with no band');

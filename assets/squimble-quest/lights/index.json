@@ -8,6 +8,7 @@
   "neon-pink",
   "neon-cyan",
   "window",
+  "window-dim",
   "lava-glow",
   "crystal",
   "siren",
@@ -15,5 +16,8 @@
   "green",
   "blue",
   "purple",
-  "white"
+  "white",
+  "strip-light",
+  "lobby",
+  "office"
 ]

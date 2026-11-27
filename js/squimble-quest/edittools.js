@@ -255,7 +255,7 @@ const EditTools = {
       cols: box.right - box.left + 1,
       rows: box.bottom - box.top + 1,
       tiles,
-      objects: map.objects.filter(overlaps).map(({ type, col, row, items, id }) => moved({ type, col, row, items, id })),
+      objects: map.objects.filter(overlaps).map(({ type, col, row, items, light, id }) => moved({ type, col, row, items, light, id })),
       items: map.items.filter(inBox).map(moved),
       enemySpawns: map.enemySpawns.filter(inBox).map(moved),
       npcSpawns: map.npcSpawns.filter(inBox).map(moved),
@@ -299,7 +299,7 @@ const EditTools = {
       if (tile !== null && TILE_TYPES[tile]) map.set(col + (i % copy.cols), row + Math.floor(i / copy.cols), tile);
     });
     for (const obj of copy.objects) {
-      if (OBJECT_TYPES[obj.type]) Editor.placeObject(map, obj.type, col + obj.col, row + obj.row, obj.items, obj.id);
+      if (OBJECT_TYPES[obj.type]) Editor.placeObject(map, obj.type, col + obj.col, row + obj.row, obj.items, obj.id, obj.light);
     }
     for (const entry of copy.items) Editor.placeItem(map, entry.type, col + entry.col, row + entry.row, entry.id);
     for (const [kind, info] of Object.entries(SPAWN_KINDS)) {

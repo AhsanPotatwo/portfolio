@@ -7,13 +7,13 @@ Everything the game is made of lives here, one JSON file per thing named after i
 | `tiles/` | kind of ground (pictures in `normal/` and `dual-grid/`) | [tiles README](tiles/README.md) |
 | `sounds/`, `voices/` | sound, or NPC voice (audio files in `sounds/files/`) | [sounds README](sounds/README.md) |
 | `items/` | item, with its weapon inside | top of `items.js`, `weapons.js` |
-| `objects/` | kind of object (tables, chests...) | top of `objects.js` |
+| `objects/` | kind of object (tables, chests, buildings...) | top of `objects.js`, editor object box (Objects tab New/Edit) |
 | `enemies/` | kind of enemy, with its own weapon | top of `enemies.js` |
 | `npcs/` | kind of NPC and what they say | top of `npcs.js` |
 | `parts/` | piece of a character's look | top of `looks.js` |
 | `particles/` | particle effect (pictures in `particles/pictures/`) | top of `particles.js` |
 | `atmospheres/` | map look: fog, colour, weather, sound, light (Light tab) | top of `atmosphere.js` |
-| `lights/` | kind of light (lamp, neon, torch...), named by objects, tiles and items, or placed on its own as `light-<name>` | editor Map > Lights, top of `lighting.js` |
+| `lights/` | kind of light (lamp, neon, window...), a point or a bar, named by objects (each with its own spot and settings), tiles and items, or placed on its own as `light-<name>` | editor Lights tab, the object box (Objects tab New/Edit), Help > Lights and buildings, top of `lighting.js` |
 | `maps/` | map | [maps README](maps/README.md) |
 
 ## Adding something

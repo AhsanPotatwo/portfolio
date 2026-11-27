@@ -44,6 +44,15 @@ Warps link by **name**, so moving one is fine but renaming breaks links to it (t
 - **Areas** (Triggers tab, **area**, drag): a box or oval with its own atmosphere on top of the map's, e.g. fog over the graveyard.
 - **Map > Atmosphere** sets the map's fog, colour, weather and sound. The starters in `atmospheres/` cover each kind of world.
 
+## Lights
+
+Lighting is on for a map when its atmosphere ticks **Light > Lighting**. **Help > Lights and buildings** in the editor walks through all of this.
+
+- **Lights tab**: lights on their own (`light-<name>`, only seen in the editor) and objects that give off light. **Edit** (or right click one in the palette) changes that kind of light everywhere, **New** makes one, **Export** downloads the files for `lights/`.
+- **Right click a light on the map** to change just that one: colour, brightness, reach, where it sits and how high, a bar instead of a point (**Length** and **Lies at**), a beam, flicker and halo. It's saved in the map. **Save as** also makes it a kind of its own.
+- **Your own buildings**: Objects tab > **New** (or right click an object) opens the object box: a picture from your computer, a glow picture for its windows, its size and shadow, and each of its lights (Add a light, then where it is, how wide and how bright). **Save and export** downloads its file and pictures for `objects/`.
+- The boxes have a preview: a little world lit like the map, with night, dusk, day or cave, **just the light**, and someone to drag about to see their shadow.
+
 ## File format
 
 ```json

@@ -13,12 +13,10 @@
   },
   "light": [
     {
-      "light": "neon-pink",
-      "height": 60
+      "light": "neon-pink"
     },
     {
-      "light": "neon-cyan",
-      "height": 56
+      "light": "neon-cyan"
     }
   ]
 }

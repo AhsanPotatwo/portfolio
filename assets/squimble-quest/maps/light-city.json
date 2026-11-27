@@ -205,6 +205,22 @@
       "id": "9k75w5"
     },
     {
+      "type": "light-strip-light",
+      "col": 20,
+      "row": 9,
+      "id": "s7r1p0"
+    },
+    {
+      "type": "light-purple",
+      "col": 5,
+      "row": 12,
+      "light": {
+        "length": 128,
+        "angle": 90
+      },
+      "id": "p6rb4r"
+    },
+    {
       "type": "light-green",
       "col": -8,
       "row": 14,

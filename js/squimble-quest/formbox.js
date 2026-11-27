@@ -58,6 +58,7 @@ const FormBox = {
   //   canConfirm  whether the values are ok. if it's left out they always are
   //   side        optional (x, y, w, h) => [ui elements] for a column next to the rows (like the tile
   //               editor's pictures). x, y, w, h is the space it gets
+  //   sideWidth   optional px for the side column instead of FORM_BOX.sideWidth (a big preview)
   //   onUpdate    optional, runs every frame while it's open (for live previews, say)
   //   onCancel    optional, runs when it's closed without confirming (like to undo those previews)
   //   cancelLabel optional words for the Cancel button, or null to leave it out (the pause menu)
@@ -78,7 +79,7 @@ const FormBox = {
     this.mostRows = Math.max(options.minRows ?? 0, ...this.tabs.map(({ rows }) => rows.length));
     // a body gets the same gap under it as the last row's field has, so the hint isn't on it
     this.rowsHeight = options.body ? options.bodyHeight + FORM_BOX.rowHeight - FORM_BOX.fieldHeight : this.mostRows * FORM_BOX.rowHeight;
-    const w = options.body ? options.bodyWidth + 32 : FORM_BOX.width + (options.side ? FORM_BOX.sideWidth : 0);
+    const w = options.body ? options.bodyWidth + 32 : FORM_BOX.width + (options.side ? options.sideWidth ?? FORM_BOX.sideWidth : 0);
     const h = this.rowsTop + this.rowsHeight + (options.hint ? 20 : 0) + FORM_BOX.footerHeight;
     const x = (GAME_W - w) / 2;
     const y = (GAME_H - h) / 2;
@@ -123,7 +124,7 @@ const FormBox = {
     // all the way across, so it isn't hidden under it) or the footer
     const sideTop = this.rowsTop;
     const sideBottom = h - FORM_BOX.footerHeight - (options.hint ? 20 : 0);
-    if (options.side) options.side(x + FORM_BOX.width, y + sideTop, FORM_BOX.sideWidth - 16, sideBottom - sideTop - 6).forEach(add);
+    if (options.side) options.side(x + FORM_BOX.width, y + sideTop, (options.sideWidth ?? FORM_BOX.sideWidth) - 16, sideBottom - sideTop - 6).forEach(add);
     if (options.body) options.body(x + 16, y + this.rowsTop, options.bodyWidth, options.bodyHeight).forEach(add);
     // bottom right, where you'd expect them
     const buttonY = y + h - (FORM_BOX.footerHeight + 24) / 2;

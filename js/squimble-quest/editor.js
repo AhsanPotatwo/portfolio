@@ -49,8 +49,8 @@
 //     map, so they aren't drawn and can't be walked on) or removes things, Fill, Rectangle, Select with
 //     copy and paste, and Pick (or Alt + click). Ctrl + Z undoes anything on the map (edithistory.js)
 //   - right click: the settings for a warp, a sound block (its sound, and how it moves), an enemy (its
-//     weapon, armour, ai, sound and particles, next to a picture of it), an npc (its voice and sound) or
-//     a chest (what starts in it, storageeditor.js) on the map, or a tile, item, sound or voice in the palette. resting the mouse on a row says what it does
+//     weapon, armour, ai, sound and particles, next to a picture of it), an npc (its voice and sound), a
+//     chest (what starts in it, storageeditor.js) or a light (just that one, lighting.js) on the map, or a tile, item, sound, voice, particle effect or light in the palette. resting the mouse on a row says what it does
 //   - opening it shows every enemy at its spawn, even defeated ones, so you see the whole design.
 //     closing it puts everyone back at their spawns on full health (outside the editor, maps remember
 //     their characters, loadMap() in sketch.js)
@@ -181,8 +181,9 @@ const EDITOR_TABS = [
   // particle effects (particles.js). clicking the map bursts one there to try it, as if it was hit from
   // the left (so you can see the spread), from half a tile up
   { kind: 'particle', label: 'Particles', types: PARTICLE_EFFECTS, place: (map, name, col, row) => Particles.burst(name, (col + 0.5) * TILE, (row + 0.5) * TILE, { height: TILE / 2, angle: 0 }) },
-  // an empty example that just says "Nothing here yet". to use it, give it a catalogue and a
-  // place(). if there are too many to fit, the rail's squares get shorter (CategoryRail)
+  // lights on their own and objects that give off light, filled in by lighting.js (fillLightsTab()),
+  // which also gives it its place(). empty, it says "Nothing here yet". if there are too many tabs to
+  // fit, the rail's squares get shorter (CategoryRail)
   { kind: 'light', label: 'Lights', types: {} },
 ];
 
@@ -312,15 +313,17 @@ const Editor = {
       x: dockX + L.padding + i * (buttonW + 4), y: GAME_H - L.statusHeight - 28, w: buttonW, h: 22, label, shows, onClick,
     }));
     const kind = () => this.selected.kind;
-    // Edit, with a tile, item, sound or particle effect picked
-    inspectorButton(0, 'Edit', () => kind() === 'tile' || kind() === 'particle' || isSoundKind(kind()) || isItemKind(kind()), () => {
+    // Edit, with a tile, item, sound, particle effect, object or light picked
+    inspectorButton(0, 'Edit', () => ['tile', 'particle', 'object', 'light'].includes(kind()) || isSoundKind(kind()) || isItemKind(kind()), () => {
       if (this.selected.kind === 'tile') TileEditor.open(TILE_TYPES[this.selected.name]);
       else if (isSoundKind(this.selected.kind)) SoundEditor.open(this.selected.name);
       else if (this.selected.kind === 'particle') ParticleEditor.open(this.selected.name);
+      // an object's look, shadow and lights, or a light on its own's kind (lighting.js)
+      else if (this.selected.kind === 'object' || this.selected.kind === 'light') ObjectEditor.open(this.selected.name);
       else this.editItem(this.selected.name);
     });
-    // New and Export for tiles, sounds (a new sound on Sounds, a new voice on Voices) and particles, on
-    // their own tabs
+    // New and Export for tiles, sounds (a new sound on Sounds, a new voice on Voices), particles,
+    // objects and lights, on their own tabs
     const onTab = (test) => () => test(this.tab);
     inspectorButton(1, 'New', onTab((tab) => tab === 'tile'), () => TileEditor.open(null));
     inspectorButton(2, 'Export', onTab((tab) => tab === 'tile'), () => TileEditor.exportTiles());
@@ -328,6 +331,10 @@ const Editor = {
     inspectorButton(2, 'Export', onTab(isSoundKind), () => SoundEditor.exportSounds());
     inspectorButton(1, 'New', onTab((tab) => tab === 'particle'), () => ParticleEditor.open(null));
     inspectorButton(2, 'Export', onTab((tab) => tab === 'particle'), () => ParticleEditor.exportEffects());
+    inspectorButton(1, 'New', onTab((tab) => tab === 'object'), () => ObjectEditor.open(null));
+    inspectorButton(2, 'Export', onTab((tab) => tab === 'object'), () => ObjectEditor.export());
+    inspectorButton(1, 'New', onTab((tab) => tab === 'light'), () => LightEditor.open(null));
+    inspectorButton(2, 'Export', onTab((tab) => tab === 'light'), () => DataFiles.export(['light']));
     // Give, with an item picked and an item tab open (it's where New is on the other tabs)
     inspectorButton(1, 'Give', () => isItemKind(kind()) && isItemKind(this.tab), () => this.giveItem(this.selected.name));
     // the file of every item that's new or changed, weapon and all (datafiles.js), and of every enemy
@@ -692,20 +699,24 @@ const Editor = {
     AtmosphereAreas.update(map, over);
 
     // right click: the settings for what's there (a warp, then a sound block, then an enemy, then an
-    // npc, then a chest, then an atmosphere area). any new settings boxes can hook in here. not while
-    // pasting, where it stops pasting (edittools.js)
+    // npc, then a chest, then a light, then an atmosphere area, then any other object). any new
+    // settings boxes can hook in here. not while pasting, where it stops pasting (edittools.js)
     if (over && Input.mousePressed('right') && !EditTools.pasting && !this.choosingStart) {
       const warp = map.warpAt(over.col, over.row);
       const sound = map.soundAt(over.col, over.row);
       const enemy = map.spawnsAt('enemy', over.col, over.row)[0];
       const npc = map.spawnsAt('npc', over.col, over.row)[0];
       const chest = map.objectsAt(over.col, over.row).findLast((obj) => obj.inventory);
+      const lit = map.objectsAt(over.col, over.row).findLast((obj) => OBJECT_TYPES[obj.type].light);
+      const object = map.objectsAt(over.col, over.row).at(-1);
       if (warp) this.editWarp(map, warp);
       else if (sound) SoundBlocks.edit(sound);
       else if (enemy) this.editEnemy(enemy);
       else if (npc) this.editNpc(npc);
       else if (chest) StorageEditor.open(chest); // storageeditor.js
+      else if (lit) LightEditor.openPlaced(lit); // lighting.js
       else if (AtmosphereAreas.at(map, over.col, over.row)) AtmosphereAreas.edit(map, AtmosphereAreas.at(map, over.col, over.row));
+      else if (object) ObjectEditor.open(object.type); // lighting.js
     }
 
     // undo notices changes once nothing's held: straight after a click, key or box, otherwise now and
@@ -794,12 +805,13 @@ const Editor = {
     });
   },
 
-  // with its top left on col, row. items is what starts in a chest and id its id (pasting one)
-  placeObject(map, name, col, row, items, id) {
+  // with its top left on col, row. items is what starts in a chest, id its id and light its light's
+  // own settings (pasting one)
+  placeObject(map, name, col, row, items, id, light) {
     if (!map.inside(col, row)) return;
     // no copies in the same spot (easy to do by double clicking)
     if (map.objects.some((obj) => obj.type === name && obj.col === col && obj.row === row)) return;
-    map.addObject(name, col, row, items, id);
+    map.addObject(name, col, row, items, id, light);
   },
 
   // an enemy or npc standing on col, row. not on solid or empty tiles, it'd be stuck
@@ -1737,6 +1749,7 @@ function inspectorInfo(selected) {
       note: 'Click an NPC to give them this voice',
     };
   }
+  if (kind === 'light') return lightInspector(name); // lighting.js
   if (kind === 'particle') {
     return {
       title: name,
@@ -2081,6 +2094,7 @@ class PaletteGrid extends UIElement {
     if (isItemKind(tab) && Input.buttonsPressed.has('right')) Editor.editItem(this.hoveredName);
     if (isSoundKind(tab) && Input.buttonsPressed.has('right')) SoundEditor.open(this.hoveredName);
     if (tab === 'particle' && Input.buttonsPressed.has('right')) ParticleEditor.open(this.hoveredName);
+    if ((tab === 'object' || tab === 'light') && Input.buttonsPressed.has('right')) ObjectEditor.open(this.hoveredName); // lighting.js
   }
 
   draw() {

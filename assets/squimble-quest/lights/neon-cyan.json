@@ -1,10 +1,11 @@
 {
   "colour": "#3ff0ff",
-  "radius": 130,
-  "strength": 1.1,
-  "height": 40,
-  "width": 60,
-  "shadows": false,
+  "radius": 110,
+  "strength": 0.9,
+  "height": 60,
+  "length": 58,
+  "cone": 180,
+  "aim": 90,
   "glow": 0,
   "glowSize": 0,
   "night": true

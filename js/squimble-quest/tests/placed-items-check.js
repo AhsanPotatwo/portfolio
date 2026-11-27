@@ -1,5 +1,5 @@
-// checks items placed on the ground and what starts in chests are saved in map files and come back
-// when the map's built again (mapfile.js, Drops.restock() and StorageObjects.fill() in inventory.js),
+// checks items placed on the ground, what starts in chests and lights' own settings are saved in map
+// files and come back when the map's built again (mapfile.js, Drops.restock() and StorageObjects.fill() in inventory.js),
 // while what happened while playing (picking up, emptying a chest) isn't saved. and that placed things
 // keep their ids (takeId() in tilemap.js): through saving, and pasting where nothing else has it,
 // with new ones for a file without them or with one twice. run it with
@@ -79,3 +79,11 @@ const cut = mapFromData(file);
 cut.resize(0, 0, 2, 2);
 same(cut.items.map((entry) => entry.id), ['gone01'], 'the sword off the edge is gone');
 assert.strictEqual(cut.drops.length, 0, 'and so is its drop');
+
+// a light changed on the map keeps its own settings through saving, and one without any has none
+const lit = mapFromData({ ...file, objects: [{ type: 'chest', col: 0, row: 0, light: { colour: '#ff0000', length: 64 } }, { type: 'chest', col: 1, row: 0, light: 'red' }], items: undefined });
+same(lit.objects[0].light, { colour: '#ff0000', length: 64 }, 'its own light settings come in');
+assert.strictEqual(lit.objects[1].light, undefined, 'light that is not a list of settings is ignored');
+const litFile = JSON.parse(mapDataToText(mapToData(lit)));
+same(litFile.objects[0].light, { colour: '#ff0000', length: 64 }, 'and go back out');
+assert(!('light' in litFile.objects[1]), 'none, none saved');

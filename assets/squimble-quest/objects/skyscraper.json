@@ -15,14 +15,16 @@
   "shadow": "box",
   "light": [
     {
-      "light": "window",
-      "x": -32,
-      "height": 16
+      "light": "lobby",
+      "x": -32
     },
     {
-      "light": "window",
-      "x": 32,
-      "height": 16
+      "light": "lobby",
+      "x": 32
+    },
+    {
+      "light": "office",
+      "length": 112
     }
   ]
 }

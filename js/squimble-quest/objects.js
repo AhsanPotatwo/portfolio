@@ -35,7 +35,9 @@
 //                   objects/chest.json's { "label": "Chest", "slots": 10 }. E opens it beside your
 //                   inventory (StorageObjects in inventory.js)
 //
-// the editor's Objects tab picks it up by itself.
+// the editor's Objects tab picks it up by itself. its New, Edit and right click open the object box
+// (ObjectEditor in lighting.js), which makes and changes them, pictures and lights too, and its Export
+// downloads their files.
 //
 // ====================================================================================
 
@@ -91,4 +93,8 @@ DataFiles.register('object', {
   define: defineObject,
   // colours and pictures (utils.js)
   loaded: () => prepareArt(OBJECT_TYPES, 'object'),
+  // for the editor's object box (ObjectEditor in lighting.js) to export them. lights on their own
+  // (light-<name>) aren't files
+  names: () => Object.keys(OBJECT_TYPES).filter((name) => !OBJECT_TYPES[name].lightMarker),
+  toData: (name) => typeToData(OBJECT_TYPES[name], OBJECT_DEFAULTS), // utils.js
 });

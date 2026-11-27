@@ -200,9 +200,9 @@ class TileMap {
   // ---------- objects ----------
 
   // type is a name from objects.js, with its top left on col, row. items is what starts in it if it has
-  // storage, a name or null per slot, and id is for takeId(). gives back the object, or undefined if
-  // there's no such kind
-  addObject(type, col, row, items, id) {
+  // storage, a name or null per slot, id is for takeId(), and light is a light's own settings
+  // (placedLight() in lighting.js). gives back the object, or undefined if there's no such kind
+  addObject(type, col, row, items, id, light) {
     if (!OBJECT_TYPES[type]) {
       console.warn(`There's no object called "${type}", add its file to ${DATA_FOLDER}${DATA_KINDS.object}`);
       return;
@@ -213,6 +213,7 @@ class TileMap {
     // now (StorageObjects.fill() in inventory.js)
     const storage = OBJECT_TYPES[type].storage;
     if (items?.some(Boolean)) obj.items = items;
+    if (light) obj.light = light;
     if (storage) {
       obj.inventory = new Inventory(storage.slots);
       StorageObjects.fill(obj);
@@ -593,8 +594,11 @@ class TileMap {
     const h = type.height * TILE;
     const open = InventoryScreen.storage === obj && type.openImage; // inventory.js
     const art = getArt(open ? type.openImage : type.image, 'object', type.name);
-    // a light on its own (lighting.js) is only seen in the editor
-    if (type.lightMarker && !Editor.active) return;
+    // a light on its own (lighting.js) is only seen in the editor, as a mark where it shines from
+    if (type.lightMarker) {
+      if (Editor.active) drawLightMark(obj, x, y, w, h);
+      return;
+    }
     // a picture can reach up past its tiles and out past their sides, so a tree whose trunk is just
     // below the screen still shows its top
     const size = artDrawnSize(art);

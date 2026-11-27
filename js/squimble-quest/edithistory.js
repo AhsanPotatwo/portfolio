@@ -212,7 +212,7 @@ function designOf(map) {
 function designKey(design) {
   return JSON.stringify({
     ...design,
-    objects: design.objects.map(({ type, col, row, items }) => [type, col, row, items]),
+    objects: design.objects.map(({ type, col, row, items, light }) => [type, col, row, items, light]),
     drops: design.drops.map((drop) => [drop.item.type.name, Math.floor(drop.x / TILE), Math.floor(drop.y / TILE)]),
   });
 }

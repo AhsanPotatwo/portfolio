@@ -24,6 +24,9 @@
 //       { "type": "chest", "col": 2, "row": -11, "items": ["potion", null, "sword"], "id": "p02jfm" }
 //                                           what starts in one with storage, a name or null per slot,
 //                                           only if anything does (StorageObjects.fill() in inventory.js)
+//       { "type": "light-red", "col": 4, "row": 2, "light": { "colour": "#ff8800", "length": 64, "x": 8 }, "id": "k3s0ab" }
+//                                           a light changed in the editor: its own light settings
+//                                           (placedLight() in lighting.js), only ones that differ
 //     ],
 //     "items": [                            items lying on the ground (Drops.restock() in inventory.js),
 //       { "type": "sword", "col": 4, "row": -9, "id": "c81nzr" }    only if there are any
@@ -113,7 +116,7 @@ function mapToData(map) {
     rows,
     // a chest's items only go in if anything starts in it (JSON leaves out undefined)
     // the id goes last, after "type", so mapDataToText() still puts each on one line
-    objects: map.objects.map(({ type, col, row, items, id }) => ({ type, col, row, items, id })),
+    objects: map.objects.map(({ type, col, row, items, light, id }) => ({ type, col, row, items, light, id })),
     // only maps with some
     items: map.items.length > 0 ? map.items.map(({ type, col, row, id }) => ({ type, col, row, id })) : undefined,
   };
@@ -200,7 +203,9 @@ function mapFromData(data) {
     // what starts in a chest. one that isn't loaded is kept, so exporting doesn't lose it, but the
     // slot's empty (StorageObjects.fill()) and Check for problems lists it
     const items = Array.isArray(obj.items) ? obj.items.map((name) => (typeof name === 'string' ? name : null)) : undefined;
-    madeId(map.addObject(obj.type, obj.col, obj.row, items, obj.id), obj);
+    // a light's own settings, if it has any. anything in it that isn't a setting is ignored
+    const light = obj.light && typeof obj.light === 'object' && !Array.isArray(obj.light) ? obj.light : undefined;
+    madeId(map.addObject(obj.type, obj.col, obj.row, items, obj.id, light), obj);
   }
 
   // "items" on the ground, which older maps don't have. one that isn't loaded is kept the same way,
