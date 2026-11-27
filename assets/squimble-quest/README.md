@@ -12,7 +12,8 @@ Everything the game is made of lives here, one JSON file per thing named after i
 | `npcs/` | kind of NPC and what they say | top of `npcs.js` |
 | `parts/` | piece of a character's look | top of `looks.js` |
 | `particles/` | particle effect (pictures in `particles/pictures/`) | top of `particles.js` |
-| `atmospheres/` | map look: fog, colour, weather, sound | top of `atmosphere.js` |
+| `atmospheres/` | map look: fog, colour, weather, sound, light (Light tab) | top of `atmosphere.js` |
+| `lights/` | kind of light (lamp, neon, torch...), named by objects, tiles and items | top of `lighting.js` |
 | `maps/` | map | [maps README](maps/README.md) |
 
 ## Adding something
@@ -40,7 +41,7 @@ Pictures draw at their own size, bottom middle on the feet, never stretched to t
 | Player, enemy, NPC | `image`, `walkImage`, `attackImage`, `hurtImage`, `rollImage`, `deathImage` (NPCs also `portrait`) | `PLAYER` in config.js, or its file |
 | Item | `image`, `wornImage` | `items/` |
 | Weapon | `swingImage`, `arrowImage` (pointing right) | the item's `weapon` |
-| Object | `image`, `openImage`, `"standing": true` for tall things | `objects/` |
+| Object | `image`, `openImage`, `"standing": true` for tall things, `glowImage` for the parts that glow in the dark | `objects/` |
 | Tile | `texture`, `variants`, `frames` | tile editor |
 | Particles | `picture` | particle editor |
 | UI, buttons, font | `UI_ART`, `BUTTON_STYLES`, `GAME_FONT` | config.js |

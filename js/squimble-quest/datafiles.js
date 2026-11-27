@@ -35,6 +35,7 @@ const DATA_KINDS = {
   part:   'parts/',
   particle: 'particles/',
   atmosphere: 'atmospheres/',
+  light:  'lights/',
   map:    'maps/',
 };
 

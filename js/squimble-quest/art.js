@@ -52,6 +52,8 @@ const PICTURE_SETTINGS = [
   'openImage', 'wornImage',
   // a weapon's sweep or thrust, and its arrows (weapons.js)
   'swingImage', 'arrowImage',
+  // an object's parts that glow in the dark (lighting.js)
+  'glowImage',
 ];
 
 // what's wrong with a picture setting, as a sentence, or null if nothing is. getArt() warns with it and

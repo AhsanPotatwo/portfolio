@@ -27,5 +27,6 @@
   ],
   "splashSounds": [
     "lava-splash"
-  ]
+  ],
+  "light": "lava-glow"
 }

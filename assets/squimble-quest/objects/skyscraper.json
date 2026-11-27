@@ -1,0 +1,28 @@
+{
+  "width": 4,
+  "height": 3,
+  "colour": "#4a5466",
+  "standing": true,
+  "solid": true,
+  "image": {
+    "image": "assets/squimble-quest/objects/lighting-test/skyscraper.png",
+    "scale": 2
+  },
+  "glowImage": {
+    "image": "assets/squimble-quest/objects/lighting-test/skyscraper-glow.png",
+    "scale": 2
+  },
+  "shadow": "box",
+  "light": [
+    {
+      "light": "window",
+      "x": -32,
+      "height": 16
+    },
+    {
+      "light": "window",
+      "x": 32,
+      "height": 16
+    }
+  ]
+}

@@ -102,6 +102,8 @@ const ITEM_DEFAULTS = {
   colour: '#ff00ff',
   image: null,
   wornImage: null,
+  // the light it gives whoever holds or wears it, a lights/ name (lighting.js)
+  light: null,
 };
 
 // filled in from the item files (bottom of this file)

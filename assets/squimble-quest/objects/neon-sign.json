@@ -1,0 +1,24 @@
+{
+  "width": 3,
+  "colour": "#1c1824",
+  "standing": true,
+  "solid": true,
+  "image": {
+    "image": "assets/squimble-quest/objects/lighting-test/neon-sign.png",
+    "scale": 2
+  },
+  "glowImage": {
+    "image": "assets/squimble-quest/objects/lighting-test/neon-sign-glow.png",
+    "scale": 2
+  },
+  "light": [
+    {
+      "light": "neon-pink",
+      "height": 60
+    },
+    {
+      "light": "neon-cyan",
+      "height": 56
+    }
+  ]
+}

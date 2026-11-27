@@ -1,0 +1,19 @@
+{
+  "colour": "#3a3f4a",
+  "standing": true,
+  "solid": true,
+  "image": {
+    "image": "assets/squimble-quest/objects/lighting-test/street-lamp.png",
+    "scale": 2
+  },
+  "glowImage": {
+    "image": "assets/squimble-quest/objects/lighting-test/street-lamp-glow.png",
+    "scale": 2
+  },
+  "light": [
+    {
+      "light": "street-lamp",
+      "height": 80
+    }
+  ]
+}

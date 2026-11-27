@@ -1,0 +1,19 @@
+{
+  "colour": "#6b4a30",
+  "standing": true,
+  "solid": true,
+  "image": {
+    "image": "assets/squimble-quest/objects/lighting-test/wall-torch.png",
+    "scale": 2
+  },
+  "glowImage": {
+    "image": "assets/squimble-quest/objects/lighting-test/wall-torch-glow.png",
+    "scale": 2
+  },
+  "light": [
+    {
+      "light": "torch",
+      "height": 44
+    }
+  ]
+}

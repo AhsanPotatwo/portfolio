@@ -4,5 +4,8 @@
   "hut",
   "node-test",
   "ai-test",
-  "doppler-test"
+  "doppler-test",
+  "light-city",
+  "light-village",
+  "light-cave"
 ]

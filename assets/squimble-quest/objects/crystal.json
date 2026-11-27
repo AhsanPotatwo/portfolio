@@ -1,0 +1,19 @@
+{
+  "colour": "#6f7cff",
+  "standing": true,
+  "solid": true,
+  "image": {
+    "image": "assets/squimble-quest/objects/lighting-test/crystal.png",
+    "scale": 2
+  },
+  "glowImage": {
+    "image": "assets/squimble-quest/objects/lighting-test/crystal-glow.png",
+    "scale": 2
+  },
+  "light": [
+    {
+      "light": "crystal",
+      "height": 14
+    }
+  ]
+}

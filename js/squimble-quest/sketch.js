@@ -50,6 +50,7 @@
 //   tileeditor.js editor's tile box (after editor.js)
 //   particleeditor.js the particle editor box and its preview (after tileeditor.js)
 //   atmosphere.js a map's fog, colour, weather and background sound, and its editor box (after particleeditor.js)
+//   lighting.js   light and shadow: lamps, fires, neon, the sun and moon, shadows off walls, buildings and sprites
 //   weaponeditor.js the weapon editor tabs, enemy weapons in the palette, and the combo preview (after editor.js)
 //   storageeditor.js the box for what starts in a chest, opened by right clicking one in the editor
 //   soundeditor.js the sound editor, a full screen synthesiser (after editor.js)
@@ -449,6 +450,7 @@ function draw() {
     Atmosphere.update(worldMap, dt, Editor.active ? gameCamera : { x: player.x, y: player.y + feetBelowCentre(PLAYER) });
     Particles.update(dt, worldMap);
     Wakes.update(dt); // wakes.js
+    Lighting.update(dt, worldMap); // lighting.js
     DamageNumbers.update(dt);
     Remains.update(dt); // character.js
   }
@@ -486,9 +488,13 @@ function draw() {
     Particles.drawFlyingWith(things, view);
     // ...to here
     Shaders.capture('things');
+    // light and shadow over the map and its things, if its atmosphere has them (lighting.js)
+    Lighting.draw(gameCamera, worldMap);
     // fog, colour and the rest of the map's atmosphere over all of it, then its areas' (atmosphere.js),
     // but under damage numbers, prompts and the editor's cursor so they stay readable
     Atmosphere.draw(gameCamera, worldMap);
+    // halos round lights and glowing paint, through the fog
+    Lighting.drawGlow();
     // over everything, so they're never hidden behind someone (weapons.js)
     DamageNumbers.draw();
     // dev mode: each enemy's ai and its route (pathfinding.js)

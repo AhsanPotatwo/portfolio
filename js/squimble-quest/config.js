@@ -441,6 +441,9 @@ const KEYS = {
   // shows or hides the texture inspector (inspector.js)
   textureInspector: ['KeyU'],
   teleport:  ['KeyT'],
+  // lighting on and off everywhere, the same as the pause menu's tick (lighting.js). with Shift, just
+  // the light, to see what it's doing
+  lighting:  ['KeyJ'],
   nextMap:   ['KeyM'],
   // B for build (E is already used for talking). works without dev mode too, for builders
   editor:    ['KeyB'],
@@ -494,6 +497,8 @@ const GAME_SETTINGS = {
   flashes: 1,
   // how big the crosshair is, 1 to 3 (drawCrosshair() in hud.js)
   crosshairSize: 1,
+  // light and shadow on maps whose atmosphere has it (lighting.js). off draws them plain
+  lighting: true,
   // ---------- hearing ----------
   // words in the corner for sounds, with an arrow to where they are (Captions in access.js)
   captions: false,

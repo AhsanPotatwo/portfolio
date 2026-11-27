@@ -5,5 +5,16 @@
   "chest",
   "gravestone",
   "crypt",
-  "dead-tree"
+  "dead-tree",
+  "house",
+  "shack",
+  "skyscraper",
+  "street-lamp",
+  "broken-lamp",
+  "neon-sign",
+  "street-sign",
+  "tree",
+  "wall-torch",
+  "crystal",
+  "beacon"
 ]

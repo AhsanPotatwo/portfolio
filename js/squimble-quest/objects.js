@@ -53,6 +53,13 @@ const OBJECT_DEFAULTS = {
   particleX: 0,
   particleY: 0,
   storage: null,
+  // light and shadow (lighting.js explains them): the light it gives off, its shadow ("sprite",
+  // "box", a list of boxes or "none"; null is sprite for standing ones), how tall it is for a box
+  // shadow, and a picture of just its parts that glow in the dark, matching image
+  light: null,
+  shadow: null,
+  shadowHeight: null,
+  glowImage: null,
 };
 
 // what an object's storage setting starts from. a new thing every storage object can have (only

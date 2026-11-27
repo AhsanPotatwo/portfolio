@@ -1,0 +1,10 @@
+{
+  "width": 2,
+  "colour": "#3f7a3a",
+  "standing": true,
+  "solid": true,
+  "image": {
+    "image": "assets/squimble-quest/objects/lighting-test/tree.png",
+    "scale": 2
+  }
+}

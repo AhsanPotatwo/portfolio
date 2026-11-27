@@ -1,0 +1,9 @@
+{
+  "colour": "#2f7a4a",
+  "standing": true,
+  "solid": true,
+  "image": {
+    "image": "assets/squimble-quest/objects/lighting-test/street-sign.png",
+    "scale": 2
+  }
+}

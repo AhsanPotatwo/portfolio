@@ -1,0 +1,11 @@
+{
+  "colour": "#d8e8ff",
+  "radius": 115,
+  "strength": 0.8,
+  "height": 70,
+  "flicker": "failing",
+  "flickerAmount": 0.9,
+  "glow": 0.6,
+  "glowSize": 12,
+  "night": true
+}

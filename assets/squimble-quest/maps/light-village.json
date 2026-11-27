@@ -1,0 +1,214 @@
+{
+  "format": "squimble-quest-map",
+  "version": 2,
+  "left": -22,
+  "top": -14,
+  "spawn": {
+    "x": 16,
+    "y": -357
+  },
+  "atmosphere": "sun-cycle",
+  "legend": {
+    "..": null,
+    "gr": "grass",
+    "di": "dirt",
+    "wt": "water",
+    "wa": "wall"
+  },
+  "rows": [
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di",
+    "di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr wt wt wt wt wt wt gr gr gr gr",
+    "gr gr wa wa wa wa wa wa wa wa gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr wt wt wt wt wt wt gr gr gr gr",
+    "gr gr wa gr gr gr gr gr gr wa gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr wt wt wt wt wt wt gr gr gr gr",
+    "gr gr wa gr gr gr gr gr gr wa gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr wt wt wt wt wt wt gr gr gr gr",
+    "gr gr wa gr gr gr gr gr gr wa gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr wt wt wt wt wt wt gr gr gr gr",
+    "gr gr wa gr gr gr gr gr gr wa gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr wa gr gr gr gr gr gr wa gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr di di gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr"
+  ],
+  "objects": [
+    {
+      "type": "house",
+      "col": -10,
+      "row": -6,
+      "id": "hchhey"
+    },
+    {
+      "type": "house",
+      "col": 4,
+      "row": -6,
+      "id": "cfmxgy"
+    },
+    {
+      "type": "shack",
+      "col": 12,
+      "row": -5,
+      "id": "vszney"
+    },
+    {
+      "type": "skyscraper",
+      "col": -20,
+      "row": -11,
+      "id": "qmerjg"
+    },
+    {
+      "type": "tree",
+      "col": -16,
+      "row": -3,
+      "id": "ja54ex"
+    },
+    {
+      "type": "tree",
+      "col": 8,
+      "row": -12,
+      "id": "4elbnh"
+    },
+    {
+      "type": "tree",
+      "col": 16,
+      "row": -11,
+      "id": "fvwi5a"
+    },
+    {
+      "type": "tree",
+      "col": -6,
+      "row": 6,
+      "id": "9gzh29"
+    },
+    {
+      "type": "tree",
+      "col": 5,
+      "row": 8,
+      "id": "envvp3"
+    },
+    {
+      "type": "tree",
+      "col": -3,
+      "row": 10,
+      "id": "mj88i6"
+    },
+    {
+      "type": "tree",
+      "col": 18,
+      "row": 10,
+      "id": "thqas5"
+    },
+    {
+      "type": "tree",
+      "col": -17,
+      "row": 12,
+      "id": "xgbgpi"
+    },
+    {
+      "type": "street-lamp",
+      "col": -14,
+      "row": 2,
+      "id": "3sj3su"
+    },
+    {
+      "type": "street-lamp",
+      "col": -2,
+      "row": 2,
+      "id": "oa5p1x"
+    },
+    {
+      "type": "street-lamp",
+      "col": 2,
+      "row": 2,
+      "id": "6dmul1"
+    },
+    {
+      "type": "street-lamp",
+      "col": 14,
+      "row": 2,
+      "id": "fm1njm"
+    },
+    {
+      "type": "street-sign",
+      "col": 2,
+      "row": -2,
+      "id": "orwgb2"
+    },
+    {
+      "type": "campfire",
+      "col": 8,
+      "row": 5,
+      "id": "4xanye"
+    }
+  ],
+  "items": [
+    {
+      "type": "lantern",
+      "col": 2,
+      "row": 4,
+      "id": "j677b1"
+    }
+  ],
+  "enemies": [
+    {
+      "type": "dummy",
+      "col": -4,
+      "row": 4,
+      "id": "gltl85"
+    },
+    {
+      "type": "dummy",
+      "col": 6,
+      "row": 3,
+      "id": "33l439"
+    },
+    {
+      "type": "sqwomp",
+      "col": -9,
+      "row": 8,
+      "id": "6ubqq3"
+    }
+  ],
+  "npcs": [
+    {
+      "type": "villager",
+      "col": -3,
+      "row": -2,
+      "id": "cmpn5y"
+    }
+  ],
+  "warps": [
+    {
+      "name": "from-city",
+      "col": 0,
+      "row": -13,
+      "to": "light-city",
+      "toWarp": "to-village",
+      "activate": "step",
+      "enemies": true
+    },
+    {
+      "name": "to-cave",
+      "col": 0,
+      "row": 12,
+      "to": "light-cave",
+      "toWarp": "from-village",
+      "activate": "step",
+      "enemies": true
+    }
+  ]
+}

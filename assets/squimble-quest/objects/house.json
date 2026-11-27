@@ -1,0 +1,28 @@
+{
+  "width": 4,
+  "height": 2,
+  "colour": "#cdb084",
+  "standing": true,
+  "solid": true,
+  "image": {
+    "image": "assets/squimble-quest/objects/lighting-test/house.png",
+    "scale": 2
+  },
+  "glowImage": {
+    "image": "assets/squimble-quest/objects/lighting-test/house-glow.png",
+    "scale": 2
+  },
+  "shadow": "box",
+  "light": [
+    {
+      "light": "window",
+      "x": -36,
+      "height": 28
+    },
+    {
+      "light": "window",
+      "x": 36,
+      "height": 28
+    }
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "format": "squimble-quest-map",
+  "version": 2,
+  "left": -20,
+  "top": -12,
+  "spawn": {
+    "x": -336,
+    "y": -261
+  },
+  "atmosphere": "dark-cave",
+  "legend": {
+    "..": null,
+    "ro": "rock",
+    "di": "dirt",
+    "wa": "wall",
+    "la": "lava"
+  },
+  "rows": [
+    "ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro",
+    "ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro",
+    "ro ro di di di di di di di di di di di di di di ro ro ro ro ro ro di di di di di di di di di di di di di di di di ro ro",
+    "ro ro di di di di di di di di di di di di di di ro ro ro ro ro ro di di di di di di di di di di di di di di di di ro ro",
+    "ro ro di di di di di di di di di di di di di di ro ro ro ro ro ro di di di di di di di di di di di di di di di di ro ro",
+    "ro ro di di di di ro di di di di di di di di di ro ro ro ro ro ro di di di di wa di di di di di di di di di di di ro ro",
+    "ro ro di di di di di di di di di di di di di di di di di di di di di di di di wa di di di di di di di di di di di ro ro",
+    "ro ro di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di di ro ro",
+    "ro ro di di di di di di di di di wa wa di di di ro ro ro ro ro ro di di di di di di di di di di di di di di di di ro ro",
+    "ro ro di di di di di di di di di di di di di di ro ro ro ro ro ro di di di di di di di di di di di di di di di di ro ro",
+    "ro ro di di di di di di di di di di di di di di ro ro ro ro ro ro ro ro ro ro ro ro di di di ro ro ro ro ro ro ro ro ro",
+    "ro ro ro ro ro ro ro ro di di di ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro di di di ro ro ro ro ro ro ro ro ro",
+    "ro ro ro ro ro ro ro ro di di di ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro di di di ro ro ro ro ro ro ro ro ro",
+    "ro ro ro ro ro ro ro ro di di di ro ro ro ro ro ro ro ro ro di di di di di di di di di di di di di di di di di di ro ro",
+    "ro ro ro ro di di di di di di di di di di di di ro ro ro ro di di di di di di di di di di di di di di di di di di ro ro",
+    "ro ro ro ro di di di di di di di di di di di di ro ro ro ro di di di di di di di di di di di di di di di di di di ro ro",
+    "ro ro ro ro di di di di di di di di di di di di di di di di di di di di la la la la la la di di di di di di di di ro ro",
+    "ro ro ro ro di di di di di wa di di di di di di di di di di di di di di la la la la la la di di di di di di di di ro ro",
+    "ro ro ro ro di di di di di di di di di di di di ro ro ro ro di di di di la la la la la la di di di di di di di di ro ro",
+    "ro ro ro ro di di di di di di di di di di di di ro ro ro ro di di di di di la la la di di di di di di di di di di ro ro",
+    "ro ro ro ro di di di di di di di di di di di di ro ro ro ro di di di di di di di di di di di di di di di di di di ro ro",
+    "ro ro ro ro di di di di di di di di di di di di ro ro ro ro di di di di di di di di di di di di di di di di di di ro ro",
+    "ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro",
+    "ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro ro"
+  ],
+  "objects": [
+    {
+      "type": "wall-torch",
+      "col": -16,
+      "row": -10,
+      "id": "7v0d5o"
+    },
+    {
+      "type": "wall-torch",
+      "col": -7,
+      "row": -10,
+      "id": "jluk4z"
+    },
+    {
+      "type": "wall-torch",
+      "col": 12,
+      "row": -10,
+      "id": "x2k8ch"
+    },
+    {
+      "type": "wall-torch",
+      "col": -14,
+      "row": 2,
+      "id": "7rggrb"
+    },
+    {
+      "type": "crystal",
+      "col": 15,
+      "row": -4,
+      "id": "ovflrk"
+    },
+    {
+      "type": "crystal",
+      "col": 16,
+      "row": -5,
+      "id": "jtiirt"
+    },
+    {
+      "type": "crystal",
+      "col": -15,
+      "row": 8,
+      "id": "jsp43w"
+    },
+    {
+      "type": "crystal",
+      "col": 14,
+      "row": 8,
+      "id": "frt1nd"
+    },
+    {
+      "type": "crystal",
+      "col": -6,
+      "row": -2,
+      "id": "k2leyr"
+    },
+    {
+      "type": "campfire",
+      "col": -10,
+      "row": 6,
+      "id": "3wx5kf"
+    }
+  ],
+  "items": [
+    {
+      "type": "torch",
+      "col": -12,
+      "row": -7,
+      "id": "3yzawm"
+    },
+    {
+      "type": "flashlight",
+      "col": -10,
+      "row": -7,
+      "id": "gznyl6"
+    }
+  ],
+  "enemies": [
+    {
+      "type": "sqwomp",
+      "col": 12,
+      "row": -6,
+      "id": "0shgpo"
+    },
+    {
+      "type": "sqwomp",
+      "col": 13,
+      "row": 5,
+      "id": "0qv0k3"
+    },
+    {
+      "type": "dummy",
+      "col": -6,
+      "row": 7,
+      "id": "dnp7t4"
+    }
+  ],
+  "npcs": [],
+  "warps": [
+    {
+      "name": "from-village",
+      "col": -11,
+      "row": -9,
+      "to": "light-village",
+      "toWarp": "to-cave",
+      "activate": "step",
+      "enemies": true
+    }
+  ]
+}

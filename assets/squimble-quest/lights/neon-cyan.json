@@ -1,0 +1,12 @@
+{
+  "colour": "#3ff0ff",
+  "radius": 130,
+  "strength": 1.1,
+  "height": 40,
+  "width": 60,
+  "cone": 200,
+  "shadows": false,
+  "glow": 0,
+  "glowSize": 0,
+  "night": true
+}

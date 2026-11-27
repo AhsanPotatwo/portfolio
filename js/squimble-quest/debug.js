@@ -88,6 +88,15 @@ const DEV_INFO = [
     name: 'shader', label: 'Shader', note: 'which is on', on: true,
     lines: () => [['shader', SHADERS[Shaders.current].label]], // shaders.js
   },
+  {
+    // lights on screen, how many cast shadows, standing things lit one by one, and the time it took
+    name: 'lighting', label: 'Lighting', note: 'lights, time it takes', on: false,
+    lines: () => {
+      if (!Lighting.frame) return [['lighting', GAME_SETTINGS.lighting ? 'none on this map' : 'off (J)']]; // lighting.js
+      const s = Lighting.stats;
+      return [['lighting', `${s.lights} lights, ${s.shadowed} shadowed, ${s.things} things, ${s.ms.toFixed(1)} ms`]];
+    },
+  },
 ];
 
 // things drawn over the map that the menu can turn on and off. key is a KEYS action that flips it
@@ -110,6 +119,8 @@ const DEV_TOOLS = [
   { label: 'Teleport to mouse', keys: ['teleport'] },
   { label: 'Zoom out, in, reset', keys: ['zoomOut', 'zoomIn', 'zoomReset'], run: () => gameCamera.zoomTo(1) },
   { label: 'Shader', keys: ['shaderPrev', 'shaderNext'], run: () => Shaders.next(1) },
+  // Shift + J shows just the light (lighting.js)
+  { label: 'Lighting on and off', keys: ['lighting'], run: () => Lighting.toggle() },
   { label: 'Dev mode off', keys: ['devMode'], run: () => Debug.toggle(player, gameCamera) },
 ];
 
@@ -220,6 +231,9 @@ const Debug = {
     if (Input.wasPressed('devMenu')) this.toggleMenu();
     if (Input.wasPressed('shaderPrev')) Shaders.next(-1);
     if (Input.wasPressed('shaderNext')) Shaders.next(1);
+    // lighting.js
+    if (Input.wasPressedWithShift('lighting')) Lighting.onlyLight = !Lighting.onlyLight;
+    else if (Input.wasPressed('lighting')) Lighting.toggle();
     this.fps = approach(this.fps, frameRate(), 4, dt);
 
     if (Input.wasPressed('nextMap')) {

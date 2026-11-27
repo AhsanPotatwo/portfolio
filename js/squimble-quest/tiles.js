@@ -131,6 +131,11 @@ const TILE_DEFAULTS = {
   rippleParticles: null,
   // sounds (sounds/) for stepping in, one at random. wading is just stepSounds
   splashSounds: null,
+
+  // light and shadow (lighting.js): a lights/ name every tile of this kind glows with (lava), and how
+  // tall it is for shadows in px, null for a wall's height if it's solid and blocks sight
+  light: null,
+  shadowHeight: null,
 };
 
 // does the dual grid tile `dual` round off onto `tile`? if not, it stops in a straight line at tile's

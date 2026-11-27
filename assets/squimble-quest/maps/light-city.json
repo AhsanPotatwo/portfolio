@@ -1,0 +1,273 @@
+{
+  "format": "squimble-quest-map",
+  "version": 2,
+  "left": -24,
+  "top": -14,
+  "spawn": {
+    "x": 16,
+    "y": 187
+  },
+  "atmosphere": "neon-night",
+  "legend": {
+    "..": null,
+    "pv": "pavement",
+    "as": "asphalt",
+    "gr": "grass",
+    "wa": "wall"
+  },
+  "rows": [
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as",
+    "as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as",
+    "as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as",
+    "as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as as",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv as as as as pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv pv",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr wa wa wa wa wa wa wa wa wa gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr wa gr gr gr gr gr gr gr wa gr gr gr gr gr gr gr",
+    "gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr pv pv as as as as pv pv gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr gr"
+  ],
+  "objects": [
+    {
+      "type": "house",
+      "col": -21,
+      "row": -6,
+      "id": "dpa0t5"
+    },
+    {
+      "type": "skyscraper",
+      "col": -14,
+      "row": -9,
+      "id": "lkcf9z"
+    },
+    {
+      "type": "shack",
+      "col": -7,
+      "row": -5,
+      "id": "0oasx1"
+    },
+    {
+      "type": "neon-sign",
+      "col": -2,
+      "row": -3,
+      "id": "fnf5k3"
+    },
+    {
+      "type": "house",
+      "col": 3,
+      "row": -6,
+      "id": "emym2s"
+    },
+    {
+      "type": "skyscraper",
+      "col": 9,
+      "row": -10,
+      "id": "amjj8e"
+    },
+    {
+      "type": "shack",
+      "col": 15,
+      "row": -5,
+      "id": "y16dn1"
+    },
+    {
+      "type": "skyscraper",
+      "col": 19,
+      "row": -8,
+      "id": "mad1v8"
+    },
+    {
+      "type": "street-lamp",
+      "col": -20,
+      "row": -1,
+      "id": "3fukiv"
+    },
+    {
+      "type": "street-lamp",
+      "col": -12,
+      "row": -1,
+      "id": "897bkt"
+    },
+    {
+      "type": "street-lamp",
+      "col": -4,
+      "row": -1,
+      "id": "baxw4l"
+    },
+    {
+      "type": "street-lamp",
+      "col": 5,
+      "row": -1,
+      "id": "uys490"
+    },
+    {
+      "type": "street-lamp",
+      "col": 13,
+      "row": -1,
+      "id": "6q67bf"
+    },
+    {
+      "type": "street-lamp",
+      "col": 21,
+      "row": -1,
+      "id": "vmp0oe"
+    },
+    {
+      "type": "street-lamp",
+      "col": -16,
+      "row": 4,
+      "id": "1o866t"
+    },
+    {
+      "type": "street-lamp",
+      "col": -8,
+      "row": 4,
+      "id": "cidqh5"
+    },
+    {
+      "type": "broken-lamp",
+      "col": 8,
+      "row": 4,
+      "id": "9l03x2"
+    },
+    {
+      "type": "street-lamp",
+      "col": 16,
+      "row": 4,
+      "id": "teq8c1"
+    },
+    {
+      "type": "street-sign",
+      "col": 3,
+      "row": 5,
+      "id": "bdi54z"
+    },
+    {
+      "type": "beacon",
+      "col": -4,
+      "row": 6,
+      "id": "coiuvv"
+    },
+    {
+      "type": "tree",
+      "col": -20,
+      "row": 11,
+      "id": "ra5ut8"
+    },
+    {
+      "type": "tree",
+      "col": -14,
+      "row": 13,
+      "id": "79n9sf"
+    },
+    {
+      "type": "tree",
+      "col": -9,
+      "row": 10,
+      "id": "365k8r"
+    },
+    {
+      "type": "tree",
+      "col": 20,
+      "row": 12,
+      "id": "0vxvbe"
+    },
+    {
+      "type": "campfire",
+      "col": -16,
+      "row": 11,
+      "id": "ud2xqs"
+    },
+    {
+      "type": "crystal",
+      "col": 12,
+      "row": 12,
+      "id": "vdcg0a"
+    },
+    {
+      "type": "wall-torch",
+      "col": 9,
+      "row": 10,
+      "id": "grc1m0"
+    }
+  ],
+  "items": [
+    {
+      "type": "flashlight",
+      "col": -1,
+      "row": 7,
+      "id": "ee1e6y"
+    },
+    {
+      "type": "torch",
+      "col": 0,
+      "row": 7,
+      "id": "1r7k7v"
+    },
+    {
+      "type": "lantern",
+      "col": 1,
+      "row": 7,
+      "id": "6hurvv"
+    }
+  ],
+  "enemies": [
+    {
+      "type": "dummy",
+      "col": -11,
+      "row": 12,
+      "id": "6k8ix9"
+    },
+    {
+      "type": "dummy",
+      "col": 12,
+      "row": 11,
+      "id": "a1pfkm"
+    },
+    {
+      "type": "sqwomp",
+      "col": 6,
+      "row": 12,
+      "id": "1kef4b"
+    }
+  ],
+  "npcs": [
+    {
+      "type": "villager",
+      "col": -6,
+      "row": 6,
+      "id": "mgxd72"
+    }
+  ],
+  "warps": [
+    {
+      "name": "to-village",
+      "col": 0,
+      "row": 15,
+      "to": "light-village",
+      "toWarp": "from-city",
+      "activate": "step",
+      "enemies": true
+    }
+  ]
+}

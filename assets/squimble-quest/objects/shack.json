@@ -1,0 +1,23 @@
+{
+  "width": 3,
+  "height": 2,
+  "colour": "#8a9096",
+  "standing": true,
+  "solid": true,
+  "image": {
+    "image": "assets/squimble-quest/objects/lighting-test/shack.png",
+    "scale": 2
+  },
+  "glowImage": {
+    "image": "assets/squimble-quest/objects/lighting-test/shack-glow.png",
+    "scale": 2
+  },
+  "shadow": "box",
+  "light": [
+    {
+      "light": "window",
+      "x": 20,
+      "height": 14
+    }
+  ]
+}

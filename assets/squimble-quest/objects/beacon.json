@@ -1,0 +1,19 @@
+{
+  "colour": "#8a2a2a",
+  "standing": true,
+  "solid": true,
+  "image": {
+    "image": "assets/squimble-quest/objects/lighting-test/beacon.png",
+    "scale": 2
+  },
+  "glowImage": {
+    "image": "assets/squimble-quest/objects/lighting-test/beacon-glow.png",
+    "scale": 2
+  },
+  "light": [
+    {
+      "light": "siren",
+      "height": 64
+    }
+  ]
+}

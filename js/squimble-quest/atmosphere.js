@@ -147,6 +147,20 @@ const ATMOSPHERE_SETTINGS = [
   { tab: 'Weather', key: 'flashes', label: 'Flashes', normal: 0, min: 0, max: 30, step: 0.5, unit: '/min', tip: 'Flashes of light a minute, on average, like lightning' },
   { tab: 'Weather', key: 'flashColour', label: 'Flash colour', normal: '#ffffff', colour: true, tip: 'The colour of the flashes' },
   { tab: 'Weather', key: 'flashSound', label: 'Flash sound', normal: '', choices: atmosphereSoundChoices, say: sayAtmosphereSound, tip: 'A sound each flash plays, like thunder. Silent in the editor' },
+
+  // light and shadow (lighting.js), all off until Lighting is ticked
+  { tab: 'Light', key: 'lightOn', label: 'Lighting', normal: false, tick: 'light and shadow here', tip: 'Lamps, fires and neon light up, and walls, buildings, trees and characters cast shadows. Experimental' },
+  { tab: 'Light', key: 'lightTime', label: 'Time', normal: 12, min: 0, max: 24, step: 0.25, unit: 'h', tip: 'The hour: where the sun or moon is and the colour of the sky. 12 is midday, 0 midnight' },
+  { tab: 'Light', key: 'lightDayLength', label: 'Day length', normal: 0, min: 0, max: 60, step: 0.5, unit: 'min', tip: 'Minutes for a whole day and night to go round, starting at Time. 0 stops the clock' },
+  { tab: 'Light', key: 'lightSun', label: 'Sky', normal: 100, min: 0, max: 100, unit: '%', tip: 'How much sun, moon and sky reach here. 0 for caves and indoors, where only lamps and Glow light it' },
+  { tab: 'Light', key: 'lightSunFrom', label: 'Sun from', normal: 270, min: 0, max: 355, step: 5, unit: '°', tip: 'Where the sun is at midday. 270 is the top of the screen, so shadows fall down it. It rises a quarter turn one way and sets a quarter turn the other' },
+  { tab: 'Light', key: 'lightAmbient', label: 'Glow', normal: '#000000', colour: true, tip: "Light everywhere on top of the sky, like a cave's dim glow or a city's orange night. Black is none" },
+  { tab: 'Light', key: 'lightShadows', label: 'Shadows', normal: 80, min: 0, max: 100, unit: '%', tip: 'How much light shadows block. 0 turns them off' },
+  { tab: 'Light', key: 'lightPlayer', label: 'Your light', normal: 80, min: 0, max: 300, step: 5, unit: 'px', tip: "A faint light round you, so you can always see yourself and what's next to you. 0 for none" },
+  { tab: 'Light looks', key: 'lightBands', label: 'Bands', normal: 6, min: 0, max: 16, tip: 'Steps each light into this many rings, for pixel art lights. 0 is smooth' },
+  { tab: 'Light looks', key: 'lightPixel', label: 'Light pixel', normal: 2, options: { 1: { say: '1 px' }, 2: { say: '2 px, the 16 px art' }, 4: { say: '4 px' } }, tip: 'How big a pixel of light is. Match it to the art so light edges land on its pixels' },
+  { tab: 'Light looks', key: 'lightGlow', label: 'Halos', normal: 100, min: 0, max: 200, step: 5, unit: '%', tip: 'The glow round lights and glowing paint like neon. 0 turns it off' },
+  { tab: 'Light looks', key: 'lightRim', label: 'Edge light', normal: 100, min: 0, max: 200, step: 5, unit: '%', tip: 'A bright edge on characters lit from behind or the side' },
 ];
 
 const ATMOSPHERE_DEFAULTS = Object.fromEntries(ATMOSPHERE_SETTINGS.map(({ key, normal }) => [key, normal]));

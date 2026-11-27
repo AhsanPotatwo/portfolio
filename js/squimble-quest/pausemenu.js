@@ -36,6 +36,7 @@ const SETTING_ROWS = {
     ['colourBlind', 'Colour blind', 'Protanopia: reds look dark. Deuteranopia: reds and greens mix up. Tritanopia: blues and yellows mix up', Object.fromEntries(Object.entries(COLOUR_BLIND_TYPES).map(([type, { label }]) => [type, label]))],
     ['colourBlindStrength', 'Strength', 'How much the colour blind filter changes colours', [0, 100, 1]],
     ['flashes', 'Flashes', "How bright lightning and the red glow when you're hurt get. 0% for none", [0, 100, 5]],
+    ['lighting', 'Lighting', 'Light and shadow on maps that have it. Untick to see them plain, or if the game is slow', 'tick'],
     ['crosshairSize', 'Crosshair', 'How big the dot you aim with is', [100, 300, 25]],
   ],
   Assist: [

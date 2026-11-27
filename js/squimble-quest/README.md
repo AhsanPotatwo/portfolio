@@ -12,7 +12,7 @@ Maps load with `fetch`, so serve the portfolio root, e.g. `py -m http.server 876
 
 - **Esc** pause menu (volumes, sound/screen/assist settings, key changes, saved in `sq-settings`)
 - **E / I** inventory, **Q** drop, **Shift** roll (with the quick charm), **F** full screen
-- **`** or **Ctrl + D** dev mode, then **H** dev menu, **M** next map, **T** teleport, **G** grid, **P** AI routes, **[ ]** shaders
+- **`** or **Ctrl + D** dev mode, then **H** dev menu, **M** next map, **T** teleport, **G** grid, **P** AI routes, **[ ]** shaders, **J** lighting on and off (**Shift + J** just the light)
 - **B** map editor
 
 Dev mode and the editor come from `PLAYER_ROLE` in config.js (`developer` gets both). **Set it to `'player'` before shipping.**
@@ -40,7 +40,7 @@ Everything that isn't behaviour is a JSON file in `assets/squimble-quest/<kind>/
 | Inventory, chests | `inventory.js`, `storageeditor.js`, `interact.js` |
 | Art and looks | `art.js`, `looks.js` |
 | Sound | `sound.js`, `soundblocks.js`, `soundeditor.js` |
-| Effects | `particles.js`, `atmosphere.js`, `shaders.js` |
+| Effects | `particles.js`, `atmosphere.js`, `lighting.js` (experimental), `shaders.js` |
 | UI | `ui.js`, `button.js`, `textfield.js`, `formbox.js`, `hud.js`, `pausemenu.js`, `access.js` |
 | Editor | `editor.js`, `editormenu.js`, `edittools.js`, `edithistory.js`, `mapcheck.js` |
 | Dev mode | `debug.js` |

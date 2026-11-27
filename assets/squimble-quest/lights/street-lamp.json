@@ -1,0 +1,9 @@
+{
+  "colour": "#ffcf8a",
+  "radius": 115,
+  "strength": 0.8,
+  "height": 70,
+  "glow": 0.7,
+  "glowSize": 14,
+  "night": true
+}
