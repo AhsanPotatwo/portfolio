@@ -759,7 +759,7 @@ const AtmosphereEditor = {
       label: 'Main',
       rows: [
         { label: 'Atmosphere', field: usePicker, tip: `Which one ${what} uses. Picking another starts on that one` },
-        { label: 'Save as', field: nameField, tip: `Saving under a new name makes a copy. Left empty, ${what} has no atmosphere` },
+        { label: 'Save as', field: nameField, tip: `Saving under a new name makes a copy. Left empty, ${what} has no atmosphere, unless you've changed something: then it's saved under a new name` },
       ],
     }];
     for (const line of ATMOSPHERE_SETTINGS) {
@@ -799,7 +799,14 @@ const AtmosphereEditor = {
       onCancel: () => { Atmosphere.preview = null; },
       onConfirm: () => {
         Atmosphere.preview = null;
-        const saved = cleanMapName(nameField.value); // mapfile.js
+        let saved = cleanMapName(nameField.value); // mapfile.js
+        // changed with no name to save it under (a map with none yet): it gets a new one after the
+        // map, rather than the changes being thrown away
+        if (!saved && ATMOSPHERE_SETTINGS.some(({ key }) => draft[key] !== ATMOSPHERE_DEFAULTS[key])) {
+          const base = cleanMapName(forMap ? worldMap.name : `${worldMap.name} area`) || 'atmosphere';
+          saved = base;
+          for (let i = 2; ATMOSPHERES[saved]; i++) saved = `${base}-${i}`;
+        }
         if (saved) ATMOSPHERES[saved] = { ...draft, name: saved };
         target.atmosphere = saved;
         if (exporting) DataFiles.export(['atmosphere']);
@@ -994,7 +1001,9 @@ function atmosphereRowField(line, value) {
   if (line.particles) return particleMultiPicker(value);
   if (line.options) {
     const say = (key) => line.options[key].say ?? line.options[key];
-    return new Picker({ w: 180, choices: Object.keys(line.options), value, label: say });
+    // number options (Light pixel) stay numbers, or 2 never matches '2' and it starts on the first
+    const choices = Object.keys(line.options).map((key) => (typeof line.normal === 'number' ? Number(key) : key));
+    return new Picker({ w: 180, choices, value, label: say });
   }
   return particleField(line, value);
 }
