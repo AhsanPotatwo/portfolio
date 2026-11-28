@@ -156,10 +156,10 @@ html:has(.mm-page){
 }
 
 /* ---------- intro ---------- */
-.mm-intro{ padding:clamp(36px,4.5vw,64px) 0 clamp(26px,3vw,36px); }
+.mm-intro{ padding:clamp(48px,6vw,84px) 0 clamp(30px,3.5vw,44px); }
 .mm-title{
   margin:0;
-  font:1000 clamp(42px,6.4vw,88px)/.95 var(--mm-ui);
+  font:1000 clamp(44px,7.4vw,100px)/.95 var(--mm-ui);
   font-variation-settings:"CASL" 1;
   letter-spacing:-.025em;
   color:var(--mm-on-sky);
@@ -168,7 +168,7 @@ html:has(.mm-page){
 }
 .mm-lede{
   max-width:62ch;
-  margin:20px 0 0;
+  margin:26px 0 0;
   font-size:clamp(16px,1.3vw,18.5px);
   line-height:1.6;
   color:var(--mm-on-sky-soft);
@@ -262,11 +262,27 @@ html:has(.mm-page){
   overflow:clip;
 }
 
-/* top bar: the song's name sticker, then undo, redo, dark mode, download and save */
+/* a first visit's three steps, on a card in the mood's tint */
+.mm-welcome{
+  display:flex; flex-wrap:wrap; align-items:center;
+  gap:12px 24px;
+  margin:4px 22px 0;
+  padding:14px 18px;
+  background:var(--mm-tint);
+  border:2px solid var(--mm-edge-mood);
+  border-radius:16px;
+}
+.mm-welcome-steps{ flex:1 1 420px; display:grid; list-style:decimal; gap:5px; margin:0; padding:0 0 0 1.5em; font-size:15px; line-height:1.45; }
+.mm-welcome-steps li::marker{ font-weight:1000; }
+.mm-welcome-steps b{ font-weight:850; }
+.mm-welcome-keys{ display:flex; align-items:center; gap:14px; }
+.mm-welcome-tour{ font:750 14px var(--mm-ui); color:var(--mm-ink); text-underline-offset:3px; }
+
+/* top bar: the song's name sticker, new song, undo, save */
 .mm-bar{
   display:flex; flex-wrap:wrap; align-items:center;
   gap:14px 14px;
-  padding:24px 28px 10px;
+  padding:20px 22px 18px;
 }
 /* the name card: the mood's colour, stuck on slightly askew, on top of a deck of two more. a new song
    is dealt off the top (deal() in maker.js); pointed at, the deck fans out a little */
@@ -333,23 +349,15 @@ html:has(.mm-page){
 }
 .mm-label-composer select:focus-visible{ outline:2px solid currentColor; outline-offset:2px; }
 .mm-label-composer option{ color:var(--mm-ink); background:var(--mm-butter-hi); }
-.mm-bar-actions{ display:flex; align-items:center; gap:6px; margin-left:auto; }
-/* (undo, redo and dark mode as icons, a little apart from the two that keep the song) */
-.mm-key-icon{ width:40px; padding:0; }
-.mm-key-icon svg{ width:16px; height:16px; }
-.mm-bar-gap{ width:10px; }
-.mm-page a.mm-key{ text-decoration:none; }
+.mm-bar-actions{ display:flex; gap:8px; margin-left:auto; }
 
-/* transport: a big play key, a new song, and where the song's got to */
+/* transport: a big play key, the switches, and where the song's got to */
 .mm-transport{
   display:flex; flex-wrap:wrap; align-items:center;
   gap:12px 10px;
-  padding:22px 28px 0;
+  padding:20px 22px 0;
 }
-/* the switches under the score: small, as they're for now and then */
-.mm-switches{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:10px 24px; padding:14px 28px 0; }
-.mm-toggles{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 6px; }
-.mm-switch-label{ margin-right:4px; font:750 13px var(--mm-ui); font-variation-settings:"CASL" 1; color:var(--mm-ink-soft); }
+.mm-toggles{ display:flex; flex-wrap:wrap; gap:10px 8px; }
 .mm-key-play{
   min-width:150px;
   min-height:54px;
@@ -386,47 +394,18 @@ html:has(.mm-page){
 /* the score: a paper screen in an ink frame */
 .mm-score-wrap{
   position:relative;
-  margin:16px 28px 0;
+  margin:16px 22px 0;
   background:var(--mm-paper);
   border:3px solid var(--mm-edge-score);
   border-radius:16px;
 }
 .mm-score-wrap canvas{ display:block; width:100%; height:120px; border-radius:13px; cursor:pointer; touch-action:manipulation; }
-/* the steps under the score, from the broadest choice to every note: each a numbered heading with a
-   line saying what it's for, and plenty of room round it so the eye finds one at a time. the numbers
-   are counted here, so a step that's hidden (remix, on your own track) isn't */
-.mm-path{
-  counter-reset:step;
-  display:grid; gap:clamp(44px,5vw,64px);
-  margin-top:36px;
-  padding:clamp(40px,4.5vw,56px) 28px clamp(36px,4vw,52px);
-  border-top:2px solid var(--mm-line);
-}
-.mm-step{ counter-increment:step; min-width:0; }
-.mm-step-pair{ display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr)); gap:clamp(44px,5vw,64px) 56px; align-items:start; }
-.mm-step-head{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px; margin-bottom:18px; }
-.mm-step-title{
-  display:flex; align-items:center; gap:12px;
-  margin:0;
-  font:1000 22px/1.1 var(--mm-ui);
-  font-variation-settings:"CASL" 1;
-  letter-spacing:-.01em;
-  color:var(--mm-ink);
-}
-.mm-step-title::before{
-  content:counter(step);
-  display:grid; place-items:center;
-  width:32px; height:32px; flex:none;
-  font:1000 16px/1 var(--mm-ui);
-  color:var(--mm-mood-ink);
-  background:var(--mm-mood);
-  border:2px solid var(--mm-edge-mood);
-  border-radius:50%;
-}
-.mm-step-hint{ margin:0; font-size:15px; line-height:1.45; color:var(--mm-ink-soft); }
-.mm-style{ display:flex; flex-wrap:wrap; gap:9px 7px; }
+/* moods, style and modifiers: what kind of song, under the score */
+.mm-moods-wrap{ margin-top:24px; padding:22px 22px 6px; border-top:2px solid var(--mm-line); }
+.mm-style{ display:flex; flex-wrap:wrap; gap:7px 6px; }
 /* the rows of moods as keys, one row's moods shown at a time */
-.mm-mood-groups{ display:flex; flex-wrap:wrap; gap:6px 5px; margin-bottom:16px; }
+.mm-mood-bar{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin-bottom:14px; }
+.mm-mood-groups{ display:flex; flex-wrap:wrap; gap:6px 5px; }
 .mm-group[aria-pressed="true"], .mm-group[aria-pressed="true"]:hover{ background:var(--mm-solid); color:var(--mm-butter); }
 /* each mood a swatch of its own colour, full strength on the song's mood */
 .mm-moods{ display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:10px 8px; }
@@ -459,10 +438,11 @@ html:has(.mm-page){
 }
 /* the song's mood, what it's for, and its flavours: a card in the mood's tint under the moods */
 .mm-flavours{
-  display:grid; gap:12px;
-  margin-top:22px;
-  padding:18px 20px;
+  display:grid; gap:10px;
+  margin-top:16px;
+  padding:14px 18px 15px;
   background:var(--mm-tint);
+  border:2px solid var(--mm-edge-mood);
   border-radius:16px;
 }
 .mm-about{ margin:0; max-width:86ch; font-size:15px; line-height:1.5; color:var(--mm-ink); }
@@ -471,74 +451,48 @@ html:has(.mm-page){
 .mm-kinds-row .mm-mods-label{ min-width:72px; }
 .mm-kinds{ display:flex; flex-wrap:wrap; gap:6px 5px; }
 .mm-kind-tip{ margin:0; max-width:86ch; font-size:14px; line-height:1.45; color:var(--mm-ink-soft); }
-/* modifiers are words, so they're round like tags */
-.mm-mods{ display:flex; flex-wrap:wrap; gap:9px 6px; }
-.mm-mod{ border-radius:999px; }
+/* style and modifiers under the moods */
+.mm-mods-row{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin:16px 0 14px; }
+.mm-mods{ display:flex; flex-wrap:wrap; gap:6px 5px; }
+/* (a long row of keys wraps beside its name, not under it) */
+.mm-mods-row > .mm-strip, .mm-mood-bar > .mm-strip, .mm-remix > .mm-strip{ flex:1 1 0; min-width:0; }
 
-/* remix: actions, not settings, so outlined with a turn-again arrow, and nothing stays lit */
+/* remix */
+.mm-remix{
+  display:flex; flex-wrap:wrap; align-items:center;
+  gap:10px 12px;
+  padding:4px 22px 24px;
+}
 .mm-remix-keys{ display:flex; flex-wrap:wrap; gap:9px 6px; }
-.mm-reroll::before{
-  content:""; width:13px; height:13px; flex:none;
-  background:currentColor;
-  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M13 8a5 5 0 1 1-1.6-3.7' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M13.6 1.4v4.4H9.2z'/%3E%3C/svg%3E") center / contain no-repeat;
-          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M13 8a5 5 0 1 1-1.6-3.7' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M13.6 1.4v4.4H9.2z'/%3E%3C/svg%3E") center / contain no-repeat;
-  transition:rotate .5s var(--mm-spring);
-}
-@media (hover:hover){
-  .mm-reroll:hover::before{ rotate:120deg; }
-}
-/* (make it mine turns the song into yours for good, so it stands a little apart from the rest) */
-.mm-mine{ margin-left:14px; border-style:dashed; }
 
 /* your own track (song.own): no seed to type and nothing to remix, and a line saying what the moods do now */
 .mm-machine.is-own .mm-label-seed,
 .mm-machine.is-own .mm-remix{ display:none; }
-.mm-own-note{ margin:-4px 0 18px; max-width:78ch; font-size:14px; line-height:1.55; color:var(--mm-ink-soft); }
+.mm-own-note{ margin:-4px 0 16px; max-width:78ch; font-size:14px; line-height:1.55; color:var(--mm-ink-soft); }
 
 /* record: a red dot, and red all over while it's on */
 .mm-key-rec svg{ fill:#d0402a; }
 .mm-key-rec[aria-pressed="true"], .mm-key-rec[aria-pressed="true"]:hover{ color:#fff6d8; background:#c0391f; }
 .mm-key-rec[aria-pressed="true"] svg{ fill:currentColor; }
 
-/* the drawers: a card each with what's in it, so every setting has a place you can find from its name.
-   the open one takes the mood's colour, and its plus turns into a minus like the folds inside */
-.mm-tabs{ display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,196px),1fr)); gap:12px; }
+/* tabs: folder tabs that join the panel under them */
+.mm-tabs{ display:flex; gap:4px; padding:0 22px; }
 .mm-tab{
   position:relative;
-  display:grid; align-content:start; gap:5px;
-  padding:15px 46px 16px 17px;
-  text-align:left;
-  color:var(--mm-ink);
-  background:var(--mm-butter);
-  border:2px solid var(--mm-edge);
-  border-radius:16px;
-  box-shadow:0 3px 0 color-mix(in oklab, var(--mm-edge) var(--mm-lift), #000);
+  padding:11px 20px 10px;
+  font:850 16px var(--mm-ui);
+  font-variation-settings:"CASL" 1;
+  color:var(--mm-ink-soft);
+  background:transparent;
+  border:2px solid transparent;
+  border-bottom:0;
+  border-radius:14px 14px 0 0;
   cursor:pointer;
-  transition:transform .32s var(--mm-spring), box-shadow .32s var(--mm-spring), background-color .15s;
 }
-.mm-tab b{ font:1000 18px/1.15 var(--mm-ui); font-variation-settings:"CASL" 1; }
-.mm-tab span{ font-size:13.5px; line-height:1.4; color:var(--mm-ink-soft); }
-.mm-tab::after{
-  content:"+";
-  position:absolute; top:14px; right:14px;
-  display:grid; place-items:center;
-  width:22px; height:22px;
-  border:2px solid var(--mm-edge);
-  border-radius:50%;
-  font:800 14px/1 var(--mm-mono);
-  transition:rotate .45s var(--mm-spring);
-}
-.mm-tab:hover{ background:var(--mm-butter-hi); }
-@media (hover:hover){
-  .mm-tab:hover{ transform:translateY(-1px); box-shadow:0 4px 0 color-mix(in oklab, var(--mm-edge) var(--mm-lift), #000); }
-}
-.mm-tab:active{ transform:translateY(3px); box-shadow:0 0 0 var(--mm-edge); transition-duration:.05s; }
-.mm-tab[aria-expanded="true"],
-.mm-tab[aria-expanded="true"]:hover{ --mm-edge:var(--mm-edge-mood); color:var(--mm-mood-ink); background:var(--mm-mood); }
-.mm-tab[aria-expanded="true"] span{ color:inherit; opacity:.8; }
-.mm-tab[aria-expanded="true"]::after{ content:"\2212"; rotate:180deg; border-color:currentColor; }
-.mm-tab:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:3px; }
-.mm-panel{ padding:28px 28px 12px; background:var(--mm-well); border-top:2px solid var(--mm-edge); min-height:320px; container-type:inline-size; }
+.mm-tab:hover{ color:var(--mm-ink); background:var(--mm-dent); }
+.mm-tab[aria-selected="true"]{ z-index:1; margin-bottom:-2px; padding-bottom:12px; color:var(--mm-ink); background:var(--mm-well); border-color:var(--mm-edge); }
+.mm-tab:focus-visible{ outline:3px solid var(--mm-focus); outline-offset:-5px; }
+.mm-panel{ padding:24px 22px 12px; background:var(--mm-well); border-top:2px solid var(--mm-edge); min-height:320px; container-type:inline-size; }
 
 /* the tip line along the bottom, stuck to the window's bottom edge while the machine's in view, with
    a play key of its own once the real one's scrolled away */
@@ -1080,11 +1034,13 @@ html:has(.mm-page){
   .mm-intro{ padding:32px 0 24px; }
   .mm-lede{ margin-top:18px; }
   .mm-machine{ margin-inline:calc(-1 * var(--gutter)); border-width:3px 0; border-radius:0; }
-  .mm-bar, .mm-transport, .mm-switches, .mm-path{ padding-left:14px; padding-right:14px; }
+  .mm-bar, .mm-moods-wrap, .mm-transport, .mm-remix{ padding-left:14px; padding-right:14px; }
   .mm-bar{ padding-top:16px; }
   /* (the card's shadow and the tilted cards under it eat most of the row gap, so more room below) */
   .mm-deck{ max-width:none; margin-bottom:10px; }
   .mm-label-name input{ font-size:23px; }
+  .mm-welcome{ margin:4px 14px 0; padding:12px 14px; }
+  .mm-welcome-steps{ flex-basis:100%; font-size:14px; }
   /* long rows of keys become one line to swipe along, running off the screen's edge so it's plain
      there's more */
   .mm-strip{
@@ -1097,41 +1053,44 @@ html:has(.mm-page){
   }
   .mm-strip::-webkit-scrollbar{ display:none; }
   .mm-strip > *{ flex:none; }
+  .mm-mods-row > .mm-strip, .mm-mood-bar > .mm-strip{ flex-basis:calc(100% + 28px); }
   /* (inside the flavour card: no running off the edge) */
   .mm-kinds.mm-strip{ margin-inline:0; padding-inline:0; flex:1 1 100%; }
+  .mm-mods-row, .mm-mood-bar{ gap:6px 12px; }
   .mm-moods{ grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:9px 6px; }
   /* (the longest names, Underwater and Mysterious, only just fit three to a row) */
   .mm-mood{ min-height:40px; padding:0 7px; gap:6px; font-size:14px; }
   .mm-mood::before{ width:11px; height:11px; }
-  .mm-flavours{ padding:14px; }
-  .mm-path{ margin-top:28px; }
-  .mm-step-title{ font-size:20px; }
-  .mm-step-hint{ font-size:14px; }
-  /* play across the top, a new song and a blank track side by side under it */
+  .mm-flavours{ padding:12px 14px; }
+  /* play across the top, the four switches in a row under it */
   .mm-key-play{ flex:1 1 100%; min-height:54px; font-size:19px; }
-  .mm-transport > #mmNew, .mm-transport > #mmBlank{ flex:1 1 0; }
-  /* (a phone's browser rarely hears a midi keyboard) */
+  .mm-toggles{ flex:1 1 100%; flex-wrap:nowrap; gap:6px; }
+  .mm-toggles .mm-key{ flex:1 1 0; min-width:0; padding:0 4px; gap:5px; font-size:12.5px; }
+  /* (four to a row only fit as words, so only record keeps its dot) */
+  .mm-toggles .mm-key svg{ display:none; }
+  .mm-toggles .mm-key-rec svg{ display:block; width:10px; height:10px; }
+  /* (a phone's browser rarely hears a midi keyboard, and a fifth switch doesn't fit) */
   #mmMidiIn{ display:none; }
   .mm-readout{ justify-content:flex-start; gap:2px 12px; font-size:12.5px; }
   .mm-score-wrap{ margin:14px 14px 0; border-radius:14px; }
   .mm-score-wrap canvas{ border-radius:11px; }
-  /* (two drawers to a row, and just their names and plus: the words under them don't fit) */
-  .mm-tabs{ grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
-  .mm-tab{ padding:13px 40px 13px 14px; }
-  .mm-tab::after{ top:12px; right:12px; }
-  .mm-tab span{ font-size:12.5px; }
+  .mm-remix{ gap:6px 14px; }
+  .mm-remix > .mm-strip{ flex-basis:calc(100% + 28px); }
+  .mm-tabs{ padding:0 10px; gap:2px; }
+  .mm-tab{ flex:1; padding:10px 4px; font-size:14.5px; }
+  .mm-tab[aria-selected="true"]{ padding-bottom:12px; }
   .mm-panel{ padding:20px 14px 10px; }
   .mm-dock{ padding:8px 14px; gap:10px; }
   .mm-tip{ font-size:13.5px; line-height:1.4; min-height:2.8em; }
   .mm-bar-actions{ margin-left:0; width:100%; }
-  .mm-bar-gap{ flex:1; }
+  .mm-bar-actions .mm-key{ flex:1; }
+  .mm-bar-actions .mm-key-dark{ flex:none; width:44px; }
   .mm-field, .mm-slider{ grid-template-columns:84px minmax(0,1fr); }
   .mm-slider{ grid-template-columns:84px minmax(0,1fr) 72px; }
   .mm-chips, .mm-chord-problem{ margin-left:0; }
   .mm-export-row{ grid-template-columns:minmax(0,1fr); }
   .mm-export-keys{ justify-content:flex-start; }
   .mm-shelf{ padding:18px; border-radius:18px; }
-}
 }
 
 /* ---------- motion: a toy's. keys spring, settings pop on, the song's card is dealt off its deck, a
@@ -1153,6 +1112,7 @@ html.mm-painting .mm-page, html.mm-painting .mm-page *{ transition:none !importa
 @media (prefers-reduced-motion: no-preference){
   @keyframes mm-pop{ 35%{ scale:.94; } }
   @keyframes mm-grow{ from{ scale:0; } }
+  @keyframes mm-hop{ from{ translate:0 6px; } }
 
   /* a setting turned on gives under the finger like a real key and comes back (only the keys that stay
      put: the tabs' keys are drawn again on every change) */
@@ -1163,7 +1123,7 @@ html.mm-painting .mm-page, html.mm-painting .mm-page *{ transition:none !importa
   .mm-group[aria-pressed="true"],
   .mm-toggles [aria-pressed="true"]{ animation:mm-pop .4s var(--mm-out); }
   .mm-mood[aria-pressed="true"]::before{ animation:mm-grow .5s var(--mm-spring); }
-  .mm-tab[aria-expanded="true"]{ animation:mm-pop .4s var(--mm-out); }
+  .mm-tab[aria-selected="true"]{ animation:mm-hop .4s var(--mm-spring); }
 
   /* folds slide open and shut, where the browser can size to fit */
   @supports selector(::details-content){
