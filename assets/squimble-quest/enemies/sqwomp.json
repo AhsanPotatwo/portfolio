@@ -1,13 +1,13 @@
 {
-  "width": 20,
-  "height": 18,
-  "feetWidth": 16,
-  "feetHeight": 8,
+  "width": 40,
+  "height": 36,
+  "feetWidth": 32,
+  "feetHeight": 16,
   "speed": 125,
   "maxHealth": 20,
   "weapon": {
     "damage": 3,
-    "reach": 26,
+    "reach": 36,
     "arc": 70,
     "swingTime": 0.15,
     "cooldown": 0.8,
@@ -24,5 +24,5 @@
   "image": "assets/squimble-quest/enemies/sqwomp.png",
   "walkImage": { "image": "assets/squimble-quest/enemies/sqwomp-walk.png", "frames": 4, "fps": 8 },
   "ai": "smart",
-  "attackRange": 26
+  "attackRange": 36
 }
