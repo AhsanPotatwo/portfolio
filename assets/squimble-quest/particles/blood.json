@@ -8,5 +8,6 @@
   "colour2": "#7a0910",
   "size": 5,
   "lifetime": 4,
-  "fadeTime": 1.5
+  "fadeTime": 1.5,
+  "inLiquid": "dissolves"
 }

@@ -250,6 +250,7 @@ function loadMap(name, warpName = '') {
   if (!sameMap) {
     Particles.clear();
     Wakes.clear(); // wakes.js
+    Surface.clear(); // surface.js
     DamageNumbers.clear(); // weapons.js
     Remains.clear(); // character.js
     arrows = [];

@@ -96,6 +96,8 @@ const PARTICLE_SETTINGS = [
   { tab: 'Life', key: 'shadow', label: 'Shadow', normal: true, tick: 'on the floor while flying', tip: 'A little shadow under each one while it is in the air' },
   // drawFloor() clips them to the map's liquid tiles. the editor's preview has no map, so shows them all
   { tab: 'Life', key: 'onLiquid', label: 'Liquid only', normal: false, tick: 'only shows over liquids', tip: 'On the floor, it only shows over liquids (tiles that you sink into), so ripples stop at the shore' },
+  // ParticleSystem.fallIn(), and what shows on the surface is Surface.splash() (surface.js)
+  { tab: 'Life', key: 'inLiquid', label: 'In liquids', normal: 'sinks', choices: () => Object.keys(PARTICLE_IN_LIQUID), say: (way) => PARTICLE_IN_LIQUID[way], tip: 'Landing in a liquid (tiles you sink into) they make a little ring and go under, spread through it as a cloud of their colour (blood), or float on top (leaves)' },
 
   // other effects, by name ('' for none). they come out of each particle's spot and height
   { tab: 'Chain', key: 'trail', label: 'Trail', normal: '', choices: particleEffectChoices, say: sayParticleEffect, art: (name, x, y, size) => drawParticleChoice(name, x, y, size), tip: 'Each one keeps bursting this behind it while it lasts, like sparks off a rocket' },
@@ -178,6 +180,13 @@ const PARTICLE_COLOUR_MODES = {
 
 // when a particle goes (and bursts its effect's then), and its words in the editor. it always goes
 // when it runs out, so these just make it go sooner
+// what they do landing in a liquid (ParticleSystem.fallIn())
+const PARTICLE_IN_LIQUID = {
+  sinks: 'sink out of sight',
+  dissolves: 'spread through it',
+  floats: 'float on top',
+};
+
 const PARTICLE_GOES_AT = {
   end: 'when it runs out',
   peak: 'at the top of its jump',
@@ -360,6 +369,23 @@ class ParticleSystem {
     this.order = [];
   }
 
+  // landing on the floor where it's a liquid (a tile with sink, tiles.js), or sliding onto one, it goes
+  // in rather than lying on top like it's solid: a ring where it went in (Surface.splash(), surface.js),
+  // then gone, or floating on, by its effect's inLiquid. true if it's gone. not ones that are meant to
+  // be on liquids (onLiquid, like ripples)
+  fallIn(p, map) {
+    if (!map || p.effect.onLiquid) return false;
+    const liquid = map.get(map.colAt(p.x), map.rowAt(p.y));
+    if (!liquid?.sink) return false;
+    Surface.splash(p, liquid);
+    if (p.effect.inLiquid === 'floats') {
+      p.vz = 0;
+      return false;
+    }
+    p.age = p.life;
+    return true;
+  }
+
   // moves them all on by dt seconds. map is a TileMap whose solid tiles they bounce off (if their
   // effect's hitsWalls), or null for no walls
   update(dt, map) {
@@ -392,6 +418,7 @@ class ParticleSystem {
           p.vz = -p.vz * e.bounce / 100;
           if (p.vz < PARTICLE_REST_SPEED) p.vz = 0;
           if (e.goesAt === 'lands') p.age = p.life;
+          if (this.fallIn(p, map)) continue;
         }
       }
       // pulled toward the middle of its burst (pushed away below 0), along the floor
@@ -428,6 +455,8 @@ class ParticleSystem {
       // giving tiles a height would fix it
       // a fast one goes in steps of at most a tile, so it can't skip over a thin wall
       const walls = e.hitsWalls && map && !map.isSolid(map.colAt(p.x), map.rowAt(p.y));
+      // sliding along the floor off the shore, it falls in (fallIn())
+      const dry = onFloor && map && !map.get(map.colAt(p.x), map.rowAt(p.y))?.sink;
       const bounce = -e.bounce / 100;
       const steps = walls ? Math.ceil(Math.max(Math.abs(moveX), Math.abs(moveY)) / TILE) : 1;
       for (let s = 0; s < steps; s++) {
@@ -442,6 +471,7 @@ class ParticleSystem {
           moveY = 0;
         } else p.y = y;
       }
+      if (dry) this.fallIn(p, map);
     }
     // the ones still going shuffle down the list in place, rather than filter() making a new list of
     // thousands every frame for the garbage collector to clear up (a stutter every so often)

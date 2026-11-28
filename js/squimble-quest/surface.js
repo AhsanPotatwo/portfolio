@@ -7,6 +7,9 @@
 //     back, a bit of shore at a time, so it never reads as an outline
 //   - glints: a short light dash here and there where a wavelet catches the light, gone in a moment
 //   - wakes (wakes.js) and ripples (floor particles with onLiquid and the ripple shape, particles.js)
+//   - splashes where particles land in it (ParticleSystem.fallIn(), particles.js): a little ring
+//     that opens and breaks up, and for ones that spread through it (blood) a cloud of their colour
+//     that grows and crumbles away. seen through the liquid, so none in ones you can't see into
 // nothing's see-through or smoothed: every pixel is one of a few flat colours mixed from the liquid's
 // two (palette()), and things fade by breaking up into dashes rather than going see-through. only for
 // show, like particles
@@ -25,6 +28,12 @@ const SURFACE = {
   // seconds between glints on each tile (each tile its own, somewhere between) and how long one shows
   glintEvery: [2.5, 7],
   glintFor: 0.8,
+  // seconds a splash's ring lasts, and a cloud, and how many picture px a cloud grows by. at most
+  // splashes showing at once (a big fight in a lake), the oldest go first
+  ringFor: 0.5,
+  cloudFor: 2.6,
+  cloudSpread: 3,
+  splashes: 300,
   // more liquid tiles on screen than this (zoomed right out) leaves the surface plain. a picture px is
   // under a screen px by then, and the layer would be big for nothing
   maxTiles: 8000,
@@ -38,6 +47,8 @@ const Surface = {
   canvas: null,
   pixels: null,
   palettes: new Map(),
+  // where particles landed in a liquid (splash())
+  splashes: [],
 
   // the surface of every liquid tile from firstCol, firstRow to lastCol, lastRow, in screen positions
   // (inside drawTiles()'s resetMatrix()). x(half) and y(half) are where half tile edges land on screen
@@ -78,6 +89,8 @@ const Surface = {
         SURFACE_SIDES.forEach((side, i) => land(col + side.dx, row + side.dy) && this.foam(col, row, side, i, now));
       }
     }
+    for (const s of this.splashes) if (s.cloud) this.cloud(s, now - s.born);
+    for (const s of this.splashes) this.ring(s, now - s.born);
     Wakes.draw({ left: col0 * TILE, right: (col1 + 1) * TILE, top: row0 * TILE, bottom: (row1 + 1) * TILE }, this); // wakes.js
     for (const p of Particles.list) if (onSurface(p)) this.ripple(p); // particles.js
 
@@ -89,6 +102,65 @@ const Surface = {
     const top = y(2 * row0);
     ctx.drawImage(this.canvas, left, top, x(2 * col1 + 2) - left, y(2 * row1 + 2) - top);
     ctx.imageSmoothingEnabled = smooth;
+  },
+
+  // particle p (particles.js) went into liquid (a tile kind) where it is. kept until it's faded, and
+  // drawn whenever its bit of liquid's on screen. forgotten on changing map (clear())
+  splash(p, liquid) {
+    const now = millis() / 1000;
+    this.splashes = this.splashes.filter((s) => now - s.born < (s.cloud ? SURFACE.cloudFor : SURFACE.ringFor));
+    if (this.splashes.length >= SURFACE.splashes) this.splashes.shift();
+    const e = p.effect;
+    const cloud = e.inLiquid === 'dissolves' && liquid.clarity > 0 && !e.glow && !p.img;
+    const s = { x: p.x, y: p.y, born: now, size: particleSize(p), cloud, seed: Math.floor(Math.random() * 1e6) }; // particles.js
+    if (cloud) {
+      // its colour seen through the liquid, stronger in the middle
+      const base = this.palette(liquid).base;
+      const rgb = particleRgb(p);
+      s.core = packColour(mixRgb(base, rgb, 0.5 + liquid.clarity * 0.6));
+      s.edge = packColour(mixRgb(base, rgb, 0.3 + liquid.clarity * 0.4));
+    }
+    this.splashes.push(s);
+  },
+
+  clear() {
+    this.splashes = [];
+  },
+
+  // a splash's ring, age seconds in: opening out from a px to about the particle's size, light at
+  // first, and breaking up as it goes
+  ring(s, age) {
+    const t = age / SURFACE.ringFor;
+    if (t >= 1) return;
+    const rx = 0.5 + t * (1.5 + s.size / ART_SCALE);
+    const ry = Math.max(0.5, rx * 0.5);
+    const cx = s.x / ART_SCALE;
+    const cy = s.y / ART_SCALE;
+    const n = Math.ceil(Math.PI * 2 * rx * 1.5);
+    for (let i = 0; i < n; i++) {
+      if (surfaceHash(Math.floor((i / n) * 8), s.seed, 4) < t) continue;
+      const angle = (i / n) * Math.PI * 2;
+      this.put(Math.round(cx + rx * Math.cos(angle)), Math.round(cy + ry * Math.sin(angle)), t < 0.4 ? 'light' : 'mid');
+    }
+  },
+
+  // a splash's cloud, age seconds in: a blob spreading out quickly then slowing, with a ragged edge.
+  // its strong middle thins away first, then it breaks up into short dashes like the rest of the
+  // surface (which ones go is fixed, so it never flickers)
+  cloud(s, age) {
+    const t = age / SURFACE.cloudFor;
+    if (t >= 1) return;
+    const rx = s.size / ART_SCALE / 2 + 0.5 + SURFACE.cloudSpread * (1 - (1 - t) ** 2);
+    const ry = rx * 0.75;
+    const cx = s.x / ART_SCALE;
+    const cy = s.y / ART_SCALE;
+    for (let ay = Math.floor(cy - ry); ay <= Math.ceil(cy + ry); ay++) {
+      for (let ax = Math.floor(cx - rx); ax <= Math.ceil(cx + rx); ax++) {
+        const d = ((ax - cx) / rx) ** 2 + ((ay - cy) / ry) ** 2 + (surfaceHash(ax, ay, s.seed) - 0.5) * 0.3;
+        if (d > 1 || surfaceHash(ay, Math.floor(ax / 3), s.seed) < t ** 0.8) continue;
+        this.put(ax, ay, d < 0.5 - t ? s.core : s.edge);
+      }
+    }
   },
 
   // an empty layer w x h picture px, kept from frame to frame while it's the same size

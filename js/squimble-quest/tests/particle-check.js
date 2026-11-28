@@ -1,7 +1,8 @@
 // checks the particle effects (particles.js): every file in particles/ loads with no unknown settings,
 // a ring spreads evenly, a ball goes up and down, a firework rocket goes at the top of its jump and
 // bursts its bang up there in its own colour, rain splashes where it lands, an effect that makes
-// itself stops at PARTICLE_CHAIN_DEPTH, colours turn to their end colour, and pull draws them in.
+// itself stops at PARTICLE_CHAIN_DEPTH, colours turn to their end colour, pull draws them in, and
+// landing in a liquid they go in (or float).
 // run it with node js/squimble-quest/tests/particle-check.js
 // no output means it all passed
 const assert = require('assert');
@@ -81,3 +82,29 @@ const spread = () => Math.max(...magic.list.map((p) => Math.hypot(p.x, p.y)));
 const before = spread();
 run(magic, 1.5);
 assert(spread() < before / 2, 'pulled in');
+
+// landing in a liquid they go in (fallIn()): a splash on the surface where they went in, then gone,
+// unless they float. sliding off the shore goes in too. ripples (onLiquid) stay. the map is water
+// right of x = 0 and sand left of it, with no walls
+const splashes = [];
+game.Surface = { splash: (p, liquid) => splashes.push({ x: p.x, liquid }) };
+game.TILE = 32;
+const water = { sink: 0.4 };
+const pond = { colAt: (x) => Math.floor(x / 32), rowAt: (y) => Math.floor(y / 32), get: (col) => (col >= 0 ? water : {}), isSolid: () => false };
+const landIn = (settings, x, vx = 0) => {
+  const system = new ParticleSystem();
+  system.burst(effect({ count: 1, speed: 0, ...settings }), x, 0);
+  system.list[0].vx = vx;
+  for (let t = 0; t < 1; t += 1 / 60) system.update(1 / 60, pond);
+  return system.list;
+};
+assert.strictEqual(landIn({ jumpHeight: 20, inLiquid: 'sinks' }, 50).length, 0, 'sinks out of sight');
+assert(splashes.length === 1 && splashes[0].liquid === water, 'with a splash where it went in');
+assert.strictEqual(landIn({ jumpHeight: 20, inLiquid: 'dissolves' }, 50).length, 0, 'spreading through it, it goes too');
+const floater = landIn({ jumpHeight: 20, inLiquid: 'floats', bounce: 50 }, 50);
+assert(floater.length === 1 && floater[0].z === 0 && floater[0].vz === 0, 'floats, lying still on top');
+assert.strictEqual(landIn({ jumpHeight: 20 }, -50).length, 1, 'on the sand it lies there as always');
+splashes.length = 0;
+assert.strictEqual(landIn({ jumpHeight: 0, floorFriction: 0 }, -10, 120).length, 0, 'sliding off the shore it falls in');
+assert(splashes.length === 1 && splashes[0].x >= 0, 'with its splash in the water');
+assert.strictEqual(landIn({ jumpHeight: 5, onLiquid: true }, 50).length, 1, 'ripples (onLiquid) stay on it');
