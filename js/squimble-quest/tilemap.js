@@ -505,8 +505,8 @@ class TileMap {
   //
   // dual grid tiles get skipped in the first pass and drawn afterwards on the half-offset grid
   // (drawDualCorner() in dualgrid.js). one with no dualTiles (no texture, or it hasn't loaded) is
-  // drawn in the first pass in its colour instead. liquids' surfaces (foam, wakes...) go between, so
-  // the ground's edge lies over them (surface.js)
+  // drawn in the first pass in its colour instead. liquids' surfaces (foam, wakes...) go between what
+  // shows under the pieces' edges and the pieces, so the ground's edge lies over them (surface.js)
   drawTiles(camera) {
     const view = camera.view();
     const firstCol = Math.max(this.left, this.colAt(view.left));
@@ -561,13 +561,15 @@ class TileMap {
       }
     }
 
-    Surface.draw(this, firstCol, lastCol, firstRow, lastRow, x, y); // surface.js
-
-    // every corner where four tiles meet, including along the far edges (dualgrid.js)
+    // every corner where four tiles meet, including along the far edges (dualgrid.js): what shows
+    // under their edges, then liquids' surfaces over that (so the water under a bank's ragged edge
+    // has its shade and foam too), then the pieces
     for (let row = firstRow; row <= lastRow + 1; row++) {
-      for (let col = firstCol; col <= lastCol + 1; col++) {
-        drawDualCorner(this, col, row, x, y);
-      }
+      for (let col = firstCol; col <= lastCol + 1; col++) drawDualCorner(this, col, row, x, y, null, 'under');
+    }
+    Surface.draw(this, firstCol, lastCol, firstRow, lastRow, x, y); // surface.js
+    for (let row = firstRow; row <= lastRow + 1; row++) {
+      for (let col = firstCol; col <= lastCol + 1; col++) drawDualCorner(this, col, row, x, y, null, 'pieces');
     }
     pop();
   }

@@ -8,8 +8,9 @@
 // that spot (z). it's drawn z px further up the screen than its spot, with a shadow on the spot, which
 // is what makes it look like it's flying up and falling back down. gravity pulls z down, the floor
 // bounces it, and walls (solid tiles) bounce it along the floor. landing in a liquid it sinks, spreads
-// through it or floats on it, bobbing and drifting and shoved aside by waders (the Liquids tab,
-// fallIn() and floatOn(), with what shows on the surface in surface.js).
+// through it or floats on it, bobbing and drifting and shoved aside by waders, and in a hot one (lava)
+// it can sizzle away or burn up, making steam or smoke (the Liquids and Floating tabs, fallIn() and
+// floatOn(), with what shows on the surface in surface.js).
 //
 // every effect is plain settings (one per PARTICLE_SETTINGS line), kept by name in PARTICLE_EFFECTS,
 // from a file each in assets/squimble-quest/particles/ (datafiles.js), like sounds. they're made in
@@ -102,16 +103,22 @@ const PARTICLE_SETTINGS = [
   { tab: 'Liquids', key: 'onLiquid', label: 'Liquid only', normal: false, tick: 'only shows over liquids', tip: 'On the floor, it only shows over liquids, so ripples stop at the shore. These never sink or float' },
   // ParticleSystem.fallIn() and floatOn(), and what shows on the surface is Surface.splash() and
   // Surface.floating() (surface.js)
-  { tab: 'Liquids', key: 'inLiquid', label: 'In liquids', normal: 'sinks', choices: () => Object.keys(PARTICLE_IN_LIQUID), say: (way) => PARTICLE_IN_LIQUID[way], tip: 'Landing in a liquid they go under with a little ring, spread through it as a cloud of their colour (blood), or float on it (leaves, confetti)' },
+  { tab: 'Liquids', key: 'inLiquid', label: 'In liquids', normal: 'sinks', choices: () => Object.keys(PARTICLE_IN_LIQUID), say: (way) => PARTICLE_IN_LIQUID[way], tip: 'Landing in a liquid they go under with a little ring, spread through it as a cloud of their colour (blood), or float on it (leaves, confetti). Floating is on the Floating tab' },
+  { tab: 'Liquids', key: 'liquidThen', label: 'Going in', normal: '', choices: particleEffectChoices, say: sayParticleEffect, art: (name, x, y, size) => drawParticleChoice(name, x, y, size), tip: 'Each one bursts this where it goes into a liquid, like bubbles' },
   { tab: 'Liquids', key: 'splashRing', label: 'Splash ring', normal: 100, min: 0, max: 300, step: 5, unit: '%', tip: 'How big the ring is where each one goes in, for its size. 0 for none' },
   { tab: 'Liquids', key: 'cloudSize', label: 'Cloud spreads', normal: 6, min: 0, max: 40, unit: 'px', tip: 'Spreading through it: how far each cloud spreads out. Opacity is how strongly its colour shows through' },
   { tab: 'Liquids', key: 'cloudTime', label: 'Cloud lasts', normal: 2.6, min: 0.2, max: 10, step: 0.1, unit: 's', tip: 'Spreading through it: how long each cloud takes to thin away' },
-  { tab: 'Liquids', key: 'floatDepth', label: 'Sits in', normal: 30, min: 0, max: 90, step: 5, unit: '%', tip: "Floating: how much of each one is under the surface, so it takes on the liquid's colour" },
-  { tab: 'Liquids', key: 'floatBob', label: 'Bob', normal: 1, min: 0, max: 8, step: 0.5, unit: 'px', tip: 'Floating: how far they bob up and down. Bigger ones bob slower' },
-  { tab: 'Liquids', key: 'floatRock', label: 'Rock', normal: 12, min: 0, max: 90, step: 1, unit: '°', tip: 'Floating: how far they tip one way and back as they bob' },
-  { tab: 'Liquids', key: 'floatDrift', label: 'Drift', normal: 3, min: 0, max: 60, unit: 'px/s', tip: 'Floating: how fast they wander about on the surface' },
-  { tab: 'Liquids', key: 'floatPush', label: 'Pushed', normal: 100, min: 0, max: 300, step: 5, unit: '%', tip: 'Floating: how much people wading through shove them aside and set them bobbing' },
-  { tab: 'Liquids', key: 'floatSoak', label: 'Sinks after', normal: 0, min: 0, max: 60, step: 0.5, unit: 's', tip: 'Floating: they soak up the liquid, darken and sink after this long. 0 floats until they fade' },
+  // hot liquids are tiles with hot ticked (lava, tiles.js)
+  { tab: 'Liquids', key: 'inHot', label: 'In hot liquids', normal: 'same', choices: () => Object.keys(PARTICLE_IN_HOT), say: (way) => PARTICLE_IN_HOT[way], tip: 'Landing in a hot liquid (lava): the same as any other, sizzle away at once (water, blood), or burn up on top, glowing then charring as they shrink (leaves, confetti)' },
+  { tab: 'Liquids', key: 'hotThen', label: 'Going in hot', normal: '', choices: particleEffectChoices, say: sayParticleEffect, art: (name, x, y, size) => drawParticleChoice(name, x, y, size), tip: 'Each one bursts this going into a hot liquid, like steam. Burning, it keeps making it until it has burnt up, like smoke' },
+  { tab: 'Liquids', key: 'burnTime', label: 'Burns for', normal: 1, min: 0.1, max: 10, step: 0.1, unit: 's', tip: 'Burning up: how long each one takes' },
+
+  { tab: 'Floating', key: 'floatDepth', label: 'Sits in', normal: 30, min: 0, max: 90, step: 5, unit: '%', tip: "Floating: how much of each one is under the surface, so it takes on the liquid's colour" },
+  { tab: 'Floating', key: 'floatBob', label: 'Bob', normal: 1, min: 0, max: 8, step: 0.5, unit: 'px', tip: 'Floating: how far they bob up and down. Bigger ones bob slower' },
+  { tab: 'Floating', key: 'floatRock', label: 'Rock', normal: 12, min: 0, max: 90, step: 1, unit: '°', tip: 'Floating: how far they tip one way and back as they bob' },
+  { tab: 'Floating', key: 'floatDrift', label: 'Drift', normal: 3, min: 0, max: 60, unit: 'px/s', tip: 'Floating: how fast they wander about on the surface' },
+  { tab: 'Floating', key: 'floatPush', label: 'Pushed', normal: 100, min: 0, max: 300, step: 5, unit: '%', tip: 'Floating: how much people wading through shove them aside and set them bobbing' },
+  { tab: 'Floating', key: 'floatSoak', label: 'Sinks after', normal: 0, min: 0, max: 60, step: 0.5, unit: 's', tip: 'Floating: they soak up the liquid, darken and sink after this long. 0 floats until they fade' },
 
   // other effects, by name ('' for none). they come out of each particle's spot and height
   { tab: 'Chain', key: 'trail', label: 'Trail', normal: '', choices: particleEffectChoices, say: sayParticleEffect, art: (name, x, y, size) => drawParticleChoice(name, x, y, size), tip: 'Each one keeps bursting this behind it while it lasts, like sparks off a rocket' },
@@ -154,6 +161,9 @@ const PARTICLE_SHAPES = {
   plus: { say: 'pluses', path: particlePath([[-0.35, -1], [0.35, -1], [0.35, -0.35], [1, -0.35], [1, 0.35], [0.35, 0.35], [0.35, 1], [-0.35, 1], [-0.35, 0.35], [-1, 0.35], [-1, -0.35], [-0.35, -0.35]]) },
   // a thin line, turned to point the way it's flying (update()) instead of spinning
   streak: { say: 'streaks', path: particlePath([[-1, -0.3], [1, -0.3], [1, 0.3], [-1, 0.3]]), along: true },
+  // drawn a picture px at a time instead of a path (fillWisp()): a puff with a curling tail, for
+  // steam and smoke
+  wisp: { say: 'pixel wisps', pixel: true },
   picture: { say: 'the whole picture' },
   bits: { say: 'bits of the picture' },
 };
@@ -201,6 +211,13 @@ const PARTICLE_IN_LIQUID = {
   floats: 'float on it',
 };
 
+// what they do landing in a hot liquid (ParticleSystem.fallIn())
+const PARTICLE_IN_HOT = {
+  same: 'the same as in liquids',
+  sizzles: 'sizzle away',
+  burns: 'burn up',
+};
+
 // how floating ones move (ParticleSystem.floatOn()). the effect's own settings (floatBob and the rest)
 // say how much; these are the same for all
 const PARTICLE_FLOAT = {
@@ -220,6 +237,10 @@ const PARTICLE_FLOAT = {
   bobSpeed: 2.6,
   // the last seconds of soaking (floatSoak) they darken over, before going under
   soaking: 1,
+  // burning up (inHot), its Going in hot bursts a second, and what it chars to after glowing the hot
+  // liquid's surfaceColour
+  burnRate: 5,
+  char: [40, 32, 30],
 };
 
 const PARTICLE_GOES_AT = {
@@ -405,17 +426,30 @@ class ParticleSystem {
   }
 
   // landing on the floor where it's a liquid (a tile with sink, tiles.js), or sliding onto one, it goes
-  // in rather than lying on top like it's solid: a ring where it went in (Surface.splash(), surface.js),
-  // then gone, or floating on, by its effect's inLiquid. true if it's gone. not ones that are meant to
-  // be on liquids (onLiquid, like ripples)
-  fallIn(p, map) {
-    if (!map || p.effect.onLiquid) return false;
+  // in rather than lying on top like it's solid, by its effect's inLiquid, or inHot in a hot liquid:
+  // a ring where it went in (Surface.splash(), surface.js), then gone (sinking, spreading through it
+  // or sizzling away), or floating on it, or burning up on it. the liquid's landParticles and the
+  // effect's liquidThen (hotThen in a hot one) burst there, through chain like update()'s. true if
+  // it's gone. not ones that are meant to be on liquids (onLiquid, like ripples)
+  fallIn(p, map, chain = []) {
+    const e = p.effect;
+    if (!map || e.onLiquid) return false;
     const liquid = map.get(map.colAt(p.x), map.rowAt(p.y));
     if (!liquid?.sink) return false;
-    Surface.splash(p, liquid);
-    if (p.effect.inLiquid !== 'floats') {
+    const hot = liquid.hot && e.inHot !== 'same';
+    const way = hot ? e.inHot : e.inLiquid;
+    for (const name of liquid.landParticles ?? []) chain.push([name, p]);
+    const then = hot ? e.hotThen : e.liquidThen;
+    if (then) chain.push([then, p]);
+    Surface.splash(p, liquid, way);
+    if (way !== 'floats' && way !== 'burns') {
       p.age = p.life;
       return true;
+    }
+    // burning, it glows the liquid's surface colour, then chars (drawOne())
+    if (way === 'burns') {
+      p.burning = 0;
+      p.hotRgb = hexToRgb(liquid.surfaceColour);
     }
     // lying flat on the surface, keeping some of how it came in. floatOn() moves it from now on
     p.floating = liquid;
@@ -436,12 +470,21 @@ class ParticleSystem {
   // a floating one (fallIn()): it wanders about (floatDrift), slowed by the liquid, bobs (floatBob)
   // and rocks (floatRock), each at its own pace, and gets shoved aside by waders (floatPush), which
   // sets it bobbing harder for a bit. it stays on the liquid, bouncing gently off the shore, and
-  // soaking (floatSoak) it darkens and goes under
-  floatOn(p, dt, map, waders) {
+  // soaking (floatSoak) it darkens and goes under. burning (inHot) it shrinks away over burnTime,
+  // making its hotThen as it goes (into chain, like update()'s)
+  floatOn(p, dt, map, waders, chain = []) {
     const e = p.effect;
     const F = PARTICLE_FLOAT;
     p.floatAge += dt;
-    if (e.floatSoak > 0 && p.floatAge >= e.floatSoak) {
+    if (p.burning !== undefined) {
+      p.burning += dt;
+      p.shrink = Math.max(0, 1 - (p.burning / e.burnTime) ** 2);
+      if (e.hotThen) for (let i = burstsIn(F.burnRate, dt); i > 0; i--) chain.push([e.hotThen, p]);
+      if (p.burning >= e.burnTime) {
+        p.age = p.life;
+        return;
+      }
+    } else if (e.floatSoak > 0 && p.floatAge >= e.floatSoak) {
       Surface.splash(p, p.floating); // surface.js
       p.age = p.life;
       return;
@@ -508,7 +551,7 @@ class ParticleSystem {
       p.age += dt;
       if (e.trail) for (let i = burstsIn(e.trailRate, dt); i > 0; i--) chain.push([e.trail, p]);
       if (p.floating) {
-        this.floatOn(p, dt, map, waders);
+        this.floatOn(p, dt, map, waders, chain);
         continue;
       }
       // lying on the floor (or sliding along it). floaty ones never are
@@ -533,7 +576,7 @@ class ParticleSystem {
           p.vz = -p.vz * e.bounce / 100;
           if (p.vz < PARTICLE_REST_SPEED) p.vz = 0;
           if (e.goesAt === 'lands') p.age = p.life;
-          if (this.fallIn(p, map)) continue;
+          if (this.fallIn(p, map, chain)) continue;
         }
       }
       // pulled toward the middle of its burst (pushed away below 0), along the floor
@@ -586,7 +629,7 @@ class ParticleSystem {
           moveY = 0;
         } else p.y = y;
       }
-      if (dry) this.fallIn(p, map);
+      if (dry) this.fallIn(p, map, chain);
     }
     // the ones still going shuffle down the list in place, rather than filter() making a new list of
     // thousands every frame for the garbage collector to clear up (a stutter every so often)
@@ -790,13 +833,22 @@ class ParticleSystem {
       g += (p.end[1] - g) * turn;
       b += (p.end[2] - b) * turn;
     }
-    // floating, the part under shows the liquid's colour (ParticleSystem.soaked())
-    if (p.floating) {
+    // burning, it glows the hot liquid's surface colour, then chars
+    if (p.burning !== undefined) {
+      const t = Math.min(1, p.burning / e.burnTime);
+      const [to, k] = t < 0.5 ? [p.hotRgb, t * 2] : [PARTICLE_FLOAT.char, (t - 0.5) * 2];
+      const from = t < 0.5 ? [r, g, b] : p.hotRgb;
+      r = from[0] + (to[0] - from[0]) * k;
+      g = from[1] + (to[1] - from[1]) * k;
+      b = from[2] + (to[2] - from[2]) * k;
+    } else if (p.floating) {
+      // floating, the part under shows the liquid's colour (ParticleSystem.soaked())
       const k = this.soaked(p);
       r += (p.floatRgb[0] - r) * k;
       g += (p.floatRgb[1] - g) * k;
       b += (p.floatRgb[2] - b) * k;
     }
+    p.drawRgb = [r, g, b];
     const key = (e.glow ? PARTICLE_GLOWS : 0) | ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
     let bucket = this.buckets.get(key);
     if (!bucket) this.buckets.set(key, bucket = []);
@@ -804,9 +856,9 @@ class ParticleSystem {
   }
 }
 
-// how big a particle is now, growing or shrinking towards endSize
+// how big a particle is now, growing or shrinking towards endSize, and burning away (shrink, floatOn())
 function particleSize(p) {
-  return p.size * (1 + (p.effect.endSize / 100 - 1) * (p.age / p.life));
+  return p.size * (1 + (p.effect.endSize / 100 - 1) * (p.age / p.life)) * (p.shrink ?? 1);
 }
 
 // how see-through it is now: its opacity, fading in over the first fadeIn seconds and out over the
@@ -837,6 +889,10 @@ function particleColourText(key) {
 function fillParticle(batch, p) {
   const e = p.effect;
   const { ctx } = batch;
+  if (PARTICLE_SHAPES[e.shape].pixel) {
+    fillWisp(batch, p);
+    return;
+  }
   // a picture that hasn't loaded (or failed to) is a square
   const shape = PARTICLE_SHAPES[e.shape].path ? e.shape : 'square';
   // stretched long, and squashed flat as it tumbles over (flip)
@@ -1042,13 +1098,137 @@ function fillParticleShape(shape, x, y, size, rgb) {
   ctx.translate(x, y);
   ctx.scale(size / 2, size / 2);
   ctx.fillStyle = `rgb(${rgb.join(', ')})`;
-  ctx.fill(PARTICLE_SHAPES[shape].path ?? PARTICLE_SHAPES.square.path, 'evenodd');
+  if (PARTICLE_SHAPES[shape].pixel) {
+    // a wisp, at a sixth of its size a px
+    const px = 1 / 3;
+    const tones = [1, WISP.body, WISP.shade].map((k) => `rgb(${rgb.map((v) => Math.round(v * k)).join(', ')})`);
+    wispRuns(2, 2.3, 0, 7, 0, (dx, dy, length, tone) => {
+      ctx.fillStyle = tones[tone];
+      ctx.fillRect((dx - 0.5) * px, (dy - 0.5) * px, length * px, px);
+    });
+  } else ctx.fill(PARTICLE_SHAPES[shape].path ?? PARTICLE_SHAPES.square.path, 'evenodd');
   ctx.restore();
 }
 
 // a shape's little picture in the particle editor's Shape picker (size px square at x, y)
 function drawShapeChoice(shape, x, y, size) {
-  if (PARTICLE_SHAPES[shape].path) fillParticleShape(shape, x + size / 2, y + size / 2, size * 0.7, [255, 255, 255]);
+  if (PARTICLE_SHAPES[shape].path || PARTICLE_SHAPES[shape].pixel) fillParticleShape(shape, x + size / 2, y + size / 2, size * 0.7, [255, 255, 255]);
+}
+
+// ---------- pixel wisps ----------
+// the wisp shape (PARTICLE_SHAPES): steam and smoke the way the art would draw it, a picture px at a
+// time on the art's grid. each puff is a lumpy cloud of a few round lobes (its own, from its seed),
+// each lit from the top (a cap in the particle's colour over a body a touch darker, and a shade under
+// it), so it bulges like a pixel art cloud. the lobes churn slowly round it as it goes. it fades the way steam thins out:
+// the lobes drift apart and shrink away, each at its own pace, until the last is gone, rather than
+// going see-through. its opacity is how see-through every px is
+
+const WISP = {
+  // how much darker each lobe's body and shade are than its cap, and where (down each lobe, -1 to 1,
+  // leaning to the top left) the body and the shade start
+  body: 0.93,
+  shade: 0.82,
+  cap: -0.35,
+  light: 0.3,
+  // the lobes round the middle one, at least and at most, how big they are next to it, how far out
+  // (times the puff's size) and how wide a fan above it they sit in (radians), since it's rising
+  lobes: [2, 4],
+  size: [0.55, 0.85],
+  out: [0.35, 0.6],
+  fan: 2.4,
+  // radians a second the lobes churn round, and how far apart they drift as it fades (times out)
+  churn: 0.5,
+  drift: 0.8,
+  // how much sooner than the middle each lobe can shrink away, at most (0 to 1)
+  stagger: 0.6,
+};
+
+// the px of a wisp, about rx by ry picture px round 0, 0, in rows of runs: draw(dx, dy, length,
+// tone) for each run, tone 0 for the cap, 1 the body and 2 the shade. gone (0 to 1) is how far it's faded, seed which wisp it is, and time (seconds)
+// how far its lobes have churned
+function wispRuns(rx, ry, gone, seed, time, draw) {
+  const pick = (k, [low, high]) => low + (high - low) * surfaceHash(seed, k, 21); // surface.js
+  // one too small for its middle lobe to be round has no room for more, and they could line up into a
+  // little plus
+  const count = Math.min(rx, ry) * 0.75 < 1.5 ? 0 : Math.round(pick(1, WISP.lobes));
+  // the middle one, then the rest round it. each { x, y, r } as parts of rx, ry, shrinking away as it
+  // fades from its own start (the middle last)
+  const lobes = [{ x: 0, y: 0, size: 0.75, start: 1 }];
+  for (let k = 0; k < count; k++) {
+    const turn = (k % 2 ? 1 : -1) * time * WISP.churn;
+    const angle = -Math.PI / 2 + (surfaceHash(seed, k, 22) - 0.5) * WISP.fan + turn;
+    const out = pick(10 + k, WISP.out) * (1 + gone * WISP.drift);
+    lobes.push({ x: Math.cos(angle) * out, y: Math.sin(angle) * out, size: pick(20 + k, WISP.size) * 0.7, start: 1 - WISP.stagger * surfaceHash(seed, k, 23) });
+  }
+  // how big each is now: whole, then shrinking to nothing between gone = 0 and its start
+  for (const lobe of lobes) lobe.r = lobe.size * Math.max(0, 1 - gone / lobe.start) ** 0.6;
+  const w = Math.ceil(rx * 1.6);
+  const h = Math.ceil(ry * 1.6);
+  for (let dy = -h; dy <= h; dy++) {
+    let start = null;
+    let shaded = 0;
+    for (let dx = -w; dx <= w + 1; dx++) {
+      let on = false;
+      let dark = 0;
+      if (dx <= w) {
+        // the lobe it's furthest inside, if any
+        let best = 1;
+        for (const lobe of lobes) {
+          if (lobe.r <= 0) continue;
+          // under 3 px across it's a 2 px square, then one px, or it'd be a little plus like a sparkle
+          const across = lobe.r * Math.min(rx, ry);
+          if (across < 1.5) {
+            const block = across >= 1 ? 2 : 1;
+            const bx = Math.round(lobe.x * rx - (block - 1) / 2);
+            const by = Math.round(lobe.y * ry - (block - 1) / 2);
+            if (!on && dx >= bx && dx < bx + block && dy >= by && dy < by + block) {
+              on = true;
+              dark = dy > by ? 2 : 1;
+            }
+            continue;
+          }
+          const lx = (dx - lobe.x * rx) / (lobe.r * rx);
+          const ly = (dy - lobe.y * ry) / (lobe.r * ry);
+          const d = lx * lx + ly * ly;
+          if (d <= best) {
+            best = d;
+            on = true;
+            const down = ly + lx * 0.4;
+            dark = down > WISP.light ? 2 : down > WISP.cap ? 1 : 0;
+          }
+        }
+      }
+      if (start !== null && (!on || dark !== shaded)) {
+        draw(start, dy, dx - start, shaded);
+        start = null;
+      }
+      if (on && start === null) {
+        start = dx;
+        shaded = dark;
+      }
+    }
+  }
+}
+
+// a wisp particle (fillParticle()), in the colour it's in now (drawRgb, drawOne()), on the art's grid
+function fillWisp(batch, p) {
+  const e = p.effect;
+  const { ctx } = batch;
+  if (batch.turned) unturnParticles(batch);
+  const solid = e.opacity / 100;
+  const gone = 1 - Math.min(1, p.drawAlpha / solid);
+  const rx = Math.max(1, ((e.stretch / 100) * p.drawHalf) / ART_SCALE); // config.js
+  const ry = Math.max(1, (p.drawHalf / ART_SCALE) * 1.1);
+  const cx = Math.round(p.x / ART_SCALE);
+  const cy = Math.round((p.y - p.z) / ART_SCALE);
+  const light = ctx.fillStyle;
+  const tones = [light, ...[WISP.body, WISP.shade].map((k) => `rgb(${p.drawRgb.map((v) => Math.round(v * k)).join(', ')})`)];
+  ctx.globalAlpha = batch.alpha * solid;
+  wispRuns(rx, ry, gone, Math.floor(p.phase * 1000), p.age, (dx, dy, length, tone) => {
+    ctx.fillStyle = tones[tone];
+    ctx.fillRect((cx + dx) * ART_SCALE, (cy + dy) * ART_SCALE, length * ART_SCALE, ART_SCALE);
+  });
+  ctx.fillStyle = light;
 }
 
 // every effect loads once at the start (datafiles.js). blood (when a character's hit) and blood-burst

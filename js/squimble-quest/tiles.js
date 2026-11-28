@@ -130,6 +130,10 @@ const TILE_DEFAULTS = {
   // round them while they stand in it. ripples lie flat on the surface
   splashParticles: null,
   rippleParticles: null,
+  // hot (lava): particles landing in it do what their effect says for hot liquids (inHot, sizzling
+  // or burning up, particles.js). and particle effects that burst wherever any particle lands in it
+  hot: false,
+  landParticles: null,
   // sounds (sounds/) for stepping in, one at random. wading is just stepSounds
   splashSounds: null,
 

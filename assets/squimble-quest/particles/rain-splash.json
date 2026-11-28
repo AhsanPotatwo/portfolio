@@ -16,5 +16,7 @@
   "lifetimeRandom": 20,
   "fadeTime": 0.2,
   "opacity": 70,
-  "shadow": false
+  "shadow": false,
+  "inHot": "sizzles",
+  "hotThen": "sizzle-steam"
 }

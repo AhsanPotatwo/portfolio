@@ -2,7 +2,7 @@
 // a ring spreads evenly, a ball goes up and down, a firework rocket goes at the top of its jump and
 // bursts its bang up there in its own colour, rain splashes where it lands, an effect that makes
 // itself stops at PARTICLE_CHAIN_DEPTH, colours turn to their end colour, pull draws them in, and
-// landing in a liquid they go in (or float).
+// landing in a liquid they go in (or float), and pixel wisps fade away without ever making a plus.
 // run it with node js/squimble-quest/tests/particle-check.js
 // no output means it all passed
 const assert = require('assert');
@@ -122,3 +122,62 @@ splashes.length = 0;
 assert.strictEqual(landIn({ jumpHeight: 0, floorFriction: 0 }, -10, 120).length, 0, 'sliding off the shore it falls in');
 assert(splashes.length === 1 && splashes[0].x >= 0, 'with its splash in the water');
 assert.strictEqual(landIn({ jumpHeight: 5, onLiquid: true }, 50).length, 1, 'ripples (onLiquid) stay on it');
+
+// hot liquids (lava, a tile's hot): sizzling it's gone at once, bursting its hotThen there; burning it
+// floats, shrinks away over burnTime making its hotThen as it goes, then it's gone; the same as in
+// liquids ignores the heat. any particle landing bursts the liquid's landParticles
+const lava = { sink: 0.3, colour: '#e4572e', surfaceColour: '#ffd23f', hot: true };
+const lavaPond = { ...pond, get: (col) => (col >= 0 ? lava : {}) };
+const inLava = (settings, seconds) => {
+  const system = new ParticleSystem();
+  system.burst(effect({ count: 1, speed: 0, jumpHeight: 20, lifetime: 60, ...settings }), 50, 0);
+  for (let t = 0; t < seconds; t += 1 / 60) system.update(1 / 60, lavaPond);
+  return system.list;
+};
+const steamy = inLava({ inHot: 'sizzles', hotThen: 'sizzle-steam' }, 0.6);
+assert(steamy.length && steamy.every((p) => p.effect === PARTICLE_EFFECTS['sizzle-steam']), 'sizzling, it goes and steams');
+const burner = new ParticleSystem();
+burner.burst(effect({ count: 1, speed: 0, jumpHeight: 20, lifetime: 60, inHot: 'burns', hotThen: 'burn-smoke', burnTime: 1 }), 50, 0);
+const burning = burner.list[0];
+for (let t = 0; t < 0.6; t += 1 / 60) burner.update(1 / 60, lavaPond);
+assert(burner.list.includes(burning) && burning.floating === lava && burning.shrink < 1 && burning.shrink > 0, 'burning, it sits on top shrinking');
+assert(burner.list.some((p) => p.effect === PARTICLE_EFFECTS['burn-smoke']), 'and smokes');
+for (let t = 0; t < 1; t += 1 / 60) burner.update(1 / 60, lavaPond);
+assert(!burner.list.includes(burning), 'then it has burnt up');
+assert.strictEqual(inLava({ inHot: 'same', inLiquid: 'floats' }, 1).filter((p) => p.floating && p.burning === undefined).length, 1, 'the same as in liquids ignores the heat');
+const puffed = new ParticleSystem();
+puffed.burst(effect({ count: 1, speed: 0, jumpHeight: 20, lifetime: 60 }), 50, 0);
+for (let t = 0; t < 0.6; t += 1 / 60) puffed.update(1 / 60, { ...pond, get: (col) => (col >= 0 ? { ...water, landParticles: ['smoke'] } : {}) });
+assert(puffed.list.some((p) => p.effect === PARTICLE_EFFECTS.smoke), "anything landing bursts the liquid's landParticles");
+
+// pixel wisps (wispRuns()): a whole one is a solid lump round its middle, it loses px as it fades and
+// is gone at the end, and never shows a little plus on its own (it'd read as a sparkle). they use
+// surface.js's hash, so they get a sandbox of their own with it
+const wisps = load(['config.js', 'utils.js', 'datafiles.js', 'particles.js', 'surface.js'], { Path2D, radians: (d) => (d * Math.PI) / 180, loadImage: () => ({}) });
+const wispPixels = (r, gone, seed, time = 0) => {
+  const on = new Set();
+  wisps.wispRuns(r, r * 1.1, gone, seed, time, (dx, dy, length) => {
+    for (let i = 0; i < length; i++) on.add(`${dx + i},${dy}`);
+  });
+  return on;
+};
+const whole = wispPixels(4, 0, 5);
+assert(whole.has('0,0') && whole.size > 30, `a whole wisp is a lump (${whole.size} px)`);
+assert([...whole].every((k) => k.split(',').every((v) => Math.abs(v) <= 4 * 1.1 * 1.6 + 1)), 'all round its middle');
+assert(wispPixels(4, 0.6, 5).size < whole.size, 'fading, it loses px');
+assert.strictEqual(wispPixels(4, 1, 5).size, 0, 'faded, it is gone');
+const plus = (on) => [...on].some((k) => {
+  const [x, y] = k.split(',').map(Number);
+  const at = (dx, dy) => on.has(`${x + dx},${y + dy}`);
+  const arms = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+  // a middle with all four arms, and nothing else touching any of it
+  if (!arms.every(([dx, dy]) => at(dx, dy))) return false;
+  for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) {
+    const part = (dx === 0 && Math.abs(dy) <= 1) || (dy === 0 && Math.abs(dx) <= 1);
+    if (!part && Math.abs(dx) + Math.abs(dy) <= 2 && at(dx, dy)) return false;
+  }
+  return true;
+});
+let pluses = 0;
+for (let seed = 0; seed < 60; seed++) for (const r of [1, 1.5, 2, 3, 5]) for (const gone of [0, 0.3, 0.6, 0.85]) if (plus(wispPixels(r, gone, seed, seed * 0.1))) pluses++;
+assert.strictEqual(pluses, 0, `no wisp shows a little plus (${pluses})`);

@@ -22,5 +22,7 @@
   "colour4": "#7bdc6b",
   "lifetime": 6,
   "fadeTime": 1.5,
-  "inLiquid": "floats"
+  "inLiquid": "floats",
+  "inHot": "burns",
+  "hotThen": "burn-smoke"
 }

@@ -20,5 +20,7 @@
   "lifetimeRandom": 10,
   "fadeIn": 0.5,
   "fadeTime": 2,
-  "rate": 0.25
+  "rate": 0.25,
+  "inHot": "sizzles",
+  "hotThen": "sizzle-steam"
 }

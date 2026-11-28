@@ -24,5 +24,7 @@
   "fadeIn": 0.5,
   "fadeTime": 2,
   "rate": 0.01,
-  "inLiquid": "floats"
+  "inLiquid": "floats",
+  "inHot": "burns",
+  "hotThen": "burn-smoke"
 }

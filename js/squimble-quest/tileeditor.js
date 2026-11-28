@@ -74,6 +74,8 @@ const TILE_BEHAVIOURS = [
   { tab: 'Liquid', key: 'glow', label: 'Glow', field: (value) => new Checkbox({ w: 180, value, label: 'lights up whoever is in it' }), tip: 'For lava: the ring glows, and so does whoever is in it from the surface up' },
   { tab: 'Liquid', key: 'wake', label: 'Wake', after: '%', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 200 }), tip: 'How strong the V behind whoever wades through it is, in the surface colour. Lower for thick liquids like lava, 0 for none' },
   { tab: 'Liquid', key: 'splashParticles', label: 'Splash', field: (value) => particleMultiPicker(value), tip: 'Particle effects when someone steps in' },
+  { tab: 'Liquid', key: 'hot', label: 'Hot', field: (value) => new Checkbox({ w: 180, value, label: 'burns what lands in it' }), tip: "Particles landing in it do what their effect's In hot liquids says: sizzle away, burn up, or the same as any liquid" },
+  { tab: 'Liquid', key: 'landParticles', label: 'Landing in', field: (value) => particleMultiPicker(value), tip: 'Particle effects that burst wherever any particle lands in it, like a puff of smoke' },
   { tab: 'Liquid', key: 'rippleParticles', label: 'Ripples', field: (value) => particleMultiPicker(value), tip: "Particle effects round whoever's standing in it every so often. They start on the surface" },
   { tab: 'Liquid', key: 'splashSounds', label: 'Splash sound', field: (value) => soundMultiPicker(value), tip: 'One of these plays when someone steps in. Wading is Footsteps' },
 ];

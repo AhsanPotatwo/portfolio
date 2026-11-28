@@ -9,5 +9,7 @@
   "size": 5,
   "lifetime": 4,
   "fadeTime": 1.5,
-  "inLiquid": "dissolves"
+  "inLiquid": "dissolves",
+  "inHot": "sizzles",
+  "hotThen": "sizzle-steam"
 }

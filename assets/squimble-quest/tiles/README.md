@@ -12,7 +12,7 @@ Renaming keeps maps working (the old name is remembered in `oldNames`). **Delete
 
 ## Notes
 
-- A liquid is any tile with **Sink in** over 0. Shared liquid feel is `LIQUID` in config.js, wakes are `WAKE` in wakes.js, and foam, glints and the bank's shade are `SURFACE` in surface.js.
+- A liquid is any tile with **Sink in** over 0. Shared liquid feel is `LIQUID` in config.js, wakes are `WAKE` in wakes.js, and foam, glints and the bank's shade are `SURFACE` in surface.js. Tick **Hot** (lava) and particles landing in it do what their effect's **In hot liquids** says (sizzle away, burn up); **Landing in** bursts effects wherever anything lands in it.
 - Where two dual grid tiles meet, the one lower in `index.json` goes on top, so list dirt before grass. Reordering is by hand.
 - For a new dual grid tileset, copy `dual-grid/grass_tileset.png` and paint over it, keeping the pieces in place (`DUAL_TILESET_LAYOUT` in dualgrid.js). Pieces are a quarter of its width (64 wide is 16 px pieces). Rows of whole pieces under the 4 x 4 are variants the middle of the ground picks between by where it is, so put flowers and stones there, each inside one quarter of its piece; leave a spot see-through to skip it. The editor's Help > Making tiles explains it all, with a picture of which piece goes where, and View > Texture inspector (U) shows what's drawn on the map.
 - Files only hold settings that differ from `TILE_DEFAULTS` (tiles.js), e.g. lava is `{ "colour": "#e4572e", "speed": 0.7, "damagePerSecond": 25 }`.

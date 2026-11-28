@@ -10,7 +10,9 @@
 //   dualTilesetProblem() why a picture can't be used as a tileset, or null (the tile editor shows it)
 //   cutDualTileset()     cuts a tileset into its pieces. useTexture() (tiles.js) runs it on every new texture
 //   drawDualCorner()     draws the pieces at one corner. only drawTiles() (tilemap.js) calls it, and the
-//                        texture inspector (inspector.js) asks it what it would draw
+//                        texture inspector (inspector.js) asks it what it would draw. liquids' surfaces
+//                        (surface.js) draw it into a mask of their own to find the ground's real edge
+//   dualUnder()          the normal tile that shows under the pieces' edges at a corner
 
 // the pieces left to right, top row first. each is 4 bits saying which of the corner's tiles are this
 // tile: up left, up right, down left, down right. so 0b0011 (the bottom two) is a top edge piece.
@@ -109,6 +111,41 @@ function quarterBits(which, cut, i) {
   return bits;
 }
 
+// fills dualAround with the four tiles round the top left corner of tile col, row (null for empty and
+// off-map ones) and gives back the dual grid tile with the lowest layer there (layer is in tiles.js),
+// or null if there are none
+function dualLowest(map, col, row) {
+  dualAround[0] = map.get(col - 1, row - 1);
+  dualAround[1] = map.get(col, row - 1);
+  dualAround[2] = map.get(col - 1, row);
+  dualAround[3] = map.get(col, row);
+  let lowest = null;
+  for (const type of dualAround) {
+    if (type?.dualTiles && (!lowest || type.layer < lowest.layer)) lowest = type;
+  }
+  return lowest;
+}
+
+// the first normal tile in dualAround that one of the dual grid tiles there blends onto (blendsWith),
+// which shows under their edges. if none of them blend onto a tile they only meet it in straight
+// lines, so it's null
+function dualUnderAround() {
+  let under = null;
+  for (const type of dualAround) {
+    if (!type || type.dualTiles || under) continue;
+    for (const dual of dualAround) {
+      if (dual?.dualTiles && blendsOnto(type, dual)) under = type;
+    }
+  }
+  return under;
+}
+
+// the normal tile that shows under the dual grid pieces' edges at the top left corner of tile col, row
+// (a liquid round an island), or null
+function dualUnder(map, col, row) {
+  return dualLowest(map, col, row) ? dualUnderAround() : null;
+}
+
 // the four tiles around a corner: up left, up right, down left, down right (same order as the bits).
 // this array gets reused instead of making a new one each time, because drawDualCorner() runs
 // thousands of times a frame when zoomed out
@@ -119,30 +156,13 @@ const dualAround = [null, null, null, null];
 // up exactly with the normal tiles. it works in screen positions, so only drawTiles() should call it.
 // with a found list it draws nothing and fills the list instead, for the texture inspector: found.under
 // is the tile under the edges, and each piece drawn is { type, quarters (0 to 3, up left first), bits
-// (DUAL_TILESET_LAYOUT), variant (which whole piece, or null) }
-function drawDualCorner(map, col, row, x, y, found = null) {
-  // null for empty and off-map tiles
-  dualAround[0] = map.get(col - 1, row - 1);
-  dualAround[1] = map.get(col, row - 1);
-  dualAround[2] = map.get(col - 1, row);
-  dualAround[3] = map.get(col, row);
-
-  // the dual grid tile with the lowest layer here (layer is in tiles.js)
-  let lowest = null;
-  for (const type of dualAround) {
-    if (type?.dualTiles && (!lowest || type.layer < lowest.layer)) lowest = type;
-  }
+// (DUAL_TILESET_LAYOUT), variant (which whole piece, or null) }. part 'under' draws only what's under
+// the edges and 'pieces' only the pieces, so a liquid's surface can go between (drawTiles())
+function drawDualCorner(map, col, row, x, y, found = null, part = 'all') {
+  const lowest = dualLowest(map, col, row);
   // no dual grid tiles here, the normal tiles have already drawn everything
   if (!lowest) return;
-  // the first normal tile here that one of the dual grid tiles blends onto (blendsWith). if none of
-  // them blend onto a tile they only meet it in straight lines, so it never shows under their edges
-  let under = null;
-  for (const type of dualAround) {
-    if (!type || type.dualTiles || under) continue;
-    for (const dual of dualAround) {
-      if (dual?.dualTiles && blendsOnto(type, dual)) under = type;
-    }
-  }
+  const under = dualUnderAround();
 
   if (found) found.under = under;
   // the piece's edges on screen: left/middle/right and top/middle/bottom
@@ -153,7 +173,7 @@ function drawDualCorner(map, col, row, x, y, found = null) {
   // grid tiles' quarters get filled with `under`, like that ground carries on underneath them (the
   // normal tiles already drew their own quarters). if there's no normal tile, the lowest piece covers
   // all four
-  if (under && !found) {
+  if (under && !found && part !== 'pieces') {
     fill(under.fill);
     for (let i = 0; i < 4; i++) {
       if (!dualAround[i]?.dualTiles) continue;
@@ -171,6 +191,7 @@ function drawDualCorner(map, col, row, x, y, found = null) {
     }
   }
 
+  if (part === 'under') return;
   // then each dual grid tile's piece, lowest layer first. a piece covers its own quarters and the
   // ones belonging to higher layers, so the higher ones draw over it without any gaps
   let type = lowest;
