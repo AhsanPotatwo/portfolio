@@ -89,20 +89,34 @@ assert(spread() < before / 2, 'pulled in');
 const splashes = [];
 game.Surface = { splash: (p, liquid) => splashes.push({ x: p.x, liquid }) };
 game.TILE = 32;
-const water = { sink: 0.4 };
+const water = { sink: 0.4, colour: '#3b7dd8' };
 const pond = { colAt: (x) => Math.floor(x / 32), rowAt: (y) => Math.floor(y / 32), get: (col) => (col >= 0 ? water : {}), isSolid: () => false };
-const landIn = (settings, x, vx = 0) => {
+const landIn = (settings, x, vx = 0, seconds = 1, waders = []) => {
   const system = new ParticleSystem();
-  system.burst(effect({ count: 1, speed: 0, ...settings }), x, 0);
+  system.burst(effect({ count: 1, speed: 0, lifetime: 60, ...settings }), x, 0);
   system.list[0].vx = vx;
-  for (let t = 0; t < 1; t += 1 / 60) system.update(1 / 60, pond);
+  for (let t = 0; t < seconds; t += 1 / 60) system.update(1 / 60, pond, typeof waders === 'function' ? waders(t) : waders);
   return system.list;
 };
 assert.strictEqual(landIn({ jumpHeight: 20, inLiquid: 'sinks' }, 50).length, 0, 'sinks out of sight');
 assert(splashes.length === 1 && splashes[0].liquid === water, 'with a splash where it went in');
 assert.strictEqual(landIn({ jumpHeight: 20, inLiquid: 'dissolves' }, 50).length, 0, 'spreading through it, it goes too');
-const floater = landIn({ jumpHeight: 20, inLiquid: 'floats', bounce: 50 }, 50);
-assert(floater.length === 1 && floater[0].z === 0 && floater[0].vz === 0, 'floats, lying still on top');
+const floats = { jumpHeight: 20, inLiquid: 'floats', bounce: 50, floatBob: 1, floatDrift: 20, floatPush: 100, floatSoak: 0 };
+const floater = landIn(floats, 50, 0, 3);
+assert(floater.length === 1 && floater[0].floating === water, 'floats on it');
+assert(floater[0].z <= 0 && floater[0].z >= -2 * (1 + game.PARTICLE_FLOAT.jostle), `bobbing at the surface (z ${floater[0].z.toFixed(2)})`);
+// drifting about for a long while it never leaves the water
+const drifter = landIn(floats, 4, 0, 20);
+assert(drifter.length === 1 && drifter[0].floating && drifter[0].x >= 0, `drifting, it stays on the water (x ${drifter[0].x.toFixed(1)})`);
+// someone wading right past it shoves it on ahead of them and sets it bobbing
+const shoved = landIn({ ...floats, floatDrift: 0 }, 60, 0, 2.5, (t) => (t > 1 ? [{ x: 30 + (t - 1) * 60, y: 0, vx: 60, vy: 0, r: 21 }] : []));
+assert(shoved[0].x > 70, `a wader shoves it along (x ${shoved[0].x.toFixed(1)})`);
+const still = landIn({ ...floats, floatDrift: 0, floatPush: 0 }, 60, 0, 2.5, (t) => (t > 1 ? [{ x: 30 + (t - 1) * 60, y: 0, vx: 60, vy: 0, r: 21 }] : []));
+assert(Math.abs(still[0].x - 60) < 2, `with no push it stays put (x ${still[0].x.toFixed(1)})`);
+// soaking it goes under after floatSoak seconds
+splashes.length = 0;
+assert.strictEqual(landIn({ ...floats, floatSoak: 2 }, 50, 0, 3).length, 0, 'soaked through, it sinks');
+assert.strictEqual(splashes.length, 2, 'with a ring going in and another going under');
 assert.strictEqual(landIn({ jumpHeight: 20 }, -50).length, 1, 'on the sand it lies there as always');
 splashes.length = 0;
 assert.strictEqual(landIn({ jumpHeight: 0, floorFriction: 0 }, -10, 120).length, 0, 'sliding off the shore it falls in');

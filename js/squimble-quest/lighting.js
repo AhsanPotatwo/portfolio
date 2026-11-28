@@ -643,17 +643,22 @@ function lightGraphics(w, h) {
 }
 
 // runs draw() with p5's drawing (and the global drawingContext) going into graphics g instead of the
-// game's canvas, then puts it back. this is how a thing's silhouette comes from its own draw code
+// game's canvas, then puts it back. this is how a thing's silhouette comes from its own draw code.
+// pixelDensity() says g's too, or drawing that rounds to whole screen px (drawTiles() in tilemap.js)
+// rounds to the game canvas's and leaves seams, a faint grid over the tiles
 function drawingInto(g, draw) {
   const game = p5.instance;
   const renderer = game._renderer;
+  const density = game._pixelDensity;
   const ctx = window.drawingContext;
   game._renderer = g._renderer;
+  game._pixelDensity = g._pixelDensity;
   window.drawingContext = g.drawingContext;
   try {
     draw();
   } finally {
     game._renderer = renderer;
+    game._pixelDensity = density;
     window.drawingContext = ctx;
   }
 }

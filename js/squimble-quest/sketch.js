@@ -450,7 +450,7 @@ function draw() {
   // particles, so it's in ParticleEmitters
   if (!paused) {
     Atmosphere.update(worldMap, dt, Editor.active ? gameCamera : { x: player.x, y: player.y + feetBelowCentre(PLAYER) });
-    Particles.update(dt, worldMap);
+    Particles.update(dt, worldMap, waders([player, ...enemies, ...npcs])); // surface.js
     Wakes.update(dt); // wakes.js
     Lighting.update(dt, worldMap); // lighting.js
     DamageNumbers.update(dt);

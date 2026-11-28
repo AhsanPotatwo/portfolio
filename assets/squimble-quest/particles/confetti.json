@@ -21,5 +21,6 @@
   "colour3": "#3ec1ff",
   "colour4": "#7bdc6b",
   "lifetime": 6,
-  "fadeTime": 1.5
+  "fadeTime": 1.5,
+  "inLiquid": "floats"
 }

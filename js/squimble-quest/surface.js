@@ -9,7 +9,12 @@
 //   - wakes (wakes.js) and ripples (floor particles with onLiquid and the ripple shape, particles.js)
 //   - splashes where particles land in it (ParticleSystem.fallIn(), particles.js): a little ring
 //     that opens and breaks up, and for ones that spread through it (blood) a cloud of their colour
-//     that grows and crumbles away. seen through the liquid, so none in ones you can't see into
+//     that grows and crumbles away. seen through the liquid, so none in ones you can't see into.
+//     how big and how long are the effect's (its Liquids tab)
+//   - a ring round each floating particle where it sits in the surface, lighter while it's jostled
+//
+// a map's particles are Particles (particles.js), or its own system if it has one (map.particles,
+// like the particle editor's preview)
 // nothing's see-through or smoothed: every pixel is one of a few flat colours mixed from the liquid's
 // two (palette()), and things fade by breaking up into dashes rather than going see-through. only for
 // show, like particles
@@ -28,11 +33,9 @@ const SURFACE = {
   // seconds between glints on each tile (each tile its own, somewhere between) and how long one shows
   glintEvery: [2.5, 7],
   glintFor: 0.8,
-  // seconds a splash's ring lasts, and a cloud, and how many picture px a cloud grows by. at most
-  // splashes showing at once (a big fight in a lake), the oldest go first
+  // seconds a splash's ring lasts. at most splashes showing at once (a big fight in a lake), the
+  // oldest go first. a cloud's size and time are its effect's (cloudSize, cloudTime)
   ringFor: 0.5,
-  cloudFor: 2.6,
-  cloudSpread: 3,
   splashes: 300,
   // more liquid tiles on screen than this (zoomed right out) leaves the surface plain. a picture px is
   // under a screen px by then, and the layer would be big for nothing
@@ -92,7 +95,10 @@ const Surface = {
     for (const s of this.splashes) if (s.cloud) this.cloud(s, now - s.born);
     for (const s of this.splashes) this.ring(s, now - s.born);
     Wakes.draw({ left: col0 * TILE, right: (col1 + 1) * TILE, top: row0 * TILE, bottom: (row1 + 1) * TILE }, this); // wakes.js
-    for (const p of Particles.list) if (onSurface(p)) this.ripple(p); // particles.js
+    for (const p of (map.particles ?? Particles).list) {
+      if (onSurface(p)) this.ripple(p); // particles.js
+      else if (p.floating) this.floating(p);
+    }
 
     this.canvas.getContext('2d').putImageData(this.image, 0, 0);
     const ctx = drawingContext;
@@ -108,17 +114,23 @@ const Surface = {
   // drawn whenever its bit of liquid's on screen. forgotten on changing map (clear())
   splash(p, liquid) {
     const now = millis() / 1000;
-    this.splashes = this.splashes.filter((s) => now - s.born < (s.cloud ? SURFACE.cloudFor : SURFACE.ringFor));
+    this.splashes = this.splashes.filter((s) => now - s.born < s.lasts);
     if (this.splashes.length >= SURFACE.splashes) this.splashes.shift();
     const e = p.effect;
-    const cloud = e.inLiquid === 'dissolves' && liquid.clarity > 0 && !e.glow && !p.img;
-    const s = { x: p.x, y: p.y, born: now, size: particleSize(p), cloud, seed: Math.floor(Math.random() * 1e6) }; // particles.js
+    const cloud = e.inLiquid === 'dissolves' && liquid.clarity > 0 && !e.glow && !p.img && e.cloudSize > 0;
+    const ring = (particleSize(p) * e.splashRing) / 100; // particles.js
+    if (!cloud && !ring) return;
+    const s = { x: p.x, y: p.y, born: now, ring, cloud, lasts: Math.max(SURFACE.ringFor, cloud ? e.cloudTime : 0), seed: Math.floor(Math.random() * 1e6) };
     if (cloud) {
-      // its colour seen through the liquid, stronger in the middle
+      // its colour seen through the liquid, stronger in the middle and for more solid effects
       const base = this.palette(liquid).base;
       const rgb = particleRgb(p);
-      s.core = packColour(mixRgb(base, rgb, 0.5 + liquid.clarity * 0.6));
-      s.edge = packColour(mixRgb(base, rgb, 0.3 + liquid.clarity * 0.4));
+      const strength = e.opacity / 100;
+      s.start = particleSize(p) / ART_SCALE / 2 + 0.5;
+      s.spread = e.cloudSize / ART_SCALE;
+      s.time = e.cloudTime;
+      s.core = packColour(mixRgb(base, rgb, Math.min(1, (0.5 + liquid.clarity * 0.6) * strength)));
+      s.edge = packColour(mixRgb(base, rgb, (0.3 + liquid.clarity * 0.4) * strength));
     }
     this.splashes.push(s);
   },
@@ -131,8 +143,8 @@ const Surface = {
   // first, and breaking up as it goes
   ring(s, age) {
     const t = age / SURFACE.ringFor;
-    if (t >= 1) return;
-    const rx = 0.5 + t * (1.5 + s.size / ART_SCALE);
+    if (t >= 1 || !s.ring) return;
+    const rx = 0.5 + t * (1.5 + s.ring / ART_SCALE);
     const ry = Math.max(0.5, rx * 0.5);
     const cx = s.x / ART_SCALE;
     const cy = s.y / ART_SCALE;
@@ -148,9 +160,9 @@ const Surface = {
   // its strong middle thins away first, then it breaks up into short dashes like the rest of the
   // surface (which ones go is fixed, so it never flickers)
   cloud(s, age) {
-    const t = age / SURFACE.cloudFor;
+    const t = age / s.time;
     if (t >= 1) return;
-    const rx = s.size / ART_SCALE / 2 + 0.5 + SURFACE.cloudSpread * (1 - (1 - t) ** 2);
+    const rx = s.start + s.spread * (1 - (1 - t) ** 2);
     const ry = rx * 0.75;
     const cx = s.x / ART_SCALE;
     const cy = s.y / ART_SCALE;
@@ -160,6 +172,22 @@ const Surface = {
         if (d > 1 || surfaceHash(ay, Math.floor(ax / 3), s.seed) < t ** 0.8) continue;
         this.put(ax, ay, d < 0.5 - t ? s.core : s.edge);
       }
+    }
+  },
+
+  // the ring round a floating particle (ParticleSystem.floatOn()) where it sits in the surface, a
+  // picture px out from its edge, at its floor spot so it bobs against it. lighter while jostled
+  floating(p) {
+    const half = particleSize(p) / 2 / ART_SCALE;
+    const rx = (p.effect.stretch / 100) * half + 1;
+    const ry = Math.max(1, half * 0.5 + 0.5);
+    const cx = p.x / ART_SCALE;
+    const cy = p.y / ART_SCALE + half * 0.5;
+    const tone = p.jostle > 0.3 ? 'light' : 'mid';
+    const n = Math.ceil(Math.PI * 2 * rx * 1.5);
+    for (let i = 0; i < n; i++) {
+      const angle = (i / n) * Math.PI * 2;
+      this.put(Math.round(cx + rx * Math.cos(angle)), Math.round(cy + ry * Math.sin(angle)), tone);
     }
   },
 
@@ -321,6 +349,12 @@ const SURFACE_SIDES = [
   { dx: -1, dy: 0, at: (col, row, a, d) => [col * SURFACE_ART + d, row * SURFACE_ART + a] },
   { dx: 1, dy: 0, at: (col, row, a, d) => [(col + 1) * SURFACE_ART - 1 - d, row * SURFACE_ART + a] },
 ];
+
+// people in liquids, as ParticleSystem.update() wants them for shoving floating particles: their feet,
+// speed and the half width of the ring round them (drawInLiquid() in character.js)
+function waders(characters) {
+  return characters.filter((c) => c.sink > 0.05 && !c.dead).map((c) => ({ x: c.x, y: c.y + c.h / 2, vx: c.velocity.x, vy: c.velocity.y, r: (c.w * LIQUID.ringWidth) / 2 }));
+}
 
 // floor particles the surface draws itself (Surface.ripple()), which Particles.drawFloor() leaves out
 function onSurface(p) {

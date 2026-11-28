@@ -1,7 +1,9 @@
 // the particle editor: a box for making and changing particle effects (particles.js), with a preview
 // down the side that bursts the effect every PARTICLE_PREVIEW.every seconds (or when you click it), as
 // if something standing there got hit from the left (or on the Keep going tab, nonstop from one tile,
-// like lava making it). Geometry Dash's particle creator was the idea. it
+// like lava making it). under it is the scene: a plain floor, or a little bit of map with water or
+// lava, to see what the effect does landing in liquids (its Liquids tab). Geometry Dash's particle
+// creator was the idea. it
 // opens from the map editor's Particles tab (New, Edit, or right click one in the palette) and from an
 // enemy's settings (Edit particles, editor.js).
 //
@@ -22,9 +24,33 @@ const PARTICLE_PREVIEW = {
   // the outline of a body standing there, to show the size (px)
   bodyWidth: 28,
   bodyHeight: 50,
-  // how much bigger than on the map at 100% zoom, so small bits are easy to see
+  // how much bigger than on the map at 100% zoom, so small bits are easy to see. scenes with tiles
+  // zoom in whole steps up to mapZoom, so the pixel art stays sharp
   zoom: 1.5,
+  mapZoom: 2,
+  // px wide the side column is, wider than most boxes to fit a bit of map
+  sideWidth: 260,
+  // the scenes' little world: its top left tile and size, far off any map and the light preview's
+  col: 200000,
+  row: 200000,
+  cols: 30,
+  rows: 20,
+  // the scenes. liquid is the kind of liquid in it (liquidTile()), and the body stands on the shore
+  // with it to the right, in it, or wades back and forth through it at walk px/s
+  scenes: {
+    floor: { say: 'plain floor' },
+    shore: { say: 'hit by water', liquid: 'water', body: 'shore' },
+    wading: { say: 'hit while wading', liquid: 'water', body: 'in' },
+    wader: { say: 'someone wading through', liquid: 'water', body: 'walks' },
+    lava: { say: 'hit by lava', liquid: 'lava', body: 'shore' },
+  },
+  walk: 45,
+  // the ground round the liquid: the first of these tiles there is, or any you can walk on
+  ground: ['sand', 'grass', 'dirt'],
 };
+
+// the scene picked under the preview, kept from one box to the next
+const ParticlePreviewState = { scene: 'floor' };
 
 const ParticleEditor = {
   // pictures chosen since the page loaded, by file name. Export downloads the ones in use, since the
@@ -55,8 +81,16 @@ const ParticleEditor = {
       hint: 'Right click a slider to put it back to normal',
       confirmLabel: 'Save',
       tabs,
+      sideWidth: PARTICLE_PREVIEW.sideWidth,
       side: (x, y, w, h) => [
-        new ParticlePreview({ x, y, w, h: h - 32, effect: draft, img }),
+        new ParticlePreview({ x, y, w, h: h - 60, effect: draft, img }),
+        new Picker({
+          x, y: y + h - 52, w, h: 24,
+          choices: Object.keys(PARTICLE_PREVIEW.scenes),
+          value: ParticlePreviewState.scene,
+          label: (key) => `Scene: ${PARTICLE_PREVIEW.scenes[key].say}`,
+          onChange: (key) => { ParticlePreviewState.scene = key; },
+        }),
         new Button({
           x, y: y + h - 24, w, h: 24, label: 'Choose picture', style: 'editor',
           onClick: () => TileEditor.choosePicture((file, picture) => { // tileeditor.js
@@ -135,7 +169,12 @@ function particleField(line, value) {
 }
 
 // the preview down the side of the particle editor: the effect bursting out of a body outline, seen
-// from above like on the map. it has its own ParticleSystem with no walls. click it for another burst.
+// from above like on the map. it has its own ParticleSystem, with no walls on the plain floor. in a
+// scene with a liquid (ParticlePreviewState.scene) it has its own little TileMap too, drawn by the
+// game's own tile and surface code (tilemap.js, surface.js) into a picture of its own like the light
+// preview (lighting.js), so splashes, clouds and floating bits look just like on a map. the body
+// shoves floating bits like anyone wading (waders() in surface.js), and the one wading through makes
+// a wake (wakes.js). click it for another burst.
 //   effect  the settings to show (the editor's draft, which changes as you drag)
 //   img     the picture "the thing's own" uses, or null
 class ParticlePreview extends UIElement {
@@ -146,6 +185,12 @@ class ParticlePreview extends UIElement {
     this.system = new ParticleSystem();
     // seconds until the next burst
     this.wait = 0;
+    // the scene's map and its picture, the scene they're for, and the body: where its feet are, px
+    // from the middle of the map, which way it's walking and how far in it's sunk
+    this.map = null;
+    this.g = null;
+    this.shown = null;
+    this.body = { x: 0, y: 0, dir: 1, vx: 0, sunk: 0, w: PARTICLE_PREVIEW.bodyWidth, h: PARTICLE_PREVIEW.bodyHeight };
   }
 
   // on the Keep going tab it shows the effect the way a tile makes it, nonstop at its rate from
@@ -154,30 +199,108 @@ class ParticlePreview extends UIElement {
     return FormBox.tabs[FormBox.tab]?.label === 'Keep going';
   }
 
+  scene() {
+    return PARTICLE_PREVIEW.scenes[ParticlePreviewState.scene] ?? PARTICLE_PREVIEW.scenes.floor;
+  }
+
+  // the middle of the scene's map, in world px, where the shore is
+  middle() {
+    const P = PARTICLE_PREVIEW;
+    return { x: (P.col + Math.floor(P.cols / 2)) * TILE, y: (P.row + Math.floor(P.rows / 2)) * TILE };
+  }
+
   update(hovered) {
     this.hovered = hovered;
     const dt = Math.min(deltaTime / 1000, MAX_DT); // config.js
     const click = hovered && Input.buttonsPressed.has('left');
+    const scene = this.scene();
+    // a new scene starts over
+    if (this.shown !== scene) {
+      this.shown = scene;
+      this.system.clear();
+      this.map = scene.liquid ? this.buildMap(scene) : null;
+      Object.assign(this.body, { x: scene.body === 'shore' ? -TILE * 0.75 : 0, y: 0, dir: 1, vx: 0 });
+      this.wait = 0;
+    }
+    const map = this.map;
+    const origin = map ? this.middle() : { x: 0, y: 0 };
+    const body = this.body;
+    if (scene.body === 'walks') {
+      body.vx = body.dir * PARTICLE_PREVIEW.walk;
+      body.x += body.vx * dt;
+      if (Math.abs(body.x) > TILE * 3.5) body.dir = -Math.sign(body.x);
+    }
+    const liquid = map?.get(map.colAt(origin.x + body.x), map.rowAt(origin.y + body.y));
+    body.sunk = liquid?.sink ? liquid.sink * body.h : 0;
+    const feet = { x: origin.x + body.x, y: origin.y + body.y };
+    if (scene.body === 'walks' && liquid?.sink) Wakes.follow({ x: feet.x, y: feet.y - body.h / 2, w: body.w, h: body.h }, liquid, 1, dt);
+
     if (this.keepGoing()) {
+      // one tile: on the plain floor where the body is, otherwise out in the liquid
+      const tile = this.keepGoingTile(origin);
       const bursts = burstsIn(this.effect.rate, dt) + (click ? 1 : 0); // particles.js
-      for (let i = 0; i < bursts; i++) this.system.burst(this.effect, randomBetween(-TILE / 2, TILE / 2), randomBetween(-TILE / 2, TILE / 2), { img: this.img });
+      for (let i = 0; i < bursts; i++) this.system.burst(this.effect, tile.x + randomBetween(-TILE / 2, TILE / 2), tile.y + randomBetween(-TILE / 2, TILE / 2), { img: this.img });
     } else {
       this.wait -= dt;
       if (this.wait <= 0 || click) {
-        this.system.burst(this.effect, 0, 0, { height: PARTICLE_PREVIEW.height, angle: 0, img: this.img });
+        this.system.burst(this.effect, feet.x, feet.y, { height: PARTICLE_PREVIEW.height, angle: scene.body === 'walks' ? (body.dir > 0 ? 0 : Math.PI) : 0, img: this.img });
         this.wait = PARTICLE_PREVIEW.every;
       }
     }
-    this.system.update(dt, null);
+    const waders = body.sunk ? [{ x: feet.x, y: feet.y, vx: body.vx, vy: 0, r: (body.w * LIQUID.ringWidth) / 2 }] : [];
+    this.system.update(dt, map, waders);
+  }
+
+  // the middle of the tile the Keep going tab shows making it
+  keepGoingTile(origin) {
+    return this.map ? { x: origin.x + TILE * 1.5, y: origin.y + TILE * 0.5 } : { x: 0, y: 0 };
+  }
+
+  // the scene's little map: ground all round, and its liquid to the right of the middle (shore) or
+  // round it (in, walks), with a bit of shore above and below
+  buildMap(scene) {
+    const P = PARTICLE_PREVIEW;
+    const walkable = (name) => TILE_TYPES[name] && !TILE_TYPES[name].solid && !TILE_TYPES[name].sink;
+    const ground = P.ground.find(walkable) ?? Object.keys(TILE_TYPES).find(walkable) ?? null;
+    const map = new TileMap(P.col, P.row, P.cols, P.rows, ground); // tilemap.js
+    const liquid = liquidTile(scene.liquid);
+    const mid = { col: P.col + Math.floor(P.cols / 2), row: P.row + Math.floor(P.rows / 2) };
+    if (liquid) {
+      const left = scene.body === 'shore' ? mid.col : mid.col - 6;
+      for (let row = mid.row - 3; row <= mid.row + 3; row++) {
+        for (let col = left; col <= mid.col + 8; col++) map.set(col, row, liquid);
+      }
+    }
+    // the preview's own particles, for the surface's ripples and floating rings (surface.js)
+    map.particles = this.system;
+    return map;
   }
 
   draw() {
     const { x, y, w, h } = this;
-    const { bodyWidth, bodyHeight } = PARTICLE_PREVIEW;
     const keepGoing = this.keepGoing();
-    // zoomed out for ones that go high (rain, fireworks), so the top of their jump stays in the box
-    const top = (keepGoing ? 0 : PARTICLE_PREVIEW.height) + this.effect.startHeight + this.effect.jumpHeight;
-    const zoom = Math.min(PARTICLE_PREVIEW.zoom, (h * 0.6) / Math.max(1, top));
+    if (this.map) this.drawScene(Math.round(w), Math.round(h));
+    else this.drawFloor();
+    noFill();
+    stroke(EDITOR_COLOURS.edge); // editor.js
+    strokeWeight(1);
+    rect(x + 0.5, y + 0.5, w - 1, h - 1, 3);
+    noStroke();
+    fill(EDITOR_COLOURS.dimText);
+    setText(11, BOLD, CENTER, BOTTOM);
+    text(keepGoing ? 'One tile making it' : 'Click for another', x + w / 2, y + h - 4);
+  }
+
+  // how high they go above the floor at most, for zooming out to keep the top of their jump in view
+  top() {
+    return (this.keepGoing() ? 0 : PARTICLE_PREVIEW.height) + this.effect.startHeight + this.effect.jumpHeight;
+  }
+
+  // the plain floor: just the body outline (or the tile) on the editor's dark
+  drawFloor() {
+    const { x, y, w, h } = this;
+    const keepGoing = this.keepGoing();
+    const zoom = Math.min(PARTICLE_PREVIEW.zoom, (h * 0.6) / Math.max(1, this.top()));
     noStroke();
     fill(WORLD_COLOURS.outside); // world.js
     rect(x, y, w, h, 3);
@@ -190,16 +313,75 @@ class ParticlePreview extends UIElement {
     // the middle of the tile otherwise
     translate(Math.round(x + w * (keepGoing ? 0.5 : 0.3)), Math.round(y + h * 0.65));
     scale(zoom);
+    this.drawBody(keepGoing ? { x: 0, y: 0 } : null);
+    this.system.drawAll();
+    pop();
+  }
+
+  // a scene with a map, drawn into its own picture and laid in the box
+  drawScene(w, h) {
+    const { x, y } = this;
+    const scene = this.scene();
+    const origin = this.middle();
+    let zoom = Math.min(PARTICLE_PREVIEW.mapZoom, w / 200, (h * 0.6) / Math.max(1, this.top()));
+    zoom = zoom >= 1 ? Math.floor(zoom) : 1 / Math.ceil(1 / zoom);
+    // the body (or the tile) a third of the way across and two thirds down, like the plain floor, and
+    // in the middle for the one wading back and forth
+    const across = scene.body === 'walks' && !this.keepGoing() ? 0.5 : 0.3;
+    const camera = new PreviewCamera(origin.x + ((0.5 - across) * w) / zoom, origin.y + ((0.5 - 0.65) * h) / zoom, zoom, w, h); // lighting.js
+    if (this.g?.width !== w || this.g?.height !== h) {
+      this.g?.remove();
+      this.g = lightGraphics(w, h);
+    }
+    const view = camera.view();
+    const feetY = origin.y + this.body.y;
+    drawingInto(this.g, () => {
+      push();
+      background(WORLD_COLOURS.outside);
+      camera.begin();
+      this.map.drawTiles(camera);
+      this.system.drawFloor(view, this.map);
+      this.system.drawFlyingWith([{ y: feetY, draw: () => this.drawBody(this.keepGoing() ? this.keepGoingTile(origin) : null, origin) }], view);
+      camera.end();
+      pop();
+    });
+    const ctx = drawingContext;
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(this.g.elt, 0, 0, w, h, x, y, w, h);
+    ctx.restore();
+  }
+
+  // the outline of the body standing (its feet at origin + body), sunk into a liquid with a ring round
+  // it where it meets the surface, or of the tile making it (tile, its middle) on the Keep going tab
+  drawBody(tile, origin = { x: 0, y: 0 }) {
     noFill();
     stroke(255, 255, 255, 50);
     strokeWeight(1);
-    if (keepGoing) rect(-TILE / 2, -TILE / 2, TILE, TILE);
-    else rect(-bodyWidth / 2, -bodyHeight + 7, bodyWidth, bodyHeight);
-    this.system.drawAll();
-    pop();
+    if (tile) {
+      rect(tile.x - TILE / 2, tile.y - TILE / 2, TILE, TILE);
+      return;
+    }
+    const { bodyWidth, bodyHeight } = PARTICLE_PREVIEW;
+    const bx = origin.x + this.body.x;
+    const by = origin.y + this.body.y + 7;
+    const sunk = this.body.sunk;
+    rect(bx - bodyWidth / 2, by - bodyHeight + sunk, bodyWidth, bodyHeight - sunk);
+    if (!sunk || !this.map) return;
+    const liquid = this.map.get(this.map.colAt(bx), this.map.rowAt(by - 7));
+    if (!liquid?.sink) return;
     noStroke();
-    fill(EDITOR_COLOURS.dimText); // editor.js
-    setText(11, BOLD, CENTER, BOTTOM);
-    text(keepGoing ? 'One tile making it' : 'Click for another', x + w / 2, y + h - 4);
+    drawingContext.fillStyle = Surface.palette(liquid).css.foam; // surface.js
+    const rx = (bodyWidth * LIQUID.ringWidth) / 2;
+    Surface.arc(bx, by, rx, rx * LIQUID.ringSquash, 0, Math.PI * 2);
   }
+}
+
+// a liquid tile for a preview scene: the tile called name if it's a liquid, or else the first liquid
+// like it (one you can see into for water, a glowing one for lava), or any liquid, or null
+function liquidTile(name) {
+  if (TILE_TYPES[name]?.sink) return name;
+  const liquids = Object.keys(TILE_TYPES).filter((n) => TILE_TYPES[n].sink);
+  const like = liquids.find((n) => (name === 'lava' ? TILE_TYPES[n].glow : TILE_TYPES[n].clarity > 0));
+  return like ?? liquids[0] ?? null;
 }

@@ -7,7 +7,9 @@
 // the game's top down, so each particle has a spot on the floor (x, y in world px) and a height above
 // that spot (z). it's drawn z px further up the screen than its spot, with a shadow on the spot, which
 // is what makes it look like it's flying up and falling back down. gravity pulls z down, the floor
-// bounces it, and walls (solid tiles) bounce it along the floor.
+// bounces it, and walls (solid tiles) bounce it along the floor. landing in a liquid it sinks, spreads
+// through it or floats on it, bobbing and drifting and shoved aside by waders (the Liquids tab,
+// fallIn() and floatOn(), with what shows on the surface in surface.js).
 //
 // every effect is plain settings (one per PARTICLE_SETTINGS line), kept by name in PARTICLE_EFFECTS,
 // from a file each in assets/squimble-quest/particles/ (datafiles.js), like sounds. they're made in
@@ -94,10 +96,22 @@ const PARTICLE_SETTINGS = [
   { tab: 'Life', key: 'opacity', label: 'Opacity', normal: 100, min: 5, max: 100, step: 5, unit: '%', tip: 'How solid they are. Lower is more see-through' },
   { tab: 'Life', key: 'glow', label: 'Glow', normal: false, tick: 'light up what is behind', tip: 'Adds its colour onto what is behind instead of covering it, for sparks and magic' },
   { tab: 'Life', key: 'shadow', label: 'Shadow', normal: true, tick: 'on the floor while flying', tip: 'A little shadow under each one while it is in the air' },
-  // drawFloor() clips them to the map's liquid tiles. the editor's preview has no map, so shows them all
-  { tab: 'Life', key: 'onLiquid', label: 'Liquid only', normal: false, tick: 'only shows over liquids', tip: 'On the floor, it only shows over liquids (tiles that you sink into), so ripples stop at the shore' },
-  // ParticleSystem.fallIn(), and what shows on the surface is Surface.splash() (surface.js)
-  { tab: 'Life', key: 'inLiquid', label: 'In liquids', normal: 'sinks', choices: () => Object.keys(PARTICLE_IN_LIQUID), say: (way) => PARTICLE_IN_LIQUID[way], tip: 'Landing in a liquid (tiles you sink into) they make a little ring and go under, spread through it as a cloud of their colour (blood), or float on top (leaves)' },
+
+  // liquids are tiles you sink into (tiles.js). drawFloor() clips onLiquid ones to the map's liquid
+  // tiles, and the editor's plain floor preview has no map, so shows them all
+  { tab: 'Liquids', key: 'onLiquid', label: 'Liquid only', normal: false, tick: 'only shows over liquids', tip: 'On the floor, it only shows over liquids, so ripples stop at the shore. These never sink or float' },
+  // ParticleSystem.fallIn() and floatOn(), and what shows on the surface is Surface.splash() and
+  // Surface.floating() (surface.js)
+  { tab: 'Liquids', key: 'inLiquid', label: 'In liquids', normal: 'sinks', choices: () => Object.keys(PARTICLE_IN_LIQUID), say: (way) => PARTICLE_IN_LIQUID[way], tip: 'Landing in a liquid they go under with a little ring, spread through it as a cloud of their colour (blood), or float on it (leaves, confetti)' },
+  { tab: 'Liquids', key: 'splashRing', label: 'Splash ring', normal: 100, min: 0, max: 300, step: 5, unit: '%', tip: 'How big the ring is where each one goes in, for its size. 0 for none' },
+  { tab: 'Liquids', key: 'cloudSize', label: 'Cloud spreads', normal: 6, min: 0, max: 40, unit: 'px', tip: 'Spreading through it: how far each cloud spreads out. Opacity is how strongly its colour shows through' },
+  { tab: 'Liquids', key: 'cloudTime', label: 'Cloud lasts', normal: 2.6, min: 0.2, max: 10, step: 0.1, unit: 's', tip: 'Spreading through it: how long each cloud takes to thin away' },
+  { tab: 'Liquids', key: 'floatDepth', label: 'Sits in', normal: 30, min: 0, max: 90, step: 5, unit: '%', tip: "Floating: how much of each one is under the surface, so it takes on the liquid's colour" },
+  { tab: 'Liquids', key: 'floatBob', label: 'Bob', normal: 1, min: 0, max: 8, step: 0.5, unit: 'px', tip: 'Floating: how far they bob up and down. Bigger ones bob slower' },
+  { tab: 'Liquids', key: 'floatRock', label: 'Rock', normal: 12, min: 0, max: 90, step: 1, unit: '°', tip: 'Floating: how far they tip one way and back as they bob' },
+  { tab: 'Liquids', key: 'floatDrift', label: 'Drift', normal: 3, min: 0, max: 60, unit: 'px/s', tip: 'Floating: how fast they wander about on the surface' },
+  { tab: 'Liquids', key: 'floatPush', label: 'Pushed', normal: 100, min: 0, max: 300, step: 5, unit: '%', tip: 'Floating: how much people wading through shove them aside and set them bobbing' },
+  { tab: 'Liquids', key: 'floatSoak', label: 'Sinks after', normal: 0, min: 0, max: 60, step: 0.5, unit: 's', tip: 'Floating: they soak up the liquid, darken and sink after this long. 0 floats until they fade' },
 
   // other effects, by name ('' for none). they come out of each particle's spot and height
   { tab: 'Chain', key: 'trail', label: 'Trail', normal: '', choices: particleEffectChoices, say: sayParticleEffect, art: (name, x, y, size) => drawParticleChoice(name, x, y, size), tip: 'Each one keeps bursting this behind it while it lasts, like sparks off a rocket' },
@@ -184,7 +198,28 @@ const PARTICLE_COLOUR_MODES = {
 const PARTICLE_IN_LIQUID = {
   sinks: 'sink out of sight',
   dissolves: 'spread through it',
-  floats: 'float on top',
+  floats: 'float on it',
+};
+
+// how floating ones move (ParticleSystem.floatOn()). the effect's own settings (floatBob and the rest)
+// say how much; these are the same for all
+const PARTICLE_FLOAT = {
+  // how quickly the water slows them to their drift (an approach() speed), and how much of their
+  // speed is kept bouncing off the shore
+  drag: 1.5,
+  shoreBounce: 0.3,
+  // how quickly a wader shoves them at full push, and how far round a wader's ring they're shoved
+  // (times its width), squashed up and down the screen like the ring (LIQUID.ringSquash, config.js)
+  shove: 6,
+  reach: 1.3,
+  squash: 0.5,
+  // a shove sets them bobbing this many times higher, dying down by this much a second
+  jostle: 3,
+  settle: 1.5,
+  // radians a second a 4 px one bobs; bigger ones bob slower (square root, like a pendulum)
+  bobSpeed: 2.6,
+  // the last seconds of soaking (floatSoak) they darken over, before going under
+  soaking: 1,
 };
 
 const PARTICLE_GOES_AT = {
@@ -378,17 +413,93 @@ class ParticleSystem {
     const liquid = map.get(map.colAt(p.x), map.rowAt(p.y));
     if (!liquid?.sink) return false;
     Surface.splash(p, liquid);
-    if (p.effect.inLiquid === 'floats') {
-      p.vz = 0;
-      return false;
+    if (p.effect.inLiquid !== 'floats') {
+      p.age = p.life;
+      return true;
     }
-    p.age = p.life;
-    return true;
+    // lying flat on the surface, keeping some of how it came in. floatOn() moves it from now on
+    p.floating = liquid;
+    p.floatRgb = hexToRgb(liquid.colour);
+    p.floatAge = 0;
+    p.jostle = 0.5;
+    p.z = 0;
+    p.vz = 0;
+    p.vx *= 0.5;
+    p.vy *= 0.5;
+    p.flip = 0;
+    p.flipSpeed = 0;
+    p.spin = 0;
+    p.restAngle = p.angle;
+    return false;
+  }
+
+  // a floating one (fallIn()): it wanders about (floatDrift), slowed by the liquid, bobs (floatBob)
+  // and rocks (floatRock), each at its own pace, and gets shoved aside by waders (floatPush), which
+  // sets it bobbing harder for a bit. it stays on the liquid, bouncing gently off the shore, and
+  // soaking (floatSoak) it darkens and goes under
+  floatOn(p, dt, map, waders) {
+    const e = p.effect;
+    const F = PARTICLE_FLOAT;
+    p.floatAge += dt;
+    if (e.floatSoak > 0 && p.floatAge >= e.floatSoak) {
+      Surface.splash(p, p.floating); // surface.js
+      p.age = p.life;
+      return;
+    }
+    // wandering: a heading that turns slowly back and forth, its own for each one
+    const heading = p.phase + Math.sin(p.age * 0.3 + p.phase) * 2;
+    const ease = 1 - Math.exp(-F.drag * dt);
+    p.vx += (Math.cos(heading) * e.floatDrift - p.vx) * ease;
+    p.vy += (Math.sin(heading) * e.floatDrift - p.vy) * ease;
+    // shoved out of a wader's way: away from them and along with them, harder the closer it is.
+    // one standing still just keeps them out of its ring
+    for (const w of waders) {
+      const dx = p.x - w.x;
+      const dy = (p.y - w.y) / F.squash;
+      const d = Math.hypot(dx, dy) || 1;
+      const reach = w.r * F.reach;
+      if (d >= reach) continue;
+      const near = (1 - d / reach) * (e.floatPush / 100);
+      const speed = Math.hypot(w.vx, w.vy);
+      p.vx += ((dx / d) * speed + w.vx * 0.5) * near * F.shove * dt;
+      p.vy += ((dy / d) * speed * F.squash + w.vy * 0.5) * near * F.shove * dt;
+      p.jostle = Math.max(p.jostle, near * Math.min(1, speed / 60));
+      if (e.floatPush > 0) {
+        p.x += (dx / d) * (reach - d) * near * 0.2;
+        p.y += (dy / d) * (reach - d) * near * 0.2 * F.squash;
+      }
+    }
+    // moving, but only on the liquid: off the shore it bounces back
+    const on = (x, y) => !map || map.get(map.colAt(x), map.rowAt(y))?.sink;
+    const x = p.x + p.vx * dt;
+    if (on(x, p.y)) p.x = x;
+    else p.vx *= -F.shoreBounce;
+    const y = p.y + p.vy * dt;
+    if (on(p.x, y)) p.y = y;
+    else p.vy *= -F.shoreBounce;
+    // bobbing and rocking, quicker for small ones, harder while jostled
+    p.jostle *= Math.exp(-F.settle * dt);
+    const pace = (F.bobSpeed * p.swaySpeed) / 2.75 / Math.sqrt(Math.max(1, p.size) / 4);
+    const wave = p.floatAge * pace + p.phase;
+    const bob = e.floatBob * (1 + p.jostle * F.jostle);
+    p.z = Math.sin(wave) * bob - bob;
+    p.angle = p.restAngle + radians(e.floatRock) * Math.sin(wave + 1.2) * (1 + p.jostle);
+  }
+
+  // how much a floating one takes on its liquid's colour now: its floatDepth, then all of it as it
+  // soaks through at the end (floatSoak)
+  soaked(p) {
+    const e = p.effect;
+    const depth = e.floatDepth / 100;
+    if (!(e.floatSoak > 0)) return depth;
+    const t = Math.min(1, Math.max(0, (p.floatAge - (e.floatSoak - PARTICLE_FLOAT.soaking)) / PARTICLE_FLOAT.soaking));
+    return depth + (0.85 - depth) * Math.max(0, t);
   }
 
   // moves them all on by dt seconds. map is a TileMap whose solid tiles they bounce off (if their
-  // effect's hitsWalls), or null for no walls
-  update(dt, map) {
+  // effect's hitsWalls), or null for no walls. waders are people in liquids, which shove floating ones
+  // aside: each { x, y, vx, vy, r }, their feet, speed and ring's half width (waders() in surface.js)
+  update(dt, map, waders = []) {
     // [effect name, particle] for each trail and then bursting out of one this frame. they burst
     // after the loop, so new ones don't get moved before they're drawn
     const chain = [];
@@ -396,6 +507,10 @@ class ParticleSystem {
       const e = p.effect;
       p.age += dt;
       if (e.trail) for (let i = burstsIn(e.trailRate, dt); i > 0; i--) chain.push([e.trail, p]);
+      if (p.floating) {
+        this.floatOn(p, dt, map, waders);
+        continue;
+      }
       // lying on the floor (or sliding along it). floaty ones never are
       const onFloor = p.z <= 0 && p.vz <= 0 && e.gravity >= 0;
       // drag in the air and grip on the floor both take off part of the speed each second. Math.exp
@@ -674,6 +789,13 @@ class ParticleSystem {
       r += (p.end[0] - r) * turn;
       g += (p.end[1] - g) * turn;
       b += (p.end[2] - b) * turn;
+    }
+    // floating, the part under shows the liquid's colour (ParticleSystem.soaked())
+    if (p.floating) {
+      const k = this.soaked(p);
+      r += (p.floatRgb[0] - r) * k;
+      g += (p.floatRgb[1] - g) * k;
+      b += (p.floatRgb[2] - b) * k;
     }
     const key = (e.glow ? PARTICLE_GLOWS : 0) | ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
     let bucket = this.buckets.get(key);
