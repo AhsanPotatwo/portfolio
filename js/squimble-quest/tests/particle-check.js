@@ -181,3 +181,42 @@ const plus = (on) => [...on].some((k) => {
 let pluses = 0;
 for (let seed = 0; seed < 60; seed++) for (const r of [1, 1.5, 2, 3, 5]) for (const gone of [0, 0.3, 0.6, 0.85]) if (plus(wispPixels(r, gone, seed, seed * 0.1))) pluses++;
 assert.strictEqual(pluses, 0, `no wisp shows a little plus (${pluses})`);
+
+// pixel shapes (pixelMask(), flameRuns()): small ones never come out a little plus either, a streak is
+// always one unbroken line however it's turned, and nothing is ever no px at all. the bigger ones are
+// filled in on a canvas, so only the sizes worked out without one are checked here
+const maskPixels = (mask) => {
+  const on = new Set();
+  for (let i = 0; i < mask.all.length; i += 3) on.add(`${mask.all[i]},${mask.all[i + 1]}`);
+  return on;
+};
+let shapePluses = [];
+for (const shape of Object.keys(wisps.PARTICLE_SHAPES).filter((s) => wisps.PARTICLE_SHAPES[s].path)) {
+  for (const rx of [0.5, 1, 1.5]) for (const ry of [0.5, 1, 1.5]) for (let a = 0; a < 32; a++) {
+    const on = maskPixels(wisps.pixelMask(shape, rx, ry, (a / 32) * Math.PI * 2));
+    assert(on.size > 0, `${shape} is never nothing`);
+    if (plus(on)) shapePluses.push(`${shape} ${rx}x${ry} turn ${a}`);
+  }
+}
+for (const shape of Object.keys(wisps.PIXEL_GLYPHS)) for (const r of [0.75, 1, 1.5, 2, 2.5]) if (plus(maskPixels(wisps.pixelMask(shape, r, r, 0)))) shapePluses.push(`${shape} glyph ${r}`);
+for (let seed = 0; seed < 40; seed++) for (const r of [1, 1.5, 2, 3]) for (const gone of [0, 0.4, 0.8]) {
+  const on = new Set();
+  wisps.flameRuns(r, r * 1.1, gone, seed, seed * 0.13, (dx, dy, length) => { for (let i = 0; i < length; i++) on.add(`${dx + i},${dy}`); });
+  if (plus(on)) shapePluses.push(`flame ${r} gone ${gone}`);
+}
+assert.deepStrictEqual(shapePluses, [], 'no small pixel shape is a little plus');
+for (const length of [1, 2, 4, 8, 15]) for (let a = 0; a < 32; a++) {
+  const on = maskPixels(wisps.pixelMask('streak', length, 1, (a / 32) * Math.PI * 2));
+  // joined up, corners counting, from any px
+  const [first] = on;
+  const reached = new Set([first]);
+  const todo = [first];
+  while (todo.length) {
+    const [x, y] = todo.pop().split(',').map(Number);
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const k = `${x + dx},${y + dy}`;
+      if (on.has(k) && !reached.has(k)) { reached.add(k); todo.push(k); }
+    }
+  }
+  assert.strictEqual(reached.size, on.size, `a streak ${length} long at turn ${a} is one line`);
+}

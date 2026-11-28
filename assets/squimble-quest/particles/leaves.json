@@ -26,5 +26,6 @@
   "rate": 0.01,
   "inLiquid": "floats",
   "inHot": "burns",
-  "hotThen": "burn-smoke"
+  "hotThen": "burn-smoke",
+  "shade": 25
 }

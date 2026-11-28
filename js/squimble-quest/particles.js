@@ -12,6 +12,10 @@
 // it can sizzle away or burn up, making steam or smoke (the Liquids and Floating tabs, fallIn() and
 // floatOn(), with what shows on the surface in surface.js).
 //
+// they're drawn like the rest of the art, a picture px at a time on its grid (pixel, fillPixels()):
+// each shape filled in at its size and angle, little stars, hearts and bubbles drawn by hand, and
+// steam, smoke and fire as shapes that draw themselves (wisps and flames). untick Pixel for smooth
+//
 // every effect is plain settings (one per PARTICLE_SETTINGS line), kept by name in PARTICLE_EFFECTS,
 // from a file each in assets/squimble-quest/particles/ (datafiles.js), like sounds. they're made in
 // the particle editor (particleeditor.js: the map editor's Particles tab, or Edit particles in an
@@ -80,6 +84,9 @@ const PARTICLE_SETTINGS = [
   { tab: 'Look', key: 'spin', label: 'Spin', normal: 0, min: 0, max: 2160, step: 10, unit: '°/s', tip: 'Each one turns up to this fast, either way, until it slides to a stop' },
   { tab: 'Look', key: 'flip', label: 'Flip', normal: 0, min: 0, max: 1440, step: 10, unit: '°/s', tip: 'Tumbles over and over up to this fast, like confetti or leaves' },
   { tab: 'Look', key: 'randomTurn', label: 'Turned', normal: false, tick: 'start at any angle', tip: 'Each one starts turned a random way instead of straight' },
+  // fillPixels()
+  { tab: 'Look', key: 'pixel', label: 'Pixel', normal: true, tick: "on the art's pixel grid", tip: 'Drawn a picture px at a time like the rest of the art, and pictures turn in quarter turns. Untick for smooth shapes' },
+  { tab: 'Look', key: 'shade', label: 'Shading', normal: 0, min: 0, max: 60, step: 5, unit: '%', tip: "Pixel ones 3 px or bigger are this much darker underneath, lit from the top left like the art" },
 
   { tab: 'Colour', key: 'colourMode', label: 'Colours', normal: 'mix', choices: () => Object.keys(PARTICLE_COLOUR_MODES), say: (mode) => PARTICLE_COLOUR_MODES[mode], tip: "The one it came from is for trails and thens (Chain tab), like a firework's bang matching its rocket" },
   { tab: 'Colour', key: 'colour', label: 'Colour', normal: '#ffffff', colour: true, tip: 'Mixed with colour 2, or one of the four' },
@@ -95,6 +102,7 @@ const PARTICLE_SETTINGS = [
   { tab: 'Life', key: 'fadeIn', label: 'Fade in', normal: 0, min: 0, max: 10, step: 0.1, unit: 's', tip: 'They fade in over their first this many seconds' },
   { tab: 'Life', key: 'fadeTime', label: 'Fade out', normal: 1, min: 0, max: 10, step: 0.1, unit: 's', tip: 'They fade away over their last this many seconds' },
   { tab: 'Life', key: 'opacity', label: 'Opacity', normal: 100, min: 5, max: 100, step: 5, unit: '%', tip: 'How solid they are. Lower is more see-through' },
+  { tab: 'Life', key: 'fadeStyle', label: 'Fades by', normal: 'clear', choices: () => Object.keys(PARTICLE_FADES), say: (way) => PARTICLE_FADES[way], tip: 'How they fade in and out: going see-through, shrinking away, or (pixel ones) losing px until none are left' },
   { tab: 'Life', key: 'glow', label: 'Glow', normal: false, tick: 'light up what is behind', tip: 'Adds its colour onto what is behind instead of covering it, for sparks and magic' },
   { tab: 'Life', key: 'shadow', label: 'Shadow', normal: true, tick: 'on the floor while flying', tip: 'A little shadow under each one while it is in the air' },
 
@@ -161,12 +169,17 @@ const PARTICLE_SHAPES = {
   plus: { say: 'pluses', path: particlePath([[-0.35, -1], [0.35, -1], [0.35, -0.35], [1, -0.35], [1, 0.35], [0.35, 0.35], [0.35, 1], [-0.35, 1], [-0.35, 0.35], [-1, 0.35], [-1, -0.35], [-0.35, -0.35]]) },
   // a thin line, turned to point the way it's flying (update()) instead of spinning
   streak: { say: 'streaks', path: particlePath([[-1, -0.3], [1, -0.3], [1, 0.3], [-1, 0.3]]), along: true },
-  // drawn a picture px at a time instead of a path (fillWisp()): a puff with a curling tail, for
-  // steam and smoke
-  wisp: { say: 'pixel wisps', pixel: true },
+  // drawn a picture px at a time by their own code instead of a path (fillPixelShape()): runs gives
+  // their px and tones their three colours, lightest first. puffs for steam, smoke and dust, and
+  // flames licking up for fires
+  wisp: { say: 'pixel wisps', pixel: { runs: wispRuns, tones: (rgb) => [1, WISP.body, WISP.shade].map((k) => rgb.map((v) => v * k)) } },
+  flame: { say: 'pixel flames', pixel: { runs: flameRuns, tones: flameTones } },
   picture: { say: 'the whole picture' },
   bits: { say: 'bits of the picture' },
 };
+
+// a number for each shape, for keeping its pixel masks (pixelMask())
+const PARTICLE_SHAPE_NUMBERS = Object.fromEntries(Object.keys(PARTICLE_SHAPES).map((shape, i) => [shape, i]));
 
 // a shape's outline from a list of [x, y] corners or a function drawing on a Path2D
 function particlePath(points) {
@@ -209,6 +222,13 @@ const PARTICLE_IN_LIQUID = {
   sinks: 'sink out of sight',
   dissolves: 'spread through it',
   floats: 'float on it',
+};
+
+// how they fade in and out (fadeIn, fadeTime, drawOne())
+const PARTICLE_FADES = {
+  clear: 'going see-through',
+  shrinks: 'shrinking away',
+  crumbles: 'breaking up',
 };
 
 // what they do landing in a hot liquid (ParticleSystem.fallIn())
@@ -771,6 +791,11 @@ class ParticleSystem {
       for (const p of this.shadows) {
         ctx.globalAlpha = batch.alpha * p.drawShadow;
         // an oval on its floor spot, half as tall as it's wide
+        if (p.effect.pixel) {
+          if (batch.turned) unturnParticles(batch);
+          fillPixelMask(ctx, pixelMask('circle', p.drawHalf / ART_SCALE, p.drawHalf / 2 / ART_SCALE, 0), Math.round(p.x / ART_SCALE), Math.round(p.y / ART_SCALE));
+          continue;
+        }
         turnParticle(batch, null, p.x, p.y, p.drawHalf, p.drawHalf / 2);
         ctx.fill(PARTICLE_SHAPES.circle.path);
       }
@@ -795,12 +820,22 @@ class ParticleSystem {
   drawOne(p, batch) {
     const e = p.effect;
     const t = p.age / p.life;
-    const size = particleSize(p);
-    if (size < 0.5) return;
+    let size = particleSize(p);
     // twinkling at random
     const twinkle = e.twinkle ? 1 - (Math.random() * e.twinkle) / 100 : 1;
-    const alpha = particleAlpha(p) * twinkle;
+    let alpha = particleAlpha(p) * twinkle;
     if (alpha <= 0) return;
+    // fading by shrinking or breaking up (fadeStyle), it stays as solid as its opacity. wisps and
+    // flames have their own way of fading (fillPixelShape())
+    p.drawGone = 0;
+    if (e.fadeStyle !== 'clear' && !PARTICLE_SHAPES[e.shape].pixel) {
+      const solid = e.opacity / 100;
+      const left = Math.min(1, alpha / solid);
+      if (e.fadeStyle === 'shrinks') size *= left;
+      else if (e.pixel) p.drawGone = 1 - left;
+      alpha = solid;
+    }
+    if (size < 0.5) return;
     p.drawAlpha = alpha;
     p.drawHalf = size / 2;
     // a shadow on its floor spot, fainter the higher it is
@@ -813,7 +848,13 @@ class ParticleSystem {
       const { ctx } = batch;
       ctx.globalAlpha = batch.alpha * alpha;
       ctx.globalCompositeOperation = e.glow ? 'lighter' : batch.blend;
-      turnParticle(batch, p);
+      const smooth = ctx.imageSmoothingEnabled;
+      if (e.pixel) {
+        // on the art's grid, crisp, turned in quarter turns like pixel art turns
+        const turns = Math.round(p.angle / (Math.PI / 2)) * (Math.PI / 2);
+        turnParticle(batch, { angle: turns }, Math.round(p.x / ART_SCALE) * ART_SCALE, Math.round((p.y - p.z) / ART_SCALE) * ART_SCALE, p.drawHalf, Math.abs(Math.cos(p.flip)) * p.drawHalf);
+        ctx.imageSmoothingEnabled = false;
+      } else turnParticle(batch, p);
       if (p.bit) {
         const w = img.width / p.bit.n;
         const h = img.height / p.bit.n;
@@ -822,6 +863,7 @@ class ParticleSystem {
         const h = img.height / img.width;
         ctx.drawImage(img.canvas, -1, -h, 2, h * 2);
       }
+      ctx.imageSmoothingEnabled = smooth;
       ctx.globalAlpha = batch.alpha;
       ctx.globalCompositeOperation = batch.blend;
       return;
@@ -890,7 +932,11 @@ function fillParticle(batch, p) {
   const e = p.effect;
   const { ctx } = batch;
   if (PARTICLE_SHAPES[e.shape].pixel) {
-    fillWisp(batch, p);
+    fillPixelShape(batch, p);
+    return;
+  }
+  if (e.pixel) {
+    fillPixels(batch, p);
     return;
   }
   // a picture that hasn't loaded (or failed to) is a square
@@ -1098,11 +1144,12 @@ function fillParticleShape(shape, x, y, size, rgb) {
   ctx.translate(x, y);
   ctx.scale(size / 2, size / 2);
   ctx.fillStyle = `rgb(${rgb.join(', ')})`;
-  if (PARTICLE_SHAPES[shape].pixel) {
-    // a wisp, at a sixth of its size a px
+  const own = PARTICLE_SHAPES[shape].pixel;
+  if (own) {
+    // its own px, at a sixth of its size a px
     const px = 1 / 3;
-    const tones = [1, WISP.body, WISP.shade].map((k) => `rgb(${rgb.map((v) => Math.round(v * k)).join(', ')})`);
-    wispRuns(2, 2.3, 0, 7, 0, (dx, dy, length, tone) => {
+    const tones = own.tones(rgb.map((v) => (v === 255 ? 200 : v))).map((c) => `rgb(${c.map(Math.round).join(', ')})`);
+    own.runs(2, 2.3, 0, 7, 0, (dx, dy, length, tone) => {
       ctx.fillStyle = tones[tone];
       ctx.fillRect((dx - 0.5) * px, (dy - 0.5) * px, length * px, px);
     });
@@ -1113,6 +1160,170 @@ function fillParticleShape(shape, x, y, size, rgb) {
 // a shape's little picture in the particle editor's Shape picker (size px square at x, y)
 function drawShapeChoice(shape, x, y, size) {
   if (PARTICLE_SHAPES[shape].path || PARTICLE_SHAPES[shape].pixel) fillParticleShape(shape, x + size / 2, y + size / 2, size * 0.7, [255, 255, 255]);
+}
+
+// ---------- pixel shapes ----------
+// every shape drawn on the art's grid a picture px at a time (an effect's pixel), like the rest of the
+// art: its outline filled in at the size and angle it is now, and kept (pixelMask()), so each size and
+// angle is only worked out once. streaks are drawn as a pixel line, so a thin one never breaks up. with
+// shade, the px towards the bottom right of a big enough one are darker, lit from the top left like
+// the art, and breaking up (fadeStyle) each px goes at its own point in the fade
+
+// the most masks kept before they're all let go, and how many angles a turn is cut into
+const PIXEL_MASKS = { most: 6000, turns: 32 };
+const pixelMasks = new Map();
+let pixelCanvas = null;
+
+// a shape's px at rx by ry picture px round 0, 0, turned by angle: { runs: [dx, dy, length, ...],
+// dark: [the same for the shaded px] , all: [dx, dy, dark (0 or 1), ...] each px }. sizes go in halves
+// of a px and angles in PIXEL_MASKS.turns, so they can be kept
+function pixelMask(shape, rx, ry, angle) {
+  const qx = Math.min(255, Math.max(1, Math.round(rx * 2)));
+  const qy = Math.min(255, Math.max(1, Math.round(ry * 2)));
+  const turns = PIXEL_MASKS.turns;
+  const qa = shape === 'circle' ? 0 : ((Math.round((angle / (Math.PI * 2)) * turns) % turns) + turns) % turns;
+  const key = ((PARTICLE_SHAPE_NUMBERS[shape] * 256 + qx) * 256 + qy) * turns + qa;
+  let mask = pixelMasks.get(key);
+  if (mask) return mask;
+  if (pixelMasks.size > PIXEL_MASKS.most) pixelMasks.clear();
+  mask = makePixelMask(shape, qx / 2, qy / 2, (qa / turns) * Math.PI * 2);
+  pixelMasks.set(key, mask);
+  return mask;
+}
+
+// little stars, hearts and rings (bubbles) drawn by hand, since filling in the outline at 5 px or less
+// just makes a blob. used from `from` px across up to 5. a star keeps its five points. # is a px,
+// centred on the middle of the picture
+const PIXEL_GLYPHS = {
+  star: { from: 3.5, rows: ['..#..', '#####', '.###.', '.#.#.'] },
+  heart: { from: 3.5, rows: ['##.##', '#####', '.###.', '..#..'] },
+  ring: { from: 1.5, rows: ['.##.', '#..#', '#..#', '.##.'] },
+};
+
+// works out a pixelMask(). its px are the ones the shape covers at least half of, drawn on a little
+// canvas, or for a streak a line from end to end, or a glyph for a small star or heart. never
+// nothing: at the least it's one px
+function makePixelMask(shape, rx, ry, angle) {
+  const on = [];
+  const long = Math.max(rx, ry) * 2;
+  const short = Math.min(rx, ry) * 2;
+  const glyph = PIXEL_GLYPHS[shape] && long <= 5.5 && long >= PIXEL_GLYPHS[shape].from ? PIXEL_GLYPHS[shape].rows : null;
+  // 3 px or less, a shape can't show, and filled in it can come out a little plus like a sparkle. so
+  // a long thin one (confetti, a leaf on its edge) is a stick turned its way, and the rest a block
+  const tiny = long <= 3.5 && !glyph && shape !== 'streak';
+  if (glyph) {
+    glyph.forEach((row, y) => [...row].forEach((c, x) => c === '#' && on.push([x - 2, y - 2])));
+  } else if (tiny && long / short < 1.5) {
+    const n = shape === 'square' ? Math.max(1, Math.round(long)) : Math.min(2, Math.max(1, Math.round(long)));
+    const from = -Math.floor(n / 2);
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) on.push([from + x, from + y]);
+  } else if (shape === 'streak' || tiny) {
+    // a line along the angle, as thick as the streak is (0.6 of its height), at least a px. a tiny
+    // stick is a px thick along its long side
+    const along = tiny ? angle + (ry > rx ? Math.PI / 2 : 0) : angle;
+    const half = tiny ? (Math.round(long) - 1) / 2 : rx;
+    const thick = tiny ? 1 : Math.max(1, Math.round(ry * 0.6));
+    const ex = Math.cos(along) * half;
+    const ey = Math.sin(along) * half;
+    const steps = Math.max(1, Math.ceil(Math.max(Math.abs(ex), Math.abs(ey)) * 2));
+    const seen = new Set();
+    for (let i = 0; i <= steps; i++) {
+      const x = Math.round(-ex + (2 * ex * i) / steps);
+      const y = Math.round(-ey + (2 * ey * i) / steps);
+      for (let k = 0; k < thick; k++) {
+        const across = k - Math.floor((thick - 1) / 2);
+        const px = Math.abs(ex) > Math.abs(ey) ? x : x + across;
+        const py = Math.abs(ex) > Math.abs(ey) ? y + across : y;
+        if (!seen.has(px * 4096 + py)) {
+          seen.add(px * 4096 + py);
+          on.push([px, py]);
+        }
+      }
+    }
+  } else {
+    const reach = Math.ceil(Math.max(rx, ry) * 1.5) + 2;
+    const size = reach * 2;
+    pixelCanvas ??= document.createElement('canvas');
+    if (pixelCanvas.width < size) pixelCanvas.width = pixelCanvas.height = size;
+    const ctx = pixelCanvas.getContext('2d', { willReadFrequently: true });
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, size, size);
+    // an odd number of px across is centred on a px, an even number on the line between two
+    ctx.translate(reach + (Math.round(rx * 2) % 2 ? 0.5 : 0), reach + (Math.round(ry * 2) % 2 ? 0.5 : 0));
+    ctx.rotate(angle);
+    ctx.scale(rx, ry);
+    ctx.fillStyle = '#fff';
+    ctx.fill(PARTICLE_SHAPES[shape].path ?? PARTICLE_SHAPES.square.path, 'evenodd');
+    const data = ctx.getImageData(0, 0, size, size).data;
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) if (data[(y * size + x) * 4 + 3] >= 128) on.push([x - reach, y - reach]);
+    }
+  }
+  if (!on.length) on.push([0, 0]);
+  // lit from the top left: px past the middle towards the bottom right are shaded, on ones 3 px or
+  // more across
+  const big = Math.max(rx, ry) >= 1.5;
+  const r = Math.max(rx, ry);
+  const all = [];
+  for (const [x, y] of on) all.push(x, y, big && (y + 0.5) / r + ((x + 0.5) / r) * 0.4 > 0.3 ? 1 : 0);
+  // in runs along each row, light and dark apart
+  const runs = [];
+  const dark = [];
+  const sorted = on.map((p, i) => [p[0], p[1], all[i * 3 + 2]]).sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+  let run = null;
+  for (const [x, y, d] of sorted) {
+    if (run && run.y === y && run.d === d && run.x + run.n === x) {
+      run.n++;
+      continue;
+    }
+    if (run) (run.d ? dark : runs).push(run.x, run.y, run.n);
+    run = { x, y, d, n: 1 };
+  }
+  (run.d ? dark : runs).push(run.x, run.y, run.n);
+  return { runs, dark, all };
+}
+
+// draws a pixelMask() at picture px cx, cy in the canvas's colour (world positions), all of it light
+function fillPixelMask(ctx, mask, cx, cy) {
+  for (const list of [mask.runs, mask.dark]) {
+    for (let i = 0; i < list.length; i += 3) ctx.fillRect((cx + list[i]) * ART_SCALE, (cy + list[i + 1]) * ART_SCALE, list[i + 2] * ART_SCALE, ART_SCALE);
+  }
+}
+
+// a particle on the art's grid (fillParticle()): its shape at its size, stretch, tumble and angle now,
+// in its bucket's colour, its shaded px darker (shade), and breaking up px by px (drawGone, drawOne())
+function fillPixels(batch, p) {
+  const e = p.effect;
+  const { ctx } = batch;
+  if (batch.turned) unturnParticles(batch);
+  const shape = PARTICLE_SHAPES[e.shape].path ? e.shape : 'square';
+  const rx = Math.max(0.5, ((e.stretch / 100) * p.drawHalf) / ART_SCALE);
+  const ry = Math.max(0.5, (Math.abs(Math.cos(p.flip)) * p.drawHalf) / ART_SCALE);
+  const mask = pixelMask(shape, rx, ry, p.angle);
+  const cx = Math.round(p.x / ART_SCALE);
+  const cy = Math.round((p.y - p.z) / ART_SCALE);
+  const light = ctx.fillStyle;
+  const shaded = e.shade > 0 && mask.dark.length;
+  const shade = shaded ? `rgb(${p.drawRgb.map((v) => Math.round(v * (1 - e.shade / 100))).join(', ')})` : light;
+  if (p.drawGone > 0) {
+    // each px goes at its own point in the fade, fixed for this particle
+    const seed = Math.floor(p.phase * 1000);
+    const all = mask.all;
+    for (let i = 0; i < all.length; i += 3) {
+      if (surfaceHash(all[i], all[i + 1], seed) < p.drawGone) continue; // surface.js
+      ctx.fillStyle = all[i + 2] ? shade : light;
+      ctx.fillRect((cx + all[i]) * ART_SCALE, (cy + all[i + 1]) * ART_SCALE, ART_SCALE, ART_SCALE);
+    }
+  } else {
+    const runs = mask.runs;
+    for (let i = 0; i < runs.length; i += 3) ctx.fillRect((cx + runs[i]) * ART_SCALE, (cy + runs[i + 1]) * ART_SCALE, runs[i + 2] * ART_SCALE, ART_SCALE);
+    if (mask.dark.length) {
+      ctx.fillStyle = shade;
+      const dark = mask.dark;
+      for (let i = 0; i < dark.length; i += 3) ctx.fillRect((cx + dark[i]) * ART_SCALE, (cy + dark[i + 1]) * ART_SCALE, dark[i + 2] * ART_SCALE, ART_SCALE);
+    }
+  }
+  ctx.fillStyle = light;
 }
 
 // ---------- pixel wisps ----------
@@ -1210,9 +1421,81 @@ function wispRuns(rx, ry, gone, seed, time, draw) {
   }
 }
 
-// a wisp particle (fillParticle()), in the colour it's in now (drawRgb, drawOne()), on the art's grid
-function fillWisp(batch, p) {
+// ---------- pixel flames ----------
+// the flame shape (PARTICLE_SHAPES): a teardrop of fire, round at the bottom and licking up to a tip
+// that flickers side to side, its own pace for each one. a pale hot core, the particle's colour round
+// it, and a deeper, redder edge. fading, it burns down: shorter and narrower until it's gone
+
+const FLAME = {
+  // how tall it is next to how wide (times its height), and how far the tip licks side to side (times
+  // its width) and how quickly
+  tall: 2.2,
+  lick: 0.5,
+  lickSpeed: 9,
+  // where the core and the colour give way, out from the middle (0 to 1), and how far the core's
+  // colour goes towards the white heat of a fire's middle
+  core: 0.4,
+  body: 0.75,
+  pale: 0.6,
+  heat: [255, 244, 196],
+};
+
+// a flame's three colours from its own: the pale core, it, and the redder edge
+function flameTones(rgb) {
+  return [rgb.map((v, i) => v + (FLAME.heat[i] - v) * FLAME.pale), rgb, [rgb[0] * 0.85, rgb[1] * 0.45, rgb[2] * 0.35]];
+}
+
+// the px of a flame about rx wide round 0, 0 (ry is its bottom's height), in rows of runs like
+// wispRuns(): tone 0 the core, 1 the body, 2 the edge
+function flameRuns(rx, ry, gone, seed, time, draw) {
+  const left = 1 - gone;
+  const w = rx * left;
+  const bottom = ry * left;
+  const top = ry * FLAME.tall * left;
+  if (w < 0.75 || top < 1) {
+    if (left > 0.15) draw(0, 0, 1, 0);
+    return;
+  }
+  // too small to be round, it's a little stack: core over colour
+  if (w < 1.5) {
+    draw(0, -1, 1, 0);
+    draw(0, 0, 1, 1);
+    return;
+  }
+  const flicker = time * FLAME.lickSpeed + seed;
+  for (let dy = -Math.ceil(top); dy <= Math.ceil(bottom); dy++) {
+    // half its width on this row, and how far it's licked over: none at the bottom, most at the tip
+    const up = dy < 0 ? -dy / top : 0;
+    const half = dy >= 0 ? w * Math.sqrt(Math.max(0, 1 - (dy / bottom) ** 2)) : w * Math.max(0, 1 - up) ** 0.8;
+    if (half < 0.5) continue;
+    const off = Math.sin(flicker + dy * 0.6) * w * FLAME.lick * up;
+    let start = null;
+    let shaded = 0;
+    const from = Math.floor(off - half);
+    const to = Math.ceil(off + half);
+    for (let dx = from; dx <= to + 1; dx++) {
+      const across = Math.abs(dx + 0.5 - off) / half;
+      const on = dx <= to && across <= 1;
+      // the core's lower down, and the tip's all edge
+      const d = Math.max(across, up * 1.1);
+      const tone = d < FLAME.core ? 0 : d < FLAME.body ? 1 : 2;
+      if (start !== null && (!on || tone !== shaded)) {
+        draw(start, dy, dx - start, shaded);
+        start = null;
+      }
+      if (on && start === null) {
+        start = dx;
+        shaded = tone;
+      }
+    }
+  }
+}
+
+// a particle with a shape that draws itself (PARTICLE_SHAPES' pixel, fillParticle()), in the colour it's
+// in now (drawRgb, drawOne()), on the art's grid. it fades its own way, as solid as its opacity
+function fillPixelShape(batch, p) {
   const e = p.effect;
+  const own = PARTICLE_SHAPES[e.shape].pixel;
   const { ctx } = batch;
   if (batch.turned) unturnParticles(batch);
   const solid = e.opacity / 100;
@@ -1222,9 +1505,9 @@ function fillWisp(batch, p) {
   const cx = Math.round(p.x / ART_SCALE);
   const cy = Math.round((p.y - p.z) / ART_SCALE);
   const light = ctx.fillStyle;
-  const tones = [light, ...[WISP.body, WISP.shade].map((k) => `rgb(${p.drawRgb.map((v) => Math.round(v * k)).join(', ')})`)];
+  const tones = own.tones(p.drawRgb).map((c) => `rgb(${c.map((v) => Math.round(Math.min(255, v))).join(', ')})`);
   ctx.globalAlpha = batch.alpha * solid;
-  wispRuns(rx, ry, gone, Math.floor(p.phase * 1000), p.age, (dx, dy, length, tone) => {
+  own.runs(rx, ry, gone, Math.floor(p.phase * 1000), p.age, (dx, dy, length, tone) => {
     ctx.fillStyle = tones[tone];
     ctx.fillRect((cx + dx) * ART_SCALE, (cy + dy) * ART_SCALE, length * ART_SCALE, ART_SCALE);
   });

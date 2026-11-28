@@ -12,5 +12,7 @@
   "fadeTime": 2,
   "inLiquid": "dissolves",
   "inHot": "sizzles",
-  "hotThen": "sizzle-steam"
+  "hotThen": "sizzle-steam",
+  "shade": 30,
+  "fadeStyle": "crumbles"
 }
