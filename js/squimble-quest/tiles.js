@@ -126,6 +126,9 @@ const TILE_DEFAULTS = {
   // the ring round whoever's in it, where they meet the surface, and the foam, glints, wakes and
   // ripples on it, mixed with its colour (surface.js)
   surfaceColour: '#ffffff',
+  // how clearly whoever and whatever stands by it or in it is mirrored in it, 0 to 1 (surface.js's
+  // SURFACE_MIRROR). 0 for none
+  reflects: 0.6,
   // how much it shines (surface.js's SURFACE_LIGHT): its glints, the lights mirrored in it and the sky's
   // light it gives back. 1 is water, lower for dull liquids like mud, 0 for none
   shine: 1,

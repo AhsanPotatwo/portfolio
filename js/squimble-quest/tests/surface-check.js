@@ -1,6 +1,6 @@
 // checks liquids' surfaces (surface.js): nothing's drawn off the liquid's tiles (a wake running up
 // the shore stops at it), the band under the bank is darker than the liquid, foam stays near the
-// shore, and with no liquid on screen there's nothing to draw. and with light (lighting.js):
+// shore, things on the bank are mirrored in it, and with no liquid on screen there's nothing to draw. and with light (lighting.js):
 // a lamp mirrored below where it hangs at night and not by
 // day, and the light given back only on the liquid. run it with
 // node js/squimble-quest/tests/surface-check.js
@@ -59,6 +59,17 @@ const fromShore = ([x, y]) => Math.min(x - ART, 3 * ART - 1 - x, y - ART, 3 * AR
 assert(foam.length, 'some foam');
 const far = foam.filter((p) => fromShore(p) > game.SURFACE.foamFar + 4);
 assert(far.length <= 4, `foam stays near the shore, bar a glint or two (${far.length} px further out)`);
+
+// mirrored (Surface.mirror()): something on the bank just above the water, but not something over the
+// sand beside it, or too far up the bank for its reflection to reach the water
+Surface.draw(map, 0, 3, 0, 3, edge, edge);
+const thing = (x, y, h) => ({ x, y, w: 20, h, draw() {} });
+const bank = thing(1.5 * TILE, TILE - 4, 40);
+const beside = thing(3.5 * TILE, 2 * TILE, 40);
+const upBank = thing(1.5 * TILE, TILE - 60, 20);
+const mirrored = Surface.overLiquid([beside, bank, upBank]);
+assert.strictEqual(mirrored.length, 1, `only the one on the bank is mirrored (${mirrored.length})`);
+assert.strictEqual(mirrored[0].x, bank.x);
 
 // no liquid on screen, nothing drawn
 drawnImage = 0;

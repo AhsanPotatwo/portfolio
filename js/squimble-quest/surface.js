@@ -14,6 +14,10 @@
 //     fewer where it's dim, none in the dark
 //   - reflections: lamps, fires and neon mirrored in it, below where they hang, as a wobbling column
 //     of dashes that come and go (a glitter path), in their own colour. gone by day, outshone
+//   - mirroring: whoever and whatever stands at the water's edge or in it (people, lamp posts, trees)
+//     upside down under their feet, drawn by their own code (mirror()). not a true mirror: squashed
+//     shorter, every row sliding sideways with the waves, fading into the water further down and
+//     breaking into bands that roll away, like the lights' reflections. under everything else on it
 //   - wakes (wakes.js) and ripples (floor particles with onLiquid and the ripple shape, particles.js)
 //   - splashes where particles land in it (ParticleSystem.fallIn(), particles.js): a little ring
 //     that opens and breaks up, and for ones that spread through it (blood) a cloud of their colour
@@ -86,6 +90,28 @@ const SURFACE_LIGHT = {
   waverSpeed: 1.1,
 };
 
+// mirroring things in liquids (mirror(), the top of the file). how clearly each liquid does is its
+// tile's Mirrors (reflects). anything with a surface layer could use it, so ice would only need one
+const SURFACE_MIRROR = {
+  // how much of the thing shows right under its feet (0 to 1, times the tile's reflects), fading to
+  // nothing at the far end
+  strength: 0.6,
+  // how tall the reflection is next to the thing (rows are left out to squash it), and at most how
+  // many picture px
+  squash: 0.7,
+  longest: 48,
+  // picture px each row slides sideways at most, more further down, and how quickly the waves go
+  wobble: 1.3,
+  speed: 2.6,
+  // how much of the far end is gaps (0 to 1), the bands about crests px apart rolling away at roll a
+  // second
+  gaps: 0.6,
+  crests: 3,
+  roll: 0.7,
+  // at most this many things, the closest to the middle of the screen first
+  most: 24,
+};
+
 // the size of a tile in picture px
 const SURFACE_ART = TILE / ART_SCALE; // config.js
 
@@ -149,11 +175,13 @@ const Surface = {
     }
 
     this.canvas.getContext('2d').putImageData(this.image, 0, 0);
+    const mirrored = this.mirror(map, now);
     const ctx = drawingContext;
     const smooth = ctx.imageSmoothingEnabled;
     ctx.imageSmoothingEnabled = false;
     const left = x(2 * col0);
     const top = y(2 * row0);
+    if (mirrored) ctx.drawImage(this.mirrorCanvas, left, top, x(2 * col1 + 2) - left, y(2 * row1 + 2) - top);
     ctx.drawImage(this.canvas, left, top, x(2 * col1 + 2) - left, y(2 * row1 + 2) - top);
     ctx.imageSmoothingEnabled = smooth;
     this.drawn = map;
@@ -223,6 +251,158 @@ const Surface = {
         if (this.quarters[Math.floor(ly / half) * this.qw + Math.floor(lx / half)] && !(alpha && alpha[i * 4 + 3] >= 128)) this.water[i] = 1;
       }
     }
+  },
+
+  // ---------- mirroring ----------
+
+  // the things standing on map that could be mirrored in it: everyone (on the game's map) and its
+  // standing objects, each { x, y (its feet, world px), w, h (how big it's drawn), draw() }
+  standing(map) {
+    const list = [];
+    if (typeof worldMap !== 'undefined' && map === worldMap) {
+      for (const c of [player, ...enemies, ...npcs]) {
+        if (c.dead) continue;
+        const size = characterDrawnSize(c.settings) ?? { w: c.w, h: c.h }; // character.js
+        list.push({ x: c.x, y: c.y + c.h / 2, w: Math.max(size.w, c.w) + 16, h: Math.max(size.h, c.h) + 8, draw: () => c.drawBody() });
+      }
+    }
+    const everywhere = { left: -Infinity, right: Infinity, top: -Infinity, bottom: Infinity };
+    for (const obj of map.standingObjects?.() ?? []) {
+      const type = OBJECT_TYPES[obj.type]; // objects.js
+      const size = artDrawnSize(getArt(type.image, 'object', type.name)); // art.js
+      list.push({ x: (obj.col + type.width / 2) * TILE, y: (obj.row + type.height) * TILE, w: Math.max(type.width * TILE, size?.w ?? 0) + 4, h: Math.max(type.height * TILE, size?.h ?? 0) + 4, draw: () => map.drawObject(obj, everywhere) });
+    }
+    return list;
+  },
+
+  // the things by or in the liquid mirrored upside down under their feet (the top of the file) on
+  // this.mirrorCanvas, a picture px a pixel like the layer, then kept only where the liquid shows, as
+  // much as its tile mirrors (reflects). each is drawn into an atlas by its own code first (like
+  // lighting.js's silhouettes), then copied back a row at a time. false if nothing's mirrored
+  mirror(map, now) {
+    const M = SURFACE_MIRROR;
+    const { w, h } = this;
+    const things = this.overLiquid(this.standing(map));
+    if (!things.length) return false;
+    // each in its own slot of the atlas, packed in rows, from its picture's top to its feet
+    if (!this.mirrorAtlas) {
+      this.mirrorAtlas = lightGraphics(512, 256); // lighting.js
+      this.mirrorAtlas.noSmooth();
+    }
+    const atlas = this.mirrorAtlas;
+    let sx = 0;
+    let sy = 0;
+    let rowH = 0;
+    for (const t of things) {
+      t.sw = t.half * 2 + 2;
+      t.sh = Math.ceil(t.h / ART_SCALE) + 1;
+      if (sx + t.sw > atlas.width) {
+        sx = 0;
+        sy += rowH + 1;
+        rowH = 0;
+      }
+      t.slot = sy + t.sh <= atlas.height && t.sw <= atlas.width ? { x: sx, y: sy } : null;
+      sx += t.sw + 1;
+      rowH = Math.max(rowH, t.sh);
+    }
+    drawingInto(atlas, () => {
+      const ctx = drawingContext;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, atlas.width, atlas.height);
+      for (const t of things) {
+        if (!t.slot) continue;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(t.slot.x, t.slot.y, t.sw, t.sh);
+        ctx.clip();
+        // its feet on the slot's bottom row, on the art's grid
+        ctx.setTransform(1 / ART_SCALE, 0, 0, 1 / ART_SCALE, t.slot.x - (t.ax - t.half - 1), t.slot.y + t.sh - t.ay);
+        push();
+        t.draw();
+        pop();
+        ctx.restore();
+      }
+    });
+
+    if (this.mirrorCanvas?.width !== w || this.mirrorCanvas.height !== h) {
+      this.mirrorCanvas ??= document.createElement('canvas');
+      this.mirrorCanvas.width = w;
+      this.mirrorCanvas.height = h;
+    }
+    const mc = this.mirrorCanvas.getContext('2d');
+    mc.setTransform(1, 0, 0, 1, 0, 0);
+    mc.globalCompositeOperation = 'source-over';
+    mc.globalAlpha = 1;
+    mc.imageSmoothingEnabled = false;
+    mc.clearRect(0, 0, w, h);
+    for (const t of things) {
+      if (!t.slot) continue;
+      const seed = (t.ax * 7 + t.ay * 13) % 1000;
+      for (let r = 0; r < t.long; r++) {
+        // the row r below its feet shows the row r / squash above them
+        const from = t.sh - 1 - Math.floor(r / M.squash);
+        if (from < 0) break;
+        const far = r / t.long;
+        const y = t.ay + r;
+        // a gap, more of them further down
+        if (far > 0.15 && Math.sin((y / M.crests - now * M.roll) * Math.PI * 2 + seed) < -1 + 2 * far * M.gaps) continue;
+        const slide = Math.round(Math.sin(now * M.speed - y * 0.55 + seed) * M.wobble * (0.25 + far));
+        mc.globalAlpha = M.strength * (1 - far) ** 0.8;
+        mc.drawImage(atlas.canvas, t.slot.x, t.slot.y + from, t.sw, 1, t.ax - t.half - 1 - this.ox + slide, y - this.oy, t.sw, 1);
+      }
+    }
+    // only where the liquid shows, as much as it mirrors
+    mc.globalAlpha = 1;
+    mc.globalCompositeOperation = 'destination-in';
+    mc.drawImage(this.mirrorMask(), 0, 0);
+    mc.globalCompositeOperation = 'source-over';
+    return true;
+  },
+
+  // the things (standing()) to mirror: the ones with liquid showing somewhere under them within their
+  // reflection, the closest to the middle of the layer first, at most SURFACE_MIRROR.most. each with
+  // its feet in picture px (ax, ay), its reflection's length (long) and half its width (half)
+  overLiquid(standing) {
+    const M = SURFACE_MIRROR;
+    const { w, h, water } = this;
+    const middle = { x: (this.ox + w / 2) * ART_SCALE, y: (this.oy + h / 2) * ART_SCALE };
+    const things = standing.map((t) => {
+      const ax = Math.round(t.x / ART_SCALE);
+      const ay = Math.round(t.y / ART_SCALE);
+      const long = Math.min(M.longest, Math.ceil((t.h / ART_SCALE) * M.squash));
+      const half = Math.ceil(t.w / ART_SCALE / 2);
+      const wet = [-half / 2, 0, half / 2].some((dx) => {
+        const lx = Math.round(ax + dx) - this.ox;
+        if (lx < 0 || lx >= w) return false;
+        for (let ly = Math.max(0, ay - this.oy); ly < Math.min(h, ay - this.oy + long); ly++) if (water[ly * w + lx]) return true;
+        return false;
+      });
+      return wet ? { ...t, ax, ay, long, half } : null;
+    }).filter(Boolean);
+    things.sort((p, q) => Math.hypot(p.x - middle.x, p.y - middle.y) - Math.hypot(q.x - middle.x, q.y - middle.y));
+    things.length = Math.min(things.length, M.most);
+    return things;
+  },
+
+  // a picture of where the liquid shows (shore()), each px as solid as its tile mirrors things
+  // (reflects), remade when the shore is
+  mirrorMask() {
+    if (this.maskFor === this.water) return this.mirrorMaskCanvas;
+    const { w, h } = this;
+    this.mirrorMaskCanvas ??= document.createElement('canvas');
+    this.mirrorMaskCanvas.width = w;
+    this.mirrorMaskCanvas.height = h;
+    const image = new ImageData(w, h);
+    const px = new Uint32Array(image.data.buffer);
+    for (let ly = 0; ly < h; ly++) {
+      for (let lx = 0; lx < w; lx++) {
+        const i = ly * w + lx;
+        if (this.water[i]) px[i] = (Math.round(Math.max(0, Math.min(1, this.liquidAt(lx, ly).reflects ?? 0)) * 255) << 24) >>> 0;
+      }
+    }
+    this.mirrorMaskCanvas.getContext('2d').putImageData(image, 0, 0);
+    this.maskFor = this.water;
+    return this.mirrorMaskCanvas;
   },
 
   // how lit the box is (cw x ch tiles from col0, row0) at every tile's corners (lightNear() in
