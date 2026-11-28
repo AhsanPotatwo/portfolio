@@ -34,7 +34,7 @@ Everything that isn't behaviour is a JSON file in `assets/squimble-quest/<kind>/
 | System | Files |
 |---|---|
 | Maps, warps, ids | `maps.js`, `mapfile.js` (format), `tilemap.js`, `warps.js`, `warpgraph.js` |
-| Tiles, dual grid, liquids | `tiles.js`, `tileeditor.js`, `dualgrid.js`, `wakes.js` |
+| Tiles, dual grid, liquids | `tiles.js`, `tileeditor.js`, `dualgrid.js`, `wakes.js`, `surface.js` |
 | Characters, AI | `character.js`, `player.js`, `enemies.js`, `npc.js`, `pathfinding.js` |
 | Combat | `weapons.js`, `weaponeditor.js`, `items.js`, `itemglow.js` |
 | Inventory, chests | `inventory.js`, `storageeditor.js`, `interact.js` |

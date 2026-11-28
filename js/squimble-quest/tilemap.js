@@ -407,7 +407,7 @@ class TileMap {
   }
 
   // clips what's drawn next to the liquid tiles (a sink over 0, tiles.js) in view (camera.view()), till
-  // drawingContext.restore(), so ripples and wakes (wakes.js) stop at the shore
+  // drawingContext.restore(), so what's on them (the ring round waders, character.js) stops at the shore
   clipToLiquid(view) {
     const ctx = drawingContext;
     ctx.beginPath();
@@ -505,7 +505,8 @@ class TileMap {
   //
   // dual grid tiles get skipped in the first pass and drawn afterwards on the half-offset grid
   // (drawDualCorner() in dualgrid.js). one with no dualTiles (no texture, or it hasn't loaded) is
-  // drawn in the first pass in its colour instead
+  // drawn in the first pass in its colour instead. liquids' surfaces (foam, wakes...) go between, so
+  // the ground's edge lies over them (surface.js)
   drawTiles(camera) {
     const view = camera.view();
     const firstCol = Math.max(this.left, this.colAt(view.left));
@@ -559,6 +560,8 @@ class TileMap {
         col = end;
       }
     }
+
+    Surface.draw(this, firstCol, lastCol, firstRow, lastRow, x, y); // surface.js
 
     // every corner where four tiles meet, including along the far edges (dualgrid.js)
     for (let row = firstRow; row <= lastRow + 1; row++) {

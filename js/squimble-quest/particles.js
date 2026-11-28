@@ -467,6 +467,8 @@ class ParticleSystem {
     let onLiquid = false;
     for (const p of this.list) {
       if (p.z > 0 || !this.onScreen(p, view)) continue;
+      // ripples are drawn on the liquid's surface instead, a picture px at a time (surface.js)
+      if (map && onSurface(p)) continue;
       if (p.effect.onLiquid && map) onLiquid = true;
       else this.drawOne(p, batch);
     }
@@ -479,7 +481,7 @@ class ParticleSystem {
     map.clipToLiquid(view); // tilemap.js
     const liquid = this.beginDrawing();
     for (const p of this.list) {
-      if (p.z <= 0 && p.effect.onLiquid && this.onScreen(p, view)) this.drawOne(p, liquid);
+      if (p.z <= 0 && p.effect.onLiquid && !onSurface(p) && this.onScreen(p, view)) this.drawOne(p, liquid);
     }
     this.endDrawing(liquid);
     ctx.restore();
@@ -605,13 +607,11 @@ class ParticleSystem {
   drawOne(p, batch) {
     const e = p.effect;
     const t = p.age / p.life;
-    const size = p.size * (1 + (e.endSize / 100 - 1) * t);
+    const size = particleSize(p);
     if (size < 0.5) return;
-    // fading in over the first fadeIn seconds and out over the last fadeTime (x / 0 is Infinity, so
-    // 0 never fades out), and twinkling at random
-    const fadeIn = e.fadeIn ? p.age / e.fadeIn : 1;
+    // twinkling at random
     const twinkle = e.twinkle ? 1 - (Math.random() * e.twinkle) / 100 : 1;
-    const alpha = (e.opacity / 100) * Math.min(1, fadeIn, (p.life - p.age) / e.fadeTime) * twinkle;
+    const alpha = particleAlpha(p) * twinkle;
     if (alpha <= 0) return;
     p.drawAlpha = alpha;
     p.drawHalf = size / 2;
@@ -650,6 +650,19 @@ class ParticleSystem {
     if (!bucket) this.buckets.set(key, bucket = []);
     bucket.push(p);
   }
+}
+
+// how big a particle is now, growing or shrinking towards endSize
+function particleSize(p) {
+  return p.size * (1 + (p.effect.endSize / 100 - 1) * (p.age / p.life));
+}
+
+// how see-through it is now: its opacity, fading in over the first fadeIn seconds and out over the
+// last fadeTime (x / 0 is Infinity, so 0 never fades out)
+function particleAlpha(p) {
+  const e = p.effect;
+  const fadeIn = e.fadeIn ? p.age / e.fadeIn : 1;
+  return (e.opacity / 100) * Math.min(1, fadeIn, (p.life - p.age) / e.fadeTime);
 }
 
 // the bit of a colour bucket's key that says it glows (ParticleSystem.drawOne())

@@ -875,20 +875,21 @@ function drawInLiquid(liquid, x, surface, w, sunk, down, draw, map) {
     ctx.lineTo(x - far, to);
     ctx.clip();
   };
+  const palette = Surface.palette(liquid); // surface.js
   const [r, g, b] = hexToRgb(liquid.surfaceColour); // particles.js
   // the ring fades out over the last few px of coming out, rather than vanishing
   const showing = Math.min(1, sunk / 6);
-  const ring = (from, to, alpha, weight) => {
+  // a picture px at a time in the liquid's own colours (Surface.arc()), like its wake
+  const ring = (from, to, tone) => {
     push();
     map.clipToLiquid({ left: x - rx - 2, right: x + rx + 2, top: surface - ry - 2, bottom: surface + ry + 2 }); // tilemap.js
-    noFill();
-    stroke(r, g, b, 255 * alpha * showing);
-    strokeWeight(weight);
-    arc(x, surface, rx * 2, ry * 2, from, to);
+    ctx.globalAlpha *= showing;
+    ctx.fillStyle = palette.css[tone];
+    Surface.arc(x, surface, rx, ry, from, to);
     pop();
   };
 
-  ring(Math.PI, Math.PI * 2, 0.3, 1);
+  ring(Math.PI, Math.PI * 2, 'mid');
   if (liquid.clarity > 0) {
     push();
     map.clipToLiquid({ left: x - w, right: x + w, top: surface, bottom: surface + sunk });
@@ -899,8 +900,8 @@ function drawInLiquid(liquid, x, surface, w, sunk, down, draw, map) {
       ctx.beginPath();
       ctx.rect(x - far, top, far * 2, LIQUID.strip);
       ctx.clip();
-      // whole px, so the art stays sharp. the wave moves down from the surface
-      translate(Math.round(Math.sin(now * 4 - (top - surface) * 0.5) * LIQUID.wobble), surface);
+      // whole picture px, so the art stays on its grid. the wave moves down from the surface
+      translate(Math.round((Math.sin(now * 4 - (top - surface) * 0.5) * LIQUID.wobble) / ART_SCALE) * ART_SCALE, surface);
       scale(1, LIQUID.refract);
       translate(0, down - surface);
       draw();
@@ -913,7 +914,7 @@ function drawInLiquid(liquid, x, surface, w, sunk, down, draw, map) {
   translate(0, down);
   draw();
   pop();
-  ring(0, Math.PI, 0.85, 1.5);
+  ring(0, Math.PI, 'foam');
 
   if (!liquid.glow) return;
   push();

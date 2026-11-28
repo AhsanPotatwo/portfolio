@@ -1,9 +1,6 @@
 {
   "colour": "#3b7dd8",
   "speed": 0.6,
-  "particles": [
-    "water-glints"
-  ],
   "stepSounds": [
     "wade"
   ],

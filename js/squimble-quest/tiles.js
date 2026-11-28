@@ -118,7 +118,8 @@ const TILE_DEFAULTS = {
   sink: 0,
   // how much of the part under shows through, wobbling: 0 hides it (lava, mud), 1 is clear
   clarity: 0.4,
-  // the ring round whoever's in it, where they meet the surface
+  // the ring round whoever's in it, where they meet the surface, and the foam, glints, wakes and
+  // ripples on it, mixed with its colour (surface.js)
   surfaceColour: '#ffffff',
   // it gives off light (lava): the ring glows and so does whoever's in it, from the surface up
   glow: false,

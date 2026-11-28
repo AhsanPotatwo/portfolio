@@ -220,10 +220,10 @@ const LIQUID = {
   // the surface bobs up and down this many px, this many times a second
   bob: 1,
   bobSpeed: 0.4,
-  // the part under shows in strips this many px tall, each pushed sideways up to wobble px, like the
-  // surface bending it. lower strips are more work for every character in a liquid
+  // the part under shows in strips this many px tall, each pushed sideways up to wobble px (in whole
+  // picture px), like the surface bending it. lower strips are more work for every character in a liquid
   strip: 2,
-  wobble: 1.5,
+  wobble: 2,
   // the part under looks this much shorter, since water makes things look shallower than they are
   refract: 0.85,
   // the surface ring is this many times as wide as the body, and this much as tall as it's wide

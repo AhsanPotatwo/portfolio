@@ -25,13 +25,13 @@
 // dropped, and the arms only ever change smoothly as they age, so nothing jumps or vanishes from
 // frame to frame (tests/wakes-check.js measures it).
 //
-// every arm is drawn solid on one see-through layer (Wakes.layerFor()), then the layer's laid over
-// the surface at WAKE.opacity. so where an arm crosses itself or another wake (an enemy wading past)
-// they just join up, rather than doubling up into blobs. they're only shown over the liquid's tiles,
-// so they stop at the shore.
+// the arms are drawn a picture px at a time on the liquid's surface (Surface.line(), surface.js), in
+// its colours, so where an arm crosses itself or another wake (an enemy wading past) they just join
+// up. they're only on the liquid's tiles, under the ground's edge, so they stop at the shore. thin
+// bits break up into dashes rather than going see-through, which bits fixed when each point's dropped.
 //
 // a liquid's wake (tiles.js) makes its wakes stronger or fainter (thick lava's are faint), or 0 for
-// none, and its surfaceColour is their colour. the rest is WAKE, the same for every liquid. only for
+// none. the rest is WAKE, the same for every liquid. only for
 // show like particles: they never change the game, they're forgotten on changing map (loadMap() in
 // sketch.js), and in multiplayer they'd be on each computer
 
@@ -58,11 +58,10 @@ const WAKE = {
   // more is rounder, but the arms come off further behind on a turn
   ease: 8,
   round: 20,
-  // px wide at the head at full strength, thinning to nothing at the tail. taper over 1 keeps them
-  // wide for longer, under 1 thins them sooner. opacity (0 to 1) is all of them, laid over the surface
+  // px wide at the head at full strength, thinning to nothing at the tail (a picture px is
+  // ART_SCALE, config.js). taper over 1 keeps them wide for longer, under 1 thins them sooner
   width: 3,
   taper: 0.7,
-  opacity: 0.5,
   // how sharply the path's bending is evened out over this many px (Wakes.follow()), and a point's
   // dropped whenever the heading's turned this much (radians) since the last, so curves stay smooth.
   // inside is about how far into a bend the arm on its inside can go, as a part of the bend's
@@ -108,7 +107,7 @@ const Wakes = {
     if (!wake) {
       // the ring it comes off (drawInLiquid())
       const rx = (owner.w * LIQUID.ringWidth) / 2;
-      wake = { owner, liquid, colour: hexToRgb(liquid.surfaceColour), rx, ry: rx * LIQUID.ringSquash, x, y, source: { x, y, moving: false }, angle: Math.PI / 2, dir: { x: 0, y: 1 }, bend: 0, turned: 0, travelling: 1, speed: 0, strength: 0, travelled: 0, idle: 0, points: [] }; // particles.js
+      wake = { owner, liquid, rx, ry: rx * LIQUID.ringSquash, x, y, source: { x, y, moving: false }, angle: Math.PI / 2, dir: { x: 0, y: 1 }, bend: 0, turned: 0, travelling: 1, speed: 0, strength: 0, travelled: 0, idle: 0, points: [] };
       this.list.push(wake);
       this.following.set(owner, wake);
     }
@@ -169,7 +168,7 @@ const Wakes = {
   // a point on the path at x, y, how the wake is now. its speed is capped like its strength, so a roll
   // doesn't fling the arms out
   point(wake, x, y) {
-    return { x, y, angle: wake.angle, dir: wake.dir, bend: wake.bend, turned: wake.turned, speed: Math.min(wake.speed, WAKE.fullSpeed * WAKE.maxStrength), strength: wake.strength * wake.travelling, pulse: 1 + WAKE.stepPulse * Math.cos((wake.travelled / FOOTSTEPS.stride) * Math.PI * 2), age: 0 };
+    return { x, y, angle: wake.angle, dir: wake.dir, bend: wake.bend, turned: wake.turned, speed: Math.min(wake.speed, WAKE.fullSpeed * WAKE.maxStrength), strength: wake.strength * wake.travelling, pulse: 1 + WAKE.stepPulse * Math.cos((wake.travelled / FOOTSTEPS.stride) * Math.PI * 2), seed: Math.random(), age: 0 };
   },
 
   // ages every point, and lets go of wakes nobody's making any more (out of the liquid, died, the map
@@ -189,47 +188,15 @@ const Wakes = {
     this.following.clear();
   },
 
-  // every wake on screen, in world positions (inside camera.begin/end), clipped to the map's liquid
-  // tiles. view is the camera's (camera.view())
-  draw(view, map) {
-    if (!this.list.length) return;
-    const ctx = drawingContext;
-    const layer = this.layerFor(ctx.canvas);
-    layer.setTransform(1, 0, 0, 1, 0, 0);
-    layer.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-    layer.setTransform(ctx.getTransform());
-    layer.lineCap = 'round';
-    let drawn = false;
+  // every wake in view (world px) on the liquid's surface (Surface.draw(), surface.js)
+  draw(view, surface) {
     for (const wake of this.list) {
       // the head is at their feet now, while they're still making it, so the arms start at the ring
       const points = this.following.get(wake.owner) === wake ? [this.point(wake, wake.x, wake.y), ...wake.points] : wake.points;
       if (points.length < 2 || !this.onScreen(points, view)) continue;
-      const [r, g, b] = wake.colour;
-      layer.strokeStyle = `rgb(${r}, ${g}, ${b})`;
-      this.drawArm(layer, wake, points, 1);
-      this.drawArm(layer, wake, points, -1);
-      drawn = true;
+      this.drawArm(surface, wake, points, 1);
+      this.drawArm(surface, wake, points, -1);
     }
-    if (!drawn) return;
-    // all of them over the surface at once, see-through
-    ctx.save();
-    map.clipToLiquid(view); // tilemap.js
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.globalAlpha *= WAKE.opacity;
-    ctx.drawImage(layer.canvas, 0, 0);
-    ctx.restore();
-  },
-
-  // the see-through layer they're drawn solid on first, the canvas's size. drawn solid, where an arm
-  // crosses itself or another wake it just joins up, rather than doubling up or leaving a gap
-  layerFor(canvas) {
-    if (this.layer?.canvas.width !== canvas.width || this.layer.canvas.height !== canvas.height) {
-      const made = document.createElement('canvas');
-      made.width = canvas.width;
-      made.height = canvas.height;
-      this.layer = made.getContext('2d');
-    }
-    return this.layer;
   },
 
   // close enough to the screen that some of it could show. the arms reach out from the points, so with
@@ -238,11 +205,11 @@ const Wakes = {
     return points.some((p) => p.x > view.left - TILE && p.x < view.right + TILE && p.y > view.top - TILE && p.y < view.bottom + TILE);
   },
 
-  // one arm, side 1 or -1, from the head (points[0]) back to the tail, on the layer (layerFor()). each
+  // one arm, side 1 or -1, from the head (points[0]) back to the tail, on the surface. each
   // point is pushed out sideways from the path: first to the edge of the ring, then further the older
   // it is. it thins to nothing at the tail, which is its fade. everything about a point but its age
   // was fixed when it was dropped, so the arm only ever changes smoothly
-  drawArm(layer, wake, points, side) {
+  drawArm(surface, wake, points, side) {
     const spread = Math.tan((WAKE.angle * Math.PI) / 180);
     const middle = points.map((p) => {
       const nx = -p.dir.y * side;
@@ -279,15 +246,10 @@ const Wakes = {
         middle[i].y = was[i].y + ((was[i - 1].y + was[i + 1].y) / 4 - was[i].y / 2) * middle[i].even;
       }
     }
-    // a bit at a time, each as wide as its ends. it's solid, so where they overlap doesn't show
+    // a bit at a time, each as wide as its ends
     for (let i = 0; i < middle.length - 1; i++) {
       const width = (middle[i].width + middle[i + 1].width) / 2;
-      if (width < 0.1) continue;
-      layer.lineWidth = width;
-      layer.beginPath();
-      layer.moveTo(middle[i].x, middle[i].y);
-      layer.lineTo(middle[i + 1].x, middle[i + 1].y);
-      layer.stroke();
+      if (width >= 0.1) surface.line(middle[i].x, middle[i].y, middle[i + 1].x, middle[i + 1].y, width, points[i + 1].seed);
     }
   },
 };

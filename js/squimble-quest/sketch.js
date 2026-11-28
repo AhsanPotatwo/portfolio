@@ -19,6 +19,7 @@
 //   weapons.js    weapons, their swings and arrows
 //   particles.js  particle effects: bits that fly up, fall and fade (blood when something's hit)
 //   wakes.js      the V behind whoever wades through a liquid
+//   surface.js    liquids' surfaces a picture px at a time: foam at the shore, glints, wakes and ripples
 //   items.js      item kinds and their weapons, from items/
 //   tilemap.js    a tile map: storing, drawing, resizing, collision
 //   maps.js       start map, visited maps
@@ -465,9 +466,9 @@ function draw() {
   if (!WarpGraph.active && !SoundEditor.active) {
     gameCamera.begin();
     drawWorld(gameCamera, worldMap, Debug.shows('grid'));
-    // wakes on liquids, then particles lying on the floor, go under everything (wakes.js, particles.js)
+    // particles lying on the floor go under everything (particles.js). wakes and ripples are on
+    // liquids' surfaces, with the tiles (surface.js)
     const view = gameCamera.view();
-    Wakes.draw(view, worldMap);
     Particles.drawFloor(view, worldMap);
     // shaders like Sun tell what's standing on the ground by what changes from here... (shaders.js)
     Shaders.capture('ground');

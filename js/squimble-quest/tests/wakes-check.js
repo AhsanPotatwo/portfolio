@@ -9,23 +9,18 @@
 const assert = require('assert');
 const { load } = require('./load');
 
-// a canvas that remembers every point the arms go through and each bit's width, and each bit as a
-// line (with arm, 1 or -1, which arm it's in)
+// a liquid's surface (surface.js) that remembers every point the arms go through and each bit's
+// width, and each bit as a line (with arm, 1 or -1, which arm it's in)
 let drawn = [];
 let segs = [];
 let arm = 0;
-const at = (x, y) => drawn.push({ x, y, width: ctx.lineWidth });
-const ctx = {
-  canvas: { width: 960, height: 540 }, save() {}, restore() {}, beginPath() {}, stroke() {}, clearRect() {}, drawImage() {}, setTransform() {}, getTransform: () => null,
-  moveTo: at,
-  lineTo: (x, y) => {
-    const from = drawn[drawn.length - 1];
-    segs.push({ arm, x1: from.x, y1: from.y, x2: x, y2: y, width: ctx.lineWidth });
-    at(x, y);
+const map = {
+  line: (x1, y1, x2, y2, width) => {
+    segs.push({ arm, x1, y1, x2, y2, width });
+    drawn.push({ x: x1, y: y1, width }, { x: x2, y: y2, width });
   },
 };
-ctx.getContext = () => ctx;
-const game = load(['config.js', 'utils.js', 'wakes.js'], { hexToRgb: () => [255, 255, 255], drawingContext: ctx, document: { createElement: () => ctx } });
+const game = load(['config.js', 'utils.js', 'wakes.js']);
 const { Wakes, WAKE, TILE } = game;
 const drawArm = Wakes.drawArm.bind(Wakes);
 Wakes.drawArm = (layer, wake, points, side) => {
@@ -34,7 +29,6 @@ Wakes.drawArm = (layer, wake, points, side) => {
 };
 
 const water = { sink: 0.4, wake: 1, surfaceColour: '#ffffff' };
-const map = { clipToLiquid() {} };
 const view = { left: -1000, right: 1000, top: -1000, bottom: 1000 };
 const wader = () => ({ x: 0, y: -28, w: 28, h: 56 });
 // moves it at speed px/s along dx, dy for seconds, following and ageing like the game does
