@@ -1,4 +1,5 @@
 {
+  "liquid": true,
   "colour": "#3b7dd8",
   "speed": 0.6,
   "stepSounds": [
@@ -16,5 +17,11 @@
   ],
   "splashSounds": [
     "splash"
+  ],
+  "dropParticles": [
+    "drop-splash"
+  ],
+  "dripParticles": [
+    "drips"
   ]
 }

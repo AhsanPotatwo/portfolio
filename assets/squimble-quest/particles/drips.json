@@ -1,0 +1,20 @@
+{
+  "count": 1,
+  "countRandom": 0,
+  "area": 2,
+  "speed": 8,
+  "jumpHeight": 0,
+  "gravity": 500,
+  "bounce": 0,
+  "hitsWalls": false,
+  "size": 2,
+  "sizeRandom": 0,
+  "colour": "#d6ecff",
+  "colour2": "#9cc8f0",
+  "lifetime": 0.8,
+  "fadeTime": 0.1,
+  "opacity": 85,
+  "shadow": false,
+  "inHot": "sizzles",
+  "hotThen": "sizzle-steam"
+}

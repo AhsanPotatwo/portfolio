@@ -20,7 +20,7 @@ const game = loadFighting({
 const { Character, TILE, STAND_STILL } = game;
 
 const ground = { speed: 1 };
-const water = { speed: 1, sink: 0.4, splashParticles: ['drops'], rippleParticles: ['ring'], splashSounds: ['splash'] };
+const water = { speed: 1, liquid: true, sink: 0.4, splashParticles: ['drops'], rippleParticles: ['ring'], splashSounds: ['splash'] };
 // ground left of x = 2 tiles, water from there on
 const map = {
   get: (col) => (col >= 2 ? water : ground),

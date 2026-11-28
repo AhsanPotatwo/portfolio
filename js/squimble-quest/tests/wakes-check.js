@@ -28,7 +28,7 @@ Wakes.drawArm = (layer, wake, points, side) => {
   drawArm(layer, wake, points, side);
 };
 
-const water = { sink: 0.4, wake: 1, surfaceColour: '#ffffff' };
+const water = { liquid: true, sink: 0.4, wake: 1, surfaceColour: '#ffffff' };
 const view = { left: -1000, right: 1000, top: -1000, bottom: 1000 };
 const wader = () => ({ x: 0, y: -28, w: 28, h: 56 });
 // moves it at speed px/s along dx, dy for seconds, following and ageing like the game does

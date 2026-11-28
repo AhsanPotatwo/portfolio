@@ -595,6 +595,8 @@ const InventoryScreen = {
 
 // how close in px the middle of your feet has to be to pick something up
 const PICKUP_RANGE = 28;
+// how big an item on the ground is drawn, px
+const DROP_SIZE = 20;
 // how many px from the middle of your feet a drop gets thrown towards where you're aiming. it's far
 // enough to clear your body when you throw upwards
 const DROP_DISTANCE = 48;
@@ -610,6 +612,21 @@ const DROP_GAP = 20;
 const THROW_TIME = 0.4;
 // how many px a throw arcs up above the straight line from the player's middle to the ground
 const THROW_HEIGHT = 24;
+// a drop that lands in a liquid (liquid, tiles.js) splashes (Surface.plop() in surface.js), then sinks
+// to the bottom, or floats if its item does (floats, items.js). still there to pick up either way
+const DROP_LIQUID = {
+  // seconds a sinking one takes to go under, and px it goes down the screen
+  sinkTime: 0.7,
+  sinkDepth: 6,
+  // bubbles off a sunk one (a ring on the surface): about every bubbleEvery seconds for its first
+  // bubbleFor, and in liquids you can't see into (lava, See through 0) every hiddenEvery for good, so
+  // you can still find it
+  bubbleEvery: 0.45,
+  bubbleFor: 2.5,
+  hiddenEvery: 3,
+  // a floating one: how much of it's under, a part of its size
+  floatSunk: 0.35,
+};
 
 // items on the ground. each map keeps its own in map.drops (tilemap.js) until you reload. they're
 // progress like map.characters, so Export never saves map.drops. items placed in the editor are design
@@ -620,7 +637,8 @@ const THROW_HEIGHT = 24;
 // up and "inventory full" only shows once each time you walk up to it, not every frame. from is where
 // the throw started (under the player) and how high. flight goes from 0 to 1 while it's in the air
 // (THROW_TIME), and it can't be picked up until it's landed. placed is its map.items entry if it's one
-// placed in the editor
+// placed in the editor. one in a liquid has liquid (the tile kind), wet (seconds it's been in) and
+// bubbleIn (DROP_LIQUID)
 //
 // multiplayer: ready is one flag for everyone, so another player walking away readies it for the one
 // stood on it (who'd then pick their own drop straight back up). it'd need to be per player, or to
@@ -663,7 +681,7 @@ const Drops = {
       if (!ITEM_TYPES[entry.type] || map.drops.some((drop) => drop.placed === entry)) continue;
       const x = (entry.col + 0.5) * TILE;
       const y = (entry.row + 0.5) * TILE;
-      map.drops.push({ item: createItem(entry.type), x, y, ready: true, from: null, flight: 1, placed: entry });
+      map.drops.push({ item: createItem(entry.type), x, y, ready: true, from: null, flight: 1, placed: entry, ...this.inLiquid(map, x, y, true) });
     }
   },
 
@@ -701,8 +719,10 @@ const Drops = {
     map.drops = map.drops.filter((drop) => {
       if (drop.flight < 1) {
         drop.flight = Math.min(1, drop.flight + dt / THROW_TIME);
+        if (drop.flight >= 1) Object.assign(drop, this.inLiquid(map, drop.x, drop.y, false));
         return true;
       }
+      this.bubble(drop, dt);
       if (Math.hypot(drop.x - fx, drop.y - fy) > PICKUP_RANGE) {
         drop.ready = true;
         return true;
@@ -717,12 +737,65 @@ const Drops = {
     });
   },
 
+  // what a drop landing at x, y on map is in: { liquid, wet, bubbleIn }, with a splash unless it was
+  // already there (settled, placed in the editor), or {} on dry ground
+  inLiquid(map, x, y, settled) {
+    const liquid = map.get(map.colAt(x), map.rowAt(y));
+    if (!liquid?.liquid) return { liquid: null };
+    if (!settled) Surface.plop(liquid, x, y, DROP_SIZE * 0.8, map); // surface.js
+    return { liquid, wet: settled ? DROP_LIQUID.bubbleFor : 0, bubbleIn: settled ? DROP_LIQUID.hiddenEvery * Math.random() : DROP_LIQUID.bubbleEvery };
+  },
+
+  // a sunk drop's bubbles (DROP_LIQUID)
+  bubble(drop, dt) {
+    if (!drop.liquid || drop.item.type.floats) return;
+    drop.wet += dt;
+    drop.bubbleIn -= dt;
+    if (drop.bubbleIn > 0) return;
+    const early = drop.wet < DROP_LIQUID.bubbleFor;
+    if (!early && drop.liquid.clarity > 0) {
+      drop.bubbleIn = Infinity;
+      return;
+    }
+    drop.bubbleIn = (early ? DROP_LIQUID.bubbleEvery : DROP_LIQUID.hiddenEvery) * randomBetween(0.6, 1.4);
+    Surface.ringAt(drop.liquid, drop.x + randomBetween(-4, 4), drop.y + randomBetween(-2, 2), 5);
+  },
+
+  // a drop in a liquid: floating, bobbing with a ring where it meets the surface (drawInLiquid() in
+  // character.js), or sunk, going down and seen through it wobbling (drawWobbling()), hidden in ones
+  // you can't see into
+  drawInLiquid(drop) {
+    const size = DROP_SIZE;
+    const liquid = drop.liquid;
+    const x = Math.round(drop.x);
+    const surface = Math.round(drop.y);
+    const seed = drop.x + drop.y;
+    if (drop.item.type.floats) {
+      const under = size * DROP_LIQUID.floatSunk;
+      const y = surface - size / 2 + under;
+      drawInLiquid(liquid, x, surface, size, under, Math.round(liquidBob()), () => drawGlowingItem(drop.item, x, y, size, GLOW_PIXEL_SIZE, seed), worldMap, 'liquid');
+      return;
+    }
+    if (liquid.clarity <= 0) return;
+    const t = Math.min(1, drop.wet / DROP_LIQUID.sinkTime);
+    const top = surface - size;
+    push();
+    worldMap.clipToLiquid({ left: x - size * 2, right: x + size * 2, top: top - size, bottom: surface + size }); // tilemap.js
+    drawingContext.globalAlpha *= 1 - t * (1 - Math.min(1, liquid.clarity * 1.5));
+    drawWobbling(top, size + DROP_LIQUID.sinkDepth + 4, Math.round(t * DROP_LIQUID.sinkDepth), () => drawGlowingItem(drop.item, x, top + size / 2, size, GLOW_PIXEL_SIZE, seed));
+    pop();
+  },
+
   // one drop above its shadow. it glows in the air too, and bobs up and down once it's landed. each
   // one gets drawn on its own so it can be sorted in front of or behind characters (sketch.js). world
-  // positions (inside camera.begin/end)
+  // positions (inside camera.begin/end). in a liquid it's drawInLiquid()
   draw(drop) {
-    const size = 20;
+    const size = DROP_SIZE;
     const landed = drop.flight >= 1;
+    if (landed && drop.liquid) {
+      this.drawInLiquid(drop);
+      return;
+    }
     const spot = this.where(drop);
     // + x so drops next to each other don't bob in time
     const bob = landed ? Math.sin(millis() / 1000 * 3 + drop.x) * 3 : 0;

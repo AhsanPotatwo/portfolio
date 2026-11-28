@@ -406,14 +406,15 @@ class TileMap {
     return Math.floor(y / TILE);
   }
 
-  // clips what's drawn next to the liquid tiles (a sink over 0, tiles.js) in view (camera.view()), till
-  // drawingContext.restore(), so what's on them (the ring round waders, character.js) stops at the shore
-  clipToLiquid(view) {
+  // clips what's drawn next to the liquid tiles (liquid, tiles.js) in view (camera.view()), till
+  // drawingContext.restore(), so what's on them stops at the shore. what 'sink' clips to the tiles you
+  // sink into instead (the ring round waders, character.js), mud and quicksand too
+  clipToLiquid(view, what = 'liquid') {
     const ctx = drawingContext;
     ctx.beginPath();
     for (let row = this.rowAt(view.top); row <= this.rowAt(view.bottom); row++) {
       for (let col = this.colAt(view.left); col <= this.colAt(view.right); col++) {
-        if (this.get(col, row)?.sink) ctx.rect(col * TILE, row * TILE, TILE, TILE);
+        if (this.get(col, row)?.[what]) ctx.rect(col * TILE, row * TILE, TILE, TILE);
       }
     }
     ctx.clip();

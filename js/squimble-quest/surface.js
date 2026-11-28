@@ -1,4 +1,4 @@
-// the surface of liquids (tiles with sink, tiles.js), drawn a picture pixel at a time so it sits with
+// the surface of liquids (tiles with liquid ticked, tiles.js), drawn a picture pixel at a time so it sits with
 // the 16 px art. TileMap.drawTiles() (tilemap.js) calls Surface.draw() after the plain tiles and what
 // shows under the dual grid pieces' edges, and before the pieces, so the ground's ragged edge lies over
 // it like a bank over water. it covers the liquid's tiles and the bits of liquid showing under the
@@ -55,6 +55,9 @@ const SURFACE = {
   // seconds a sizzle spits for, and how many bright px at once
   sizzleFor: 0.4,
   sizzleSpits: 4,
+  // something landing in it (plop()): how loud its splash sound is, and how much higher
+  plopVolume: 0.45,
+  plopRate: 1.35,
   // more liquid tiles on screen than this (zoomed right out) leaves the surface plain. a picture px is
   // under a screen px by then, and the layer would be big for nothing
   maxTiles: 8000,
@@ -102,7 +105,7 @@ const Surface = {
     let col0 = Infinity, col1 = -Infinity, row0 = Infinity, row1 = -Infinity;
     for (let row = firstRow; row <= lastRow; row++) {
       for (let col = firstCol; col <= lastCol; col++) {
-        if (!map.get(col, row)?.sink) continue;
+        if (!map.get(col, row)?.liquid) continue;
         col0 = Math.min(col0, col);
         col1 = Math.max(col1, col);
         row0 = Math.min(row0, row);
@@ -110,6 +113,7 @@ const Surface = {
       }
     }
     this.drawn = null;
+    this.showing = false;
     if (col0 > col1) return;
     col0 = Math.max(firstCol, col0 - 1);
     col1 = Math.min(lastCol, col1 + 1);
@@ -129,7 +133,7 @@ const Surface = {
     for (let row = row0; row <= row1; row++) {
       for (let col = col0; col <= col1; col++) {
         const type = map.get(col, row);
-        if (type?.sink) this.glint(col, row, now, type);
+        if (type?.liquid) this.glint(col, row, now, type);
       }
     }
     this.reflections(now);
@@ -153,6 +157,7 @@ const Surface = {
     ctx.drawImage(this.canvas, left, top, x(2 * col1 + 2) - left, y(2 * row1 + 2) - top);
     ctx.imageSmoothingEnabled = smooth;
     this.drawn = map;
+    this.showing = true;
   },
 
   // works out where the liquid shows in the box (cw x ch tiles from col0, row0): this.quarters, the
@@ -181,10 +186,10 @@ const Surface = {
         for (let q = 0; q < 4; q++) {
           const qx = q % 2;
           const qy = q >> 1;
-          let liquid = type?.sink ? type : null;
+          let liquid = type?.liquid ? type : null;
           if (!liquid && type?.dualTiles) {
             const under = dualUnder(map, col + qx, row + qy); // dualgrid.js
-            if (under?.sink) liquid = under;
+            if (under?.liquid) liquid = under;
           }
           this.quarters[((row - row0) * 2 + qy) * this.qw + (col - col0) * 2 + qx] = liquid;
         }
@@ -432,6 +437,37 @@ const Surface = {
     this.splashes = [];
   },
 
+  // a ring opening on liquid (a tile kind) at x, y (world px), about size px across, like a splash's
+  // (ring()). sizzling in a hot one. for whatever touches the surface: an arrow skimming it, bubbles
+  // off something sunk
+  ringAt(liquid, x, y, size) {
+    const now = millis() / 1000;
+    this.splashes = this.splashes.filter((s) => now - s.born < s.lasts);
+    if (this.splashes.length >= SURFACE.splashes) this.splashes.shift();
+    this.splashes.push({ x, y, born: now, ring: size, cloud: false, sizzle: Boolean(liquid.hot), size, lasts: Math.max(SURFACE.ringFor, SURFACE.sizzleFor), seed: Math.floor(Math.random() * 1e6) });
+  },
+
+  // something size px across (an arrow, a dropped item) landing in liquid (a tile kind) at x, y on
+  // map: a ring, its Dropping in particles (dropParticles, tiles.js), and one of its splash sounds,
+  // quieter and higher than someone stepping in (Character.inLiquid() in character.js)
+  plop(liquid, x, y, size, map) {
+    this.ringAt(liquid, x, y, size);
+    for (const effect of liquid.dropParticles ?? []) Particles.burst(effect, x, y); // particles.js
+    const sounds = liquid.splashSounds ?? [];
+    const sound = sounds[Math.floor(Math.random() * sounds.length)];
+    if (sound) playSound(sound, { x, y, map }, null, { volume: SURFACE.plopVolume, rate: SURFACE.plopRate * (0.92 + Math.random() * 0.16), doppler: 0 }); // sound.js
+  },
+
+  // the liquid showing at picture px ax, ay (counting from the world's 0, 0) on this frame's layer, or
+  // null where there's none (the ground's edge over it, or off it). for drawing things in it, like an
+  // arrow's reflection (weapons.js)
+  under(ax, ay) {
+    const lx = ax - this.ox;
+    const ly = ay - this.oy;
+    if (!this.showing || lx < 0 || ly < 0 || lx >= this.w || ly >= this.h || !this.water[ly * this.w + lx]) return null;
+    return this.liquidAt(lx, ly);
+  },
+
   // a splash's ring, age seconds in: opening out from a px to about the particle's size, light at
   // first, and breaking up as it goes
   ring(s, age) {
@@ -643,7 +679,7 @@ const SURFACE_WAYS = [
 // people in liquids, as ParticleSystem.update() wants them for shoving floating particles: their feet,
 // speed and the half width of the ring round them (drawInLiquid() in character.js)
 function waders(characters) {
-  return characters.filter((c) => c.sink > 0.05 && !c.dead).map((c) => ({ x: c.x, y: c.y + c.h / 2, vx: c.velocity.x, vy: c.velocity.y, r: (c.w * LIQUID.ringWidth) / 2 }));
+  return characters.filter((c) => c.sink > 0.05 && c.liquid?.liquid && !c.dead).map((c) => ({ x: c.x, y: c.y + c.h / 2, vx: c.velocity.x, vy: c.velocity.y, r: (c.w * LIQUID.ringWidth) / 2 }));
 }
 
 // floor particles the surface draws itself (Surface.ripple()), which Particles.drawFloor() leaves out

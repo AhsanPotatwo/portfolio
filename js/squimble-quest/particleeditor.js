@@ -233,7 +233,7 @@ class ParticlePreview extends UIElement {
     const liquid = map?.get(map.colAt(origin.x + body.x), map.rowAt(origin.y + body.y));
     body.sunk = liquid?.sink ? liquid.sink * body.h : 0;
     const feet = { x: origin.x + body.x, y: origin.y + body.y };
-    if (scene.body === 'walks' && liquid?.sink) Wakes.follow({ x: feet.x, y: feet.y - body.h / 2, w: body.w, h: body.h }, liquid, 1, dt);
+    if (scene.body === 'walks' && liquid?.liquid) Wakes.follow({ x: feet.x, y: feet.y - body.h / 2, w: body.w, h: body.h }, liquid, 1, dt);
 
     if (this.keepGoing()) {
       // one tile: on the plain floor where the body is, otherwise out in the liquid
@@ -380,8 +380,8 @@ class ParticlePreview extends UIElement {
 // a liquid tile for a preview scene: the tile called name if it's a liquid, or else the first liquid
 // like it (one you can see into for water, a glowing one for lava), or any liquid, or null
 function liquidTile(name) {
-  if (TILE_TYPES[name]?.sink) return name;
-  const liquids = Object.keys(TILE_TYPES).filter((n) => TILE_TYPES[n].sink);
+  if (TILE_TYPES[name]?.liquid) return name;
+  const liquids = Object.keys(TILE_TYPES).filter((n) => TILE_TYPES[n].liquid);
   const like = liquids.find((n) => (name === 'lava' ? TILE_TYPES[n].glow : TILE_TYPES[n].clarity > 0));
   return like ?? liquids[0] ?? null;
 }

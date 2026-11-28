@@ -19,5 +19,6 @@
     "drawSound": "bow-draw"
   },
   "rarity": "uncommon",
-  "colour": "#a0703c"
+  "colour": "#a0703c",
+  "floats": true
 }

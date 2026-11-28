@@ -110,11 +110,16 @@ const TILE_DEFAULTS = {
   // how many tiles away other people's steps are heard, or 0 for each sound's own Heard from
   stepRange: 0,
 
-  // ---------- liquids (water, lava, mud, slime...) ----------
-  // anything with a sink over 0 is a liquid: whoever's in it sinks in that much of their height (0.4
-  // is about the waist), shallower near the shore like a beach (Character.depthAt()), with the part
-  // under hidden or seen through it and a ring where they meet the surface (drawInLiquid() in
-  // character.js, LIQUID in config.js). make it slow (speed) or hurt (damagePerSecond) as well
+  // ---------- liquids (water, lava, slime...) and things you sink into (mud, quicksand) ----------
+  // a liquid has a surface (surface.js: foam, glints, wakes, reflections) and things that land in it
+  // go in: particles sink, spread or float (particles.js), arrows splash and sink (weapons.js), and
+  // dropped items sink to the bottom or float (inventory.js). mud and quicksand aren't liquids, but
+  // you sink into them
+  liquid: false,
+  // whoever's in it sinks in that much of their height (0.4 is about the waist), liquid or not,
+  // shallower near the edge like a beach (Character.depthAt()), with the part under hidden or seen
+  // through it and a ring where they meet the top (drawInLiquid() in character.js, LIQUID in
+  // config.js). make it slow (speed) or hurt (damagePerSecond) as well
   sink: 0,
   // how much of the part under shows through, wobbling: 0 hides it (lava, mud), 1 is clear
   clarity: 0.4,
@@ -137,6 +142,10 @@ const TILE_DEFAULTS = {
   // or burning up, particles.js). and particle effects that burst wherever any particle lands in it
   hot: false,
   landParticles: null,
+  // particle effects when an arrow or a dropped item lands in it (Surface.plop() in surface.js), and
+  // that drip off arrows shot by someone standing in it (weapons.js)
+  dropParticles: null,
+  dripParticles: null,
   // sounds (sounds/) for stepping in, one at random. wading is just stepSounds
   splashSounds: null,
 

@@ -467,7 +467,8 @@ class Character {
     }
     // making a wake, that's instead, and one comes just after stopping, like the wake catching up.
     // moving without one (a liquid with no wake, or barely in at the shore) they come more often
-    const waking = Wakes.follow(this, tile, this.sink / tile.sink, dt);
+    // only liquids have a surface for a wake (mud doesn't)
+    const waking = tile.liquid ? Wakes.follow(this, tile, this.sink / tile.sink, dt) : 0;
     const moving = Math.hypot(this.velocity.x, this.velocity.y) > 5;
     if (moving && waking > 0.3) this.rippleIn = LIQUID.rippleStopping;
     else this.rippleIn -= dt * (moving ? LIQUID.rippleMoving : 1);
@@ -856,8 +857,10 @@ function liquidBob() {
 //   3. the part above, cut off along the front of the ring
 //   4. the front of the ring, then a glowing liquid's light on whoever's in it
 // it's all clipping on the canvas, so it works without the shaders (shaders.js) and on any picture or
-// the placeholder. push() and pop() round each clip, since they also put p5's colours back
-function drawInLiquid(liquid, x, surface, w, sunk, down, draw, map) {
+// the placeholder. push() and pop() round each clip, since they also put p5's colours back. clipTo is
+// which tiles its ring and the part under stop at (TileMap.clipToLiquid()): the ones you sink into, or
+// 'liquid' for something floating (a dropped item, inventory.js)
+function drawInLiquid(liquid, x, surface, w, sunk, down, draw, map, clipTo = 'sink') {
   const ctx = drawingContext;
   const now = millis() / 1000;
   const rx = (w * LIQUID.ringWidth) / 2;
@@ -882,7 +885,7 @@ function drawInLiquid(liquid, x, surface, w, sunk, down, draw, map) {
   // a picture px at a time in the liquid's own colours (Surface.arc()), like its wake
   const ring = (from, to, tone) => {
     push();
-    map.clipToLiquid({ left: x - rx - 2, right: x + rx + 2, top: surface - ry - 2, bottom: surface + ry + 2 }); // tilemap.js
+    map.clipToLiquid({ left: x - rx - 2, right: x + rx + 2, top: surface - ry - 2, bottom: surface + ry + 2 }, clipTo); // tilemap.js
     ctx.globalAlpha *= showing;
     ctx.fillStyle = palette.css[tone];
     Surface.arc(x, surface, rx, ry, from, to);
@@ -892,21 +895,10 @@ function drawInLiquid(liquid, x, surface, w, sunk, down, draw, map) {
   ring(Math.PI, Math.PI * 2, 'mid');
   if (liquid.clarity > 0) {
     push();
-    map.clipToLiquid({ left: x - w, right: x + w, top: surface, bottom: surface + sunk });
+    map.clipToLiquid({ left: x - w, right: x + w, top: surface, bottom: surface + sunk }, clipTo);
     clipAt(surface + far);
     ctx.globalAlpha *= liquid.clarity;
-    for (let top = surface; top < surface + sunk; top += LIQUID.strip) {
-      push();
-      ctx.beginPath();
-      ctx.rect(x - far, top, far * 2, LIQUID.strip);
-      ctx.clip();
-      // whole picture px, so the art stays on its grid. the wave moves down from the surface
-      translate(Math.round((Math.sin(now * 4 - (top - surface) * 0.5) * LIQUID.wobble) / ART_SCALE) * ART_SCALE, surface);
-      scale(1, LIQUID.refract);
-      translate(0, down - surface);
-      draw();
-      pop();
-    }
+    drawWobbling(surface, sunk, down, draw);
     pop();
   }
   push();
@@ -929,6 +921,27 @@ function drawInLiquid(liquid, x, surface, w, sunk, down, draw, map) {
   ctx.arc(0, 0, 1, 0, Math.PI * 2);
   ctx.fill();
   pop();
+}
+
+// draw() seen through a liquid from surface down sunk px, all of it drawn down px lower: in strips
+// LIQUID.strip px tall that wobble sideways, the wave moving down from the surface, squashed a bit
+// shorter (LIQUID.refract). for what's under (drawInLiquid(), and sunk items in inventory.js), inside
+// whatever clip they're in
+function drawWobbling(surface, sunk, down, draw) {
+  const ctx = drawingContext;
+  const now = millis() / 1000;
+  for (let top = surface; top < surface + sunk; top += LIQUID.strip) {
+    push();
+    ctx.beginPath();
+    ctx.rect(-1e5, top, 2e5, LIQUID.strip);
+    ctx.clip();
+    // whole picture px, so the art stays on its grid
+    translate(Math.round((Math.sin(now * 4 - (top - surface) * 0.5) * LIQUID.wobble) / ART_SCALE) * ART_SCALE, surface);
+    scale(1, LIQUID.refract);
+    translate(0, down - surface);
+    draw();
+    pop();
+  }
 }
 
 // ---------- remains ----------

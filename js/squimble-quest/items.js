@@ -104,6 +104,8 @@ const ITEM_DEFAULTS = {
   wornImage: null,
   // the light it gives whoever holds or wears it, a lights/ name (lighting.js)
   light: null,
+  // dropped in a liquid it floats (wood), rather than sinking to the bottom (Drops in inventory.js)
+  floats: false,
 };
 
 // filled in from the item files (bottom of this file)

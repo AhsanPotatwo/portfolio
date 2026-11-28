@@ -455,7 +455,7 @@ class ParticleSystem {
     const e = p.effect;
     if (!map || e.onLiquid) return false;
     const liquid = map.get(map.colAt(p.x), map.rowAt(p.y));
-    if (!liquid?.sink) return false;
+    if (!liquid?.liquid) return false;
     const hot = liquid.hot && e.inHot !== 'same';
     const way = hot ? e.inHot : e.inLiquid;
     for (const name of liquid.landParticles ?? []) chain.push([name, p]);
@@ -533,7 +533,7 @@ class ParticleSystem {
       }
     }
     // moving, but only on the liquid: off the shore it bounces back
-    const on = (x, y) => !map || map.get(map.colAt(x), map.rowAt(y))?.sink;
+    const on = (x, y) => !map || map.get(map.colAt(x), map.rowAt(y))?.liquid;
     const x = p.x + p.vx * dt;
     if (on(x, p.y)) p.x = x;
     else p.vx *= -F.shoreBounce;
@@ -634,7 +634,7 @@ class ParticleSystem {
       // a fast one goes in steps of at most a tile, so it can't skip over a thin wall
       const walls = e.hitsWalls && map && !map.isSolid(map.colAt(p.x), map.rowAt(p.y));
       // sliding along the floor off the shore, it falls in (fallIn())
-      const dry = onFloor && map && !map.get(map.colAt(p.x), map.rowAt(p.y))?.sink;
+      const dry = onFloor && map && !map.get(map.colAt(p.x), map.rowAt(p.y))?.liquid;
       const bounce = -e.bounce / 100;
       const steps = walls ? Math.ceil(Math.max(Math.abs(moveX), Math.abs(moveY)) / TILE) : 1;
       for (let s = 0; s < steps; s++) {

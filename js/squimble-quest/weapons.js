@@ -29,7 +29,7 @@
 //               point gets all the way out in the first JAB.extend of it and is held there for the rest
 //   cooldown    seconds from the start of one attack to the next
 //   arrowSpeed  how fast its arrows fly in px/s (shooting only)
-//   colour      colour of the swoosh, or an arrow's head and feathers
+//   colour      colour of the swoosh, or an arrow's head (its feathers are ARROW.fletch)
 //   windup      seconds a swing is held back before it sweeps, the weapon raised and glowing, so heavy
 //               hits feel heavy and you can see them coming (swings and jabs)
 //   knockback   px/s it shoves whatever it hits away (slowing at COMBAT.pushFade, config.js, so it
@@ -628,10 +628,35 @@ class Jab extends MeleeSwing {
 
 // ---------- an arrow ----------
 
-// in px: how long an arrow looks and the most it moves between hit checks (less than a body's width,
-// so a fast arrow on a slow frame can't skip through someone). stickTime is how many seconds it stays
-// stuck in a wall or the ground before it's gone, fading out over the last third. shaft is its wood
-const ARROW = { length: 18, checkEvery: 8, stickTime: 1.5, shaft: '#8b5a2b' };
+const ARROW = {
+  // px: how long an arrow looks, and the most it moves between hit checks (less than a body's width,
+  // so a fast arrow on a slow frame can't skip through someone)
+  length: 18,
+  checkEvery: 8,
+  // seconds it stays stuck in a wall or the ground before it's gone, breaking up over the last third
+  stickTime: 1.5,
+  // its wood and feathers (its head is its weapon's colour), and how many angles it's drawn at
+  // (arrowPixels())
+  shaft: '#8b5a2b',
+  fletch: '#d0564a',
+  turns: 64,
+  // ---------- in liquids (liquid, tiles.js) ----------
+  // landing in one it splashes (Surface.plop() in surface.js), then sinks out of sight: seconds it
+  // takes and px it goes down the screen as it does, seen through the liquid as much as its See
+  // through (clarity) and wobbling a picture px
+  sinkTime: 1.2,
+  sinkDepth: 8,
+  // flying this many px or less over a liquid it skims it, a ring every skimEvery px
+  skim: 5,
+  skimEvery: 26,
+  // its reflection over a liquid, how much of the arrow's colour (the rest the liquid's)
+  reflection: 0.45,
+  // shot by someone standing in a liquid: it flies from just over the surface, at least lowest px up,
+  // and for its first wetFor seconds drips the liquid's Drips (dripParticles) every dripEvery
+  lowest: 6,
+  wetFor: 0.35,
+  dripEvery: 0.08,
+};
 
 // one arrow from a "shoot" weapon. it flies from the owner's middle towards where they were aiming,
 // hits the first target it touches, and stops at walls (tiles that block sight, so it flies over deep water
@@ -640,7 +665,9 @@ const ARROW = { length: 18, checkEvery: 8, stickTime: 1.5, shaft: '#8b5a2b' };
 // height px up the screen with its shadow on the floor. Character.attack() (character.js) makes it,
 // and sketch.js keeps every arrow in the air in its arrows list, updates them and draws them
 //
-// it's its weapon's arrowImage (art.js), or a coloured line without one
+// it's its weapon's arrowImage (art.js), or drawn a picture px at a time without one (arrowPixels()).
+// over a liquid it's mirrored in it, landing in one it splashes and sinks, low over one it skims it,
+// and shot by someone standing in one it flies low and dripping (ARROW)
 class Arrow {
   // owner: whoever shot it. weapon: its settings (makeWeapon()). angle: which way, in radians
   constructor(owner, weapon, angle) {
@@ -651,20 +678,39 @@ class Arrow {
     this.x = owner.x;
     this.y = owner.y + down;
     this.startHeight = down;
-    this.height = down;
     // px flown so far
     this.travelled = 0;
     // seconds it's been stuck in something, or null while it's flying
     this.stuck = null;
+    // { liquid, time } once it's landed in a liquid and is sinking, or null
+    this.sinking = null;
+    // shot from a liquid: from just over the surface where they're sunk in, dripping it as it goes,
+    // and a ring at their feet from the bow's kick
+    const wading = owner.sink > 0.05 && owner.liquid?.liquid ? owner.liquid : null;
+    this.wet = wading;
+    this.wetFor = ARROW.wetFor;
+    this.dripIn = 0;
+    this.skimAt = ARROW.skimEvery;
+    if (wading) {
+      this.startHeight = Math.max(ARROW.lowest, down - owner.sink * owner.h);
+      if (typeof Surface !== 'undefined') Surface.ringAt(wading, owner.x, this.y, owner.w * 0.8); // surface.js
+    }
+    this.height = this.startHeight;
+    this.seed = Math.floor(Math.random() * 1e6);
   }
 
   // false once it's gone. world is what characters know (top of character.js)
   update(dt, world) {
+    if (this.sinking) {
+      this.sinking.time += dt;
+      return this.sinking.time < ARROW.sinkTime;
+    }
     if (this.stuck !== null) {
       this.stuck += dt;
       return this.stuck < ARROW.stickTime;
     }
     const map = world.map;
+    this.dripping(dt);
     let left = Math.min(this.weapon.arrowSpeed * dt, this.weapon.reach - this.travelled);
     while (left > 0) {
       const step = Math.min(left, ARROW.checkEvery);
@@ -682,6 +728,7 @@ class Arrow {
       this.travelled += step;
       // level for most of the way, then down onto the floor right at its reach
       this.height = this.startHeight * (1 - (this.travelled / this.weapon.reach) ** 4);
+      this.skimming(tile, step);
       const target = this.owner.targets(world).find((t) => t.hittable() && this.touches(t));
       if (target) {
         // knocked on the way the arrow was going
@@ -689,8 +736,41 @@ class Arrow {
         return false;
       }
     }
-    if (this.travelled >= this.weapon.reach) this.stuck = 0;
+    if (this.travelled >= this.weapon.reach) this.land(map);
     return true;
+  }
+
+  // come down at the end of its flight: stuck in the ground, or into a liquid with a splash
+  land(map) {
+    const liquid = map.get(map.colAt(this.x), map.rowAt(this.y));
+    if (!liquid?.liquid) {
+      this.stuck = 0;
+      return;
+    }
+    this.sinking = { liquid, time: 0 };
+    if (typeof Surface !== 'undefined') Surface.plop(liquid, this.x, this.y, ARROW.length / 2, map); // surface.js
+  }
+
+  // low over a liquid (tile, under it now), a ring every so often as it touches, step px further on
+  skimming(tile, step) {
+    if (!tile.liquid || this.height > ARROW.skim || typeof Surface === 'undefined') return;
+    this.skimAt -= step;
+    if (this.skimAt > 0) return;
+    this.skimAt = ARROW.skimEvery;
+    Surface.ringAt(tile, this.x, this.y, ARROW.length / 3);
+  }
+
+  // shot from a liquid, its Drips fall off it for a moment
+  dripping(dt) {
+    if (!this.wet || this.wetFor <= 0) return;
+    this.wetFor -= dt;
+    this.dripIn -= dt;
+    if (this.dripIn > 0) return;
+    this.dripIn = ARROW.dripEvery;
+    // from its middle, not its tip
+    const x = this.x - Math.cos(this.angle) * ARROW.length * 0.5;
+    const y = this.y - Math.sin(this.angle) * ARROW.length * 0.5;
+    for (const effect of this.wet.dripParticles ?? []) Particles.burst(effect, x, y, { height: this.height }); // particles.js
   }
 
   // is its tip inside the target's body? the tip is height px up the screen from its floor spot,
@@ -701,40 +781,130 @@ class Arrow {
     return this.x >= body.x && this.x < body.x + body.w && tipY >= body.y && tipY < body.y + body.h;
   }
 
-  // world positions (inside camera.begin/end). its shadow is a line on the floor under it
+  // world positions (inside camera.begin/end). its shadow is a line on the floor under it, and over a
+  // liquid it's mirrored in it too
   draw() {
-    const dx = Math.cos(this.angle) * ARROW.length;
-    const dy = Math.sin(this.angle) * ARROW.length;
+    if (this.sinking) {
+      this.drawSinking();
+      return;
+    }
     const tipX = this.x;
     const tipY = this.y - this.height;
+    // stuck, it breaks up over the last third of its time
+    const gone = this.stuck === null ? 0 : Math.max(0, 1 - 3 * (1 - this.stuck / ARROW.stickTime));
     push();
-    if (this.stuck !== null) drawingContext.globalAlpha *= Math.min(1, 3 * (1 - this.stuck / ARROW.stickTime));
-    if (this.height > 1) drawArrowShadow(this);
+    if (this.height > 1) {
+      this.drawReflection();
+      drawArrowShadow(this);
+    }
     // its picture, tip on the tip, looping from when it was first drawn
     this.firstDrawn ??= millis();
     const art = getArt(this.weapon.arrowImage, 'weapon', 'arrowImage');
-    if (drawArt(art, tipX, tipY, { anchor: 'end', angle: this.angle, time: (millis() - this.firstDrawn) / 1000 })) {
+    if (art) {
+      drawingContext.globalAlpha *= 1 - gone;
+      drawArt(art, tipX, tipY, { anchor: 'end', angle: this.angle, time: (millis() - this.firstDrawn) / 1000 });
       pop();
       return;
     }
-    stroke(ARROW.shaft);
-    strokeWeight(2);
-    line(tipX - dx, tipY - dy, tipX, tipY);
-    // the head, a little triangle pointing forwards
-    noStroke();
-    fill(this.weapon.colour);
-    const along = (amount, side) => [
-      tipX + Math.cos(this.angle) * amount - Math.sin(this.angle) * side,
-      tipY + Math.sin(this.angle) * amount + Math.cos(this.angle) * side,
-    ];
-    triangle(...along(2, 0), ...along(-4, -3), ...along(-4, 3));
-    // two feathers at the back
-    stroke(this.weapon.colour);
-    strokeWeight(1.5);
-    line(...along(-ARROW.length, 0), ...along(-ARROW.length - 3, -3));
-    line(...along(-ARROW.length, 0), ...along(-ARROW.length - 3, 3));
+    const colours = { head: this.weapon.colour, fletch: ARROW.fletch, shaft: ARROW.shaft };
+    fillArrow(this.angle, tipX, tipY, (part, i) => (arrowHash(i, this.seed) < gone ? null : colours[part]));
     pop();
   }
+
+  // its parts' colours as [r, g, b]: the head its weapon's colour, the shaft and feathers ARROW's
+  rgb() {
+    return { head: hexToRgb(this.weapon.colour), fletch: hexToRgb(ARROW.fletch), shaft: hexToRgb(ARROW.shaft) }; // particles.js
+  }
+
+  // in a liquid below it, the same arrow mirrored height px under its spot on the floor (a level
+  // arrow's reflection is just moved down), in its colours mixed into the liquid's, only where the
+  // liquid shows
+  drawReflection() {
+    if (typeof Surface === 'undefined' || this.weapon.arrowImage) return;
+    const rgb = this.rgb();
+    fillArrow(this.angle, this.x, this.y + this.height, (part, i, ax, ay) => {
+      const liquid = Surface.under(ax, ay); // surface.js
+      if (!liquid) return null;
+      return 'rgb(' + mixRgb(Surface.palette(liquid).base, rgb[part], ARROW.reflection).map(Math.round).join(', ') + ')';
+    });
+  }
+
+  // sinking (ARROW): going down and fading into the liquid's colour, wobbling, breaking up as it goes,
+  // only where the liquid shows
+  drawSinking() {
+    if (typeof Surface === 'undefined' || this.weapon.arrowImage) return;
+    const { liquid, time } = this.sinking;
+    const t = time / ARROW.sinkTime;
+    const seen = Math.min(1, liquid.clarity * 1.6) * (1 - t);
+    if (seen <= 0) return;
+    const base = Surface.palette(liquid).base;
+    const rgb = this.rgb();
+    const wobble = Math.round(Math.sin(millis() / 250 + this.seed)) * ART_SCALE;
+    fillArrow(this.angle, this.x + wobble, this.y + t * ARROW.sinkDepth, (part, i, ax, ay) => {
+      if (arrowHash(i, this.seed) < t * 0.8 || !Surface.under(ax, ay)) return null;
+      return 'rgb(' + mixRgb(base, rgb[part], seen).map(Math.round).join(', ') + ')';
+    });
+  }
+}
+
+// ---------- an arrow, a picture px at a time ----------
+
+// the art px of an arrow pointing at angle (radians) from its tip at 0, 0, each { dx, dy, part }:
+// part is 'head', 'shaft' or 'fletch'. its shaft is a px thick and always one unbroken line, the head a
+// point with a barb either side just behind it, and the feathers one either side at the back. worked
+// out once for each of ARROW.turns angles
+function arrowPixels(angle) {
+  const turn = ((Math.round((angle / (Math.PI * 2)) * ARROW.turns) % ARROW.turns) + ARROW.turns) % ARROW.turns;
+  ARROW_PIXELS[turn] ??= makeArrowPixels((turn / ARROW.turns) * Math.PI * 2);
+  return ARROW_PIXELS[turn];
+}
+
+const ARROW_PIXELS = [];
+
+function makeArrowPixels(angle) {
+  const length = ARROW.length / ART_SCALE; // config.js
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  // which part wins a px two want
+  const rank = { shaft: 0, fletch: 1, head: 2 };
+  const px = new Map();
+  const put = (dx, dy, part) => {
+    const key = dx * 1000 + dy;
+    if (!px.has(key) || rank[part] > rank[px.get(key).part]) px.set(key, { dx, dy, part });
+  };
+  // a px along back from the tip and across to one side
+  const at = (along, across) => [Math.round(-cos * along - sin * across), Math.round(-sin * along + cos * across)];
+  const [tx, ty] = at(length, 0);
+  const steps = Math.max(Math.abs(tx), Math.abs(ty));
+  for (let i = 0; i <= steps; i++) put(Math.round(tx * (1 - i / steps)), Math.round(ty * (1 - i / steps)), i >= steps - 1 ? 'head' : 'shaft');
+  for (const side of [-1.2, 1.2]) {
+    put(...at(1.4, side), 'head');
+    put(...at(length, side), 'fletch');
+    put(...at(length - 1, side), 'fletch');
+  }
+  return [...px.values()];
+}
+
+// fills an arrow pointing at angle with its tip at x, y (world px) on the art's grid. colour(part, i,
+// ax, ay) gives each px's css colour (ax, ay its picture px from the world's 0, 0, i which px it is), or
+// null to leave it out
+function fillArrow(angle, x, y, colour) {
+  const ctx = drawingContext;
+  const tx = Math.round(x / ART_SCALE);
+  const ty = Math.round(y / ART_SCALE);
+  arrowPixels(angle).forEach(({ dx, dy, part }, i) => {
+    const css = colour(part, i, tx + dx, ty + dy);
+    if (!css) return;
+    ctx.fillStyle = css;
+    ctx.fillRect((tx + dx) * ART_SCALE, (ty + dy) * ART_SCALE, ART_SCALE, ART_SCALE);
+  });
+}
+
+// the same number from 0 to 1 for the same px i of the same arrow (seed), for breaking up
+function arrowHash(i, seed) {
+  let h = Math.imul(i + 1, 2654435761) ^ Math.imul(seed, 40503);
+  h = Math.imul(h ^ (h >>> 15), 2246822519);
+  return ((h ^ (h >>> 13)) >>> 0) / 4294967296;
 }
 
 // ---------- an arrow's shadow (temporary) ----------
@@ -742,15 +912,14 @@ class Arrow {
 // shortcut: a stand-in until there's a proper shadow system. to take it out, delete this section and
 // its one call in Arrow.draw().
 //
-// it's a dash on the floor under the middle of the arrow. the arrow is drawn height px up the screen
-// from the floor, so a shadow the same shape as the arrow lines up end to end with it when it flies up
-// or down the screen, and looks like one long arrow. so the dash keeps its full length across the
-// screen but is squashed up and down (upDown), which also flattens it for diagonal shots
+// it's a dash on the floor under the middle of the arrow, a picture px thick. the arrow is drawn
+// height px up the screen from the floor, so a shadow the same shape as the arrow lines up end to end
+// with it when it flies up or down the screen, and looks like one long arrow. so the dash keeps its
+// full length across the screen but is squashed up and down (upDown), which also flattens it for
+// diagonal shots
 const ARROW_SHADOW = {
   // 0 to 255
   alpha: 60,
-  // px thick
-  width: 3,
   // how much of its up and down length it keeps. 1 is the same shape as the arrow
   upDown: 0.25,
 };
@@ -762,11 +931,18 @@ function drawArrowShadow(arrow) {
   // under the middle of the arrow, not its tip
   const x = arrow.x - cos * half;
   const y = arrow.y - sin * half;
-  const dx = cos * half;
-  const dy = sin * half * ARROW_SHADOW.upDown;
-  stroke(0, 0, 0, ARROW_SHADOW.alpha);
-  strokeWeight(ARROW_SHADOW.width);
-  line(x - dx, y - dy, x + dx, y + dy);
+  const ax1 = Math.round((x - cos * half) / ART_SCALE);
+  const ay1 = Math.round((y - sin * half * ARROW_SHADOW.upDown) / ART_SCALE);
+  const ax2 = Math.round((x + cos * half) / ART_SCALE);
+  const ay2 = Math.round((y + sin * half * ARROW_SHADOW.upDown) / ART_SCALE);
+  const steps = Math.max(Math.abs(ax2 - ax1), Math.abs(ay2 - ay1), 1);
+  const ctx = drawingContext;
+  ctx.fillStyle = 'rgba(0, 0, 0, ' + ARROW_SHADOW.alpha / 255 + ')';
+  for (let i = 0; i <= steps; i++) {
+    const ax = Math.round(ax1 + ((ax2 - ax1) * i) / steps);
+    const ay = Math.round(ay1 + ((ay2 - ay1) * i) / steps);
+    ctx.fillRect(ax * ART_SCALE, ay * ART_SCALE, ART_SCALE, ART_SCALE);
+  }
 }
 
 // a weapon in a few words, like "15 damage, shoots 420 px", for the editor (editor.js)

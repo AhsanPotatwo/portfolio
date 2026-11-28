@@ -127,7 +127,7 @@ function weaponForm(weapon, { attacker, target }) {
         { label: 'Attack', field: attackPicker, tip: 'Swing it in an arc, jab straight out at one thing like a spear, or shoot arrows like a bow' },
         { label: 'Combo', field: comboPicker, tip: 'How many hits before it starts over. Each gets its own numbers on Hit and Feel' },
         ...WEAPON_WIDE_SETTINGS.filter((line) => !line.tab).map(wideRow),
-        { label: 'Colour', field: colourField, tip: "The swoosh, or the arrows' heads and feathers" },
+        { label: 'Colour', field: colourField, tip: "The swoosh, or the arrows' heads" },
       ],
     },
     ...['Hit', 'Feel'].map((tab, i) => ({

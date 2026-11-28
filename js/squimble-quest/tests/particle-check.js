@@ -89,7 +89,7 @@ assert(spread() < before / 2, 'pulled in');
 const splashes = [];
 game.Surface = { splash: (p, liquid) => splashes.push({ x: p.x, liquid }) };
 game.TILE = 32;
-const water = { sink: 0.4, colour: '#3b7dd8' };
+const water = { liquid: true, sink: 0.4, colour: '#3b7dd8' };
 const pond = { colAt: (x) => Math.floor(x / 32), rowAt: (y) => Math.floor(y / 32), get: (col) => (col >= 0 ? water : {}), isSolid: () => false };
 const landIn = (settings, x, vx = 0, seconds = 1, waders = []) => {
   const system = new ParticleSystem();
@@ -126,7 +126,7 @@ assert.strictEqual(landIn({ jumpHeight: 5, onLiquid: true }, 50).length, 1, 'rip
 // hot liquids (lava, a tile's hot): sizzling it's gone at once, bursting its hotThen there; burning it
 // floats, shrinks away over burnTime making its hotThen as it goes, then it's gone; the same as in
 // liquids ignores the heat. any particle landing bursts the liquid's landParticles
-const lava = { sink: 0.3, colour: '#e4572e', surfaceColour: '#ffd23f', hot: true };
+const lava = { liquid: true, sink: 0.3, colour: '#e4572e', surfaceColour: '#ffd23f', hot: true };
 const lavaPond = { ...pond, get: (col) => (col >= 0 ? lava : {}) };
 const inLava = (settings, seconds) => {
   const system = new ParticleSystem();

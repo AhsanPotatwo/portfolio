@@ -780,11 +780,13 @@ const Editor = {
       label: (place) => (place ? WEAR_PLACES[place] : "can't be worn"),
       art: (place, x, y, size) => drawWearIcon(place, x + size / 2, y + size / 2, size), // inventory.js
     });
+    const floatsBox = new Checkbox({ w: 180, value: type.floats, label: 'floats in water' });
     const itemRows = [
       { label: 'Name', field: labelField, tip: 'What the player sees. Its file name stays the same' },
       { label: 'Rarity', field: rarityPicker, tip: 'Sets its glow, and the colour of its name over the hotbar' },
       { label: 'Colour', field: colourField, tip: 'Its placeholder colour until it has a picture' },
       { label: 'Worn on', field: wearPicker, tip: 'Which equipment slot it goes in. Nothing it does yet, it just shows' },
+      { label: 'Floats', field: floatsBox, tip: 'Dropped in a liquid it bobs on the surface, like wood. Unticked it sinks to the bottom. Either way you can still pick it up' },
     ];
     // the Weapon, Hit, Feel and Sound tabs and the preview of the player using it on the first enemy kind
     // (weaponeditor.js)
@@ -799,7 +801,7 @@ const Editor = {
       onConfirm: () => {
         const colour = colourField.value;
         // fill is the p5 colour it gets drawn with (prepareArt() in utils.js)
-        Object.assign(type, { label: labelField.value.trim(), rarity: rarityPicker.value, colour, fill: color(colour), wear: wearPicker.value });
+        Object.assign(type, { label: labelField.value.trim(), rarity: rarityPicker.value, colour, fill: color(colour), wear: wearPicker.value, floats: floatsBox.value });
         form?.save();
       },
     });

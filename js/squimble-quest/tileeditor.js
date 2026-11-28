@@ -68,7 +68,8 @@ const TILE_BEHAVIOURS = [
   { tab: 'Footsteps', key: 'stepRange', label: 'Heard from', after: 'tiles', field: (value) => new NumberField({ w: 90, value, max: 50 }), tip: "How far away enemies' and npcs' steps are heard. 0 uses each sound's own Heard from" },
 
   // what wading in it looks like (drawInLiquid() in character.js). sink at most 90%, or the head goes under too
-  { tab: 'Liquid', key: 'sink', label: 'Sink in', after: '% of height', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 90 }), tip: 'Over 0 makes it a liquid: whoever walks in sinks this far. 40 is about the waist' },
+  { tab: 'Liquid', key: 'liquid', label: 'Liquid', field: (value) => new Checkbox({ w: 180, value, label: 'has a surface things go into' }), tip: 'Water, lava, slime: it gets a surface (foam, glints, wakes, reflections), and particles, arrows and dropped items that land in it go in. Leave it off for mud and quicksand, which you only sink into' },
+  { tab: 'Liquid', key: 'sink', label: 'Sink in', after: '% of height', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 90 }), tip: 'Whoever walks in sinks this far, liquid or not (mud, quicksand). 40 is about the waist' },
   { tab: 'Liquid', key: 'clarity', label: 'See through', after: '%', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 100 }), tip: 'How much of the part under shows, wobbling. 0 hides it (lava, mud)' },
   { tab: 'Liquid', key: 'surfaceColour', label: 'Surface', field: (value) => new ColourField({ w: 180, value }), tip: 'The ring round whoever is in it, their wake, and the foam and glints on it' },
   { tab: 'Liquid', key: 'shine', label: 'Shine', after: '%', scale: 100, field: (value) => new NumberField({ w: 90, value, max: 200 }), tip: 'How much it catches the light: glints, lamps and fires mirrored in it at night, and the sky it gives back as it gets dark. Lower for dull liquids like mud, 0 for none' },
@@ -77,6 +78,8 @@ const TILE_BEHAVIOURS = [
   { tab: 'Liquid', key: 'splashParticles', label: 'Splash', field: (value) => particleMultiPicker(value), tip: 'Particle effects when someone steps in' },
   { tab: 'Liquid', key: 'hot', label: 'Hot', field: (value) => new Checkbox({ w: 180, value, label: 'burns what lands in it' }), tip: "Particles landing in it do what their effect's In hot liquids says: sizzle away, burn up, or the same as any liquid" },
   { tab: 'Liquid', key: 'landParticles', label: 'Landing in', field: (value) => particleMultiPicker(value), tip: 'Particle effects that burst wherever any particle lands in it, like a puff of smoke' },
+  { tab: 'Liquid', key: 'dropParticles', label: 'Dropping in', field: (value) => particleMultiPicker(value), tip: 'Particle effects when an arrow or a dropped item lands in it, a little splash' },
+  { tab: 'Liquid', key: 'dripParticles', label: 'Drips', field: (value) => particleMultiPicker(value), tip: 'Particle effects that drip off arrows shot by someone standing in it' },
   { tab: 'Liquid', key: 'rippleParticles', label: 'Ripples', field: (value) => particleMultiPicker(value), tip: "Particle effects round whoever's standing in it every so often. They start on the surface" },
   { tab: 'Liquid', key: 'splashSounds', label: 'Splash sound', field: (value) => soundMultiPicker(value), tip: 'One of these plays when someone steps in. Wading is Footsteps' },
 ];

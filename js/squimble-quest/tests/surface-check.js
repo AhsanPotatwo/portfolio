@@ -25,7 +25,7 @@ const { Surface, TILE, ART_SCALE } = game;
 const ART = TILE / ART_SCALE;
 
 // a 4 x 4 map with water in the middle 2 x 2
-const water = { sink: 0.4, colour: '#3b7dd8', surfaceColour: '#d6ecff' };
+const water = { liquid: true, sink: 0.4, colour: '#3b7dd8', surfaceColour: '#d6ecff' };
 const sand = { speed: 1 };
 const map = { get: (col, row) => (col >= 0 && col < 4 && row >= 0 && row < 4 ? (col >= 1 && col <= 2 && row >= 1 && row <= 2 ? water : sand) : null) };
 const edge = (half) => (half * TILE) / 2;
@@ -44,7 +44,7 @@ for (now = 0; now < 8000; now += 100) {
 assert(drawnImage > 0, 'it draws its layer');
 assert(seen.size > 0, 'something shows on the water');
 const where = [...seen.keys()].map((k) => k.split(',').map(Number));
-const offWater = where.filter(([x, y]) => !map.get(Math.floor(x / ART), Math.floor(y / ART))?.sink);
+const offWater = where.filter(([x, y]) => !map.get(Math.floor(x / ART), Math.floor(y / ART))?.liquid);
 assert.strictEqual(offWater.length, 0, `nothing off the water's tiles (${offWater.length} px)`);
 
 // the band under the top bank is darker than the water
@@ -64,6 +64,8 @@ assert(far.length <= 4, `foam stays near the shore, bar a glint or two (${far.le
 drawnImage = 0;
 Surface.draw({ get: () => sand }, 0, 3, 0, 3, edge, edge);
 assert.strictEqual(drawnImage, 0, 'no liquid, no layer');
+Surface.draw({ get: () => ({ sink: 0.3, colour: '#5a3d2b' }) }, 0, 3, 0, 3, edge, edge);
+assert.strictEqual(drawnImage, 0, 'mud you sink into is not a liquid, no layer');
 
 // ---------- light ----------
 let lightDrawn = 0;
