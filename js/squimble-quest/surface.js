@@ -6,10 +6,14 @@
 // the pieces into a mask of its own (shore()), so everything at the shore follows the art's pixels
 // rather than the tiles' straight edges. on it, in each liquid's own colours (colour and surfaceColour):
 //   - the bank's shade: the ground's edge cast a few px down onto the liquid below it, so it's always
-//     right up against the ground, round its corners too
+//     right up against the ground, round its corners too. seen through the moving surface, its edge
+//     wavers a px up and down
 //   - foam lapping at the shore: a broken line that comes in to the ground's edge and goes back out,
 //     a bit of shore at a time, so it never reads as an outline
-//   - glints: a short light dash here and there where a wavelet catches the light, gone in a moment
+//   - glints: a short light dash here and there where a wavelet catches the light, gone in a moment.
+//     fewer where it's dim, none in the dark
+//   - reflections: lamps, fires and neon mirrored in it, below where they hang, as a wobbling column
+//     of dashes that come and go (a glitter path), in their own colour. gone by day, outshone
 //   - wakes (wakes.js) and ripples (floor particles with onLiquid and the ripple shape, particles.js)
 //   - splashes where particles land in it (ParticleSystem.fallIn(), particles.js): a little ring
 //     that opens and breaks up, and for ones that spread through it (blood) a cloud of their colour
@@ -18,6 +22,11 @@
 //   - a ring round each floating particle where it sits in the surface, lighter while it's jostled,
 //     and flickering bright round burning ones
 //   - sizzling where particles land in a hot liquid (inHot): a few bright px spitting for a moment
+//
+// how lit each bit is comes from the lights and sky of the last light map (lightNear(), lighting.js),
+// and with no lighting it's daylight. the light map adds what it gives back (lightUp()): the sky's
+// light, so liquids stay a touch brighter than the land as it gets dark, and the reflections' light,
+// so they shine in the dark. all of it's SURFACE_LIGHT, and Shine on a liquid's tile turns it down.
 //
 // a map's particles are Particles (particles.js), or its own system if it has one (map.particles,
 // like the particle editor's preview)
@@ -51,6 +60,29 @@ const SURFACE = {
   maxTiles: 8000,
 };
 
+// how liquids react to light (the top of the file). light here is how much reaches a spot, about 0.4
+// for moonlight, 1.5 for a sunny midday and 1 near a lamp (lightNear(), lighting.js)
+const SURFACE_LIGHT = {
+  // glints start showing at the first light and are all there by the second
+  glints: [0.3, 0.9],
+  // reflections: the most at once, the closest first. a light's is brightness times (night - day times
+  // the daylight there), so a lamp's shows at night, faintly at dusk and not at all by day. tall is
+  // picture px down from the mirrored light, from a light on the ground to one high (px up) or
+  // higher, and a part of that above. it's streaks across where wave fronts face you, about crests px
+  // apart, rolling down roll crests a second, each wide picture px either side (plus half a bar) at
+  // most, wobbling up to wobble px at speed, changing flicker times a second, and longer ones broken
+  // into dashes about dash px long. light is how much light
+  // each streak adds to the light map, and tint how much of the light's colour it's painted in, from
+  // the middle (over the surface's whitest) to the ends
+  reflect: { most: 24, night: 1.25, day: 0.85, tall: [4, 14], high: 90, above: 0.3, crests: 2.2, roll: 0.8, wide: 2.5, wobble: 1.2, speed: 2.2, flicker: 4, dash: 5, light: 1.4, tint: [0.45, 0.85] },
+  // how much of the sky's light it gives back, and of the sun's or moon's on top
+  sky: 0.35,
+  sun: 0.4,
+  // picture px the bank's shade wavers up and down, and how quickly
+  waver: 1,
+  waverSpeed: 1.1,
+};
+
 // the size of a tile in picture px
 const SURFACE_ART = TILE / ART_SCALE; // config.js
 
@@ -77,6 +109,7 @@ const Surface = {
         row1 = Math.max(row1, row);
       }
     }
+    this.drawn = null;
     if (col0 > col1) return;
     col0 = Math.max(firstCol, col0 - 1);
     col1 = Math.min(lastCol, col1 + 1);
@@ -90,11 +123,16 @@ const Surface = {
     this.oy = row0 * SURFACE_ART;
     this.shore(map, col0, row0, cw, ch);
     const now = millis() / 1000;
-    this.bank();
+    this.light(map, col0, row0, cw, ch);
+    this.bank(now);
     for (const way of SURFACE_WAYS) this.foam(way, now);
     for (let row = row0; row <= row1; row++) {
-      for (let col = col0; col <= col1; col++) if (map.get(col, row)?.sink) this.glint(col, row, now);
+      for (let col = col0; col <= col1; col++) {
+        const type = map.get(col, row);
+        if (type?.sink) this.glint(col, row, now, type);
+      }
     }
+    this.reflections(now);
     for (const s of this.splashes) if (s.cloud) this.cloud(s, now - s.born);
     for (const s of this.splashes) {
       this.ring(s, now - s.born);
@@ -114,6 +152,7 @@ const Surface = {
     const top = y(2 * row0);
     ctx.drawImage(this.canvas, left, top, x(2 * col1 + 2) - left, y(2 * row1 + 2) - top);
     ctx.imageSmoothingEnabled = smooth;
+    this.drawn = map;
   },
 
   // works out where the liquid shows in the box (cw x ch tiles from col0, row0): this.quarters, the
@@ -181,11 +220,145 @@ const Surface = {
     }
   },
 
-  // the bank's shade: down each column, the first few px of liquid below the ground's edge
-  bank() {
+  // how lit the box is (cw x ch tiles from col0, row0) at every tile's corners (lightNear() in
+  // lighting.js), by the lights and sky of the last light map on this map (Lighting.frame). none with
+  // no lighting, which is daylight (litAt())
+  light(map, col0, row0, cw, ch) {
+    const f = typeof Lighting === 'undefined' ? null : Lighting.frame;
+    this.frame = f?.map === map && f.lights ? f : null;
+    if (!this.frame) return;
+    this.gw = cw + 1;
+    this.grid = new Float32Array((cw + 1) * (ch + 1));
+    for (let r = 0; r <= ch; r++) {
+      for (let c = 0; c <= cw; c++) this.grid[r * this.gw + c] = Math.max(...lightNear(f, (col0 + c) * TILE, (row0 + r) * TILE));
+    }
+    // the sky and sun's light alone, which washes out reflections by day
+    this.daylight = Math.max(...f.ambient.map((c, i) => c + (f.sky.sun?.[i] ?? 0)));
+  },
+
+  // how lit picture px lx, ly in the box is, blended between its tile's corners: 0 at or under the
+  // first light of [from, to], 1 at or over the second. 1 with no lighting
+  litAt(lx, ly, [from, to]) {
+    if (!this.frame) return 1;
+    const gx = Math.max(0, Math.min(this.gw - 1.001, lx / SURFACE_ART));
+    const gy = Math.max(0, Math.min(this.grid.length / this.gw - 1.001, ly / SURFACE_ART));
+    const c = Math.floor(gx);
+    const r = Math.floor(gy);
+    const fx = gx - c;
+    const fy = gy - r;
+    const g = this.grid;
+    const at = r * this.gw + c;
+    const top = g[at] + (g[at + 1] - g[at]) * fx;
+    const bottom = g[at + this.gw] + (g[at + this.gw + 1] - g[at + this.gw]) * fx;
+    return Math.max(0, Math.min(1, (top + (bottom - top) * fy - from) / (to - from)));
+  },
+
+  // reflections (the top of the file) of the last light map's lights. a light hanging z px up is
+  // mirrored z px below its spot. each dash is kept (mirrored) for lightUp() to light
+  reflections(now) {
+    this.mirrored = [];
+    const f = this.frame;
+    if (!f) return;
+    const R = SURFACE_LIGHT.reflect;
+    const washed = R.night - R.day * this.daylight;
+    if (washed <= 0) return;
+    let shown = 0;
+    for (const l of f.lights) {
+      if (shown >= R.most) break;
+      if (l.you) continue;
+      const cx = Math.round(l.x / ART_SCALE);
+      const cy = Math.round((l.y + l.z) / ART_SCALE);
+      const lx = cx - this.ox;
+      const ly = cy - this.oy;
+      if (lx < 0 || ly < 0 || lx >= this.w || ly >= this.h) continue;
+      const type = this.liquidAt(lx, ly);
+      const strength = Math.min(1, Math.max(...l.rgb) * washed * (type?.shine ?? 1));
+      if (!type || strength < 0.08) continue;
+      shown++;
+      const seed = (Math.round(l.x) * 7 + Math.round(l.y) * 13) & 0xffff;
+      const tall = (R.tall[0] + (R.tall[1] - R.tall[0]) * Math.min(1, l.z / R.high)) * (0.5 + strength / 2);
+      const up = Math.ceil(tall * R.above);
+      const wide = R.wide + (l.length / 2 / ART_SCALE) * Math.abs(Math.cos(l.angle));
+      const flick = Math.floor(now * R.flicker + (seed % 7) / 7);
+      const hue = l.rgb.map((c) => (c / Math.max(...l.rgb)) * 255);
+      for (let dy = -up; dy <= Math.ceil(tall); dy++) {
+        // 0 at the mirrored light, 1 at either end
+        const along = dy < 0 ? -dy / (up + 1) : dy / (tall + 1);
+        // wave fronts facing you catch it, so streaks across with gaps between, rolling towards you
+        if (Math.sin(((cy + dy) / R.crests - now * R.roll) * Math.PI * 2 + seed) < 0) continue;
+        if (surfaceHash(cy + dy, flick, seed) > 1 - along * 0.5) continue;
+        const half = Math.round(wide * (1 - along * 0.5) * (0.4 + surfaceHash(dy, flick, seed + 1) * 0.8));
+        const off = Math.round(Math.sin(now * R.speed + (cy + dy) * 0.9 + seed) * R.wobble * (0.4 + along));
+        // the surface's whitest in the light's own colour, more of it towards the ends
+        const colour = packColour(mixRgb(this.palette(type).rgb.foam, hue, R.tint[0] + (R.tint[1] - R.tint[0]) * along));
+        const rgb = hue.map((c) => (c / 255) * strength * (1 - along * 0.6) * R.light);
+        // a long one (a bar's) breaks into dashes, more gaps towards its ends
+        for (let from = -half; from <= half; from += R.dash) {
+          if (half > R.dash && surfaceHash(Math.floor((from + half) / R.dash), cy + dy, seed + flick) < 0.2 + along * 0.4) continue;
+          const length = Math.min(R.dash, half + 1 - from);
+          for (let dx = from; dx < from + length; dx++) this.put(cx + off + dx, cy + dy, colour);
+          this.mirrored.push({ ax: cx + off + from, ay: cy + dy, length, rgb });
+        }
+      }
+    }
+  },
+
+  // step 1 of the light map (Lighting.build() in lighting.js, its ctx in world positions): the light
+  // the liquid gives back, added on wherever this frame's surface showed it (the top of the file)
+  lightUp(ctx, f) {
+    if (this.drawn !== f.map) return;
+    this.drawn = null;
+    const { w, h, water } = this;
+    if (this.glow?.width !== w || this.glow.height !== h) {
+      this.glow ??= document.createElement('canvas');
+      this.glow.width = w;
+      this.glow.height = h;
+      this.glowImage = new ImageData(w, h);
+      this.glowPixels = new Uint32Array(this.glowImage.data.buffer);
+    }
+    // [r, g, b] 0 to 255 as the light map stores it (Lighting.stored())
+    const stored = (rgb) => rgb.map((c) => Math.min(255, (c / Lighting.headroom) * 255));
+    const sky = f.sky.sky.map((c, i) => (c + (f.sky.sun?.[i] ?? 0) * SURFACE_LIGHT.sun) * SURFACE_LIGHT.sky);
+    // what each liquid gives back, and packed for the layer
+    const given = new Map();
+    const gives = (type) => {
+      if (!given.has(type)) {
+        const rgb = sky.map((c) => c * (type.shine ?? 1));
+        given.set(type, { rgb, packed: packColour(stored(rgb)) });
+      }
+      return given.get(type);
+    };
+    const px = this.glowPixels;
+    const half = SURFACE_ART / 2;
+    for (let ly = 0; ly < h; ly++) {
+      for (let lx = 0; lx < w; lx++) {
+        const i = ly * w + lx;
+        px[i] = water[i] ? gives(this.quarters[((ly / half) | 0) * this.qw + ((lx / half) | 0)]).packed : 0;
+      }
+    }
+    for (const m of this.mirrored) {
+      const ly = m.ay - this.oy;
+      for (let lx = m.ax - this.ox; lx < m.ax - this.ox + m.length; lx++) {
+        if (lx < 0 || ly < 0 || lx >= w || ly >= h || !water[ly * w + lx]) continue;
+        px[ly * w + lx] = packColour(stored(gives(this.liquidAt(lx, ly)).rgb.map((c, i) => c + m.rgb[i])));
+      }
+    }
+    this.glow.getContext('2d').putImageData(this.glowImage, 0, 0);
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 1;
+    ctx.drawImage(this.glow, this.ox * ART_SCALE, this.oy * ART_SCALE, w * ART_SCALE, h * ART_SCALE);
+    ctx.restore();
+  },
+
+  // the bank's shade: down each column, the first few px of liquid below the ground's edge, wavering
+  // (SURFACE_LIGHT.waver)
+  bank(now) {
     const { w, h, water } = this;
     for (let lx = 0; lx < w; lx++) {
-      const deep = SURFACE.bank - (surfaceNoise((lx + this.ox) / 3, 5) < 0.4 ? 1 : 0);
+      const waver = Math.round(SURFACE_LIGHT.waver * Math.sin(now * SURFACE_LIGHT.waverSpeed + (lx + this.ox) * 0.4));
+      const deep = SURFACE.bank - (surfaceNoise((lx + this.ox) / 3, 5) < 0.4 ? 1 : 0) + waver;
       // px since the ground, Infinity where it isn't known (the box's top)
       let run = Infinity;
       for (let ly = 0; ly < h; ly++) {
@@ -364,7 +537,7 @@ const Surface = {
     const base = hexToRgb(type.colour); // particles.js
     const top = hexToRgb(type.surfaceColour);
     const tones = { shade: base.map((v) => v * SURFACE.bankShade), mid: mixRgb(base, top, 0.35), light: mixRgb(base, top, 0.7), foam: top };
-    palette = { from: type.colour + type.surfaceColour, base, css: {} };
+    palette = { from: type.colour + type.surfaceColour, base, css: {}, rgb: tones };
     for (const [name, rgb] of Object.entries(tones)) {
       palette[name] = packColour(rgb);
       palette.css[name] = `rgb(${rgb.map(Math.round).join(', ')})`;
@@ -374,14 +547,17 @@ const Surface = {
   },
 
   // now and then a short dash of light somewhere on a tile, growing and shrinking over glintFor
-  // seconds. each tile has its own time between them, and every one's somewhere new on it
-  glint(col, row, now) {
+  // seconds. each tile has its own time between them, and every one's somewhere new on it. fewer the
+  // less light's on it (SURFACE_LIGHT.glints) and the less it shines (type, its tile kind)
+  glint(col, row, now, type) {
     const [soonest, latest] = SURFACE.glintEvery;
     const every = soonest + (latest - soonest) * surfaceHash(col, row, 1);
     const time = now + surfaceHash(col, row, 2) * every;
     const shown = (time % every) / SURFACE.glintFor;
     if (shown >= 1) return;
     const n = Math.floor(time / every);
+    const lit = this.litAt(col * SURFACE_ART - this.ox + SURFACE_ART / 2, row * SURFACE_ART - this.oy + SURFACE_ART / 2, SURFACE_LIGHT.glints);
+    if (surfaceHash(col, row, n + 1000) >= lit * (type.shine ?? 1)) return;
     const length = Math.round(Math.sin(shown * Math.PI) * 3);
     if (!length) return;
     // clear of the shore's foam, drifting a px along as it goes

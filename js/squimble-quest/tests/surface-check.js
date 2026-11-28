@@ -1,6 +1,8 @@
 // checks liquids' surfaces (surface.js): nothing's drawn off the liquid's tiles (a wake running up
 // the shore stops at it), the band under the bank is darker than the liquid, foam stays near the
-// shore, and with no liquid on screen there's nothing to draw. run it with
+// shore, and with no liquid on screen there's nothing to draw. and with light (lighting.js):
+// a lamp mirrored below where it hangs at night and not by
+// day, and the light given back only on the liquid. run it with
 // node js/squimble-quest/tests/surface-check.js
 // no output means it all passed
 const assert = require('assert');
@@ -62,6 +64,65 @@ assert(far.length <= 4, `foam stays near the shore, bar a glint or two (${far.le
 drawnImage = 0;
 Surface.draw({ get: () => sand }, 0, 3, 0, 3, edge, edge);
 assert.strictEqual(drawnImage, 0, 'no liquid, no layer');
+
+// ---------- light ----------
+let lightDrawn = 0;
+const lit = load(['config.js', 'lighting.js', 'surface.js'], {
+  millis: () => now,
+  hexToRgb: game.hexToRgb,
+  radians: (d) => (d * Math.PI) / 180,
+  UIElement: class {},
+  DataFiles: { register() {} },
+  ImageData: class { constructor(w, h) { this.data = new Uint8ClampedArray(w * h * 4); } },
+  document: { createElement: () => ({ getContext: () => ({ putImageData() {} }) }) },
+  drawingContext: { drawImage() {} },
+  Wakes: { draw() {} },
+  Particles: { list: [] },
+  particleAlpha: () => 0.4,
+  particleSize: () => 16,
+});
+const S = lit.Surface;
+// an 8 x 8 map with a clear lake in the middle 6 x 6
+const clear = { ...water, clarity: 0.45 };
+const lake = { get: (col, row) => (col >= 0 && col < 8 && row >= 0 && row < 8 ? (col >= 1 && col <= 6 && row >= 1 && row <= 6 ? clear : sand) : null) };
+const sky = (level) => ({ map: lake, ambient: [level, level, level], sky: { sky: [level, level, level], sun: null }, lights: [] });
+const lamp = { x: 4 * TILE, y: TILE + 4, z: 2 * TILE, rgb: [1, 0.8, 0.5], radius: 150, length: 0, angle: 0, cone: null };
+// every reflection's dashes over a few seconds
+const lookAt = (f) => {
+  lit.Lighting.frame = f;
+  const mirrored = [];
+  for (now = 0; now < 4000; now += 250) {
+    S.draw(lake, 0, 7, 0, 7, edge, edge);
+    mirrored.push(...S.mirrored);
+  }
+  return { mirrored };
+};
+const night = lookAt({ ...sky(0.1), lights: [lamp] }).mirrored;
+assert(night.length > 0, 'a lamp is mirrored at night');
+const mirror = (lamp.y + lamp.z) / ART_SCALE;
+assert(night.every((m) => Math.abs(m.ay - mirror) <= game.SURFACE_LIGHT.reflect.tall[1] + 1), 'below where it hangs');
+assert.strictEqual(lookAt({ ...sky(1.5), lights: [lamp] }).mirrored.length, 0, 'outshone by day');
+
+// the light given back is only on the liquid, and brighter where a reflection is
+const ctx = { save() {}, restore() {}, drawImage: () => lightDrawn++ };
+const f = { ...sky(0.3), lights: [lamp] };
+lit.Lighting.frame = f;
+S.draw(lake, 0, 7, 0, 7, edge, edge);
+S.lightUp(ctx, f);
+assert.strictEqual(lightDrawn, 1, 'it adds to the light map');
+const glow = S.glowPixels;
+assert(glow.every((c, i) => !c || S.water[i]), 'only on the liquid');
+const plain = glow.find((c, i) => c && S.water[i]);
+const dash = S.mirrored.find((m) => S.water[(m.ay - S.oy) * S.w + m.ax - S.ox]);
+assert(dash, 'a reflection on the liquid');
+assert(brightness(glow[(dash.ay - S.oy) * S.w + dash.ax - S.ox]) > brightness(plain), 'brighter on a reflection');
+
+// how lit somewhere is: more near a lamp, none of it behind a beam
+const close = lit.lightNear({ ...sky(0), lights: [lamp] }, lamp.x + 10, lamp.y);
+const away = lit.lightNear({ ...sky(0), lights: [lamp] }, lamp.x + 140, lamp.y);
+assert(close[0] > away[0] && away[0] > 0, 'lit more near a lamp');
+const beam = { ...lamp, cone: Math.PI / 2, aim: 0 };
+assert.strictEqual(lit.lightNear({ ...sky(0), lights: [beam] }, lamp.x - 40, lamp.y)[0], 0, 'nothing behind a beam');
 
 function packed(hex) {
   return game.packColour(game.hexToRgb(hex));

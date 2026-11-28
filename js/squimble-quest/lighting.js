@@ -50,6 +50,10 @@
 //      toe. lights behind something light it less from the front and give it a bright edge instead
 //      (rim light). a building's front gets the light along its base, and its roof gets the sky
 //   7. the light map rolls off towards white (above) and multiplies the world
+// liquids react to it too (surface.js): the frame's lights and sky are kept (Lighting.frame), and the
+// surface drawn next frame glints and mirrors the lights by how lit it is there
+// (lightNear()). in step 1 the liquid adds the sky's light it gives back, and the lights' reflections,
+// to the light map (Surface.lightUp()).
 // then Lighting.drawGlow() (sketch.js, after the atmosphere so it shows through fog) puts the glowing
 // paint over the top in its lit colours (an object's glowImage is the same picture as its image with
 // only the glowing pixels, drawn lit: the windows yellow, the neon tubes bright), as bright as its light
@@ -103,7 +107,8 @@
 //   a map setting     Light tab settings are lines in ATMOSPHERE_SETTINGS (atmosphere.js), read here
 //
 // ---------- taking it out ----------
-// delete this file and its <script> tag (squimble-quest.html) and line atop sketch.js, the three
+// delete this file and its <script> tag (squimble-quest.html) and line atop sketch.js, surface.js's
+// light() and lightUp() (liquids then keep to daylight), the three
 // Lighting lines in sketch.js, `lighting` in GAME_SETTINGS (config.js) and SETTING_ROWS (pausemenu.js),
 // the lighting lines in debug.js, `lights` and `lightGuide` in EDITOR_COMMANDS and EDITOR_MENUS
 // (editormenu.js), the lines in editor.js that say lighting.js (the Lights and Objects tabs' buttons,
@@ -119,7 +124,7 @@
 //     plain javascript from the same lights and boxes, never read back from the light map
 //   - areas with their own light (a dark cave mouth on a sunny map), lights you switch with E, lights
 //     on enemies and npcs (a lantern carrier, glowing eyes: a "light" on their kind, like items)
-//   - light through windows (a shaped patch on the floor), reflections of lights in water
+//   - light through windows (a shaped patch on the floor)
 //
 // shortcut: other characters' shadows from lamps don't darken you, only the sun's do (trees' shade),
 // since each thing's light is sampled before lamp shadows are laid down so it never darkens itself.
@@ -620,6 +625,33 @@ function skyAt(a, hour) {
   };
 }
 
+// about how much light reaches x, y on the ground (world px) in frame f (Lighting.build()), as
+// [r, g, b]: the sky, the sun or moon and every light, added up like the light map does. worked out in
+// plain javascript, never read back from the light map, so it's quick. for liquids (surface.js)
+// shortcut: no shadows, and a bar's beam is aimed from its nearest point. a shadow over water still
+// glints. walking the boxes like drawSun() would fix it
+function lightNear(f, x, y) {
+  const rgb = f.ambient.map((c, i) => c + (f.sky.sun?.[i] ?? 0));
+  for (const l of f.lights) {
+    let dx = x - l.x;
+    let dy = y - l.y;
+    if (l.length) {
+      const along = Math.max(-l.length / 2, Math.min(l.length / 2, dx * Math.cos(l.angle) + dy * Math.sin(l.angle)));
+      dx -= Math.cos(l.angle) * along;
+      dy -= Math.sin(l.angle) * along;
+    }
+    const d = Math.hypot(dx, dy);
+    if (d >= l.radius) continue;
+    if (l.cone !== null && d > 0) {
+      const off = Math.abs(((Math.atan2(dy, dx) - l.aim + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
+      if (off > l.cone / 2) continue;
+    }
+    const k = lightFade(d / l.radius);
+    for (let i = 0; i < 3; i++) rgb[i] += l.rgb[i] * k;
+  }
+  return rgb;
+}
+
 // ---------- canvases ----------
 
 // a plain canvas that only ever grows, so changing size (zooming) doesn't keep remaking it
@@ -906,7 +938,7 @@ const Lighting = {
     const oy = Math.floor(view.top / cell) * cell - cell;
     const cols = Math.ceil((view.right - ox) / cell) + 2;
     const rows = Math.ceil((view.bottom - oy) / cell) + 2;
-    const f = { settings: a, cell, ox, oy, cols, rows, view, sun: null };
+    const f = { settings: a, cell, ox, oy, cols, rows, view, sun: null, map };
     // a preview's scene keeps its own hour, whatever dev mode's clock says
     const sky = skyAt(a, scene ? a.lightTime : this.hourOn(a));
     this.darkness = Math.max(0, Math.min(1, (0.42 - Math.max(...sky.sky)) / 0.2));
@@ -923,7 +955,7 @@ const Lighting = {
     });
     // the light round you, only in the dark
     if (a.lightPlayer > 0 && this.darkness > 0 && !player.dead && !Editor.active && !scene) {
-      lights.push({ x: player.x, y: player.y + player.h / 2, z: LIGHTING.you.height, rgb: LIGHTING.you.colour.map((c) => c * LIGHTING.you.strength * this.darkness), flicker: 1, radius: a.lightPlayer, length: 0, angle: 0, cone: null, aim: 0, shadows: false, owner: player, glow: 0, glowSize: 0 });
+      lights.push({ x: player.x, y: player.y + player.h / 2, z: LIGHTING.you.height, rgb: LIGHTING.you.colour.map((c) => c * LIGHTING.you.strength * this.darkness), flicker: 1, radius: a.lightPlayer, length: 0, angle: 0, cone: null, aim: 0, shadows: false, owner: player, glow: 0, glowSize: 0, you: true });
     }
     // lights with shadows and beams get their own canvas, the closest ones to the middle first
     const middle = { x: camera.x, y: camera.y };
@@ -953,6 +985,9 @@ const Lighting = {
     this.drawTileGlow(lc, map, f);
     world(lc);
     for (const l of plain) this.drawLight(lc, l, false);
+    // what liquids give back: the sky, and the lights mirrored in them (surface.js)
+    Object.assign(f, { ambient, sky, lights });
+    Surface.lightUp(lc, f);
     // the glow's halos for lights not on a thing (the rest go on with their thing, step 6)
     const gc = glow.ctx;
     for (const c of [glow.ctx, emit.ctx]) {

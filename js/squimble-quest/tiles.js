@@ -121,6 +121,9 @@ const TILE_DEFAULTS = {
   // the ring round whoever's in it, where they meet the surface, and the foam, glints, wakes and
   // ripples on it, mixed with its colour (surface.js)
   surfaceColour: '#ffffff',
+  // how much it shines (surface.js's SURFACE_LIGHT): its glints, the lights mirrored in it and the sky's
+  // light it gives back. 1 is water, lower for dull liquids like mud, 0 for none
+  shine: 1,
   // it gives off light (lava): the ring glows and so does whoever's in it, from the surface up
   glow: false,
   // how strong the V shaped wake behind whoever wades through it is (wakes.js): 1 is normal, lower is
